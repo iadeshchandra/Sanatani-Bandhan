@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  /* Default Saffron Theme */
+  --saffron-50: #FFF9F0;
+  --saffron-100: #FFF0D4;
+  --saffron-200: #FFE0A3;
+  --saffron-300: #FFCA6B;
+  --saffron-400: #FFAD2E;
+  --saffron-500: #FF8E00;
+  --saffron-600: #EB7100;
+  --saffron-700: #C25300;
+  --saffron-800: #993F08;
+  --saffron-900: #7A340C;
+  --saffron-950: #421802;
+  --sanatani-orange: #FF8E00;
+
+  --temple-50: #F6F5F4;
+  --temple-100: #EAE8E5;
+  --temple-200: #D3CFCB;
+  --temple-300: #B4AEA9;
+  --temple-400: #968F89;
+  --temple-500: #7D756F;
+  --temple-600: #645D58;
+  --temple-700: #524C48;
+  --temple-800: #46413E;
+  --temple-900: #3D3836;
+  --temple-950: #262321;
+}
+
+:root[data-theme="classic"] {
+  /* Classic Theme - Indigo/Slate */
+  --saffron-50: #EEF2FF;
+  --saffron-100: #E0E7FF;
+  --saffron-200: #C7D2FE;
+  --saffron-300: #A5B4FC;
+  --saffron-400: #818CF8;
+  --saffron-500: #6366F1;
+  --saffron-600: #4F46E5;
+  --saffron-700: #4338CA;
+  --saffron-800: #3730A3;
+  --saffron-900: #312E81;
+  --saffron-950: #1E1B4B;
+  --sanatani-orange: #6366F1;
+
+  --temple-50: #F8FAFC;
+  --temple-100: #F1F5F9;
+  --temple-200: #E2E8F0;
+  --temple-300: #CBD5E1;
+  --temple-400: #94A3B8;
+  --temple-500: #64748B;
+  --temple-600: #475569;
+  --temple-700: #334155;
+  --temple-800: #1E293B;
+  --temple-900: #0F172A;
+  --temple-950: #020617;
+}
+
+@theme {
+  --color-saffron-50: var(--saffron-50);
+  --color-saffron-100: var(--saffron-100);
+  --color-saffron-200: var(--saffron-200);
+  --color-saffron-300: var(--saffron-300);
+  --color-saffron-400: var(--saffron-400);
+  --color-saffron-500: var(--saffron-500);
+  --color-saffron-600: var(--saffron-600);
+  --color-saffron-700: var(--saffron-700);
+  --color-saffron-800: var(--saffron-800);
+  --color-saffron-900: var(--saffron-900);
+  --color-saffron-950: var(--saffron-950);
+  
+  --color-sanatani-orange: var(--sanatani-orange);
+  
+  --color-temple-50: var(--temple-50);
+  --color-temple-100: var(--temple-100);
+  --color-temple-200: var(--temple-200);
+  --color-temple-300: var(--temple-300);
+  --color-temple-400: var(--temple-400);
+  --color-temple-500: var(--temple-500);
+  --color-temple-600: var(--temple-600);
+  --color-temple-700: var(--temple-700);
+  --color-temple-800: var(--temple-800);
+  --color-temple-900: var(--temple-900);
+  --color-temple-950: var(--temple-950);
+}
+
+
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ============================================================
+   UX PRIMITIVES — global accessibility & motion layer
+   (appended by UI/UX overhaul; theme tokens above untouched)
+   ============================================================ */
+
+/* Visible saffron focus ring for any natively focusable element
+   that doesn't set its own :focus-visible style. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #FF8E00;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Keyboard hint chip, e.g. <kbd class="kbd">⌘K</kbd> */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
+  border: 1px solid #46413E;
+  border-bottom-width: 2px;
+  background: #3D3836;
+  color: #B4AEA9;
+  font-family: ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Refined temple-themed scrollbar (overrides the neutral default above) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(38, 35, 33, 0.6);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #7D756F;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #FF8E00;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
