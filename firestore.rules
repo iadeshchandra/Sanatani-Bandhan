@@ -1,103 +1,464 @@
 rules_version = '2';
 
+/**
+ * Sanatani Bandhan — Hardened Firestore Security Rules (Phase 21S)
+ * =================================================================
+ * Model: DENY-BY-DEFAULT with tenant isolation.
+ *
+ * Identity: Firebase Auth. Authorization comes from custom claims
+ * (`tenantId`, `role`, optional `roles[]`) minted by the server
+ * provisioning engine (POST /api/auth/verify-pin, POST /api/admin/users/:uid/claims).
+ * During migration, claims fall back to the `users/{uid}` document
+ * (`workspaceId`, `role` fields).
+ *
+ * Tenant isolation: a caller may only touch documents whose tenant matches
+ * their own `tenantId` claim (or the '*' wildcard), unless SuperAdmin.
+ *
+ * DEMO_* workspaces are public sandboxes: reads are public, writes require
+ * any authenticated session. Production data is never readable anonymously.
+ *
+ * Sensitive field allow-lists are enforced on writes; destructive deletes on
+ * financial ledgers are forbidden (append-only fiduciary posture).
+ */
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Global Authentication Helper
+    // ------------------------------------------------------------------
+    // 1. Identity & role helpers
+    // ------------------------------------------------------------------
     function isLoggedIn() {
       return request.auth != null && request.auth.uid != null;
     }
 
+    // Platform SuperAdmin: explicit claim, canonical role claim, or the
+    // server-managed platform_admins registry (active != false).
     function isSuperAdmin() {
       return isLoggedIn() && (
-        exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid)) ||
-        (request.auth.token != null && request.auth.token.role == 'SuperAdmin')
+        request.auth.token.isSuperAdmin == true ||
+        request.auth.token.role in ['SuperAdmin', 'SUPER_ADMIN'] ||
+        (request.auth.token.roles is list &&
+          request.auth.token.roles.hasAny(['SuperAdmin', 'SUPER_ADMIN'])) ||
+        (exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/platform_admins/$(request.auth.uid)).data.get('active', true) != false)
       );
     }
 
-    // 2. Tenant Access Helper:
-    // Permits access for demo workspaces (DEMO_*), authenticated members, matching workspace claims, or SuperAdmin
-    function isTenantAllowed(tenantId) {
-      return tenantId.matches('^DEMO_.*') ||
+    // Effective tenant: custom claim wins, else the users/{uid} document.
+    function effTenant() {
+      return request.auth == null ? null :
+        (request.auth.token.tenantId != null ? request.auth.token.tenantId :
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('workspaceId', null) : null));
+    }
+
+    // Role check: single `role` claim, `roles[]` claim, or users-doc fallback.
+    // `roles` is the allow-list (canonical + legacy UPPER_CASE variants).
+    function roleIn(roles) {
+      return request.auth != null && (
+        request.auth.token.role in roles ||
+        (request.auth.token.roles is list && request.auth.token.roles.hasAny(roles)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', null) in roles)
+      );
+    }
+
+    function isDemoWs(id) {
+      return id != null && id.matches('^DEMO_.*');
+    }
+
+    // Task contract: tenant member = logged in AND (own tenant claim |
+    // wildcard '*' claim | SuperAdmin). The null-guard is load-bearing:
+    // without it, `null == null` would grant membership for documents that
+    // carry no tenant id (fail closed instead).
+    function isTenantMember(tenantId) {
+      return isLoggedIn() && tenantId != null && (
         isSuperAdmin() ||
-        isLoggedIn();
+        tenantId == effTenant() ||
+        effTenant() == '*'
+      );
     }
 
-    // 3. Users Collection: Users can read and update their own profile
-    match /users/{userId} {
-      allow read, write: if isLoggedIn();
+    // Task contract: role check scoped to the tenant. SuperAdmin bypasses
+    // role checks (needed for platform admins acting cross-tenant).
+    function hasRole(tenantId, roles) {
+      return isSuperAdmin() || (isTenantMember(tenantId) && roleIn(roles));
     }
 
-    // 4. Multi-Tenant Partition Collection with Super Admin God Mode
-    // Public/Discovery access to root tenant institutional profiles (Name, Location, Tier)
-    match /tenants/{tenantId} {
-      allow read: if true;
-      allow write: if isTenantAllowed(tenantId);
-      
-      // Sensitive isolated subcollections
-      match /treasury/{docId} {
-        allow read: if true;
-        allow write: if isTenantAllowed(tenantId);
-      }
-      match /devotees/{docId} {
-        allow read: if true;
-        allow write: if isTenantAllowed(tenantId);
-      }
-      match /yatranet_alerts/{docId} {
-        allow read: if true;
-        allow write: if isTenantAllowed(tenantId);
-      }
+    // DEMO sandboxes: public reads; writes need an authenticated session.
+    function demoPublicRead(wsId) {
+      return isDemoWs(wsId) && (request.auth == null || effTenant() == wsId || isSuperAdmin());
+    }
+    function demoWriteOk(wsId) {
+      return isLoggedIn() && isDemoWs(wsId);
     }
 
-    // 5. Communities Workspace Partition
-    match /communities/{communityId}/{document=**} {
-      allow read, write: if true;
+    // Workspace id carried on root-collection documents (fail closed if absent).
+    function docWs() {
+      return resource.data.get('workspaceId', null);
+    }
+    function newDocWs() {
+      return request.resource.data.get('workspaceId', null);
+    }
+    function wsImmutable() {
+      return request.resource.data.get('workspaceId', null) == resource.data.get('workspaceId', null);
     }
 
-    // 6. Global Collections
-    match /devotees/{docId} {
-      allow read, write: if true;
+    // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
+    function R_FINANCE() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT'];
     }
-    match /puja_bookings/{docId} {
-      allow read, write: if true;
+    function R_STAFF() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
     }
-    match /donations/{docId} {
-      allow read, write: if true;
+    function R_RITUAL() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Priest', 'PRIEST', 'PUROHIT', 'Manager', 'MANAGER', 'Sevadar', 'SEVADAR'];
     }
-    match /treasury/{docId} {
-      allow read, write: if true;
-    }
-    match /inventory_items/{docId} {
-      allow read, write: if true;
-    }
-    match /yatra_broadcasts/{docId} {
-      allow read, write: if true;
-    }
-    match /chats/{chatId}/{document=**} {
-      allow read, write: if true;
-    }
-    match /polls/{docId} {
-      allow read, write: if true;
-    }
-    match /upgrade_requests/{docId} {
-      allow read, write: if true;
-    }
-    match /check_ins/{docId} {
-      allow read, write: if true;
-    }
-    match /audit_logs/{docId} {
-      allow read, write: if true;
-    }
-    match /global_support_threads/{docId} {
-      allow read, write: if true;
-    }
-    match /global_support_replies/{docId} {
-      allow read, write: if true;
+    function R_ANY_STAFF() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER',
+              'Accountant', 'ACCOUNTANT', 'Priest', 'PRIEST', 'PUROHIT', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
     }
 
+    // ------------------------------------------------------------------
+    // 2. Platform admin registry (server-managed via Admin SDK only)
+    // ------------------------------------------------------------------
     match /platform_admins/{adminId} {
+      allow read: if isSuperAdmin();
+      allow write: if false;
+    }
+
+    match /platform_leads/{leadId} {
+      allow create: if true; // public lead-capture form
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    match /app_config/{configId} {
       allow read: if isLoggedIn();
       allow write: if isSuperAdmin();
     }
+
+    // ------------------------------------------------------------------
+    // 3. User profiles — owner or SuperAdmin only.
+    //    Clients can never self-grant role / tenant / admin flags.
+    // ------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow create: if isLoggedIn() && request.auth.uid == userId
+        && !request.resource.data.keys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId'])
+        && (
+          // DEMO sandbox: may self-claim a demo workspace + starter role
+          isDemoWs(request.resource.data.get('workspaceId', null))
+          // Standard registration: no privilege or tenant claims at all
+          || !request.resource.data.keys().hasAny(['role', 'workspaceId', 'defaultWorkspaceId', 'membership'])
+        );
+      allow update: if isSuperAdmin() || (
+        isLoggedIn() && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId', 'role', 'workspaceId', 'defaultWorkspaceId', 'membership'])
+      );
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // 4. Tenant partitions
+    //    - /tenants/{id}: public discovery doc (name/city/type/logo only).
+    //      Sensitive fields live in /private (restricted).
+    //    - Writes: Trustee+ with a strict public-field allow-list.
+    // ------------------------------------------------------------------
+    match /tenants/{tenantId} {
+      allow read: if true; // public discovery
+      allow create: if isSuperAdmin();
+      allow update: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'city', 'state', 'country', 'type', 'logoUrl', 'tagline', 'updatedAt']);
+      allow delete: if isSuperAdmin();
+
+      // Sensitive tenant fields (bank details, tax ids, keys) — restricted.
+      match /private/{docId} {
+        allow read, write: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      }
+
+      // Curated public profile mirror for discovery clients.
+      match /publicProfile/{docId} {
+        allow read: if true;
+        allow write: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      }
+
+      // Tenant-scoped financial ledger (path-param tenant).
+      match /treasury/{docId} {
+        allow read: if demoPublicRead(tenantId) || hasRole(tenantId, R_FINANCE());
+        allow create: if demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE());
+        allow update: if (demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE()));
+        allow delete: if false; // append-only fiduciary ledger
+      }
+
+      match /devotees/{docId} {
+        allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
+        allow create, update: if demoWriteOk(tenantId) || hasRole(tenantId, R_STAFF());
+        allow delete: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      }
+
+      match /yatranet_alerts/{docId} {
+        allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
+        allow create: if demoWriteOk(tenantId) || isTenantMember(tenantId);
+        allow update, delete: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // 5. Workspace documents (client-managed workspaces collection)
+    // ------------------------------------------------------------------
+    match /workspaces/{workspaceId} {
+      // NOTE: adminPinHash may only ever be written via the server
+      // (POST /api/admin/tenants/:id/pin uses the Admin SDK and bypasses rules).
+      allow read: if isTenantMember(workspaceId);
+      allow create: if isLoggedIn()
+        && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
+      allow update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']);
+      allow delete: if isSuperAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // 6. Root collections (keyed by `workspaceId` field) — deny by default
+    // ------------------------------------------------------------------
+
+    // Financial ledger — append-only.
+    match /treasury/{docId} {
+      allow read: if demoPublicRead(docWs())
+        || hasRole(docWs(), R_FINANCE())
+        || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow delete: if false;
+    }
+
+    match /treasury_ledgers/{docId} {
+      allow read: if demoPublicRead(docWs())
+        || hasRole(docWs(), R_FINANCE())
+        || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow delete: if false;
+    }
+
+    match /donations/{donationId} {
+      allow read: if demoPublicRead(docWs())
+        || hasRole(docWs(), R_FINANCE())
+        || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())
+        || (isTenantMember(newDocWs()) && request.resource.data.get('donorId', '') == request.auth.uid
+            && request.resource.data.get('status', '') == 'pledged'));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /tax_receipts/{receiptId} {
+      allow read: if demoPublicRead(docWs())
+        || hasRole(docWs(), R_FINANCE())
+        || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow delete: if false;
+    }
+
+    // Devotee PII — read: any tenant member; write: staff roles only
+    // (Accountant is intentionally excluded from PII writes).
+    match /devotees/{devoteeId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
+        || resource.data.get('userId', '') == request.auth.uid || devoteeId == request.auth.uid;
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())
+        || (isTenantMember(newDocWs()) && request.resource.data.get('userId', '') == request.auth.uid));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_STAFF())
+        || (isTenantMember(docWs()) && resource.data.get('userId', '') == request.auth.uid)) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /households/{householdId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /puja_bookings/{bookingId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
+        || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /poojaBookings/{bookingId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
+        || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // Inventory & assets
+    match /inventory_items/{itemId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /inventory/{itemId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /assets/{assetId} {
+      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /fixed_assets/{assetId} {
+      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // Goshala / Dharamshala operations
+    match /cows/{cattleId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /gaushala_cattle/{cattleId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /rooms/{roomId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /dharamshala_rooms/{roomId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // Generic operational collections (annadanam, campaigns, check-ins...)
+    match /{collection}/{docId} {
+      allow read: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
+          'resolutions', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+        && (demoPublicRead(docWs()) || isTenantMember(docWs()));
+      allow create: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
+          'resolutions', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+        && (demoWriteOk(newDocWs()) || (isTenantMember(newDocWs()) && roleIn(R_ANY_STAFF())));
+      allow update: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
+          'resolutions', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+        && (demoWriteOk(docWs()) || (isTenantMember(docWs()) && roleIn(R_ANY_STAFF()))) && wsImmutable();
+      allow delete: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
+          'resolutions', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+        && hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // Audit logs — append-only, actor-bound.
+    match /audit_logs/{logId} {
+      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
+      allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
+        && request.resource.data.get('actorId', '') == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Crisis events
+    match /crisis_events/{eventId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create: if demoWriteOk(newDocWs()) || isTenantMember(newDocWs());
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // Polls
+    match /polls/{pollId} {
+      allow read: if isLoggedIn();
+      allow write: if hasRole(effTenant(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+    match /panchayat_polls/{pollId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])) && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      match /votes/{userId} {
+        allow read: if request.auth.uid == userId || hasRole(get(/databases/$(database)/documents/panchayat_polls/$(pollId)).data.get('workspaceId', null), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        allow create: if request.auth.uid == userId
+          && !exists(/databases/$(database)/documents/panchayat_polls/$(pollId)/votes/$(userId));
+        allow update, delete: if false;
+      }
+    }
+
+    // YatraNet broadcasts — keyed by communityId.
+    match /yatra_broadcasts/{bId} {
+      allow read: if isSuperAdmin()
+        || (isDemoWs(resource.data.get('communityId', null)) && (request.auth == null || effTenant() == resource.data.get('communityId', null)))
+        || isTenantMember(resource.data.get('communityId', null));
+      allow create: if isLoggedIn() && (isDemoWs(request.resource.data.get('communityId', null))
+        || isTenantMember(request.resource.data.get('communityId', null)));
+      allow update: if isSuperAdmin() || (isTenantMember(resource.data.get('communityId', null))
+        && request.resource.data.get('communityId', null) == resource.data.get('communityId', null));
+      allow delete: if isSuperAdmin();
+    }
+    match /yatra_alerts/{aId} {
+      allow read: if isSuperAdmin()
+        || (isDemoWs(resource.data.get('communityId', null)) && (request.auth == null || effTenant() == resource.data.get('communityId', null)))
+        || isTenantMember(resource.data.get('communityId', null));
+      allow create: if isLoggedIn() && (isDemoWs(request.resource.data.get('communityId', null))
+        || isTenantMember(request.resource.data.get('communityId', null)));
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Support threads
+    match /global_support_threads/{tId} {
+      allow read, create: if isLoggedIn();
+      allow update, delete: if isSuperAdmin();
+    }
+    match /global_support_replies/{rId} {
+      allow read, create: if isLoggedIn();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Chats — participant-gated.
+    match /chats/{chatId} {
+      allow read: if isSuperAdmin() || (isLoggedIn() && (
+        (resource == null || (resource.data.get('participants', null) is list && request.auth.uid in resource.data.get('participants', []))) ||
+        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+      allow create: if isSuperAdmin() || (isLoggedIn() && (
+        (request.resource.data.get('participants', null) is list && request.auth.uid in request.resource.data.get('participants', [])) ||
+        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+      allow update: if isSuperAdmin() || (isLoggedIn() && (
+        (resource.data.get('participants', null) is list && request.auth.uid in resource.data.get('participants', []) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants'])) ||
+        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+      allow delete: if false;
+      match /messages/{messageId} {
+        allow read: if isSuperAdmin() || (isLoggedIn() && (
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
+            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])) ||
+          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+        allow create: if isSuperAdmin() || (isLoggedIn() && (
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
+            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', []) &&
+            request.resource.data.get('senderId', '') == request.auth.uid) ||
+          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+        allow update, delete: if false;
+      }
+    }
+
+    // Upgrade requests
+    match /upgrade_requests/{reqId} {
+      allow create: if isLoggedIn();
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // Community subcollections (social feed, vivah, sadhana...)
+    match /communities/{communityId}/{collectionName}/{docId} {
+      allow read: if isSuperAdmin()
+        || (isDemoWs(communityId) && (request.auth == null || effTenant() == communityId))
+        || isTenantMember(communityId);
+      allow write: if isLoggedIn() && (isDemoWs(communityId) || isTenantMember(communityId));
+    }
+
+    // NOTE: no catch-all allow — default deny.
   }
 }
