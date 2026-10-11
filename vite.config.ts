@@ -5,7 +5,12 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
+  // GitHub Pages serves project sites under /<repo>/ — set GITHUB_PAGES=true
+  // in the deploy workflow so asset URLs and the PWA manifest resolve there.
+  // Local dev and other hosts keep base '/'.
+  const base = process.env.GITHUB_PAGES === 'true' ? '/Sanatani-Bandhan/' : '/';
   return {
+    base,
     plugins: [
       react(),
       tailwindcss(),
@@ -89,8 +94,8 @@ export default defineConfig(() => {
           background_color: '#1c1917',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: '/',
-          scope: '/',
+          start_url: base,
+          scope: base,
           icons: [
             {
               src: '/icon-16x16.png',
@@ -191,6 +196,13 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Proxy API calls to the Express backend during local development.
+      proxy: {
+        '/api': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

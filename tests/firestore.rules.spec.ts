@@ -33,6 +33,7 @@ beforeEach(async () => {
     await db.collection('users').doc('user-1').set({ workspaceId: 'ws-1', role: 'DEVOTEE' });
     await db.collection('users').doc('user-2').set({ workspaceId: 'ws-2', role: 'DEVOTEE' });
     await db.collection('users').doc('demo-user-1').set({ workspaceId: 'DEMO_123', role: 'SUPER_ADMIN' });
+    await db.collection('users').doc('acct-1').set({ workspaceId: 'ws-1', role: 'Accountant' });
 
     // Setup Devotees (Tenant Data)
     await db.collection('devotees').doc('dev-1').set({ workspaceId: 'ws-1', name: 'Devotee 1' });
@@ -41,6 +42,10 @@ beforeEach(async () => {
 
     // Setup Treasury
     await db.collection('treasury').doc('tr-1').set({ workspaceId: 'ws-1', amount: 100 });
+    await db.collection('treasury').doc('demo-tr-1').set({ workspaceId: 'DEMO_123', amount: 50 });
+
+    // Setup Tenants (public discovery doc)
+    await db.collection('tenants').doc('t1').set({ name: 'Test Mandir', city: 'Varanasi', type: 'Mandir' });
   });
 });
 
@@ -411,5 +416,61 @@ describe('Firestore Security Rules', () => {
       type: 'RICH_SOS',
       communityId: 'ws-1'
     }));
+  });
+
+  // ---- Phase 21S Security Hardening: deny-by-default + tenant isolation ----
+
+  it('56. Unauthenticated read of the treasury ledger is denied', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(unauthDb.collection('treasury').doc('tr-1').get());
+  });
+
+  it('57. Cross-tenant read of the treasury ledger is denied', async () => {
+    const user2Db = testEnv.authenticatedContext('user-2').firestore(); // ws-2
+    await assertFails(user2Db.collection('treasury').doc('tr-1').get()); // ws-1
+  });
+
+  it('58. Accountant cannot write devotee PII (outside finance role scope)', async () => {
+    const acctDb = testEnv.authenticatedContext('acct-1').firestore(); // Accountant in ws-1
+    await assertFails(acctDb.collection('devotees').doc('dev-1').update({ name: 'Tampered' }));
+    await assertFails(acctDb.collection('devotees').add({ workspaceId: 'ws-1', name: 'Sneaky' }));
+  });
+
+  it('58b. Accountant CAN read the treasury ledger of their own tenant', async () => {
+    const acctDb = testEnv.authenticatedContext('acct-1').firestore(); // Accountant in ws-1
+    await assertSucceeds(acctDb.collection('treasury').doc('tr-1').get());
+  });
+
+  it('59. DEMO treasury reads are public, but anonymous writes are denied', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(unauthDb.collection('treasury').doc('demo-tr-1').get());
+    await assertFails(unauthDb.collection('treasury').add({ workspaceId: 'DEMO_123', amount: 1 }));
+  });
+
+  it('60. User cannot write another user\'s /users document', async () => {
+    const user1Db = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(user1Db.collection('users').doc('user-2').update({ phone: '+91 00000 00000' }));
+    await assertFails(user1Db.collection('users').doc('user-2').set({ workspaceId: 'ws-1' }));
+  });
+
+  it('61. Tenant discovery doc is publicly readable but not publicly writable', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(unauthDb.collection('tenants').doc('t1').get());
+    await assertFails(unauthDb.collection('tenants').doc('t1').update({ name: 'Hijacked' }));
+  });
+
+  it('62. Authenticated non-staff member cannot write devotee PII', async () => {
+    const user1Db = testEnv.authenticatedContext('user-1').firestore(); // DEVOTEE in ws-1
+    await assertFails(user1Db.collection('devotees').doc('dev-1').update({ name: 'Tampered' }));
+  });
+
+  it('63. Treasury ledger is append-only: deletes are denied even for admins', async () => {
+    const adminDb = testEnv.authenticatedContext('admin-1').firestore(); // SUPER_ADMIN in ws-1
+    await assertFails(adminDb.collection('treasury').doc('tr-1').delete());
+  });
+
+  it('64. workspaceId cannot be moved between tenants on update', async () => {
+    const adminDb = testEnv.authenticatedContext('admin-1').firestore();
+    await assertFails(adminDb.collection('treasury').doc('tr-1').update({ workspaceId: 'ws-2' }));
   });
 });
