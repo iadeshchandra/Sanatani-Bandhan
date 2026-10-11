@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Registered user profile with role-based access",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "TRUSTEE", "PUJARI", "AUDITOR", "DEVOTEE"] },
+        "communityId": { "type": "string" },
+        "communityName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "CommunityWorkspace": {
+      "title": "Community Workspace",
+      "description": "Temple or Hindu organization workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "address": { "type": "string" },
+        "country": { "type": "string" },
+        "state": { "type": "string" },
+        "city": { "type": "string" },
+        "currencyCode": { "type": "string" },
+        "currencySymbol": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "adminUid": { "type": "string" }
+      },
+      "required": ["id", "name", "type"]
+    },
+    "DevoteeRecord": {
+      "title": "Devotee Record",
+      "description": "Devotee member record within a workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "name": { "type": "string" },
+        "gotra": { "type": "string" },
+        "nakshatra": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "pin": { "type": "string" },
+        "role": { "type": "string" },
+        "totalDonated": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "workspaceId", "name"]
+    },
+    "TreasuryDonation": {
+      "title": "Treasury Donation",
+      "description": "Double-entry donation and 80G tax receipt records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "donorName": { "type": "string" },
+        "donorPhone": { "type": "string" },
+        "donorPan": { "type": "string" },
+        "amount": { "type": "number" },
+        "fundType": { "type": "string" },
+        "paymentMode": { "type": "string" },
+        "receiptNo": { "type": "string" },
+        "is80GEligible": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "workspaceId", "donorName", "amount"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "entity": "UserProfile",
+      "description": "Collection of user accounts"
+    },
+    "workspaces": {
+      "entity": "CommunityWorkspace",
+      "description": "Collection of organization workspaces"
+    },
+    "devotees": {
+      "entity": "DevoteeRecord",
+      "description": "Devotee directory records"
+    },
+    "donations": {
+      "entity": "TreasuryDonation",
+      "description": "Financial donations and chanda ledgers"
+    },
+    "/tenants/{tenantId}/treasury": {
+      "schema": "TreasuryDonation",
+      "description": "Tenant-isolated financial transactions and donations"
+    },
+    "/tenants/{tenantId}/devotees": {
+      "schema": "DevoteeRecord",
+      "description": "Tenant-isolated devotee directory records"
+    }
+  }
+}

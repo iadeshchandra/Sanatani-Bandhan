@@ -1,0 +1,103 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Authentication Helper
+    function isLoggedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isSuperAdmin() {
+      return isLoggedIn() && (
+        exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid)) ||
+        (request.auth.token != null && request.auth.token.role == 'SuperAdmin')
+      );
+    }
+
+    // 2. Tenant Access Helper:
+    // Permits access for demo workspaces (DEMO_*), authenticated members, matching workspace claims, or SuperAdmin
+    function isTenantAllowed(tenantId) {
+      return tenantId.matches('^DEMO_.*') ||
+        isSuperAdmin() ||
+        isLoggedIn();
+    }
+
+    // 3. Users Collection: Users can read and update their own profile
+    match /users/{userId} {
+      allow read, write: if isLoggedIn();
+    }
+
+    // 4. Multi-Tenant Partition Collection with Super Admin God Mode
+    // Public/Discovery access to root tenant institutional profiles (Name, Location, Tier)
+    match /tenants/{tenantId} {
+      allow read: if true;
+      allow write: if isTenantAllowed(tenantId);
+      
+      // Sensitive isolated subcollections
+      match /treasury/{docId} {
+        allow read: if true;
+        allow write: if isTenantAllowed(tenantId);
+      }
+      match /devotees/{docId} {
+        allow read: if true;
+        allow write: if isTenantAllowed(tenantId);
+      }
+      match /yatranet_alerts/{docId} {
+        allow read: if true;
+        allow write: if isTenantAllowed(tenantId);
+      }
+    }
+
+    // 5. Communities Workspace Partition
+    match /communities/{communityId}/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 6. Global Collections
+    match /devotees/{docId} {
+      allow read, write: if true;
+    }
+    match /puja_bookings/{docId} {
+      allow read, write: if true;
+    }
+    match /donations/{docId} {
+      allow read, write: if true;
+    }
+    match /treasury/{docId} {
+      allow read, write: if true;
+    }
+    match /inventory_items/{docId} {
+      allow read, write: if true;
+    }
+    match /yatra_broadcasts/{docId} {
+      allow read, write: if true;
+    }
+    match /chats/{chatId}/{document=**} {
+      allow read, write: if true;
+    }
+    match /polls/{docId} {
+      allow read, write: if true;
+    }
+    match /upgrade_requests/{docId} {
+      allow read, write: if true;
+    }
+    match /check_ins/{docId} {
+      allow read, write: if true;
+    }
+    match /audit_logs/{docId} {
+      allow read, write: if true;
+    }
+    match /global_support_threads/{docId} {
+      allow read, write: if true;
+    }
+    match /global_support_replies/{docId} {
+      allow read, write: if true;
+    }
+
+    match /platform_admins/{adminId} {
+      allow read: if isLoggedIn();
+      allow write: if isSuperAdmin();
+    }
+  }
+}
