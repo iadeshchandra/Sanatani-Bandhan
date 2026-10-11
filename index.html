@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sanatani Bandhan | Enterprise Temple Management Software</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ea580c" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1917" />
+    <meta name="description" content="The leading cloud-based temple management software (ERP) for Mandirs, Goshalas, and Ashrams. Manage devotees, treasury, donations, and 80G receipts securely." />
+    <meta name="keywords" content="temple management software, dharmic ERP, mandir software, goshala management, ashram software, donation management, 80G receipts software, devotee CRM" />
+    <meta property="og:title" content="Sanatani Bandhan | Enterprise Temple Management Software" />
+    <meta property="og:description" content="Secure, offline-first cloud ERP for Mandirs, Goshalas, and Ashrams. Streamline treasury, devotee management, and Utsavs." />
+    <meta property="og:image" content="/logo.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sanatani Bandhan" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sanatani Bandhan | Temple Management Software" />
+    <meta name="twitter:description" content="Secure, offline-first cloud ERP for Mandirs, Goshalas, and Ashrams." />
+    <meta name="twitter:image" content="/logo.png" />
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://sanatanibandhan.web.app/#organization",
+          "name": "Sanatani Bandhan",
+          "url": "https://sanatanibandhan.web.app/",
+          "description": "Enterprise Temple Management, Purohit Services, and Sanatani Matrimony Platform.",
+          "logo": "https://sanatanibandhan.web.app/icon-192x192.png"
+        },
+        {
+          "@type": "Service",
+          "@id": "https://sanatanibandhan.web.app/#temple-management",
+          "name": "Enterprise Temple Management System",
+          "provider": {
+            "@id": "https://sanatanibandhan.web.app/#organization"
+          },
+          "description": "Comprehensive digital solution for Mandirs, Ashrams, and Goshalas."
+        },
+        {
+          "@type": "Service",
+          "@id": "https://sanatanibandhan.web.app/#purohit-services",
+          "name": "Global Purohit & Pooja Booking",
+          "provider": {
+            "@id": "https://sanatanibandhan.web.app/#organization"
+          },
+          "description": "Book verified Purohits and Pandits for Vedic rituals, Anushthans, and Homas globally."
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="sb-splash-screen" class="sb-startup-wrapper">
+      <style>
+        .sb-startup-wrapper {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          display: flex; align-items: center; justify-content: center;
+          background-color: #fafaf9;
+          font-family: system-ui, -apple-system, sans-serif;
+          z-index: 9999;
+          transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sb-startup-wrapper.fade-out {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .sb-splash-content {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          animation: sb-fade-up 0.8s ease-out;
+        }
+        .sb-startup-logo {
+          width: 88px; height: 88px;
+          border-radius: 20px;
+          animation: sb-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.25);
+        }
+        .sb-text-container {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .sb-startup-title {
+          color: #ea580c;
+          font-weight: 800;
+          font-size: 1.75rem;
+          letter-spacing: 0.025em;
+          text-transform: uppercase;
+          line-height: 1.2;
+        }
+        .sb-startup-subtitle {
+          color: #78716c;
+          font-weight: 600;
+          font-size: 1rem;
+          margin-top: 4px;
+        }
+        .sb-startup-status {
+          color: #a8a29e;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-top: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sb-spinner {
+          width: 14px; height: 14px;
+          border: 2px solid #fdba74;
+          border-top-color: #ea580c;
+          border-radius: 50%;
+          animation: sb-spin 1s linear infinite;
+        }
+        @keyframes sb-spin { to { transform: rotate(360deg); } }
+        @keyframes sb-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.85; transform: scale(0.97); }
+        }
+        @keyframes sb-fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .sb-custom-tagline {
+          color: #a8a29e;
+          font-style: italic;
+          font-size: 0.875rem;
+          margin-top: 4px;
+          font-weight: 400;
+        }
+        .sb-progress-container {
+          width: 100%;
+          min-width: 280px;
+          height: 4px;
+          background-color: #f5f5f4;
+          border-radius: 4px;
+          margin-top: 20px;
+          overflow: hidden;
+        }
+        .sb-progress-bar {
+          height: 100%;
+          width: 0%;
+          background-color: #ea580c;
+          border-radius: 4px;
+          animation: sb-progress-fill 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        @keyframes sb-progress-fill {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        @media (max-width: 640px) {
+          .sb-splash-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 16px;
+          }
+          .sb-text-container {
+            align-items: center;
+          }
+        }
+      </style>
+      <div class="sb-splash-content">
+        <img src="/icon-192x192.png" alt="Sanatani Bandhan Logo" class="sb-startup-logo" />
+        <div class="sb-text-container">
+          <div class="sb-startup-title">Sanatani Bandhan</div>
+          <div class="sb-startup-subtitle">Enterprise Temple Management System</div>
+          <div class="sb-custom-tagline">Preserving Heritage. Empowering Devotion.</div>
+          <div class="sb-startup-status">
+            <div class="sb-spinner"></div>
+            <span>Initializing Secure Environment...</span>
+          </div>
+          <div class="sb-progress-container">
+            <div class="sb-progress-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="root"></div>
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('app-theme');
+          if (theme === 'classic') {
+            document.documentElement.setAttribute('data-theme', 'classic');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

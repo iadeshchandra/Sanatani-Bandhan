@@ -1,0 +1,6 @@
+{
+  "name": "Sanatani Bandhan",
+  "description": "Universal digital command center, community ERP, and SaaS ecosystem for Hindu organizations worldwide with dynamic 10-workspace taxonomy, trilingual Panjika, lineage trees, double-entry treasury, ritual reservations, and Dharmic AI.",
+  "requestFramePermissions": ["camera", "publickey-credentials-create", "publickey-credentials-get"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
