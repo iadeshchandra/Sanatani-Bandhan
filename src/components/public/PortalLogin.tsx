@@ -11,9 +11,10 @@ import AppLogo from '../common/AppLogo';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType } from '../../types';
-import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { UserRole } from '../../types';
 
 const translations = {
   en: {
@@ -25,6 +26,10 @@ const translations = {
     login_identity: 'Identity',
     login_forgot: 'Forgot Password?',
     btn_access_portal: 'Access Portal',
+    qr_expired: 'This QR code has expired or was already used. Ask your temple office for a fresh code.',
+    qr_offline: 'Temple server unreachable — QR login needs an internet connection. Please use Email/Password.',
+    qr_not_login: 'This QR code is not a login code. Please scan the login QR from your temple office.',
+    qr_success: 'QR login successful. Welcome!',
     reg_warning_title: 'Enterprise Provisioning',
     reg_warning_desc_1: 'You are provisioning a new ',
     reg_warning_desc_2: ' workspace. This will create a dedicated cloud instance.',
@@ -50,6 +55,10 @@ const translations = {
     login_identity: 'पहचान',
     login_forgot: 'पासवर्ड भूल गए?',
     btn_access_portal: 'पोर्टल एक्सेस करें',
+    qr_expired: 'यह QR कोड समाप्त हो गया है या पहले ही उपयोग किया जा चुका है। कृपया अपने मंदिर कार्यालय से नया कोड लें।',
+    qr_offline: 'मंदिर सर्वर उपलब्ध नहीं है — QR लॉगिन के लिए इंटरनेट आवश्यक है। कृपया ईमेल/पासवर्ड उपयोग करें।',
+    qr_not_login: 'यह QR कोड लॉगिन कोड नहीं है। कृपया अपने मंदिर कार्यालय से लॉगिन QR स्कैन करें।',
+    qr_success: 'QR लॉगिन सफल। स्वागत है!',
     reg_warning_title: 'एंटरप्राइज प्रोविजनिंग',
     reg_warning_desc_1: 'आप एक नया ',
     reg_warning_desc_2: ' कार्यक्षेत्र बना रहे हैं। यह एक समर्पित क्लाउड इंस्टेंस बनाएगा।',
@@ -75,6 +84,10 @@ const translations = {
     login_identity: 'পরিচয়',
     login_forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
     btn_access_portal: 'পোর্টাল অ্যাক্সেস করুন',
+    qr_expired: 'এই QR কোডের মেয়াদ শেষ হয়ে গেছে বা এটি ইতিমধ্যে ব্যবহৃত হয়েছে। অনুগ্রহ করে আপনার মন্দির অফিস থেকে নতুন কোড নিন।',
+    qr_offline: 'মন্দির সার্ভারে পৌঁছানো যাচ্ছে না — QR লগইনের জন্য ইন্টারনেট প্রয়োজন। অনুগ্রহ করে ইমেল/পাসওয়ার্ড ব্যবহার করুন।',
+    qr_not_login: 'এই QR কোডটি লগইন কোড নয়। অনুগ্রহ করে আপনার মন্দির অফিস থেকে লগইন QR স্ক্যান করুন।',
+    qr_success: 'QR লগইন সফল। স্বাগতম!',
     reg_warning_title: 'এন্টারপ্রাইজ প্রভিশনিং',
     reg_warning_desc_1: 'আপনি একটি নতুন ',
     reg_warning_desc_2: ' ওয়ার্কস্পেস প্রভিশন করছেন। এটি একটি ডেডিকেটেড ক্লাউড ইন্সট্যান্স তৈরি করবে।',
@@ -249,7 +262,11 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       const identTrim = ident.trim();
       
       if (cred === 'QR_SCAN') {
-         return setError("Security Upgrade: QR Scanner login requires a paired device. Please use Email/Password.");
+        // Secure QR pairing login (WhatsApp-Web style): the scanned payload
+        // carries a one-time claim token — never credentials. The server
+        // validates it (single-use, 5-min TTL) and mints a session token.
+        await handleQRPairingLogin(ident);
+        return;
       }
 
       // Format identifier for Firebase Auth
@@ -285,8 +302,63 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Secure QR pairing login. Expects the scanned string to be a JSON pairing
+   * payload `{ v, type: 'sb-pair', token, wid, exp }` issued by the temple
+   * office. Claims it at POST /api/auth/qr-claim (single-use, 5-min TTL) and
+   * establishes the Firebase session from the minted custom token.
+   */
+  const handleQRPairingLogin = async (scanned: string) => {
+    let payload: any = null;
+    try {
+      payload = JSON.parse(scanned);
+    } catch {
+      payload = null;
+    }
+
+    if (!payload || payload.type !== 'sb-pair' || typeof payload.token !== 'string') {
+      setError(t('qr_not_login'));
+      return;
+    }
+
+    let resp: Response;
+    try {
+      resp = await fetch('/api/auth/qr-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: payload.token,
+          deviceLabel: (navigator.userAgent || '').slice(0, 120),
+        }),
+      });
+    } catch {
+      setError(t('qr_offline'));
+      return;
+    }
+
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data?.ok || typeof data.token !== 'string') {
+      // Non-enumerating: the server never says whether the token was
+      // unknown, expired, or already claimed.
+      setError(t('qr_expired'));
+      return;
+    }
+
+    try {
+      await signInWithCustomToken(auth, data.token);
+    } catch {
+      setError(t('qr_offline'));
+      return;
+    }
+
+    const member = data.member || {};
+    const role = (typeof member.role === 'string' && member.role ? member.role : 'Devotee') as UserRole;
+    loginAsRole(role, member.name || 'Devotee');
+    showToast(t('qr_success'), 'success');
+    onSuccess();
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {    e.preventDefault();
     clearErrors();
     if (!navigator.onLine) return setError("Internet connection required to create a new workspace.");
 
