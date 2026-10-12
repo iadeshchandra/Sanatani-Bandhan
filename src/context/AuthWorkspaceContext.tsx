@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { DevoteeMember, UserRole, WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../types';
 import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
+import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
 import {
   isCloudEnabled,
   getJwtRefreshSkewSec,
@@ -920,9 +921,10 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     setActiveWorkspaceId(newWorkspace.id);
   };
 
+  // Identity-verification QR payload (PIN-free). Delegates to the hardened
+  // qrUtils implementation — never embed credentials in a QR.
   const generateSecureQRToken = (member: DevoteeMember): string => {
-    const vaultToken = member.qrSecretVaultToken || btoa(`${member.id}-vault-${Date.now()}`);
-    return JSON.stringify({ id: member.id, pin: member.pin, token: vaultToken });
+    return buildSecureQRToken(member);
   };
 
   const currentUser = useMemo(() => {
