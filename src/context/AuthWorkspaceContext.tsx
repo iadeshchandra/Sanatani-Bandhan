@@ -7,6 +7,14 @@ import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
 import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
 import {
+  generatePinHash,
+  verifyPinHash,
+  pinAttemptAllowed,
+  pinRetryAfterSec,
+  recordPinFailure,
+  clearPinFailures,
+} from '../utils/pinCrypto';
+import {
   isCloudEnabled,
   getJwtRefreshSkewSec,
   setAuthTokenProvider,
@@ -680,12 +688,17 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   /**
-   * PIN login — Phase 21S hardened.
-   * - Devotee personal PINs (phone-suffix match) stay client-side: low privilege, no escalation.
-   * - Admin/master PINs are NEVER compared client-side. They are verified by the
-   *   server (POST /api/auth/verify-pin) against a peppered SHA-256 hash. On
-   *   success the server mints a Firebase custom token carrying { role, tenantId }
-   *   claims, so Firestore rules + RBAC enforce the session. Fail closed.
+   * PIN login — Phase 21S hardened, Spark-plan fallback added.
+   * - Devotee personal PINs stay client-side (low privilege, no escalation).
+   *   Verification prefers PBKDF2-SHA256 (`pinSalt`/`pinHash`) when present,
+   *   falling back to the legacy plaintext compare for old records.
+   * - Admin/master PINs are verified by the server FIRST
+   *   (POST /api/auth/verify-pin, peppered hash, custom-token session).
+   * - Server-FALLBACK (Spark plan, no server): when the API is unreachable,
+   *   the PIN is checked against a PBKDF2 hash cached on THIS DEVICE from a
+   *   previous successful server verification. This is a DEVICE-LOCK grade
+   *   check — it proves the device saw this PIN before, not server identity.
+   *   UI copy must say so. Client-side rate limit: 5 attempts → 60s cooldown.
    */
   const loginWithPin = async (pin: string, devoteeList: DevoteeMember[]): Promise<boolean> => {
     const toastEvent = (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => {
@@ -696,11 +709,39 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
+    const cleanPin = (pin || '').trim();
+    const rlKey = `pin-login:${activeWorkspaceId}`;
+
+    // Client-side rate limit for every fallback path below.
+    if (!pinAttemptAllowed(rlKey)) {
+      const wait = pinRetryAfterSec(rlKey);
+      toastEvent(
+        `Too many PIN attempts. Try again in ${wait} seconds.`,
+        'error',
+        'Rate Limited'
+      );
+      return false;
+    }
+
     // 1. Devotee personal PIN lookup (client-side, no privilege escalation).
+    //    Prefer the PBKDF2 hash when the record carries one; phone-suffix
+    //    login keeps its legacy behavior (suffix alone is the credential).
     const match = devoteeList.find(
       (d) => d.pin === pin || (typeof d.phone === 'string' && d.phone.endsWith(pin))
     );
     if (match) {
+      let verified: boolean;
+      if (match.pin === pin && match.pinSalt && match.pinHash) {
+        verified = await verifyPinHash(cleanPin, match.pinSalt, match.pinHash);
+      } else {
+        verified = true; // legacy plaintext / phone-suffix credential
+      }
+      if (!verified) {
+        recordPinFailure(rlKey);
+        toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
+        return false;
+      }
+      clearPinFailures(rlKey);
       setCurrentDevotee(match);
       const matchedRole = (ROLE_MIGRATION_MAP[match.role] || match.role || 'Devotee') as UserRole;
       setRole(matchedRole);
@@ -711,9 +752,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       return true;
     }
 
-    // 2. Admin PIN — server verification only. No hardcoded fallback exists.
-    const cleanPin = (pin || '').trim();
+    // 2. Admin PIN — server verification FIRST. No hardcoded fallback exists.
     if (cleanPin.length < 4 || cleanPin.length > 32) {
+      recordPinFailure(rlKey);
       toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
       return false;
     }
@@ -730,6 +771,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         if (resp.status === 429) {
           toastEvent('Too many PIN attempts. Please wait 15 minutes.', 'error', 'Rate Limited');
         } else {
+          recordPinFailure(rlKey);
           toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
         }
         return false;
@@ -742,6 +784,19 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         await signInAnonymously(auth).catch(console.error);
       }
 
+      // Remember a PBKDF2 hash of this verified PIN on THIS DEVICE ONLY,
+      // so a future offline login can do a device-lock grade check.
+      try {
+        const remembered = await generatePinHash(cleanPin);
+        localStorage.setItem(
+          `sb_admin_pin_hash_${activeWorkspaceId}`,
+          JSON.stringify(remembered)
+        );
+      } catch {
+        /* storage unavailable — offline fallback simply won't exist */
+      }
+
+      clearPinFailures(rlKey);
       const normalized = 'SuperAdmin' as UserRole;
       setRole(normalized);
       setCurrentRole(normalized);
@@ -752,7 +807,44 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       return true;
     } catch (err) {
       console.error('[Auth] PIN verification request failed:', err);
-      toastEvent('PIN verification unavailable. Check your connection and try again.', 'error', 'Offline');
+      // 3. Server unreachable → device-lock grade fallback. Honest copy:
+      //    this only proves the PIN matched one remembered by THIS device.
+      let remembered: { salt: string; hash: string } | null = null;
+      try {
+        const raw = localStorage.getItem(`sb_admin_pin_hash_${activeWorkspaceId}`);
+        remembered = raw ? JSON.parse(raw) : null;
+      } catch {
+        remembered = null;
+      }
+      if (
+        remembered &&
+        typeof remembered.salt === 'string' &&
+        typeof remembered.hash === 'string' &&
+        (await verifyPinHash(cleanPin, remembered.salt, remembered.hash))
+      ) {
+        clearPinFailures(rlKey);
+        await signInAnonymously(auth).catch(console.error);
+        const normalized = 'SuperAdmin' as UserRole;
+        setRole(normalized);
+        setCurrentRole(normalized);
+        setIsAuthenticated(true);
+        setViewMode('MANAGER');
+        set('sanatani_user_role', normalized);
+        toastEvent(
+          'Verified against this device\u2019s remembered PIN (device-lock grade) — server verification unavailable.',
+          'warning',
+          'Offline Admin Access'
+        );
+        return true;
+      }
+      recordPinFailure(rlKey);
+      toastEvent(
+        remembered
+          ? 'Invalid PIN. Please try again.'
+          : 'PIN verification unavailable (temple server unreachable) and no remembered PIN on this device. Check your connection and try again.',
+        'error',
+        'Access Denied'
+      );
       return false;
     }
   };
