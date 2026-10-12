@@ -739,7 +739,8 @@ const AppRouter: React.FC = () => {
           <Route element={<MainAppView />} path="*" />
         </Routes>
         <OfflineIndicator />
-        <PersonaSwitcher />
+        {/* Dev-only role tester: never renders in production builds. */}
+        {import.meta.env.DEV && <PersonaSwitcher />}
       </BrowserRouter>
     </LanguageProvider>
   );
