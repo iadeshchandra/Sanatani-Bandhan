@@ -1,7 +1,8 @@
 import QRCode from 'qrcode';
 import CryptoJS from 'crypto-js';
 import { DevoteeMember } from '../types';
-import { auth } from '../services/firebaseClient';
+import { auth, db } from '../services/firebaseClient';
+import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 export const APP_BASE_URL = 'https://sanatanibandhan.web.app';
 const DYNAMIC_TOKEN_PREFIX = 'SBDYN:';
@@ -301,42 +302,53 @@ export const verifyIdentityQRPayload = (
   }
 };
 
+/** Pairing token lifetime: 5 minutes (matches the QR copy shown to staff). */
+export const PAIRING_TOKEN_TTL_MS = 5 * 60 * 1000;
+
 /**
- * Requests a one-time QR pairing token from the server for a member.
- * Requires an authenticated Firebase session (staff or the member).
- * Throws Error('QR_PAIRING_UNAUTHENTICATED') when not signed in, or
- * Error('QR_PAIRING_UNAVAILABLE') when the server cannot be reached.
+ * Generates a cryptographically random 256-bit hex token (unguessable doc id).
+ */
+export const randomToken256 = (): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+/**
+ * Requests a one-time QR pairing token, stored Firestore-natively.
+ *
+ * Spark-plan path (no server): the signed-in staff member writes a
+ * `qrPairTokens/{token}` document. The token is a 256-bit random id, so the
+ * document is unguessable; Firestore rules allow public read-by-id / delete
+ * (bearer-token pattern) and restrict creates to staff of the workspace.
+ * Expiry is enforced client-side on claim (rules also bound it at create).
+ *
+ * Throws Error('QR_PAIRING_UNAUTHENTICATED') when not signed in.
+ * Firestore network/permission failures propagate to the caller.
  */
 export const requestPairingToken = async (
   memberId: string,
   workspaceId: string,
-  memberName?: string
+  memberName?: string,
+  role: string = 'Devotee'
 ): Promise<PairingTokenResponse> => {
-  const idToken = await auth.currentUser?.getIdToken().catch(() => null);
-  if (!idToken) {
+  const user = auth.currentUser;
+  if (!user) {
     throw new Error('QR_PAIRING_UNAUTHENTICATED');
   }
-  let resp: Response;
-  try {
-    resp = await fetch('/api/auth/qr-pair', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ memberId, workspaceId, memberName }),
-    });
-  } catch {
-    throw new Error('QR_PAIRING_UNAVAILABLE');
-  }
-  if (!resp.ok) {
-    throw new Error('QR_PAIRING_UNAVAILABLE');
-  }
-  const data = await resp.json().catch(() => ({}));
-  if (!data?.ok || typeof data.token !== 'string' || typeof data.expiresAt !== 'number') {
-    throw new Error('QR_PAIRING_UNAVAILABLE');
-  }
-  return { token: data.token, expiresAt: data.expiresAt };
+  const token = randomToken256();
+  const expiresAt = Date.now() + PAIRING_TOKEN_TTL_MS;
+  await setDoc(doc(db, 'qrPairTokens', token), {
+    memberId,
+    workspaceId,
+    role,
+    memberName: memberName || '',
+    createdBy: user.uid,
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(expiresAt),
+  });
+  return { token, expiresAt };
 };
 
 /**
@@ -366,9 +378,10 @@ export const buildPairingQRPayload = (
 export const generatePairingQRDataURL = async (
   memberId: string,
   workspaceId: string,
-  memberName?: string
+  memberName?: string,
+  role: string = 'Devotee'
 ): Promise<string> => {
-  const { token, expiresAt } = await requestPairingToken(memberId, workspaceId, memberName);
+  const { token, expiresAt } = await requestPairingToken(memberId, workspaceId, memberName, role);
   const payload = buildPairingQRPayload(token, workspaceId, expiresAt);
   try {
     return await QRCode.toDataURL(payload, {
@@ -387,16 +400,18 @@ export const generatePairingQRDataURL = async (
  *
  * @deprecated Plaintext-PIN auto-login QRs were removed for security (a
  * photographed QR would permanently leak the member's PIN). This now mints a
- * single-use, 5-minute pairing token via POST /api/auth/qr-pair and encodes
- * the scan-only payload. The `pin` parameter was removed. Prefer
+ * single-use, 5-minute pairing token stored in Firestore (`qrPairTokens`)
+ * and encodes the scan-only payload. The `pin` parameter was removed. Prefer
  * `generatePairingQRDataURL` directly for proper error handling.
  */
 export const generateStandardA_AutoLoginQR = async (
   memberId: string,
-  workspaceId: string
+  workspaceId: string,
+  memberName?: string,
+  role: string = 'Devotee'
 ): Promise<string> => {
   try {
-    return await generatePairingQRDataURL(memberId, workspaceId);
+    return await generatePairingQRDataURL(memberId, workspaceId, memberName, role);
   } catch (err) {
     console.error('Error generating Standard-A pairing QR', err);
     return '';
