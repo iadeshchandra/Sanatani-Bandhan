@@ -397,13 +397,15 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
 
-              {/* Role Switcher */}
+              {/* Role Switcher — dev-only tester. Hidden in production builds. */}
+              {import.meta.env.DEV && (
               <div className="px-3 py-2 border-b border-temple-700 mb-2">
                 <p className="text-[10px] font-bold text-temple-400 uppercase tracking-wider">
                   Role-Based Access
                 </p>
               </div>
-              {(['Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee'] as UserRole[]).map((r, idx) => (
+              )}
+              {import.meta.env.DEV && (['Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee'] as UserRole[]).map((r, idx) => (
                 <button
                   key={r}
                   onClick={() => { switchRole(r); setShowRoleDropdown(false); }}
