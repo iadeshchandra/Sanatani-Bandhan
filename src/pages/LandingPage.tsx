@@ -985,8 +985,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </p>
                 <button
                   type="button"
+                  onClick={() => setDemoModalOpen(true)}
+                  className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-extrabold transition-all cursor-pointer"
+                >
+                  Explore all 12 demo types
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
                   onClick={handleContact}
-                  className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-white/10 border-2 border-white/25 hover:bg-white/20 text-white text-sm font-extrabold transition-all cursor-pointer"
+                  className="mt-3 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-white/10 border-2 border-white/25 hover:bg-white/20 text-white text-sm font-extrabold transition-all cursor-pointer"
                 >
                   Talk to us
                   <ArrowRight className="w-4 h-4" />
