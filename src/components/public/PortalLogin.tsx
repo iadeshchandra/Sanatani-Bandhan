@@ -11,9 +11,9 @@ import AppLogo from '../common/AppLogo';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType } from '../../types';
-import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCustomToken } from 'firebase/auth';
+import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import type { UserRole } from '../../types';
 
 const translations = {
@@ -27,7 +27,7 @@ const translations = {
     login_forgot: 'Forgot Password?',
     btn_access_portal: 'Access Portal',
     qr_expired: 'This QR code has expired or was already used. Ask your temple office for a fresh code.',
-    qr_offline: 'Temple server unreachable — QR login needs an internet connection. Please use Email/Password.',
+    qr_offline: 'Could not reach the temple database. Check your connection and try again.',
     qr_not_login: 'This QR code is not a login code. Please scan the login QR from your temple office.',
     qr_success: 'QR login successful. Welcome!',
     reg_warning_title: 'Enterprise Provisioning',
@@ -56,7 +56,7 @@ const translations = {
     login_forgot: 'पासवर्ड भूल गए?',
     btn_access_portal: 'पोर्टल एक्सेस करें',
     qr_expired: 'यह QR कोड समाप्त हो गया है या पहले ही उपयोग किया जा चुका है। कृपया अपने मंदिर कार्यालय से नया कोड लें।',
-    qr_offline: 'मंदिर सर्वर उपलब्ध नहीं है — QR लॉगिन के लिए इंटरनेट आवश्यक है। कृपया ईमेल/पासवर्ड उपयोग करें।',
+    qr_offline: 'मंदिर डेटाबेस से संपर्क नहीं हो सका। अपना कनेक्शन जांचें और पुनः प्रयास करें।',
     qr_not_login: 'यह QR कोड लॉगिन कोड नहीं है। कृपया अपने मंदिर कार्यालय से लॉगिन QR स्कैन करें।',
     qr_success: 'QR लॉगिन सफल। स्वागत है!',
     reg_warning_title: 'एंटरप्राइज प्रोविजनिंग',
@@ -85,7 +85,7 @@ const translations = {
     login_forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
     btn_access_portal: 'পোর্টাল অ্যাক্সেস করুন',
     qr_expired: 'এই QR কোডের মেয়াদ শেষ হয়ে গেছে বা এটি ইতিমধ্যে ব্যবহৃত হয়েছে। অনুগ্রহ করে আপনার মন্দির অফিস থেকে নতুন কোড নিন।',
-    qr_offline: 'মন্দির সার্ভারে পৌঁছানো যাচ্ছে না — QR লগইনের জন্য ইন্টারনেট প্রয়োজন। অনুগ্রহ করে ইমেল/পাসওয়ার্ড ব্যবহার করুন।',
+    qr_offline: 'মন্দির ডাটাবেসে পৌঁছানো যাচ্ছে না। আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।',
     qr_not_login: 'এই QR কোডটি লগইন কোড নয়। অনুগ্রহ করে আপনার মন্দির অফিস থেকে লগইন QR স্ক্যান করুন।',
     qr_success: 'QR লগইন সফল। স্বাগতম!',
     reg_warning_title: 'এন্টারপ্রাইজ প্রভিশনিং',
@@ -303,10 +303,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   };
 
   /**
-   * Secure QR pairing login. Expects the scanned string to be a JSON pairing
-   * payload `{ v, type: 'sb-pair', token, wid, exp }` issued by the temple
-   * office. Claims it at POST /api/auth/qr-claim (single-use, 5-min TTL) and
-   * establishes the Firebase session from the minted custom token.
+   * Secure QR pairing login (Spark-plan, Firestore-native — no server).
+   * The scanned payload is `{ v, type: 'sb-pair', token, wid, exp }`: a
+   * one-time claim token minted by the temple office into `qrPairTokens`.
+   * Claim = read the doc (bearer-token read), verify it hasn't expired,
+   * delete it (single-use), then sign in anonymously and assume the role.
+   * Non-enumerating: unknown / expired / already-claimed all show the same
+   * message so a token can't be probed.
    */
   const handleQRPairingLogin = async (scanned: string) => {
     let payload: any = null;
@@ -321,39 +324,47 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       return;
     }
 
-    let resp: Response;
+    let snap;
     try {
-      resp = await fetch('/api/auth/qr-claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: payload.token,
-          deviceLabel: (navigator.userAgent || '').slice(0, 120),
-        }),
-      });
+      snap = await getDoc(doc(db, 'qrPairTokens', payload.token));
     } catch {
       setError(t('qr_offline'));
       return;
     }
 
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !data?.ok || typeof data.token !== 'string') {
-      // Non-enumerating: the server never says whether the token was
-      // unknown, expired, or already claimed.
+    if (!snap.exists()) {
+      setError(t('qr_expired'));
+      return;
+    }
+
+    const data: any = snap.data() || {};
+    const expMs =
+      typeof data.expiresAt?.toMillis === 'function'
+        ? data.expiresAt.toMillis()
+        : Number(data.expiresAt) || 0;
+    if (!expMs || expMs < Date.now()) {
+      // Best-effort cleanup of the stale token; claim still denied.
+      deleteDoc(snap.ref).catch(() => {});
       setError(t('qr_expired'));
       return;
     }
 
     try {
-      await signInWithCustomToken(auth, data.token);
+      await deleteDoc(snap.ref); // single-use: burn the token before login
     } catch {
       setError(t('qr_offline'));
       return;
     }
 
-    const member = data.member || {};
-    const role = (typeof member.role === 'string' && member.role ? member.role : 'Devotee') as UserRole;
-    loginAsRole(role, member.name || 'Devotee');
+    try {
+      await signInAnonymously(auth);
+    } catch {
+      setError(t('qr_offline'));
+      return;
+    }
+
+    const role = (typeof data.role === 'string' && data.role ? data.role : 'Devotee') as UserRole;
+    loginAsRole(role, data.memberName || 'Devotee');
     showToast(t('qr_success'), 'success');
     onSuccess();
   };
