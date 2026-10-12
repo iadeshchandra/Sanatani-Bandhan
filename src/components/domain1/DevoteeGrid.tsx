@@ -52,6 +52,7 @@ import { PdfPreviewModal } from '../common/PdfPreviewModal';
 import { compressAvatarImage } from '../../utils/imageCompression';
 import { useToast } from '../../context/ToastContext';
 import { generateStandardA_AutoLoginQR, generateStandardB_GatePassQR } from '../../utils/qrUtils';
+import { generatePinHash } from '../../utils/pinCrypto';
 
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
@@ -364,13 +365,19 @@ export const DevoteeGrid: React.FC = () => {
         return;
       }
       
+      // Provision a random 4-digit PIN + its PBKDF2 hash. The plaintext `pin`
+      // stays for staff reveal (back-compat); verification prefers `pinHash`.
+      const freshPin = Math.floor(1000 + Math.random() * 9000).toString();
+      const freshPinHash = await generatePinHash(freshPin);
       const newDevoteeData = {
         workspaceId,
         fullName,
         spiritualName: spiritualName.trim() || undefined,
         phone: phone.trim(),
         email: email.trim() || undefined,
-        pin: Math.floor(1000 + Math.random() * 9000).toString(),
+        pin: freshPin,
+        pinSalt: freshPinHash.salt,
+        pinHash: freshPinHash.hash,
         role: 'DEVOTEE' as const,
         sevaIndex: 350,
         sevaTier,
@@ -441,9 +448,28 @@ export const DevoteeGrid: React.FC = () => {
   const openQrModal = async (devotee: DevoteeMember) => {
     setQrModalDevotee(devotee);
     setQrTab('security');
-    const qrA = await generateStandardA_AutoLoginQR(devotee.id, activeWorkspace.id);
+    setStandardA_QR('');
+    try {
+      // Firestore-native one-time pairing token (no server). Throws when not
+      // signed in or when the write is rejected / unreachable.
+      const qrA = await generateStandardA_AutoLoginQR(
+        devotee.id,
+        activeWorkspace.id,
+        devotee.fullName,
+        devotee.role
+      );
+      if (!qrA) throw new Error('QR_EMPTY');
+      setStandardA_QR(qrA);
+    } catch (err: any) {
+      if (err?.message === 'QR_PAIRING_UNAUTHENTICATED') {
+        showToast('Please sign in as temple staff to issue login codes.', 'error', 'Not signed in');
+      } else {
+        showToast('Could not reach the temple database. Check your connection and try again.', 'error', 'QR unavailable');
+      }
+      setQrModalDevotee(null);
+      return;
+    }
     const qrB = await generateStandardB_GatePassQR(devotee.id);
-    setStandardA_QR(qrA);
     setStandardB_QR(qrB);
   };
 
@@ -1224,10 +1250,11 @@ export const DevoteeGrid: React.FC = () => {
                         <div className="flex flex-col gap-1.5 ml-2">
                            <button
                              type="button"
-                             onClick={() => {
+                             onClick={async () => {
                                const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-                               updateDevotee(selectedDevotee.id, { pin: newPin });
-                               setSelectedDevotee(prev => prev ? {...prev, pin: newPin} : null);
+                               const newPinHash = await generatePinHash(newPin);
+                               updateDevotee(selectedDevotee.id, { pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash });
+                               setSelectedDevotee(prev => prev ? {...prev, pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash} : null);
                                setShowCredentials(true);
                                showToast('New PIN generated successfully', 'success');
                              }}
