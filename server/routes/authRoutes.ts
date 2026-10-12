@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual, randomBytes } from 'crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { requireAuth, AuthenticatedRequest } from '../middleware/authMiddleware';
 
 /**
  * POST /api/auth/verify-pin
@@ -151,3 +152,231 @@ router.post('/verify-pin', async (req: Request, res: Response): Promise<void> =>
 });
 
 export default router;
+
+/* ============================================================================
+ * Secure QR Pairing (WhatsApp-Web style)
+ * ----------------------------------------------------------------------------
+ * The QR contains a ONE-TIME, SHORT-LIVED claim token — never credentials.
+ * Flow:
+ *   1. Authenticated staff (or the member) calls POST /qr-pair -> gets token.
+ *   2. Temple office renders the token as a QR (client-side).
+ *   3. Devotee scans it at the login screen -> client POSTs /qr-claim.
+ *   4. Server validates (exists, unexpired, unclaimed), deletes it
+ *      (single-use), and mints a Firebase custom token for the member.
+ * Plaintext-PIN-in-QR designs were removed: anyone photographing such a QR
+ * could impersonate the devotee indefinitely.
+ * ========================================================================== */
+
+const PAIRING_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const PAIRING_TOKEN_BYTES = 32;
+
+interface PairingEntry {
+  token: Buffer;
+  memberId: string;
+  memberName: string;
+  workspaceId: string;
+  role: string;
+  expiresAt: number;
+  createdBy: string;
+}
+
+// Keyed by SHA-256(token) hex so token existence can't be probed by timing.
+const pairingTokens = new Map<string, PairingEntry>();
+
+function pairingKey(tokenHex: string): string {
+  return createHash('sha256').update(tokenHex, 'utf8').digest('hex');
+}
+
+// Periodic sweep of expired pairing tokens to bound memory.
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of pairingTokens) {
+    if (v.expiresAt <= now) pairingTokens.delete(k);
+  }
+}, 60 * 1000).unref?.();
+
+// --- Tiny generic rate limiter (per-key sliding window) ---
+interface RLAttempt { count: number; resetAt: number }
+function makeRateLimiter(max: number, windowMs: number) {
+  const map = new Map<string, RLAttempt>();
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of map) {
+      if (v.resetAt <= now) map.delete(k);
+    }
+  }, windowMs).unref?.();
+  return {
+    check(key: string): boolean {
+      const now = Date.now();
+      const entry = map.get(key);
+      if (!entry || entry.resetAt <= now) {
+        map.set(key, { count: 1, resetAt: now + windowMs });
+        return false;
+      }
+      entry.count += 1;
+      return entry.count > max;
+    },
+  };
+}
+const qrPairLimiter = makeRateLimiter(10, 60 * 1000); // 10/min per session
+const qrClaimLimiter = makeRateLimiter(5, 60 * 1000); // 5/min per IP
+
+function clientIp(req: Request): string {
+  return (
+    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+    req.ip ||
+    'unknown'
+  );
+}
+
+const STAFF_ROLES = new Set(['superadmin', 'trustee', 'accountant', 'priest', 'sevadar', 'cso']);
+
+function sanitizeUidPart(s: string): string {
+  return s.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 60);
+}
+
+/**
+ * POST /api/auth/qr-pair
+ * Authenticated staff (or the member themselves) mint a one-time pairing
+ * token for a devotee. Body: { memberId, workspaceId, memberName?, role? }
+ */
+router.post('/qr-pair', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const ctx = req.authContext;
+    if (!ctx) {
+      res.status(401).json({ error: 'Unauthorized', code: 'MISSING_TOKEN', message: 'Authentication required.' });
+      return;
+    }
+
+    if (qrPairLimiter.check(`qr-pair::${ctx.uid}`)) {
+      res.status(429).json({ error: 'Too Many Requests', code: 'RATE_LIMITED', message: 'Too many pairing requests. Please wait a minute.' });
+      return;
+    }
+
+    const { memberId, workspaceId, memberName, role } = req.body || {};
+    if (typeof memberId !== 'string' || !memberId.trim() || memberId.length > 128) {
+      res.status(400).json({ error: 'Bad Request', code: 'INVALID_INPUT', message: 'memberId is required.' });
+      return;
+    }
+    if (typeof workspaceId !== 'string' || !workspaceId.trim() || workspaceId.length > 128) {
+      res.status(400).json({ error: 'Bad Request', code: 'INVALID_INPUT', message: 'workspaceId is required.' });
+      return;
+    }
+    const wsId = workspaceId.trim();
+    const mId = memberId.trim();
+
+    // Authorization: tenant-scoped staff, superadmin, or the member themselves.
+    const heldRoles = [ctx.role, ...(ctx.roles || [])].map((r) => String(r).toLowerCase());
+    const isStaff = heldRoles.some((r) => STAFF_ROLES.has(r));
+    const sameTenant = ctx.tenantId === wsId;
+    const isSelf = ctx.uid === mId;
+    if (!(ctx.isSuperAdmin || ((isStaff || isSelf) && sameTenant))) {
+      res.status(403).json({ error: 'Forbidden', code: 'INSUFFICIENT_ROLE', message: 'Not authorized to issue pairing codes for this workspace.' });
+      return;
+    }
+
+    const token = randomBytes(PAIRING_TOKEN_BYTES);
+    const tokenHex = token.toString('hex');
+    const expiresAt = Date.now() + PAIRING_TTL_MS;
+    const memberRole = typeof role === 'string' && role.trim() ? role.trim().slice(0, 32) : 'Devotee';
+
+    pairingTokens.set(pairingKey(tokenHex), {
+      token,
+      memberId: mId,
+      memberName: typeof memberName === 'string' ? memberName.slice(0, 128) : 'Devotee',
+      workspaceId: wsId,
+      role: memberRole,
+      expiresAt,
+      createdBy: ctx.uid,
+    });
+
+    console.log(`[AuthRoutes] QR pairing token issued for member ${mId} in ${wsId} by ${ctx.uid}`);
+    res.json({ ok: true, token: tokenHex, expiresAt });
+  } catch (error: any) {
+    console.error('[AuthRoutes] qr-pair error:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'PAIR_FAILED', message: 'Could not issue pairing code.' });
+  }
+});
+
+// Non-enumerating failure message for claim attempts.
+const CLAIM_FAILED = { error: 'Unauthorized', code: 'INVALID_CODE', message: 'Invalid or expired code.' };
+
+/**
+ * POST /api/auth/qr-claim
+ * Public (rate-limited). Body: { token, deviceLabel? }. Validates the
+ * one-time token, deletes it (single-use), and mints a Firebase custom
+ * token for the member — the same issuance path as /verify-pin.
+ */
+router.post('/qr-claim', async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (qrClaimLimiter.check(`qr-claim::${clientIp(req)}`)) {
+      res.status(429).json({ error: 'Too Many Requests', code: 'RATE_LIMITED', message: 'Too many attempts. Please wait a minute.' });
+      return;
+    }
+
+    const { token } = req.body || {};
+    if (typeof token !== 'string' || !/^[0-9a-fA-F]{64}$/.test(token)) {
+      res.status(401).json(CLAIM_FAILED);
+      return;
+    }
+
+    const entry = pairingTokens.get(pairingKey(token.toLowerCase()));
+    if (!entry) {
+      res.status(401).json(CLAIM_FAILED);
+      return;
+    }
+
+    // Timing-safe comparison of the presented token against the stored one.
+    let matches = false;
+    try {
+      const presented = Buffer.from(token.toLowerCase(), 'hex');
+      matches = presented.length === entry.token.length && timingSafeEqual(presented, entry.token);
+    } catch {
+      matches = false;
+    }
+
+    // Single-use: delete BEFORE issuing, so a concurrent replay can't win.
+    pairingTokens.delete(pairingKey(token.toLowerCase()));
+
+    if (!matches || entry.expiresAt <= Date.now()) {
+      res.status(401).json(CLAIM_FAILED);
+      return;
+    }
+
+    // Success: provision the member identity and mint a claims-bearing token.
+    const uid = `qr-${sanitizeUidPart(entry.workspaceId)}-${sanitizeUidPart(entry.memberId)}`.slice(0, 120);
+    const db = getFirestore();
+    await db.collection('users').doc(uid).set(
+      {
+        uid,
+        role: entry.role,
+        workspaceId: entry.workspaceId,
+        tenantId: entry.workspaceId,
+        qrPairAuth: true,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const customToken = await getAuth().createCustomToken(uid, {
+      role: entry.role,
+      tenantId: entry.workspaceId,
+      roles: [entry.role],
+    });
+
+    console.log(`[AuthRoutes] QR pairing claimed for member ${entry.memberId} in ${entry.workspaceId}`);
+    res.json({
+      ok: true,
+      token: customToken,
+      member: {
+        id: entry.memberId,
+        name: entry.memberName,
+        role: entry.role,
+        workspaceId: entry.workspaceId,
+      },
+    });
+  } catch (error: any) {
+    console.error('[AuthRoutes] qr-claim error:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'CLAIM_FAILED', message: 'Could not complete QR login.' });
+  }
+});
