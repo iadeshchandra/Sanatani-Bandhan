@@ -219,6 +219,10 @@ export interface DevoteeMember extends TenantScoped {
   sponsorPhone?: string;
   email?: string;
   pin: string;
+  /** PBKDF2-SHA256 hash of `pin` (100k iterations) — preferred for verification. */
+  pinSalt?: string;
+  /** Hex-encoded PBKDF2 output; see src/utils/pinCrypto.ts. */
+  pinHash?: string;
   role: UserRole | LegacyUserRole | string;
   sevaIndex: number;
   sevaTier: SevaTier;
