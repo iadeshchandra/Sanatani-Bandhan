@@ -118,13 +118,13 @@ export const DevoteeGrid: React.FC = () => {
 
   useEffect(() => {
     if (selectedDevotee && isDetailModalOpen && canManage) {
-      generateStandardA_AutoLoginQR(selectedDevotee.id, selectedDevotee.pin, activeWorkspace.name)
+      generateStandardA_AutoLoginQR(selectedDevotee.id, activeWorkspace.id)
         .then(setSelectedDevoteeQr)
         .catch(() => setSelectedDevoteeQr(null));
     } else {
       setSelectedDevoteeQr(null);
     }
-  }, [selectedDevotee?.id, selectedDevotee?.pin, isDetailModalOpen, canManage, activeWorkspace.name]);
+  }, [selectedDevotee?.id, isDetailModalOpen, canManage, activeWorkspace.id]);
 
   const openDetailModal = (devotee: DevoteeMember) => {
     setSelectedDevotee(devotee);
@@ -441,7 +441,7 @@ export const DevoteeGrid: React.FC = () => {
   const openQrModal = async (devotee: DevoteeMember) => {
     setQrModalDevotee(devotee);
     setQrTab('security');
-    const qrA = await generateStandardA_AutoLoginQR(devotee.id, devotee.pin, activeWorkspace.name);
+    const qrA = await generateStandardA_AutoLoginQR(devotee.id, activeWorkspace.id);
     const qrB = await generateStandardB_GatePassQR(devotee.id);
     setStandardA_QR(qrA);
     setStandardB_QR(qrB);
@@ -1263,7 +1263,7 @@ export const DevoteeGrid: React.FC = () => {
                            )}
                         </div>
                       </div>
-                      <p className="text-[10px] text-temple-500 mt-1.5">Provide this PIN or scan the Auto-Login QR.</p>
+                      <p className="text-[10px] text-temple-500 mt-1.5">Show the devotee the one-time pairing QR from the Security tab to log them in.</p>
                     </div>
                   </div>
                 </div>
@@ -1645,19 +1645,19 @@ export const DevoteeGrid: React.FC = () => {
             <div className="p-6 flex flex-col items-center text-center">
               {qrTab === 'security' ? (
                 <div className="animate-in fade-in slide-in-from-right-4">
-                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl mb-6 text-left">
-                    <p className="text-[11px] text-rose-800 font-medium leading-relaxed">
-                      <strong className="block text-rose-900 mb-1">Highly Confidential</strong>
-                      Contains Auto-Login tokens and Personal PIN. Used for account recovery. <strong>NEVER</strong> show this to gate volunteers or public scanners.
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl mb-6 text-left">
+                    <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                      <strong className="block text-amber-900 mb-1">One-Time Login Pairing</strong>
+                      This QR holds a single-use, 5-minute login token — no PIN, no password. Show it only to the devotee; it expires automatically after one scan.
                     </p>
                   </div>
                   {standardA_QR ? (
-                    <img src={standardA_QR || undefined} alt="Security QR" className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
+                    <img src={standardA_QR || undefined} alt="Pairing QR" className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
                   ) : (
                     <div className="w-48 h-48 mx-auto bg-slate-100 rounded-xl animate-pulse" />
                   )}
                   <p className="mt-4 text-xs font-mono text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg inline-block">
-                    Payload: ?action=autologin
+                    Payload: one-time pairing token (5 min)
                   </p>
                 </div>
               ) : (
