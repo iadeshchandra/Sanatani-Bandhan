@@ -21,6 +21,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { auth, signInWithEmailAndPassword, updatePassword } from '../../firebase';
+import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { WorkspaceConfig, UserRole } from '../../types';
 
 interface GodModeBackendProps {
@@ -38,7 +39,8 @@ export const GodModeBackend: React.FC<GodModeBackendProps> = ({
     switchWorkspace,
     currentRole,
     switchRole,
-    loginAsRole
+    loginAsRole,
+    firebaseUser,
   } = useAuthWorkspace();
 
   const {
@@ -67,21 +69,31 @@ export const GodModeBackend: React.FC<GodModeBackendProps> = ({
   const [ttlMinutes, setTtlMinutes] = useState(60);
 
   useEffect(() => {
-    if ((currentRole as string) === 'SUPER_ADMIN' || currentRole === 'SuperAdmin') {
+    // SECURITY (C-1): auto-unlock only when the Firebase session belongs to
+    // the platform owner. Client role state alone never unlocks the console.
+    if (isOwnerEmail(firebaseUser?.email)) {
       setIsUnlocked(true);
     }
-  }, [currentRole]);
+  }, [firebaseUser?.email]);
 
   if (!isOpen) return null;
 
   const handleUnlockGodMode = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // SECURITY: hardcoded magic keys removed. System override now requires a
-    // real Firebase email+password sign-in. There is no client-side bypass.
+    // SECURITY (C-1): hardcoded magic keys removed. System override requires a
+    // real Firebase email+password sign-in AND the verified email must belong
+    // to the platform owner allowlist. Any other Firebase account is signed
+    // straight back out — there is no client-side bypass.
     try {
        if (godEmail.trim() !== '') {
           await signInWithEmailAndPassword(auth, godEmail, godAccessKey);
+          const signedInEmail = auth.currentUser?.email ?? '';
+          if (!isOwnerEmail(signedInEmail)) {
+            await auth.signOut();
+            showToast('This Firebase account is not authorized for system override.', 'error');
+            return;
+          }
           setIsUnlocked(true);
           switchRole('SuperAdmin');
           showToast('Authenticated successfully.', 'success');
@@ -416,8 +428,11 @@ export const GodModeBackend: React.FC<GodModeBackendProps> = ({
               <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
                 Global RBAC Role Switching (Instant Permission Override)
               </h4>
+              {/* SECURITY (C-1): the one-click SuperAdmin self-grant is removed.
+                  The owner already holds SuperAdmin from the allowlisted unlock
+                  above; these buttons only preview lesser roles. */}
               <div className="flex flex-wrap gap-2">
-                {(['SuperAdmin', 'Trustee', 'Accountant', 'Priest', 'Sevadar', 'Devotee'] as UserRole[]).map((r) => (
+                {(['Trustee', 'Accountant', 'Priest', 'Sevadar', 'Devotee'] as UserRole[]).map((r) => (
                   <button
                     key={r}
                     type="button"
