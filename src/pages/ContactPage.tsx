@@ -110,9 +110,13 @@ export const ContactPage: React.FC = () => {
             className="flex items-center gap-2.5 cursor-pointer"
             aria-label="Sanatani Bandhan home"
           >
-            <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/25">
-              ॐ
-            </span>
+            <img
+              src="/icon-96x96.png"
+              alt="Sanatani Bandhan"
+              className="w-10 h-10 rounded-2xl shadow-md shadow-orange-500/25"
+              width={40}
+              height={40}
+            />
             <span className="text-lg sm:text-xl font-extrabold tracking-tight">
               Sanatani <span className="text-orange-600">Bandhan</span>
             </span>
@@ -405,9 +409,13 @@ export const ContactPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-stone-800">
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-xl">
-                ॐ
-              </span>
+              <img
+                src="/icon-96x96.png"
+                alt="Sanatani Bandhan"
+                className="w-10 h-10 rounded-2xl"
+                width={40}
+                height={40}
+              />
               <span className="text-xl font-extrabold text-white">
                 Sanatani <span className="text-orange-500">Bandhan</span>
               </span>
