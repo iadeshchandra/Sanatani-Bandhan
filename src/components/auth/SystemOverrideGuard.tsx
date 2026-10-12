@@ -1,19 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { isOwnerEmail } from '../../config/ownerAllowlist';
 
 interface SystemOverrideGuardProps {
   children: React.ReactNode;
 }
 
-/**
- * Designated Platform Owner Email
- * Phase 10a: App Owner Route Obfuscation & Security Guarding
- */
-const PLATFORM_OWNER_EMAIL = 'poranray7744@gmail.com';
-
 export const SystemOverrideGuard: React.FC<SystemOverrideGuardProps> = ({ children }) => {
-  const { currentRole, role, currentUser, firebaseUser, isLoading } = useAuthWorkspace();
+  const { firebaseUser, isLoading } = useAuthWorkspace();
 
   if (isLoading) {
     return (
@@ -23,11 +18,14 @@ export const SystemOverrideGuard: React.FC<SystemOverrideGuardProps> = ({ childr
     );
   }
 
-  const effectiveRole = role || currentRole;
-  const userEmail = (firebaseUser?.email || currentUser?.email || '').toLowerCase().trim();
+  // SECURITY (C-1): admin routes are gated on a server-verified signal only —
+  // a signed-in Firebase user whose VERIFIED email is on the owner allowlist
+  // (see src/config/ownerAllowlist.ts). Client React role state is never
+  // trusted here. No Firebase user = denied.
   const isAuthorizedOwner =
-    effectiveRole === 'SuperAdmin' ||
-    userEmail === PLATFORM_OWNER_EMAIL.toLowerCase();
+    !!firebaseUser &&
+    firebaseUser.emailVerified === true &&
+    isOwnerEmail(firebaseUser.email);
 
   // If unauthorized (or if they are a regular Temple Admin, CSO, Priest, Devotee, etc.),
   // immediately bounce them to '/' with silent failure to preserve complete obscurity.
