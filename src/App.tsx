@@ -562,8 +562,8 @@ const AppContent: React.FC = () => {
 
 
 const MainAppView: React.FC = () => {
-  const { isAuthenticated, loginWithPin, addWorkspace, switchWorkspace, loginAsRole, firebaseUser } = useAuthWorkspace();
-  const { devotees, seedDemoData } = useData();
+  const { isAuthenticated, addWorkspace, switchWorkspace, loginAsRole, firebaseUser } = useAuthWorkspace();
+  const { seedDemoData } = useData();
   const [view, setView] = useState<'landing' | 'login' | 'signup'>('landing');
 
   if (window.location.pathname === '/mysecretlogin') {
@@ -571,24 +571,15 @@ const MainAppView: React.FC = () => {
   }
 
   React.useEffect(() => {
-    // SECURITY: URL-based autologin is a development-only convenience. It is
-    // compiled out of production builds (import.meta.env.DEV) so the PIN can
-    // never be passed via URL in a shipped build.
-    if (!import.meta.env.DEV) return;
+    // SECURITY: URL-based credential login (?action=autologin&id=&pin=) was
+    // removed entirely. QR pairing is scan-only: the login screen scans a
+    // one-time token and claims it at POST /api/auth/qr-claim. Any pairing
+    // token arriving via URL is deliberately ignored here.
     const params = new URLSearchParams(window.location.search);
-    const action = params.get('action');
-    if (action === 'autologin' && !isAuthenticated) {
-      const pin = params.get('pin');
-      if (pin) {
-        loginWithPin(pin, devotees).then((success) => {
-          if (success) {
-            // Clear URL params safely
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        });
-      }
+    if (params.get('action') === 'autologin' || params.get('action') === 'verify') {
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [isAuthenticated, loginWithPin, devotees]);
+  }, []);
 
   if (isAuthenticated) {
     // Firebase Auth check bypassed to allow mock auth
