@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, Bot, Sparkles, HelpCircle, WifiOff } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { callGeminiDirect } from '../../utils/geminiClient';
 
 export const TawkToWidget: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
@@ -93,31 +94,16 @@ export const TawkToWidget: React.FC = () => {
     };
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      let res: Response;
-      try {
-        res = await fetch('/api/gemini/query', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: `User Question: "${userMsg}". 
-Context: You are the Vedic and administrative AI Helpdesk assistant for "${activeWorkspace.name}" (Type: ${activeWorkspace.type}, City: ${activeWorkspace.city}, Sampradaya: ${activeWorkspace.sampradaya || 'Sanatan Dharma'}).
-Provide a helpful, culturally reverent, concise answer in 2-3 sentences.`,
-          }),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-      if (!res.ok) throw new Error(`helpdesk ${res.status}`);
-      const data = await res.json();
-      botReply(
-        data.text || 'Hare Krishna. Our temple sevaks are here to assist with daily Darshan, Pujas, and Annadanam.',
-        false
-      );
+      // Spark-plan path: call Gemini directly from the browser. No server.
+      // Falls back to the local FAQ below when no key exists or the call fails.
+      const systemInstruction =
+        `You are the Vedic and administrative AI Helpdesk assistant for "${activeWorkspace.name}" ` +
+        `(Type: ${activeWorkspace.type}, City: ${activeWorkspace.city}, Sampradaya: ${activeWorkspace.sampradaya || 'Sanatan Dharma'}). ` +
+        `Provide a helpful, culturally reverent, concise answer in 2-3 sentences.`;
+      const text = await callGeminiDirect(userMsg, systemInstruction);
+      botReply(text, false);
     } catch (err) {
-      // AI backend unreachable (static hosting has no /api, or offline):
+      // No key (GEMINI_KEY_MISSING) or network/upstream failure:
       // serve a local FAQ answer instead of a dead end.
       botReply(answerOffline(userMsg), true);
     } finally {
