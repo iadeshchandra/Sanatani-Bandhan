@@ -1,6 +1,6 @@
 import { useInitialData } from './AppInitializer';
 import { set } from 'idb-keyval';
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   DevoteeMember,
   FamilyHousehold,
@@ -931,9 +931,58 @@ export const INITIAL_SHIFTS: SevadarDutyShift[] = [
   },
 ];
 
-// Helper to track sandbox/demo creation counts per workspace and module
+// ---------------------------------------------------------------------------
+// Demo Playground Conversion Engine — Quota v2
+// ---------------------------------------------------------------------------
+// Demo workspaces get exactly DEMO_CREATES_PER_MODULE free creates per
+// module. Seed records never count. Quota applies ONLY to demo workspaces
+// (id starts with DEMO_); registered workspaces are unlimited.
+// Record convention: seed sets `isDemoSeed: true`; user-created records
+// leave it absent/false, which is how reset/convert distinguish them.
 const DEMO_QUOTA_KEY_PREFIX = 'sb_demo_count_';
+const DEMO_CREATES_PER_MODULE = 5;
+const PENDING_DEMO_CONVERSION_KEY = 'sb_pending_demo_conversion';
 const AUTO_PURGE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours auto-delete retention window
+
+export interface QuotaResult {
+  allowed: boolean;
+  /** Creates remaining in this module (0 when at limit). */
+  remaining: number;
+  /** True only on the call that transitions the module to the limit. */
+  justHitLimit: boolean;
+}
+
+export interface DemoUpsell {
+  module: string;
+  displayName: string;
+  entityLabel: string;
+}
+
+/** Display metadata for quota-tracked modules. */
+const DEMO_MODULE_META: Record<string, { display: string; entityPlural: string }> = {
+  devotees: { display: 'Devotees', entityPlural: 'devotees' },
+  families: { display: 'Families', entityPlural: 'families' },
+  guests: { display: 'Guests', entityPlural: 'guests' },
+  treasury: { display: 'Treasury', entityPlural: 'donations' },
+  assets: { display: 'Assets', entityPlural: 'assets' },
+  inventory: { display: 'Inventory', entityPlural: 'items' },
+  pooja: { display: 'Pooja Bookings', entityPlural: 'bookings' },
+  goshala: { display: 'Goshala', entityPlural: 'cow records' },
+  bhoomi: { display: 'Bhoomi', entityPlural: 'properties' },
+  vahan: { display: 'Vahan Fleet', entityPlural: 'fleet records' },
+  'seva-subscriptions': { display: 'Recurring Seva', entityPlural: 'subscriptions' },
+  annadanam: { display: 'Annadanam', entityPlural: 'sponsorships' },
+  resolutions: { display: 'Resolutions', entityPlural: 'resolutions' },
+  residentPujas: { display: 'Resident Pujas', entityPlural: 'schedules' },
+  pitruRecords: { display: 'Pitru Records', entityPlural: 'records' },
+  gurukulStudents: { display: 'Gurukul', entityPlural: 'students' },
+  shifts: { display: 'Sevadar Shifts', entityPlural: 'shifts' },
+};
+
+const DEMO_QUOTA_MODULES = Object.keys(DEMO_MODULE_META);
+
+const demoModuleMeta = (moduleName: string) =>
+  DEMO_MODULE_META[moduleName] || { display: moduleName, entityPlural: 'records' };
 
 interface DataContextType {
   // Global loading state for initial data payload
@@ -1022,6 +1071,13 @@ interface DataContextType {
   addSevaSubscription: (sub: Omit<SevaSubscription, 'id' | 'totalCollected' | 'paymentsCount'> & { silent?: boolean }) => boolean;
   updateSevaSubscription: (id: string, updates: Partial<SevaSubscription>) => void;
   recordSubscriptionPayment: (subId: string, amount: number, date: string, mode: string) => boolean;
+
+  // Demo Playground Conversion Engine
+  demoUpsellModule: DemoUpsell | null;
+  closeDemoUpsell: () => void;
+  getDemoStats: () => { totalCreates: number; perModule: Record<string, number> };
+  resetDemoWorkspace: () => void;
+  convertDemoToReal: (demoWorkspaceId: string, newWorkspaceId: string) => number;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -1282,24 +1338,204 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [purgeAutoDeleteRecords]);
 
-  // Quota enforcement: Check max 5 inputs per module per organisation
-  const checkAndIncrementModuleQuota = (moduleName: string): boolean => {
+  // Quota v2: exactly 5 free creates per module, demo workspaces only.
+  // Returns a result object; drives toasts + the upsell modal.
+  const demoUpsellShownRef = useRef<Set<string>>(new Set());
+  const [demoUpsellModule, setDemoUpsellModule] = useState<DemoUpsell | null>(null);
+
+  const isDemoWorkspace = (wsId?: string) =>
+    (wsId || activeWorkspace?.id || '').startsWith('DEMO_');
+
+  const checkAndIncrementModuleQuota = (moduleName: string): QuotaResult => {
+    const roleUpper = (currentRole || '').toUpperCase();
+    const exempt = roleUpper === 'SUPER_ADMIN' || roleUpper === 'SUPERADMIN';
+
+    // Registered workspaces (and super-admins) are unlimited — never count.
+    if (!isDemoWorkspace() || exempt) {
+      return { allowed: true, remaining: Number.MAX_SAFE_INTEGER, justHitLimit: false };
+    }
+
+    const meta = demoModuleMeta(moduleName);
     const key = `${DEMO_QUOTA_KEY_PREFIX}${activeWorkspace.id}_${moduleName}`;
     const currentCount = parseInt(localStorage.getItem(key) || '0', 10);
 
-    const roleUpper = (currentRole || '').toUpperCase();
-    if (currentCount >= 6 && roleUpper !== 'SUPER_ADMIN' && roleUpper !== 'SUPERADMIN') {
+    // Already at the limit: block. Inline toast only — never re-spam the modal.
+    if (currentCount >= DEMO_CREATES_PER_MODULE) {
       showToast(
-        `Demo Quota Limit (4 manual inputs) reached for ${moduleName} in ${activeWorkspace.name}. Records auto-purge on schedule.`,
-        'warning',
-        'Demo Sandbox Quota'
+        `Demo limit reached for ${meta.display} — create a free account for unlimited.`,
+        'info',
+        'Demo Sandbox'
       );
-      return false;
+      return { allowed: false, remaining: 0, justHitLimit: false };
     }
 
-    localStorage.setItem(key, (currentCount + 1).toString());
-    return true;
+    const newCount = currentCount + 1;
+    localStorage.setItem(key, newCount.toString());
+    const remaining = DEMO_CREATES_PER_MODULE - newCount;
+    const justHitLimit = remaining === 0;
+
+    // One free add left: nudge toward registration.
+    if (remaining === 1) {
+      showToast(
+        `1 free add left in ${meta.display} — create a free account for unlimited.`,
+        'info',
+        'Demo Sandbox'
+      );
+    }
+
+    // Fifth create: celebrate + trigger the upsell modal (once per module per session).
+    if (justHitLimit) {
+      if (!demoUpsellShownRef.current.has(moduleName)) {
+        demoUpsellShownRef.current.add(moduleName);
+        setDemoUpsellModule({
+          module: moduleName,
+          displayName: meta.display,
+          entityLabel: meta.entityPlural,
+        });
+      } else {
+        showToast(
+          `Demo limit reached for ${meta.display} — create a free account for unlimited.`,
+          'info',
+          'Demo Sandbox'
+        );
+      }
+    }
+
+    return { allowed: true, remaining, justHitLimit };
   };
+
+  const closeDemoUpsell = useCallback(() => setDemoUpsellModule(null), []);
+
+  /** Live demo stats for the banner: total user creates + per-module counts. */
+  const getDemoStats = useCallback((): { totalCreates: number; perModule: Record<string, number> } => {
+    const perModule: Record<string, number> = {};
+    let totalCreates = 0;
+    if (!isDemoWorkspace()) return { totalCreates, perModule };
+    for (const mod of DEMO_QUOTA_MODULES) {
+      const n = parseInt(localStorage.getItem(`${DEMO_QUOTA_KEY_PREFIX}${activeWorkspace.id}_${mod}`) || '0', 10);
+      perModule[mod] = n;
+      totalCreates += n;
+    }
+    return { totalCreates, perModule };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspace?.id]);
+
+  /**
+   * Demo → real conversion: copy all NON-seed records of the demo workspace
+   * into the new real workspace, with fresh ids. Returns # records moved.
+   * Covers the core collections; seed records stay behind.
+   * (Plain function, not useCallback: must always see the latest state.)
+   */
+  const convertDemoToReal = (demoWorkspaceId: string, newWorkspaceId: string): number => {
+    if (!demoWorkspaceId || !newWorkspaceId || demoWorkspaceId === newWorkspaceId) return 0;
+    let moved = 0;
+    const now = Date.now();
+    const migrate = <T extends { id?: string; workspaceId?: string }>(
+      records: T[],
+      setRecords: React.Dispatch<React.SetStateAction<T[]>>
+    ) => {
+      const mine = records.filter((r) => r && r.workspaceId === demoWorkspaceId && !(r as any).isDemoSeed);
+      if (mine.length === 0) return;
+      moved += mine.length;
+      const copies = mine.map((r, i) => ({
+        ...r,
+        id: `${r.id || 'rec'}_migrated_${now}_${i}`,
+        workspaceId: newWorkspaceId,
+        isDemoSeed: false,
+        _createdAt: now,
+        _migratedFromDemo: demoWorkspaceId,
+      }));
+      setRecords((prev) => [...copies, ...prev]);
+    };
+    migrate(allDevotees, setAllDevotees);
+    migrate(allFamilies, setAllFamilies);
+    migrate(allGuests, setAllGuests);
+    migrate(allTreasury, setAllTreasury);
+    migrate(allAssets, setAllAssets);
+    migrate(allInventory, setAllInventory);
+    migrate(allPoojaBookings, setAllPoojaBookings);
+    migrate(allResidentPujas, setAllResidentPujas);
+    migrate(allPitruRecords, setAllPitruRecords);
+    migrate(allCows, setAllCows);
+    migrate(allAnnadanamList, setAllAnnadanamList);
+    migrate(allGurukulStudents, setAllGurukulStudents);
+    migrate(allCampaigns, setAllCampaigns);
+    migrate(allResolutions, setAllResolutions);
+    migrate(allShifts, setAllShifts);
+    migrate(allBhoomiProperties, setAllBhoomiProperties);
+    migrate(allRentReceipts, setAllRentReceipts);
+    migrate(allFleetVehicles, setAllFleetVehicles);
+    migrate(allFuelLogs, setAllFuelLogs);
+    migrate(allServiceRecords, setAllServiceRecords);
+    migrate(allSevaSubscriptions, setAllSevaSubscriptions);
+    return moved;
+  };
+
+  // Pending demo conversion: after the user registers (new real workspace
+  // becomes active), move their demo records over exactly once.
+  useEffect(() => {
+    const pendingDemoId = localStorage.getItem(PENDING_DEMO_CONVERSION_KEY);
+    if (!pendingDemoId) return;
+    const currentId = activeWorkspaceId || activeWorkspace?.id;
+    if (!currentId || currentId === pendingDemoId || currentId.startsWith('DEMO_')) return;
+    // Clear first so StrictMode double-effects can't convert twice.
+    localStorage.removeItem(PENDING_DEMO_CONVERSION_KEY);
+    const moved = convertDemoToReal(pendingDemoId, currentId);
+    clearDemoQuotaKeys(pendingDemoId);
+    showToast(
+      moved > 0
+        ? `Welcome! Your ${moved} demo record${moved === 1 ? '' : 's'} came with you — free forever.`
+        : 'Welcome! Your new workspace is ready.',
+      'success',
+      'Account Created'
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId]);
+
+  /** Remove all demo quota keys for a workspace. */
+  const clearDemoQuotaKeys = useCallback((workspaceId: string) => {
+    for (const mod of DEMO_QUOTA_MODULES) {
+      localStorage.removeItem(`${DEMO_QUOTA_KEY_PREFIX}${workspaceId}_${mod}`);
+    }
+  }, []);
+
+  /**
+   * Reset the demo workspace: clear quota counters, remove user-created
+   * (non-seed) records for that workspace, and re-seed fresh mock data.
+   */
+  const resetDemoWorkspace = useCallback(() => {
+    const wsId = activeWorkspace.id;
+    if (!isDemoWorkspace(wsId)) return;
+    clearDemoQuotaKeys(wsId);
+    localStorage.removeItem(`sb_demo_seeded_${wsId}`);
+    demoUpsellShownRef.current.clear();
+    setDemoUpsellModule(null);
+    const isUserRecord = (r: any) => r && r.workspaceId === wsId && !r.isDemoSeed;
+    setAllDevotees((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllFamilies((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllGuests((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllTreasury((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllAssets((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllInventory((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllPoojaBookings((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllResidentPujas((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllPitruRecords((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllCows((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllAnnadanamList((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllGurukulStudents((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllCampaigns((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllResolutions((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllShifts((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllBhoomiProperties((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllRentReceipts((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllFleetVehicles((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllFuelLogs((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllServiceRecords((prev) => prev.filter((r) => !isUserRecord(r)));
+    setAllSevaSubscriptions((prev) => prev.filter((r) => !isUserRecord(r)));
+    seedDemoData(wsId, activeWorkspace.type || 'Mandir');
+    showToast('Demo workspace reset with fresh sample data.', 'success', 'Demo Sandbox');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspace?.id, clearDemoQuotaKeys]);
 
   // Sync to local storage
   useEffect(() => {
@@ -1488,89 +1724,162 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ----------------------------------------------------
 
   const seedDemoData = (workspaceId: string, type: string) => {
-    // Add 2 dummy devotees
-    const d1 = {
-      id: "dev_" + Date.now() + "_1", workspaceId,
-      name: 'Ramesh Sharma',
-      phone: '+91 9876543210',
-      gotra: 'Kashyapa',
-      joinedDate: new Date().toISOString(),
-      skills: ['Volunteer', 'Pooja'],
-      address: 'Kashi',
-      isActive: true,
-      membershipTier: 'lifetime',
-      qrCodeRef: 'SB-1001'
-    };
-    const d2 = {
-      id: "dev_" + Date.now() + "_2", workspaceId,
-      name: 'Priya Patel',
-      phone: '+91 9876543211',
-      gotra: 'Bharadwaja',
-      joinedDate: new Date().toISOString(),
-      skills: ['Accounts', 'Seva'],
-      address: 'Ayodhya',
-      isActive: true,
-      membershipTier: 'annual',
-      qrCodeRef: 'SB-1002'
-    };
-    setAllDevotees(prev => [...prev, d1 as unknown as DevoteeMember, d2 as unknown as DevoteeMember]);
+    // Never seed twice for the same workspace; seeds never count against quota.
+    const seedFlag = `sb_demo_seeded_${workspaceId}`;
+    if (localStorage.getItem(seedFlag) === '1') return;
+    localStorage.setItem(seedFlag, '1');
 
-    // Add 2 dummy transactions
-    const t1 = {
-      id: "tx_" + Date.now() + "_1", workspaceId,
-      date: new Date().toISOString(),
-      amount: 5100,
-      type: 'Income',
-      category: 'Donation',
-      description: 'Gupt Daan',
-      paymentMethod: 'UPI',
-      referenceId: 'UPI-1001',
-      handledBy: 'Demo Admin',
-      auditVerified: true
-    };
-    const t2 = {
-      id: "tx_" + Date.now() + "_2", workspaceId,
-      date: new Date().toISOString(),
-      amount: 2100,
-      type: 'Expense',
-      category: 'Maintenance',
-      description: 'Flower Decoration',
-      paymentMethod: 'Cash',
-      handledBy: 'Demo Admin',
-      auditVerified: true
-    };
-    setAllTreasury(prev => [...prev, t1 as unknown as TreasuryTransaction, t2 as unknown as TreasuryTransaction]);
+    const ts = Date.now();
+    const day = 86400000;
+    const isoDaysAgo = (n: number) => new Date(ts - n * day).toISOString();
+    const isoDaysAhead = (n: number) => new Date(ts + n * day).toISOString();
+    const seedTag = { isDemoSeed: true, workspaceId } as const;
 
-    // Add 2 campaigns
-    const c1 = {
-      id: "camp_" + Date.now() + "_1", workspaceId,
-      title: 'Mandir Jirnoddhar',
-      description: 'Renovation of main sanctum',
-      targetAmount: 500000,
-      collectedAmount: 125000,
-      currency: 'INR',
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-      status: 'active',
-      recentDonors: []
-    };
-    const c2 = {
-      id: "camp_" + Date.now() + "_2", workspaceId,
-      title: 'Goshala Fodder Fund',
-      description: 'Monthly fodder for 100 cows',
-      targetAmount: 50000,
-      collectedAmount: 25000,
-      currency: 'INR',
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-      status: 'active',
-      recentDonors: []
-    };
-    setAllCampaigns(prev => [...prev, c1 as unknown as CampaignCrowdfund, c2 as unknown as CampaignCrowdfund]);
+    // ---- 10 devotees: a thriving community on first load ----
+    const devoteeSeed: Array<[string, string, string, string, string, string, number, string[]]> = [
+      // name, phone, gotra, city, tier, address, joinedDaysAgo, skills
+      ['Ananya Iyer', '+91 98410 22334', 'Kashyapa', 'Kashi', 'lifetime', 'Godowlia, Varanasi', 340, ['Volunteer', 'Pooja']],
+      ['Vikram Malhotra', '+91 98110 44556', 'Bharadwaja', 'Ayodhya', 'patron', 'Naya Ghat, Ayodhya', 300, ['Donor', 'Seva']],
+      ['Meera Nair', '+91 98470 11223', 'Vashishtha', 'Mathura', 'annual', 'Krishna Janmabhoomi Rd', 260, ['Bhajan', 'Accounts']],
+      ['Arjun Deshmukh', '+91 98220 33445', 'Gautama', 'Ujjain', 'lifetime', 'Mahakal Marg, Ujjain', 220, ['Volunteer', 'Crowd Control']],
+      ['Lakshmi Venkat', '+91 98400 55667', 'Atri', 'Kashi', 'annual', 'Assi Ghat, Varanasi', 180, ['Prasadam', 'Seva']],
+      ['Rohan Kulkarni', '+91 98230 77889', 'Kaushika', 'Vrindavan', 'annual', 'Parikrama Marg', 140, ['Kirtan', 'Volunteer']],
+      ['Divya Reddy', '+91 98490 99001', 'Shandilya', 'Haridwar', 'patron', 'Har Ki Pauri', 100, ['Donor', 'Annadanam']],
+      ['Karan Singhania', '+91 98120 12121', 'Gargya', 'Ayodhya', 'annual', 'Ram Path, Ayodhya', 70, ['Seva', 'Logistics']],
+      ['Pooja Bhatt', '+91 98330 34343', 'Bharadwaja', 'Mathura', 'lifetime', 'Dwarkadhish Rd', 40, ['Pooja', 'Volunteer']],
+      ['Suresh Menon', '+91 98460 56565', 'Kashyapa', 'Ujjain', 'annual', 'Harsiddhi Rd', 15, ['Accounts', 'Audit']],
+    ];
+    setAllDevotees((prev) => [
+      ...devoteeSeed.map(([name, phone, gotra, city, tier, address, joinedAgo, skills], i) => ({
+        id: `dev_${ts}_seed_${i + 1}`,
+        ...seedTag,
+        name,
+        phone,
+        gotra,
+        joinedDate: isoDaysAgo(joinedAgo),
+        skills,
+        address: `${address}, ${city}`,
+        city,
+        isActive: true,
+        membershipTier: tier,
+        qrCodeRef: `SB-${1001 + i}`,
+      }) as unknown as DevoteeMember),
+      ...prev,
+    ]);
+
+    // ---- 14 treasury transactions across the last 30 days ----
+    const txSeed: Array<[number, string, string, string, string, string, number]> = [
+      // amount, type, category, description, method, handledBy, daysAgo
+      [11000, 'Income', 'Hundi', 'Morning hundi collection', 'UPI', 'Demo Admin', 1],
+      [1101, 'Income', 'Archana', 'Archana ticket sales', 'Cash', 'Demo Admin', 2],
+      [5100, 'Income', 'Annadanam', 'Annadanam sponsorship — Meera Nair', 'UPI', 'Demo Admin', 4],
+      [2500, 'Expense', 'Flowers', 'Daily flower decoration', 'Cash', 'Demo Admin', 5],
+      [21000, 'Income', 'Hundi', 'Evening hundi collection', 'Cash', 'Demo Admin', 7],
+      [8000, 'Expense', 'Prasadam', 'Prasadam ingredients (weekly)', 'Cash', 'Demo Admin', 8],
+      [2100, 'Income', 'Goshala', 'Gau-seva donation — Divya Reddy', 'UPI', 'Demo Admin', 10],
+      [51000, 'Income', 'Hundi', 'Festival day hundi collection', 'UPI', 'Demo Admin', 12],
+      [15000, 'Expense', 'Maintenance', 'Sanctum electrical repair', 'UPI', 'Demo Admin', 14],
+      [501, 'Income', 'Archana', 'Special archana — Karthik month', 'Cash', 'Demo Admin', 16],
+      [11000, 'Income', 'Annadanam', 'Annadanam sponsorship — Vikram Malhotra', 'UPI', 'Demo Admin', 20],
+      [4500, 'Expense', 'Utilities', 'Temple electricity bill', 'UPI', 'Demo Admin', 22],
+      [25000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 26],
+      [101, 'Income', 'Hundi', 'Small offerings tray', 'Cash', 'Demo Admin', 29],
+    ];
+    setAllTreasury((prev) => [
+      ...txSeed.map(([amount, type, category, description, paymentMethod, handledBy, daysAgo], i) => ({
+        id: `tx_${ts}_seed_${i + 1}`,
+        ...seedTag,
+        date: isoDaysAgo(daysAgo),
+        amount,
+        type,
+        category,
+        description,
+        paymentMethod,
+        referenceId: paymentMethod === 'UPI' ? `UPI-SEED-${1001 + i}` : undefined,
+        handledBy,
+        auditVerified: true,
+      }) as unknown as TreasuryTransaction),
+      ...prev,
+    ]);
+
+    // ---- 3 campaigns with realistic progress ----
+    const campSeed: Array<[string, string, number, number, string]> = [
+      ['Mandir Jirnoddhar', 'Renovation of the main sanctum and gopuram', 5000000, 1250000, 'Mandir Nirman'],
+      ['Goshala Fodder Fund', 'Monthly fodder for 120 desi cows', 200000, 145000, 'Gau Seva / Healthcare'],
+      ['Annadanam Maha Yajna', 'Daily free meals for 2000 pilgrims this Kartik', 1000000, 320000, 'Annakshetra Fund'],
+    ];
+    setAllCampaigns((prev) => [
+      ...campSeed.map(([title, description, targetAmount, collectedAmount, category], i) => ({
+        id: `camp_${ts}_seed_${i + 1}`,
+        ...seedTag,
+        title,
+        description,
+        category,
+        targetAmount,
+        collectedAmount,
+        currency: 'INR',
+        startDate: isoDaysAgo(20),
+        endDate: isoDaysAhead(70),
+        status: 'active',
+        recentDonors: [],
+      }) as unknown as CampaignCrowdfund),
+      ...prev,
+    ]);
+
+    // ---- 4 upcoming festivals / Mahotsav schedules ----
+    const festSeed: Array<[string, string, string, string, number]> = [
+      ['Kartik Purnima Deepotsav', 'Ganga Aarti Sthal', 'Grand deepotsav with 51,000 diyas', 'Sri Vishwanath Shastri', 6],
+      ['Annakut Mahotsav', 'Main Mandapam', 'Chhappan bhog offering and bhandara', 'Sri Raghunath Acharya', 18],
+      ['Gita Jayanti Yajna', 'Yajnashala', '108-kundiya Gayatri mahayajna', 'Sri Devkinandan Ji', 34],
+      ['Makara Sankranti Mela', 'Temple Courtyard', 'Kite festival, til-gud prasadam, Gau-puja', 'Sri Vishwanath Shastri', 55],
+    ];
+    setAllResidentPujas((prev) => [
+      ...festSeed.map(([pujaName, venue, description, leadPurohit, daysAhead], i) => ({
+        id: `fest_${ts}_seed_${i + 1}`,
+        ...seedTag,
+        pujaName,
+        ritualName: pujaName,
+        deity: 'Sri Vishwanath',
+        timings: isoDaysAhead(daysAhead),
+        time: '06:00 AM',
+        leadPurohit,
+        priestName: leadPurohit,
+        isOpenForPublic: true,
+        samagriList: [],
+      }) as unknown as ResidentPujaSchedule),
+      ...prev,
+    ]);
+
+    // ---- 5 pooja bookings ----
+    const bookingSeed: Array<[string, string, string, string, string, number, string, number]> = [
+      ['Ananya Iyer', '+91 98410 22334', 'Rudrabhishek', 'Kashyapa', '06:00 - 08:00', 2100, 'Confirmed', 3],
+      ['Vikram Malhotra', '+91 98110 44556', 'Satyanarayan Katha', 'Bharadwaja', '10:00 - 13:00', 5100, 'Confirmed', 5],
+      ['Meera Nair', '+91 98470 11223', 'Archana (Sahasranama)', 'Vashishtha', '08:00 - 09:00', 1101, 'Confirmed', 8],
+      ['Arjun Deshmukh', '+91 98220 33445', 'Maha Mrityunjaya Jaap', 'Gautama', '05:00 - 07:00', 11000, 'Standby', 11],
+      ['Divya Reddy', '+91 98490 99001', 'Gau Puja & Godaan', 'Shandilya', '09:00 - 10:00', 5100, 'Confirmed', 14],
+    ];
+    setAllPoojaBookings((prev) => [
+      ...bookingSeed.map(([devoteeName, phone, poojaName, gotra, timeSlot, dakshinaAmount, status, daysAgo], i) => ({
+        id: `pbk_${ts}_seed_${i + 1}`,
+        ...seedTag,
+        devoteeName,
+        phone,
+        poojaName,
+        gotra,
+        timeSlot,
+        dakshinaAmount,
+        status,
+        paymentStatus: 'Paid',
+        receiptRef: `RCPT-SEED-${2001 + i}`,
+        bookingDate: isoDaysAgo(daysAgo),
+        tithiDate: isoDaysAhead(2),
+      }) as unknown as PoojaBooking),
+      ...prev,
+    ]);
   };
 
   const addDevotee = (data: Omit<DevoteeMember, 'id' | 'qrCodeRef' | 'joinedDate'>): string | boolean => {
-    if (!checkAndIncrementModuleQuota('devotees')) return false;
+    if (!checkAndIncrementModuleQuota('devotees').allowed) return false;
 
     const id = `dev-${Date.now()}`;
     const now = Date.now();
@@ -1609,7 +1918,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addFamily = (family: Omit<FamilyHousehold, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('families')) return false;
+    if (!checkAndIncrementModuleQuota('families').allowed) return false;
 
     const id = `fam-${Date.now()}`;
     const now = Date.now();
@@ -1632,7 +1941,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addGuest = (guest: Omit<GuestRecord, 'id' | 'visitDate'>): boolean => {
-    if (!checkAndIncrementModuleQuota('guests')) return false;
+    if (!checkAndIncrementModuleQuota('guests').allowed) return false;
 
     const id = `gst-${Date.now()}`;
     const now = Date.now();
@@ -1677,7 +1986,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addTreasuryTransaction = (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>): boolean => {
-    if (!checkAndIncrementModuleQuota('treasury')) return false;
+    if (!checkAndIncrementModuleQuota('treasury').allowed) return false;
     const id = `tx-${Date.now()}`;
     const now = Date.now();
     const newTx: any = {
@@ -1771,7 +2080,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addAsset = (asset: Omit<AssetRecord, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('assets')) return false;
+    if (!checkAndIncrementModuleQuota('assets').allowed) return false;
 
     const id = `ast-${Date.now()}`;
     const now = Date.now();
@@ -1799,7 +2108,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addInventoryItem = (item: Omit<InventoryItem, 'id' | 'lastRestockedDate'>): boolean => {
-    if (!checkAndIncrementModuleQuota('inventory')) return false;
+    if (!checkAndIncrementModuleQuota('inventory').allowed) return false;
 
     const id = `inv-${Date.now()}`;
     const now = Date.now();
@@ -1819,7 +2128,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addPoojaBooking = (
     booking: Omit<PoojaBooking, 'id' | 'receiptRef' | 'status' | 'paymentStatus'>
   ): boolean => {
-    if (!checkAndIncrementModuleQuota('pooja')) return false;
+    if (!checkAndIncrementModuleQuota('pooja').allowed) return false;
 
     const id = `pb-${Date.now()}`;
     const now = Date.now();
@@ -1862,7 +2171,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addCow = (cow: Omit<GoshalaCowRecord, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('goshala')) return false;
+    if (!checkAndIncrementModuleQuota('goshala').allowed) return false;
 
     const id = `cow-${Date.now()}`;
     const now = Date.now();
@@ -1901,7 +2210,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ============================================
 
   const addBhoomiProperty = (prop: Omit<BhoomiProperty, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('bhoomi')) return false;
+    if (!checkAndIncrementModuleQuota('bhoomi').allowed) return false;
 
     const id = `bhoomi-${Date.now()}`;
     const now = Date.now();
@@ -1931,7 +2240,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addRentReceipt = (receipt: Omit<BhoomiRentReceipt, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('bhoomi')) return false;
+    if (!checkAndIncrementModuleQuota('bhoomi').allowed) return false;
 
     const id = `rent-${Date.now()}`;
     const now = Date.now();
@@ -1952,7 +2261,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ============================================
 
   const addFleetVehicle = (vehicle: Omit<FleetVehicle, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('vahan')) return false;
+    if (!checkAndIncrementModuleQuota('vahan').allowed) return false;
 
     const duplicate = allFleetVehicles.some(
       (v) => v.registrationNo.trim().toLowerCase() === vehicle.registrationNo.trim().toLowerCase()
@@ -1989,7 +2298,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addFuelLog = (log: Omit<FleetFuelLog, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('vahan')) return false;
+    if (!checkAndIncrementModuleQuota('vahan').allowed) return false;
 
     const id = `fuel-${Date.now()}`;
     const now = Date.now();
@@ -2015,7 +2324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addServiceRecord = (record: Omit<FleetServiceRecord, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('vahan')) return false;
+    if (!checkAndIncrementModuleQuota('vahan').allowed) return false;
 
     const id = `svc-${Date.now()}`;
     const now = Date.now();
@@ -2042,7 +2351,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addSevaSubscription = (sub: Omit<SevaSubscription, 'id' | 'totalCollected' | 'paymentsCount'> & { silent?: boolean }): boolean => {
-    if (!checkAndIncrementModuleQuota('seva-subscriptions')) return false;
+    if (!checkAndIncrementModuleQuota('seva-subscriptions').allowed) return false;
     if (!sub.devoteeName?.trim() || !(sub.amount > 0)) {
       showToast('Devotee name and a positive amount are required.', 'warning', 'Invalid Subscription');
       return false;
@@ -2126,7 +2435,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addAnnadanam = (ann: Omit<AnnadanamSponsorship, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('annadanam')) return false;
+    if (!checkAndIncrementModuleQuota('annadanam').allowed) return false;
 
     const id = `ann-${Date.now()}`;
     const now = Date.now();
@@ -2156,7 +2465,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addResolution = (res: Omit<TrusteeResolution, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('resolutions')) return false;
+    if (!checkAndIncrementModuleQuota('resolutions').allowed) return false;
 
     const id = `res-${Date.now()}`;
     const now = Date.now();
@@ -2186,7 +2495,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addResidentPuja = (puja: Omit<ResidentPujaSchedule, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('residentPujas')) return false;
+    if (!checkAndIncrementModuleQuota('residentPujas').allowed) return false;
     const id = `rpuja-${Date.now()}`;
     const now = Date.now();
     const newPuja: any = {
@@ -2202,7 +2511,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addPitruRecord = (record: Omit<PitruRecord, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('pitruRecords')) return false;
+    if (!checkAndIncrementModuleQuota('pitruRecords').allowed) return false;
     const id = `pitru-${Date.now()}`;
     const now = Date.now();
     const newRecord: any = {
@@ -2218,7 +2527,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addGurukulStudent = (student: Omit<GurukulStudent, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('gurukulStudents')) return false;
+    if (!checkAndIncrementModuleQuota('gurukulStudents').allowed) return false;
     const id = `stu-${Date.now()}`;
     const now = Date.now();
     const newStudent: any = {
@@ -2234,7 +2543,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addShift = (shift: Omit<SevadarDutyShift, 'id'>): boolean => {
-    if (!checkAndIncrementModuleQuota('shifts')) return false;
+    if (!checkAndIncrementModuleQuota('shifts').allowed) return false;
 
     const id = `shf-${Date.now()}`;
     const now = Date.now();
@@ -2353,6 +2662,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addSevaSubscription,
         updateSevaSubscription,
         recordSubscriptionPayment,
+        demoUpsellModule,
+        closeDemoUpsell,
+        getDemoStats,
+        resetDemoWorkspace,
+        convertDemoToReal,
       }}
     >
       {children}
