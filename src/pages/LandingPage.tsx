@@ -641,9 +641,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             className="flex items-center gap-2.5 cursor-pointer"
             aria-label="Sanatani Bandhan home"
           >
-            <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/25">
-              ॐ
-            </span>
+            <img
+              src="/icon-96x96.png"
+              alt="Sanatani Bandhan"
+              className="w-10 h-10 rounded-2xl shadow-md shadow-orange-500/25"
+              width={40}
+              height={40}
+            />
             <span className="text-lg sm:text-xl font-extrabold tracking-tight">
               Sanatani <span className="text-orange-600">Bandhan</span>
             </span>
@@ -1269,9 +1273,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 pb-10 border-b border-stone-800">
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-3 mb-4">
-                <span className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-2xl shadow-lg">
-                  ॐ
-                </span>
+                <img
+                  src="/icon-96x96.png"
+                  alt="Sanatani Bandhan"
+                  className="w-12 h-12 rounded-2xl shadow-lg"
+                  width={48}
+                  height={48}
+                />
                 <span className="text-2xl font-extrabold text-white">
                   Sanatani <span className="text-orange-500">Bandhan</span>
                 </span>
