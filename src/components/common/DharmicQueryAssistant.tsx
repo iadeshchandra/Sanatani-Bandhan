@@ -32,6 +32,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { calculateDailyPanchang, STANDARD_CITIES, PanchangData } from '../../utils/panchang';
+import { callGeminiDirect } from '../../utils/geminiClient';
 
 export type AssistantLang = 'en' | 'hi' | 'bn' | 'sa';
 
@@ -255,52 +256,33 @@ Your sacred duty:
 Help devotees with authentic scriptural knowledge (Shastra Pramana), temple timings, fasting rules (Vrata Niyama), puja samagri checklists, and temple operations with profound reverence, accuracy, and clarity.
 Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang === 'bn' ? 'Bengali' : selectedLang === 'sa' ? 'Sanskrit' : 'English'}.`;
 
-      // Check for user-provided custom key or env key
-      const clientApiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('user_gemini_api_key') || undefined;
+      // Spark-plan path: call Gemini directly from the browser (no server).
+      // Key order: explicit user key → VITE_GEMINI_API_KEY → saved account key.
+      const clientApiKey =
+        import.meta.env.VITE_GEMINI_API_KEY ||
+        localStorage.getItem('user_gemini_api_key') ||
+        undefined;
 
-      const res = await fetch('/api/gemini/dharmic-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: trimmed,
-          systemInstruction,
-          activeModule,
-          workspaceName: activeWorkspace.name,
-          workspaceType: activeWorkspace.type,
-          location: locationName,
-          activeFestivals,
-          aartiSchedule: aartiScheduleSummary,
-          panchangContext: {
-            tithi: panchang.tithi,
-            paksha: panchang.paksha,
-            nakshatra: panchang.nakshatra,
-            lunarMonth: panchang.lunarMonth,
-            samvat: panchang.vikramSamvat,
-            sunrise: panchang.sunrise,
-            sunset: panchang.sunset,
-            rahuKaal: panchang.rahuKaal,
-            abhijitMuhurat: panchang.abhijitMuhurat,
-          },
-          language: selectedLang,
-          conversationHistory: history,
-          customApiKey: clientApiKey,
-        }),
-      });
+      const text = await callGeminiDirect(trimmed, systemInstruction, clientApiKey);
 
-      const data = await res.json();
-
-      if (data.success && data.result) {
-        const assistantMessage: ChatMessage = {
-          id: `ai-${Date.now()}`,
-          sender: 'assistant',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          result: data.result,
-          moduleContext: activeModule,
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } else {
-        throw new Error(data.error || 'Failed to retrieve response from Dharmic Copilot');
-      }
+      const directResult: DharmicAssistantResult = {
+        title: `Dharmic Guidance • ${activeWorkspace.name}`,
+        summary: text,
+        guidancePoints: [],
+        suggestedQueries: [
+          'What are the rules for Ekadashi fasting?',
+          'When is the next evening aarti?',
+          'What samagri is needed for Satyanarayan Puja?'
+        ],
+      };
+      const assistantMessage: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: 'assistant',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        result: directResult,
+        moduleContext: activeModule,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
       console.error('Dharmic Copilot error:', err);
 
