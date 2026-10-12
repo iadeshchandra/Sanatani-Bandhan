@@ -573,8 +573,9 @@ const MainAppView: React.FC = () => {
   React.useEffect(() => {
     // SECURITY: URL-based credential login (?action=autologin&id=&pin=) was
     // removed entirely. QR pairing is scan-only: the login screen scans a
-    // one-time token and claims it at POST /api/auth/qr-claim. Any pairing
-    // token arriving via URL is deliberately ignored here.
+    // one-time token and claims it from the `qrPairTokens` Firestore
+    // collection (single-use delete). Any pairing token arriving via URL is
+    // deliberately ignored here.
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'autologin' || params.get('action') === 'verify') {
       window.history.replaceState({}, document.title, window.location.pathname);
