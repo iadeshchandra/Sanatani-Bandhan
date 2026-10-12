@@ -89,7 +89,7 @@ export default defineConfig(() => {
         manifest: {
           name: 'Sanatani Bandhan',
           short_name: 'Bandhan',
-          description: 'Digital Vedic Command ERP for Mandirs, Goshalas, and Ashrams',
+          description: 'Digital command platform for Mandirs, Goshalas, Ashrams, Gurukuls and Sanghas',
           theme_color: '#ea580c',
           background_color: '#1c1917',
           display: 'standalone',
