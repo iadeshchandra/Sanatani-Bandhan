@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layers, LayoutDashboard,
   Users,
   Home,
@@ -63,9 +64,10 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
-import { isModuleAllowed } from '../../lib/workspaceRegistry';
+import { isModuleAllowed, isModuleAllowedForPlan, requiredTierForModule } from '../../lib/workspaceRegistry';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
+import { UpsellModal } from './UpsellModal';
 
 export interface NavItem {
   id: string;
@@ -165,6 +167,9 @@ interface DeskRowProps {
   isCollapsed: boolean;
   displayLabel: string;
   isPinned: boolean;
+  /** C-6: plan-locked desks render a lock affordance and open the upgrade upsell. */
+  isLocked?: boolean;
+  lockTierLabel?: string | null;
   onTogglePin: (id: string) => void;
   onSelect: (id: string) => void;
 }
@@ -179,6 +184,8 @@ const DeskRow: React.FC<DeskRowProps> = ({
   isCollapsed,
   displayLabel,
   isPinned,
+  isLocked = false,
+  lockTierLabel = null,
   onTogglePin,
   onSelect,
 }) => {
@@ -190,28 +197,42 @@ const DeskRow: React.FC<DeskRowProps> = ({
           type="button"
           id={withId ? `nav-desk-${item.id}` : undefined}
           onClick={() => onSelect(item.id)}
-          title={isCollapsed ? `${displayLabel} (${groupTitle})` : undefined}
+          title={
+            isLocked
+              ? `${displayLabel} — requires ${lockTierLabel || 'a paid'} plan`
+              : isCollapsed ? `${displayLabel} (${groupTitle})` : undefined
+          }
           aria-current={isActive ? 'page' : undefined}
           className={`flex-1 flex items-center rounded-xl transition-all cursor-pointer min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron-500 ${
             isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'
           } ${
             isActive
               ? 'bg-gradient-to-r from-saffron-500/20 to-saffron-500/10 text-saffron-400 border border-saffron-500/40 font-bold shadow-xs'
-              : 'text-temple-300 hover:bg-temple-800/70 hover:text-white border border-transparent'
+              : isLocked
+                ? 'text-temple-500 hover:bg-temple-800/50 hover:text-temple-300 border border-dashed border-temple-700'
+                : 'text-temple-300 hover:bg-temple-800/70 hover:text-white border border-transparent'
           }`}
         >
           <div className={`flex items-center gap-3 truncate ${isCollapsed ? 'justify-center' : ''}`}>
-            <Icon
-              className={`w-4 h-4 shrink-0 transition-colors ${
-                isActive ? 'text-saffron-400 stroke-[2.2]' : 'text-temple-400'
-              }`}
-            />
+            {isLocked ? (
+              <Lock className="w-4 h-4 shrink-0 text-amber-500/80" />
+            ) : (
+              <Icon
+                className={`w-4 h-4 shrink-0 transition-colors ${
+                  isActive ? 'text-saffron-400 stroke-[2.2]' : 'text-temple-400'
+                }`}
+              />
+            )}
             {!isCollapsed && (
               <span className="text-xs truncate font-medium">{displayLabel}</span>
             )}
           </div>
 
-          {!isCollapsed && item.badge && (
+          {!isCollapsed && (isLocked ? (
+            <span className="ml-2 text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              {lockTierLabel || 'PRO'}
+            </span>
+          ) : item.badge && (
             <span className={`ml-2 text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
               isActive
                 ? 'bg-saffron-500 text-temple-950'
@@ -219,7 +240,7 @@ const DeskRow: React.FC<DeskRowProps> = ({
             }`}>
               {item.badge}
             </span>
-          )}
+          ))}
         </button>
 
         {!isCollapsed && (
@@ -294,9 +315,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const taxonomy = useWorkspaceTaxonomy();
   const { t } = useLanguage();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDomainFilter, setSelectedDomainFilter] = useState<number | null>(null);
   const [collapsedDomains, setCollapsedDomains] = useState<Record<number, boolean>>({});
+  // C-6: module id of the plan-locked desk the user tapped → upgrade upsell.
+  const [upgradeModuleId, setUpgradeModuleId] = useState<string | null>(null);
 
   const toggleDomain = (domainNum: number) => {
     setCollapsedDomains(prev => ({ ...prev, [domainNum]: !prev[domainNum] }));
@@ -312,6 +336,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const handleSelectModule = (id: string) => {
+    // C-6: plan-locked desks don't navigate — they open the upgrade upsell.
+    if (lockedModuleIds.has(id)) {
+      setUpgradeModuleId(id);
+      return;
+    }
     recordDeskVisit(id).then(setRecentIds).catch(() => {});
     onSelectModule(id);
     if (window.innerWidth < 1024) onClose();
@@ -418,6 +447,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       );
     });
   }, [searchTerm, selectedDomainFilter, activeWorkspace, currentRole, checkPermission]);
+
+  // C-6: plan-tier locks. Locked modules STAY visible (upgrade affordance)
+  // instead of being hidden — the lock badge + upsell is the conversion path.
+  // Demo workspaces are never plan-locked (demo quota governs instead).
+  const lockedModuleIds = useMemo(() => {
+    const planId = activeWorkspace?.planId;
+    if (!planId || String(planId).toUpperCase() === 'DEMO') return new Set<string>();
+    const locked = new Set<string>();
+    for (const m of filteredModules) {
+      if (!isModuleAllowedForPlan(m.id, planId)) locked.add(m.id);
+    }
+    return locked;
+  }, [filteredModules, activeWorkspace?.planId]);
+
+  const lockTierLabelFor = (id: string): string | null => {
+    const tier = requiredTierForModule(id);
+    if (!tier) return null;
+    return tier === 'STANDARD' ? 'STANDARD' : 'ENTERPRISE';
+  };
 
   const domainGroups = useMemo(() => {
     const groups: { domain: number; title: string; items: NavItem[] }[] = [];
@@ -643,6 +691,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     displayLabel={resolveDisplayLabel(item)}
                     isPinned={true}
                     onTogglePin={handleTogglePin}
+                    isLocked={lockedModuleIds.has(item.id)}
+                    lockTierLabel={lockTierLabelFor(item.id)}
                     onSelect={handleSelectModule}
                   />
                 ))}
@@ -672,6 +722,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     displayLabel={resolveDisplayLabel(item)}
                     isPinned={false}
                     onTogglePin={handleTogglePin}
+                    isLocked={lockedModuleIds.has(item.id)}
+                    lockTierLabel={lockTierLabelFor(item.id)}
                     onSelect={handleSelectModule}
                   />
                 ))}
@@ -721,6 +773,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         displayLabel={resolveDisplayLabel(item)}
                         isPinned={pinnedIds.includes(item.id)}
                         onTogglePin={handleTogglePin}
+                        isLocked={lockedModuleIds.has(item.id)}
+                        lockTierLabel={lockTierLabelFor(item.id)}
                         onSelect={handleSelectModule}
                       />
                     ))}
@@ -775,6 +829,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
       </aside>
+
+      {/* C-6: plan-lock upgrade upsell. Manual fulfillment v1 — the CTA routes
+          to /contact for a human conversation.
+          TODO(v2): replace with a payment-gateway checkout (Razorpay/UPI). */}
+      <UpsellModal
+        isOpen={upgradeModuleId !== null}
+        onClose={() => setUpgradeModuleId(null)}
+        onUpgrade={() => {
+          setUpgradeModuleId(null);
+          navigate('/contact');
+        }}
+        module={upgradeModuleId ? `${upgradeModuleId} (${lockTierLabelFor(upgradeModuleId) || 'PRO'} plan)` : ''}
+        ctaLabel="Talk to us"
+      />
     </>
   );
 };
