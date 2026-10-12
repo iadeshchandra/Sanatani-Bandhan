@@ -257,11 +257,12 @@ export const generateDevoteeCardPDF = async (
   // QR Code
   doc.addImage(qrDataUrl, 'PNG', 4, 70, 13, 13);
 
-  // Footer / Auth
+  // Footer / Auth — the QR is identity-verification only (no credentials).
   doc.setTextColor(107, 114, 128);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(4);
-  doc.text('Scan for Verification', 10.5, 85, { align: 'center' });
+  doc.setFontSize(3.5);
+  doc.text('Identity verification only', 10.5, 83.8, { align: 'center' });
+  doc.text('Login requires your PIN', 10.5, 85, { align: 'center' });
 
   // Signature Line
   doc.setDrawColor(156, 163, 175);
