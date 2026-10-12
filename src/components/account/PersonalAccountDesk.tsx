@@ -13,6 +13,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from "../../context/DataContext";
+import { callGeminiDirect } from '../../utils/geminiClient';
 
 export type ProfileTab = 'card' | 'assistant' | 'non_ai_help' | 'bookings' | 'sadhana' | 'settings';
 
@@ -90,25 +91,25 @@ export const PersonalAccountDesk: React.FC<{
 
     setIsValidatingKey(true);
     try {
-      const res = await fetch('/api/gemini/validate-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: geminiApiKey.trim() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
-        setKeyValidationStatus('valid');
-        showToast('✅ Gemini API Key verified and saved securely in your browser!', 'success');
-      } else {
-        setKeyValidationStatus('invalid');
-        showToast(`❌ Verification failed: ${data.error || 'Invalid key'}`, 'error');
-      }
-    } catch (e: any) {
-      // If offline or network err, save locally anyway with warning
+      // Spark-plan path: validate the key directly against Google — no server.
+      await callGeminiDirect('Reply with the single word: OK', undefined, geminiApiKey.trim());
       localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
       setKeyValidationStatus('valid');
-      showToast('Saved custom API key to local storage', 'info');
+      showToast('✅ Gemini API Key verified and saved securely in your browser!', 'success');
+    } catch (e: any) {
+      if (e?.message === 'GEMINI_KEY_MISSING') {
+        setKeyValidationStatus('invalid');
+        showToast('❌ Verification failed: empty key', 'error');
+      } else if (String(e?.message || '').startsWith('GEMINI_HTTP_')) {
+        // Key was rejected by Google (401/403) or upstream errored.
+        setKeyValidationStatus('invalid');
+        showToast(`❌ Verification failed: ${e.message}`, 'error');
+      } else {
+        // Offline or network err: save locally anyway with warning (existing behavior).
+        localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
+        setKeyValidationStatus('valid');
+        showToast('Saved custom API key to local storage', 'info');
+      }
     } finally {
       setIsValidatingKey(false);
     }
@@ -175,34 +176,20 @@ export const PersonalAccountDesk: React.FC<{
     setIsAiLoading(true);
 
     try {
+      // Spark-plan path: call Gemini directly (no server). Key order:
+      // explicit user key → VITE_GEMINI_API_KEY → saved account key.
       const customKey = localStorage.getItem('user_gemini_api_key') || undefined;
-      const res = await fetch('/api/gemini/dharmic-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: textToSend,
-          customApiKey: customKey,
-          workspaceType: activeWorkspace?.type || 'MANDIR',
-          workspaceName: activeWorkspace?.name || 'Sanatan Mandir',
-          language: language,
-          activeModule: 'personal-account'
-        })
-      });
-      const data = await res.json();
-      if (data.success && data.result) {
-        const botMsg = {
-          id: 'bot_' + Date.now(),
-          sender: 'assistant' as const,
-          text: data.result.summary || data.result.title || 'Guidance received.',
-          shloka: data.result.shloka,
-          source: data.result.scriptureSource,
-          points: data.result.guidancePoints || [],
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setAiChatMessages(prev => [...prev, botMsg]);
-      } else {
-        throw new Error(data.error || 'No response from assistant');
-      }
+      const answer = await callGeminiDirect(textToSend, undefined, customKey);
+      const botMsg = {
+        id: 'bot_' + Date.now(),
+        sender: 'assistant' as const,
+        text: answer,
+        shloka: undefined as string | undefined,
+        source: undefined as string | undefined,
+        points: [] as string[],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setAiChatMessages(prev => [...prev, botMsg]);
     } catch (err: any) {
       const fallbackBotMsg = {
         id: 'bot_err_' + Date.now(),
