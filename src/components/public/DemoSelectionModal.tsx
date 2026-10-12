@@ -12,8 +12,19 @@ interface DemoSelectionModalProps {
 
 const ORG_TYPES: WorkspaceType[] = [
   'Mandir', 'Goshala', 'Sangha', 'Ashram', 'Gurukul',
-  'AkshayaPatra', 'MahotsavSamiti', 'PurohitSabha', 'KashiKshetra', 'Trust'
+  'AkshayaPatra', 'MahotsavSamiti', 'PurohitSabha', 'KashiKshetra', 'Trust',
+  'Tirth', 'Vidyalaya',
 ];
+
+/** Human-readable labels for demo org types. */
+const ORG_LABELS: Record<string, string> = {
+  AkshayaPatra: 'Akshaya Patra',
+  MahotsavSamiti: 'Mahotsav Samiti',
+  PurohitSabha: 'Purohit Sabha',
+  KashiKshetra: 'Kashi Kshetra',
+  Tirth: 'Tirth / Yatra',
+  Vidyalaya: 'Vidyalaya / Pathshala',
+};
 
 export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, onClose, onSelect }) => {
   const { safeTranslate } = useLanguage();
@@ -51,7 +62,7 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
                 }`}
               >
                 <Building2 className={`w-6 h-6 mb-2 ${selected === type ? 'text-saffron-500' : 'text-slate-400'}`} />
-                <p className={`text-sm font-bold ${selected === type ? 'text-saffron-900' : 'text-slate-700'}`}>{type}</p>
+                <p className={`text-sm font-bold ${selected === type ? 'text-saffron-900' : 'text-slate-700'}`}>{ORG_LABELS[type] ?? type}</p>
               </button>
             ))}
           </div>
