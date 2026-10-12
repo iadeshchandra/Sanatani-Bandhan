@@ -54,11 +54,35 @@ import {
   CalendarCheck,
   Home,
   GraduationCap,
+  Gem,
+  TrendingUp,
+  Award,
+  Target,
+  Network,
+  Upload,
+  Flower2,
+  MonitorSmartphone,
+  ClipboardCheck,
+  Sun,
+  ScrollText,
+  Library,
+  Truck,
+  CalendarHeart,
+  FileCheck2,
+  Siren,
+  LayoutGrid,
+  Heart,
+  Droplets,
+  Vote,
+  Route,
+  BedDouble,
+  ClipboardList,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useDemoStarter } from '../hooks/useDemoStarter';
 import { calculatePanchang } from '../utils/panchang';
+import { PLAN_PRICING } from '../config/planPricing';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
@@ -202,6 +226,8 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: Receipt, title: 'Auto 80G receipts', desc: 'Tax certificates generated instantly for every eligible donation.' },
       { icon: FileCheck, title: 'Tally Prime sync', desc: 'One-click export your CA actually wants, in Tally format.' },
       { icon: Scale, title: 'Blind hundi audit', desc: 'Dual-custodian sealed counting with variance alerts.' },
+      { icon: Gem, title: 'Ratna Bhandar vault', desc: 'Gold, silver & jewel ornaments — weighed, sealed & audited.' },
+      { icon: TrendingUp, title: 'Predictive runway', desc: 'Festival-season cash-flow forecasts from live ledger data.' },
     ],
   },
   {
@@ -211,9 +237,11 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
     icon: Repeat,
     features: [
       { icon: Repeat, title: 'Monthly mandates', desc: 'Annadanam, gau-seva & lamp subscriptions on autopilot.' },
-      { icon: PiggyBank, title: 'MRR tracking', desc: 'See your temple\u2019s monthly recurring seva income at a glance.' },
+      { icon: PiggyBank, title: 'MRR tracking', desc: 'See your institution\u2019s monthly recurring seva income at a glance.' },
       { icon: CalendarCheck, title: 'Pause / resume / cancel', desc: 'Devotees control their seva; staff handle exceptions gracefully.' },
       { icon: Bell, title: 'Auto due reminders', desc: 'Gentle WhatsApp nudges before every due date — no awkward calls.' },
+      { icon: Award, title: 'Karma ledger', desc: 'Micro-seva points & punya certificates for every volunteer.' },
+      { icon: Target, title: 'Fundraising campaigns', desc: 'Jirnoddhar drives with live donor milestones & goals.' },
     ],
   },
   {
@@ -223,9 +251,13 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
     icon: Users,
     features: [
       { icon: Users, title: 'Family CRM', desc: 'Lifelong records with gotra, family trees & seva history.' },
-      { icon: IdCard, title: 'Universal Sanatani ID', desc: 'One identity that travels with the devotee across temples.' },
+      { icon: IdCard, title: 'Universal Sanatani ID', desc: 'One identity that travels with the devotee across institutions.' },
       { icon: QrCode, title: 'QR ID cards', desc: 'Print beautiful, verifiable devotee cards in one click.' },
       { icon: HeartHandshake, title: 'Duplicate detection', desc: 'Smart matching keeps your parivar list clean & trusted.' },
+      { icon: Network, title: 'Vanshavali lineage', desc: 'Interactive gotra family trees across generations.' },
+      { icon: Flame, title: 'Pitru Paksha & Shradh', desc: 'Ancestor tithi registry with annual remembrance alerts.' },
+      { icon: Upload, title: 'Bulk devotee import', desc: 'CSV/Excel migration with auto-cleaning & gotra match.' },
+      { icon: Flower2, title: 'Personal sadhana', desc: 'Japa counters, meditation logs & dharmic progress.' },
     ],
   },
   {
@@ -238,6 +270,8 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: Ticket, title: 'Online bookings', desc: 'Devotees reserve darshan slots from their phone.' },
       { icon: Fingerprint, title: 'Biometric turnstiles', desc: 'High-trust entry for VIP & senior-citizen darshans.' },
       { icon: ScanLine, title: 'Anti-passback', desc: 'One pass, one entry — reuse & sharing blocked automatically.' },
+      { icon: MonitorSmartphone, title: 'Tatkal kiosk', desc: 'Self-service express darshan booking at the gate.' },
+      { icon: ClipboardCheck, title: 'Live check-in console', desc: 'Real-time entry counts, slot capacity & rush alerts.' },
     ],
   },
   {
@@ -250,6 +284,9 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: Bell, title: 'Garbhagriha teleprompter', desc: 'Priests follow the vidhi step-by-step, never miss a mantra.' },
       { icon: UtensilsCrossed, title: 'Prasadam management', desc: 'Plan, track & distribute prasadam without wastage.' },
       { icon: Sparkles, title: 'Rahu-Kaal aware muhurat', desc: 'Bookings auto-checked against inauspicious windows.' },
+      { icon: Sun, title: 'Nitya-seva routines', desc: 'Daily aarti schedules, priest duty logs & naivedya.' },
+      { icon: ScrollText, title: 'Purohit desk & marketplace', desc: 'Ritual ledgers, dakshina records & verified purohits.' },
+      { icon: Library, title: 'Granth library', desc: 'Vedic scriptures, stotrams & authentic Sanskrit verses.' },
     ],
   },
   {
@@ -274,6 +311,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: UtensilsCrossed, title: 'Recipe BOM explosion', desc: 'One annadanam plan auto-deducts every ingredient.' },
       { icon: CalendarDays, title: 'Panchang-driven procurement', desc: 'Festival demand forecasting from the tithi calendar.' },
       { icon: Scale, title: 'Wastage control', desc: 'Track shrinkage & keep the annapurna audit clean.' },
+      { icon: Truck, title: 'Smart procurement', desc: 'Auto purchase orders when festival demand spikes.' },
     ],
   },
   {
@@ -286,6 +324,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: Car, title: 'Vehicle fleet', desc: 'Raths, ambulances & buses with fuel & service logs.' },
       { icon: Coins, title: 'Auto treasury posting', desc: 'Rent & fuel entries post to the ledger by themselves.' },
       { icon: CalendarCheck, title: 'Maintenance schedules', desc: 'Never miss a service date or lease renewal again.' },
+      { icon: Landmark, title: 'Asset & ornament register', desc: 'Deity jewels, idols & trust land — valued & insured.' },
     ],
   },
   {
@@ -298,6 +337,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: CalendarDays, title: 'Festival templates', desc: 'Diwali, Navratri, Rath Yatra — ready-made campaigns.' },
       { icon: Users, title: 'Gotra merge tags', desc: 'Personalised messages: name, gotra & seva history.' },
       { icon: Languages, title: 'Multi-language', desc: 'Hindi, Bengali, Sanskrit & English — write once, reach all.' },
+      { icon: CalendarHeart, title: 'Festival calendar', desc: 'Tithi observances & panjika events, auto-reminded.' },
     ],
   },
   {
@@ -310,6 +350,10 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: Lock, title: 'SHA-256 tamper-proof log', desc: 'Block-chained audit trail — nobody can backdate entries.' },
       { icon: ShieldCheck, title: 'Role-based access', desc: 'Trustee, accountant, priest — everyone sees only their desk.' },
       { icon: BadgeCheck, title: 'Trustee dashboards', desc: 'One-glance financial health for every board meeting.' },
+      { icon: FileCheck2, title: 'Form 10BD studio', desc: 'Donation statements filed in the exact statutory format.' },
+      { icon: Building2, title: 'Multi-branch federation', desc: 'Switch between branches & trusts in one login.' },
+      { icon: Siren, title: 'Crisis command', desc: 'Crowd-density alerts, lost-child broadcasts & SOS dispatch.' },
+      { icon: LayoutGrid, title: 'Modular app store', desc: 'Activate add-on desks tailored to your institution.' },
     ],
   },
   {
@@ -318,10 +362,25 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
     audience: "Every institution's 24×7 sevak — online or offline.",
     icon: Bot,
     features: [
-      { icon: Bot, title: 'Vedic AI helpdesk', desc: 'Devotees ask in plain language — answers from your temple data.' },
+      { icon: Bot, title: 'Vedic AI helpdesk', desc: 'Devotees ask in plain language — answers from your institution\u2019s data.' },
       { icon: Sparkles, title: 'Dharmic assistant', desc: 'Shastra-grounded guidance for priests & administrators.' },
       { icon: WifiOff, title: '100% offline PWA', desc: 'Counts, collections & check-ins work with zero internet.' },
       { icon: Smartphone, title: 'Auto-sync', desc: 'Everything merges to the cloud the moment you reconnect.' },
+    ],
+  },
+  {
+    id: 'community',
+    label: 'Community & Seva',
+    audience: 'Where the parivar gathers — beyond any single institution.',
+    icon: HeartHandshake,
+    features: [
+      { icon: Heart, title: 'Sanatani Vivah', desc: 'Community matrimony with kundali gun-milan matching.' },
+      { icon: Droplets, title: 'Raktha Seva network', desc: 'Emergency blood donors mobilised in minutes.' },
+      { icon: Vote, title: 'Panchayat polling', desc: 'Transparent community votes & trust resolutions.' },
+      { icon: Route, title: 'Yatra Net pilgrimage', desc: 'Group tracking, shelter routes & emergency geotagging.' },
+      { icon: BedDouble, title: 'Dharamshala & guests', desc: 'Room check-in, kutir bookings & pilgrim stays.' },
+      { icon: ClipboardList, title: 'Sevadar roster', desc: 'Volunteer shifts, duty sign-ups & attendance.' },
+      { icon: GraduationCap, title: 'Vedic shiksha', desc: 'Gurukul classes, curriculum & student progress.' },
     ],
   },
 ];
@@ -423,14 +482,14 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Sanatani Free plan is ₹0 forever: the full app, one institution, unlimited members and donations, offline PWA, and community support. No credit card, no trial clock. Typical institution software costs around ₹35,000 per year with per-desk pricing; we keep ours free because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Mandir Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
-    a: 'Completely. Sanatani Bandhan is an offline-first Progressive Web App. Hundi counts, chanda collections, darshan check-ins — everything works in airplane mode and syncs automatically when you are back online. Temples in remote kshetras run it daily with zero connectivity.',
+    a: 'Completely. Sanatani Bandhan is an offline-first Progressive Web App. Hundi counts, chanda collections, darshan check-ins — everything works in airplane mode and syncs automatically when you are back online. Institutions in remote kshetras run it daily with zero connectivity.',
   },
   {
-    q: 'Is our temple\u2019s data safe?',
+    q: 'Is our institution\u2019s data safe?',
     a: 'Your data is protected by deny-by-default cloud security rules, encrypted in transit and at rest, and written to an append-only SHA-256 audit ledger — nobody can backdate or silently alter entries. Role-based access means the priest never sees the treasury and the accountant never sees devotee PINs. And your data is yours: export it any time.',
   },
   {
@@ -500,6 +559,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [securityOpen, setSecurityOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('treasury');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [billingAnnual, setBillingAnnual] = useState(false);
   const [activeOrg, setActiveOrg] = useState<WorkspaceType>('Mandir');
   const orgProfile = ORG_PROFILES.find((o) => o.type === activeOrg) ?? ORG_PROFILES[0];
 
@@ -948,7 +1008,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               One platform for every <span className="text-orange-600">dharmic institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Forty-nine desks, eleven worlds — treasury, goshala, darshan, kitchen and more.
+              Forty-nine desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
               Pick your institution above, or explore every capability below.
             </p>
           </Reveal>
@@ -1038,7 +1098,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {
                   icon: HeartHandshake,
                   title: 'Seva-first',
-                  desc: 'A free-forever tier for every temple, however small. Dharma technology should belong to all, not just the wealthy.',
+                  desc: 'A free-forever tier for every institution, however small. Dharma technology should belong to all, not just the wealthy.',
                 },
                 {
                   icon: CalendarDays,
@@ -1062,37 +1122,102 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <ToranDivider />
 
-        {/* PRICING */}
-        <section id="pricing" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
-          <Reveal className="text-center max-w-2xl mx-auto mb-12">
+        {/* PRICING — driven by src/config/planPricing.ts (PLAN_PRICING). Do not hardcode prices here. */}
+        <section id="pricing" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
+          <Reveal className="text-center max-w-2xl mx-auto mb-8">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
               Priced for <span className="text-orange-600">every institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Typical institution software costs around ₹35,000 a year — per-desk pricing,
-              hardware lock-in, salesman visits. We chose a different path.
+              Start free, grow when you are ready. Every plan includes the offline-first
+              PWA, all five institution types, and community support.
             </p>
           </Reveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch">
-            <Reveal>
-              <div className="relative h-full rounded-[2rem] bg-gradient-to-br from-orange-600 to-amber-500 p-8 sm:p-10 text-white shadow-2xl shadow-orange-500/30 overflow-hidden">
-                <div className="absolute top-4 right-6 text-xs font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
-                  Most loved
-                </div>
-                <h3 className="text-2xl font-black">Sanatani Free</h3>
-                <p className="mt-2 flex items-baseline gap-2">
-                  <span className="text-5xl font-black">₹0</span>
-                  <span className="text-orange-100 font-bold">forever</span>
+          {/* Monthly / Annual toggle */}
+          <div className="flex justify-center mb-10">
+            <div className="inline-flex items-center rounded-full bg-white border border-orange-200 p-1 shadow-sm" role="group" aria-label="Billing period">
+              <button
+                type="button"
+                onClick={() => setBillingAnnual(false)}
+                aria-pressed={!billingAnnual}
+                className={`min-h-[44px] px-6 rounded-full text-sm font-extrabold transition-all cursor-pointer ${!billingAnnual ? 'bg-stone-900 text-white shadow' : 'text-stone-500 hover:text-stone-800'}`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingAnnual(true)}
+                aria-pressed={billingAnnual}
+                className={`min-h-[44px] px-6 rounded-full text-sm font-extrabold transition-all cursor-pointer flex items-center gap-2 ${billingAnnual ? 'bg-stone-900 text-white shadow' : 'text-stone-500 hover:text-stone-800'}`}
+              >
+                Annual
+                <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">2 months free</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+            {/* SEVA FREE — from PLAN_PRICING.LITE */}
+            <Reveal className="h-full">
+              <div className="h-full rounded-[2rem] bg-white border border-orange-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-orange-100 transition-all">
+                <span className="self-start text-[11px] font-black tracking-widest uppercase bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
+                  {PLAN_PRICING.LITE.badge}
+                </span>
+                <h3 className="mt-4 text-2xl font-black text-stone-900">Seva Free</h3>
+                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.LITE.tagline}</p>
+                <p className="mt-4 flex items-baseline gap-2">
+                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.LITE.price.currencySymbol}0</span>
+                  <span className="text-stone-500 font-bold">forever</span>
                 </p>
-                <ul className="mt-6 space-y-3 text-sm font-medium">
-                  {[
-                    'Full app — all 49 institution desks',
-                    '1 institution, unlimited members & donations',
-                    'Offline PWA — works with zero internet',
-                    'Auto 80G receipts & Tally Prime sync',
-                    'Community support from fellow institutions',
-                  ].map((f) => (
+                <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
+                  Up to {PLAN_PRICING.LITE.limits.devotees} devotees · {PLAN_PRICING.LITE.limits.transactions} transactions · {PLAN_PRICING.LITE.limits.adminSeats} admin seats
+                </p>
+                <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
+                  {['Pooja Booking', 'Panchang & Muhurat', 'Quick Chanda', 'WhatsApp Broadcaster'].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-orange-600" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={handleSignup}
+                  className="mt-8 w-full min-h-[52px] rounded-2xl border-2 border-orange-600 text-orange-700 font-black text-sm tracking-wide hover:bg-orange-50 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  START FREE
+                </button>
+              </div>
+            </Reveal>
+
+            {/* MANDIR STANDARD — from PLAN_PRICING.STANDARD (highlighted) */}
+            <Reveal delay={80} className="h-full">
+              <div className="relative h-full rounded-[2rem] bg-gradient-to-br from-orange-600 to-amber-500 p-8 text-white shadow-2xl shadow-orange-500/30 overflow-hidden flex flex-col">
+                <span className="absolute top-4 right-6 text-[11px] font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
+                  {PLAN_PRICING.STANDARD.badge}
+                </span>
+                <h3 className="text-2xl font-black">Mandir Standard</h3>
+                <p className="mt-1 text-sm text-orange-100">{PLAN_PRICING.STANDARD.tagline}</p>
+                <p className="mt-4 flex items-baseline gap-2">
+                  <span className="text-5xl font-black">
+                    {PLAN_PRICING.STANDARD.price.currencySymbol}
+                    {billingAnnual
+                      ? Math.round(PLAN_PRICING.STANDARD.price.annual / 12).toLocaleString('en-IN')
+                      : PLAN_PRICING.STANDARD.price.monthly.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-orange-100 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
+                </p>
+                {billingAnnual && (
+                  <p className="mt-1 text-xs font-bold text-orange-100">
+                    {PLAN_PRICING.STANDARD.price.currencySymbol}{PLAN_PRICING.STANDARD.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                  </p>
+                )}
+                <p className="mt-3 text-xs font-bold text-orange-100 uppercase tracking-wide">
+                  {PLAN_PRICING.STANDARD.limits.devotees.toLocaleString('en-IN')} devotees · {PLAN_PRICING.STANDARD.limits.branches} branches · priority support
+                </p>
+                <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
+                  {['Everything in Seva Free', 'Annadanam Kitchen', 'Dharamshala guest rooms', 'Gau Seva & dairy', '80G tax receipts', 'Fundraising campaigns', 'Inventory & store'].map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                       {f}
@@ -1104,42 +1229,63 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={handleSignup}
                   className="mt-8 w-full min-h-[52px] rounded-2xl bg-white text-orange-700 font-black text-sm tracking-wide shadow-lg hover:bg-orange-50 transition-all active:scale-[0.98] cursor-pointer"
                 >
-                  CREATE FREE ACCOUNT
+                  START 30-DAY FREE TRIAL
                 </button>
               </div>
             </Reveal>
 
-            <Reveal delay={100}>
-              <div className="h-full rounded-[2rem] bg-stone-100 border border-stone-200 p-8 sm:p-10 text-stone-500">
-                <h3 className="text-2xl font-black text-stone-400">What others charge</h3>
-                <p className="mt-2 flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-stone-400">₹35,000</span>
-                  <span className="font-bold">/ year</span>
+            {/* ENTERPRISE — from PLAN_PRICING.ENTERPRISE */}
+            <Reveal delay={160} className="h-full">
+              <div className="h-full rounded-[2rem] bg-stone-900 p-8 text-stone-200 flex flex-col shadow-xl">
+                <span className="self-start text-[11px] font-black tracking-widest uppercase bg-stone-800 text-amber-400 px-3 py-1 rounded-full">
+                  {PLAN_PRICING.ENTERPRISE.badge}
+                </span>
+                <h3 className="mt-4 text-2xl font-black text-white">Enterprise</h3>
+                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.ENTERPRISE.tagline}</p>
+                <p className="mt-4 flex items-baseline gap-2">
+                  <span className="text-5xl font-black text-white">
+                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}
+                    {billingAnnual
+                      ? Math.round(PLAN_PRICING.ENTERPRISE.price.annual / 12).toLocaleString('en-IN')
+                      : PLAN_PRICING.ENTERPRISE.price.monthly.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
-                <ul className="mt-6 space-y-3 text-sm font-medium">
-                  {[
-                    'Per-desk pricing — pay more for every module',
-                    'Hardware lock-in & annual maintenance contracts',
-                    'Paid "implementation consultants" for setup',
-                    'Your data held hostage in proprietary formats',
-                  ].map((f) => (
+                {billingAnnual && (
+                  <p className="mt-1 text-xs font-bold text-stone-400">
+                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}{PLAN_PRICING.ENTERPRISE.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                  </p>
+                )}
+                <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">
+                  Unlimited everything · dedicated SLA
+                </p>
+                <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
+                  {['Everything in Standard', 'Double-entry treasury ledger', 'SHA-256 audit logs', 'Multi-branch federation', 'Crisis command center', 'Granular RBAC roles'].map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
-                      <X className="w-5 h-5 shrink-0 mt-0.5 text-stone-300" />
+                      <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-amber-400" />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-8 text-sm font-bold text-stone-400 italic">
-                  Typical institution software pricing in the market.
-                </p>
+                <button
+                  type="button"
+                  onClick={handleContact}
+                  className="mt-8 w-full min-h-[52px] rounded-2xl border-2 border-amber-400/60 text-amber-300 font-black text-sm tracking-wide hover:bg-stone-800 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  TALK TO US
+                </button>
               </div>
             </Reveal>
           </div>
 
-          <Reveal delay={150}>
-            <p className="text-center mt-10 text-lg font-extrabold text-stone-800">
-              Free means free. <span className="text-orange-600">No card. No trial clock.</span>
-            </p>
+          {/* Slim competitor contrast strip */}
+          <Reveal delay={120}>
+            <div className="mt-8 rounded-2xl bg-stone-100 border border-stone-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center">
+              <span className="text-sm font-bold text-stone-500">
+                Typical institution software costs <span className="text-stone-700 font-black">₹35,000/year</span> — per-desk pricing, hardware lock-in, paid consultants.
+              </span>
+              <span className="text-sm font-extrabold text-orange-700">We chose a different path.</span>
+            </div>
           </Reveal>
         </section>
 
@@ -1150,7 +1296,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Voices from the <span className="text-orange-600">parivar.</span>
             </h2>
           </Reveal>
-          {/* NOTE: replace with real testimonials once collected from pilot temples. */}
+          {/* NOTE: replace with real testimonials once collected from pilot institutions. */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.role} delay={i * 90}>
