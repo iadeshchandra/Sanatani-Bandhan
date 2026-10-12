@@ -37,6 +37,8 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { SystemOverrideGuard } from './components/auth/SystemOverrideGuard';
 import { CommandPalette } from './components/common/CommandPalette';
 import { ConfirmProvider } from './components/common/ui';
+import { DemoBanner } from './components/public/DemoBanner';
+import { DemoUpsellModal } from './components/public/DemoUpsellModal';
 
 import { NotificationProvider } from './context/NotificationContext';
 const QRScanner = lazy(() => import('./components/admin/QRScanner').then(m => ({ default: m.QRScanner })));
@@ -135,8 +137,9 @@ const RestrictedAccess: React.FC = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { checkPermission, activeWorkspace, currentRole, viewMode } = useAuthWorkspace();
+  const { checkPermission, activeWorkspace, currentRole, viewMode, logout } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { demoUpsellModule, closeDemoUpsell, getDemoStats } = useData();
   const [activeModule, setActiveModule] = useState<string>('dashboard');
   React.useEffect(() => {
     if (currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE') {
@@ -168,6 +171,27 @@ const AppContent: React.FC = () => {
 
   const [isSahayataOpen, setIsSahayataOpen] = useState<boolean>(false);
   const { openGuide } = useQuickGuide();
+
+  /**
+   * Demo → registration handoff. Stashes the demo workspace id so the
+   * pending-conversion effect can migrate the user's records after signup,
+   * then drops the demo session and routes to the signup screen.
+   */
+  const handleRegister = React.useCallback(() => {
+    const demoId = activeWorkspace?.id;
+    if (demoId && demoId.startsWith('DEMO_')) {
+      try {
+        localStorage.setItem('sb_pending_demo_conversion', demoId);
+      } catch {
+        /* storage unavailable — conversion simply won't run */
+      }
+    }
+    closeDemoUpsell();
+    logout();
+    window.dispatchEvent(new CustomEvent('sanatani:show-signup'));
+  }, [activeWorkspace?.id, closeDemoUpsell, logout]);
+
+  const demoStats = getDemoStats();
 
   if (viewMode === 'MEMBER') {
     return (
@@ -476,6 +500,9 @@ const AppContent: React.FC = () => {
         />
       )}
 
+      {/* Demo Sandbox banner (replaces the old watermark) */}
+      <DemoBanner onRegister={handleRegister} />
+
       <div className="flex grow overflow-hidden">
         {/* Universal 46-Module Sidebar (Hidden for Devotee) */}
         {currentRole !== 'Devotee' && (
@@ -513,6 +540,17 @@ const AppContent: React.FC = () => {
       <CommandPalette onSelectModule={(mod) => setActiveModule(mod)} />
       <ConfirmProvider />
 
+      {/* Demo Playground Conversion Engine: quota upsell modal */}
+      <DemoUpsellModal
+        module={demoUpsellModule ? demoUpsellModule.module : null}
+        entityLabel={demoUpsellModule ? demoUpsellModule.entityLabel : 'records'}
+        createdCount={
+          demoUpsellModule ? demoStats.perModule[demoUpsellModule.module] ?? 5 : 0
+        }
+        onClose={closeDemoUpsell}
+        onRegister={handleRegister}
+      />
+
       <QuickChandaModal
         isOpen={isQuickChandaOpen}
         onClose={() => setIsQuickChandaOpen(false)}
@@ -548,14 +586,6 @@ const AppContent: React.FC = () => {
 
       {/* Shastric & Statutory Quick Guide & SOP Drawer */}
       <RBACQuickGuideDrawer />
-
-      {/* Demo Sandbox Watermark */}
-      {activeWorkspace?.id?.startsWith('DEMO_') && (
-        <div className="fixed bottom-4 left-4 z-[9998] bg-amber-500 text-stone-900 px-3 py-1.5 rounded-lg shadow-lg font-bold text-xs flex items-center gap-2 animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-stone-900"></span>
-          TESTING MODE (EPHEMERAL DATA)
-        </div>
-      )}
     </div>
   );
 };
@@ -565,6 +595,14 @@ const MainAppView: React.FC = () => {
   const { isAuthenticated, addWorkspace, switchWorkspace, loginAsRole, firebaseUser } = useAuthWorkspace();
   const { seedDemoData } = useData();
   const [view, setView] = useState<'landing' | 'login' | 'signup'>('landing');
+
+  // Demo conversion handoff: the in-app demo banner/modal dispatches this
+  // after stashing `sb_pending_demo_conversion`, so the user lands on signup.
+  React.useEffect(() => {
+    const showSignup = () => setView('signup');
+    window.addEventListener('sanatani:show-signup', showSignup);
+    return () => window.removeEventListener('sanatani:show-signup', showSignup);
+  }, []);
 
   if (window.location.pathname === '/mysecretlogin') {
     return <GodModeBackend isOpen={true} onClose={() => window.location.href = '/'} />;
