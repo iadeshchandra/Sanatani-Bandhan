@@ -52,11 +52,12 @@ import {
   Star,
   Quote,
   CalendarCheck,
+  Home,
+  GraduationCap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useToast } from '../context/ToastContext';
+import { useDemoStarter } from '../hooks/useDemoStarter';
 import { calculatePanchang } from '../utils/panchang';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
@@ -184,6 +185,8 @@ interface ShowcaseTab {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** One clause naming which institutions use this area most. */
+  audience: string;
   features: ShowcaseFeature[];
 }
 
@@ -191,6 +194,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'treasury',
     label: 'Treasury & Donations',
+    audience: "Every institution's backbone — from hundi to school fees.",
     icon: Coins,
     features: [
       { icon: HandCoins, title: 'Quick Chanda POS', desc: 'Counter collections with UPI + cash, printed receipts in seconds.' },
@@ -203,6 +207,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'seva',
     label: 'Recurring Seva',
+    audience: 'Mandirs, goshalas & sanghas run their monthly giving on this.',
     icon: Repeat,
     features: [
       { icon: Repeat, title: 'Monthly mandates', desc: 'Annadanam, gau-seva & lamp subscriptions on autopilot.' },
@@ -214,6 +219,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'devotee',
     label: 'Devotee Parivar',
+    audience: 'Mandirs, ashrams & gurukuls keep lifelong member records here.',
     icon: Users,
     features: [
       { icon: Users, title: 'Family CRM', desc: 'Lifelong records with gotra, family trees & seva history.' },
@@ -225,6 +231,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'darshan',
     label: 'Darshan & Crowd',
+    audience: 'Built for mandirs — and any institution with visitor flow.',
     icon: Ticket,
     features: [
       { icon: QrCode, title: 'QR gate passes', desc: 'Scan-in at the turnstile — no paper tokens, no queues.' },
@@ -236,6 +243,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'puja',
     label: 'Puja & Seva',
+    audience: 'Mandirs & ashrams schedule every ritual here.',
     icon: Flame,
     features: [
       { icon: CalendarDays, title: 'Sankalp bookings', desc: 'Archana, abhishekam & homam with gotra-aware sankalpam.' },
@@ -247,6 +255,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'goshala',
     label: 'Goshala',
+    audience: "The goshala's complete daily operating system.",
     icon: Beef,
     features: [
       { icon: Beef, title: 'Cattle records', desc: 'Every gau mata profiled — breed, age, lineage & health.' },
@@ -258,6 +267,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'bhandar',
     label: 'Bhandar & Kitchen',
+    audience: 'Ashrams, gurukuls & mandirs feed thousands from here.',
     icon: ChefHat,
     features: [
       { icon: Package, title: 'Inventory', desc: 'Grains, ghee, flowers — every item counted & valued.' },
@@ -269,6 +279,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'bhoomi',
     label: 'Bhoomi & Vahan',
+    audience: 'Trusts & sanghas manage property and vehicles here.',
     icon: Building2,
     features: [
       { icon: KeyRound, title: 'Property leases', desc: 'Shops, halls & land — rent schedules with auto-reminders.' },
@@ -280,6 +291,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'utsav',
     label: 'Utsav Broadcasts',
+    audience: "Every institution's voice — festivals to fee reminders.",
     icon: Megaphone,
     features: [
       { icon: MessageCircle, title: 'WhatsApp alerts', desc: 'Festival & darshan announcements reach every phone.' },
@@ -291,6 +303,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'compliance',
     label: 'Compliance & Audit',
+    audience: 'Trust boards and auditors sleep better with this.',
     icon: FileText,
     features: [
       { icon: FileText, title: '80G / 12A / 10BD filings', desc: 'CA-ready reports generated from live ledger data.' },
@@ -302,6 +315,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
   {
     id: 'ai',
     label: 'AI & Offline',
+    audience: "Every institution's 24×7 sevak — online or offline.",
     icon: Bot,
     features: [
       { icon: Bot, title: 'Vedic AI helpdesk', desc: 'Devotees ask in plain language — answers from your temple data.' },
@@ -313,13 +327,103 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Data: institution profiles (the 5 core organisation types)         */
+/* ------------------------------------------------------------------ */
+
+interface OrgProfile {
+  type: WorkspaceType;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tagline: string;
+  /** Context line shown under the hero H1 when this org is selected. */
+  contextLine: string;
+  /** 3 featured capability chips for the hero selector. */
+  chips: string[];
+  /** 4 tailored bullets for the "Who it's for" card. */
+  bullets: string[];
+}
+
+const ORG_PROFILES: OrgProfile[] = [
+  {
+    type: 'Mandir',
+    label: 'Mandir',
+    icon: Landmark,
+    tagline: 'Temples & trusts',
+    contextLine: 'Darshan queues, hundi audits & 80G receipts — handled.',
+    chips: ['QR gate passes', 'Blind hundi audit', 'Auto 80G receipts'],
+    bullets: [
+      'Darshan bookings & QR gate passes',
+      'Dual-custody hundi counting',
+      'Auto 80G receipts & Tally sync',
+      'Utsav WhatsApp broadcasts',
+    ],
+  },
+  {
+    type: 'Goshala',
+    label: 'Goshala',
+    icon: Beef,
+    tagline: 'Cow shelters & gau-seva',
+    contextLine: 'Cattle records, milk yield & fodder planning — handled.',
+    chips: ['Cattle health records', 'Milk yield tracking', 'Fodder planning'],
+    bullets: [
+      'Individual gau-mata health profiles',
+      'Daily milk yield & lactation curves',
+      'Vaccination & vet visit schedules',
+      'Panchang-season fodder planning',
+    ],
+  },
+  {
+    type: 'Ashram',
+    label: 'Ashram',
+    icon: Home,
+    tagline: 'Retreats & satsang',
+    contextLine: 'Rooms, guests & satsang schedules — handled.',
+    chips: ['Guest & room booking', 'Satsang calendar', 'Bhandara planning'],
+    bullets: [
+      'Guest check-in & room allocation',
+      'Satsang & shivir event calendar',
+      'Bhandara / annadanam planning',
+      'Sevadar rosters & attendance',
+    ],
+  },
+  {
+    type: 'Gurukul',
+    label: 'Gurukul',
+    icon: GraduationCap,
+    tagline: 'Vedic schools',
+    contextLine: 'Students, shastric curriculum & fees — handled.',
+    chips: ['Student records', 'Shastra curriculum', 'Fee tracking'],
+    bullets: [
+      'Student & acharya records',
+      'Shastric curriculum planning',
+      'Fee collection & receipts',
+      'Hostel & mess management',
+    ],
+  },
+  {
+    type: 'Sangha',
+    label: 'Sangha',
+    icon: Users,
+    tagline: 'Community groups',
+    contextLine: 'Members, sevas & community funds — handled.',
+    chips: ['Member directory', 'Seva rosters', 'Community funds'],
+    bullets: [
+      'Member & family directory',
+      'Seva sign-ups & rosters',
+      'Community fund transparency',
+      'Meeting & event coordination',
+    ],
+  },
+];
+
+/* ------------------------------------------------------------------ */
 /*  Data: FAQ & testimonials                                           */
 /* ------------------------------------------------------------------ */
 
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Mandir Free plan is ₹0 forever: the full app, one temple, unlimited devotees and donations, offline PWA, and community support. No credit card, no trial clock. Typical temple software costs around ₹35,000 per year with per-desk pricing; we keep ours free because dharma technology should belong to every temple, not just the wealthy ones.',
+    a: 'Yes — the Sanatani Free plan is ₹0 forever: the full app, one institution, unlimited members and donations, offline PWA, and community support. No credit card, no trial clock. Typical institution software costs around ₹35,000 per year with per-desk pricing; we keep ours free because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -339,7 +443,7 @@ const FAQS = [
   },
   {
     q: 'Can we migrate from paper registers or Tally?',
-    a: 'Yes. Most temples complete migration in a weekend: import devotee lists from spreadsheets, carry forward opening balances from your paper bahi-khata, and sync historical vouchers to Tally Prime. Our guided setup walks your karyalaya through it step by step — free.',
+    a: 'Yes. Most institutions complete migration in a weekend: import member lists from spreadsheets, carry forward opening balances from your paper bahi-khata, and sync historical vouchers to Tally Prime. Our guided setup walks your karyalaya through it step by step — free.',
   },
 ];
 
@@ -347,20 +451,32 @@ const TESTIMONIALS = [
   {
     quote:
       'Forty years of paper registers became a searchable digital parivar in one weekend. For the first time, our trust board sees the real numbers before every meeting.',
-    role: 'Trustee',
+    role: 'Trustee — Mandir',
     place: 'Varanasi',
   },
   {
     quote:
-      'Hundi counting used to end in arguments. Now two custodians, sealed bags, and a variance report — disputes have simply stopped.',
-    role: 'Head Priest',
-    place: 'Ujjain',
+      'Every gau-mata has a health record now — vaccinations, milk yield, vet visits. Our goshala finally runs like the seva it is, not a guessing game.',
+    role: 'Goshala Manager',
+    place: 'Mathura',
   },
   {
     quote:
-      '80G receipts that took our CA a full week now print at the counter in seconds. Donors get their certificates on WhatsApp before they reach home.',
-    role: 'Treasurer',
-    place: 'Mathura',
+      'Guest rooms, satsang schedules and bhandara planning — one dashboard for the whole ashram. Our sevaks learned it in a single afternoon.',
+    role: 'Ashram Administrator',
+    place: 'Rishikesh',
+  },
+  {
+    quote:
+      'Student records, shastra curriculum and fee receipts — the gurukul office went from three ledgers to one screen. Parents get receipts on WhatsApp instantly.',
+    role: 'Gurukul Principal',
+    place: 'Varanasi',
+  },
+  {
+    quote:
+      'Member sevas, community funds, event rosters — everything transparent to every member. Disputes over funds have simply stopped.',
+    role: 'Sangha President',
+    place: 'Pune',
   },
 ];
 
@@ -374,9 +490,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onDemoStart,
 }) => {
   const navigate = useNavigate();
-  const { loginAsRole } = useAuthWorkspace();
   const { language, setLanguage } = useLanguage();
-  const { showToast } = useToast();
+  const startDemo = useDemoStarter();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
@@ -385,6 +500,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [securityOpen, setSecurityOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('treasury');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [activeOrg, setActiveOrg] = useState<WorkspaceType>('Mandir');
+  const orgProfile = ORG_PROFILES.find((o) => o.type === activeOrg) ?? ORG_PROFILES[0];
 
   const panchang = useMemo(() => {
     try {
@@ -401,9 +518,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       onDemoStart(type);
       return;
     }
-    loginAsRole('Trustee', 'Sri Kashi Vishwanath Mandir Trust');
-    showToast('Sandbox Demo initialized with sample records & double-entry ledger.', 'success', 'Demo Sandbox');
-    navigate('/admin');
+    // Self-sufficient: the router renders this page without demo props,
+    // so bootstrap a real org-typed demo workspace via the shared hook.
+    startDemo(type);
   };
 
   const handleGoToLogin = () => {
@@ -419,7 +536,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       onSignupClick();
       return;
     }
-    setDemoModalOpen(true);
+    navigate('/signup');
+  };
+
+  const handleContact = () => {
+    navigate('/contact');
   };
 
   const scrollTo = (id: string) => {
@@ -498,7 +619,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 operatingSystem: 'Web browser, Progressive Web App',
                 applicationCategory: 'BusinessApplication',
                 description:
-                  'Free temple management software for Mandirs, Goshalas, and Ashrams — treasury, hundi audit, devotee CRM, 80G receipts, 49 temple desks, and 100% offline-first. ₹0 forever.',
+                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 49 desks, and 100% offline-first. ₹0 forever.',
                 offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
               },
               {
@@ -529,6 +650,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
 
           <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-stone-600" aria-label="Page sections">
+            <button type="button" onClick={() => scrollTo('institutions')} className="hover:text-orange-600 transition-colors cursor-pointer">
+              Institutions
+            </button>
             <button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-600 transition-colors cursor-pointer">
               Features
             </button>
@@ -540,6 +664,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
             <button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-600 transition-colors cursor-pointer">
               FAQ
+            </button>
+            <button type="button" onClick={handleContact} className="hover:text-orange-600 transition-colors cursor-pointer">
+              Contact
             </button>
           </nav>
 
@@ -580,15 +707,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="lg:hidden border-t border-orange-100 bg-white px-4 py-4 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {[
+                ['Institutions', 'institutions'],
                 ['Features', 'showcase'],
                 ['Why Dharma', 'dharma'],
                 ['Pricing', 'pricing'],
                 ['FAQ', 'faq'],
+                ['Contact', 'contact-link'],
               ].map(([label, id]) => (
                 <button
                   key={id}
                   type="button"
-                  onClick={() => scrollTo(id)}
+                  onClick={() => (id === 'contact-link' ? handleContact() : scrollTo(id))}
                   className="py-3 rounded-xl bg-orange-50 border border-orange-100 text-stone-700 text-sm font-extrabold cursor-pointer"
                 >
                   {label}
@@ -621,7 +750,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="relative max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-orange-200 bg-orange-50 text-orange-700 text-[11px] sm:text-xs font-extrabold tracking-[0.18em] uppercase mb-5">
               <Sparkles className="w-3.5 h-3.5" />
-              ॥ वसुधैव कुटुम्बकम् ॥ · One family, one platform
+              ॥ वसुधैव कुटुम्बकम् ॥ · One platform · Five institutions
             </div>
 
             {tithiLine && (
@@ -645,10 +774,49 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
-              Unite your Ashram, Sangha, or Mandir. Stop losing records and fighting over funds.
-              Manage lifelong devotees, track Chanda securely, and broadcast Utsav alerts —
-              all from one secure dashboard.
+              Unite your Mandir, Goshala, Ashram, Gurukul or Sangha. Stop losing records
+              and fighting over funds. Manage lifelong members, track donations securely,
+              and broadcast Utsav alerts — all from one secure dashboard.
             </p>
+
+            {/* Institution selector */}
+            <div className="mt-7" role="group" aria-label="Choose your institution type">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {ORG_PROFILES.map((o) => {
+                  const selected = o.type === activeOrg;
+                  return (
+                    <button
+                      key={o.type}
+                      type="button"
+                      onClick={() => setActiveOrg(o.type)}
+                      aria-pressed={selected}
+                      className={`inline-flex items-center gap-2 min-h-[44px] px-4 sm:px-5 rounded-full text-sm font-extrabold border-2 transition-all cursor-pointer ${
+                        selected
+                          ? 'bg-stone-900 text-white border-stone-900 shadow-lg shadow-stone-900/20'
+                          : 'bg-white text-stone-600 border-orange-100 hover:border-orange-300 hover:text-orange-700'
+                      }`}
+                    >
+                      <o.icon className="w-4 h-4" />
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p key={orgProfile.type} className="showcase-panel mt-4 text-sm sm:text-base font-bold text-stone-700">
+                {orgProfile.contextLine}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                {orgProfile.chips.map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-100/70 border border-orange-200 text-orange-800 text-xs font-bold"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
 
             <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
               <button
@@ -673,7 +841,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Trusted by 140+ Mandirs, Mathas &amp; Dharmada Kshetra Trusts across Bharat
+              Trusted by 140+ dharmic institutions across Bharat
             </p>
           </div>
         </section>
@@ -682,7 +850,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section className="border-y border-orange-100 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              ['49', 'Temple desks in one app'],
+              ['49', 'Desks for every institution'],
               ['100%', 'Offline-first, zero internet needed'],
               ['80G', 'Instant tax receipts, Tally-ready'],
               ['₹0', 'Free forever — no card, no trial'],
@@ -697,6 +865,75 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <ToranDivider />
 
+        {/* WHO IT'S FOR */}
+        <section id="institutions" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
+          <Reveal className="text-center max-w-2xl mx-auto mb-12">
+            <p className="text-xs font-extrabold tracking-[0.22em] uppercase text-orange-600 mb-3">
+              ॥ पञ्चधा सेवा ॥ — Five institutions, one platform
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
+              Built for <span className="text-orange-600">your</span> institution.
+            </h2>
+            <p className="mt-4 text-stone-500 leading-relaxed">
+              Every organisation type gets its own configured workspace — the right
+              desks, the right language, the right workflows. Launch a live demo
+              pre-set for yours.
+            </p>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {ORG_PROFILES.map((o, i) => (
+              <Reveal key={o.type} delay={(i % 3) * 90}>
+                <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-1 transition-all flex flex-col">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center mb-5 shadow-lg shadow-orange-500/25">
+                    <o.icon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-xl font-black text-stone-900">{o.label}</h3>
+                  <p className="text-xs font-bold uppercase tracking-widest text-orange-600 mt-1 mb-4">
+                    {o.tagline}
+                  </p>
+                  <ul className="space-y-2.5 flex-1">
+                    {o.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2.5 text-sm text-stone-600">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => handleStartDemo(o.type)}
+                    className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-stone-900 hover:bg-orange-600 text-white text-sm font-extrabold transition-all cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    Launch {o.label} demo
+                  </button>
+                </div>
+              </Reveal>
+            ))}
+            {/* Sixth tile: the platform promise */}
+            <Reveal delay={180}>
+              <div className="h-full rounded-3xl p-7 flex flex-col justify-center text-center bg-gradient-to-br from-stone-900 to-stone-800 text-white shadow-xl">
+                <p className="text-2xl mb-3">ॐ</p>
+                <h3 className="text-xl font-black">Not listed?</h3>
+                <p className="mt-2 text-sm text-stone-300 leading-relaxed">
+                  Trusts, samitis, yatras, pathshalas — if it serves dharma,
+                  it fits. Tell us about your institution.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleContact}
+                  className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-white/10 border-2 border-white/25 hover:bg-white/20 text-white text-sm font-extrabold transition-all cursor-pointer"
+                >
+                  Talk to us
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <ToranDivider />
+
         {/* FEATURE SHOWCASE */}
         <section id="showcase" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-10">
@@ -704,11 +941,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               ॥ सर्वं एकत्र ॥ — Everything in one place
             </p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              One app for your <span className="text-orange-600">entire temple.</span>
+              One platform for every <span className="text-orange-600">dharmic institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Forty-nine desks, eleven worlds — treasury, goshala, darshan, kitchen and more.
-              Tap a mandal to explore.
+              Pick your institution above, or explore every capability below.
             </p>
           </Reveal>
 
@@ -744,6 +981,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* Panel */}
           <div key={activeTab} className="showcase-panel mt-8" role="tabpanel">
+            <p className="text-center text-sm font-bold text-orange-700 bg-orange-50 border border-orange-100 rounded-full px-5 py-2.5 max-w-xl mx-auto mb-8">
+              {activeShowcase.audience}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {activeShowcase.features.map((f, i) => (
                 <div
@@ -763,11 +1003,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <p className="text-center mt-8">
               <button
                 type="button"
-                onClick={() => setDemoModalOpen(true)}
+                onClick={() => handleStartDemo(activeOrg)}
                 className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-extrabold transition-all cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-white" />
-                Try {activeShowcase.label} in the live demo
+                Try {activeShowcase.label} in the {orgProfile.label} demo
               </button>
             </p>
           </div>
@@ -822,11 +1062,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section id="pricing" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Priced for <span className="text-orange-600">every temple.</span>
+              Priced for <span className="text-orange-600">every institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Typical temple software costs around ₹35,000 a year — per-desk pricing, hardware lock-in,
-              salesman visits. We chose a different path.
+              Typical institution software costs around ₹35,000 a year — per-desk pricing,
+              hardware lock-in, salesman visits. We chose a different path.
             </p>
           </Reveal>
 
@@ -836,18 +1076,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="absolute top-4 right-6 text-xs font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
                   Most loved
                 </div>
-                <h3 className="text-2xl font-black">Mandir Free</h3>
+                <h3 className="text-2xl font-black">Sanatani Free</h3>
                 <p className="mt-2 flex items-baseline gap-2">
                   <span className="text-5xl font-black">₹0</span>
                   <span className="text-orange-100 font-bold">forever</span>
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium">
                   {[
-                    'Full app — all 49 temple desks',
-                    '1 temple, unlimited devotees & donations',
+                    'Full app — all 49 institution desks',
+                    '1 institution, unlimited members & donations',
                     'Offline PWA — works with zero internet',
                     'Auto 80G receipts & Tally Prime sync',
-                    'Community support from fellow temples',
+                    'Community support from fellow institutions',
                   ].map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
@@ -886,7 +1126,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   ))}
                 </ul>
                 <p className="mt-8 text-sm font-bold text-stone-400 italic">
-                  Typical temple software pricing in the market.
+                  Typical institution software pricing in the market.
                 </p>
               </div>
             </Reveal>
@@ -978,10 +1218,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Diya flameDelay="1.2s" />
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
-                  Bring your temple online tonight.
+                  Bring your institution online tonight.
                 </h2>
                 <p className="mt-3 text-orange-100 max-w-xl mx-auto">
-                  Join 140+ temples already running on Sanatani Bandhan. Free forever — no card, no salesman, no catch.
+                  Join 140+ institutions already running on Sanatani Bandhan. Free forever — no card, no salesman, no catch.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
                   <button
@@ -1056,6 +1296,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <li><button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-400 transition-colors cursor-pointer">FAQ</button></li>
                 <li><button type="button" onClick={() => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Live demo</button></li>
                 <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer">Contact us</button></li>
               </ul>
             </nav>
             <nav aria-label="Legal">
@@ -1064,7 +1305,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <li><button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Privacy Policy</button></li>
                 <li><button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Terms of Service</button></li>
                 <li><button type="button" onClick={() => setSecurityOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Security</button></li>
-                <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer">Contact Support</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer">Contact Support</button></li>
               </ul>
             </nav>
           </div>
