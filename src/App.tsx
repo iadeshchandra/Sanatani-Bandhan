@@ -22,6 +22,7 @@ import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant
 import { TawkToWidget } from './components/common/TawkToWidget';
 import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
 import { LandingPage } from './pages/LandingPage';
+import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
 import { SmartLoginRouter } from './components/public/SmartLoginRouter';
 import { PortalLogin } from './components/public/PortalLogin';
@@ -697,6 +698,21 @@ const AppRouter: React.FC = () => {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<SmartLoginRouter />} />
+          <Route
+            path="/signup"
+            element={
+              <PortalLogin
+                initialMode="signup"
+                onBack={() => {
+                  window.location.href = '/';
+                }}
+                onSuccess={() => {
+                  window.location.href = '/app';
+                }}
+              />
+            }
+          />
+          <Route path="/contact" element={<ContactPage />} />
           {/* Secret Obfuscated Platform Route: Accessed via URL typing only, strictly guarded */}
           <Route
             path="/system-override"
