@@ -1,10 +1,39 @@
 import QRCode from 'qrcode';
 import CryptoJS from 'crypto-js';
 import { DevoteeMember } from '../types';
+import { auth } from '../services/firebaseClient';
 
 export const APP_BASE_URL = 'https://sanatanibandhan.web.app';
 const DYNAMIC_TOKEN_PREFIX = 'SBDYN:';
 const DYNAMIC_QR_SECRET = 'SANATANI_TEMPLE_VAULT_KEY_2026';
+
+/** QR payload format versions (scan-only, never credentials). */
+export const QR_PAYLOAD_VERSION = 1;
+export const QR_TYPE_PAIR = 'sb-pair';
+export const QR_TYPE_VERIFY = 'sb-verify';
+
+/** Long-lived identity-verification signature on printed cards (not a login credential). */
+const IDENTITY_SIG_VALIDITY_SECONDS = 365 * 24 * 3600;
+
+export interface PairingTokenResponse {
+  token: string;
+  expiresAt: number;
+}
+
+export interface PairingQRPayload {
+  v: number;
+  type: typeof QR_TYPE_PAIR;
+  token: string;
+  wid: string;
+  exp: number;
+}
+
+export interface IdentityQRPayload {
+  v: number;
+  type: typeof QR_TYPE_VERIFY;
+  id: string;
+  sig: string;
+}
 
 export interface DynamicTokenVerificationResult<T = any> {
   valid: boolean;
@@ -219,38 +248,157 @@ export const generateDynamicQRDataURL = async (
 };
 
 /**
- * Generates secure vault payload for devotee members
+ * Secure QR token for a devotee member — IDENTITY VERIFICATION ONLY.
+ *
+ * Returns a JSON payload `{ v, type: 'sb-verify', id, sig }` where `sig` is a
+ * time-expiring HMAC signature over the member id. It proves "this card was
+ * issued by the temple for this member id" — it is NOT a login credential and
+ * contains NO PIN or secret. Verify with `verifyIdentityQRPayload`.
+ *
+ * SECURITY: never put credentials (PIN/password) in a QR payload. Anyone who
+ * photographs a printed card would otherwise be able to impersonate the member.
  */
 export const generateSecureQRToken = (member: DevoteeMember): string => {
-  const vaultToken = member.qrSecretVaultToken || btoa(member.id + '-vault-' + Date.now());
-  const payload = JSON.stringify({
+  const sig = generateDynamicToken(
+    { id: member.id, purpose: QR_TYPE_VERIFY },
+    IDENTITY_SIG_VALIDITY_SECONDS
+  );
+  const payload: IdentityQRPayload = {
+    v: QR_PAYLOAD_VERSION,
+    type: QR_TYPE_VERIFY,
     id: member.id,
-    pin: member.pin,
-    token: vaultToken,
-  });
-  return payload;
+    sig,
+  };
+  return JSON.stringify(payload);
 };
 
 /**
- * Standard A: Auto-Login QR URL
+ * Verifies an identity QR payload produced by `generateSecureQRToken`.
+ * Returns the member id when the embedded HMAC signature is valid & unexpired.
+ */
+export const verifyIdentityQRPayload = (
+  payloadStr: string
+): { valid: boolean; memberId?: string; error?: string } => {
+  try {
+    const parsed = JSON.parse(payloadStr) as Partial<IdentityQRPayload>;
+    if (parsed?.v !== QR_PAYLOAD_VERSION || parsed?.type !== QR_TYPE_VERIFY) {
+      return { valid: false, error: 'INVALID_FORMAT' };
+    }
+    if (typeof parsed.sig !== 'string' || typeof parsed.id !== 'string') {
+      return { valid: false, error: 'INVALID_FORMAT' };
+    }
+    const sigCheck = verifyDynamicToken(parsed.sig);
+    if (!sigCheck.valid) {
+      return { valid: false, error: sigCheck.error || 'SIGNATURE_MISMATCH' };
+    }
+    const inner: any = sigCheck.payload;
+    if (!inner || inner.id !== parsed.id || inner.purpose !== QR_TYPE_VERIFY) {
+      return { valid: false, error: 'TAMPER_DETECTED' };
+    }
+    return { valid: true, memberId: parsed.id };
+  } catch {
+    return { valid: false, error: 'INVALID_FORMAT' };
+  }
+};
+
+/**
+ * Requests a one-time QR pairing token from the server for a member.
+ * Requires an authenticated Firebase session (staff or the member).
+ * Throws Error('QR_PAIRING_UNAUTHENTICATED') when not signed in, or
+ * Error('QR_PAIRING_UNAVAILABLE') when the server cannot be reached.
+ */
+export const requestPairingToken = async (
+  memberId: string,
+  workspaceId: string,
+  memberName?: string
+): Promise<PairingTokenResponse> => {
+  const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+  if (!idToken) {
+    throw new Error('QR_PAIRING_UNAUTHENTICATED');
+  }
+  let resp: Response;
+  try {
+    resp = await fetch('/api/auth/qr-pair', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ memberId, workspaceId, memberName }),
+    });
+  } catch {
+    throw new Error('QR_PAIRING_UNAVAILABLE');
+  }
+  if (!resp.ok) {
+    throw new Error('QR_PAIRING_UNAVAILABLE');
+  }
+  const data = await resp.json().catch(() => ({}));
+  if (!data?.ok || typeof data.token !== 'string' || typeof data.expiresAt !== 'number') {
+    throw new Error('QR_PAIRING_UNAVAILABLE');
+  }
+  return { token: data.token, expiresAt: data.expiresAt };
+};
+
+/**
+ * Builds the scan-only QR payload. Contains the one-time claim token —
+ * no member id, no PIN, no credentials of any kind.
+ */
+export const buildPairingQRPayload = (
+  token: string,
+  workspaceId: string,
+  expiresAt: number
+): string => {
+  const payload: PairingQRPayload = {
+    v: QR_PAYLOAD_VERSION,
+    type: QR_TYPE_PAIR,
+    token,
+    wid: workspaceId,
+    exp: expiresAt,
+  };
+  return JSON.stringify(payload);
+};
+
+/**
+ * Generates a QR data URL for one-time devotee login pairing.
+ * The temple office shows this QR; the devotee scans it at the login screen
+ * within 5 minutes. Single-use: each token works exactly once.
+ */
+export const generatePairingQRDataURL = async (
+  memberId: string,
+  workspaceId: string,
+  memberName?: string
+): Promise<string> => {
+  const { token, expiresAt } = await requestPairingToken(memberId, workspaceId, memberName);
+  const payload = buildPairingQRPayload(token, workspaceId, expiresAt);
+  try {
+    return await QRCode.toDataURL(payload, {
+      width: 400,
+      margin: 2,
+      color: { dark: '#0f172a', light: '#ffffff' },
+    });
+  } catch (err) {
+    console.error('Error generating pairing QR', err);
+    return '';
+  }
+};
+
+/**
+ * Standard A: one-time pairing QR for devotee login.
+ *
+ * @deprecated Plaintext-PIN auto-login QRs were removed for security (a
+ * photographed QR would permanently leak the member's PIN). This now mints a
+ * single-use, 5-minute pairing token via POST /api/auth/qr-pair and encodes
+ * the scan-only payload. The `pin` parameter was removed. Prefer
+ * `generatePairingQRDataURL` directly for proper error handling.
  */
 export const generateStandardA_AutoLoginQR = async (
   memberId: string,
-  pin: string,
-  workspaceName: string
+  workspaceId: string
 ): Promise<string> => {
-  const url = `${APP_BASE_URL}/?action=autologin&id=${encodeURIComponent(memberId)}&pin=${encodeURIComponent(pin)}&workspace=${encodeURIComponent(workspaceName)}`;
   try {
-    return await QRCode.toDataURL(url, {
-      width: 400,
-      margin: 2,
-      color: {
-        dark: '#0f172a', // slate-900
-        light: '#ffffff',
-      },
-    });
+    return await generatePairingQRDataURL(memberId, workspaceId);
   } catch (err) {
-    console.error('Error generating QR', err);
+    console.error('Error generating Standard-A pairing QR', err);
     return '';
   }
 };
