@@ -394,10 +394,10 @@ export const PersonalAccountDesk: React.FC<{
                 showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
               }}
               className="flex-1 sm:flex-none justify-center items-center flex gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-500 hover:from-saffron-600 hover:to-saffron-600 text-temple-950 text-[11px] sm:text-xs font-black transition-all shadow-md cursor-pointer border border-saffron-300"
-              title="Switch back to Organisation / Mandir Management Workspace (46 Desks)"
+              title="Switch back to the Institution ERP (staff workspace)"
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span className="truncate">Organisation View</span>
+              <span className="truncate">Institution ERP</span>
             </button>
           </div>
         </div>
