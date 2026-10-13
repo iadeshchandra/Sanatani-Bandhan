@@ -235,6 +235,30 @@ export const TaxReceiptDesk: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* H-1: unregistered workspace → honest SAMPLE state with a path to Settings */}
+      {!activeWorkspace?.trust80GRegistered && (
+        <div className="rounded-2xl border-2 border-dashed border-amber-500 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start gap-3 flex-1">
+            <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-black text-amber-900 uppercase tracking-wide">
+                Sample state — this organisation is not 80G-registered
+              </p>
+              <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                Certificates generated here are clearly marked <strong>SAMPLE</strong> and carry no URN.
+                Add your 80G registration in Settings to issue valid statutory receipts.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'masterSettings' }))}
+            className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Open Settings → 80G
+          </button>
+        </div>
+      )}
       {/* Enterprise Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-temple-950 via-temple-900 to-amber-950/70 border border-amber-500/30 p-6 rounded-3xl shadow-2xl">
         <div>
@@ -244,11 +268,14 @@ export const TaxReceiptDesk: React.FC = () => {
               Statutory Form 10BE & 80G
             </span>
             <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-1 rounded-lg border border-temple-800">
-              80G Reg: {activeWorkspace.taxExemptionNumber || 'CIT(E)/80G/SB-2024'}
+              80G URN: {activeWorkspace.trust80GRegistered ? (activeWorkspace.trust80GURN || '—') : 'Not registered'}
             </span>
-            <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-1 rounded-lg border border-temple-800">
-              Trust PAN: {activeWorkspace.trustRegNumber ? 'AAATS1234F' : 'AAATS1234F'}
-            </span>
+            {!activeWorkspace.trust80GRegistered && (
+              <span className="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Sample mode — not statutory
+              </span>
+            )}
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">
             Section 80G Tax Exemption & Form 10BE Desk
