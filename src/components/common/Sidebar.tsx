@@ -385,6 +385,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const filteredModules = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return MODULE_CATALOG.filter((m) => {
+      // 0. Multi-branch invisibility: the Federation / Multi-Branch HQ desk
+      // only makes sense with 2+ branches. Single-org users must never see
+      // the word "branch" anywhere in nav.
+      if (m.id === 'federation' && (activeWorkspace?.branches?.length || 0) < 2) {
+        return false;
+      }
       // 1. Check workspace taxonomy
       const allowedForWorkspace = isModuleAllowed(activeWorkspace, m.id);
       if (!allowedForWorkspace) return false;
