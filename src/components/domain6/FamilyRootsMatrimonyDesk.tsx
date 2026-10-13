@@ -2115,7 +2115,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <div className="p-3 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
                 <span className="text-[10px] uppercase font-bold text-amber-400">Step 1: Shubh Vivah Muhurat</span>
                 <p className="text-stone-300">
-                  Calculate auspicious lagna and dates through the Vedic Panjika Ephemeris engine.
+                  Calculate auspicious lagna and dates through the Vedic Panchang engine.
                 </p>
                 <div className="text-[11px] text-emerald-400 font-bold">
                   Recommended: Margashirsha Shukla Panchami (Vivah Panchami)
