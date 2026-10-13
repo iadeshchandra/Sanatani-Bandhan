@@ -1181,7 +1181,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pendingCollections = new Set<string>([
       'devotees',
       'puja_bookings',
-      'donations',
+      'treasury',
       'inventory_items',
     ]);
 
@@ -1238,13 +1238,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // 3. Core query: donations
-    const donationsQuery = query(
-      collection(db, 'donations'),
+    // 3. Core query: treasury (canonical collection — all treasury writes go
+    // here; the legacy 'donations' read path was removed in M-1 because it
+    // read a different collection than the one being written to)
+    const treasuryQuery = query(
+      collection(db, 'treasury'),
       where('workspaceId', '==', activeWorkspaceId)
     );
-    const unsubDonations = onSnapshot(
-      donationsQuery,
+    const unsubTreasury = onSnapshot(
+      treasuryQuery,
       (snapshot) => {
         const items = snapshot.docs.map((docSnap) => ({
           ...docSnap.data(),
@@ -1253,11 +1255,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
           setAllTreasury(items);
         }
-        markResolved('donations');
+        markResolved('treasury');
       },
       (err) => {
-        console.warn('[Firestore] donations listener error:', err);
-        markResolved('donations');
+        console.warn('[Firestore] treasury listener error:', err);
+        markResolved('treasury');
       }
     );
 
@@ -1288,7 +1290,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubDevotees();
       unsubPujaBookings();
-      unsubDonations();
+      unsubTreasury();
       unsubInventory();
     };
   }, [activeWorkspaceId, isAuthenticated]);
@@ -2080,8 +2082,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
     try {
+      // M-1: 'treasury' is the canonical collection (reads and writes).
+      // The legacy duplicate write to 'donations' was removed.
       setDoc(doc(db, 'treasury', id), { ...updates, updatedAt: serverTimestamp() }, { merge: true }).catch(console.warn);
-      setDoc(doc(db, 'donations', id), { ...updates, updatedAt: serverTimestamp() }, { merge: true }).catch(console.warn);
     } catch (e) {
       console.warn('Update treasury transaction error:', e);
     }
@@ -2260,7 +2263,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...demoTtlFields(receipt.workspaceId || activeWorkspace.id),
     };
     setAllRentReceipts((prev) => [newReceipt, ...prev]);
-    showToast(`Rent collected: ₹${receipt.amount.toLocaleString()} from ${receipt.tenantName}`, 'success', 'Rent Collection');
+    // M-2: rent is a financial record — persist the income leg to the treasury
+    // ledger (real Firestore write path) alongside the local rent receipt.
+    const posted = addTreasuryTransaction({
+      workspaceId: newReceipt.workspaceId,
+      date: receipt.paidDate || new Date().toISOString().slice(0, 10),
+      type: 'Income',
+      category: 'BHOOMI_RENT',
+      subcategory: receipt.propertyName || 'Property Rent',
+      amount: receipt.amount,
+      handledBy: receipt.collectedBy || 'Bhoomi Desk',
+      paymentMode: receipt.paymentMode || 'Cash',
+      referenceNo: receipt.receiptNo || newReceipt.id,
+      purpose: `Rent collected from ${receipt.tenantName} (${receipt.rentMonth})`,
+    });
+    showToast(
+      posted
+        ? `Rent collected: ₹${receipt.amount.toLocaleString()} from ${receipt.tenantName}`
+        : `Rent recorded on this device, but the ledger posting was blocked (quota reached).`,
+      posted ? 'success' : 'warning',
+      'Rent Collection'
+    );
     return true;
   };
 
