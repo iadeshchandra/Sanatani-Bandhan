@@ -93,6 +93,10 @@ export interface Workspace extends TenantScoped {
   trust80GRegistered?: boolean;
   trust80GURN?: string;
   trust80GRegNo?: string;
+  // P2: statutory compliance checklist — 12A registration + trust PAN.
+  trust12ARegistered?: boolean;
+  trust12ANumber?: string;
+  trustPAN?: string;
   pinRequired: boolean;
   adminPin: string;
   superAdmins?: string[];
@@ -133,6 +137,10 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   trust80GRegistered?: boolean;
   trust80GURN?: string;
   trust80GRegNo?: string;
+  // P2: statutory compliance checklist (see Workspace above).
+  trust12ARegistered?: boolean;
+  trust12ANumber?: string;
+  trustPAN?: string;
   // H-11: uid of the Firebase user who provisioned this workspace.
   // The creator is the workspace's administrator; recorded at registration
   // (a rules-allowed field) so re-logins resolve back to Trustee.
