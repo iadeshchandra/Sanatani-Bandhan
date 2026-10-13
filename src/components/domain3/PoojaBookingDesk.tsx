@@ -403,7 +403,7 @@ export const PoojaBookingDesk: React.FC = () => {
             </h1>
 
             <p className="text-xs sm:text-sm text-amber-200/70 max-w-2xl leading-relaxed">
-              Intelligent ritual scheduling synchronized with real-time Vedic Panjika, Rahu Kaal collision defense, consecrated Sankalp slips, and sanctum master rosters.
+              Intelligent ritual scheduling synchronized with real-time Vedic Panchang, Rahu Kaal collision defense, consecrated Sankalp slips, and sanctum master rosters.
             </p>
           </div>
 
