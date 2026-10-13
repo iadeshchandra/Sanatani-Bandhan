@@ -815,7 +815,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="relative max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-orange-200 bg-orange-50 text-orange-700 text-[11px] sm:text-xs font-extrabold tracking-[0.18em] uppercase mb-5">
               <Sparkles className="w-3.5 h-3.5" />
-              ॥ वसुधैव कुटुम्बकम् ॥ · One platform · Five institutions
+              ॥ वसुधैव कुटुम्बकम् ॥ · One platform · Every institution
             </div>
 
             {tithiLine && (
@@ -830,18 +830,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="flex items-start justify-center gap-6 sm:gap-14 mb-2">
               <Diya className="float-slow hidden sm:flex" flameDelay="0.3s" />
               <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
-                From Paper Registers to a{' '}
+                From paper registers to{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
-                  Digital Workspace.
+                  audit-ready in 60 seconds.
                 </span>
               </h1>
               <Diya className="float-slow hidden sm:flex" flameDelay="1.1s" />
             </div>
 
             <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
-              Unite your Mandir, Goshala, Ashram, Gurukul or Sangha. Stop losing records
-              and fighting over funds. Manage lifelong members, track donations securely,
-              and broadcast Utsav alerts — all from one secure dashboard.
+              Scattered donation records. 80G receipt chaos. Donors quietly drifting
+              away. Sanatani Bandhan unites your Mandir, Goshala, Ashram, Gurukul or
+              Sangha — one-click CA-ready audit packs, sequential 80G receipts and
+              donor win-back, all from one secure dashboard.
             </p>
 
             {/* Institution selector */}
@@ -906,7 +907,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Built for Mandirs, Goshalas, Ashrams, Gurukuls &amp; Sanghas across Bharat
+              Free forever · 60-second guided setup · No card, no salesman
             </p>
           </div>
         </section>
@@ -917,7 +918,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {[
               ['66', 'Desks across 8 domains'],
               ['100%', 'Offline-first, zero internet needed'],
-              ['80G', 'Instant tax receipts, Tally-ready'],
+              ['1-click', 'CA-ready audit pack · 80G · Tally'],
               ['₹0', 'Free forever — no card, no trial'],
             ].map(([big, small]) => (
               <div key={small} className="py-2">
@@ -1016,6 +1017,111 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <ToranDivider />
 
+        {/* ONE LOGIN, EVERY INSTITUTION — the multi-branch differentiator */}
+        <section id="one-login" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
+          <Reveal className="text-center max-w-2xl mx-auto mb-10">
+            <p className="text-xs font-extrabold tracking-[0.22em] uppercase text-orange-600 mb-3">
+              One login · Every institution
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
+              Temple M, Temple N, the Gurukul — <span className="text-orange-600">one login.</span>
+            </h2>
+            <p className="mt-4 text-stone-500 leading-relaxed">
+              Open a second temple? Add it as a branch — flip between branches with one
+              tap and see the consolidated dashboard. Run a Gurukul, Ashram or Goshala
+              too? Each gets its own workspace under the same account: separate data,
+              separate desks, one login. Single temples never even see the word "branch".
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+            {/* Branch switcher illustration */}
+            <Reveal>
+              <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/25">
+                    <Network className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-stone-900">Branches, not logins</h3>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">Same trust · one subscription</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-5" aria-label="Illustrative branch switcher">
+                  {['All branches', 'Temple M', 'Temple N'].map((b, i) => (
+                    <span
+                      key={b}
+                      className={`inline-flex items-center min-h-[44px] px-5 rounded-full text-sm font-extrabold border-2 ${
+                        i === 0
+                          ? 'bg-stone-900 text-white border-stone-900 shadow-lg shadow-stone-900/20'
+                          : 'bg-white text-stone-600 border-orange-100'
+                      }`}
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+                <ul className="space-y-2.5">
+                  {[
+                    'Donations, devotees & bookings tagged per branch',
+                    'Consolidated "All branches" dashboard for the trust',
+                    'Branch managers see their temple — trustees see everything',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-stone-600">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+
+            {/* Multi-workspace illustration */}
+            <Reveal delay={90}>
+              <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/25">
+                    <LayoutGrid className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-stone-900">Every organisation, its own world</h3>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">One account · separate data & plans</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2.5 mb-5">
+                  {[
+                    { icon: GraduationCap, label: 'Gurukul' },
+                    { icon: Home, label: 'Ashram' },
+                    { icon: Beef, label: 'Goshala' },
+                  ].map((w) => (
+                    <div
+                      key={w.label}
+                      className="rounded-2xl bg-orange-50 border border-orange-100 px-3 py-4 text-center"
+                    >
+                      <w.icon className="w-6 h-6 mx-auto mb-1.5 text-orange-600" />
+                      <div className="text-xs font-extrabold text-stone-800">{w.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <ul className="space-y-2.5">
+                  {[
+                    'School desks for the Gurukul, cattle records for the Goshala',
+                    'Each workspace on its own plan — Goshala can stay ₹0',
+                    'Switch workspaces instantly, no second login',
+                  ].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-stone-600">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <ToranDivider />
+
         {/* FEATURE SHOWCASE */}
         <section id="showcase" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-10">
@@ -1026,7 +1132,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               One platform for every <span className="text-orange-600">dharmic institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Forty-nine desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
+              Sixty-six desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
               Pick your institution above, or explore every capability below.
             </p>
           </Reveal>
@@ -1094,6 +1200,60 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </div>
         </section>
+
+        <ToranDivider />
+
+        {/* COMPLIANCE STACK — the audit-ready differentiator */}
+        <section id="compliance" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
+          <Reveal className="text-center max-w-2xl mx-auto mb-10">
+            <p className="text-xs font-extrabold tracking-[0.22em] uppercase text-orange-600 mb-3">
+              Compliance, handled
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
+              The compliance stack your <span className="text-orange-600">CA will thank you for.</span>
+            </h2>
+            <p className="mt-4 text-stone-500 leading-relaxed">
+              March doesn't have to hurt. Every figure your auditor asks for is one
+              click away — generated from your live ledger, never typed up at midnight.
+            </p>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                icon: FileCheck2,
+                title: 'One-click audit pack',
+                desc: 'Treasury ledger, 80G register, 10BD donor summary and asset inventory bundled into a dated ZIP with a cover sheet.',
+              },
+              {
+                icon: ShieldCheck,
+                title: '80G gating, honestly',
+                desc: 'Receipts issue only against a real 80G registration. Unregistered? Everything is clearly marked SAMPLE — never a fake statutory document.',
+              },
+              {
+                icon: Receipt,
+                title: 'Sequential receipt numbers',
+                desc: 'Gap and duplicate detection on every 80G number, so your books survive scrutiny.',
+              },
+              {
+                icon: Upload,
+                title: 'Tally export',
+                desc: 'Your live treasury ledger mapped to importable Tally vouchers. Hand your CA a file, not a headache.',
+              },
+            ].map((c, i) => (
+              <Reveal key={c.title} delay={(i % 4) * 70}>
+                <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-1 transition-all">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-5">
+                    <c.icon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-stone-900 mb-2">{c.title}</h3>
+                  <p className="text-sm text-stone-500 leading-relaxed">{c.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <ToranDivider />
 
         {/* DHARMA SOUL STRIP */}
         <section id="dharma" className="scroll-mt-24 bg-[#4a1710] text-orange-50">
@@ -1392,7 +1552,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   Bring your institution online tonight.
                 </h2>
                 <p className="mt-3 text-orange-100 max-w-xl mx-auto">
-                  Join institutions across Bharat running on Sanatani Bandhan. Free forever — no card, no salesman, no catch.
+                  Set up in 60 seconds with the guided wizard. Join institutions across
+                  Bharat running on Sanatani Bandhan — free forever, no card, no salesman, no catch.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
                   <button
