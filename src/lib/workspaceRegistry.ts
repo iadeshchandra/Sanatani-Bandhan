@@ -129,6 +129,8 @@ export const MODULE_ID_ALIASES: Record<string, string> = {
   'gau-seva-goshala': 'goshala',
   'whatsapp-broadcaster': 'sandeshBroadcast',
   'panchang-muhurat': 'panchang',
+  'donor-care': 'devotees',
+  donorCare: 'devotees',
   'panchang-astrology-engine': 'panchang',
   'panchang-engine': 'panchang',
   // LITE
