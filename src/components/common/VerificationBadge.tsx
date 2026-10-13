@@ -17,6 +17,8 @@ interface VerificationBadgeProps {
   size?: 'xs' | 'sm' | 'md';
   /** Hide the text label and show icon only (still accessible via title). */
   iconOnly?: boolean;
+  /** Whose verification this is — 'Purohit' (default) or 'Jyotishi'. */
+  subject?: 'Purohit' | 'Jyotishi';
   className?: string;
 }
 
@@ -41,6 +43,7 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
   tier,
   size = 'sm',
   iconOnly = false,
+  subject = 'Purohit',
   className = '',
 }) => {
   if (!tier) return null;
@@ -49,8 +52,8 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
   return (
     <span
       className={`inline-flex items-center rounded-full border uppercase tracking-wider font-bold whitespace-nowrap ${SIZE_CLS[size]} ${style.cls} ${className}`}
-      title={`Purohit verification: ${meta.label}`}
-      aria-label={`Verified purohit: ${meta.label}`}
+      title={`${subject} verification: ${meta.label}`}
+      aria-label={`Verified ${subject.toLowerCase()}: ${meta.label}`}
     >
       <span aria-hidden="true">{style.glyph}</span>
       {!iconOnly && <span>{tier === 'PLATFORM_VERIFIED' ? `${meta.label} ✓` : meta.label}</span>}

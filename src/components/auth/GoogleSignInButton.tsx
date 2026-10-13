@@ -34,7 +34,7 @@ export const GoogleGMark: React.FC<{ size?: number }> = ({ size = 18 }) => (
 
 interface GoogleSignInButtonProps {
   /** 'login' | 'signup' | 'purohit' — drives the button label. */
-  mode?: 'login' | 'signup' | 'purohit' | 'solo';
+  mode?: 'login' | 'signup' | 'purohit' | 'solo' | 'jyotish';
   onSuccess: (result: GoogleAuthResult) => void;
   onError?: (message: string) => void;
   disabled?: boolean;
@@ -53,7 +53,9 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   const label =
     mode === 'purohit'
       ? 'Continue with Google as Purohit'
-      : mode === 'solo'
+      : mode === 'jyotish'
+        ? 'Continue with Google as Jyotishi'
+        : mode === 'solo'
         ? 'Continue with Google'
         : mode === 'signup'
           ? 'Sign up with Google'

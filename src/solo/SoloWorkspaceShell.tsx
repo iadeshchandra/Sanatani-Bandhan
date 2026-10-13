@@ -5,12 +5,14 @@ import { SoloProvider, useSolo } from './SoloContext';
 import { SoloStoreProvider } from './soloStore';
 import { PurohitProvider } from '../context/PurohitContext';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
+import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { SoloHome } from './SoloHome';
 import { SadhanaTab } from './SadhanaTab';
 import { PanchangTab } from './PanchangTab';
 import { SavedTab } from './SavedTab';
 import { GivingTab } from './GivingTab';
 import { ProfileTab } from './ProfileTab';
+import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 
 /* SoloWorkspaceShell — the independent personal workspace.
@@ -27,7 +29,7 @@ import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
  *    BecomePurohitModal upgrade path.
  */
 
-type SoloTab = 'home' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'profile';
+type SoloTab = 'home' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'profile';
 
 const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'home', en: 'My Space', bn: 'আমার স্থান', hi: 'मेरा स्थान' },
@@ -35,13 +37,15 @@ const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'panchang', en: 'Panchang', bn: 'পঞ্জিকা', hi: 'पञ्चाङ्ग' },
   { id: 'saved', en: 'Saved', bn: 'সংরক্ষিত', hi: 'संग्रहीत' },
   { id: 'giving', en: 'Giving', bn: 'দান', hi: 'दान' },
+  { id: 'jyotish', en: '🔮 Jyotish', bn: '🔮 জ্যোতিষ', hi: '🔮 ज्योतिष' },
   { id: 'profile', en: 'Profile', bn: 'প্রোফাইল', hi: 'परिचय' },
 ];
 
 const InnerShell: React.FC = () => {
-  const { soloProfile, exitSoloSession, enterPurohitSession, logout, firebaseUser } = useAuthWorkspace();
+  const { soloProfile, exitSoloSession, enterPurohitSession, enterJyotishSession, logout, firebaseUser } = useAuthWorkspace();
   const { profile } = useSolo();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
+  const { identity: jyotishIdentity } = useMyJyotishIdentity();
   const { showToast } = useToast();
   const [tab, setTab] = useState<SoloTab>('home');
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -65,6 +69,18 @@ const InnerShell: React.FC = () => {
     enterPurohitSession(purohitIdentity as any);
     setSwitchOpen(false);
     showToast(`Switched to Purohit Workspace (${purohitIdentity.id})`, 'success');
+  };
+
+  const switchToJyotish = () => {
+    if (!jyotishIdentity) {
+      showToast('No jyotishi identity attached yet — use “Become a Jyotishi” below.', 'info');
+      setSwitchOpen(false);
+      setTab('home');
+      return;
+    }
+    enterJyotishSession(jyotishIdentity as any);
+    setSwitchOpen(false);
+    showToast(`Switched to Jyotishi Workspace (${jyotishIdentity.id})`, 'success');
   };
 
   return (
@@ -114,6 +130,13 @@ const InnerShell: React.FC = () => {
                     🕉️ Purohit Workspace
                     {!purohitIdentity && <span className="text-stone-400 font-medium"> (not attached)</span>}
                   </button>
+                  <button
+                    onClick={switchToJyotish}
+                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-stone-700 hover:bg-stone-50"
+                  >
+                    🔮 Jyotishi Workspace
+                    {!jyotishIdentity && <span className="text-stone-400 font-medium"> (not attached)</span>}
+                  </button>
                   <div className="border-t border-stone-100 mt-1 pt-1">
                     <button
                       onClick={() => logout()}
@@ -154,6 +177,7 @@ const InnerShell: React.FC = () => {
         {tab === 'panchang' && <PanchangTab />}
         {tab === 'saved' && <SavedTab />}
         {tab === 'giving' && <GivingTab />}
+        {tab === 'jyotish' && <JyotishMarketplace />}
         {tab === 'profile' && <ProfileTab />}
       </main>
     </div>

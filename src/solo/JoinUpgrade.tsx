@@ -3,7 +3,9 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useSolo } from './SoloContext';
 import { useToast } from '../context/ToastContext';
 import { BecomePurohitModal } from '../components/purohit/BecomePurohitModal';
+import { BecomeJyotishModal } from '../jyotish/BecomeJyotishModal';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
+import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { Card, T, Btn } from './ui';
 
 /* JoinUpgrade — progressive joining from the solo account.
@@ -16,7 +18,8 @@ import { Card, T, Btn } from './ui';
  *    join-request flow (MembershipContext.requestToJoin) handles approval.
  *  - Become a Purohit → the existing BecomePurohitModal (devotee_upgrade
  *    path); mints PUR-XXXXXX and attaches it to the Sanatani ID.
- *  - Become a Jyotishi → Jyotish One is queued; honest "coming soon".
+ *  - Become a Jyotishi → BecomeJyotishModal (devotee_upgrade path);
+ *    mints JYO-XXXXXX and attaches it to the Sanatani ID.
  */
 
 export const JoinUpgrade: React.FC = () => {
@@ -24,7 +27,9 @@ export const JoinUpgrade: React.FC = () => {
   const { exitSoloSession } = useAuthWorkspace();
   const { showToast } = useToast();
   const { identity: purohitIdentity, refresh: refreshPurohit } = useMyPurohitIdentity();
+  const { identity: jyotishIdentity, refresh: refreshJyotish } = useMyJyotishIdentity();
   const [purohitOpen, setPurohitOpen] = useState(false);
+  const [jyotishOpen, setJyotishOpen] = useState(false);
 
   const hasPurohit = !!profile?.roles?.purohitId || !!purohitIdentity;
   const hasJyotish = !!profile?.roles?.jyotishId;
@@ -124,18 +129,15 @@ export const JoinUpgrade: React.FC = () => {
               <T en={`Attached: ${profile?.roles?.jyotishId}.`} bn={`${profile?.roles?.jyotishId} সংযুক্ত।`} hi={`${profile?.roles?.jyotishId} जुड़ा है।`} />
             ) : (
               <T
-                en="Jyotish One is on the way — your Sanatani ID will carry it."
-                bn="জ্যোতিষ ওয়ান আসছে — আপনার সনাতনী আইডি তা বহন করবে।"
-                hi="ज्योतिष वन आ रहा है — आपकी सनातनी आईडी इसे धारण करेगी।"
+                en="Get your Universal Jyotish ID and a personal jyotishi workspace."
+                bn="ইউনিভার্সাল জ্যোতিষ আইডি ও ব্যক্তিগত ওয়ার্কস্পেস পান।"
+                hi="यूनिवर्सल ज्योतिष आईडी और व्यक्तिगत वर्कस्पेस पाएं।"
               />
             )}
           </p>
           {!hasJyotish && (
-            <Btn
-              variant="ghost"
-              onClick={() => showToast('Jyotish One is coming soon — your Sanatani ID is ready for it.', 'info')}
-            >
-              <T en="Coming soon" bn="শীঘ্রই আসছে" hi="शीघ्र आ रहा है" />
+            <Btn variant="ghost" onClick={() => setJyotishOpen(true)}>
+              <T en="Start application" bn="আবেদন শুরু করুন" hi="आवेदन शुरू करें" />
             </Btn>
           )}
         </div>
@@ -144,6 +146,23 @@ export const JoinUpgrade: React.FC = () => {
         <BecomePurohitModal
           isOpen={purohitOpen}
           onClose={closePurohitModal}
+        />
+      )}
+      {jyotishOpen && (
+        <BecomeJyotishModal
+          isOpen={jyotishOpen}
+          onClose={async () => {
+            setJyotishOpen(false);
+            try {
+              const ident = await refreshJyotish();
+              if (ident && !profile?.roles?.jyotishId) {
+                await attachRole('jyotish', ident.id);
+                showToast(`Jyotish identity ${ident.id} attached to your Sanatani ID`, 'success');
+              }
+            } catch {
+              /* attachment is best-effort; the JYO identity itself is already minted */
+            }
+          }}
         />
       )}
     </Card>
