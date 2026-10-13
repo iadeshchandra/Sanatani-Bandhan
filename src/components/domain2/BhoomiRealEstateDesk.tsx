@@ -23,6 +23,7 @@ import { useData } from '../../context/DataContext';
 import { BhoomiProperty } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvEngine';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 const inputCls =
   'w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-temple-950/80 border border-temple-800 text-temple-100 placeholder-temple-500 text-sm focus:border-saffron-500 focus:outline-none transition-colors';
@@ -500,7 +501,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setIsPropertyModalOpen(false)}>
           <div className="bg-temple-900 border border-temple-700 rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-extrabold text-temple-100">{editingProperty ? 'Edit Property' : 'Add Property'}</h3>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">{editingProperty ? 'Edit Property' : 'Add Property'}</h3><LocalOnlyBadge /></div>
               <button type="button" onClick={() => setIsPropertyModalOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-temple-800 text-temple-300 hover:bg-temple-700" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
