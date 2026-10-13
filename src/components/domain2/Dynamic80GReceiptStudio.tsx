@@ -15,9 +15,15 @@ import {
   Landmark,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 
 export const Dynamic80GReceiptStudio: React.FC = () => {
   const { showToast } = useToast();
+  const { activeWorkspace } = useAuthWorkspace();
+  // H-1: no fabricated URN — real receipts need a registered workspace.
+  const is80GRegistered = !!activeWorkspace?.trust80GRegistered;
+  const open80GSettings = () =>
+    window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'masterSettings' }));
 
   const [donorName, setDonorName] = useState('Sri Rajeshwar Prasad Sharma');
   const [panNumber, setPanNumber] = useState('ABCDE1234F');
@@ -62,8 +68,13 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               <span>Section 80G(5)(vi) & Form 10BD Compliant</span>
             </span>
             <span className="text-xs text-slate-500 font-mono">
-              URN: AAATK1088RF20214 &bull; Circular 11/2021
+              URN: {is80GRegistered ? (activeWorkspace?.trust80GURN || '—') : 'Not registered — sample'} &bull; Circular 11/2021
             </span>
+            {!is80GRegistered && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-700 border border-red-300">
+                Sample mode
+              </span>
+            )}
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -228,6 +239,25 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
 
         {/* UI Section 3: Right Pane - Live A4 80G Certificate Preview */}
         <div className="space-y-4 flex flex-col justify-between">
+          {/* H-1: honest sample state when the workspace is not 80G-registered */}
+          {!is80GRegistered && (
+            <div className="rounded-2xl border-2 border-dashed border-amber-500 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-start gap-2.5 flex-1">
+                <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  <strong className="font-black uppercase tracking-wide">Sample — add your 80G registration in Settings</strong>
+                  <span className="block mt-0.5">to issue valid receipts with a real URN. Nothing previewed here is statutory.</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={open80GSettings}
+                className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Open Settings → 80G
+              </button>
+            </div>
+          )}
           <div className="bg-amber-50/40 border-2 border-amber-600/30 rounded-3xl p-6 sm:p-7 shadow-lg relative overflow-hidden text-slate-900 flex-1 flex flex-col justify-between">
             {/* Watermark Overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-4 pointer-events-none select-none">
@@ -235,6 +265,13 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
                 SANATANI
               </span>
             </div>
+            {!is80GRegistered && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10">
+                <span className="text-6xl font-black text-red-600/25 rotate-[-25deg] tracking-widest uppercase">
+                  Sample
+                </span>
+              </div>
+            )}
 
             {/* Outer Decorative Double Border */}
             <div className="border border-amber-500/40 p-4 sm:p-5 rounded-2xl bg-white/95 shadow-inner space-y-4 relative">
@@ -244,13 +281,15 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
                   <span className="text-base text-amber-700 font-serif font-black">॥ श्री गणेशाय नमः ॥</span>
                 </div>
                 <h2 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">
-                  Kashi Vishwanath Mandir & Annapurna Trust
+                  {activeWorkspace?.name || 'Your Organisation'}
                 </h2>
                 <p className="text-[10px] text-slate-500 font-serif">
-                  Registered Public Charitable Trust &bull; Registration No: TR-108/VNS/1984
+                  {is80GRegistered
+                    ? `80G Registered • URN: ${activeWorkspace?.trust80GURN || '—'}`
+                    : 'Not 80G-registered — sample certificate only'}
                 </p>
-                <div className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider border border-amber-300">
-                  DONATION EXEMPT UNDER SECTION 80G(5)(vi)
+                <div className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${is80GRegistered ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
+                  {is80GRegistered ? 'Donation exempt under Section 80G(5)(vi)' : 'Sample — not a statutory 80G receipt'}
                 </div>
               </div>
 
