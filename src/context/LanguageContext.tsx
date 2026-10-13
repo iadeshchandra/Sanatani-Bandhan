@@ -57,6 +57,14 @@ const TAXONOMY_MAP: Record<string, Record<string, TaxonomyMatrix>> = {
       assetsTerm: 'मंदिर संपदा',
       inventoryTerm: 'भंडार एवं राशन',
     },
+    GOSHALA: {
+      workspaceLabel: 'गोशाला',
+      directoryName: 'गौ सेवक नामावली',
+      memberTerm: 'गौ सेवक',
+      fundsTerm: 'गौ सेवा निधि',
+      assetsTerm: 'गोमाता एवं नंदी विवरण',
+      inventoryTerm: 'चारा एवं औषधि भंडार',
+    },
   },
   bn: {
     MANDIR: {
@@ -66,6 +74,14 @@ const TAXONOMY_MAP: Record<string, Record<string, TaxonomyMatrix>> = {
       fundsTerm: 'প্রণামী / চাঁদা',
       assetsTerm: 'মন্দির সম্পদ',
       inventoryTerm: 'ভাণ্ডার',
+    },
+    GOSHALA: {
+      workspaceLabel: 'গোশালা',
+      directoryName: 'গো সেবক তালিকা',
+      memberTerm: 'গো সেবক',
+      fundsTerm: 'গো সেবা নিধি',
+      assetsTerm: 'গোমাতা ও নন্দীর বিবরণ',
+      inventoryTerm: 'খাদ্য ও ঔষধ ভাণ্ডার',
     },
   },
 };
