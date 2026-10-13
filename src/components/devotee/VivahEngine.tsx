@@ -242,6 +242,20 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
           </div>
         </div>
 
+        {/* H-3: HONEST DISCLAIMER — the guna score below is a simplified
+            illustration, not a real Ashta-koota computation. Users make real
+            marriage decisions here; the UI must not present it as a
+            jyotishi's analysis. */}
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-relaxed text-amber-200/90">
+            <strong className="text-amber-300">Illustrative only:</strong> the Guna Milan score shown on
+            profiles is a simplified estimate for browsing — it is <strong>not</strong> a
+            substitute for a qualified jyotishi's kundali analysis. Please consult your
+            family purohit before any marriage decision.
+          </p>
+        </div>
+
         {/* FEED FILTER PILLS */}
         <div className="flex items-center justify-between gap-2 pt-1">
           <div className="text-xs font-black text-white flex items-center gap-1">
