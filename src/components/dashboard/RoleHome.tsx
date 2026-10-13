@@ -30,8 +30,12 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { CountUp } from '../common/ui/CountUp';
 import { MODULE_CATALOG } from '../common/Sidebar';
-import { isModuleAllowed } from '../../lib/workspaceRegistry';
+import { isModuleAllowed, workspaceRegistry } from '../../lib/workspaceRegistry';
 import { ROLE_MIGRATION_MAP, type UserRole } from '../../types';
+import { getRecommendations, localizeText } from '../../suggestions/recommend';
+import { getUpcomingFestival } from '../../suggestions/festivals';
+import { getModuleCopy } from '../../suggestions/moduleCopy';
+import { enableModule, isSuggestionDismissed, dismissSuggestion } from '../../suggestions/store';
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                      */
@@ -394,10 +398,15 @@ export const BranchComparisonPanel: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
-  const { activeWorkspace, checkPermission } = useAuthWorkspace();
-  const { t } = useLanguage();
+  const { activeWorkspace, checkPermission, updateWorkspaceDetails } = useAuthWorkspace();
+  const { t, currentLang } = useLanguage();
+  const { devotees, donations } = useData();
+  const { showToast } = useToast();
+  const [dismissTick, setDismissTick] = useState(0);
 
-  const featuredModules = useMemo(() => {
+  // Seva Suggestions: top recommendations (with one-tap enable) lead;
+  // random available modules fill the rest. No more pure-random wall.
+  const { recommended, rest } = useMemo(() => {
     const available = MODULE_CATALOG.filter((m) => {
       if (['dashboard', 'devotees', 'treasury', 'poojaBooking', 'goshala', 'appStore', 'masterSettings', 'spiritualSettings'].includes(m.id)) return false;
       if (!isModuleAllowed(activeWorkspace, m.id)) return false;
@@ -409,20 +418,59 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
       else if (['trusteeGovernance', 'sevadarRoster', 'crisis-command', 'socialWall'].includes(m.id)) hasRole = checkPermission(['TRUSTEE', 'MANAGER']);
       return hasRole;
     });
-    for (let i = available.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [available[i], available[j]] = [available[j], available[i]];
-    }
-    return available.slice(0, 6);
-  }, [activeWorkspace, checkPermission]);
 
-  if (featuredModules.length === 0) return null;
+    let recommended: { moduleId: string; reason: string }[] = [];
+    if (activeWorkspace) {
+      const natives = workspaceRegistry[activeWorkspace.type] || [];
+      const enabled = activeWorkspace.enabledModules || [];
+      const festival = getUpcomingFestival(new Date(), 45);
+      recommended = getRecommendations({
+        orgType: activeWorkspace.type,
+        nativeModules: natives,
+        enabledModules: enabled,
+        devoteeCount: (devotees || []).length,
+        donationCount: (donations || []).length,
+        daysToFestival: festival ? festival.daysAway : null,
+        festivalName: festival ? { en: festival.name, hi: festival.hi, bn: festival.bn } : null,
+        recentDeskIds: [],
+        lang: currentLang,
+      })
+        .filter((r) => !isSuggestionDismissed(activeWorkspace.id, `rec:${r.moduleId}`))
+        .slice(0, 2)
+        .map((r) => ({ moduleId: r.moduleId, reason: localizeText(r.reason, currentLang) }));
+    }
+
+    const recIds = new Set(recommended.map((r) => r.moduleId));
+    const pool = available.filter((m) => !recIds.has(m.id));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return { recommended, rest: pool.slice(0, Math.max(0, 6 - recommended.length)) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspace?.id, (devotees || []).length, (donations || []).length, currentLang, dismissTick]);
+
+  const handleEnable = (moduleId: string) => {
+    if (!activeWorkspace) return;
+    const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
+    enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
+    showToast(`“${mod?.name || moduleId}” is now on — find it in your sidebar.`, 'success', 'Module Enabled');
+  };
+
+  const handleDismissRec = (moduleId: string) => {
+    if (!activeWorkspace) return;
+    dismissSuggestion(activeWorkspace.id, `rec:${moduleId}`);
+    setDismissTick((v) => v + 1);
+  };
+
+  const featuredModules = rest;
+  if (featuredModules.length === 0 && recommended.length === 0) return null;
   return (
     <div className="rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-white">
         <div>
           <h2 className="text-sm font-bold text-slate-800">Discover Workspace Features</h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">Explore powerful modules available in your ERP</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Recommended for your institution — enable with one tap</p>
         </div>
         {checkPermission(['TRUSTEE']) && (
           <button
@@ -434,6 +482,41 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
         )}
       </div>
       <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {recommended.map((rec) => {
+          const mod = MODULE_CATALOG.find((m) => m.id === rec.moduleId);
+          if (!mod) return null;
+          const Icon = mod.icon;
+          return (
+            <div
+              key={`rec-${rec.moduleId}`}
+              className="group p-4 rounded-xl border border-saffron-200 bg-amber-50/60 transition-all flex gap-3 items-start relative"
+            >
+              <button
+                type="button"
+                onClick={() => handleDismissRec(rec.moduleId)}
+                aria-label={`Dismiss ${mod.name} suggestion`}
+                className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-all text-sm leading-none"
+              >
+                ×
+              </button>
+              <div className="w-10 h-10 rounded-lg bg-white border border-amber-200 shadow-sm flex items-center justify-center shrink-0 text-amber-600">
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0 pr-4">
+                <h3 className="text-sm font-bold text-slate-800 truncate mb-0.5">{mod.name}</h3>
+                <p className="text-[11px] text-amber-700 font-medium leading-snug mb-1">{rec.reason}</p>
+                <p className="text-[11px] text-slate-500 leading-snug mb-2">{getModuleCopy(rec.moduleId, currentLang)}</p>
+                <button
+                  type="button"
+                  onClick={() => handleEnable(rec.moduleId)}
+                  className="text-[11px] font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all min-h-[32px]"
+                >
+                  Enable
+                </button>
+              </div>
+            </div>
+          );
+        })}
         {featuredModules.map((mod) => {
           const Icon = mod.icon;
           return (
