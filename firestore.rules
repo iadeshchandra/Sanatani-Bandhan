@@ -802,6 +802,15 @@ service cloud.firestore {
               request.resource.data.get('viaInviteId', ''),
               request.resource.data.get('workspaceId', ''),
               request.resource.data.get('role', '')))
+          // (c) Workspace creator self-provisions as the first Trustee.
+          // The workspace doc must already exist with createdBy == me;
+          // role is pinned to 'Trustee' (never SuperAdmin) and uid to me.
+          // Without this, a brand-new signup can never satisfy the
+          // trustee-gated writes (org page sync, member adds) for the
+          // workspace it just created.
+          || (request.resource.data.get('uid', '') == request.auth.uid
+            && request.resource.data.get('role', '') == 'Trustee'
+            && get(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).data.createdBy == request.auth.uid)
         );
       allow update: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', ''))
