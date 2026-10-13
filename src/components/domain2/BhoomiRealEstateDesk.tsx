@@ -23,6 +23,7 @@ import { useData } from '../../context/DataContext';
 import { BhoomiProperty } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvEngine';
+import { nextReceiptSeq, formatReceiptNumber } from '../../utils/receiptNumbers';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 const inputCls =
@@ -199,7 +200,13 @@ export const BhoomiRealEstateDesk: React.FC = () => {
       showToast(`Rent for ${rMonth} is already recorded for ${collectingFor.name}`, 'warning', 'Rent Collection');
       return;
     }
-    const receiptNo = `SB-RENT-${new Date().getFullYear()}-${String(rentReceipts.length + 1).padStart(4, '0')}`;
+    // M-18: max(existing seqs)+1 — never length+1, which reuses numbers after deletion.
+    const year = new Date().getFullYear();
+    const receiptNo = formatReceiptNumber(
+      'SB-RENT',
+      year,
+      nextReceiptSeq(rentReceipts.map((r) => r.receiptNo), 'SB-RENT', year)
+    );
     const collector = rCollectedBy.trim() || currentRole || 'Office Staff';
     const ok = addRentReceipt({
       workspaceId: activeWorkspace.id,
