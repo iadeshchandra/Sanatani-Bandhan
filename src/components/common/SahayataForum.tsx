@@ -33,7 +33,7 @@ interface Reply {
   authorId: string;
   authorName: string;
   timestamp: number;
-  isOfficialTrackIQ: boolean;
+  isOfficialSupport: boolean;
   isAcceptedAnswer: boolean;
 }
 
@@ -136,7 +136,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
     const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
     const currentAuthorId = currentDevotee ? currentDevotee.id : activeWorkspace.id + '_' + currentRole;
-    const currentAuthorName = currentDevotee ? currentDevotee.name : (isSuperAdmin ? 'TrackIQ Support' : 'Workspace Admin');
+    const currentAuthorName = currentDevotee ? currentDevotee.name : (isSuperAdmin ? 'Sanatani Bandhan Support' : 'Workspace Admin');
 
     const newThread: Omit<Thread, 'id'> = {
       title: newTitle.trim(),
@@ -168,7 +168,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
     const replyId = `reply_${Date.now()}_${Math.random().toString(36).substring(2,9)}`;
     const currentAuthorId = currentDevotee ? currentDevotee.id : activeWorkspace.id + '_' + currentRole;
-    const currentAuthorName = currentDevotee ? currentDevotee.name : (isSuperAdmin ? 'TrackIQ Support' : 'Workspace Admin');
+    const currentAuthorName = currentDevotee ? currentDevotee.name : (isSuperAdmin ? 'Sanatani Bandhan Support' : 'Workspace Admin');
 
     const newReply: Omit<Reply, 'id'> = {
       threadId: selectedThread.id,
@@ -176,7 +176,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       authorId: currentAuthorId,
       authorName: currentAuthorName,
       timestamp: Date.now(),
-      isOfficialTrackIQ: isSuperAdmin,
+      isOfficialSupport: isSuperAdmin,
       isAcceptedAnswer: false
     };
 
@@ -407,25 +407,25 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 <div 
                   key={`${reply.id}-${idx}`} 
                   className={`bg-white rounded-2xl p-6 shadow-sm border ${
-                    reply.isOfficialTrackIQ ? 'border-indigo-300 bg-indigo-50/30' : 
+                    reply.isOfficialSupport ? 'border-indigo-300 bg-indigo-50/30' : 
                     reply.isAcceptedAnswer ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                        reply.isOfficialTrackIQ ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 text-slate-600'
+                        reply.isOfficialSupport ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {reply.isOfficialTrackIQ ? <ShieldCheck className="w-5 h-5" /> : reply.authorName.charAt(0)}
+                        {reply.isOfficialSupport ? <ShieldCheck className="w-5 h-5" /> : reply.authorName.charAt(0)}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold ${reply.isOfficialTrackIQ ? 'text-indigo-900' : 'text-slate-900'}`}>
+                          <span className={`font-bold ${reply.isOfficialSupport ? 'text-indigo-900' : 'text-slate-900'}`}>
                             {reply.authorName}
                           </span>
-                          {reply.isOfficialTrackIQ && (
+                          {reply.isOfficialSupport && (
                             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-black uppercase tracking-wider flex items-center gap-1">
-                              Official TrackIQ Support
+                              Official Sanatani Bandhan Support
                             </span>
                           )}
                         </div>
