@@ -27,6 +27,9 @@ export const useDemoStarter = () => {
         id: demoId,
         name: `${type} Demo Sandbox`,
         type,
+        // C-6: demo sandboxes are plan 'DEMO' — governed by the separate
+        // 5/module demo quota + demo upsell, not by paid-plan limits.
+        planId: 'DEMO',
         tagline: 'Interactive Test Environment',
         address: 'Virtual Demo Environment',
         city: 'Kashi',
