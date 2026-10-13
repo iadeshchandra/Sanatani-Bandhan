@@ -245,7 +245,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
 
 export const QuickChandaPOS: React.FC = () => {
   const { activeWorkspace, currentUser } = useAuthWorkspace();
-  const { devotees, addTreasuryTransaction, treasury } = useData();
+  const { devotees, addTreasuryTransaction, treasury, getNextReceiptNumber } = useData();
   const { openGuide } = useQuickGuide();
   const { showToast } = useToast();
 
@@ -496,7 +496,11 @@ export const QuickChandaPOS: React.FC = () => {
       const dateString = now.toISOString().split('T')[0];
       const timeStamp = now.getTime().toString();
       const generatedTxId = `POS-${now.getFullYear()}-${timeStamp.slice(-6)}`;
-      const generatedReceiptNo = `SB-CHANDA-${now.getFullYear()}-${timeStamp.slice(-5)}`;
+      // M-18: sequential receipt number from the central series — the SAME
+      // number is stored (via taxReceiptNumber below, respected by
+      // addTreasuryTransaction) and printed. Fixes the old SB-CHANDA vs
+      // SB-80G print-vs-store mismatch.
+      const generatedReceiptNo = getNextReceiptNumber('SB-CHANDA');
       // H-1: NEVER fabricate a URN. A real 80G URN only exists when the
       // workspace has completed 80G registration (Settings → Legal).
       const is80GRegistered = !!activeWorkspace.trust80GRegistered;
