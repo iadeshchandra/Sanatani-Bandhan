@@ -79,6 +79,10 @@ export const MasterSettingsDesk: React.FC = () => {
     eightyGRegistered: activeWorkspace?.trust80GRegistered || false,
     eightyGURN: activeWorkspace?.trust80GURN || '',
     eightyGRegNo: activeWorkspace?.trust80GRegNo || '',
+    // P2: statutory compliance checklist — 12A + PAN
+    twelveARegistered: (activeWorkspace as any)?.trust12ARegistered || false,
+    twelveANumber: (activeWorkspace as any)?.trust12ANumber || '',
+    trustPAN: (activeWorkspace as any)?.trustPAN || '',
     description: activeWorkspace?.tagline || ''
   });
   
@@ -210,6 +214,10 @@ export const MasterSettingsDesk: React.FC = () => {
         trust80GRegistered: !!workspaceInfo.eightyGRegistered,
         trust80GURN: workspaceInfo.eightyGURN?.trim() || '',
         trust80GRegNo: workspaceInfo.eightyGRegNo?.trim() || '',
+        // P2: statutory compliance checklist — 12A + PAN persist with settings.
+        trust12ARegistered: !!(workspaceInfo as any).twelveARegistered,
+        trust12ANumber: ((workspaceInfo as any).twelveANumber || '').trim(),
+        trustPAN: ((workspaceInfo as any).trustPAN || '').trim().toUpperCase(),
         tagline: workspaceInfo.description?.trim() || '',
         ...(coords && { location: coords })
       };
@@ -534,7 +542,75 @@ export const MasterSettingsDesk: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div>
+                                        {/* P2: statutory compliance checklist — 12A + PAN + progress */}
+                    <div className="mt-5 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="text-[10px] font-black text-indigo-800 uppercase tracking-widest flex items-center gap-1.5">
+                          <Shield size={14}/> Statutory Compliance Checklist
+                        </h5>
+                        {(() => {
+                          const items = [
+                            !!(workspaceInfo as any).eightyGRegistered && (workspaceInfo as any).eightyGURN?.trim(),
+                            !!(workspaceInfo as any).twelveARegistered && ((workspaceInfo as any).twelveANumber || '').trim(),
+                            !!((workspaceInfo as any).trustPAN || '').trim(),
+                            !!(workspaceInfo as any).registrationNo?.trim(),
+                          ];
+                          const done = items.filter(Boolean).length;
+                          return (
+                            <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">
+                              {done} of {items.length} complete
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      {(() => {
+                        const items = [
+                          !!(workspaceInfo as any).eightyGRegistered && (workspaceInfo as any).eightyGURN?.trim(),
+                          !!(workspaceInfo as any).twelveARegistered && ((workspaceInfo as any).twelveANumber || '').trim(),
+                          !!((workspaceInfo as any).trustPAN || '').trim(),
+                          !!(workspaceInfo as any).registrationNo?.trim(),
+                        ];
+                        const done = items.filter(Boolean).length;
+                        const pct = Math.round((done / items.length) * 100);
+                        return (
+                          <div className="h-2 rounded-full bg-indigo-100 overflow-hidden mb-4">
+                            <div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        );
+                      })()}
+                      <label className="flex items-start gap-3 cursor-pointer mb-4">
+                        <input
+                          type="checkbox"
+                          checked={!!(workspaceInfo as any).twelveARegistered}
+                          onChange={e=>setWorkspaceInfo({...workspaceInfo, twelveARegistered: e.target.checked} as any)}
+                          disabled={!isAdmin}
+                          className="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-gray-800 leading-relaxed">
+                          Registered under Section 12A / 12AB of the Income Tax Act, 1961
+                          <span className="block text-[11px] font-medium text-gray-500 mt-0.5">
+                            12A registration establishes the trust as a recognised charitable institution —
+                            required alongside 80G for donor tax benefits.
+                          </span>
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">12A Registration No.</label>
+                          <input type="text" value={(workspaceInfo as any).twelveANumber || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, twelveANumber: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Trust / Organisation PAN</label>
+                          <input type="text" value={(workspaceInfo as any).trustPAN || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, trustPAN: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} maxLength={10} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088R"/>
+                        </div>
+                      </div>
+                      <p className="text-[11px] font-medium text-gray-500 mt-3 leading-relaxed">
+                        Completing the 80G item above flips the flag the receipt desks gate on — receipts stay
+                        in SAMPLE mode until a real URN is saved.
+                      </p>
+                    </div>
+
+<div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><FileSignature size={12}/> {localSafeTranslate('mission_desc', 'Mission / Description')}</label>
                       <textarea rows={3} value={workspaceInfo.description} onChange={e=>setWorkspaceInfo({...workspaceInfo, description: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm resize-none disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="Describe your organization's mission..."></textarea>
                     </div>
