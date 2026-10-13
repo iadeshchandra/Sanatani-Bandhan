@@ -780,7 +780,7 @@ export function PurohitDesk({ isOnline = navigator.onLine }: { isOnline?: boolea
       )}
 
       <div className="pt-12 pb-6 text-center opacity-70 border-t border-gray-200 mt-auto text-xs font-bold text-gray-500 shrink-0">
-        Made with <Heart size={12} className="text-red-500 fill-current inline"/> by <span className="font-black text-saffron-500">TrackIQ Academy</span> • Purohit Desk
+        Made with <Heart size={12} className="text-red-500 fill-current inline"/> for <span className="font-black text-saffron-500">Dharmic institutions</span> • Purohit Desk
       </div>
     </div>
   );
