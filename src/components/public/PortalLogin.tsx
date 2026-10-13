@@ -482,7 +482,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       addWorkspace(newWorkspace);
       switchWorkspace(newWorkspace.id);
       loginAsRole('Trustee', adminName);
-      
+
+      // First-run Setup Wizard: mark this fresh workspace as pending setup so
+      // the wizard greets the new owner exactly once on first entry.
+      try {
+        localStorage.setItem('sb_setup_pending', newWorkspace.id);
+      } catch {
+        /* storage unavailable — wizard simply won't trigger */
+      }
+
       showToast("Workspace Provisioned Successfully", "success");
       onSuccess();
     } catch (err: any) {
