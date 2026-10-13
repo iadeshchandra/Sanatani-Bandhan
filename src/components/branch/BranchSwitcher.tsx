@@ -17,6 +17,7 @@ export const BranchSwitcher: React.FC = () => {
     activeBranchId,
     setActiveBranchId,
     mainBranchId,
+    isBranchAccessible,
   } = useData();
   const { checkPermission } = useAuthWorkspace();
   const [open, setOpen] = useState(false);
@@ -42,11 +43,17 @@ export const BranchSwitcher: React.FC = () => {
   if (!isMultiBranch) return null;
   if (!checkPermission(['SuperAdmin', 'Trustee'])) return null;
 
+  // Per-branch RBAC (v2): a restricted member only sees their allowed
+  // branches. With 0–1 accessible branches there is nothing to switch
+  // between, so the switcher stays hidden (same invisibility contract).
+  const visibleBranches = branches.filter((b) => isBranchAccessible(b.id));
+  if (visibleBranches.length <= 1) return null;
+
   const activeBranch =
     activeBranchId === 'ALL'
       ? null
-      : branches.find((b) => b.id === activeBranchId) || null;
-  const mainBranch = branches.find((b) => b.id === mainBranchId);
+      : visibleBranches.find((b) => b.id === activeBranchId) || null;
+  const mainBranch = visibleBranches.find((b) => b.id === mainBranchId);
 
   const label = activeBranch ? activeBranch.name : 'All branches';
 
@@ -104,7 +111,7 @@ export const BranchSwitcher: React.FC = () => {
 
           <div className="h-px bg-white/10" />
 
-          {branches.map((b) => {
+          {visibleBranches.map((b) => {
             const selected = activeBranchId === b.id;
             return (
               <button
