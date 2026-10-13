@@ -226,6 +226,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'gurukul', 'gurukulAcademy', 'vidyalaya', 'granthLibrary', 'goshala',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'recurring-seva',
+    // Pathshala One: complete school-management suite (Gurukul + Vidyalaya only).
+    'pathshala',
     // R-1 REMOVED 'vahan' (fleet): gurukuls do not operate transport fleets;
     // campus assets live under 'bhoomi'. A fleet need can be App-Store-enabled.
     // R-1 REMOVED 'family' (Household & Kul Parivar): the shishya-guardian
@@ -241,6 +243,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'vidyalaya', 'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     // R-1: added 'donorCare' — wizard default for Vidyalaya.
     'donorCare',
+    // Pathshala One: complete school-management suite (Gurukul + Vidyalaya only).
+    'pathshala',
   ],
   PurohitSabha: [
     'dashboard', 'devotees', 'family', 'treasury',
