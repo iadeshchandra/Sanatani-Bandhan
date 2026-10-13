@@ -108,6 +108,8 @@ const AshramGoshalaGurukulDesk = lazy(() => import('./components/domain4/AshramG
 const SmartBhandarProcurementDesk = lazy(() => import('./components/domain4/SmartBhandarProcurementDesk').then(m => ({ default: m.SmartBhandarProcurementDesk })));
 // Pathshala One — complete school-management suite (Gurukul + Vidyalaya only).
 const PathshalaDesk = lazy(() => import('./pathshala/PathshalaDesk').then(m => ({ default: m.PathshalaDesk })));
+// Goshala One — complete goshala-operations suite (Goshala only).
+const GoshalaDesk = lazy(() => import('./goshala/GoshalaDesk').then(m => ({ default: m.GoshalaDesk })));
 
 // Domain 5: Outreach & Scriptures
 const WhatsAppBroadcasterDesk = lazy(() => import('./components/domain5/WhatsAppBroadcasterDesk').then(m => ({ default: m.WhatsAppBroadcasterDesk })));
@@ -488,6 +490,8 @@ const AppContent: React.FC = () => {
         return <VedicSevaShikshaDesk />;
       case 'pathshala':
         return <PathshalaDesk />;
+      case 'goshala-one':
+        return <GoshalaDesk />;
       case 'granthLibrary':
       case 'sanskrit-library':
       case 'shlokaFeed':

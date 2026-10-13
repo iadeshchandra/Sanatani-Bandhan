@@ -184,6 +184,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // legacy donor/cattle registers is operational, not decorative.
     // R-1: added 'donorCare' — wizard default for Goshala.
     'donorCare',
+    // Goshala One: complete goshala-operations suite (Goshala only).
+    'goshala-one',
   ],
   Sangha: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
@@ -495,6 +497,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'The Pathshala desk belongs to Vidyalaya / Gurukul workspaces.',
   goshala:
     'Goshala desks belong to Goshala workspaces — the Gau Seva surface.',
+  'goshala-one':
+    'Goshala One (cattle, milk, fodder, sponsorships) belongs to Goshala workspaces — the Gau Seva surface.',
   mandirPuja:
     'Daily Aarti & Puja desks belong to Mandir / Tirth workspaces.',
   purohitDesk:
