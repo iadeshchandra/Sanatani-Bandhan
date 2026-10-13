@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldAlert, Activity, Users, Clock, MapPin, 
   AlertTriangle, CheckCircle2, TrendingUp, Filter,
-  Search, Crosshair, Award, Zap, Radio
+  Search, Crosshair, Award, Radio
 } from 'lucide-react';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useData } from '../../context/DataContext';
 import { MapContainer, TileLayer, Marker, Circle, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -27,13 +28,14 @@ const greenIcon = L.divIcon({
 });
 
 export const CrisisCommandCenter: React.FC = () => {
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, checkPermission, currentUser } = useAuthWorkspace();
+  const { shifts } = useData();
   const [incidents, setIncidents] = useState<any[]>([]);
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'RESOLVED'>('ALL');
 
-  // Org Score System
-  const [orgResilienceScore, setOrgResilienceScore] = useState(850);
-  const [karmaPool, setKarmaPool] = useState(12450);
+  // P2: every number on this desk is computed from live data — no fabricated
+  // scores. Resolution actions are gated behind Trustee/Manager/CSO roles.
+  const canResolve = checkPermission(['TRUSTEE', 'MANAGER', 'CSO']);
 
   useEffect(() => {
     if (!activeWorkspace?.id) return;
@@ -46,24 +48,13 @@ export const CrisisCommandCenter: React.FC = () => {
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const logs: any[] = [];
-      let activeCount = 0;
-      let resolvedCount = 0;
-
       snapshot.forEach(doc => {
         const data = doc.data();
         if (data.type === 'RICH_SOS' || data.type === 'SOS') {
           logs.push({ id: doc.id, ...data });
-          if (data.sosStatus === 'RESOLVED') resolvedCount++;
-          else activeCount++;
         }
       });
       setIncidents(logs);
-
-      // Dynamically calculate Organization Resilience Score
-      // Base score 500 + 50 points per resolved incident - 10 per active
-      const dynamicScore = 500 + (resolvedCount * 50) - (activeCount * 10);
-      setOrgResilienceScore(Math.max(100, Math.min(1000, dynamicScore)));
-      setKarmaPool(10000 + (resolvedCount * 150));
     }, (err) => console.warn("Firebase CrisisCommandCenter sync:", err.message));
 
     return () => unsubscribe();
@@ -71,12 +62,15 @@ export const CrisisCommandCenter: React.FC = () => {
 
 
   const handleAcknowledge = async (id: string) => {
+    // P2: RBAC — resolving an incident is privileged. The button is hidden
+    // for non-privileged roles; this guard is defense-in-depth.
+    if (!canResolve) return;
     try {
       const docRef = doc(db, 'yatra_broadcasts', id);
       await updateDoc(docRef, {
         sosStatus: 'RESOLVED',
         resolvedAt: new Date().toISOString(),
-        resolvedBy: 'Sevadar Team'
+        resolvedBy: (currentUser as any)?.name || 'Response Team',
       });
     } catch (e) {
       console.error('Error acknowledging alert', e);
@@ -86,21 +80,53 @@ export const CrisisCommandCenter: React.FC = () => {
   const activeIncidents = incidents.filter(i => i.sosStatus !== 'RESOLVED');
 
   const resolvedIncidents = incidents.filter(i => i.sosStatus === 'RESOLVED');
+
+  // P2: real operational stats — computed from live incident + roster data.
+  const totalIncidents = incidents.length;
+  const resolutionRate = totalIncidents === 0 ? null : Math.round((resolvedIncidents.length / totalIncidents) * 100);
+  const avgResponseMins = useMemo(() => {
+    const durations = resolvedIncidents
+      .map((i) => {
+        const start = new Date(i.timestamp).getTime();
+        const end = i.resolvedAt ? new Date(i.resolvedAt).getTime() : NaN;
+        return !isNaN(start) && !isNaN(end) && end >= start ? (end - start) / 60000 : NaN;
+      })
+      .filter((n) => !isNaN(n));
+    if (durations.length === 0) return null;
+    return durations.reduce((a, b) => a + b, 0) / durations.length;
+  }, [resolvedIncidents]);
+  const sevadarsOnDuty = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return (shifts || []).filter((s: any) => typeof s.date === 'string' && s.date.slice(0, 10) === today).length;
+  }, [shifts]);
+
+  // P2: weekly incident frequency from REAL timestamps (last 7 days).
+  const chartData = useMemo(() => {
+    const days: { name: string; incidents: number; resolved: number }[] = [];
+    const now = new Date();
+    for (let d = 6; d >= 0; d--) {
+      const day = new Date(now.getTime() - d * 86400000);
+      const label = day.toLocaleDateString('en-IN', { weekday: 'short' });
+      const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
+      let inc = 0, res = 0;
+      for (const i of incidents) {
+        const ts = new Date(i.timestamp).getTime();
+        if (ts >= dayStart.getTime() && ts <= dayEnd.getTime()) {
+          inc++;
+          if (i.sosStatus === 'RESOLVED') res++;
+        }
+      }
+      days.push({ name: label, incidents: inc, resolved: res });
+    }
+    return days;
+  }, [incidents]);
   
   const displayedIncidents = incidents.filter(i => {
     if (filter === 'ACTIVE') return i.sosStatus !== 'RESOLVED';
     if (filter === 'RESOLVED') return i.sosStatus === 'RESOLVED';
     return true;
   });
-
-  // Generate chart data based on historical incidents
-  const chartData = [
-    { name: 'Mon', incidents: 2, resolved: 2 },
-    { name: 'Tue', incidents: 1, resolved: 1 },
-    { name: 'Wed', incidents: 4, resolved: 3 },
-    { name: 'Thu', incidents: 0, resolved: 0 },
-    { name: 'Fri', incidents: Math.max(1, activeIncidents.length), resolved: resolvedIncidents.length },
-  ];
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-300 h-full">
@@ -112,28 +138,34 @@ export const CrisisCommandCenter: React.FC = () => {
             <Crosshair className="w-7 h-7 text-red-600" /> Crisis Command Center
           </h1>
           <p className="text-slate-500 font-medium mt-1">
-            Global view of all emergencies, response metrics, and organizational karma.
+            Live view of emergencies and response metrics — every number computed from real workspace data.
           </p>
         </div>
 
-        {/* Scoring Badges */}
+        {/* P2: real operational badges — resolution rate + sevadars on duty */}
         <div className="flex flex-wrap gap-4">
           <div className="bg-white border-2 border-emerald-100 p-4 rounded-2xl shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
               <Award className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Resilience Score</p>
-              <h3 className="text-2xl font-black text-slate-900">{orgResilienceScore}<span className="text-sm font-bold text-slate-400">/1000</span></h3>
+              <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Resolution Rate</p>
+              <h3 className="text-2xl font-black text-slate-900">
+                {resolutionRate === null ? '—' : `${resolutionRate}%`}
+                <span className="text-sm font-bold text-slate-400"> {totalIncidents} total</span>
+              </h3>
             </div>
           </div>
           <div className="bg-white border-2 border-indigo-100 p-4 rounded-2xl shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-indigo-600" />
+              <Users className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Org Karma Pool</p>
-              <h3 className="text-2xl font-black text-slate-900">{karmaPool.toLocaleString()} <span className="text-sm font-bold text-slate-400">pts</span></h3>
+              <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Sevadars on Duty</p>
+              <h3 className="text-2xl font-black text-slate-900">
+                {sevadarsOnDuty}
+                <span className="text-sm font-bold text-slate-400"> today</span>
+              </h3>
             </div>
           </div>
         </div>
@@ -164,7 +196,14 @@ export const CrisisCommandCenter: React.FC = () => {
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Avg Response Time</h4>
-            <span className="text-3xl font-black text-slate-900">4.2 <span className="text-lg text-slate-500">mins</span></span>
+            <span className="text-3xl font-black text-slate-900">
+              {avgResponseMins === null ? '—' : avgResponseMins < 60
+                ? <>{avgResponseMins.toFixed(1)} <span className="text-lg text-slate-500">mins</span></>
+                : <>{(avgResponseMins / 60).toFixed(1)} <span className="text-lg text-slate-500">hrs</span></>}
+            </span>
+            {avgResponseMins === null && (
+              <p className="text-[10px] text-slate-400 font-medium">No resolved incidents yet</p>
+            )}
           </div>
         </div>
       </div>
@@ -187,12 +226,18 @@ export const CrisisCommandCenter: React.FC = () => {
                       <span className="flex items-center gap-1 text-slate-400"><Clock className="w-3 h-3" /> {new Date(inc.timestamp).toLocaleTimeString()}</span>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => handleAcknowledge(inc.id)}
-                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-rose-600/20 whitespace-nowrap shrink-0"
-                  >
-                    Acknowledge & Resolve
-                  </button>
+                  {canResolve ? (
+                    <button
+                      onClick={() => handleAcknowledge(inc.id)}
+                      className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-rose-600/20 whitespace-nowrap shrink-0"
+                    >
+                      Acknowledge & Resolve
+                    </button>
+                  ) : (
+                    <span className="px-4 py-2 bg-slate-100 text-slate-500 font-bold text-[11px] rounded-xl whitespace-nowrap shrink-0">
+                      Resolve restricted — Trustee / Manager only
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
