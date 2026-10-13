@@ -1,4 +1,13 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+/**
+ * firebase.ts — P2 consolidation.
+ *
+ * This module is now a thin barrel over src/lib/firebase.ts, which owns the
+ * single Firebase app/auth/firestore/storage initialization. Both modules
+ * previously called initializeApp/initializeFirestore with identical settings
+ * (guarded by getApps(), default database), producing the same instances —
+ * this merge removes the duplicate init while keeping every existing
+ * importer working unchanged.
+ */
 import {
   getAuth,
   GoogleAuthProvider,
@@ -9,11 +18,9 @@ import {
   sendPasswordResetEmail,
   onAuthStateChanged,
   updatePassword,
-  User as FirebaseUser
+  User as FirebaseUser,
 } from 'firebase/auth';
 import {
-  getFirestore,
-  initializeFirestore,
   collection,
   doc,
   getDoc,
@@ -22,29 +29,16 @@ import {
   updateDoc,
   query,
   where,
-  serverTimestamp
-, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
-import firebaseConfig from '../firebase-applet-config.json';
+  serverTimestamp,
+} from 'firebase/firestore';
 
-// Initialize Firebase App
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// Auth and Firestore instances
-export const auth = getAuth(app);
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
-// Enable offline persistence
-enableMultiTabIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-  } else if (err.code === 'unimplemented') {
-    console.warn('The current browser does not support all of the features required to enable persistence');
-  }
-});
-
+// Single source of truth — same instances as before (identical init settings).
+export { app, auth, db, storage } from './lib/firebase';
 
 export const googleProvider = new GoogleAuthProvider();
 
 export {
+  getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -61,8 +55,10 @@ export {
   updateDoc,
   query,
   where,
-  serverTimestamp
+  serverTimestamp,
 };
 
 export type { FirebaseUser };
+
+import { app } from './lib/firebase';
 export default app;
