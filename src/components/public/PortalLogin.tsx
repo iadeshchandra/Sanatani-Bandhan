@@ -13,8 +13,9 @@ import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where, collection, limit } from 'firebase/firestore';
 import type { UserRole } from '../../types';
+import { PurohitSignupForm } from '../purohit/PurohitSignupForm';
 
 const translations = {
   en: {
@@ -124,12 +125,12 @@ interface PortalLoginProps {
 }
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace } = useAuthWorkspace();
+  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   const [language, setLanguage] = useState<'en'|'hi'|'bn'>('en'); 
   const t = (key: string) => (translations as any)[language][key] || key;
 
-  const [activeView, setActiveView] = useState(initialMode === 'signup' ? 'REGISTER' : 'LOGIN'); 
+  const [activeView, setActiveView] = useState<'LOGIN' | 'REGISTER' | 'PUROHIT'>(initialMode === 'signup' ? 'REGISTER' : 'LOGIN'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine); 
@@ -335,6 +336,27 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         if (isWorkspaceCreator(fbUser.uid)) {
           role = 'Trustee';
         }
+      }
+
+      // Purohit One: an independent purohit's account belongs to no
+      // organisation. Route them straight into their personal workspace.
+      // Dual-identity (devotee_upgrade) users stay in org context here —
+      // the mode switcher in their account area flips them over.
+      try {
+        const pSnap = await getDocs(
+          query(collection(db, 'purohits'), where('uid', '==', fbUser.uid), limit(1))
+        );
+        if (!pSnap.empty) {
+          const pData = pSnap.docs[0].data() as any;
+          if (pData?.source === 'independent') {
+            enterPurohitSession({ id: pSnap.docs[0].id, ...pData });
+            showToast('Welcome back to your purohit workspace', 'success');
+            onSuccess();
+            return;
+          }
+        }
+      } catch (pErr) {
+        console.warn('[PortalLogin] purohit lookup failed, continuing org login:', (pErr as any)?.message);
       }
 
       // On successful Firebase Auth, push the user to the authenticated dashboard
@@ -631,7 +653,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           {/* Header toggles */}
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-semibold text-temple-900">
-              {activeView === 'LOGIN' ? 'Welcome Back' : 'Create Workspace'}
+              {activeView === 'LOGIN' ? 'Welcome Back' : activeView === 'REGISTER' ? 'Create Workspace' : 'Join as Purohit'}
             </h3>
             
             <div className="flex bg-temple-100 p-1 rounded-xl">
@@ -646,6 +668,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                  className={`px-4 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all ${activeView === 'REGISTER' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
                >
                  Sign Up
+               </button>
+               <button 
+                 onClick={() => { setActiveView('PUROHIT'); clearErrors(); }} 
+                 className={`px-4 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all ${activeView === 'PUROHIT' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+               >
+                 🪔 Purohit
                </button>
             </div>
           </div>
@@ -799,7 +827,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     {loading ? <Loader2 size={18} className="animate-spin" /> : t('auth.accessPortal')}
                   </button>
                 </motion.form>
-              ) : (
+              ) : activeView === 'REGISTER' ? (
                 <motion.form 
                   key="register"
                   initial={{ opacity: 0, x: -20 }}
@@ -936,6 +964,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     {loading ? <Loader2 size={18} className="animate-spin" /> : t('actions.createDynamic').replace('{X}', regData.type.toUpperCase())}
                   </button>
                 </motion.form>
+              ) : (
+                <PurohitSignupForm />
               )}
             </AnimatePresence>
           </div>
