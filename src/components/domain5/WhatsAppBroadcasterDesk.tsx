@@ -16,7 +16,7 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
     'Hari Om {{FullName}} Ji (Gotra: {{Gotra}})! \n\nOn the sacred occasion of {{Occasion}}, special Abhishekam has been arranged at {{MandirName}}. Please present your Smart Pass PIN ({{PIN}}) at the gate for VIP Sanctum Prasadam.\n\nSadaiv Shubh Bhavatu,\n{{MandirName}} Seva Trust'
   );
   const [occasion, setOccasion] = useState('Shravan Maha Somavaara');
-  const [targetAudience, setTargetAudience] = useState<'all' | 'Ratna' | 'Vishesh' | 'Kormi'>('all');
+  const [targetAudience, setTargetAudience] = useState<'all' | 'Ratna' | 'Vishesh' | 'Karmi'>('all');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [deliveryCount, setDeliveryCount] = useState(0);
 
@@ -139,7 +139,7 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
                 <option value="all">All Community Members ({devotees.length})</option>
                 <option value="Ratna">Ratna Diamond Patrons Only</option>
                 <option value="Vishesh">Vishesh Sevadars</option>
-                <option value="Kormi">Kormi Active Volunteers</option>
+                <option value="Karmi">Karmi Active Volunteers</option>
               </select>
             </div>
 
