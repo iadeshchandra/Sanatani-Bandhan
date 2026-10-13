@@ -6,6 +6,7 @@ import { isValidPhoneIN, isValidDateRange, rangesOverlap, sanitizeName } from '.
 import { formatDateIST } from '../../utils/format';
 import { EmptyState } from '../common/EmptyState';
 import { DataExportButton } from '../common/DataExportButton';
+import { PreviewDataBadge } from '../common/PreviewDataBadge';
 
 type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'CLEANING';
 type BookingStatus = 'Confirmed' | 'CheckedIn' | 'CheckedOut' | 'Cancelled';
@@ -202,6 +203,7 @@ export const DharamshalaDesk: React.FC = () => {
             <Building className="w-6 h-6 text-indigo-600" />
             {t('dharamshala') || 'Yatri Niwas & Dharamshala'}
           </h1>
+          <div className="mt-2"><PreviewDataBadge /></div>
           <p className="text-slate-500 text-sm mt-1">Manage pilgrim accommodations, bookings, and housekeeping.</p>
         </div>
         <button
