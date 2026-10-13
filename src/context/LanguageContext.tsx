@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { translations } from '../i18n/translations';
 import { dharmicTaxonomy } from '../i18n/taxonomy';
 import { WorkspaceType } from '../types';
@@ -192,9 +192,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return termKey;
   };
 
-  return (
-    <LanguageContext.Provider
-      value={{
+    // M-3: memoized provider value (was an inline literal re-created per render).
+    const langValue = useMemo(() => ({
         currentLang,
         language: currentLang,
         changeLanguage,
@@ -204,7 +203,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         t,
         safeTranslate,
         getTaxonomy,
-      }}
+      }), [currentLang, changeLanguage, organizationType, changeOrganizationType, t, safeTranslate, getTaxonomy]);
+
+    return (
+    <LanguageContext.Provider
+      value={langValue}
     >
       {children}
     </LanguageContext.Provider>
