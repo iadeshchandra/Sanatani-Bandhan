@@ -7,6 +7,7 @@ import { TrusteeResolution } from '../../types';
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
 import { CommunityPollsTab } from './CommunityPollsTab';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const PanchayatPollingDesk: React.FC = () => {
   const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
@@ -358,7 +359,7 @@ export const PanchayatPollingDesk: React.FC = () => {
           <div className="bg-temple-900 border border-temple-700 rounded-3xl max-w-lg w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-4 border-b border-temple-800 mb-5">
               <h3 className="text-xl font-black text-white flex items-center gap-2">
-                 <Vote className="text-indigo-500 w-6 h-6"/> Propose Resolution
+                 <Vote className="text-indigo-500 w-6 h-6"/> Propose Resolution <LocalOnlyBadge />
               </h3>
               <button onClick={() => setIsAddModalOpen(false)} className="text-temple-500 hover:text-temple-300 p-1 bg-temple-800 rounded-full transition-colors">
                 <XCircle className="w-5 h-5" />
