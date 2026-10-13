@@ -4,6 +4,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { MemberSearchSelect } from '../common/MemberSearchSelect';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const FamilyHouseholdDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
@@ -162,7 +163,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl w-full max-w-lg shadow-2xl p-6 text-temple-100">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <h3 className="font-bold text-sm">Register Kul Parivar (Household)</h3>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Register Kul Parivar (Household)</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
