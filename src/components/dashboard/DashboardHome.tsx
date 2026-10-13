@@ -21,6 +21,7 @@ import {
   Globe,
   Compass,
   Layers,
+  GitBranch,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -53,6 +54,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   const { activeWorkspace, currentRole, checkPermission, currentDevotee } = useAuthWorkspace();
   const { language, t } = useLanguage();
   const { devotees, treasury, poojaBookings, cows, shlokas, gurukulStudents } = useData();
+  const {
+    branches: branchList,
+    isMultiBranch,
+    activeBranchId,
+    setActiveBranchId,
+    recordsForBranch,
+  } = useData();
   const { showToast } = useToast();
 
   // Org-aware dashboard: temple-centric KPIs (sankalps, gau seva) are
@@ -319,6 +327,59 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
         )}
       </div>
+
+      {/* Multi-branch comparison — consolidated view only. Invisible for single-org. */}
+      {isMultiBranch && activeBranchId === 'ALL' && checkPermission(['Trustee', 'SuperAdmin']) && (
+        <div className="mt-6 rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-600 flex items-center gap-2">
+              <GitBranch className="w-3.5 h-3.5 text-saffron-500" />
+              Branch comparison
+            </h2>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Tap a branch to focus
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {branchList.map((b) => {
+              const bTx = recordsForBranch(treasury, b.id);
+              const bIncome = bTx.filter((t) => t.type === 'Income').reduce((a, c) => a + c.amount, 0);
+              const bExpense = bTx.filter((t) => t.type === 'Expense').reduce((a, c) => a + c.amount, 0);
+              const bDevotees = recordsForBranch(devotees, b.id).length;
+              const bBookings = recordsForBranch(poojaBookings, b.id).length;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setActiveBranchId(b.id)}
+                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-saffron-50/50 transition-colors cursor-pointer text-left"
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-bold text-slate-900 truncate">
+                      {b.name}
+                      {b.isMain && (
+                        <span className="ml-1.5 text-[10px] font-black uppercase tracking-wider text-saffron-600">
+                          Main
+                        </span>
+                      )}
+                    </span>
+                    {b.city && <span className="block text-[11px] text-slate-500">{b.city}</span>}
+                  </span>
+                  <span className="text-right shrink-0">
+                    <span className="block text-sm font-bold text-emerald-700">
+                      {activeWorkspace.currencySymbol} {Math.round(bIncome - bExpense).toLocaleString('en-IN')}
+                    </span>
+                    <span className="block text-[10px] text-slate-500">
+                      {bDevotees} members · {bBookings} bookings
+                    </span>
+                  </span>
+                  <ArrowUpRight className="w-4 h-4 text-slate-300 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2 flex flex-col gap-6">
