@@ -31,6 +31,7 @@ import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { UserRole } from '../../types';
 import { NotificationPanel } from './NotificationPanel';
 import { OPEN_PALETTE_EVENT } from './CommandPalette';
+import { BranchSwitcher } from '../branch/BranchSwitcher';
 
 interface HeaderProps {
   onOpenSidebar: () => void;
@@ -167,6 +168,8 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
           </div>
+          {/* Multi-branch switcher — renders nothing for single-org workspaces */}
+          <BranchSwitcher />
         </div>
       </div>
 
