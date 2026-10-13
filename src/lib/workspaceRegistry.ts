@@ -159,72 +159,112 @@ export function isModuleMountAllowed(moduleId: string, planId?: string | null): 
 // Existing Workspace Archetype Registry
 // ==========================================
 export const workspaceRegistry: Record<WorkspaceType, string[]> = {
+  // R-1 AUDIT (2026-10-13) — relevance review per org type.
+  // Rule: a desk is native to an org type only when that org would use it in
+  // normal operations. The setup wizard (wizardDeskMap.ts ORG_DEFAULTS) and
+  // the role-home quick actions are treated as product promises — desks they
+  // recommend for an org type are native to it. The App Store's
+  // enabledModules opt-in remains the escape hatch for everything else.
   Mandir: [
     'dashboard', 'devotees', 'family', 'treasury', 'taxReceipts',
     'poojaBooking', 'mandirPuja', 'panchang', 'utsavPanjika',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'masterSettings', 'spiritualSettings',
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
+    // R-1: added — the setup wizard recommends these as Mandir defaults and
+    // the Trustee/Accountant/Sevadar home screens link straight to them.
+    'checkin', 'donorCare', 'hundi-audit', 'quick-chanda-pos',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
     'campaigns', 'assets', 'inventory', 'goshala',
-    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings'
+    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
+    // R-1: 'guests' kept — atithi/donor visitors to the goshala are a real
+    // CRM surface (adoptions, visits). 'bulkImport' kept — CSV ingestion of
+    // legacy donor/cattle registers is operational, not decorative.
+    // R-1: added 'donorCare' — wizard default for Goshala.
+    'donorCare',
   ],
   Sangha: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added 'donorCare' — wizard default for Sangha.
+    'donorCare',
   ],
   Samaj: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added 'donorCare' — mirrors Sangha (community org parity).
+    'donorCare',
   ],
   Ashram: [
     'dashboard', 'devotees', 'guests', 'treasury',
     'ashramKutir', 'satsang', 'granthLibrary', 'shlokaFeed',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings', 'spiritualSettings',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added — the setup wizard recommends these as Ashram defaults.
+    'dharamshala', 'annadanam', 'donorCare',
   ],
   Yoga: [
+    // R-1: verified minimal — retreat/sadhana orgs need nothing more.
     'dashboard', 'devotees', 'guests', 'treasury',
     'ashramKutir', 'satsang',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings'
   ],
   Satsang: [
+    // R-1: verified minimal — kirtan/discourse circles need nothing more.
     'dashboard', 'devotees', 'family', 'treasury',
     'satsang', 'granthLibrary', 'shlokaFeed',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings'
   ],
   Gurukul: [
-    'dashboard', 'devotees', 'family', 'treasury', 'inventory',
+    'dashboard', 'devotees', 'treasury', 'inventory',
     'gurukul', 'gurukulAcademy', 'vidyalaya', 'granthLibrary', 'goshala',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'recurring-seva',
+    // R-1 REMOVED 'vahan' (fleet): gurukuls do not operate transport fleets;
+    // campus assets live under 'bhoomi'. A fleet need can be App-Store-enabled.
+    // R-1 REMOVED 'family' (Household & Kul Parivar): the shishya-guardian
+    // link lives inside each student record; the generic household census is
+    // a community-org tool and does not belong in a school workspace.
+    // R-1: 'goshala' kept — gau-seva by brahmacharis is part of gurukul life.
+    // R-1: added 'donorCare' — wizard default for Gurukul (Vidya Danam patrons).
+    'donorCare',
   ],
   Vidyalaya: [
+    // R-1: verified minimal — 'vidyalaya' desk + core ops; nothing irrelevant.
     'dashboard', 'devotees', 'treasury', 'inventory',
-    'vidyalaya', 'sandeshBroadcast', 'dharmicAssistant', 'masterSettings'
+    'vidyalaya', 'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
+    // R-1: added 'donorCare' — wizard default for Vidyalaya.
+    'donorCare',
   ],
   PurohitSabha: [
     'dashboard', 'devotees', 'family', 'treasury',
     'poojaBooking', 'purohitDesk', 'purohitMarket', 'pitruShradh', 'panchang',
-    'panchayatPolls', 'sandeshBroadcast', 'masterSettings', 'trusteeGovernance'
+    'panchayatPolls', 'sandeshBroadcast', 'masterSettings', 'trusteeGovernance',
+    // R-1: added 'donorCare' — wizard default for PurohitSabha.
+    'donorCare',
   ],
   Trust: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
     'campaigns', 'karmaLedger', 'assets', 'sevaTrust', 'rakthaSeva', 'annadanam',
     'sandeshBroadcast', 'dharmaMarketing', 'trusteeGovernance', 'legalVault', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
+    // R-1: added 'donorCare' — wizard default for Trust.
+    'donorCare',
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
     'campaigns', 'assets', 'sevaTrust', 'annadanam', 'rakthaSeva', 'inventory',
     'sandeshBroadcast', 'trusteeGovernance', 'legalVault', 'masterSettings', 'crisis-command',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added — the setup wizard recommends these as AkshayaPatra defaults
+    // ('smartBhandar' for kitchen recipe/BOM scale; 'donorCare' for patrons).
+    'smartBhandar', 'donorCare',
   ],
   KashiKshetra: [
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
@@ -233,6 +273,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added — wizard defaults / crowd-safety pairing for a tirth complex.
+    'checkin', 'donorCare', 'yatranet-gis',
   ],
   Tirth: [
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
@@ -241,17 +283,23 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
+    // R-1: added — wizard defaults for Tirth (yatri flow, stays, GIS safety).
+    'checkin', 'donorCare', 'yatranet-gis', 'quick-chanda-pos',
   ],
   MahotsavSamiti: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'utsavPanjika',
-    'sandeshBroadcast', 'socialWall', 'trusteeGovernance', 'crisis-command', 'masterSettings'
+    'sandeshBroadcast', 'socialWall', 'trusteeGovernance', 'crisis-command', 'masterSettings',
+    // R-1: added — crowd pain in the wizard routes to gate check-in & GIS.
+    'checkin', 'donorCare', 'yatranet-gis',
   ],
   Purohit: [
+    // R-1: verified minimal — personal purohit workspace, no org surface.
     'dashboard', 'devotees', 'poojaBooking', 'purohitDesk', 'panchang',
     'masterSettings'
   ],
   DharmadaTrust: [
+    // R-1: verified minimal — grant/compliance trust, no program desks.
     'dashboard', 'devotees', 'treasury', 'taxReceipts', 'campaigns',
     'masterSettings', 'legalVault'
   ]
@@ -269,4 +317,210 @@ export const isModuleAllowed = (workspace: any, moduleId: string): boolean => {
   if (workspace.enabledModules && workspace.enabledModules.includes(moduleId)) return true;
 
   return false;
+};
+
+/**
+ * R-1 — Org-type relevance enforcement at desk mount.
+ *
+ * App.tsx's renderActiveDesk switch accepts many alias spellings per desk
+ * (e.g. 'treasury-ledger', 'hundi', 'matrimony'). The org-type guard must
+ * resolve every alias to the canonical registry/module-catalog id first,
+ * otherwise a Gurukul could open 'matrimony' (alias of 'sanatani-vivah')
+ * while 'sanatani-vivah' itself is blocked — the guard would be decorative.
+ */
+export const ORG_MODULE_ALIASES: Record<string, string> = {
+  // Domain 1 — CRM
+  'devotee-grid': 'devotees',
+  'membership-desk': 'membership',
+  'org-membership': 'membership',
+  'donor-care': 'donorCare',
+  'darshan-checkin': 'checkin',
+  'gate-command': 'checkin',
+  'household-census': 'family',
+  'vanshavali-tree': 'vanshavali',
+  'guest-pipeline': 'guests',
+  'blood-registry': 'rakthaSeva',
+  'universal-csv': 'bulkImport',
+  'federation-multi-branch': 'federation',
+  'multi-branch': 'federation',
+  'branch-federation': 'federation',
+  'sevadar-hr': 'sevadar-roster',
+  '/sevadar-roster': 'sevadar-roster',
+  // Domain 2 — Financials & Assets
+  quickChandaPos: 'quick-chanda-pos',
+  'chanda-pos': 'quick-chanda-pos',
+  'counter-pos': 'quick-chanda-pos',
+  'treasury-audit': 'treasury',
+  treasuryAudit: 'treasury',
+  'treasury-ledger': 'treasury',
+  hundi: 'hundi-audit',
+  'hundi-counting': 'hundi-audit',
+  golak: 'hundi-audit',
+  ratnaBhandar: 'ratna-bhandar',
+  'sacred-assets': 'ratna-bhandar',
+  'bullion-vault': 'ratna-bhandar',
+  toshakhana: 'ratna-bhandar',
+  'tax-receipt-80g': 'taxReceipts',
+  'tally-export': 'taxReceipts',
+  tallyExport: 'taxReceipts',
+  'form-10bd': 'form10bd',
+  form10bdCompliance: 'form10bd',
+  'form-10bd-compliance': 'form10bd',
+  'mandir-campaigns': 'campaigns',
+  'karma-ledger': 'karmaLedger',
+  'store-inventory': 'inventory',
+  'property-leases': 'bhoomi',
+  'bhoomi-real-estate': 'bhoomi',
+  fleet: 'vahan',
+  'vahan-fleet': 'vahan',
+  recurringSeva: 'recurring-seva',
+  'seva-subscriptions': 'recurring-seva',
+  // Domain 3 — Rituals
+  'sanctum-hud': 'purohitDesk',
+  sanctumHud: 'purohitDesk',
+  purohitManagement: 'purohitDesk',
+  'purohit-management': 'purohitDesk',
+  'purohit-desk': 'purohitDesk',
+  'pooja-booking': 'poojaBooking',
+  'aarti-roster': 'mandirPuja',
+  purohitPortal: 'purohitMarket',
+  'purohit-portal': 'purohitMarket',
+  purohitUnified: 'purohitMarket',
+  'purohit-unified': 'purohitMarket',
+  purohitMarket: 'purohitMarket',
+  'purohit-marketplace': 'purohitMarket',
+  'pitru-shradh': 'pitruShradh',
+  'panchang-muhurat': 'panchang',
+  'panchang-astrology-engine': 'panchang',
+  'panchang-engine': 'panchang',
+  'yatra-gis': 'yatranet-gis',
+  'crowd-control': 'yatranet-gis',
+  yatranet: 'yatranet-gis',
+  // Domain 4 — Specialized desks
+  'gau-seva-goshala': 'goshala',
+  'annadanam-kitchen': 'annadanam',
+  'dharamshala-yatri-bhavan': 'dharamshala',
+  'smart-bhandar': 'smartBhandar',
+  bhandar: 'smartBhandar',
+  'bhandar-procurement': 'smartBhandar',
+  smartBhandarProcurement: 'smartBhandar',
+  'ashram-kutir': 'ashramKutir',
+  ashramGoshalaGurukul: 'ashramKutir',
+  'ashram-goshala-gurukul': 'ashramKutir',
+  'gurukul-education': 'gurukul',
+  'sanskrit-library': 'granthLibrary',
+  shlokaFeed: 'granthLibrary',
+  // Domain 5 — Outreach
+  'whatsapp-broadcaster': 'sandeshBroadcast',
+  'events-utsav': 'utsavPanjika',
+  'dharmic-assistant': 'dharmicAssistant',
+  dharmaMarketing: 'dharmicAssistant',
+  // Domain 7 — Individual life
+  'personal-sadhana': 'sadhana-karma',
+  matrimony: 'sanatani-vivah',
+  familyRootsMatrimony: 'familyRootsMatrimony',
+  'family-roots-matrimony': 'familyRootsMatrimony',
+  familyRoots: 'familyRootsMatrimony',
+  'family-roots': 'familyRootsMatrimony',
+  'yatra-net': 'yatraNet',
+  // Domain 6 — Governance
+  'tactical-perimeter-radar': 'tactical-radar',
+  tacticalPerimeterRadar: 'tactical-radar',
+  'perimeter-radar': 'tactical-radar',
+  'workspace-hub': 'workspace-hub',
+  'user-roles-rbac': 'trusteeGovernance',
+  'security-audit-log': 'legalVault',
+  auditLog: 'legalVault',
+  qrScanner: 'qrScanner',
+  platformBroadcast: 'spiritualSettings',
+};
+
+/** Resolve an App.tsx desk id (alias or canonical) to its canonical registry id. */
+export function resolveOrgModuleId(moduleId: string): string {
+  return ORG_MODULE_ALIASES[moduleId] ?? moduleId;
+}
+
+/**
+ * Modules that are personal / org-agnostic and must never be org-type-gated:
+ * the personal devotee portal paths and the devotee-facing surfaces.
+ * (dashboard/appStore/sadhana-karma/yatraNet/sevadar-roster are already
+ * bypassed inside isModuleAllowed; listed here for explicitness.)
+ */
+const ORG_AGNOSTIC_MODULES = new Set([
+  'dashboard',
+  'appStore',
+  'devoteePortal',
+  'devotee-super-app',
+  'devotee-portal',
+  'personal-portal',
+  'devotee-account',
+  'sadhana-karma',
+  'personal-sadhana',
+  'yatraNet',
+  'yatra-net',
+  'sevadar-roster',
+  'sevadarRoster',
+]);
+
+/**
+ * R-1 central org-type gate: may this desk mount for this workspace?
+ * Resolves App.tsx aliases → canonical id, skips org-agnostic personal
+ * surfaces, then defers to isModuleAllowed (registry natives + the App
+ * Store's enabledModules opt-in). Composes with checkPermission (role) and
+ * isModuleMountAllowed (plan tier): org-type AND role AND tier must pass.
+ */
+export function isModuleAllowedForOrgMount(workspace: any, moduleId: string): boolean {
+  if (!workspace) return true;
+  const canonical = resolveOrgModuleId(moduleId);
+  if (ORG_AGNOSTIC_MODULES.has(canonical) || ORG_AGNOSTIC_MODULES.has(moduleId)) return true;
+  return isModuleAllowed(workspace, canonical);
+}
+
+/**
+ * Friendly per-module guidance shown on the "not available" empty state.
+ * Maps canonical module id → where the user can find it instead.
+ */
+export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
+  'sanatani-vivah':
+    'Vivah services live in the personal devotee view and in community organisation workspaces (Mandir, Sangha, Samaj, Trust).',
+  gurukul:
+    'Gurukul desks belong to Gurukul / Vidyalaya workspaces — the residential shiksha surface.',
+  gurukulAcademy:
+    'The Shastric Academy desk belongs to Gurukul / Vidyalaya workspaces.',
+  vidyalaya:
+    'The Pathshala desk belongs to Vidyalaya / Gurukul workspaces.',
+  goshala:
+    'Goshala desks belong to Goshala workspaces — the Gau Seva surface.',
+  mandirPuja:
+    'Daily Aarti & Puja desks belong to Mandir / Tirth workspaces.',
+  purohitDesk:
+    'The Purohit desk belongs to ritual-performing workspaces (Mandir, Tirth, Purohit Sabha).',
+  purohitMarket:
+    'The scholar marketplace belongs to ritual-performing workspaces (Mandir, Tirth, Purohit Sabha).',
+  pitruShradh:
+    'Pitru Shradh desks belong to ritual-performing workspaces.',
+  annadanam:
+    'Annadanam desks belong to Annakshetra-running workspaces (Ashram, Tirth, Akshaya Patra, Trust).',
+  dharamshala:
+    'Yatri-stay desks belong to hospitality-running workspaces (Ashram, Tirth, Kashi Kshetra).',
+  ashramKutir:
+    'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
+  satsang:
+    'Satsang desks belong to Satsang / Ashram / Yoga workspaces.',
+  sanghaDrills:
+    'Shakha mobilisation desks belong to Sangha / Samaj / Mahotsav Samiti workspaces.',
+  rakthaSeva:
+    'Raktha Seva desks belong to humanitarian Trust workspaces.',
+  sevaTrust:
+    'Humanitarian Seva desks belong to Trust workspaces.',
+  'hundi-audit':
+    'Hundi & Golak audit desks belong to donation-receiving Mandir / Tirth workspaces.',
+  vahan:
+    'Fleet desks belong to transport-running workspaces (Mandir, Tirth, Trust, Akshaya Patra).',
+  family:
+    'Household & Kul Parivar census belongs to community organisation workspaces.',
+  'crisis-command':
+    'Crisis Command belongs to large-gathering workspaces (Tirth, Kashi Kshetra, Mahotsav Samiti, Akshaya Patra).',
+  'yatranet-gis':
+    'GIS crowd-safety desks belong to large-gathering workspaces (Tirth, Kashi Kshetra, Mahotsav Samiti).',
 };

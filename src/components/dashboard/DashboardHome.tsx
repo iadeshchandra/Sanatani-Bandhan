@@ -4,6 +4,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { ShlokaCard, RoleHomeSwitch } from './RoleHome';
+import { GurukulHome } from './GurukulHome';
 
 interface DashboardHomeProps {
   onSelectModule?: (id: string) => void;
@@ -34,6 +35,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   const { activeWorkspace, currentDevotee } = useAuthWorkspace();
   const taxonomy = useWorkspaceTaxonomy();
   const panchang = calculatePanchang();
+
+  // R-1 (Gurukul vibe): Gurukul / Vidyalaya workspaces get the dedicated
+  // gurukul home — dinacharya, pathyakram, kanthastha, parampara — instead of
+  // the generic role work surface. The sacred header + shloka stay identical.
+  const orgTypeKey = (activeWorkspace.type || '').toLowerCase();
+  const isGurukulLike = ['gurukul', 'vidyalaya', 'pathshala'].includes(orgTypeKey);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 flex flex-col">
@@ -94,12 +101,16 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       {/* Sacred soul — identical for every role */}
       <ShlokaCard />
 
-      {/* Role-based work surface */}
-      <RoleHomeSwitch
-        onNavigate={handleNav}
-        onOpenQuickPay={onOpenQuickPay}
-        onOpenMySpace={onOpenMySpace}
-      />
+      {/* Role-based work surface — or the dedicated Gurukul home */}
+      {isGurukulLike ? (
+        <GurukulHome onNavigate={handleNav} />
+      ) : (
+        <RoleHomeSwitch
+          onNavigate={handleNav}
+          onOpenQuickPay={onOpenQuickPay}
+          onOpenMySpace={onOpenMySpace}
+        />
+      )}
     </div>
   );
 };

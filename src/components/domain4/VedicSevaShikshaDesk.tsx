@@ -21,7 +21,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
 
-  const { gurukulStudents, addGurukulStudent } = useData();
+  const { gurukulStudents, addGurukulStudent, updateGurukulStudent } = useData();
   const students = gurukulStudents.map((s, idx) => ({
     id: s.id,
     name: s.studentName,
@@ -31,7 +31,9 @@ export const VedicSevaShikshaDesk: React.FC = () => {
     acharyaMentor: 'Acharya',
     recitationGrade: 'A' as any,
     monthlySponsorshipCost: 2100,
-    sponsorName: undefined
+    sponsorName: undefined,
+    dateOfUpanayanam: s.dateOfUpanayanam,
+    samskaras: s.samskaras || [],
   }));
   const [localUnused, setLocalUnused] = useState([
     {
@@ -75,6 +77,25 @@ export const VedicSevaShikshaDesk: React.FC = () => {
   const [currentKanda, setCurrentKanda] = useState('Purusha Suktam');
   const [acharyaMentor, setAcharyaMentor] = useState('Acharya Vidyadhar Shastri');
 
+  // R-1: record a samskara on an existing shishya.
+  const [samskaraFor, setSamskaraFor] = useState<string | null>(null);
+  const [samskaraName, setSamskaraName] = useState('Upanayana');
+  const [samskaraDate, setSamskaraDate] = useState(new Date().toISOString().split('T')[0]);
+  const SANSKARA_OPTIONS = ['Namakarana', 'Annaprashana', 'Chudakarana (Mundana)', 'Upanayana', 'Vedarambha', 'Samavartana'];
+
+  const handleRecordSamskara = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!samskaraFor) return;
+    const target = gurukulStudents.find((s) => s.id === samskaraFor);
+    if (!target) return;
+    const next = [...(target.samskaras || []), { name: samskaraName, date: samskaraDate }];
+    updateGurukulStudent(samskaraFor, {
+      samskaras: next,
+      ...(samskaraName === 'Upanayana' ? { dateOfUpanayanam: samskaraDate } : {}),
+    });
+    setSamskaraFor(null);
+  };
+
   const handleAddVidyarthi = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -102,7 +123,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
       attendancePct: 100
     });
     setIsAddModalOpen(false);
-    showToast(`Vidyarthi ${name} enrolled into Gurukul Registry!`, 'success');
+    showToast(`Shishya ${name} enrolled into Gurukul Registry!`, 'success');
   };
 
   const handleSponsor = (vid: Vidyarthi) => {
@@ -116,17 +137,17 @@ export const VedicSevaShikshaDesk: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">
-              Veda Pathshala & Gurukul Census
+              गुरुकुलम् • Veda Pathshala & Gurukul Census
             </span>
             <span className="text-xs text-temple-400 font-mono">
-              {students.length} Residential Brahmacharis
+              {students.length} Residential Brahmacharis (Shishya)
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
             Vedic Gurukul & Shastra Education Desk
           </h2>
           <p className="text-xs text-temple-400 mt-0.5">
-            Oral tradition preservation, Veda Shakha syllabus tracking, and monthly Vidyarthi Vidya Danam
+            Oral tradition preservation, Veda Shakha Pathyakram (curriculum) tracking, and monthly Shishya Vidya Danam
           </p>
         </div>
 
@@ -136,7 +157,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
           className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Enroll New Vidyarthi</span>
+          <span>Enroll New Shishya</span>
         </button>
       </div>
 
@@ -166,11 +187,11 @@ export const VedicSevaShikshaDesk: React.FC = () => {
 
               <div className="py-2 space-y-1.5 text-xs text-temple-300">
                 <p>
-                  <span className="text-temple-400">Current Kanda / Sukta:</span>{' '}
+                  <span className="text-temple-400">Pathyakram — Current Kanda / Sukta:</span>{' '}
                   <span className="font-semibold text-temple-100">{st.currentKanda}</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">Guru Mentor:</span>{' '}
+                  <span className="text-temple-400">Guru (Acharya):</span>{' '}
                   <span className="text-temple-200">{st.acharyaMentor}</span>
                 </p>
                 <p>
@@ -192,6 +213,41 @@ export const VedicSevaShikshaDesk: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* R-1: samskara journey per shishya (Upanayana & others) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] text-temple-400 uppercase font-bold tracking-wide">Samskara journey</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSamskaraFor(st.id);
+                      setSamskaraName('Upanayana');
+                      setSamskaraDate(new Date().toISOString().split('T')[0]);
+                    }}
+                    className="text-amber-400 hover:text-amber-300 font-bold text-[10px] cursor-pointer"
+                  >
+                    + Record samskara
+                  </button>
+                </div>
+              {(st.dateOfUpanayanam || st.samskaras.length > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {st.dateOfUpanayanam && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
+                      🪔 Upanayana • {st.dateOfUpanayanam}
+                    </span>
+                  )}
+                  {st.samskaras.map((sm: { name: string; date: string }, i: number) => (
+                    <span
+                      key={`${sm.name}-${sm.date}-${i}`}
+                      className="px-2 py-0.5 rounded-full bg-temple-800 border border-temple-700 text-temple-300 text-[10px] font-semibold"
+                    >
+                      {sm.name} • {sm.date}
+                    </span>
+                  ))}
+                </div>
+              )}
+              </div>
             </div>
 
             {!st.sponsorName && (
@@ -201,7 +257,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
                 className="w-full py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
               >
                 <Award className="w-3.5 h-3.5" />
-                <span>Sponsor Vidyarthi Education</span>
+                <span>Sponsor Shishya Education</span>
               </button>
             )}
           </div>
@@ -213,7 +269,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Enroll New Gurukul Vidyarthi</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Enroll New Gurukul Shishya</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -225,13 +281,13 @@ export const VedicSevaShikshaDesk: React.FC = () => {
 
             <form onSubmit={handleAddVidyarthi} className="space-y-3 text-xs">
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Vidyarthi Full Name *</label>
+                <label className="block text-temple-300 font-semibold mb-1">Shishya (Student) Full Name *</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Vidyarthi Shrirang Shastri"
+                  placeholder="e.g. Shishya Shrirang Shastri"
                   className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-temple-200"
                 />
               </div>
@@ -252,7 +308,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Current Syllabus / Kanda</label>
+                <label className="block text-temple-300 font-semibold mb-1">Pathyakram (Syllabus) / Kanda</label>
                 <input
                   type="text"
                   value={currentKanda}
@@ -262,7 +318,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Assigned Guru Mentor</label>
+                <label className="block text-temple-300 font-semibold mb-1">Guru (Acharya)</label>
                 <input
                   type="text"
                   value={acharyaMentor}
@@ -284,6 +340,63 @@ export const VedicSevaShikshaDesk: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
                 >
                   Save Enrollment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* R-1: Record Samskara modal */}
+      {samskaraFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
+              <h3 className="font-bold text-sm">🪔 Record Samskara</h3>
+              <button
+                type="button"
+                onClick={() => setSamskaraFor(null)}
+                className="text-temple-400 hover:text-temple-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleRecordSamskara} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-temple-300 font-semibold mb-1">Samskara *</label>
+                <select
+                  value={samskaraName}
+                  onChange={(e) => setSamskaraName(e.target.value)}
+                  className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-temple-200"
+                >
+                  {SANSKARA_OPTIONS.map((sm) => (
+                    <option key={sm} value={sm}>{sm}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-temple-300 font-semibold mb-1">Date performed *</label>
+                <input
+                  type="date"
+                  required
+                  value={samskaraDate}
+                  onChange={(e) => setSamskaraDate(e.target.value)}
+                  className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-temple-200"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-temple-800">
+                <button
+                  type="button"
+                  onClick={() => setSamskaraFor(null)}
+                  className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
+                >
+                  Record Samskara
                 </button>
               </div>
             </form>
