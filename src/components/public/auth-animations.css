@@ -1,0 +1,213 @@
+/* ============================================================
+   Sanatani Bandhan — Auth scene animations
+   Motion discipline: transform / opacity ONLY (GPU-composited),
+   60fps friendly, no layout thrash. All ambient motion honours
+   prefers-reduced-motion (killed at the bottom of this file).
+   ============================================================ */
+
+/* ---------- Page-load staggered entrance ---------- */
+@keyframes auth-rise-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.auth-rise {
+  opacity: 0;
+  animation: auth-rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0s);
+  will-change: opacity, transform;
+}
+
+@keyframes auth-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.auth-fade {
+  opacity: 0;
+  animation: auth-fade-in 1.2s ease both;
+  animation-delay: var(--d, 0s);
+}
+
+/* ---------- Sacred-geometry mandala rotation ---------- */
+@keyframes auth-mandala-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.auth-spin-slow {
+  animation: auth-mandala-spin 150s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+  will-change: transform;
+}
+.auth-spin-rev {
+  animation: auth-mandala-spin 220s linear infinite reverse;
+  transform-origin: center;
+  transform-box: fill-box;
+  will-change: transform;
+}
+
+/* ---------- Rising diya-flame particles ---------- */
+@keyframes auth-diya-rise {
+  0%   { opacity: 0; transform: translate3d(0, 12vh, 0) scale(0.6); }
+  12%  { opacity: 0.9; }
+  55%  { opacity: 0.55; transform: translate3d(var(--drift, 12px), -32vh, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(calc(var(--drift, 12px) * -0.6), -78vh, 0) scale(0.35); }
+}
+.auth-diya {
+  position: absolute;
+  bottom: -4vh;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #ffe9b8 0%, #ffb03a 45%, rgba(255, 142, 0, 0) 72%);
+  filter: blur(1px);
+  animation: auth-diya-rise linear infinite;
+  animation-duration: var(--dur, 11s);
+  animation-delay: var(--dd, 0s);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+/* ---------- Animated film grain ---------- */
+@keyframes auth-grain-shift {
+  0%   { background-position: 0 0; }
+  25%  { background-position: -40px 30px; }
+  50%  { background-position: 30px -45px; }
+  75%  { background-position: -25px -20px; }
+  100% { background-position: 0 0; }
+}
+.auth-grain {
+  animation: auth-grain-shift 9s steps(6) infinite;
+  will-change: background-position;
+}
+
+/* ---------- Slow god-ray sweep ---------- */
+@keyframes auth-ray-sway {
+  0%, 100% { transform: rotate(-4deg) scale(1); opacity: 0.55; }
+  50%      { transform: rotate(3deg) scale(1.06); opacity: 0.85; }
+}
+.auth-rays {
+  animation: auth-ray-sway 18s ease-in-out infinite;
+  transform-origin: 50% 120%;
+  will-change: transform, opacity;
+}
+
+/* ---------- Gentle hover float (flame / ornaments) ---------- */
+@keyframes auth-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.auth-float {
+  animation: auth-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ---------- CTA loading shimmer ---------- */
+.auth-cta { position: relative; overflow: hidden; }
+.auth-cta .auth-cta-shimmer {
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.auth-cta[data-loading="true"] .auth-cta-shimmer {
+  animation: auth-shimmer-sweep 1.4s ease-in-out infinite;
+}
+@keyframes auth-shimmer-sweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(120%); }
+}
+
+/* ---------- Magnetic CTA sheen on hover ---------- */
+.auth-cta::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.22), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.auth-cta:hover::before { opacity: 1; }
+
+/* ---------- Floating-label field ---------- */
+.auth-field input::placeholder,
+.auth-field textarea::placeholder { color: transparent; }
+.auth-field .auth-label {
+  position: absolute;
+  left: 2.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  max-width: calc(100% - 4.5rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.auth-field textarea ~ .auth-label { top: 1.35rem; transform: none; }
+.auth-field input:focus ~ .auth-label,
+.auth-field input:not(:placeholder-shown) ~ .auth-label {
+  top: 0.72rem;
+  transform: translateY(-50%);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #ffca6b;
+}
+.auth-field textarea:focus ~ .auth-label,
+.auth-field textarea:not(:placeholder-shown) ~ .auth-label {
+  top: 0.55rem;
+  transform: none;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #ffca6b;
+}
+.auth-field:focus-within .auth-ring {
+  box-shadow: 0 0 0 2px rgba(255, 173, 46, 0.55), 0 0 24px rgba(255, 142, 0, 0.25);
+  border-color: rgba(255, 173, 46, 0.7);
+}
+.auth-field .auth-ring { transition: box-shadow 0.25s ease, border-color 0.25s ease; }
+
+/* ---------- Mouse parallax on the art panel ---------- */
+.auth-parallax {
+  transform: translate3d(calc(var(--px, 0) * 16px), calc(var(--py, 0) * 12px), 0);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.auth-parallax-deep {
+  transform: translate3d(calc(var(--px, 0) * -26px), calc(var(--py, 0) * -20px), 0);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* ---------- Quote carousel ---------- */
+.auth-quote { transition: opacity 0.7s ease, transform 0.7s ease; }
+.auth-quote[data-active="false"] { opacity: 0; transform: translateY(10px); position: absolute; inset: 0; pointer-events: none; }
+.auth-quote[data-active="true"]  { opacity: 1; transform: translateY(0); position: relative; }
+
+/* ---------- Glass card gradient border + inner glow ---------- */
+.auth-glass {
+  background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Reduced motion: honour the user, always ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .auth-scene *,
+  .auth-scene *::before,
+  .auth-scene *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .auth-rise, .auth-fade { opacity: 1 !important; }
+  .auth-parallax, .auth-parallax-deep { transform: none !important; }
+}

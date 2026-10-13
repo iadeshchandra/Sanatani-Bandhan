@@ -1,13 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Loader2, ShieldCheck, Building2, User, Key, Mail, Phone, 
-  Lock, ArrowLeft, Eye, EyeOff, AlertTriangle, MapPin, AlignLeft, Languages, 
-  Globe2, Navigation, QrCode, X, WifiOff, CheckCircle2, Flame, Fingerprint
+import {
+  Loader2, ShieldCheck, Building2, User, Key, Mail, Phone,
+  Lock, ArrowLeft, Eye, EyeOff, AlertTriangle, MapPin, AlignLeft, Languages,
+  Globe2, Navigation, QrCode, X, WifiOff, CheckCircle2, Flame, Fingerprint, Ban
 } from 'lucide-react';
 import jsQR from 'jsqr';
-import AppLogo from '../common/AppLogo'; 
+import AppLogo from '../common/AppLogo';
+import './auth-animations.css';
+import { AuthArt, type AuthLang } from './AuthArt';
+import { AuthField } from './AuthField';
+import { AuthDoors, type AuthDoorId } from './AuthDoors';
+import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
@@ -50,7 +55,31 @@ const translations = {
     login_pass: 'Secure Password',
     btn_create_dynamic: 'Create {X} Workspace',
     workspace: 'Workspace',
-    head_admin: 'Head Admin'
+    head_admin: 'Head Admin',
+    back: 'Back',
+    door_login: 'Login',
+    door_solo: 'Solo',
+    door_signup: 'Sign Up',
+    door_purohit: 'Purohit',
+    door_jyotishi: 'Jyotishi',
+    hint_login: 'Sign in to your account',
+    hint_solo: 'Your personal Sanatani home — no organisation needed',
+    hint_signup: 'Create an organisation workspace',
+    hint_purohit: 'Register as a purohit — earn a PUR-XXXXXX identity',
+    hint_jyotishi: 'Register as a jyotishi — earn a JYO-XXXXXX identity',
+    view_login_title: 'Welcome back',
+    view_login_sub: 'Sign in to your Sanatani identity',
+    view_solo_title: 'Solo Sanatani',
+    view_solo_sub: 'Your personal Sanatani home — no organisation needed',
+    view_register_title: 'Create workspace',
+    view_register_sub: 'Bring your institution onto Sanatani Bandhan',
+    view_purohit_title: 'Join as Purohit',
+    view_purohit_sub: 'Offer rituals, earn a verified PUR-XXXXXX identity',
+    view_jyotishi_title: 'Join as Jyotishi',
+    view_jyotishi_sub: 'Offer consultations, earn a verified JYO-XXXXXX identity',
+    trust_offline: 'Offline-first',
+    trust_data: 'Your data stays yours',
+    trust_noads: 'No ads, ever'
   },
   hi: {
     app_name: 'सनातनी बंधन',
@@ -79,7 +108,31 @@ const translations = {
     login_pass: 'सुरक्षित पासवर्ड',
     btn_create_dynamic: '{X} कार्यक्षेत्र बनाएं',
     workspace: 'कार्यक्षेत्र',
-    head_admin: 'मुख्य व्यवस्थापक'
+    head_admin: 'मुख्य व्यवस्थापक',
+    back: 'वापस',
+    door_login: 'लॉगिन',
+    door_solo: 'सोलो',
+    door_signup: 'साइन अप',
+    door_purohit: 'पुरोहित',
+    door_jyotishi: 'ज्योतिषी',
+    hint_login: 'अपने खाते में साइन इन करें',
+    hint_solo: 'आपका व्यक्तिगत सनातनी घर — किसी संगठन की आवश्यकता नहीं',
+    hint_signup: 'संगठन कार्यक्षेत्र बनाएं',
+    hint_purohit: 'पुरोहित के रूप में पंजीकरण करें — PUR-XXXXXX पहचान पाएं',
+    hint_jyotishi: 'ज्योतिषी के रूप में पंजीकरण करें — JYO-XXXXXX पहचान पाएं',
+    view_login_title: 'फिर से स्वागत है',
+    view_login_sub: 'अपनी सनातनी पहचान में साइन इन करें',
+    view_solo_title: 'सोलो सनातनी',
+    view_solo_sub: 'आपका व्यक्तिगत सनातनी घर — किसी संगठन की आवश्यकता नहीं',
+    view_register_title: 'कार्यक्षेत्र बनाएं',
+    view_register_sub: 'अपनी संस्था को सनातनी बंधन से जोड़ें',
+    view_purohit_title: 'पुरोहित बनें',
+    view_purohit_sub: 'अनुष्ठान सेवा दें, सत्यापित PUR-XXXXXX पहचान पाएं',
+    view_jyotishi_title: 'ज्योतिषी बनें',
+    view_jyotishi_sub: 'परामर्श दें, सत्यापित JYO-XXXXXX पहचान पाएं',
+    trust_offline: 'ऑफ़लाइन-फर्स्ट',
+    trust_data: 'आपका डेटा आपका ही रहता है',
+    trust_noads: 'कोई विज्ञापन नहीं'
   },
   bn: {
     app_name: 'সনাতনী বন্ধন',
@@ -108,7 +161,31 @@ const translations = {
     login_pass: 'নিরাপদ পাসওয়ার্ড',
     btn_create_dynamic: '{X} কর্মক্ষেত্র তৈরি করুন',
     workspace: 'ওয়ার্কস্পেস',
-    head_admin: 'হেড অ্যাডমিন'
+    head_admin: 'হেড অ্যাডমিন',
+    back: 'ফিরে যান',
+    door_login: 'লগইন',
+    door_solo: 'সোলো',
+    door_signup: 'সাইন আপ',
+    door_purohit: 'পুরোহিত',
+    door_jyotishi: 'জ্যোতিষী',
+    hint_login: 'আপনার অ্যাকাউন্টে সাইন ইন করুন',
+    hint_solo: 'আপনার ব্যক্তিগত সনাতনী ঘর — কোনো সংস্থার প্রয়োজন নেই',
+    hint_signup: 'সংস্থার ওয়ার্কস্পেস তৈরি করুন',
+    hint_purohit: 'পুরোহিত হিসেবে নিবন্ধন করুন — PUR-XXXXXX পরিচয় পান',
+    hint_jyotishi: 'জ্যোতিষী হিসেবে নিবন্ধন করুন — JYO-XXXXXX পরিচয় পান',
+    view_login_title: 'আবার স্বাগতম',
+    view_login_sub: 'আপনার সনাতনী পরিচয়ে সাইন ইন করুন',
+    view_solo_title: 'সোলো সনাতনী',
+    view_solo_sub: 'আপনার ব্যক্তিগত সনাতনী ঘর — কোনো সংস্থার প্রয়োজন নেই',
+    view_register_title: 'ওয়ার্কস্পেস তৈরি করুন',
+    view_register_sub: 'আপনার প্রতিষ্ঠানকে সনাতনী বন্ধনে আনুন',
+    view_purohit_title: 'পুরোহিত হিসেবে যোগ দিন',
+    view_purohit_sub: 'অনুষ্ঠান সেবা দিন, যাচাইকৃত PUR-XXXXXX পরিচয় পান',
+    view_jyotishi_title: 'জ্যোতিষী হিসেবে যোগ দিন',
+    view_jyotishi_sub: 'পরামর্শ দিন, যাচাইকৃত JYO-XXXXXX পরিচয় পান',
+    trust_offline: 'অফলাইন-ফার্স্ট',
+    trust_data: 'আপনার ডেটা আপনারই থাকে',
+    trust_noads: 'কোনো বিজ্ঞাপন নয়'
   }
 };
 
@@ -132,8 +209,39 @@ interface PortalLoginProps {
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess }) => {
   const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
-  const [language, setLanguage] = useState<'en'|'hi'|'bn'>('en'); 
+  // Locale follows the app-wide LanguageContext (English default). The auth
+  // page's own selector also pushes the choice back to the global locale.
+  const langCtx = useContext(LanguageContext);
+  const [language, setLanguage] = useState<'en'|'hi'|'bn'>(() => {
+    const c = langCtx?.currentLang;
+    return c === 'hi' || c === 'bn' ? c : 'en';
+  });
   const t = (key: string) => (translations as any)[language][key] || key;
+  const changeLanguage = (l: 'en'|'hi'|'bn') => {
+    setLanguage(l);
+    try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
+  };
+  const authLang: AuthLang = language;
+
+  // Ambient-scene helpers: transform/opacity only, reduced-motion aware.
+  const artWrapRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const handleParallax = (e: React.MouseEvent) => {
+    if (reducedMotion) return;
+    const el = artWrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--px', (((e.clientX - r.left) / r.width) - 0.5).toFixed(3));
+    el.style.setProperty('--py', (((e.clientY - r.top) / r.height) - 0.5).toFixed(3));
+  };
+  const magneticGlow = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const b = e.currentTarget;
+    const r = b.getBoundingClientRect();
+    b.style.setProperty('--mx', `${(e.clientX - r.left).toFixed(0)}px`);
+    b.style.setProperty('--my', `${(e.clientY - r.top).toFixed(0)}px`);
+  };
 
   const [activeView, setActiveView] = useState<'LOGIN' | 'REGISTER' | 'SOLO' | 'PUROHIT' | 'JYOTISHI'>(initialMode === 'signup' ? 'SOLO' : 'LOGIN'); 
   const [loading, setLoading] = useState(false);
@@ -627,25 +735,60 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     }
   };
 
-  return (
-    <div className="min-h-screen bg-temple-50 flex items-center justify-center p-4 sm:p-8 font-sans selection:bg-temple-200 selection:text-temple-900 relative">
-      {/* Dynamic Background */}
-      
 
-      {/* GLOBAL CUSTOM TOAST ENGINE */}
+  // Per-door card titles (locale-driven).
+  const viewMeta: Record<AuthDoorId, { title: string; sub: string }> = {
+    LOGIN: { title: t('view_login_title'), sub: t('view_login_sub') },
+    SOLO: { title: t('view_solo_title'), sub: t('view_solo_sub') },
+    REGISTER: { title: t('view_register_title'), sub: t('view_register_sub') },
+    PUROHIT: { title: t('view_purohit_title'), sub: t('view_purohit_sub') },
+    JYOTISHI: { title: t('view_jyotishi_title'), sub: t('view_jyotishi_sub') },
+  };
+
+  const trustBadges = [
+    { icon: <WifiOff size={12} />, text: t('trust_offline') },
+    { icon: <ShieldCheck size={12} />, text: t('trust_data') },
+    { icon: <Ban size={12} />, text: t('trust_noads') },
+  ];
+
+  const darkError = error && (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+        <div className="bg-red-500/15 border border-red-400/30 text-red-200 p-3.5 rounded-2xl text-[12.5px] font-bold text-center shadow-sm flex items-center justify-center gap-2">
+          <AlertTriangle size={14} className="shrink-0" /> {error}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+
+  return (
+    <div className="auth-scene relative min-h-screen font-sans overflow-x-hidden bg-[#0b0620] text-white">
+      {/* ============ IMMERSIVE DAWN SCENE ============ */}
+      <div className="fixed inset-0" aria-hidden="true">
+        <div className="absolute inset-0 bg-[linear-gradient(168deg,#08041a_0%,#170d38_30%,#3c1756_50%,#8f3413_70%,#e07f16_88%,#f7b733_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-[60%] bg-[radial-gradient(85%_65%_at_50%_112%,rgba(255,190,80,0.55),rgba(255,130,30,0.14)_55%,transparent_78%)]" />
+        <div className="auth-rays absolute -inset-[25%] bg-[conic-gradient(from_205deg_at_50%_118%,transparent_0deg,rgba(255,205,120,0.10)_7deg,transparent_15deg,rgba(255,205,120,0.07)_24deg,transparent_33deg,rgba(255,205,120,0.10)_44deg,transparent_52deg)]" />
+        <div
+          className="auth-grain absolute inset-0 opacity-[0.055]"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'140\' height=\'140\' viewBox=\'0 0 140 140\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/%3E%3C/filter%3E%3Crect width=\'140\' height=\'140\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")' }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(115%_85%_at_50%_38%,transparent_52%,rgba(4,2,14,0.6)_100%)]" />
+      </div>
+
+      {/* ============ GLOBAL TOAST ============ */}
       <AnimatePresence>
         {toast && createPortal(
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
-            className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[10000] px-6 py-3 rounded-lg shadow-2xl flex items-center gap-4 ${toast.type === 'error' ? 'bg-red-900' : 'bg-gray-900'} text-white`}
+            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[10000] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-950/90 border-red-500/40' : toast.type === 'offline' ? 'bg-amber-950/90 border-amber-500/40' : 'bg-emerald-950/90 border-emerald-500/40'} text-white`}
           >
-             <div className={`p-2 rounded-full shrink-0 ${toast.type === 'offline' ? 'bg-saffron-500/20 text-saffron-500' : toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+             <div className={`p-2 rounded-full shrink-0 ${toast.type === 'offline' ? 'bg-saffron-500/20 text-saffron-400' : toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                {toast.type === 'offline' ? <WifiOff size={20}/> : toast.type === 'error' ? <AlertTriangle size={20}/> : <CheckCircle2 size={20}/>}
              </div>
              <div>
-               <p className={`text-sm font-medium mb-0.5 ${toast.type === 'offline' ? 'text-saffron-400' : toast.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+               <p className={`text-[11px] font-black uppercase tracking-widest mb-0.5 ${toast.type === 'offline' ? 'text-saffron-400' : toast.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
                  {toast.type === 'offline' ? 'Offline Cache' : toast.type === 'error' ? 'Error' : 'Success'}
                </p>
                <p className="text-sm font-bold">{toast.message}</p>
@@ -655,516 +798,523 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         )}
       </AnimatePresence>
 
-      {/* OFFLINE BANNER */}
+      {/* ============ OFFLINE BANNER ============ */}
       <AnimatePresence>
         {!isOnline && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-0 w-full bg-red-600 text-white p-2 text-center flex items-center justify-center gap-2 shadow-sm z-[110]"
+            className="fixed top-0 inset-x-0 z-[110] bg-red-600/95 backdrop-blur text-white p-2 text-center flex items-center justify-center gap-2 shadow-lg"
           >
             <WifiOff size={14} />
-            <span className="text-sm font-medium text-temple-400">Offline Mode: Cached Login Active</span>
+            <span className="text-[13px] font-bold">Offline Mode: Cached Login Active</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Container */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-temple-200 overflow-hidden flex flex-col lg:flex-row relative z-10"
-      >
-        
-        {/* Left Side: Branding & Visuals */}
-        <div className="lg:w-5/12 bg-temple-900 p-8 lg:p-12 relative flex flex-col justify-between hidden lg:flex">
-          {/* Premium Background Layer */}
-          <div className="absolute inset-0 bg-temple-950"></div>
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-saffron-900/40 via-temple-900/80 to-temple-950"></div>
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}></div>
-          
-          <div className="relative z-10 flex flex-col items-center justify-center gap-3 text-center">
-             <AppLogo size="lg" showText={true} textVariant="light" subtitle={t('portal_subtitle')} />
-          </div>
-
-          <div className="relative z-10 my-16 flex flex-col items-center text-center">
-            <motion.h2 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-3xl lg:text-[2.75rem] font-bold text-white tracking-tight mb-6 leading-[1.15]"
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* ============ TOP BAR ============ */}
+        <header className="auth-rise w-full max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-8 pt-5" style={{ ['--d' as any]: '0s' }}>
+          <button
+            onClick={onBack}
+            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-4 py-2 text-[13px] font-bold text-white/80 hover:text-white hover:border-white/30 hover:bg-white/[0.10] transition-all min-h-[40px]"
+          >
+            <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
+            {t('back')}
+          </button>
+          <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md pl-3 pr-2 py-1.5">
+            <Languages size={14} className="text-saffron-300" />
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value as any)}
+              aria-label="Language"
+              className="bg-transparent text-[12.5px] font-bold text-white/85 outline-none cursor-pointer appearance-none pr-1 [&>option]:text-temple-900"
             >
-              Secure Identity <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-saffron-400 to-saffron-400">& Community</span> <br/>Management.
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-temple-400 font-medium leading-relaxed max-w-sm"
-            >
-              Access your digital ashram, manage devotees, coordinate events, and secure your community data with enterprise-grade encryption.
-            </motion.p>
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+              <option value="bn">বাংলা</option>
+            </select>
+          </div>
+        </header>
+
+        {/* ============ SCENE GRID ============ */}
+        <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 grid gap-6 lg:gap-10 lg:grid-cols-[1.04fr_0.96fr] items-stretch">
+          {/* Mobile compact art band */}
+          <AuthArt lang={authLang} compact className="auth-rise lg:hidden rounded-3xl border border-white/10 bg-white/[0.05] backdrop-blur-md shadow-[0_18px_50px_rgba(0,0,0,0.4)]" />
+
+          {/* Desktop ambient art panel (mouse parallax) */}
+          <div ref={artWrapRef} onMouseMove={handleParallax} className="hidden lg:block">
+            <AuthArt
+              lang={authLang}
+              className="auth-rise flex h-full min-h-[76vh] rounded-[2rem] border border-white/10 bg-black/20 backdrop-blur-sm shadow-[0_30px_90px_rgba(0,0,0,0.5)]"
+            />
           </div>
 
-          <div className="relative z-10 flex items-center justify-between border-t border-temple-800/50 pt-6">
-             <div className="flex items-center gap-2 text-temple-500 text-xs font-bold">
-               <ShieldCheck size={16} className="text-emerald-500" />
-               AES-256 ENCRYPTED
-             </div>
-             
-             <div className="relative flex items-center bg-temple-900 rounded-xl p-1 border border-temple-800">
-                <Languages size={14} className="text-temple-400 ml-2 mr-1" />
-                <select 
-                  value={language} 
-                  onChange={(e) => setLanguage(e.target.value as any)}
-                  className="bg-transparent text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-saffron-400 to-saffron-400 outline-none cursor-pointer pr-2 appearance-none"
-                >
-                  <option value="en">English</option>
-                  <option value="hi">हिंदी</option>
-                  <option value="bn">বাংলা</option>
-                </select>
-             </div>
-          </div>
-        </div>
+          {/* ============ GLASS AUTH CARD ============ */}
+          <main className="auth-rise w-full flex" style={{ ['--d' as any]: '0.28s' }}>
+            <div className="auth-glass relative w-full rounded-[1.75rem] p-5 sm:p-8 flex flex-col overflow-hidden my-auto">
+              <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-saffron-300/70 to-transparent" />
 
-        {/* Right Side: Authentication Forms */}
-        <div className="w-full lg:w-7/12 p-6 sm:p-10 lg:p-12 relative flex flex-col">
-          
-          {/* Mobile Branding (Visible only on small screens) */}
-          <div className="flex lg:hidden flex-col items-center justify-center gap-3 mb-8 pb-6 border-b border-temple-100 text-center">
-             <AppLogo size="md" showText={true} textVariant="dark" subtitle={t('portal_subtitle')} />
-          </div>
-
-          
-          {/* Header toggles */}
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-semibold text-temple-900">
-              {activeView === 'LOGIN' ? 'Welcome Back' : activeView === 'REGISTER' ? 'Create Workspace' : activeView === 'SOLO' ? 'Solo Sanatani' : activeView === 'JYOTISHI' ? 'Join as Jyotishi' : 'Join as Purohit'}
-            </h3>
-            
-            <div className="flex bg-temple-100 p-1 rounded-xl overflow-x-auto max-w-full">
-               <button 
-                 onClick={() => { setActiveView('LOGIN'); clearErrors(); }} 
-                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'LOGIN' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
-               >
-                 Login
-               </button>
-               <button 
-                 onClick={() => { setActiveView('SOLO'); clearErrors(); }} 
-                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'SOLO' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
-                 title="Your personal Sanatani home — no organisation needed"
-               >
-                 🙏 Solo
-               </button>
-               <button 
-                 onClick={() => { setActiveView('REGISTER'); clearErrors(); }} 
-                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'REGISTER' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
-                 title="Create an organisation workspace"
-               >
-                 Sign Up
-               </button>
-               <button 
-                 onClick={() => { setActiveView('PUROHIT'); clearErrors(); }} 
-                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'PUROHIT' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
-               >
-                 🪔 Purohit
-               </button>
-               <button 
-                 onClick={() => { setActiveView('JYOTISHI'); clearErrors(); }} 
-                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'JYOTISHI' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
-               >
-                 🔮 Jyotishi
-               </button>
-            </div>
-          </div>
-
-          <div className="flex-1 relative">
-            
-            {/* FULLSCREEN BIOMETRIC SCANNER OVERLAY */}
-            <AnimatePresence>
-            {isBiometricPromptActive && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-0 bg-temple-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-6 shadow-2xl border border-temple-800"
-              >
-                 <button onClick={() => setIsBiometricPromptActive(false)} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50">
-                   <X size={24}/>
-                 </button>
-                 <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center relative mb-6">
-                   <div className="absolute inset-0 border-[3px] border-emerald-500/30 rounded-full animate-ping"></div>
-                   <div className="absolute inset-2 border-[2px] border-emerald-500/50 rounded-full animate-pulse"></div>
-                   <Fingerprint size={48} className="text-emerald-400 relative z-10" />
-                 </div>
-                 <h3 className="text-white text-lg font-black uppercase tracking-widest mb-2 text-center">Touch Sensor</h3>
-                 <p className="text-temple-400 text-xs font-bold text-center leading-relaxed">
-                   Waiting for device biometric verification.<br/>Use Touch ID, Face ID, or your device PIN.
-                 </p>
-                 <button onClick={() => setIsBiometricPromptActive(false)} className="mt-8 text-temple-500 text-sm font-medium text-temple-400 hover:text-white transition-colors border-b border-temple-700 pb-1">
-                   Use Manual Password Instead
-                 </button>
-              </motion.div>
-            )}
-            </AnimatePresence>
-
-            {/* FULLSCREEN QR SCANNER OVERLAY */}
-            <AnimatePresence>
-            {isScanning && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute inset-0 bg-temple-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center rounded-3xl p-4 shadow-2xl border border-temple-800"
-              >
-                 <button onClick={stopScanner} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50">
-                   <X size={24}/>
-                 </button>
-                 <h3 className="text-white font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/> Scan Official ID</h3>
-                 <div className="relative w-64 h-64 rounded-3xl overflow-hidden border-4 border-saffron-500 shadow-[0_0_50px_rgba(245,158,11,0.3)]">
-                    <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
-                    <canvas ref={canvasRef} className="hidden" />
-                    <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
-                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_#f59e0b] animate-pulse"></div>
-                 </div>
-                 <p className="text-temple-400 text-xs mt-6 font-bold text-center">Align QR code within the frame</p>
-              </motion.div>
-            )}
-            </AnimatePresence>
-
-            <AnimatePresence mode="wait">
-              {showGoogleWelcome ? (
-                <motion.div
-                  key="google-welcome"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-4 text-center py-4"
-                >
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-lg">
-                    {(showGoogleWelcome.displayName || 'S').charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-temple-900">
-                      Namaste{showGoogleWelcome.displayName && showGoogleWelcome.displayName !== 'Sanatani Devotee' ? `, ${showGoogleWelcome.displayName.split(' ')[0]}` : ''}! 🙏
-                    </h3>
-                    <p className="text-sm text-temple-500 mt-1">Your Google account is linked. What would you like to do first?</p>
-                  </div>
-                  <div className="space-y-3 pt-2">
-                    <button
-                      onClick={() => { setShowGoogleWelcome(null); setActiveView('SOLO'); }}
-                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-amber-400 hover:border-amber-600 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+              {/* Card header */}
+              <div className="flex items-center gap-3.5 mb-6">
+                <div className="auth-float shrink-0 drop-shadow-[0_0_18px_rgba(255,142,0,0.45)]">
+                  <AppLogo size="md" showText={false} textVariant="light" glow />
+                </div>
+                <div className="min-w-0">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeView}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-xl">🙏</div>
-                      <div>
-                        <p className="text-sm font-black text-temple-900">Solo Sanatani <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5 ml-1">RECOMMENDED</span></p>
-                        <p className="text-xs text-temple-500">Your personal Sanatani home — no organisation needed.</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => { setShowGoogleWelcome(null); setActiveView('REGISTER'); }}
-                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Building2 size={20} /></div>
-                      <div>
-                        <p className="text-sm font-black text-temple-900">Create an Organisation</p>
-                        <p className="text-xs text-temple-500">Mandir, sangha, ashram, gurukul, trust…</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => { setShowGoogleWelcome(null); setActiveView('PUROHIT'); }}
-                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xl">🪔</div>
-                      <div>
-                        <p className="text-sm font-black text-temple-900">Join as Purohit</p>
-                        <p className="text-xs text-temple-500">Offer ritual services, get verified.</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const r = showGoogleWelcome;
-                        setShowGoogleWelcome(null);
-                        setLoading(true);
-                        try {
-                          const fbUser = auth.currentUser;
-                          if (fbUser) await finalizeLogin(fbUser, r.email);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><User size={20} /></div>
-                      <div>
-                        <p className="text-sm font-black text-temple-900">Continue as Devotee</p>
-                        <p className="text-xs text-temple-500">Explore, follow organisations, join later.</p>
-                      </div>
-                    </button>
-                  </div>
-                </motion.div>
-              ) : activeView === 'LOGIN' ? (
-                <motion.form 
-                  key="login"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={handleSmartLogin as any} 
-                  className={`space-y-5 ${isScanning ? 'opacity-0' : 'opacity-100'}`}
-                >
-                  <div className="bg-indigo-50/50 border border-indigo-100/50 p-4 rounded-2xl mb-6 text-center shadow-inner">
-                    <p className="text-[10px] font-black text-indigo-800 uppercase tracking-widest flex items-center justify-center gap-1.5"><ShieldCheck size={14}/> Universal Access Portal</p>
-                    <p className="text-xs text-indigo-600/80 mt-1 font-semibold">Secure login for Admins, Members, and Purohits</p>
-                  </div>
+                      <h2 className="text-[22px] sm:text-2xl font-black text-white tracking-tight leading-tight">{viewMeta[activeView].title}</h2>
+                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 truncate">{viewMeta[activeView].sub}</p>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                     <button type="button" onClick={startScanner} className="group bg-white hover:bg-temple-50 border border-temple-200 text-temple-700 font-medium py-3 rounded-lg text-sm transition-all flex flex-col justify-center items-center gap-2 shadow-sm hover:shadow-md">
-                       <div className="p-2 bg-saffron-100 text-saffron-600 rounded-full group-hover:scale-110 transition-transform"><QrCode size={20}/></div>
-                       Scan Pass
+              {/* Five doors — sliding segmented control */}
+              <AuthDoors
+                active={activeView}
+                onChange={(d) => { setActiveView(d); clearErrors(); }}
+                labels={{
+                  LOGIN: t('door_login'),
+                  SOLO: t('door_solo'),
+                  REGISTER: t('door_signup'),
+                  PUROHIT: t('door_purohit'),
+                  JYOTISHI: t('door_jyotishi'),
+                }}
+                hints={{
+                  LOGIN: t('hint_login'),
+                  SOLO: t('hint_solo'),
+                  REGISTER: t('hint_signup'),
+                  PUROHIT: t('hint_purohit'),
+                  JYOTISHI: t('hint_jyotishi'),
+                }}
+              />
+
+              {/* Tab content */}
+              <div className="flex-1 relative mt-6">
+                {/* FULLSCREEN BIOMETRIC OVERLAY */}
+                <AnimatePresence>
+                {isBiometricPromptActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className="absolute inset-0 bg-[#120826]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-6 shadow-2xl border border-white/15"
+                  >
+                     <button onClick={() => setIsBiometricPromptActive(false)} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label="Close">
+                       <X size={24}/>
                      </button>
-                     <button type="button" onClick={handleBiometricLogin} className="group bg-white hover:bg-temple-50 border border-temple-200 text-temple-700 font-medium py-3 rounded-lg text-sm transition-all flex flex-col justify-center items-center gap-2 shadow-sm hover:shadow-md">
-                       <div className="p-2 bg-emerald-100 text-emerald-600 rounded-full group-hover:scale-110 transition-transform"><Fingerprint size={20}/></div>
-                       Re-confirm
+                     <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center relative mb-6">
+                       <div className="absolute inset-0 border-[3px] border-emerald-500/30 rounded-full animate-ping"></div>
+                       <div className="absolute inset-2 border-[2px] border-emerald-500/50 rounded-full animate-pulse"></div>
+                       <Fingerprint size={48} className="text-emerald-400 relative z-10" />
+                     </div>
+                     <h3 className="text-white text-lg font-black uppercase tracking-widest mb-2 text-center">Touch Sensor</h3>
+                     <p className="text-white/50 text-xs font-bold text-center leading-relaxed">
+                       Waiting for device biometric verification.<br/>Use Touch ID, Face ID, or your device PIN.
+                     </p>
+                     <button onClick={() => setIsBiometricPromptActive(false)} className="mt-8 text-white/50 text-sm font-medium hover:text-white transition-colors border-b border-white/20 pb-1">
+                       Use Manual Password Instead
                      </button>
-                  </div>
+                  </motion.div>
+                )}
+                </AnimatePresence>
 
-                  {/* Google sign-in — one tap for non-technical users. */}
-                  <GoogleSignInButton mode="login" onSuccess={handleGoogleLogin} onError={handleGoogleError} />
+                {/* FULLSCREEN QR SCANNER OVERLAY */}
+                <AnimatePresence>
+                {isScanning && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className="absolute inset-0 bg-[#120826]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-4 shadow-2xl border border-white/15"
+                  >
+                     <button onClick={stopScanner} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label="Close scanner">
+                       <X size={24}/>
+                     </button>
+                     <h3 className="text-white font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/> Scan Official ID</h3>
+                     <div className="relative w-64 h-64 rounded-3xl overflow-hidden border-4 border-saffron-500 shadow-[0_0_50px_rgba(245,158,11,0.3)]">
+                        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
+                        <canvas ref={canvasRef} className="hidden" />
+                        <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_#f59e0b] animate-pulse"></div>
+                     </div>
+                     <p className="text-white/50 text-xs mt-6 font-bold text-center">Align QR code within the frame</p>
+                  </motion.div>
+                )}
+                </AnimatePresence>
 
-                  <div className="flex items-center gap-4 py-2 opacity-60">
-                     <div className="h-px bg-temple-300 flex-1"></div>
-                     <span className="text-sm font-medium text-temple-400">OR USE CREDENTIALS</span>
-                     <div className="h-px bg-temple-300 flex-1"></div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('login_identity')}</label>
-                      <div className="relative group">
-                        <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
-                        <input type="text" required value={loginIdentity} onChange={e=>setLoginIdentity(e.target.value)} placeholder="Email, Phone, or ID" className="w-full pl-11 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" />
+                <AnimatePresence mode="wait">
+                  {showGoogleWelcome ? (
+                    <motion.div
+                      key="google-welcome"
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 }}
+                      transition={{ duration: 0.32 }}
+                      className="rounded-2xl bg-[#f7f4ef]/95 p-4 sm:p-6 text-center"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-lg">
+                        {(showGoogleWelcome.displayName || 'S').charAt(0).toUpperCase()}
                       </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-end mb-1.5">
-                        <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest">{t('login_pass')}</label>
-                        <button type="button" onClick={handleForgotPassword} className="text-xs font-medium text-temple-500 hover:text-temple-900 transition-colors">
-                          {t('login_forgot')}
+                      <div className="mt-3">
+                        <h3 className="text-xl font-black text-temple-900">
+                          Namaste{showGoogleWelcome.displayName && showGoogleWelcome.displayName !== 'Sanatani Devotee' ? `, ${showGoogleWelcome.displayName.split(' ')[0]}` : ''}! 🙏
+                        </h3>
+                        <p className="text-sm text-temple-500 mt-1">Your Google account is linked. What would you like to do first?</p>
+                      </div>
+                      <div className="space-y-3 pt-4 text-left">
+                        <button
+                          onClick={() => { setShowGoogleWelcome(null); setActiveView('SOLO'); }}
+                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-amber-400 hover:border-amber-600 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-xl">🙏</div>
+                          <div>
+                            <p className="text-sm font-black text-temple-900">Solo Sanatani <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5 ml-1">RECOMMENDED</span></p>
+                            <p className="text-xs text-temple-500">Your personal Sanatani home — no organisation needed.</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => { setShowGoogleWelcome(null); setActiveView('REGISTER'); }}
+                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Building2 size={20} /></div>
+                          <div>
+                            <p className="text-sm font-black text-temple-900">Create an Organisation</p>
+                            <p className="text-xs text-temple-500">Mandir, sangha, ashram, gurukul, trust…</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => { setShowGoogleWelcome(null); setActiveView('PUROHIT'); }}
+                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xl">🪔</div>
+                          <div>
+                            <p className="text-sm font-black text-temple-900">Join as Purohit</p>
+                            <p className="text-xs text-temple-500">Offer ritual services, get verified.</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const r = showGoogleWelcome;
+                            setShowGoogleWelcome(null);
+                            setLoading(true);
+                            try {
+                              const fbUser = auth.currentUser;
+                              if (fbUser) await finalizeLogin(fbUser, r.email);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><User size={20} /></div>
+                          <div>
+                            <p className="text-sm font-black text-temple-900">Continue as Devotee</p>
+                            <p className="text-xs text-temple-500">Explore, follow organisations, join later.</p>
+                          </div>
                         </button>
                       </div>
-                      <div className="relative group">
-                        <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
-                        <input type={showLoginPassword ? "text" : "password"} required value={loginCredential} onChange={e=>setLoginCredential(e.target.value)} placeholder="Enter Password or PIN" className="w-full pl-11 pr-11 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" />
-                        <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-temple-400 hover:text-saffron-500 focus:outline-none transition-colors">
-                          {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PROMINENT BIOMETRIC AUTHENTICATION BUTTON */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={handleBiometricLogin}
-                      className="group relative w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-sm tracking-wide transition-all shadow-md hover:shadow-lg hover:shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2.5 active:scale-[0.99] border border-emerald-400/30"
+                    </motion.div>
+                  ) : activeView === 'LOGIN' ? (
+                    <motion.form
+                      key="login"
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 }}
+                      transition={{ duration: 0.32, ease: 'easeOut' }}
+                      onSubmit={handleSmartLogin as any}
+                      className={`space-y-4 ${isScanning ? 'opacity-0' : 'opacity-100'}`}
                     >
-                      <div className="relative flex items-center justify-center">
-                        <Fingerprint className="w-5 h-5 text-emerald-100 group-hover:scale-110 transition-transform" />
-                        <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
+                      <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
+                        <ShieldCheck size={16} className="text-emerald-300 shrink-0" />
+                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">Secure login for Admins, Members &amp; Purohits</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                         <button type="button" onClick={startScanner} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
+                           <span className="p-2.5 rounded-xl bg-saffron-500/20 text-saffron-300 group-hover:scale-110 transition-transform shrink-0"><QrCode size={19}/></span>
+                           <span className="min-w-0">
+                             <span className="block text-[13px] font-bold text-white leading-tight">Scan Pass</span>
+                             <span className="block text-[10.5px] text-white/45 font-medium">QR login</span>
+                           </span>
+                         </button>
+                         <button type="button" onClick={handleBiometricLogin} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
+                           <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 group-hover:scale-110 transition-transform shrink-0"><Fingerprint size={19}/></span>
+                           <span className="min-w-0">
+                             <span className="block text-[13px] font-bold text-white leading-tight">Re-confirm</span>
+                             <span className="block text-[10.5px] text-white/45 font-medium">Biometric</span>
+                           </span>
+                         </button>
+                      </div>
+
+                      {/* Google sign-in — one tap for non-technical users. */}
+                      <GoogleSignInButton mode="login" onSuccess={handleGoogleLogin} onError={handleGoogleError} />
+
+                      <div className="flex items-center gap-4 py-1 opacity-70">
+                         <div className="h-px bg-white/15 flex-1"></div>
+                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">OR USE CREDENTIALS</span>
+                         <div className="h-px bg-white/15 flex-1"></div>
+                      </div>
+
+                      <AuthField
+                        label={t('login_identity')}
+                        icon={<User size={17} />}
+                        type="text" required
+                        value={loginIdentity}
+                        onChange={e => setLoginIdentity(e.target.value)}
+                        autoComplete="username"
+                      />
+                      <div>
+                        <AuthField
+                          label={t('login_pass')}
+                          icon={<Key size={17} />}
+                          type={showLoginPassword ? 'text' : 'password'} required
+                          value={loginCredential}
+                          onChange={e => setLoginCredential(e.target.value)}
+                          autoComplete="current-password"
+                          rightSlot={
+                            <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label="Toggle password visibility" className="p-1">
+                              {showLoginPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                            </button>
+                          }
+                        />
+                        <div className="flex justify-end mt-2">
+                          <button type="button" onClick={handleForgotPassword} className="text-[12.5px] font-bold text-saffron-300/90 hover:text-saffron-200 transition-colors">
+                            {t('login_forgot')}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* PROMINENT BIOMETRIC AUTHENTICATION BUTTON */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={handleBiometricLogin}
+                          onMouseMove={magneticGlow}
+                          className="auth-cta group relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-[13.5px] tracking-wide transition-all shadow-[0_10px_30px_rgba(16,185,129,0.35)] hover:shadow-[0_14px_40px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2.5 border border-emerald-300/30 min-h-[52px]"
+                        >
+                          <span className="auth-cta-shimmer" />
+                          <span className="relative flex items-center justify-center">
+                            <Fingerprint className="w-5 h-5 text-emerald-100 group-hover:scale-110 transition-transform" />
+                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
+                            </span>
+                          </span>
+                          <span className="relative">Re-confirm Session with FaceID / TouchID</span>
+                        </button>
+                        <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
+                          Device-unlock grade: re-confirms your existing signed-in session on this device.
+                          It cannot sign you in or grant access by itself — sign in with your credentials first.
+                        </p>
+                      </div>
+
+                      {darkError}
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        onMouseMove={magneticGlow}
+                        data-loading={loading}
+                        className="auth-cta w-full py-4 rounded-2xl bg-gradient-to-r from-saffron-500 via-amber-500 to-orange-500 hover:from-saffron-400 hover:via-amber-400 hover:to-orange-400 text-[#2a1503] font-black text-[15px] tracking-wide shadow-[0_12px_36px_rgba(255,142,0,0.45)] hover:shadow-[0_16px_44px_rgba(255,142,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
+                      >
+                        <span className="auth-cta-shimmer" />
+                        <span className="relative flex items-center gap-2">
+                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('btn_access_portal')}
                         </span>
-                      </div>
-                      <span>Re-confirm Session with FaceID / TouchID</span>
-                    </button>
-                    <p className="text-[10px] text-center text-temple-400 mt-1.5 font-medium">
-                      Device-unlock grade: re-confirms your existing signed-in session on this device.
-                      It cannot sign you in or grant access by itself — sign in with your credentials first.
-                    </p>
-                  </div>
-
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                        <div className="bg-red-50 border border-red-200 text-red-600 p-3.5 rounded-xl text-xs font-bold text-center shadow-sm flex items-center justify-center gap-2 mt-4">
-                          <AlertTriangle size={14}/> {error}
+                      </button>
+                    </motion.form>
+                  ) : activeView === 'REGISTER' ? (
+                    <motion.form
+                      key="register"
+                      initial={{ opacity: 0, x: -24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 24 }}
+                      transition={{ duration: 0.32, ease: 'easeOut' }}
+                      onSubmit={handleRegister}
+                      className="space-y-4 max-h-[62vh] overflow-y-auto pr-1.5 custom-scrollbar"
+                    >
+                      {/* Google-linked signup: link first, then complete the form — no password needed. */}
+                      {!googleUser ? (
+                        <GoogleSignInButton mode="signup" onSuccess={handleGoogleSignup} onError={handleGoogleError} />
+                      ) : (
+                        <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
+                          <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
+                          <p className="text-[12px] font-bold text-emerald-200">
+                            Google linked ({googleUser.email}) — no password needed. Complete the organisation details below.
+                          </p>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      )}
 
-                  <button type="submit" disabled={loading} className="w-full bg-temple-900 hover:bg-temple-800 text-white font-medium py-3 rounded-lg shadow-sm transition-colors text-sm flex justify-center items-center gap-2 mt-6 disabled:opacity-50 disabled:hover:translate-y-0">
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('btn_access_portal')}
-                  </button>
-                </motion.form>
-              ) : activeView === 'REGISTER' ? (
-                <motion.form 
-                  key="register"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={handleRegister} 
-                  className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar"
-                >
-                  {/* Google-linked signup: link first, then complete the form — no password needed. */}
-                  {!googleUser ? (
-                    <GoogleSignInButton mode="signup" onSuccess={handleGoogleSignup} onError={handleGoogleError} />
+                      <div className="bg-amber-500/10 border border-amber-400/25 p-4 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="text-amber-300 shrink-0 mt-0.5" size={20} />
+                        <div>
+                          <h4 className="text-white font-bold text-[13.5px] mb-1">{t('reg_warning_title')}</h4>
+                          <p className="text-[12.5px] text-white/60">
+                            {t('reg_warning_desc_1')}<strong className="font-bold text-amber-200">{regData.type}</strong>{t('reg_warning_desc_2')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pt-4 border-t border-white/10">
+                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
+
+                        <div>
+                          <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('reg_org_type')}</label>
+                          <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full px-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
+                            <option value="Mandir">Mandir / Temple (मंदिर)</option>
+                            <option value="Ashram">Ashram (आश्रम)</option>
+                            <option value="Goshala">Goshala (गौशाला)</option>
+                            <option value="Gurukul">Gurukul / Vidyalaya (गुरुकुल)</option>
+                            <option value="Sangha">Sangha / Matha (संघ / मठ)</option>
+                            <option value="Satsang">Satsang / Katha (सत्संग)</option>
+                            <option value="Yoga">Yoga Center (योग केंद्र)</option>
+                            <option value="Tirth">Tirth / Kshetra (तीर्थ)</option>
+                            <option value="PurohitSabha">Purohit Sabha (पुरोहित सभा)</option>
+                            <option value="MahotsavSamiti">Mahotsav Samiti (महोत्सव समिति)</option>
+                            <option value="DharmadaTrust">Dharmada Trust (धर्मादा ट्रस्ट)</option>
+                            <option value="AkshayaPatra">Annakshetra / Bhandara (अन्नक्षेत्र)</option>
+                            <option value="Samaj">Samaj / Parishad (समाज)</option>
+                            <option value="Trust">General Trust / NGO (ट्रस्ट)</option>
+                          </select>
+                        </div>
+
+                        <AuthField
+                          label={`${t('reg_org_name')} *`}
+                          type="text" required
+                          value={regData.commName}
+                          onChange={e=>setRegData({...regData, commName: e.target.value})}
+                          autoComplete="organization"
+                        />
+
+                        <div className="space-y-4 pt-4 border-t border-white/10">
+                           <div className="flex items-center gap-2 text-[11px] font-black text-white/45 uppercase tracking-[0.18em]">
+                             <MapPin size={14}/> Location Details
+                           </div>
+                           <div>
+                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">Country *</label>
+                             <div className="relative">
+                               <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                               <select required value={regData.country} onChange={handleCountryChange} className="w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
+                                 <option value="" disabled>Select Country...</option>
+                                 <option value="India">India (भारत)</option>
+                                 <option value="Bangladesh">Bangladesh (বাংলাদেশ)</option>
+                                 <option value="Nepal">Nepal (नेपाल)</option>
+                                 <option value="Sri Lanka">Sri Lanka</option>
+                                 <option value="USA">United States</option>
+                                 <option value="UK">United Kingdom</option>
+                                 <option value="Other">Other Region</option>
+                               </select>
+                             </div>
+                           </div>
+                           <div className="grid grid-cols-2 gap-3">
+                             <AuthField label="State / Division *" type="text" required value={regData.state} onChange={e=>setRegData({...regData, state: e.target.value})} autoComplete="address-level1" />
+                             <AuthField label="City / District *" type="text" required value={regData.city} onChange={e=>setRegData({...regData, city: e.target.value})} autoComplete="address-level2" />
+                           </div>
+                        </div>
+
+                        <AuthField
+                          label={t('reg_desc')}
+                          icon={<AlignLeft size={16} />}
+                          multiline rows={2}
+                          value={regData.description}
+                          onChange={e=>setRegData({...regData, description: e.target.value})}
+                        />
+                      </div>
+
+                      <div className="space-y-4 pt-4 border-t border-white/10">
+                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
+                          <AuthField label={t('reg_your_phone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} autoComplete="tel" />
+                        </div>
+
+                        <AuthField
+                          label={t('reg_official_email')}
+                          icon={<Mail size={17} />}
+                          type="email" required
+                          value={regData.email}
+                          onChange={e=>setRegData({...regData, email: e.target.value})}
+                          autoComplete="email"
+                        />
+
+                        {!googleUser && (
+                          <AuthField
+                            label={`${t('login_pass')} *`}
+                            icon={<Lock size={17} />}
+                            type={showRegPassword ? 'text' : 'password'} required
+                            value={regData.password}
+                            onChange={e=>setRegData({...regData, password: e.target.value})}
+                            autoComplete="new-password"
+                            rightSlot={
+                              <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label="Toggle password visibility" className="p-1">
+                                {showRegPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                              </button>
+                            }
+                          />
+                        )}
+                      </div>
+
+                      {darkError}
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        onMouseMove={magneticGlow}
+                        data-loading={loading}
+                        className="auth-cta w-full py-4 rounded-2xl bg-gradient-to-r from-saffron-500 via-amber-500 to-orange-500 hover:from-saffron-400 hover:via-amber-400 hover:to-orange-400 text-[#2a1503] font-black text-[15px] tracking-wide shadow-[0_12px_36px_rgba(255,142,0,0.45)] hover:shadow-[0_16px_44px_rgba(255,142,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
+                      >
+                        <span className="auth-cta-shimmer" />
+                        <span className="relative flex items-center gap-2">
+                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('btn_create_dynamic').replace('{X}', regData.type.toUpperCase())}
+                        </span>
+                      </button>
+                    </motion.form>
                   ) : (
-                    <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3">
-                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-                      <p className="text-xs font-bold text-emerald-800">
-                        Google linked ({googleUser.email}) — no password needed. Complete the organisation details below.
-                      </p>
-                    </div>
+                    /* SOLO / PUROHIT / JYOTISHI keep their verified light-theme
+                       forms; the paper sheet preserves them pixel-identically. */
+                    <motion.div
+                      key={'door-' + activeView}
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 }}
+                      transition={{ duration: 0.32, ease: 'easeOut' }}
+                      className="rounded-2xl bg-[#f7f4ef]/95 p-4 sm:p-6 shadow-[inset_0_2px_14px_rgba(0,0,0,0.07)]"
+                    >
+                      {activeView === 'SOLO' ? (
+                        <SoloSignupForm />
+                      ) : activeView === 'JYOTISHI' ? (
+                        <JyotishSignupForm />
+                      ) : (
+                        <PurohitSignupForm />
+                      )}
+                    </motion.div>
                   )}
+                </AnimatePresence>
+              </div>
 
-                  <div className="bg-temple-50 border border-temple-200 p-4 rounded-lg flex items-start gap-3">
-                    <AlertTriangle className="text-saffron-600 shrink-0 mt-0.5" size={20} />
-                    <div>
-                      <h4 className="text-temple-900 font-semibold text-sm mb-1">{t('reg_warning_title')}</h4>
-                      <p className="text-sm text-temple-600">
-                        {t('reg_warning_desc_1')}<strong className="font-bold text-temple-900">{regData.type}</strong>{t('reg_warning_desc_2')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-temple-100 space-y-4">
-                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg_org_type')}</label>
-                      <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm cursor-pointer">
-                        <option value="Mandir">Mandir / Temple (मंदिर)</option>
-                        <option value="Ashram">Ashram (आश्रम)</option>
-                        <option value="Goshala">Goshala (गौशाला)</option>
-                        <option value="Gurukul">Gurukul / Vidyalaya (गुरुकुल)</option>
-                        <option value="Sangha">Sangha / Matha (संघ / मठ)</option>
-                        <option value="Satsang">Satsang / Katha (सत्संग)</option>
-                        <option value="Yoga">Yoga Center (योग केंद्र)</option>
-                        <option value="Tirth">Tirth / Kshetra (तीर्थ)</option>
-                        <option value="PurohitSabha">Purohit Sabha (पुरोहित सभा)</option>
-                        <option value="MahotsavSamiti">Mahotsav Samiti (महोत्सव समिति)</option>
-                        <option value="DharmadaTrust">Dharmada Trust (धर्मादा ट्रस्ट)</option>
-                        <option value="AkshayaPatra">Annakshetra / Bhandara (अन्नक्षेत्र)</option>
-                        <option value="Samaj">Samaj / Parishad (समाज)</option>
-                        <option value="Trust">General Trust / NGO (ट्रस्ट)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg_org_name')} *</label>
-                      <input type="text" required value={regData.commName} onChange={e=>setRegData({...regData, commName: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="e.g. Sri Ram Mandir Trust" />
-                    </div>
-
-                    <div className="space-y-4 pt-4 border-t border-temple-100 space-y-4">
-                       <div className="flex items-center gap-2 text-sm font-medium text-temple-900 border-b border-temple-100 pb-2 mb-2">
-                         <MapPin size={14}/> Location Details
-                       </div>
-                       <div>
-                         <label className="block text-sm font-medium text-temple-400 mb-1">Country *</label>
-                         <div className="relative group">
-                           <Globe2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors pointer-events-none" />
-                           <select required value={regData.country} onChange={handleCountryChange} className="w-full pl-11 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm cursor-pointer appearance-none">
-                             <option value="" disabled>Select Country...</option>
-                             <option value="India">India (भारत)</option>
-                             <option value="Bangladesh">Bangladesh (বাংলাদেশ)</option>
-                             <option value="Nepal">Nepal (नेपाल)</option>
-                             <option value="Sri Lanka">Sri Lanka</option>
-                             <option value="USA">United States</option>
-                             <option value="UK">United Kingdom</option>
-                             <option value="Other">Other Region</option>
-                           </select>
-                         </div>
-                       </div>
-                       <div className="grid grid-cols-2 gap-3">
-                         <div>
-                           <label className="block text-sm font-medium text-temple-400 mb-1">State / Division *</label>
-                           <input type="text" required value={regData.state} onChange={e=>setRegData({...regData, state: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="e.g. West Bengal" />
-                         </div>
-                         <div>
-                           <label className="block text-sm font-medium text-temple-400 mb-1">City / District *</label>
-                           <input type="text" required value={regData.city} onChange={e=>setRegData({...regData, city: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="e.g. Kolkata" />
-                         </div>
-                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_desc')}</label>
-                      <div className="relative group">
-                        <AlignLeft size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-temple-900" />
-                        <textarea rows={2} value={regData.description} onChange={e=>setRegData({...regData, description: e.target.value})} className="w-full pl-10 pr-4 p-3.5 w-full px-3 py-2 border border-temple-300 rounded-lg text-sm text-temple-900 focus:border-temple-900 focus:ring-1 focus:ring-temple-900 outline-none transition-all resize-none" placeholder={regData.type === 'PurohitSabha' ? 'Short description of your services...' : 'Short description of your community...'} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-temple-100 space-y-4">
-                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_your_name')}</label>
-                        <input type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Full Name" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_your_phone')}</label>
-                        <input type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Mobile Number" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_official_email')}</label>
-                      <div className="relative group">
-                        <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
-                        <input type="email" required value={regData.email} onChange={e=>setRegData({...regData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="admin@example.com" />
-                      </div>
-                    </div>
-
-                    {!googleUser && (
-                    <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('login_pass')} *</label>
-                      <div className="relative group">
-                        <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
-                        <input type={showRegPassword ? "text" : "password"} required value={regData.password} onChange={e=>setRegData({...regData, password: e.target.value})} className="w-full pl-11 pr-11 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Create a strong password" />
-                        <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-temple-400 hover:text-saffron-500 focus:outline-none transition-colors">
-                          {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-                    )}
-                  </div>
-
-                  <AnimatePresence>
-                    {error && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                        <div className="bg-red-50 border border-red-200 text-red-600 p-3.5 rounded-xl text-xs font-bold text-center shadow-sm flex items-center justify-center gap-2 mt-4">
-                          <AlertTriangle size={14}/> {error}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <button type="submit" disabled={loading} className="w-full bg-temple-900 hover:bg-temple-800 text-white font-medium py-2.5 rounded-lg shadow-sm transition-colors text-sm flex justify-center items-center gap-2 mt-6 disabled:opacity-50 disabled:hover:translate-y-0">
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('btn_create_dynamic').replace('{X}', regData.type.toUpperCase())}
-                  </button>
-                </motion.form>
-              ) : activeView === 'SOLO' ? (
-                <SoloSignupForm />
-              ) : activeView === 'JYOTISHI' ? (
-                <JyotishSignupForm />
-              ) : (
-                <PurohitSignupForm />
-              )}
-            </AnimatePresence>
-          </div>
+              {/* ============ TRUST STRIP ============ */}
+              <div className="mt-7 pt-5 border-t border-white/10 flex items-center justify-center gap-2 flex-wrap">
+                {trustBadges.map((b) => (
+                  <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10.5px] font-bold text-white/60">
+                    <span className="text-saffron-300/90">{b.icon}</span>
+                    {b.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </main>
         </div>
-      </motion.div>
+      </div>
 
       {/* Hardware Biometric WebAuthn Modal */}
       <BiometricPromptModal />
