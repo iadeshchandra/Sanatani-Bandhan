@@ -66,7 +66,7 @@ const MOCK_AFFILIATIONS: TenantAffiliation[] = [
 
 export const SmartLoginRouter: React.FC = () => {
   const navigate = useNavigate();
-  const { loginAsRole, switchWorkspace } = useAuthWorkspace();
+  const { loginAsRole, switchWorkspace, logout } = useAuthWorkspace();
   const [selectedTenantId, setSelectedTenantId] = useState<string>(MOCK_AFFILIATIONS[0].id);
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
   const userIdentifier = 'trustee@sanatanibandhan.internal';
@@ -220,13 +220,22 @@ export const SmartLoginRouter: React.FC = () => {
               <Shield className="w-3.5 h-3.5 text-emerald-600" />
               RBAC 2.0 Dynamic Smart Route Enforced
             </span>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-slate-600 hover:text-slate-900 font-bold transition-colors cursor-pointer"
-            >
-              &larr; Return to Public Portal
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={async () => { await logout(); navigate('/login'); }}
+                className="text-rose-600 hover:text-rose-800 font-bold transition-colors cursor-pointer"
+              >
+                Sign out
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="text-slate-600 hover:text-slate-900 font-bold transition-colors cursor-pointer"
+              >
+                &larr; Return to Public Portal
+              </button>
+            </div>
           </div>
         </div>
       </div>
