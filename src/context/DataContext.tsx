@@ -1775,24 +1775,102 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
     ]);
 
-    // ---- 14 treasury transactions across the last 30 days ----
-    const txSeed: Array<[number, string, string, string, string, string, number]> = [
-      // amount, type, category, description, method, handledBy, daysAgo
-      [11000, 'Income', 'Hundi', 'Morning hundi collection', 'UPI', 'Demo Admin', 1],
-      [1101, 'Income', 'Archana', 'Archana ticket sales', 'Cash', 'Demo Admin', 2],
-      [5100, 'Income', 'Annadanam', 'Annadanam sponsorship — Meera Nair', 'UPI', 'Demo Admin', 4],
-      [2500, 'Expense', 'Flowers', 'Daily flower decoration', 'Cash', 'Demo Admin', 5],
-      [21000, 'Income', 'Hundi', 'Evening hundi collection', 'Cash', 'Demo Admin', 7],
-      [8000, 'Expense', 'Prasadam', 'Prasadam ingredients (weekly)', 'Cash', 'Demo Admin', 8],
-      [2100, 'Income', 'Goshala', 'Gau-seva donation — Divya Reddy', 'UPI', 'Demo Admin', 10],
-      [51000, 'Income', 'Hundi', 'Festival day hundi collection', 'UPI', 'Demo Admin', 12],
-      [15000, 'Expense', 'Maintenance', 'Sanctum electrical repair', 'UPI', 'Demo Admin', 14],
-      [501, 'Income', 'Archana', 'Special archana — Karthik month', 'Cash', 'Demo Admin', 16],
-      [11000, 'Income', 'Annadanam', 'Annadanam sponsorship — Vikram Malhotra', 'UPI', 'Demo Admin', 20],
-      [4500, 'Expense', 'Utilities', 'Temple electricity bill', 'UPI', 'Demo Admin', 22],
-      [25000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 26],
-      [101, 'Income', 'Hundi', 'Small offerings tray', 'Cash', 'Demo Admin', 29],
-    ];
+    // ---- P2: org-aware seeds. Each organisation type gets its own flavour —
+    // no cross-contamination (e.g. no Hundi rows in a Goshala demo). The
+    // devotee seed above stays universal: every org has a community.
+    type SeedProfile = 'mandir' | 'goshala' | 'ashram' | 'gurukul' | 'sangha' | 'trust' | 'tirth';
+    const seedProfile: SeedProfile = (() => {
+      const t = (type || 'Mandir').toLowerCase();
+      if (['goshala'].includes(t)) return 'goshala';
+      if (['ashram'].includes(t)) return 'ashram';
+      if (['gurukul', 'vidyalaya'].includes(t)) return 'gurukul';
+      if (['sangha', 'samaj', 'satsang', 'yoga', 'mahotsavsamiti'].includes(t)) return 'sangha';
+      if (['trust', 'dharmadatrust', 'akshayapatra'].includes(t)) return 'trust';
+      if (['tirth'].includes(t)) return 'tirth';
+      return 'mandir'; // Mandir, KashiKshetra, PurohitSabha, Purohit + fallback
+    })();
+
+    // amount, type, category, description, method, handledBy, daysAgo
+    type TxRow = [number, string, string, string, string, string, number];
+    const TX_BY_PROFILE: Record<SeedProfile, TxRow[]> = {
+      mandir: [
+        [11000, 'Income', 'Hundi', 'Morning hundi collection', 'UPI', 'Demo Admin', 1],
+        [1101, 'Income', 'Archana', 'Archana ticket sales', 'Cash', 'Demo Admin', 2],
+        [5100, 'Income', 'Annadanam', 'Annadanam sponsorship — Meera Nair', 'UPI', 'Demo Admin', 4],
+        [2500, 'Expense', 'Flowers', 'Daily flower decoration', 'Cash', 'Demo Admin', 5],
+        [21000, 'Income', 'Hundi', 'Evening hundi collection', 'Cash', 'Demo Admin', 7],
+        [8000, 'Expense', 'Prasadam', 'Prasadam ingredients (weekly)', 'Cash', 'Demo Admin', 8],
+        [2100, 'Income', 'Goshala', 'Gau-seva donation — Divya Reddy', 'UPI', 'Demo Admin', 10],
+        [51000, 'Income', 'Hundi', 'Festival day hundi collection', 'UPI', 'Demo Admin', 12],
+        [15000, 'Expense', 'Maintenance', 'Sanctum electrical repair', 'UPI', 'Demo Admin', 14],
+        [501, 'Income', 'Archana', 'Special archana — Karthik month', 'Cash', 'Demo Admin', 16],
+        [11000, 'Income', 'Annadanam', 'Annadanam sponsorship — Vikram Malhotra', 'UPI', 'Demo Admin', 20],
+        [4500, 'Expense', 'Utilities', 'Temple electricity bill', 'UPI', 'Demo Admin', 22],
+        [25000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 26],
+        [101, 'Income', 'Hundi', 'Small offerings tray', 'Cash', 'Demo Admin', 29],
+      ],
+      goshala: [
+        [5100, 'Income', 'Gau Seva', 'Gau-seva sponsorship — Divya Reddy', 'UPI', 'Demo Admin', 1],
+        [8200, 'Income', 'Milk & Products', 'A2 milk & ghee sales (weekly)', 'Cash', 'Demo Admin', 3],
+        [12500, 'Expense', 'Fodder', 'Green fodder & dry hay (monthly)', 'UPI', 'Demo Admin', 4],
+        [2100, 'Income', 'Godaan', 'Godaan sankalp — Vikram Malhotra', 'UPI', 'Demo Admin', 6],
+        [3400, 'Expense', 'Veterinary', 'Vaccination drive — 40 cattle', 'Cash', 'Demo Admin', 8],
+        [15000, 'Income', 'Gau Seva', 'Monthly patron — Karan Singhania', 'UPI', 'Demo Admin', 11],
+        [2800, 'Expense', 'Shed upkeep', 'Goshala shed repairs', 'Cash', 'Demo Admin', 13],
+        [5100, 'Income', 'Milk & Products', 'Panchagavya product sales', 'UPI', 'Demo Admin', 16],
+        [9100, 'Expense', 'Fodder', 'Concentrate feed stock', 'UPI', 'Demo Admin', 19],
+        [11000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 24],
+        [1200, 'Expense', 'Utilities', 'Water & electricity', 'Cash', 'Demo Admin', 27],
+      ],
+      ashram: [
+        [11000, 'Income', 'Guru Dakshina', 'Guru Purnima dakshina collection', 'UPI', 'Demo Admin', 2],
+        [8100, 'Income', 'Bhojan', 'Annakshetra sponsorship — Meera Nair', 'UPI', 'Demo Admin', 5],
+        [6200, 'Expense', 'Bhojan', 'Daily bhojan prasadam (weekly)', 'Cash', 'Demo Admin', 6],
+        [5100, 'Income', 'Satsang', 'Satsang hall contributions', 'Cash', 'Demo Admin', 9],
+        [4500, 'Expense', 'Utilities', 'Ashram electricity & water', 'UPI', 'Demo Admin', 12],
+        [21000, 'Income', 'Donation', 'Corpus donation — Vikram Malhotra', 'UPI', 'Demo Admin', 15],
+        [7800, 'Expense', 'Upkeep', 'Kutir & hall maintenance', 'Cash', 'Demo Admin', 18],
+        [3100, 'Income', 'Publications', 'Ashram bookstall sales', 'Cash', 'Demo Admin', 22],
+        [2500, 'Expense', 'Sadhana', 'Yajnashala samagri', 'Cash', 'Demo Admin', 26],
+      ],
+      gurukul: [
+        [21000, 'Income', 'Vidyadaan', 'Vidyadaan sponsorship — Vikram Malhotra', 'UPI', 'Demo Admin', 2],
+        [5500, 'Income', 'Shulka', 'Monthly vidyarthi shulka collection', 'Cash', 'Demo Admin', 5],
+        [12000, 'Expense', 'Acharya', 'Acharya honorarium (monthly)', 'UPI', 'Demo Admin', 7],
+        [4100, 'Income', 'Annadanam', 'Student meal sponsorship — Meera Nair', 'UPI', 'Demo Admin', 10],
+        [6800, 'Expense', 'Kitchen', 'Gurukul kitchen provisions', 'Cash', 'Demo Admin', 12],
+        [3200, 'Expense', 'Books', 'Shastra granthas & pathashala material', 'UPI', 'Demo Admin', 16],
+        [15000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 21],
+        [2800, 'Expense', 'Utilities', 'Pathashala electricity & water', 'Cash', 'Demo Admin', 25],
+      ],
+      sangha: [
+        [11000, 'Income', 'Membership', 'Annual membership — 22 families', 'UPI', 'Demo Admin', 3],
+        [25000, 'Income', 'Mahotsav', 'Mahotsav sponsorships — local patrons', 'UPI', 'Demo Admin', 6],
+        [18000, 'Expense', 'Mahotsav', 'Mahotsav stage, sound & prasadam', 'Cash', 'Demo Admin', 8],
+        [5100, 'Income', 'Chanda', 'Monthly sangha chanda', 'Cash', 'Demo Admin', 12],
+        [4200, 'Expense', 'Seva', 'Community seva drive expenses', 'UPI', 'Demo Admin', 15],
+        [8100, 'Income', 'Events', 'Cultural evening ticket contributions', 'Cash', 'Demo Admin', 19],
+        [3600, 'Expense', 'Hall', 'Community hall upkeep', 'Cash', 'Demo Admin', 24],
+      ],
+      trust: [
+        [100000, 'Income', 'Corpus', 'Corpus donation — Vikram Malhotra', 'UPI', 'Demo Admin', 4],
+        [50000, 'Income', 'CSR', 'CSR grant — first tranche', 'UPI', 'Demo Admin', 9],
+        [75000, 'Expense', 'Projects', 'Seva project disbursement — Q3', 'UPI', 'Demo Admin', 13],
+        [25000, 'Income', 'Campaigns', 'Crowdfund collections — Annadanam', 'UPI', 'Demo Admin', 17],
+        [12000, 'Expense', 'Admin', 'Trust office & compliance costs', 'UPI', 'Demo Admin', 21],
+        [51000, 'Income', 'Corpus', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 26],
+      ],
+      tirth: [
+        [15000, 'Income', 'Yatri Seva', 'Yatri niwas contributions (weekly)', 'Cash', 'Demo Admin', 2],
+        [9100, 'Expense', 'Bhojan', 'Yatri bhojanalaya provisions', 'Cash', 'Demo Admin', 4],
+        [8100, 'Income', 'Darshan', 'Special darshan seva contributions', 'UPI', 'Demo Admin', 7],
+        [6200, 'Expense', 'Transport', 'Yatra bus upkeep & fuel', 'UPI', 'Demo Admin', 10],
+        [21000, 'Income', 'Donation', 'Tirth development donation', 'UPI', 'Demo Admin', 14],
+        [5400, 'Expense', 'Upkeep', 'Ghat & premises cleaning', 'Cash', 'Demo Admin', 18],
+        [11000, 'Income', 'Yatri Seva', 'Group yatra facilitation', 'UPI', 'Demo Admin', 23],
+      ],
+    };
+    const txSeed = TX_BY_PROFILE[seedProfile];
     setAllTreasury((prev) => [
       ...txSeed.map(([amount, type, category, description, paymentMethod, handledBy, daysAgo], i) => ({
         id: `tx_${ts}_seed_${i + 1}`,
@@ -1810,12 +1888,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
     ]);
 
-    // ---- 3 campaigns with realistic progress ----
-    const campSeed: Array<[string, string, number, number, string]> = [
-      ['Mandir Jirnoddhar', 'Renovation of the main sanctum and gopuram', 5000000, 1250000, 'Mandir Nirman'],
-      ['Goshala Fodder Fund', 'Monthly fodder for 120 desi cows', 200000, 145000, 'Gau Seva / Healthcare'],
-      ['Annadanam Maha Yajna', 'Daily free meals for 2000 pilgrims this Kartik', 1000000, 320000, 'Annakshetra Fund'],
-    ];
+    // ---- campaigns, flavour-matched per org ----
+    const CAMP_BY_PROFILE: Record<SeedProfile, Array<[string, string, number, number, string]>> = {
+      mandir: [
+        ['Mandir Jirnoddhar', 'Renovation of the main sanctum and gopuram', 5000000, 1250000, 'Mandir Nirman'],
+        ['Goshala Fodder Fund', 'Monthly fodder for 120 desi cows', 200000, 145000, 'Gau Seva / Healthcare'],
+        ['Annadanam Maha Yajna', 'Daily free meals for 2000 pilgrims this Kartik', 1000000, 320000, 'Annakshetra Fund'],
+      ],
+      goshala: [
+        ['Goshala Fodder Fund', 'Monthly fodder for 120 desi cattle', 200000, 145000, 'Gau Seva / Healthcare'],
+        ['Nandi Care Shed', 'New shaded paddock for 20 nandis', 350000, 98000, 'Gau Seva / Healthcare'],
+        ['Panchagavya Unit', 'A2 ghee & panchagavya processing setup', 500000, 210000, 'Gau Seva / Healthcare'],
+      ],
+      ashram: [
+        ['Annakshetra Expansion', 'Daily free meals capacity — 500 to 1000', 800000, 310000, 'Annakshetra Fund'],
+        ['Kutir Renovation', 'Renovating 12 sadhak kutirs', 1200000, 420000, 'Ashram Nirman'],
+        ['Granthalaya', 'Ashram library — shastra collection', 300000, 95000, 'Vidya Fund'],
+      ],
+      gurukul: [
+        ['Vidyarthi Sponsorship', 'Full-year sponsorship for 25 vidyarthis', 750000, 280000, 'Vidya Fund'],
+        ['Pathashala Hall', 'New Veda pathashala hall construction', 2000000, 640000, 'Vidya Fund'],
+        ['Acharya Nidhi', 'Acharya honorarium corpus', 1000000, 350000, 'Vidya Fund'],
+      ],
+      sangha: [
+        ['Mahotsav 2026', 'Annual community mahotsav fund', 600000, 240000, 'Mahotsav Fund'],
+        ['Seva Van', 'Community ambulance & seva van', 900000, 310000, 'Seva Fund'],
+        ['Yuva Kendra', 'Youth skill & dharma kendra', 400000, 120000, 'Seva Fund'],
+      ],
+      trust: [
+        ['Annadanam Maha Yajna', 'Daily free meals for 2000 pilgrims', 1000000, 320000, 'Annakshetra Fund'],
+        ['Vidya Corpus', 'Scholarship corpus for dharmic education', 2500000, 780000, 'Vidya Fund'],
+        ['Arogya Seva', 'Mobile medical seva for villages', 1500000, 460000, 'Arogya Fund'],
+      ],
+      tirth: [
+        ['Yatri Niwas', 'Dharamshala rooms for 200 yatris', 3000000, 890000, 'Tirth Vikas'],
+        ['Ghat Restoration', 'Heritage ghat steps restoration', 1800000, 520000, 'Tirth Vikas'],
+        ['Yatra Seva Kendra', 'Drinking water & rest shelters on parikrama marg', 700000, 230000, 'Tirth Vikas'],
+      ],
+    };
+    const campSeed = CAMP_BY_PROFILE[seedProfile];
     setAllCampaigns((prev) => [
       ...campSeed.map(([title, description, targetAmount, collectedAmount, category], i) => ({
         id: `camp_${ts}_seed_${i + 1}`,
@@ -1834,56 +1945,137 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
     ]);
 
-    // ---- 4 upcoming festivals / Mahotsav schedules ----
-    const festSeed: Array<[string, string, string, string, number]> = [
-      ['Kartik Purnima Deepotsav', 'Ganga Aarti Sthal', 'Grand deepotsav with 51,000 diyas', 'Sri Vishwanath Shastri', 6],
-      ['Annakut Mahotsav', 'Main Mandapam', 'Chhappan bhog offering and bhandara', 'Sri Raghunath Acharya', 18],
-      ['Gita Jayanti Yajna', 'Yajnashala', '108-kundiya Gayatri mahayajna', 'Sri Devkinandan Ji', 34],
-      ['Makara Sankranti Mela', 'Temple Courtyard', 'Kite festival, til-gud prasadam, Gau-puja', 'Sri Vishwanath Shastri', 55],
-    ];
-    setAllResidentPujas((prev) => [
-      ...festSeed.map(([pujaName, venue, description, leadPurohit, daysAhead], i) => ({
-        id: `fest_${ts}_seed_${i + 1}`,
-        ...seedTag,
-        pujaName,
-        ritualName: pujaName,
-        deity: 'Sri Vishwanath',
-        timings: isoDaysAhead(daysAhead),
-        time: '06:00 AM',
-        leadPurohit,
-        priestName: leadPurohit,
-        isOpenForPublic: true,
-        samagriList: [],
-      }) as unknown as ResidentPujaSchedule),
-      ...prev,
-    ]);
+    // ---- festivals / gatherings: mandir-flavoured only for mandir-likes ----
+    if (seedProfile === 'mandir') {
+      const festSeed: Array<[string, string, string, string, number]> = [
+        ['Kartik Purnima Deepotsav', 'Ganga Aarti Sthal', 'Grand deepotsav with 51,000 diyas', 'Sri Vishwanath Shastri', 6],
+        ['Annakut Mahotsav', 'Main Mandapam', 'Chhappan bhog offering and bhandara', 'Sri Raghunath Acharya', 18],
+        ['Gita Jayanti Yajna', 'Yajnashala', '108-kundiya Gayatri mahayajna', 'Sri Devkinandan Ji', 34],
+        ['Makara Sankranti Mela', 'Temple Courtyard', 'Kite festival, til-gud prasadam, Gau-puja', 'Sri Vishwanath Shastri', 55],
+      ];
+      setAllResidentPujas((prev) => [
+        ...festSeed.map(([pujaName, venue, description, leadPurohit, daysAhead], i) => ({
+          id: `fest_${ts}_seed_${i + 1}`,
+          ...seedTag,
+          pujaName,
+          ritualName: pujaName,
+          deity: 'Sri Vishwanath',
+          timings: isoDaysAhead(daysAhead),
+          time: '06:00 AM',
+          leadPurohit,
+          priestName: leadPurohit,
+          isOpenForPublic: true,
+          samagriList: [],
+        }) as unknown as ResidentPujaSchedule),
+        ...prev,
+      ]);
 
-    // ---- 5 pooja bookings ----
-    const bookingSeed: Array<[string, string, string, string, string, number, string, number]> = [
-      ['Ananya Iyer', '+91 98410 22334', 'Rudrabhishek', 'Kashyapa', '06:00 - 08:00', 2100, 'Confirmed', 3],
-      ['Vikram Malhotra', '+91 98110 44556', 'Satyanarayan Katha', 'Bharadwaja', '10:00 - 13:00', 5100, 'Confirmed', 5],
-      ['Meera Nair', '+91 98470 11223', 'Archana (Sahasranama)', 'Vashishtha', '08:00 - 09:00', 1101, 'Confirmed', 8],
-      ['Arjun Deshmukh', '+91 98220 33445', 'Maha Mrityunjaya Jaap', 'Gautama', '05:00 - 07:00', 11000, 'Standby', 11],
-      ['Divya Reddy', '+91 98490 99001', 'Gau Puja & Godaan', 'Shandilya', '09:00 - 10:00', 5100, 'Confirmed', 14],
-    ];
-    setAllPoojaBookings((prev) => [
-      ...bookingSeed.map(([devoteeName, phone, poojaName, gotra, timeSlot, dakshinaAmount, status, daysAgo], i) => ({
-        id: `pbk_${ts}_seed_${i + 1}`,
-        ...seedTag,
-        devoteeName,
-        phone,
-        poojaName,
-        gotra,
-        timeSlot,
-        dakshinaAmount,
-        status,
-        paymentStatus: 'Paid',
-        receiptRef: `RCPT-SEED-${2001 + i}`,
-        bookingDate: isoDaysAgo(daysAgo),
-        tithiDate: isoDaysAhead(2),
-      }) as unknown as PoojaBooking),
-      ...prev,
-    ]);
+      // ---- pooja bookings: mandir-only concept ----
+      const bookingSeed: Array<[string, string, string, string, string, number, string, number]> = [
+        ['Ananya Iyer', '+91 98410 22334', 'Rudrabhishek', 'Kashyapa', '06:00 - 08:00', 2100, 'Confirmed', 3],
+        ['Vikram Malhotra', '+91 98110 44556', 'Satyanarayan Katha', 'Bharadwaja', '10:00 - 13:00', 5100, 'Confirmed', 5],
+        ['Meera Nair', '+91 98470 11223', 'Archana (Sahasranama)', 'Vashishtha', '08:00 - 09:00', 1101, 'Confirmed', 8],
+        ['Arjun Deshmukh', '+91 98220 33445', 'Maha Mrityunjaya Jaap', 'Gautama', '05:00 - 07:00', 11000, 'Standby', 11],
+        ['Divya Reddy', '+91 98490 99001', 'Gau Puja & Godaan', 'Shandilya', '09:00 - 10:00', 5100, 'Confirmed', 14],
+      ];
+      setAllPoojaBookings((prev) => [
+        ...bookingSeed.map(([devoteeName, phone, poojaName, gotra, timeSlot, dakshinaAmount, status, daysAgo], i) => ({
+          id: `pbk_${ts}_seed_${i + 1}`,
+          ...seedTag,
+          devoteeName,
+          phone,
+          poojaName,
+          gotra,
+          timeSlot,
+          dakshinaAmount,
+          status,
+          paymentStatus: 'Paid',
+          receiptRef: `RCPT-SEED-${2001 + i}`,
+          bookingDate: isoDaysAgo(daysAgo),
+          tithiDate: isoDaysAhead(2),
+        }) as unknown as PoojaBooking),
+        ...prev,
+      ]);
+    }
+
+    // ---- org-specific entity seeds ----
+    if (seedProfile === 'goshala') {
+      const cowSeed: Array<[string, string, string, string, number]> = [
+        // name, breed, gender, tag, ageYears
+        ['Kamdhenu', 'Gir', 'Gomata', 'GSH-001', 7],
+        ['Nandini', 'Sahiwal', 'Gomata', 'GSH-002', 5],
+        ['Dharma', 'Tharparkar', 'Nandi', 'GSH-003', 6],
+        ['Ganga', 'Kankrej', 'Gomata', 'GSH-004', 4],
+        ['Tulsi', 'Red Sindhi', 'Calf (Female)', 'GSH-005', 1],
+        ['Vrishabha', 'Rathi', 'Nandi', 'GSH-006', 8],
+      ];
+      setAllCows((prev) => [
+        ...cowSeed.map(([name, breed, gender, tagNumber, ageYears], i) => ({
+          id: `cow_${ts}_seed_${i + 1}`,
+          ...seedTag,
+          name,
+          breed,
+          gender,
+          tagNumber,
+          ageYears,
+          healthStatus: 'Healthy',
+          milkYieldLitres: gender === 'Gomata' ? 8 + (i % 5) : 0,
+        }) as unknown as GoshalaCowRecord),
+        ...prev,
+      ]);
+    }
+
+    if (seedProfile === 'gurukul') {
+      const studentSeed: Array<[string, string, string, string, number]> = [
+        // name, rollNo, courseLevel, guardian, attendancePct
+        ['Aditya Sharma', 'GS-2026-001', 'Prathama (Grammar)', 'Ramesh Sharma', 96],
+        ['Krishna Patel', 'GS-2026-002', 'Prathama (Grammar)', 'Mohan Patel', 92],
+        ['Rama Iyer', 'GS-2025-014', 'Madhyama (Shastras)', 'Suresh Iyer', 98],
+        ['Arjun Nair', 'GS-2025-015', 'Madhyama (Shastras)', 'Gopal Nair', 89],
+        ['Veda Vyas', 'GS-2024-007', 'Shastri (Philosophy)', 'Narayan Rao', 94],
+        ['Shiva Menon', 'GS-2024-008', 'Shastri (Philosophy)', 'Kumar Menon', 91],
+      ];
+      setAllGurukulStudents((prev) => [
+        ...studentSeed.map(([studentName, rollNo, courseLevel, guardianName, attendancePct], i) => ({
+          id: `stu_${ts}_seed_${i + 1}`,
+          ...seedTag,
+          studentName,
+          rollNo,
+          courseLevel,
+          guardianName,
+          guardianPhone: `+91 98${String(10000000 + i * 1111111).slice(0, 8)}`,
+          sandhyaVandanaRegularity: 85 + (i % 12),
+          shlokaRecitationScore: 80 + (i % 15),
+          attendancePct,
+        }) as unknown as GurukulStudent),
+        ...prev,
+      ]);
+    }
+
+    if (seedProfile === 'ashram' || seedProfile === 'tirth') {
+      const guestPurpose = seedProfile === 'ashram' ? 'Satsang' : 'Darshan';
+      const guestSeed: Array<[string, string, string, number]> = [
+        ['Rahul Verma', '+91 98111 22233', 'Kashi', 2],
+        ['Sunita Rao', '+91 98222 33344', 'Pune', 5],
+        ['Amit Joshi', '+91 98333 44455', 'Jaipur', 9],
+        ['Kavita Das', '+91 98444 55566', 'Kolkata', 14],
+        ['Mohan Lal', '+91 98555 66677', 'Lucknow', 20],
+      ];
+      setAllGuests((prev) => [
+        ...guestSeed.map(([name, phone, city, daysAgo], i) => ({
+          id: `gst_${ts}_seed_${i + 1}`,
+          ...seedTag,
+          name,
+          phone,
+          city,
+          purpose: guestPurpose,
+          visitDate: isoDaysAgo(daysAgo),
+          status: 'Visited',
+        }) as unknown as GuestRecord),
+        ...prev,
+      ]);
+    }
+
   };
 
   const addDevotee = (data: Omit<DevoteeMember, 'id' | 'qrCodeRef' | 'joinedDate'>): string | boolean => {
