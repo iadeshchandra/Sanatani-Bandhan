@@ -601,7 +601,7 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
               <p className={`font-black text-xs ${tx.type === 'Income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {tx.type === 'Income' ? '+' : '-'} ₹{(tx.amount || 0).toLocaleString()}
               </p>
-              <p className="text-[9px] text-slate-400 font-mono mt-0.5">{tx.date}</p>
+              <p className="text-[9px] text-slate-400 font-mono mt-0.5">{tx.date ? new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</p>
             </div>
           </div>
         ))}
