@@ -36,6 +36,7 @@ import { UpsellModal } from '../common/UpsellModal';
 import { CameraScanner } from '../common/CameraScanner';
 import { calculateDailyPanchang, PanchangData } from '../../utils/panchang';
 import { generatePoojaSankalpPDF } from '../../utils/pdfGenerator';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 // Default Temple Coordinates (Kashi Vishwanath / Varanasi)
 const DEFAULT_TEMPLE_LAT = 25.3176;
@@ -742,6 +743,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 <h2 className="text-xl sm:text-2xl font-black text-amber-100">
                   Book Sacred Puja / Sankalp
                 </h2>
+                <div className="mt-2"><LocalOnlyBadge /></div>
                 <p className="text-xs text-temple-400 mt-0.5">
                   Configure ritual parameters, gotra, nakshatra, and sanctum offering with automatic Vedic ephemeris alignment.
                 </p>
