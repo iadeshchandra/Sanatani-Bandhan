@@ -10,7 +10,7 @@ import jsQR from 'jsqr';
 import AppLogo from '../common/AppLogo'; 
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
-import { WorkspaceConfig, WorkspaceType } from '../../types';
+import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -124,7 +124,7 @@ interface PortalLoginProps {
 }
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin } = useAuthWorkspace();
+  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   const [language, setLanguage] = useState<'en'|'hi'|'bn'>('en'); 
   const t = (key: string) => (translations as any)[language][key] || key;
@@ -173,6 +173,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   }, []);
 
   const clearErrors = () => setError('');
+
+  // H-11: is this Firebase user the recorded creator of the workspace being
+  // entered? Checked against the local workspace registry (populated at
+  // registration with `createdBy`). A user can only ever be the creator of
+  // workspaces they provisioned themselves — never someone else's.
+  const isWorkspaceCreator = (uid: string): boolean => {
+    if (!uid) return false;
+    const ws = workspaces?.find((w) => w.id === activeWorkspace?.id) || activeWorkspace;
+    return !!ws && (ws as any).createdBy === uid;
+  };
   
   const handleError = (err: any) => {
     const msg = err.message || '';
@@ -185,14 +195,23 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     setRegData({ ...regData, country: selectedCountry, currency: currencyDetails });
   };
 
+  // H-10: biometrics are SESSION RE-CONFIRMATION ONLY (device-unlock grade).
+  // They may re-confirm an already-signed-in session — they must NEVER mint
+  // a privileged session from signed-out state.
   const handleBiometricLogin = async () => {
+    if (!auth.currentUser) {
+      setError('Sign in first — biometrics only re-confirm your existing session.');
+      return;
+    }
     try {
-      const verified = await promptBiometric('System Login');
+      const verified = await promptBiometric('Session Re-confirmation');
       if (verified) {
-        // Instantly bypass PIN/password validation and authenticate into default workspace
-        loginAsRole('Trustee', 'Temple Administrator');
-        showToast('Biometric FaceID / TouchID Authentication Verified!', 'success');
+        // Session re-confirmed on this device. The existing Firebase session
+        // (and its role) is unchanged — no privilege is granted here.
+        showToast('Identity re-confirmed on this device.', 'success');
         onSuccess();
+      } else {
+        setError('Biometric authentication failed or was cancelled.');
       }
     } catch (err: any) {
       setError('Biometric authentication failed or was cancelled.');
@@ -276,9 +295,50 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       
       // Standard PIN/Password submission handler authenticated against Firebase
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, cred);
-      
+      const fbUser = userCredential.user;
+
+      // H-11: NEVER self-grant Trustee. The role comes from the authoritative
+      // users/{uid} Firestore doc. The rules forbid clients from writing
+      // `role` themselves, so the doc is created with identity fields only;
+      // the Devotee default is applied in-memory (safe default). The one
+      // exception: the recorded creator of the workspace being entered
+      // (workspaces/{id}.createdBy) is its administrator — that fact is
+      // written once at registration under rules that allow it, and cannot
+      // be forged for someone else's workspace.
+      const VALID_ROLES: UserRole[] = ['SuperAdmin', 'Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'];
+      let role: UserRole = 'Devotee';
+      try {
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+          const rawRole = String(userSnap.data()?.role || '');
+          const normalized = (ROLE_MIGRATION_MAP[rawRole] || rawRole) as UserRole;
+          if (rawRole && VALID_ROLES.includes(normalized)) {
+            role = normalized;
+          } else if (isWorkspaceCreator(fbUser.uid)) {
+            role = 'Trustee';
+          }
+        } else {
+          // Rules-allowed keys only: `role`/`workspaceId` are never
+          // client-writable (clients can never self-grant privilege).
+          await setDoc(userDocRef, {
+            uid: fbUser.uid,
+            email: fbUser.email || emailToUse,
+            createdAt: serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+          if (isWorkspaceCreator(fbUser.uid)) {
+            role = 'Trustee';
+          }
+        }
+      } catch (roleErr: any) {
+        console.warn('[PortalLogin] users-doc role lookup failed, defaulting to Devotee:', roleErr?.message || roleErr);
+        if (isWorkspaceCreator(fbUser.uid)) {
+          role = 'Trustee';
+        }
+      }
+
       // On successful Firebase Auth, push the user to the authenticated dashboard
-      loginAsRole('Trustee', userCredential.user.displayName || userCredential.user.email || 'Temple Administrator');
+      loginAsRole(role, fbUser.displayName || fbUser.email || 'Sanatani Devotee');
       showToast("Secure Login Successful", "success");
       onSuccess();
     } catch (err: any) {
@@ -389,6 +449,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         type: type,
         // C-6: every real signup starts on the Seva Free (LITE) plan.
         planId: 'LITE',
+        // H-11: record the provisioner — the creator is this workspace's
+        // administrator, resolved back to Trustee on later logins.
+        createdBy: user.uid,
         address: [street, city, state, country].filter(Boolean).join(', '),
         city: city,
         state: state,
@@ -402,6 +465,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
       // 2. Write User Document (Crucial for RBAC rules)
       // RESOLVED: PHASE 1B - Tenant administrator provisioning completed
+      // H-11: identity fields only — the rules forbid clients from writing
+      // `role`/`workspaceId` (no self-granted privilege). The creator's
+      // Trustee access is resolved via workspaces/{id}.createdBy at login.
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: email,
@@ -653,7 +719,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                      </button>
                      <button type="button" onClick={handleBiometricLogin} className="group bg-white hover:bg-temple-50 border border-temple-200 text-temple-700 font-medium py-3 rounded-lg text-sm transition-all flex flex-col justify-center items-center gap-2 shadow-sm hover:shadow-md">
                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-full group-hover:scale-110 transition-transform"><Fingerprint size={20}/></div>
-                       Passkey
+                       Re-confirm
                      </button>
                   </div>
 
@@ -703,10 +769,11 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
                         </span>
                       </div>
-                      <span>Quick Login with FaceID / TouchID</span>
+                      <span>Re-confirm Session with FaceID / TouchID</span>
                     </button>
                     <p className="text-[10px] text-center text-temple-400 mt-1.5 font-medium">
-                      WebAuthn / FIDO2 Hardware-grade passwordless biometric sign-in
+                      Device-unlock grade: re-confirms your existing signed-in session on this device.
+                      It cannot sign you in or grant access by itself — sign in with your credentials first.
                     </p>
                   </div>
 
