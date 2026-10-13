@@ -387,6 +387,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         id: "WS-" + Math.floor(1000 + Math.random() * 9000),
         name: commName,
         type: type,
+        // C-6: every real signup starts on the Seva Free (LITE) plan.
+        planId: 'LITE',
         address: [street, city, state, country].filter(Boolean).join(', '),
         city: city,
         state: state,
