@@ -12,6 +12,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { generateDevoteeCardPDF, generateTaxReceiptPDF } from '../../utils/pdfGenerator';
+import { BecomePurohitEntry } from '../purohit/BecomePurohitEntry';
 import { generateSecureQRToken, generateDynamicToken } from '../../utils/qrUtils';
 import { useToast } from '../../context/ToastContext';
 
@@ -310,6 +311,9 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                      <p className="text-2xl font-black text-temple-900">{completionScore}%</p>
                    </div>
                 </div>
+
+                {/* Purohit One: devotee → purohit upgrade + mode switcher */}
+                <BecomePurohitEntry />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                    {/* Left Column: Role & Permissions + Recent Activity */}

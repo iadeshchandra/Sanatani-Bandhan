@@ -479,6 +479,155 @@ service cloud.firestore {
       allow write: if isLoggedIn() && (isDemoWs(communityId) || isTenantMember(communityId));
     }
 
+    // ------------------------------------------------------------------
+    // Purohit One — independent purohit identity + verification + marketplace
+    // ------------------------------------------------------------------
+    // Global (non-workspace-scoped) collections. Deny-by-default posture is
+    // preserved: every match below states its exact allow conditions.
+
+    // --- purohits/{purohitId}: public read (marketplace); owner + admin write.
+    // Tier/aggregates/uid are admin-only; public counter fields are refreshable
+    // by any signed-in user because they are publicly recomputable from the
+    // reviews collection (gaming is detectable, admin-reversible).
+    match /purohits/{purohitId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && request.resource.data.get('ratingAggregate', 0) == 0
+        && request.resource.data.get('ratingCount', 0) == 0
+        && request.resource.data.get('completedGigs', 0) == 0;
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('id', '') == resource.data.get('id', '')
+          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', ''))
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['ratingAggregate', 'ratingCount', 'completedGigs', 'updatedAt'])
+          && request.resource.data.get('ratingAggregate', 0) <= 5
+          && request.resource.data.get('ratingCount', 0) <= 100000
+          && request.resource.data.get('completedGigs', 0) <= 100000);
+      allow delete: if false;
+    }
+
+    // --- purohits availability: public read; owner write.
+    match /purohitAvailability/{purohitId} {
+      allow read: if true;
+      allow write: if isSuperAdmin()
+        || (isLoggedIn()
+          && exists(/databases/$(database)/documents/purohits/$(purohitId))
+          && get(/databases/$(database)/documents/purohits/$(purohitId)).data.get('uid', '') == request.auth.uid);
+    }
+
+    // --- purohitApplications: applicant + admin read; applicant creates as
+    // PENDING; only the platform admin decides (approve/reject).
+    match /purohitApplications/{appId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('purohitId', '') != ''
+        && request.resource.data.get('status', '') == 'PENDING';
+      allow update: if isSuperAdmin();
+      allow delete: if false;
+    }
+
+    // --- gigs: public read (marketplace); signed-in devotees post;
+    // status machine enforced on the ordered path; only parties write.
+    function isGigParty() {
+      return isLoggedIn()
+        && (resource.data.get('devoteeUid', '') == request.auth.uid
+          || resource.data.get('assignedPurohitUid', '') == request.auth.uid);
+    }
+    function gigTransitionOk() {
+      let from = resource.data.get('status', '');
+      let to = request.resource.data.get('status', '');
+      return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
+        || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
+        || (from == 'IN_PROGRESS' && to in ['COMPLETED'])
+        || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
+        || (from == to);
+    }
+    function gigImmutableOk() {
+      return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
+        && request.resource.data.get('id', '') == resource.data.get('id', '')
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
+    }
+    match /gigs/{gigId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('devoteeUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'OPEN';
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && gigTransitionOk() && gigImmutableOk()
+          && (isGigParty()
+            // Accept flow: any verified-path purohit may claim an OPEN gig;
+            // the claim itself names them as the assigned party.
+            || (resource.data.get('status', '') == 'OPEN'
+              && request.resource.data.get('status', '') == 'ASSIGNED'
+              && request.resource.data.get('assignedPurohitUid', '') == request.auth.uid)));
+      allow delete: if false;
+    }
+
+    // --- endorsements: public read; Trustees (any real org) may endorse.
+    // ANTI-GAMING: endorsement requires a Trustee role; the orgId must be a
+    // real workspace id (non-empty, checked against workspaces by clients).
+    match /endorsements/{endorsementId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && (isSuperAdmin() || roleIn(['Trustee', 'TRUSTEE']))
+        && request.resource.data.get('orgId', '') != ''
+        && request.resource.data.get('orgName', '') != ''
+        && request.resource.data.get('purohitId', '') != ''
+        && request.resource.data.get('text', '') != '';
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // --- reviews: public read; deterministic ids (one rating per party per
+    // gig); only gig parties may rate, only after completion.
+    function reviewPartyOk() {
+      let gigPath = /databases/$(database)/documents/gigs/$(request.resource.data.get('gigId', ''));
+      return exists(gigPath)
+        && get(gigPath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED']
+        && (get(gigPath).data.get('devoteeUid', '') == request.auth.uid
+          || get(gigPath).data.get('assignedPurohitUid', '') == request.auth.uid);
+    }
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('reviewerUid', '') == request.auth.uid
+        && request.resource.data.get('gigId', '') != ''
+        && request.resource.data.get('rating', 0) >= 1
+        && request.resource.data.get('rating', 0) <= 5
+        && reviewPartyOk();
+      allow update, delete: if false;
+    }
+
+    // --- purohitInvites: org → purohit staff invites. Readable by the invited
+    // purohit, org Trustees, and admins. Trustees create; the invited purohit
+    // may only flip status (accept/decline).
+    match /purohitInvites/{inviteId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn()
+          && (resource.data.get('purohitUid', '') == request.auth.uid
+            || roleIn(['Trustee', 'TRUSTEE'])));
+      allow create: if isSuperAdmin()
+        || (isLoggedIn() && roleIn(['Trustee', 'TRUSTEE'])
+          && request.resource.data.get('orgId', '') != ''
+          && request.resource.data.get('orgName', '') != ''
+          && request.resource.data.get('purohitId', '') != ''
+          && request.resource.data.get('purohitUid', '') != ''
+          && request.resource.data.get('status', '') == 'PENDING');
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && resource.data.get('purohitUid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+      allow delete: if false;
+    }
+
     // NOTE: no catch-all allow — default deny.
   }
 }

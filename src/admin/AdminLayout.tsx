@@ -12,6 +12,7 @@ import {
   Bell,
   Search,
   Activity,
+  BadgeCheck,
 } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { name: 'Global Analytics', path: '/admin/analytics', icon: Activity },
   { name: 'Tenants & Mandirs', path: '/admin/tenants', icon: Building2, badge: '12' },
   { name: 'Users & Roles', path: '/admin/users', icon: Users },
+  { name: 'Purohit Reviews', path: '/admin/purohit-reviews', icon: BadgeCheck },
   { name: 'Platform Settings', path: '/admin/settings', icon: Settings },
 ];
 
