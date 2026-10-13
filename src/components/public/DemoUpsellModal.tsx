@@ -176,7 +176,7 @@ export const DemoUpsellModal: React.FC<DemoUpsellModalProps> = ({
             </p>
             <p className="flex items-center gap-2 text-xs text-stone-500 font-medium">
               <Users className="w-3.5 h-3.5 text-orange-500" aria-hidden="true" />
-              Join 140+ temples across Bharat already running on Sanatani Bandhan.
+              Join dharmic institutions across Bharat already running on Sanatani Bandhan.
             </p>
           </div>
         </div>
