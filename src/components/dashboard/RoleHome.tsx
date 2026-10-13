@@ -277,7 +277,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             style={{ '--i': 2 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enrolled Students</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Shishya (Students)</span>
             <div className="flex items-end justify-between mt-1">
               <span className="text-2xl font-bold text-slate-900"><CountUp value={gurukulStudents.length} /></span>
               <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">Brahmacharis</span>

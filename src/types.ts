@@ -819,6 +819,12 @@ export interface GurukulStudent extends TenantScoped {
   guardianName: string;
   guardianPhone: string;
   dateOfUpanayanam?: string;
+  /**
+   * R-1 (Gurukul vibe): samskara records per shishya. Upanayana usually lands
+   * in dateOfUpanayanam; this array carries the rest of the journey —
+   * Namakarana, Annaprashana, Chudakarana, Vedarambha, Samavartana, etc.
+   */
+  samskaras?: Array<{ name: string; date: string; note?: string }>;
   attendancePct: number;
 }
 
