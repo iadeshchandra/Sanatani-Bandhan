@@ -528,8 +528,19 @@ export const QuickChandaPOS: React.FC = () => {
         taxReceiptNumber: is80GRequested ? generatedReceiptNo : undefined,
       };
 
-      // Add to treasury ledger
-      addTreasuryTransaction(newTx);
+      // Add to treasury ledger.
+      // C-8: honor the boolean return — on false (quota blocked) the chanda
+      // was NOT persisted, so do not complete the sale or print a receipt
+      // for money the ledger never recorded.
+      const posted = addTreasuryTransaction(newTx);
+      if (!posted) {
+        showToast(
+          'Chanda NOT processed: transaction quota reached for this workspace. No receipt was issued.',
+          'error',
+          'Quota Reached'
+        );
+        return;
+      }
 
       const finalRecord = {
         txId: generatedTxId,
