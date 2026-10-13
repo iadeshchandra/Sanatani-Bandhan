@@ -3,6 +3,7 @@ import { Flame, Plus, Search, Calendar, BellRing, Sparkles, X } from 'lucide-rea
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 interface ShradhRecord {
   id: string;
@@ -205,7 +206,7 @@ export const PitruShradhDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <h3 className="font-bold text-sm">Record Ancestral Shradh Tithi</h3>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Record Ancestral Shradh Tithi</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
