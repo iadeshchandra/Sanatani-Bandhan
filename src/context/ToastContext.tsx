@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 
@@ -93,8 +93,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  // M-3: memoized provider value.
+  const toastValue = useMemo(() => ({ showToast, confirm }), [showToast, confirm]);
+
   return (
-    <ToastContext.Provider value={{ showToast, confirm }}>
+    <ToastContext.Provider value={toastValue}>
       {children}
 
       {/* Toast Notification Container */}
