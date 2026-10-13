@@ -34,6 +34,7 @@ import {
 } from '../types';
 import { trackTreasuryPurchase, trackSignUp, trackGenerateLead } from '../utils/gtm';
 import { nextReceiptSeq, formatReceiptNumber } from '../utils/receiptNumbers';
+import { resolveBranchIds } from '../utils/branchAccess';
 import { useAuthWorkspace } from './AuthWorkspaceContext';
 import { useToast } from './ToastContext';
 import { db } from '../lib/firebase';
@@ -1625,23 +1626,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ---- Per-branch RBAC (v2) ----
   // The current member's allowed branches, resolved from
-  // activeWorkspace.branchAccess by matching uid or email. null =
-  // unrestricted (no entry, empty branchIds, or SuperAdmin — the platform
-  // owner always bypasses). Backward compatible: workspaces without
-  // branchAccess behave exactly as before.
+  // activeWorkspace.branchAccess via resolveBranchIds (deny-by-default:
+  // unmatched identities get ZERO branches when restrictions exist).
+  // null = unrestricted (SuperAdmin, or no branchAccess configured —
+  // backward compatible: workspaces without branchAccess behave as before).
   const myBranchIds = useMemo<string[] | null>(() => {
-    if (currentRole === 'SuperAdmin') return null;
-    const access = activeWorkspace?.branchAccess;
-    if (!Array.isArray(access) || access.length === 0) return null;
     const uid = currentUser?.id || (firebaseUser as { uid?: string } | null)?.uid;
-    const email = (currentUser?.email || (firebaseUser as { email?: string } | null)?.email || '').toLowerCase();
-    const entry = access.find(
-      (a) =>
-        (uid && a.memberId === uid) ||
-        (email && a.memberId.toLowerCase() === email)
+    const email =
+      currentUser?.email || (firebaseUser as { email?: string } | null)?.email || '';
+    return resolveBranchIds(
+      activeWorkspace?.branchAccess,
+      uid,
+      email,
+      currentRole === 'SuperAdmin'
     );
-    if (!entry || !entry.branchIds || entry.branchIds.length === 0) return null;
-    return entry.branchIds;
   }, [
     activeWorkspace?.branchAccess,
     currentUser?.id,
