@@ -46,6 +46,33 @@ beforeEach(async () => {
 
     // Setup Tenants (public discovery doc)
     await db.collection('tenants').doc('t1').set({ name: 'Test Mandir', city: 'Varanasi', type: 'Mandir' });
+
+    // Setup Purohit One (global marketplace collections)
+    await db.collection('purohits').doc('PUR-TEST01').set({
+      id: 'PUR-TEST01',
+      uid: 'purohit-user-1',
+      displayName: 'Test Purohit',
+      phone: '+910000000001',
+      city: 'Varanasi',
+      languages: ['Sanskrit', 'Hindi'],
+      specializations: ['Vivah Samskara'],
+      experienceYears: 5,
+      verificationTier: 'REGISTERED',
+      ratingAggregate: 0,
+      ratingCount: 0,
+      completedGigs: 0,
+      source: 'independent',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await db.collection('endorsements').doc('END-001').set({
+      orgId: 'ws-1',
+      orgName: 'Workspace 1',
+      purohitId: 'PUR-TEST01',
+      text: 'Exemplary Vedic scholarship',
+      ritualCount: 12,
+      createdAt: 1,
+    });
   });
 });
 
@@ -472,5 +499,182 @@ describe('Firestore Security Rules', () => {
   it('64. workspaceId cannot be moved between tenants on update', async () => {
     const adminDb = testEnv.authenticatedContext('admin-1').firestore();
     await assertFails(adminDb.collection('treasury').doc('tr-1').update({ workspaceId: 'ws-2' }));
+  });
+
+  // ---- Purohit One: independent identity + marketplace rules ----
+
+  it('65. Purohit marketplace profiles are publicly readable', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(unauthDb.collection('purohits').doc('PUR-TEST01').get());
+  });
+
+  it('66. Owner can mint their own identity as REGISTERED; others cannot', async () => {
+    const ownerDb = testEnv.authenticatedContext('purohit-user-1').firestore();
+    await assertSucceeds(
+      ownerDb.collection('purohits').doc('PUR-OWN001').set({
+        uid: 'purohit-user-1',
+        displayName: 'Test Purohit',
+        verificationTier: 'REGISTERED',
+        ratingAggregate: 0,
+        ratingCount: 0,
+        completedGigs: 0,
+      })
+    );
+    const otherDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      otherDb.collection('purohits').doc('PUR-OWN002').set({
+        uid: 'purohit-user-1',
+        displayName: 'Impostor',
+        verificationTier: 'REGISTERED',
+        ratingAggregate: 0,
+        ratingCount: 0,
+        completedGigs: 0,
+      })
+    );
+  });
+
+  it('67. Owner cannot self-escalate verificationTier', async () => {
+    const ownerDb = testEnv.authenticatedContext('purohit-user-1').firestore();
+    await assertFails(
+      ownerDb.collection('purohits').doc('PUR-TEST01').update({ verificationTier: 'PLATFORM_VERIFIED' })
+    );
+  });
+
+  it('68. Signed-in users may refresh public counters; anonymous may not', async () => {
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      userDb.collection('purohits').doc('PUR-TEST01').update({ ratingAggregate: 4.5, ratingCount: 2 })
+    );
+    // Absurd values are rejected even for counter updates.
+    await assertFails(
+      userDb.collection('purohits').doc('PUR-TEST01').update({ ratingAggregate: 9.9, ratingCount: 2 })
+    );
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      unauthDb.collection('purohits').doc('PUR-TEST01').update({ ratingAggregate: 4.5, ratingCount: 2 })
+    );
+  });
+
+  it('69. Gig lifecycle: devotee posts, purohit accepts, status path enforced', async () => {
+    const devoteeDb = testEnv.authenticatedContext('user-1').firestore();
+    const purohitDb = testEnv.authenticatedContext('purohit-user-1').firestore();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+
+    // Devotee posts an OPEN gig.
+    await assertSucceeds(
+      devoteeDb.collection('gigs').doc('GIG-001').set({
+        id: 'GIG-001',
+        devoteeUid: 'user-1',
+        devoteeName: 'Devotee 1',
+        status: 'OPEN',
+        createdAt: 1,
+      })
+    );
+    // Stranger cannot post as someone else.
+    await assertFails(
+      strangerDb.collection('gigs').doc('GIG-002').set({
+        id: 'GIG-002',
+        devoteeUid: 'user-1',
+        devoteeName: 'Devotee 1',
+        status: 'OPEN',
+        createdAt: 1,
+      })
+    );
+    // Skip-step OPEN → COMPLETED is rejected.
+    await assertFails(devoteeDb.collection('gigs').doc('GIG-001').update({ status: 'COMPLETED' }));
+    // Purohit accepts: OPEN → ASSIGNED naming themselves.
+    await assertSucceeds(
+      purohitDb.collection('gigs').doc('GIG-001').update({
+        status: 'ASSIGNED',
+        assignedPurohitUid: 'purohit-user-1',
+        assignedPurohitId: 'PUR-TEST01',
+      })
+    );
+    // Stranger (non-party) cannot touch the gig.
+    await assertFails(strangerDb.collection('gigs').doc('GIG-001').update({ status: 'CANCELLED' }));
+    // Ordered path continues for the parties.
+    await assertSucceeds(purohitDb.collection('gigs').doc('GIG-001').update({ status: 'IN_PROGRESS' }));
+    await assertSucceeds(purohitDb.collection('gigs').doc('GIG-001').update({ status: 'COMPLETED' }));
+    await assertSucceeds(devoteeDb.collection('gigs').doc('GIG-001').update({ status: 'DAKSHINA_RELEASED' }));
+    // Immutable keys cannot change.
+    await assertFails(devoteeDb.collection('gigs').doc('GIG-001').update({ devoteeUid: 'user-2' }));
+  });
+
+  it('70. Reviews: only gig parties, only after completion, rating 1–5', async () => {
+    const devoteeDb = testEnv.authenticatedContext('user-1').firestore();
+    const purohitDb = testEnv.authenticatedContext('purohit-user-1').firestore();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    // GIG-001 is DAKSHINA_RELEASED with user-1 + purohit-user-1 as parties.
+    await assertSucceeds(
+      devoteeDb.collection('reviews').doc('GIG-001_user-1_devotee').set({
+        gigId: 'GIG-001',
+        reviewerUid: 'user-1',
+        reviewerKind: 'devotee',
+        rating: 5,
+        note: 'Wonderful ritual',
+      })
+    );
+    await assertFails(
+      strangerDb.collection('reviews').doc('GIG-001_user-2_devotee').set({
+        gigId: 'GIG-001',
+        reviewerUid: 'user-2',
+        reviewerKind: 'devotee',
+        rating: 5,
+      })
+    );
+    await assertFails(
+      devoteeDb.collection('reviews').doc('GIG-001_user-1_devotee2').set({
+        gigId: 'GIG-001',
+        reviewerUid: 'user-1',
+        reviewerKind: 'devotee',
+        rating: 6,
+      })
+    );
+    // Reviews are publicly readable.
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(unauthDb.collection('reviews').doc('GIG-001_user-1_devotee').get());
+    // Reviews are immutable.
+    await assertFails(
+      devoteeDb.collection('reviews').doc('GIG-001_user-1_devotee').update({ rating: 1 })
+    );
+  });
+
+  it('71. Applications: applicant creates PENDING; only platform admin decides', async () => {
+    const applicantDb = testEnv.authenticatedContext('purohit-user-1').firestore();
+    const otherDb = testEnv.authenticatedContext('user-1').firestore();
+    const adminDb = testEnv.authenticatedContext('global-admin-uid').firestore();
+    await assertSucceeds(
+      applicantDb.collection('purohitApplications').doc('APP-001').set({
+        purohitId: 'PUR-TEST01',
+        uid: 'purohit-user-1',
+        displayName: 'Test Purohit',
+        status: 'PENDING',
+        createdAt: 1,
+      })
+    );
+    // Another user cannot read the application.
+    await assertFails(otherDb.collection('purohitApplications').doc('APP-001').get());
+    // Applicant cannot self-approve.
+    await assertFails(
+      applicantDb.collection('purohitApplications').doc('APP-001').update({ status: 'APPROVED' })
+    );
+    // Platform admin approves.
+    await assertSucceeds(
+      adminDb.collection('purohitApplications').doc('APP-001').update({ status: 'APPROVED', reviewedAt: 2 })
+    );
+  });
+
+  it('72. Endorsements are public to read; only Trustees/admins may create', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertSucceeds(unauthDb.collection('endorsements').doc('END-001').get());
+    const devoteeDb = testEnv.authenticatedContext('user-1').firestore(); // DEVOTEE, not Trustee
+    await assertFails(
+      devoteeDb.collection('endorsements').add({
+        orgId: 'ws-1',
+        orgName: 'Workspace 1',
+        purohitId: 'PUR-TEST01',
+        text: 'Fake endorsement',
+      })
+    );
   });
 });
