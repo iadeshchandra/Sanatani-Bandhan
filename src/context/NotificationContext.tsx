@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 
 export interface AppNotification {
   id: string;
@@ -57,15 +57,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setNotifications([]);
   };
 
-  return (
-    <NotificationContext.Provider value={{
+  // M-3: memoized provider value.
+  const notifValue = useMemo(() => ({
       notifications,
       unreadCount,
       addNotification,
       markAsRead,
       markAllAsRead,
       clearAll
-    }}>
+    }), [notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearAll]);
+
+  return (
+    <NotificationContext.Provider value={notifValue}>
       {children}
     </NotificationContext.Provider>
   );
