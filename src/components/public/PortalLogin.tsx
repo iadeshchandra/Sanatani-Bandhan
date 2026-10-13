@@ -16,6 +16,9 @@ import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where, collection, limit } from 'firebase/firestore';
 import type { UserRole } from '../../types';
 import { PurohitSignupForm } from '../purohit/PurohitSignupForm';
+import { GoogleSignInButton } from '../auth/GoogleSignInButton';
+import type { GoogleAuthResult } from '../../lib/googleAuth';
+import { syncOrgPage } from '../../context/MembershipContext';
 
 const translations = {
   en: {
@@ -296,73 +299,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       
       // Standard PIN/Password submission handler authenticated against Firebase
       const userCredential = await signInWithEmailAndPassword(auth, emailToUse, cred);
-      const fbUser = userCredential.user;
-
-      // H-11: NEVER self-grant Trustee. The role comes from the authoritative
-      // users/{uid} Firestore doc. The rules forbid clients from writing
-      // `role` themselves, so the doc is created with identity fields only;
-      // the Devotee default is applied in-memory (safe default). The one
-      // exception: the recorded creator of the workspace being entered
-      // (workspaces/{id}.createdBy) is its administrator — that fact is
-      // written once at registration under rules that allow it, and cannot
-      // be forged for someone else's workspace.
-      const VALID_ROLES: UserRole[] = ['SuperAdmin', 'Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'];
-      let role: UserRole = 'Devotee';
-      try {
-        const userDocRef = doc(db, 'users', fbUser.uid);
-        const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists()) {
-          const rawRole = String(userSnap.data()?.role || '');
-          const normalized = (ROLE_MIGRATION_MAP[rawRole] || rawRole) as UserRole;
-          if (rawRole && VALID_ROLES.includes(normalized)) {
-            role = normalized;
-          } else if (isWorkspaceCreator(fbUser.uid)) {
-            role = 'Trustee';
-          }
-        } else {
-          // Rules-allowed keys only: `role`/`workspaceId` are never
-          // client-writable (clients can never self-grant privilege).
-          await setDoc(userDocRef, {
-            uid: fbUser.uid,
-            email: fbUser.email || emailToUse,
-            createdAt: serverTimestamp(),
-          }, { merge: true }).catch(() => {});
-          if (isWorkspaceCreator(fbUser.uid)) {
-            role = 'Trustee';
-          }
-        }
-      } catch (roleErr: any) {
-        console.warn('[PortalLogin] users-doc role lookup failed, defaulting to Devotee:', roleErr?.message || roleErr);
-        if (isWorkspaceCreator(fbUser.uid)) {
-          role = 'Trustee';
-        }
-      }
-
-      // Purohit One: an independent purohit's account belongs to no
-      // organisation. Route them straight into their personal workspace.
-      // Dual-identity (devotee_upgrade) users stay in org context here —
-      // the mode switcher in their account area flips them over.
-      try {
-        const pSnap = await getDocs(
-          query(collection(db, 'purohits'), where('uid', '==', fbUser.uid), limit(1))
-        );
-        if (!pSnap.empty) {
-          const pData = pSnap.docs[0].data() as any;
-          if (pData?.source === 'independent') {
-            enterPurohitSession({ id: pSnap.docs[0].id, ...pData });
-            showToast('Welcome back to your purohit workspace', 'success');
-            onSuccess();
-            return;
-          }
-        }
-      } catch (pErr) {
-        console.warn('[PortalLogin] purohit lookup failed, continuing org login:', (pErr as any)?.message);
-      }
-
-      // On successful Firebase Auth, push the user to the authenticated dashboard
-      loginAsRole(role, fbUser.displayName || fbUser.email || 'Sanatani Devotee');
-      showToast("Secure Login Successful", "success");
-      onSuccess();
+      await finalizeLogin(userCredential.user, emailToUse);
     } catch (err: any) {
       console.error(err);
       // Sandbox admin PIN fallback — verified SERVER-SIDE against a peppered
@@ -382,6 +319,126 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * Post-auth finalization shared by email/password AND Google sign-in.
+   * Resolves the role from users/{uid} (H-11: never self-granted),
+   * routes independent purohits to their personal workspace, and otherwise
+   * signs the user into the org context. Google users get the identical
+   * treatment — no privileged role is ever minted here.
+   */
+  const finalizeLogin = async (fbUser: any, emailToUse: string) => {
+    // H-11: NEVER self-grant Trustee. The role comes from the authoritative
+    // users/{uid} Firestore doc. The rules forbid clients from writing
+    // `role` themselves, so the doc is created with identity fields only;
+    // the Devotee default is applied in-memory (safe default). The one
+    // exception: the recorded creator of the workspace being entered
+    // (workspaces/{id}.createdBy) is its administrator — that fact is
+    // written once at registration under rules that allow it, and cannot
+    // be forged for someone else's workspace.
+    const VALID_ROLES: UserRole[] = ['SuperAdmin', 'Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'];
+    let role: UserRole = 'Devotee';
+    try {
+      const userDocRef = doc(db, 'users', fbUser.uid);
+      const userSnap = await getDoc(userDocRef);
+      if (userSnap.exists()) {
+        const rawRole = String(userSnap.data()?.role || '');
+        const normalized = (ROLE_MIGRATION_MAP[rawRole] || rawRole) as UserRole;
+        if (rawRole && VALID_ROLES.includes(normalized)) {
+          role = normalized;
+        } else if (isWorkspaceCreator(fbUser.uid)) {
+          role = 'Trustee';
+        }
+      } else {
+        // Rules-allowed keys only: `role`/`workspaceId` are never
+        // client-writable (clients can never self-grant privilege).
+        await setDoc(userDocRef, {
+          uid: fbUser.uid,
+          email: fbUser.email || emailToUse,
+          createdAt: serverTimestamp(),
+        }, { merge: true }).catch(() => {});
+        if (isWorkspaceCreator(fbUser.uid)) {
+          role = 'Trustee';
+        }
+      }
+    } catch (roleErr: any) {
+      console.warn('[PortalLogin] users-doc role lookup failed, defaulting to Devotee:', roleErr?.message || roleErr);
+      if (isWorkspaceCreator(fbUser.uid)) {
+        role = 'Trustee';
+      }
+    }
+
+    // Purohit One: an independent purohit's account belongs to no
+    // organisation. Route them straight into their personal workspace.
+    // Dual-identity (devotee_upgrade) users stay in org context here —
+    // the mode switcher in their account area flips them over.
+    try {
+      const pSnap = await getDocs(
+        query(collection(db, 'purohits'), where('uid', '==', fbUser.uid), limit(1))
+      );
+      if (!pSnap.empty) {
+        const pData = pSnap.docs[0].data() as any;
+        if (pData?.source === 'independent') {
+          enterPurohitSession({ id: pSnap.docs[0].id, ...pData });
+          showToast('Welcome back to your purohit workspace', 'success');
+          onSuccess();
+          return;
+        }
+      }
+    } catch (pErr) {
+      console.warn('[PortalLogin] purohit lookup failed, continuing org login:', (pErr as any)?.message);
+    }
+
+    // On successful Firebase Auth, push the user to the authenticated dashboard
+    loginAsRole(role, fbUser.displayName || fbUser.email || 'Sanatani Devotee');
+    showToast("Secure Login Successful", "success");
+    onSuccess();
+  };
+
+  // Google sign-in state. When set, the email/password register form is
+  // skipped — the Google-linked account is used for workspace creation.
+  const [googleUser, setGoogleUser] = useState<GoogleAuthResult | null>(null);
+  // New Google users choose their path instead of landing on a blank screen.
+  const [showGoogleWelcome, setShowGoogleWelcome] = useState<GoogleAuthResult | null>(null);
+
+  /** Google on the LOGIN view: identical finalization to email login. */
+  const handleGoogleLogin = async (result: GoogleAuthResult) => {
+    clearErrors();
+    setLoading(true);
+    try {
+      const fbUser = auth.currentUser;
+      if (!fbUser || fbUser.uid !== result.uid) {
+        setError('Google session mismatch — please try again.');
+        return;
+      }
+      if (result.isNewUser) {
+        // Brand-new Google user: offer paths instead of stranding them.
+        setShowGoogleWelcome(result);
+        return;
+      }
+      await finalizeLogin(fbUser, result.email);
+    } catch (err: any) {
+      handleError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Google on the SIGNUP view: links Google, then the workspace form completes registration. */
+  const handleGoogleSignup = async (result: GoogleAuthResult) => {
+    clearErrors();
+    setGoogleUser(result);
+    setRegData((prev) => ({
+      ...prev,
+      email: result.email || prev.email,
+      adminName: result.displayName && result.displayName !== 'Sanatani Devotee' ? result.displayName : prev.adminName,
+    }));
+    showToast(`Google linked (${result.email}). Complete the organisation details below.`, 'success');
+  };
+
+  const handleGoogleError = (message: string) => {
+    setError(message);
   };
 
   /**
@@ -456,14 +513,25 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     if (!navigator.onLine) return setError("Internet connection required to create a new workspace.");
 
     const { commName, type, adminName, email, phone, password, country, state, city, street, currency } = regData;
-    if (!commName || !adminName || !email || !phone || !password) return setError("Please fill all core required fields.");
+    // Google-linked signup skips the password (the Google account is the credential).
+    if (!commName || !adminName || !email || !phone || (!password && !googleUser)) return setError("Please fill all core required fields.");
     if (!country || !state || !city) return setError("Please complete the Location / Address Picker section.");
 
     setLoading(true);
     try {
-      // 1. Create Firebase Auth User
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      // 1. Firebase Auth user: Google-linked accounts reuse the linked uid;
+      //    otherwise create the email/password user as before.
+      let user: any;
+      if (googleUser) {
+        const current = auth.currentUser;
+        if (!current || current.uid !== googleUser.uid) {
+          return setError("Google session expired — please tap “Sign up with Google” again.");
+        }
+        user = current;
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        user = userCredential.user;
+      }
 
       const newWorkspace: WorkspaceConfig = {
         id: "WS-" + Math.floor(1000 + Math.random() * 9000),
@@ -514,6 +582,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       }
 
       showToast("Workspace Provisioned Successfully", "success");
+      // Membership sprint: publish the public organisation page so the
+      // org appears in discovery, follows and join requests.
+      await syncOrgPage(newWorkspace);
       onSuccess();
     } catch (err: any) {
       handleError(err);
@@ -733,7 +804,68 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             </AnimatePresence>
 
             <AnimatePresence mode="wait">
-              {activeView === 'LOGIN' ? (
+              {showGoogleWelcome ? (
+                <motion.div
+                  key="google-welcome"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4 text-center py-4"
+                >
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-lg">
+                    {(showGoogleWelcome.displayName || 'S').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-temple-900">
+                      Namaste{showGoogleWelcome.displayName && showGoogleWelcome.displayName !== 'Sanatani Devotee' ? `, ${showGoogleWelcome.displayName.split(' ')[0]}` : ''}! 🙏
+                    </h3>
+                    <p className="text-sm text-temple-500 mt-1">Your Google account is linked. What would you like to do first?</p>
+                  </div>
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={() => { setShowGoogleWelcome(null); setActiveView('REGISTER'); }}
+                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Building2 size={20} /></div>
+                      <div>
+                        <p className="text-sm font-black text-temple-900">Create an Organisation</p>
+                        <p className="text-xs text-temple-500">Mandir, sangha, ashram, gurukul, trust…</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => { setShowGoogleWelcome(null); setActiveView('PUROHIT'); }}
+                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xl">🪔</div>
+                      <div>
+                        <p className="text-sm font-black text-temple-900">Join as Purohit</p>
+                        <p className="text-xs text-temple-500">Offer ritual services, get verified.</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const r = showGoogleWelcome;
+                        setShowGoogleWelcome(null);
+                        setLoading(true);
+                        try {
+                          const fbUser = auth.currentUser;
+                          if (fbUser) await finalizeLogin(fbUser, r.email);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><User size={20} /></div>
+                      <div>
+                        <p className="text-sm font-black text-temple-900">Continue as Devotee</p>
+                        <p className="text-xs text-temple-500">Explore, follow organisations, join later.</p>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              ) : activeView === 'LOGIN' ? (
                 <motion.form 
                   key="login"
                   initial={{ opacity: 0, x: 20 }}
@@ -758,6 +890,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                        Re-confirm
                      </button>
                   </div>
+
+                  {/* Google sign-in — one tap for non-technical users. */}
+                  <GoogleSignInButton mode="login" onSuccess={handleGoogleLogin} onError={handleGoogleError} />
 
                   <div className="flex items-center gap-4 py-2 opacity-60">
                      <div className="h-px bg-temple-300 flex-1"></div>
@@ -837,6 +972,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                   onSubmit={handleRegister} 
                   className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar"
                 >
+                  {/* Google-linked signup: link first, then complete the form — no password needed. */}
+                  {!googleUser ? (
+                    <GoogleSignInButton mode="signup" onSuccess={handleGoogleSignup} onError={handleGoogleError} />
+                  ) : (
+                    <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3">
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                      <p className="text-xs font-bold text-emerald-800">
+                        Google linked ({googleUser.email}) — no password needed. Complete the organisation details below.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="bg-temple-50 border border-temple-200 p-4 rounded-lg flex items-start gap-3">
                     <AlertTriangle className="text-saffron-600 shrink-0 mt-0.5" size={20} />
                     <div>
@@ -938,6 +1085,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       </div>
                     </div>
 
+                    {!googleUser && (
                     <div>
                       <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('auth.password')} *</label>
                       <div className="relative group">
@@ -948,6 +1096,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </button>
                       </div>
                     </div>
+                    )}
                   </div>
 
                   <AnimatePresence>
