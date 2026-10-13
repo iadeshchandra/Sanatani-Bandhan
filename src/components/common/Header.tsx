@@ -27,7 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useNotifications } from '../../context/NotificationContext';
-import { calculatePanchang } from '../../utils/panchang';
+import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { UserRole } from '../../types';
 import { NotificationPanel } from './NotificationPanel';
 import { OPEN_PALETTE_EVENT } from './CommandPalette';
@@ -185,11 +185,11 @@ export const Header: React.FC<HeaderProps> = ({
           <kbd className="kbd hidden lg:inline-flex" aria-hidden="true">⌘K</kbd>
         </button>
 
-        {/* Live Panjika (Hidden on mobile) */}
+        {/* Live Panjika (Hidden on mobile) — canonical today line, live Samvat (no hardcoded years) */}
         <div className="hidden xl:flex flex-col items-end border-r border-temple-700 pr-5 mr-1">
-          <span className="text-[10px] uppercase font-bold text-temple-400 tracking-widest">Vikram 2083 / San 1433</span>
+          <span className="text-[10px] uppercase font-bold text-temple-400 tracking-widest">Vikram {panchang.vikramSamvat} / San {panchang.bengaliSan}</span>
           <span className="text-sm font-medium text-saffron-500 italic">
-            {panchang.tithi} • {panchang.nakshatra}
+            {getPanchangTodayLine(panchang)}
           </span>
         </div>
 
