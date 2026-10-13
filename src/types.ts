@@ -87,6 +87,12 @@ export interface Workspace extends TenantScoped {
   taxExemptionNumber?: string;
   enabledModules?: string[];
   trustRegNumber?: string;
+  // H-1: 80G registration gate — receipts must never be issued with a
+  // fabricated URN. Real receipts require trust80GRegistered=true + the
+  // workspace's genuine URN from the Income Tax portal.
+  trust80GRegistered?: boolean;
+  trust80GURN?: string;
+  trust80GRegNo?: string;
   pinRequired: boolean;
   adminPin: string;
   superAdmins?: string[];
@@ -123,6 +129,14 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   taxExemptionNumber?: string;
   enabledModules?: string[];
   trustRegNumber?: string;
+  // H-1: 80G registration gate (see Workspace above).
+  trust80GRegistered?: boolean;
+  trust80GURN?: string;
+  trust80GRegNo?: string;
+  // H-11: uid of the Firebase user who provisioned this workspace.
+  // The creator is the workspace's administrator; recorded at registration
+  // (a rules-allowed field) so re-logins resolve back to Trustee.
+  createdBy?: string;
   pinRequired: boolean;
   adminPin: string;
   superAdmins?: string[];
