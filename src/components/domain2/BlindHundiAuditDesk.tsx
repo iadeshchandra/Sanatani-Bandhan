@@ -15,6 +15,8 @@ import {
   Eye,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useData } from '../../context/DataContext';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 
 type DenominationKey = '500' | '200' | '100' | '50' | '20' | '10';
 
@@ -40,6 +42,8 @@ const INITIAL_COUNTS: DenominationCounts = {
 
 export const BlindHundiAuditDesk: React.FC = () => {
   const { showToast } = useToast();
+  const { addTreasuryTransaction } = useData();
+  const { activeWorkspace } = useAuthWorkspace();
 
   const [counterAData, setCounterAData] = useState<DenominationCounts>({
     '500': 420,
@@ -87,12 +91,39 @@ export const BlindHundiAuditDesk: React.FC = () => {
   };
 
   const handlePostToLedger = () => {
-    setIsPosted(true);
-    showToast(
-      `Dual-authenticated Hundi count of ₹${calculateTotal(counterAData).toLocaleString('en-IN')} posted to General Trust Fund.`,
-      'success',
-      'Treasury Ledger'
-    );
+    // C-8: actually persist the audited count — never toast a posting that
+    // never happened. Mirrors HundiCountingAuditDesk's addTreasuryTransaction
+    // call; success is honored via the boolean return (false = quota blocked).
+    const total = calculateTotal(counterAData);
+    const posted = addTreasuryTransaction({
+      workspaceId: activeWorkspace?.id || 'ws-mandir',
+      date: new Date().toISOString().slice(0, 10),
+      type: 'Income',
+      category: 'HUNDI_COLLECTION',
+      amount: total,
+      paymentMode: 'Cash',
+      handledBy: 'Dual-Blind Audit (Counter A + Counter B)',
+      devoteeName: 'Anonymous Devotee Offerings (Hundi Golak)',
+      purpose: 'Blind Hundi Dual-Custody Audit — posted after dual authentication',
+      referenceNo: `BLIND-HUNDI-${Date.now().toString().slice(-6)}`,
+      is80GEligible: false,
+      taxReceiptIssued: false,
+    });
+
+    if (posted) {
+      setIsPosted(true);
+      showToast(
+        `Dual-authenticated Hundi count of ₹${total.toLocaleString('en-IN')} posted to General Trust Fund.`,
+        'success',
+        'Treasury Ledger'
+      );
+    } else {
+      showToast(
+        'Posting blocked: transaction quota reached for this workspace. The count was NOT posted.',
+        'error',
+        'Treasury Ledger'
+      );
+    }
   };
 
   // Variance calculation when both are locked
