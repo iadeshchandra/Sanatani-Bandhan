@@ -63,7 +63,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         <button
           type="button"
           onClick={onRegister}
-          className="min-h-[36px] inline-flex items-center gap-1.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-extrabold tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.97] cursor-pointer"
+          className="min-h-[36px] inline-flex items-center gap-1.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-extrabold tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.97] cursor-pointer pressable"
         >
           <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
           Create Free Account
