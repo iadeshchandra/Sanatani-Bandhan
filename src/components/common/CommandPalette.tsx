@@ -3,7 +3,9 @@ import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock } from 'lu
 import { MODULE_CATALOG, NavItem } from './Sidebar';
 import { isModuleAllowed } from '../../lib/workspaceRegistry';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useToast } from '../../context/ToastContext';
 import { getRecentDesks, recordDeskVisit } from './ui/deskHistory';
+import { enableModule } from '../../suggestions/store';
 
 export const OPEN_PALETTE_EVENT = 'sanatani:open-command-palette';
 
@@ -13,7 +15,7 @@ interface CommandPaletteProps {
 
 interface PaletteItem {
   key: string;
-  kind: 'desk' | 'action' | 'recent';
+  kind: 'desk' | 'action' | 'recent' | 'install';
   label: string;
   sub: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -51,7 +53,8 @@ function fuzzyScore(query: string, text: string): number {
  * (dispatched by the Header search trigger).
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }) => {
-  const { activeWorkspace, setViewMode } = useAuthWorkspace();
+  const { activeWorkspace, setViewMode, updateWorkspaceDetails } = useAuthWorkspace();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -107,6 +110,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
   const desks = useMemo(
     () => MODULE_CATALOG.filter((m) => isModuleAllowed(activeWorkspace, m.id)),
     [activeWorkspace]
+  );
+
+  // Seva Suggestions: modules not yet enabled but installable from the store.
+  // Same exclusion list as AppStoreDesk — these are never "installed".
+  const installable = useMemo(
+    () =>
+      MODULE_CATALOG.filter(
+        (m) =>
+          !isModuleAllowed(activeWorkspace, m.id) &&
+          !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id)
+      ),
+    [activeWorkspace]
+  );
+
+  const handleInstall = useCallback(
+    (moduleId: string) => {
+      if (!activeWorkspace) return;
+      const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
+      enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
+      showToast(`“${mod?.name || moduleId}” is now on — opening it.`, 'success', 'Module Enabled');
+      onSelectModule(moduleId);
+    },
+    [activeWorkspace, updateWorkspaceDetails, onSelectModule, showToast]
   );
 
   const quickActions: PaletteItem[] = useMemo(
@@ -178,8 +204,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     const matchedActions = quickActions.filter(
       (a) => fuzzyScore(q, a.label) >= 0
     );
-    return [...scored, ...matchedActions];
-  }, [query, desks, recents, quickActions, onSelectModule]);
+    // Seva Suggestions: not-yet-installed modules, searchable + one-tap install.
+    const matchedInstallable = installable
+      .map((d) => ({
+        d,
+        s: Math.max(
+          fuzzyScore(q, d.name),
+          fuzzyScore(q, d.id),
+          fuzzyScore(q, d.domainTitle)
+        ),
+      }))
+      .filter((x) => x.s >= 0)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 5)
+      .map(({ d }) => ({
+        key: `install-${d.id}`,
+        kind: 'install' as const,
+        label: d.name,
+        sub: `${d.domainTitle} · not installed — select to enable`,
+        icon: d.icon,
+        run: () => handleInstall(d.id),
+      }));
+    return [...scored, ...matchedInstallable, ...matchedActions];
+  }, [query, desks, recents, quickActions, onSelectModule, installable, handleInstall]);
 
   useEffect(() => {
     setActiveIndex(0);

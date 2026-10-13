@@ -532,3 +532,36 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
   'yatranet-gis':
     'GIS crowd-safety desks belong to large-gathering workspaces (Tirth, Kashi Kshetra, Mahotsav Samiti).',
 };
+
+/**
+ * SEVA SUGGESTIONS — smart archetype defaults.
+ * ============================================================================
+ * New workspaces start with these modules already in `enabledModules` — the
+ * high-confidence 90% case per org type. Listed ids must be MODULE_CATALOG
+ * ids (not registry aliases). Natives need not be listed (always available).
+ * The App Store remains the escape hatch for everything else.
+ */
+export const SMART_DEFAULT_MODULES: Record<string, string[]> = {
+  Mandir: ['sevadar-roster', 'inventory'],
+  Goshala: ['sevadar-roster'],
+  Sangha: ['sevadar-roster', 'membership'],
+  Samaj: ['sevadar-roster', 'membership'],
+  Ashram: ['sevadar-roster', 'membership'],
+  Yoga: ['membership'],
+  Satsang: ['membership'],
+  Gurukul: ['bulkImport'],
+  Vidyalaya: ['bulkImport', 'membership'],
+  PurohitSabha: ['membership'],
+  Trust: ['sevadar-roster', 'bulkImport'],
+  DharmadaTrust: [],
+  AkshayaPatra: ['sevadar-roster'],
+  KashiKshetra: ['qrScanner', 'membership'],
+  Tirth: ['qrScanner', 'membership'],
+  MahotsavSamiti: ['sevadar-roster', 'sandeshBroadcast'],
+  Purohit: [],
+};
+
+/** Pre-enabled modules for a brand-new workspace of the given org type. */
+export function smartDefaultModulesFor(orgType: string): string[] {
+  return [...(SMART_DEFAULT_MODULES[orgType] || [])];
+}

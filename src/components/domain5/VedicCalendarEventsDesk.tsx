@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Calendar, Plus, MapPin, Users, Sparkles, Clock, CheckCircle2, X, Download } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
+import { workspaceRegistry } from '../../lib/workspaceRegistry';
+import { fireSuggestion, usePendingSuggestions, enableModule } from '../../suggestions/store';
+import { SuggestionCard } from '../../suggestions/cards';
 
 interface UtsavEvent {
   id: string;
@@ -16,8 +19,9 @@ interface UtsavEvent {
 }
 
 export const VedicCalendarEventsDesk: React.FC = () => {
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, updateWorkspaceDetails } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { suggestions, dismiss } = usePendingSuggestions(activeWorkspace?.id);
 
   const [events, setEvents] = useState<UtsavEvent[]>([
     {
@@ -82,6 +86,24 @@ export const VedicCalendarEventsDesk: React.FC = () => {
     setEvents([newEvent, ...events]);
     setIsAddModalOpen(false);
     showToast(`Utsav ${title} added to Temple Calendar!`, 'success');
+
+    // Seva Suggestions — trigger (a): a large expected crowd is the moment
+    // Gate Command & Check-In becomes valuable. Suggest it in-context.
+    const footfall = Number(expectedFootfall);
+    if (footfall > 500 && activeWorkspace) {
+      const natives = workspaceRegistry[activeWorkspace.type] || [];
+      const enabled = activeWorkspace.enabledModules || [];
+      fireSuggestion(
+        activeWorkspace.id,
+        'checkin',
+        {
+          en: `“${newEvent.title}” expects ~${footfall.toLocaleString()} devotees — gate check-in keeps entry orderly and counted.`,
+          hi: `“${newEvent.title}” में ~${footfall.toLocaleString()} भक्तों की उम्मीद है — गेट चेक-इन प्रवेश को व्यवस्थित रखता है।`,
+          bn: `“${newEvent.title}”-এ ~${footfall.toLocaleString()} ভক্তের আশা — গেট চেক-ইন প্রবেশ সুশৃঙ্খল রাখে।`,
+        },
+        (id) => natives.includes(id) || enabled.includes(id)
+      );
+    }
   };
 
   const handleExportICS = (ev: UtsavEvent) => {
@@ -147,6 +169,24 @@ export const VedicCalendarEventsDesk: React.FC = () => {
           <span>Schedule New Utsav</span>
         </button>
       </div>
+
+      {/* Seva Suggestions — contextual cards (e.g. gate check-in for large crowds) */}
+      {suggestions.length > 0 && (
+        <div className="space-y-3" aria-live="polite">
+          {suggestions.map((s) => (
+            <SuggestionCard
+              key={s.key}
+              suggestion={s}
+              onEnable={(moduleId) => {
+                if (!activeWorkspace) return;
+                enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
+                showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
+              }}
+              onDismiss={dismiss}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
