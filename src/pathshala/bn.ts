@@ -1,6 +1,8 @@
 /**
- * Pathshala One — Bengali labels + number-to-words (Bengali & English).
- * Bengali-first UI: every label carries its English subtitle in components.
+ * Pathshala One — shared utilities: dates, number formatting, amount-in-words
+ * (Bengali & English), CSV/JSON/Word helpers.
+ * Locale-aware where it matters: labels go through LanguageContext
+ * (see ui.tsx <T>); digits/words helpers take the app language explicitly.
  */
 
 /** Bengali digits for display. */
@@ -62,11 +64,11 @@ export function amountInWordsBn(n: number): string {
   return parts.join(' ');
 }
 
-/** "₹1,250" style + Bengali words for receipts: "এক হাজার দুই শত পঞ্চাশ টাকা মাত্র" */
-export const receiptWords = (n: number): { en: string; bn: string } => ({
-  en: `Rupees ${amountInWordsEn(n)} Only`,
-  bn: `${amountInWordsBn(n)} টাকা মাত্র`,
-});
+/** Amount-in-words for receipts, following the app locale: Bengali words
+ * ("এক হাজার ... টাকা মাত্র") when the language is Bengali, otherwise
+ * English ("Rupees ... Only"). */
+export const receiptWords = (n: number, lang: string): string =>
+  lang === 'bn' ? `${amountInWordsBn(n)} টাকা মাত্র` : `Rupees ${amountInWordsEn(n)} Only`;
 
 export const inr = (n: number): string =>
   '₹' + Number(n || 0).toLocaleString('en-IN');
