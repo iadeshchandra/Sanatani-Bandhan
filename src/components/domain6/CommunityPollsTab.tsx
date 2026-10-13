@@ -636,7 +636,7 @@ export const CommunityPollsTab: React.FC = () => {
       {/* FOOTER CREDIT */}
       <div className="pt-8 pb-4 flex flex-col items-center justify-center text-center opacity-70 border-t border-gray-200 mt-auto shrink-0">
          <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1">
-           Made with <Heart size={12} className="text-red-500 fill-current"/> by <span className="font-black text-saffron-500">TrackIQ Academy</span>
+           Made with <Heart size={12} className="text-red-500 fill-current"/> for <span className="font-black text-saffron-500">Dharmic institutions</span>
          </div>
          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">© {new Date().getFullYear()} Sanatani Bandhan. Enterprise Edition.</p>
       </div>
