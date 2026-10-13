@@ -16,6 +16,7 @@ import {
   History,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { PreviewDataBadge } from '../common/PreviewDataBadge';
 
 export interface RawMaterial {
   id: string;
@@ -224,6 +225,7 @@ export const SmartBhandarDesk: React.FC = () => {
             <ChefHat className="w-8 h-8 text-amber-500" />
             Smart Bhandar & Prasad Recipe Engine
           </h1>
+          <div className="mt-2"><PreviewDataBadge /></div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Automated Bill of Materials (BOM), recipe batch execution, and real-time raw ingredient depletion.
           </p>
