@@ -13,6 +13,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { AshramKutirRoom, GoshalaCowRecord, GurukulStudent, TreasuryTransaction } from '../../types';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 // Tab identifiers
 export type Domain4Tab = 'KUTIRS' | 'GOSHALA' | 'GURUKUL';
@@ -2165,9 +2166,9 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Vedic Pathashala Admission
               </span>
-              <h3 className="text-lg font-black text-white mt-1">
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-black text-white mt-1">
                 Enroll Brahmachari Vidyarthi
-              </h3>
+              </h3><LocalOnlyBadge /></div>
               <p className="text-xs text-stone-400">
                 Register student in Sandipani Gurukul residential ledger
               </p>
@@ -2273,9 +2274,9 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Indigenous Cattle Registry
               </span>
-              <h3 className="text-lg font-black text-white mt-1">
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-black text-white mt-1">
                 Register New Gomata / Nandi
-              </h3>
+              </h3><LocalOnlyBadge /></div>
             </div>
 
             <form onSubmit={handleAddNewCowSubmit} className="space-y-3.5 text-xs">
