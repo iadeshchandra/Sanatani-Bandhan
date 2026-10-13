@@ -27,6 +27,7 @@ import { useToast } from '../../context/ToastContext';
 import { TreasuryTransaction } from '../../types';
 import { isValidPAN } from '../../utils/validation';
 import { DataExportButton } from '../common/DataExportButton';
+import { findReceiptGaps, findDuplicateReceipts, formatReceiptNumber } from '../../utils/receiptNumbers';
 
 export const TaxReceiptDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
@@ -46,6 +47,17 @@ export const TaxReceiptDesk: React.FC = () => {
   const [selectedTxIds, setSelectedTxIds] = useState<Set<string>>(new Set());
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
 
+  // M-18: receipt-number integrity — sequential, gap-detectable per series+year.
+  // Gaps are surfaced honestly for review (a gap is a flag, not proof of fraud).
+  const receiptIntegrity = useMemo(() => {
+    const year = new Date().getFullYear();
+    const numbers = (treasury || []).map((t) => t.taxReceiptNumber);
+    const gaps80G = findReceiptGaps(numbers, 'SB-80G', year);
+    const gapsChanda = findReceiptGaps(numbers, 'SB-CHANDA', year);
+    const duplicates = findDuplicateReceipts(numbers);
+    return { year, gaps80G, gapsChanda, duplicates };
+  }, [treasury]);
+
   // PDF Preview Modal State
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -57,8 +69,7 @@ export const TaxReceiptDesk: React.FC = () => {
   const [isUpdatingPan, setIsUpdatingPan] = useState(false);
 
   // Filter 80G-eligible transactions
-  const eligibleTransactions = useMemo(() => {
-    return rawTransactions.filter((tx) => {
+  const eligibleTransactions = useMemo(() => {    return rawTransactions.filter((tx) => {
       // Must be income & 80G eligible
       if (tx.type !== 'Income' || !tx.is80GEligible) return false;
 
@@ -257,6 +268,25 @@ export const TaxReceiptDesk: React.FC = () => {
           >
             Open Settings → 80G
           </button>
+        </div>
+      )}
+      {/* M-18: receipt-number integrity — surface gaps/duplicates honestly */}
+      {(receiptIntegrity.gaps80G.length > 0 || receiptIntegrity.gapsChanda.length > 0 || receiptIntegrity.duplicates.length > 0) && (
+        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-rose-900 leading-relaxed">
+            <p className="font-black uppercase tracking-wide mb-1">Receipt series integrity — review needed ({receiptIntegrity.year})</p>
+            {receiptIntegrity.gaps80G.length > 0 && (
+              <p>Missing 80G sequence numbers: <strong>{receiptIntegrity.gaps80G.map((s) => formatReceiptNumber('SB-80G', receiptIntegrity.year, s)).join(', ')}</strong></p>
+            )}
+            {receiptIntegrity.gapsChanda.length > 0 && (
+              <p>Missing Chanda sequence numbers: <strong>{receiptIntegrity.gapsChanda.map((s) => formatReceiptNumber('SB-CHANDA', receiptIntegrity.year, s)).join(', ')}</strong></p>
+            )}
+            {receiptIntegrity.duplicates.length > 0 && (
+              <p>Duplicate receipt numbers: <strong>{receiptIntegrity.duplicates.join(', ')}</strong></p>
+            )}
+            <p className="mt-1 text-rose-700">A gap is a flag for review — it can come from a voided receipt or two devices issuing offline — not proof of fraud.</p>
+          </div>
         </div>
       )}
       {/* Enterprise Header */}
