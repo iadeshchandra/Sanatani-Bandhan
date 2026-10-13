@@ -14,6 +14,9 @@ import { Sidebar } from './components/common/Sidebar';
 import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
+import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
+import { PurohitReviewQueue } from './admin/PurohitReviewQueue';
+import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { QuickGuideModal } from './components/common/QuickGuideModal';
 import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
 import { QuickGuideProvider, useQuickGuide } from './context/QuickGuideContext';
@@ -28,7 +31,6 @@ import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
 import { SmartLoginRouter } from './components/public/SmartLoginRouter';
 import { PortalLogin } from './components/public/PortalLogin';
-import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { isModuleAllowed } from './lib/workspaceRegistry';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
@@ -904,7 +906,8 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   if (isAuthenticated) {
     // Firebase Auth check bypassed to allow mock auth
     // if (!firebaseUser) { ... }
-    return <AppContent />;
+    // Purohit One: the router enforces session-kind isolation.
+    return <AppContentRouter />;
   }
 
   // Test harness for the first-run Setup Wizard (QA only): visit any page with
@@ -990,6 +993,20 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   );
 };
 
+/**
+ * PUROHIT ONE HARD GUARD. Routes between the two mutually-exclusive session
+ * kinds. A purohit-personal session renders ONLY the purohit workspace
+ * shell — no org switcher, no workspace desks, no org data — and org
+ * sessions can never reach purohit-personal routes. Single branch point.
+ */
+const AppContentRouter: React.FC = () => {
+  const { sessionKind } = useAuthWorkspace();
+  if (sessionKind === 'purohit') {
+    return <PurohitWorkspaceShell />;
+  }
+  return <AppContent />;
+};
+
 const AppRouter: React.FC = () => {
   return (
     <LanguageProvider>
@@ -1033,6 +1050,7 @@ const AppRouter: React.FC = () => {
           >
             <Route element={<SuperAdminDashboard />} index />
             <Route element={<GlobalAnalytics />} path="analytics" />
+            <Route element={<PurohitReviewQueue />} path="purohit-reviews" />
           </Route>
           <Route path="/devotee" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
           <Route path="/devotee-portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />

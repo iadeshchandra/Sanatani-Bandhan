@@ -201,6 +201,18 @@ export interface AuthWorkspaceContextType {
   isAuthenticated: boolean;
   viewMode: 'MANAGER' | 'MEMBER';
   setViewMode: (mode: 'MANAGER' | 'MEMBER') => void;
+  /**
+   * Purohit One session isolation.
+   * 'org' = normal organisation/devotee session. 'purohit' = independent
+   * purohit personal workspace. When 'purohit', AppContent renders ONLY the
+   * purohit shell — no org switcher, no workspace desks, no org data. The two
+   * sessions are mutually exclusive by construction (a single early-return
+   * branch in AppContent), so neither can leak into the other.
+   */
+  sessionKind: 'org' | 'purohit';
+  purohitProfile: import('../types/purohit').PurohitIdentity | null;
+  enterPurohitSession: (profile: import('../types/purohit').PurohitIdentity) => void;
+  exitPurohitSession: () => void;
   updateWorkspaceType: (newType: WorkspaceType) => void;
   switchRole: (role: UserRole) => void;
   updateCurrentUserRole?: (role: UserRole) => void;
@@ -252,6 +264,36 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     return initialData.sanatani_workspaces || INITIAL_WORKSPACES;
   });
   const [viewMode, setViewMode] = useState<'MANAGER' | 'MEMBER'>('MEMBER');
+  // Purohit One: independent-purohit session. Mutually exclusive with org
+  // sessions — see the AppContent guard. Persisted so a refresh keeps the
+  // purohit in their personal workspace (profile rehydrated by PurohitContext).
+  const [sessionKind, setSessionKind] = useState<'org' | 'purohit'>(() => {
+    try {
+      return (localStorage.getItem('sb_session_kind') as 'org' | 'purohit') || 'org';
+    } catch {
+      return 'org';
+    }
+  });
+  const [purohitProfile, setPurohitProfile] = useState<import('../types/purohit').PurohitIdentity | null>(null);
+
+  const enterPurohitSession = (profile: import('../types/purohit').PurohitIdentity) => {
+    setPurohitProfile(profile);
+    setSessionKind('purohit');
+    try {
+      localStorage.setItem('sb_session_kind', 'purohit');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const exitPurohitSession = () => {
+    setPurohitProfile(null);
+    setSessionKind('org');
+    try {
+      localStorage.removeItem('sb_session_kind');
+    } catch {
+      /* storage unavailable */
+    }
+  };
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(() => {
     return initialData.sanatani_active_workspace_id || 'DEMO_ws-mandir';
   });
@@ -1022,6 +1064,14 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem('sanatani_user_role');
     setWorkspaceId('DEMO_ws-mandir');
     setActiveWorkspaceId('DEMO_ws-mandir');
+    // Purohit One: a purohit-personal session must never survive logout.
+    setPurohitProfile(null);
+    setSessionKind('org');
+    try {
+      localStorage.removeItem('sb_session_kind');
+    } catch {
+      /* storage unavailable */
+    }
   };
 
   const saveCustomLogo = (base64: string) => {
@@ -1094,6 +1144,10 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated,
         viewMode,
         setViewMode,
+        sessionKind,
+        purohitProfile,
+        enterPurohitSession,
+        exitPurohitSession,
         updateWorkspaceType,
         switchRole,
         updateCurrentUserRole: switchRole,
