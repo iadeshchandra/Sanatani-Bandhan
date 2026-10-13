@@ -28,10 +28,12 @@ import { TreasuryTransaction } from '../../types';
 import { isValidPAN } from '../../utils/validation';
 import { DataExportButton } from '../common/DataExportButton';
 import { findReceiptGaps, findDuplicateReceipts, formatReceiptNumber } from '../../utils/receiptNumbers';
+import { downloadAuditPack } from '../../utils/auditPack';
 
 export const TaxReceiptDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
-  const { treasury, donations, updateTreasuryTransaction } = useData();
+  const { treasury, donations, assets, updateTreasuryTransaction } = useData();
+  const [isAuditPacking, setIsAuditPacking] = useState(false);
   const { showToast } = useToast();
 
   // Combined records from donations or treasury
@@ -57,6 +59,20 @@ export const TaxReceiptDesk: React.FC = () => {
     const duplicates = findDuplicateReceipts(numbers);
     return { year, gaps80G, gapsChanda, duplicates };
   }, [treasury]);
+
+  // P2: one-click audit pack — ledger + 80G register + 10BD donors + assets + cover, as ZIP.
+  const handleAuditPack = async () => {
+    if (isAuditPacking) return;
+    setIsAuditPacking(true);
+    try {
+      const summary = await downloadAuditPack({ treasury: treasury || [], assets: assets || [], workspace: activeWorkspace as any });
+      showToast(`Audit pack downloaded — ${summary}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not build the audit pack.', 'error');
+    } finally {
+      setIsAuditPacking(false);
+    }
+  };
 
   // PDF Preview Modal State
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
@@ -331,6 +347,16 @@ export const TaxReceiptDesk: React.FC = () => {
               category: tx.category || '',
             }))}
           />
+          <button
+            type="button"
+            onClick={handleAuditPack}
+            disabled={isAuditPacking || (treasury || []).length === 0}
+            title="Download ZIP: treasury ledger, 80G receipts, 10BD donor summary, asset inventory + cover summary"
+            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-700/30 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileText className="w-4 h-4" />
+            <span>{isAuditPacking ? 'Building Audit Pack...' : 'Download Audit Pack (ZIP)'}</span>
+          </button>
           <button
             type="button"
             onClick={handleBulkGenerate}
