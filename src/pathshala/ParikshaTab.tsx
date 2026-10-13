@@ -2,17 +2,26 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Plus, Download, Upload, Printer, Award, FileText } from 'lucide-react';
 import { usePathshala } from './pathshalaStore';
 import { useData } from '../context/DataContext';
-import { Card, Bn, Btn, Field, inputCls, Empty, Modal } from './ui';
-import { todayISO, toBnDigits, inr, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
+import { Card, T, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
+import { todayISO, inr, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
 
 /* Checklist #4 — ফলাফল: marks entry (Excel/CSV), 1-page + 2-page report
    cards, varga-wise results, merit list (medhakrom), result summary. */
 
 const gradeOf = (pct: number): string =>
   pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B+' : pct >= 60 ? 'B' : pct >= 50 ? 'C' : pct >= 40 ? 'D' : 'F';
-const GRADE_BN: Record<string, string> = { 'A+': 'অতি উত্তম', A: 'উত্তম', 'B+': 'ভালো', B: 'মোটামুটি', C: 'চলনসই', D: 'দুর্বল', F: 'অকৃতকার্য' };
+const GRADE_LABEL: Record<string, { en: string; bn: string }> = {
+  'A+': { en: 'Outstanding', bn: 'অতি উত্তম' }, A: { en: 'Excellent', bn: 'উত্তম' },
+  'B+': { en: 'Good', bn: 'ভালো' }, B: { en: 'Average', bn: 'মোটামুটি' },
+  C: { en: 'Fair', bn: 'চলনসই' }, D: { en: 'Weak', bn: 'দুর্বল' }, F: { en: 'Fail', bn: 'অকৃতকার্য' },
+};
+const gradeLabel = (g: string, lang: string): string => {
+  const e = GRADE_LABEL[g]; if (!e) return g;
+  return lang === 'bn' ? e.bn : e.en;
+};
 
 export const ParikshaTab: React.FC = () => {
+  const { digits, lang, tr } = useLocaleText();
   const { state, add, update, remove } = usePathshala();
   const { gurukulStudents } = useData();
   const [parikshaId, setParikshaId] = useState(state.parikshas[0]?.id || '');
@@ -45,7 +54,7 @@ export const ParikshaTab: React.FC = () => {
   }, [pariksha, students, subjects, state.marks]);
 
   const createPariksha = () => {
-    if (!newP.name.trim() || !newP.vargaId) { alert('নাম ও বর্গ দিন'); return; }
+    if (!newP.name.trim() || !newP.vargaId) { alert(tr('pathshala.pariksha.enter_name_varga', 'Enter name and varga', 'নাম ও বর্গ দিন', 'नाम व वर्ग दें')); return; }
     const id = uid('par');
     add('parikshas', { id, ...newP });
     setParikshaId(id); setShowNew(false);
@@ -71,7 +80,7 @@ export const ParikshaTab: React.FC = () => {
       });
     }
     void head;
-    alert(`${toBnDigits(n)}টি নম্বর যোগ হয়েছে`);
+    alert(`${digits(n)} ${tr('pathshala.pariksha.marks_added', 'marks added', 'টি নম্বর যোগ হয়েছে', 'अंक जोड़े गए')}`);
   };
 
   const summary = useMemo(() => {
@@ -84,7 +93,7 @@ export const ParikshaTab: React.FC = () => {
     return { subStats, passed, passPct: students.length ? Math.round((passed / students.length) * 100) : 0 };
   }, [pariksha, subjects, students, state.marks, totals]);
 
-  if (!pariksha) return <Empty text="কোনো পরীক্ষা তৈরি হয়নি — নতুন পরীক্ষা যোগ করুন" />;
+  if (!pariksha) return <Empty text={tr('pathshala.pariksha.no_exams', 'No exams created yet — add a new exam', 'কোনো পরীক্ষা তৈরি হয়নি — নতুন পরীক্ষা যোগ করুন', 'अभी तक कोई परीक्षा नहीं — नई परीक्षा जोड़ें')} />;
 
   const rcStudent = reportCard ? students.find((s) => s.id === reportCard.sid) : null;
   const rcTotals = reportCard ? totals.find((t) => t.s.id === reportCard.sid) : null;
@@ -92,40 +101,40 @@ export const ParikshaTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-bold text-stone-800"><Bn bn="পরীক্ষা ও ফলাফল" en="Pariksha — results" /></h2>
+        <h2 className="text-lg font-bold text-stone-800"><T bn="পরীক্ষা ও ফলাফল" en="Pariksha — results" /></h2>
         <div className="flex gap-2 no-print flex-wrap">
           <select value={pariksha.id} onChange={(e) => setParikshaId(e.target.value)} className={`${inputCls} !w-52`}>
             {state.parikshas.map((p) => <option key={p.id} value={p.id}>{p.nameBn || p.name}</option>)}
           </select>
-          <Btn variant="ghost" onClick={() => setShowNew(true)}><Plus className="w-4 h-4" /> নতুন পরীক্ষা</Btn>
+          <Btn variant="ghost" onClick={() => setShowNew(true)}><Plus className="w-4 h-4" /> {tr('pathshala.pariksha.new_exam', 'New exam', 'নতুন পরীক্ষা', 'नई परीक्षा')}</Btn>
         </div>
       </div>
 
       {showNew && (
-        <Modal title={<Bn bn="নতুন পরীক্ষা" en="New pariksha" />} onClose={() => setShowNew(false)}>
+        <Modal title={<T bn="নতুন পরীক্ষা" en="New pariksha" />} onClose={() => setShowNew(false)}>
           <div className="grid sm:grid-cols-2 gap-3">
-            <Field label={<Bn bn="নাম (English)" en="Name" />}><input value={newP.name} onChange={(e) => setNewP({ ...newP, name: e.target.value })} className={inputCls} placeholder="Dwitiya Pariksha" /></Field>
-            <Field label={<Bn bn="নাম (বাংলা)" en="Bengali name" />}><input value={newP.nameBn} onChange={(e) => setNewP({ ...newP, nameBn: e.target.value })} className={inputCls} placeholder="দ্বিতীয় পরীক্ষা" /></Field>
-            <Field label={<Bn bn="বর্গ" en="Varga" />}><select value={newP.vargaId} onChange={(e) => setNewP({ ...newP, vargaId: e.target.value })} className={inputCls}>{state.vargas.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></Field>
-            <Field label={<Bn bn="শুরু" en="Start date" />}><input type="date" value={newP.startDate} onChange={(e) => setNewP({ ...newP, startDate: e.target.value })} className={inputCls} /></Field>
+            <Field label={<T bn="নাম (English)" en="Name" />}><input value={newP.name} onChange={(e) => setNewP({ ...newP, name: e.target.value })} className={inputCls} placeholder="Dwitiya Pariksha" /></Field>
+            <Field label={<T bn="নাম (বাংলা)" en="Bengali name" />}><input value={newP.nameBn} onChange={(e) => setNewP({ ...newP, nameBn: e.target.value })} className={inputCls} placeholder="দ্বিতীয় পরীক্ষা" /></Field>
+            <Field label={<T bn="বর্গ" en="Varga" />}><select value={newP.vargaId} onChange={(e) => setNewP({ ...newP, vargaId: e.target.value })} className={inputCls}>{state.vargas.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></Field>
+            <Field label={<T bn="শুরু" en="Start date" />}><input type="date" value={newP.startDate} onChange={(e) => setNewP({ ...newP, startDate: e.target.value })} className={inputCls} /></Field>
           </div>
-          <div className="flex gap-2 mt-3"><Btn onClick={createPariksha}>তৈরি করুন</Btn><Btn variant="ghost" onClick={() => setShowNew(false)}>বাতিল</Btn></div>
+          <div className="flex gap-2 mt-3"><Btn onClick={createPariksha}>{tr('pathshala.pariksha.create', 'Create', 'তৈরি করুন', 'बनाएँ')}</Btn><Btn variant="ghost" onClick={() => setShowNew(false)}>{tr('pathshala.pariksha.cancel', 'Cancel', 'বাতিল', 'रद्द करें')}</Btn></div>
         </Modal>
       )}
 
       {/* marks entry */}
       <Card>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="font-bold text-stone-800"><Bn bn="নম্বর এন্ট্রি" en="Marks entry" /> <span className="text-xs text-stone-500 font-normal">— {pariksha.nameBn || pariksha.name}</span></h3>
+          <h3 className="font-bold text-stone-800"><T bn="নম্বর এন্ট্রি" en="Marks entry" /> <span className="text-xs text-stone-500 font-normal">— {pariksha.nameBn || pariksha.name}</span></h3>
           <div className="flex gap-2 no-print">
             <Btn variant="ghost" onClick={exportMarks}><Download className="w-4 h-4" /> Excel/CSV</Btn>
-            <Btn variant="ghost" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4" /> ইমপোর্ট</Btn>
+            <Btn variant="ghost" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4" /> {tr('pathshala.pariksha.import', 'Import', 'ইমপোর্ট', 'इम्पोर्ट')}</Btn>
             <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importMarks(f); e.target.value = ''; }} />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="text-sm w-full">
-            <thead><tr className="text-left text-xs text-stone-500 border-b"><th className="py-2 pr-2 sticky left-0 bg-white">শিষ্য</th>{subjects.map((s) => <th key={s.id} className="py-2 pr-2 min-w-[90px]">{s.nameBn}<br /><span className="font-normal">{s.name}</span></th>)}<th className="py-2">মোট</th></tr></thead>
+            <thead><tr className="text-left text-xs text-stone-500 border-b"><th className="py-2 pr-2 sticky left-0 bg-white">{tr('pathshala.pariksha.shishya', 'Shishya', 'শিষ্য', 'शिष्य')}</th>{subjects.map((s) => <th key={s.id} className="py-2 pr-2 min-w-[90px]">{s.nameBn}<br /><span className="font-normal">{s.name}</span></th>)}<th className="py-2">মোট</th></tr></thead>
             <tbody>
               {students.map((s) => {
                 const t = totals.find((x) => x.s.id === s.id);
@@ -139,44 +148,44 @@ export const ParikshaTab: React.FC = () => {
                           className="w-16 rounded-lg border border-stone-300 px-2 py-1 text-sm text-center" />
                       </td>
                     ))}
-                    <td className="py-1 font-bold">{t ? toBnDigits(t.total) : '—'}</td>
+                    <td className="py-1 font-bold">{t ? digits(t.total) : '—'}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {!students.length && <Empty text="এই বর্গে কোনো শিষ্য নেই" />}
+          {!students.length && <Empty text={tr('pathshala.pariksha.no_shishya_varga', 'No shishya in this varga', 'এই বর্গে কোনো শিষ্য নেই', 'इस वर्ग में कोई शिष्य नहीं')} />}
         </div>
       </Card>
 
       {/* merit list + summary */}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <h3 className="font-bold text-stone-800 mb-3 flex items-center gap-2"><Award className="w-5 h-5 text-amber-600" /><Bn bn="মেধাক্রম" en="Merit list" /></h3>
+          <h3 className="font-bold text-stone-800 mb-3 flex items-center gap-2"><Award className="w-5 h-5 text-amber-600" /><T bn="মেধাক্রম" en="Merit list" /></h3>
           <div className="space-y-1.5">
             {totals.slice(0, 10).map((t, i) => (
               <div key={t.s.id} className="flex items-center gap-3 border-b border-stone-100 py-1.5">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold ${i < 3 ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600'}`}>{toBnDigits(i + 1)}</span>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-extrabold ${i < 3 ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600'}`}>{digits(i + 1)}</span>
                 <div className="flex-1"><div className="font-semibold text-sm">{t.s.studentName}</div><div className="text-xs text-stone-500">{t.s.rollNo}</div></div>
-                <div className="text-right"><div className="font-bold">{toBnDigits(t.total)}</div><div className="text-xs text-stone-500">{t.grade} • {toBnDigits(Math.round(t.pct))}%</div></div>
-                <button onClick={() => setReportCard({ sid: t.s.id, pages: 1 })} className="text-xs font-bold text-amber-700 hover:underline no-print">কার্ড</button>
+                <div className="text-right"><div className="font-bold">{digits(t.total)}</div><div className="text-xs text-stone-500">{t.grade} • {digits(Math.round(t.pct))}%</div></div>
+                <button onClick={() => setReportCard({ sid: t.s.id, pages: 1 })} className="text-xs font-bold text-amber-700 hover:underline no-print">{tr('pathshala.pariksha.card', 'Card', 'কার্ড', 'कार्ड')}</button>
               </div>
             ))}
           </div>
         </Card>
         <Card>
-          <h3 className="font-bold text-stone-800 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-600" /><Bn bn="ফলাফল সারসংক্ষেপ" en="Result summary" /></h3>
+          <h3 className="font-bold text-stone-800 mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-indigo-600" /><T bn="ফলাফল সারসংক্ষেপ" en="Result summary" /></h3>
           {summary && (
             <>
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="bg-stone-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold">{toBnDigits(students.length)}</div><div className="text-xs text-stone-500">পরীক্ষার্থী</div></div>
-                <div className="bg-emerald-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold text-emerald-700">{toBnDigits(summary.passed)}</div><div className="text-xs text-stone-500">উত্তীর্ণ</div></div>
-                <div className="bg-amber-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold text-amber-700">{toBnDigits(summary.passPct)}%</div><div className="text-xs text-stone-500">পাশের হার</div></div>
+                <div className="bg-stone-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold">{digits(students.length)}</div><div className="text-xs text-stone-500">{tr('pathshala.pariksha.examinees', 'Examinees', 'পরীক্ষার্থী', 'परीक्षार्थी')}</div></div>
+                <div className="bg-emerald-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold text-emerald-700">{digits(summary.passed)}</div><div className="text-xs text-stone-500">{tr('pathshala.pariksha.passed', 'Passed', 'উত্তীর্ণ', 'उत्तीर्ण')}</div></div>
+                <div className="bg-amber-50 rounded-xl p-3 text-center"><div className="text-xl font-extrabold text-amber-700">{digits(summary.passPct)}%</div><div className="text-xs text-stone-500">{tr('pathshala.pariksha.pass_rate', 'Pass rate', 'পাশের হার', 'उत्तीर्णता दर')}</div></div>
               </div>
               <table className="w-full text-sm">
-                <thead><tr className="text-left text-xs text-stone-500 border-b">{['বিষয়', 'গড়', 'সর্বোচ্চ', 'সর্বনিম্ন'].map((h) => <th key={h} className="py-1 pr-2">{h}</th>)}</tr></thead>
+                <thead><tr className="text-left text-xs text-stone-500 border-b">{[tr('pathshala.pariksha.subject', 'Subject', 'বিষয়', 'विषय'), tr('pathshala.pariksha.average', 'Average', 'গড়', 'औसत'), tr('pathshala.pariksha.highest', 'Highest', 'সর্বোচ্চ', 'सर्वाधिक'), tr('pathshala.pariksha.lowest', 'Lowest', 'সর্বনিম্ন', 'न्यूनतम')].map((h) => <th key={h} className="py-1 pr-2">{h}</th>)}</tr></thead>
                 <tbody>{summary.subStats.map((x) => (
-                  <tr key={x.sub.id} className="border-b border-stone-100"><td className="py-1 pr-2 font-semibold">{x.sub.nameBn}</td><td className="py-1 pr-2">{toBnDigits(Math.round(x.avg))}</td><td className="py-1 pr-2 text-emerald-700 font-bold">{toBnDigits(x.high)}</td><td className="py-1 pr-2 text-red-600">{toBnDigits(x.low)}</td></tr>
+                  <tr key={x.sub.id} className="border-b border-stone-100"><td className="py-1 pr-2 font-semibold">{x.sub.nameBn}</td><td className="py-1 pr-2">{digits(Math.round(x.avg))}</td><td className="py-1 pr-2 text-emerald-700 font-bold">{digits(x.high)}</td><td className="py-1 pr-2 text-red-600">{digits(x.low)}</td></tr>
                 ))}</tbody>
               </table>
             </>
@@ -186,49 +195,49 @@ export const ParikshaTab: React.FC = () => {
 
       {/* report card modal */}
       {reportCard && rcStudent && rcTotals && (
-        <Modal title={<Bn bn="শিখন অগ্রগতি প্রতিবেদন" en="Progress report card" />} onClose={() => setReportCard(null)} wide>
+        <Modal title={<T bn="শিখন অগ্রগতি প্রতিবেদন" en="Progress report card" />} onClose={() => setReportCard(null)} wide>
           <div className="flex gap-2 mb-3 no-print">
-            <Btn variant="ghost" onClick={() => setReportCard({ ...reportCard, pages: 1 })} className={reportCard.pages === 1 ? '!bg-amber-100' : ''}>১ পৃষ্ঠা</Btn>
-            <Btn variant="ghost" onClick={() => setReportCard({ ...reportCard, pages: 2 })} className={reportCard.pages === 2 ? '!bg-amber-100' : ''}>২ পৃষ্ঠা</Btn>
-            <Btn onClick={() => window.print()}><Printer className="w-4 h-4" /> প্রিন্ট</Btn>
+            <Btn variant="ghost" onClick={() => setReportCard({ ...reportCard, pages: 1 })} className={reportCard.pages === 1 ? '!bg-amber-100' : ''}>{tr('pathshala.pariksha.one_page', '1 page', '১ পৃষ্ঠা', '१ पृष्ठ')}</Btn>
+            <Btn variant="ghost" onClick={() => setReportCard({ ...reportCard, pages: 2 })} className={reportCard.pages === 2 ? '!bg-amber-100' : ''}>{tr('pathshala.pariksha.two_page', '2 pages', '২ পৃষ্ঠা', '२ पृष्ठ')}</Btn>
+            <Btn onClick={() => window.print()}><Printer className="w-4 h-4" /> {tr('pathshala.pariksha.print', 'Print', 'প্রিন্ট', 'प्रिंट')}</Btn>
           </div>
           <div className="print-area rounded-xl border p-5">
-            <h2 className="text-center font-extrabold text-xl">॥ শিখন অগ্রগতি প্রতিবেদন ॥</h2>
+            <h2 className="text-center font-extrabold text-xl">॥ {tr('pathshala.pariksha.progress_report', 'Progress report card', 'শিখন অগ্রগতি প্রতিবেদন', 'प्रगति पत्रक')} ॥</h2>
             <p className="text-center text-sm mb-3">Progress Report — {pariksha.nameBn || pariksha.name} ({pariksha.term})</p>
             <table className="mb-3">
               <tbody>
-                <tr><td><b>নাম</b></td><td>{rcStudent.studentName}</td><td><b>রোল</b></td><td>{rcStudent.rollNo}</td></tr>
-                <tr><td><b>বর্গ</b></td><td>{state.vargas.find((v) => v.id === pariksha.vargaId)?.name}</td><td><b>অভিভাবক</b></td><td>{rcStudent.guardianName}</td></tr>
+                <tr><td><b>{tr('pathshala.pariksha.name', 'Name', 'নাম', 'नाम')}</b></td><td>{rcStudent.studentName}</td><td><b>{tr('pathshala.pariksha.roll', 'Roll', 'রোল', 'रोल')}</b></td><td>{rcStudent.rollNo}</td></tr>
+                <tr><td><b>{tr('pathshala.pariksha.varga', 'Varga', 'বর্গ', 'वर्ग')}</b></td><td>{state.vargas.find((v) => v.id === pariksha.vargaId)?.name}</td><td><b>{tr('pathshala.pariksha.guardian', 'Guardian', 'অভিভাবক', 'अभिभावक')}</b></td><td>{rcStudent.guardianName}</td></tr>
               </tbody>
             </table>
             <table>
-              <thead><tr><th>বিষয় (Subject)</th><th>পূর্ণমান</th><th>প্রাপ্ত</th><th>গ্রেড</th></tr></thead>
+              <thead><tr><th>{tr('pathshala.pariksha.subject', 'Subject', 'বিষয়', 'विषय')}</th><th>{tr('pathshala.pariksha.full_marks', 'Full marks', 'পূর্ণমান', 'पूर्णांक')}</th><th>{tr('pathshala.pariksha.obtained', 'Obtained', 'প্রাপ্ত', 'प्राप्तांक')}</th><th>{tr('pathshala.pariksha.grade', 'Grade', 'গ্রেড', 'ग्रेड')}</th></tr></thead>
               <tbody>
                 {subjects.map((sub) => {
                   const m = markOf(rcStudent.id, sub.id)?.marks ?? 0;
-                  return (<tr key={sub.id}><td>{sub.nameBn} ({sub.name})</td><td>১০০</td><td>{toBnDigits(m)}</td><td>{gradeOf(m)}</td></tr>);
+                  return (<tr key={sub.id}><td>{lang === 'bn' ? `${sub.nameBn || sub.name} (${sub.name})` : (sub.name || sub.nameBn)}</td><td>{digits(100)}</td><td>{digits(m)}</td><td>{gradeOf(m)}</td></tr>);
                 })}
-                <tr><td><b>মোট</b></td><td><b>{toBnDigits(subjects.length * 100)}</b></td><td><b>{toBnDigits(rcTotals.total)}</b></td><td><b>{rcTotals.grade} ({GRADE_BN[rcTotals.grade]})</b></td></tr>
+                <tr><td><b>{tr('pathshala.pariksha.total', 'Total', 'মোট', 'कुल')}</b></td><td><b>{digits(subjects.length * 100)}</b></td><td><b>{digits(rcTotals.total)}</b></td><td><b>{rcTotals.grade} ({gradeLabel(rcTotals.grade, lang)})</b></td></tr>
               </tbody>
             </table>
-            <p className="mt-2 text-sm"><b>শতকরা:</b> {toBnDigits(Math.round(rcTotals.pct))}% • <b>মেধাক্রম:</b> {toBnDigits(totals.findIndex((t) => t.s.id === rcStudent.id) + 1)}</p>
+            <p className="mt-2 text-sm"><b>{tr('pathshala.pariksha.percentage', 'Percentage', 'শতকরা', 'प्रतिशत')}:</b> {digits(Math.round(rcTotals.pct))}% • <b>{tr('pathshala.pariksha.merit', 'Merit', 'মেধাক্রম', 'मेधा-क्रम')}:</b> {digits(totals.findIndex((t) => t.s.id === rcStudent.id) + 1)}</p>
             {reportCard.pages === 2 && (
               <>
-                <h3 className="font-bold mt-4 mb-1">দক্ষতা মূল্যায়ন (Skill assessment)</h3>
+                <h3 className="font-bold mt-4 mb-1">{tr('pathshala.pariksha.skill_assess', 'Skill assessment', 'দক্ষতা মূল্যায়ন', 'कौशल मूल्यांकन')}</h3>
                 <table>
-                  <thead><tr><th>দক্ষতা</th><th>গ্রেড</th></tr></thead>
+                  <thead><tr><th>{tr('pathshala.pariksha.skill', 'Skill', 'দক্ষতা', 'कौशल')}</th><th>{tr('pathshala.pariksha.grade2', 'Grade', 'গ্রেড', 'ग्रेड')}</th></tr></thead>
                   <tbody>
                     {state.skills.filter((sk) => sk.vargaId === pariksha.vargaId).map((sk) => {
                       const g = state.skillGrades.find((r) => r.studentId === rcStudent.id && r.skillId === sk.id && r.term === pariksha.term);
-                      return (<tr key={sk.id}><td>{sk.nameBn} ({sk.name})</td><td>{g?.grade || '—'}</td></tr>);
+                      return (<tr key={sk.id}><td>{lang === 'bn' ? `${sk.nameBn || sk.name} (${sk.name})` : (sk.name || sk.nameBn)}</td><td>{g?.grade || '—'}</td></tr>);
                     })}
                   </tbody>
                 </table>
-                <h3 className="font-bold mt-4 mb-1">উপস্থিতি (Attendance)</h3>
-                <p className="text-sm">সর্বমোট উপস্থিতির হার: {toBnDigits(rcStudent.attendancePct || 0)}%</p>
+                <h3 className="font-bold mt-4 mb-1">{tr('pathshala.pariksha.attendance', 'Attendance', 'উপস্থিতি', 'उपस्थिति')}</h3>
+                <p className="text-sm">{tr('pathshala.pariksha.att_rate', 'Overall attendance rate', 'সর্বমোট উপস্থিতির হার', 'कुल उपस्थिति दर')}: {digits(rcStudent.attendancePct || 0)}%</p>
                 <div className="grid grid-cols-2 gap-8 mt-8 text-sm">
-                  <div><div className="border-t border-black pt-1">শ্রেণি শিক্ষকের স্বাক্ষর</div></div>
-                  <div><div className="border-t border-black pt-1">আচার্যের স্বাক্ষর ও সিলমোহর</div></div>
+                  <div><div className="border-t border-black pt-1">{tr('pathshala.pariksha.class_teacher_sign', 'Class teacher\'s signature', 'শ্রেণি শিক্ষকের স্বাক্ষর', 'कक्षा अध्यापक के हस्ताक्षर')}</div></div>
+                  <div><div className="border-t border-black pt-1">{tr('pathshala.pariksha.acharya_sign_seal', 'Acharya\'s signature & seal', 'আচার্যের স্বাক্ষর ও সিলমোহর', 'आचार्य के हस्ताक्षर व मुहर')}</div></div>
                 </div>
               </>
             )}
