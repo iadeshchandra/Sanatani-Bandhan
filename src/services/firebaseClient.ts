@@ -20,17 +20,12 @@ export const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig
 export const auth: Auth = getAuth(app);
 export { db };
 
-// Proactively ensure anonymous authentication session for sandboxed & demo access
-if (typeof window !== 'undefined') {
-  auth.onAuthStateChanged((user) => {
-    if (!user) {
-      import('firebase/auth').then(({ signInAnonymously }) => {
-        signInAnonymously(auth).catch(() => {
-          // Graceful fallback in offline or sandboxed mode
-        });
-      });
-    }
-  });
-}
+// NOTE: a previous version of this module proactively signed in anonymously
+// whenever Firebase Auth had no user. That broke logout -> signup: the
+// "Create Free Account" flow calls signOut(), the listener instantly
+// re-signed-in anonymously, and the signup screen was yanked away into the
+// app as a Devotee before the visitor could type anything. Demo entry
+// already signs in anonymously explicitly via loginAsRole(), so this
+// listener is redundant as well as harmful. Do NOT re-add it.
 
 export default app;
