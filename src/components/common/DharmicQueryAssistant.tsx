@@ -176,7 +176,7 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
             `Ask any question regarding fasting rules, aarti timings, puja samagri, or scripture pramanas.`
           ],
           moduleActions: [
-            { label: 'Check Live Panjika', targetModule: 'panchang-muhurat', tip: 'View detailed Muhurat & Choghadiya' },
+            { label: 'Check Live Panchang', targetModule: 'panchang-muhurat', tip: 'View detailed Muhurat & Choghadiya' },
             { label: 'Book Puja Sankalp', targetModule: 'pooja-booking', tip: 'Reserve sacred ritual slot' },
             { label: 'Daily Aarti Roster', targetModule: 'aarti-roster', tip: 'View priest & seva duties' }
           ],
@@ -300,7 +300,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
           `Consult the temple Purohit desk or visit the Pooja Booking counter for custom Sankalp arrangements.`
         ],
         moduleActions: [
-          { label: 'Check Live Panjika', targetModule: 'panchang-muhurat', tip: 'View Rahu Kaal & Muhurat' },
+          { label: 'Check Live Panchang', targetModule: 'panchang-muhurat', tip: 'View Rahu Kaal & Muhurat' },
           { label: 'Pooja Booking Desk', targetModule: 'pooja-booking', tip: 'Book Sankalp slot' }
         ],
         suggestedQueries: [
