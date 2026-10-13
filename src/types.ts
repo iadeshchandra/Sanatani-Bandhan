@@ -148,15 +148,19 @@ export interface BranchInfo {
 /**
  * Per-branch RBAC (v2). One entry scopes a single member (login user) to a
  * subset of the workspace's branches. This is the "workspace member record"
- * for branch access: absent entry — or an entry with empty/undefined
- * branchIds — means ALL branches (fully backward compatible).
+ * for branch access. ALLOWLIST semantics (deny-by-default, 2026-10-13): when
+ * the workspace has ANY branchAccess entries, only listed members may see
+ * branch records — an identity with no entry, or an entry with
+ * empty/undefined branchIds, sees ZERO branches. Workspaces with no
+ * branchAccess configured at all remain fully backward compatible
+ * (everyone unrestricted).
  */
 export interface BranchMemberAccess {
   /** Member identifier: Firebase uid or login email (matched case-insensitively for email). */
   memberId: string;
   /** Display label shown in the Trustee management UI (name or email). */
   label?: string;
-  /** Branch ids this member may access. Empty/undefined = all branches. */
+  /** Branch ids this member may access. Empty/undefined = no branches (deny-by-default). */
   branchIds?: string[];
 }
 

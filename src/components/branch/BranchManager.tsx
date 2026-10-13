@@ -64,20 +64,16 @@ export const BranchManager: React.FC = () => {
 
   const handleRemoveMember = (memberId: string) => {
     persistAccess(branchAccess.filter((e) => e.memberId !== memberId));
-    showToast('Branch restriction removed — member sees all branches again.', 'success');
+    showToast('Member removed from the allowlist — they no longer have branch access.', 'success');
   };
 
   const toggleMemberBranch = (memberId: string, branchId: string) => {
     const next = branchAccess.map((e) => {
       if (e.memberId !== memberId) return e;
-      // No explicit list (or empty) = all branches: materialise before toggling.
-      const current =
-        e.branchIds && e.branchIds.length > 0 ? e.branchIds : branches.map((b) => b.id);
+      // Allowlist: an empty/missing list grants NO branches. Toggling adds or
+      // removes a single grant; unticking the last branch suspends access.
+      const current = e.branchIds || [];
       const has = current.includes(branchId);
-      if (has && current.length === 1) {
-        showToast('Keep at least one branch — or remove the member to restore full access.', 'error');
-        return e;
-      }
       return {
         ...e,
         branchIds: has ? current.filter((id) => id !== branchId) : [...current, branchId],
@@ -87,8 +83,8 @@ export const BranchManager: React.FC = () => {
   };
 
   const memberCanSee = (entry: BranchMemberAccess, branchId: string): boolean => {
-    if (!entry.branchIds || entry.branchIds.length === 0) return true;
-    return entry.branchIds.includes(branchId);
+    // Allowlist: only explicitly ticked branches are visible.
+    return !!entry.branchIds && entry.branchIds.includes(branchId);
   };
 
   const persist = (next: BranchInfo[]) => {
@@ -292,9 +288,10 @@ export const BranchManager: React.FC = () => {
             <ShieldCheck size={14} /> Branch access
           </h5>
           <p className="text-[11px] text-gray-500 font-medium mb-4 leading-relaxed">
-            Restrict a member to specific branches — e.g. the Ayodhya manager sees
-            only Ayodhya. Members without an entry below see every branch.
-            Enforced in the data layer, not just the UI.
+            Branch allowlist — only members listed below can see branch records.
+            Anyone not listed sees no branch data (deny-by-default). Tick
+            branches to grant access; untick every branch to suspend a member
+            without removing them. Enforced in the data layer, not just the UI.
           </p>
 
           {branchAccess.length > 0 && (
@@ -317,7 +314,7 @@ export const BranchManager: React.FC = () => {
                       type="button"
                       onClick={() => handleRemoveMember(entry.memberId)}
                       className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer"
-                      title="Remove restriction (member sees all branches again)"
+                      title="Remove member (revokes all branch access)"
                     >
                       <UserMinus size={14} />
                     </button>

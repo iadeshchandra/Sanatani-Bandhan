@@ -7,6 +7,7 @@ import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { DeskErrorBoundary } from './components/common/DeskErrorBoundary';
 import { AppInitializer } from './context/AppInitializer';
 import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
@@ -36,7 +37,7 @@ import { SmartLoginRouter } from './components/public/SmartLoginRouter';
 import { PortalLogin } from './components/public/PortalLogin';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
-import { WorkspaceType, WorkspaceConfig, UserRole } from './types';
+import { WorkspaceType, WorkspaceConfig } from './types';
 import { AdminLayout } from './admin/AdminLayout';
 import { SuperAdminDashboard } from './admin/SuperAdminDashboard';
 import { GlobalAnalytics } from './admin/GlobalAnalytics';
@@ -46,7 +47,6 @@ import { CommandPalette } from './components/common/CommandPalette';
 import { ConfirmProvider } from './components/common/ui';
 import { DemoBanner } from './components/public/DemoBanner';
 import { DemoTour } from './components/public/DemoTour';
-import { BranchSwitcher } from './components/branch/BranchSwitcher';
 import { DemoUpsellModal } from './components/public/DemoUpsellModal';
 import { SetupWizard } from './components/onboarding/SetupWizard';
 import { shouldShowWizard } from './components/onboarding/wizardDeskMap';
@@ -541,8 +541,6 @@ const AppContent: React.FC = () => {
       case 'legalVault':
       case 'auditLog':
         return checkPermission(['TRUSTEE', 'MANAGER']) ? <AuditLogDesk /> : <RestrictedAccess />;
-      case 'sevadarRoster':
-        return checkPermission(['TRUSTEE', 'MANAGER']) ? <SevadarRosterDesk /> : <RestrictedAccess />;
       case 'qrScanner':
         return checkPermission(['CSO', 'TRUSTEE', 'MANAGER', 'VOLUNTEER']) ? <QRScanner /> : <RestrictedAccess />;
       case 'appStore':
@@ -630,7 +628,16 @@ const AppContent: React.FC = () => {
                 <p className="text-slate-500 font-medium">Loading desk module...</p>
               </div>
             }>
-              {renderActiveDesk()}
+              {/* Per-desk error isolation: a desk crash is contained here while
+                  header/sidebar/navigation keep working. Keyed by desk id so
+                  navigating mounts a fresh boundary. */}
+              <DeskErrorBoundary
+                key={activeModule}
+                deskId={activeModule}
+                onBackToDashboard={() => setActiveModule('dashboard')}
+              >
+                {renderActiveDesk()}
+              </DeskErrorBoundary>
             </Suspense>
           </div>
         </main>
@@ -710,179 +717,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-
-/**
- * QA harness for role-based home screens (?rolehome=test&role=Priest).
- * Logs in as the requested role inside a demo workspace, then renders the
- * real DashboardHome. Unlinked in UI; mirrors the ?wizard=test precedent.
- */
-const RoleHomeTestHarness: React.FC = () => {
-  const { loginAsRole, currentRole } = useAuthWorkspace();
-  const roleParam =
-    (typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('role')) ||
-    'Priest';
-  const [ready, setReady] = React.useState(false);
-  React.useEffect(() => {
-    try {
-      loginAsRole(roleParam as UserRole, 'QA Tester');
-    } catch {
-      /* harness-only */
-    }
-    const t = setTimeout(() => setReady(true), 600);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  if (!ready || !currentRole) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm font-medium">
-        Loading {roleParam} home…
-      </div>
-    );
-  }
-  return (
-    <React.Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm font-medium">
-          Loading {roleParam} home…
-        </div>
-      }
-    >
-      <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
-            QA harness · role={currentRole} · unlinked in UI
-          </p>
-          <DashboardHome onNavigate={() => {}} onOpenQuickPay={() => {}} />
-        </div>
-      </div>
-    </React.Suspense>
-  );
-};
-
-/**
- * QA harness for per-branch RBAC (?branchrbac=test). Builds a 3-branch
- * workspace, restricts the QA member (matched by the deterministic demo
- * email) to branches B+C, seeds one income record per branch, and renders
- * the real BranchSwitcher plus query-layer probes. Unlinked in UI.
- */
-const BranchRBACTestHarness: React.FC = () => {
-  const { addWorkspace, switchWorkspace, loginAsRole, currentRole } = useAuthWorkspace();
-  const {
-    addTreasuryTransaction,
-    myBranchIds,
-    isBranchAccessible,
-    recordsForBranch,
-    treasury,
-    branches,
-    activeBranchId,
-    setActiveBranchId,
-  } = useData();
-  const { activeWorkspace: _aw } = useAuthWorkspace();
-  const [ready, setReady] = React.useState(false);
-
-  React.useEffect(() => {
-    const wsId = 'DEMO_QA_BRANCHRBAC';
-    try {
-      addWorkspace({
-        id: wsId,
-        name: 'QA Branch Workspace',
-        type: 'Mandir',
-        tagline: 'QA',
-        address: 'QA',
-        city: 'Kashi',
-        state: 'UP',
-        country: 'Bharat',
-        currency: 'INR',
-        currencySymbol: '₹',
-        sampradaya: 'QA',
-        kuladevata: 'QA',
-        pinRequired: false,
-        adminPin: '',
-        branches: [
-          { id: 'br-a', name: 'Kashi Main', city: 'Varanasi', isMain: true },
-          { id: 'br-b', name: 'Ayodhya Branch', city: 'Ayodhya' },
-          { id: 'br-c', name: 'Mathura Branch', city: 'Mathura' },
-        ],
-        // loginAsRole('Trustee') sets persona email trustee@sanatanmandir.org.
-        branchAccess: [
-          { memberId: 'trustee@sanatanmandir.org', label: 'QA Member', branchIds: ['br-b', 'br-c'] },
-        ],
-      } as WorkspaceConfig);
-      void switchWorkspace(wsId);
-      loginAsRole('Trustee', 'QA Member');
-    } catch {
-      /* harness-only */
-    }
-    const t = setTimeout(() => {
-      try {
-        const base = {
-          workspaceId: wsId,
-          date: '2026-10-13',
-          type: 'Income' as const,
-          category: 'Donation',
-          amount: 1000,
-          handledBy: 'QA',
-          paymentMode: 'Cash',
-          purpose: 'QA seed',
-          auditVerified: true,
-        };
-        addTreasuryTransaction({ ...base, id: 'qa-tx-a', devoteeName: 'Donor A', branchId: 'br-a' } as never);
-        addTreasuryTransaction({ ...base, id: 'qa-tx-b', amount: 500, devoteeName: 'Donor B', branchId: 'br-b' } as never);
-        addTreasuryTransaction({ ...base, id: 'qa-tx-c', amount: 250, devoteeName: 'Donor C', branchId: 'br-c' } as never);
-      } catch {
-        /* harness-only */
-      }
-      setReady(true);
-    }, 900);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm font-medium">
-        Loading branch RBAC harness…
-      </div>
-    );
-  }
-  const visibleTotal = treasury.reduce((a, t) => a + (t.amount || 0), 0);
-  return (
-    <div className="min-h-screen bg-slate-950 p-6">
-      <div className="max-w-3xl mx-auto flex flex-col gap-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-          QA harness · branch RBAC · role={currentRole} · unlinked in UI
-        </p>
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Branch switcher (real component)</p>
-          <BranchSwitcher />
-        </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 text-sm text-slate-300 font-mono">
-          <p data-testid="probe-ws">activeWorkspace={_aw?.id} name={_aw?.name}</p>
-          <p data-testid="probe-branchIds">myBranchIds={JSON.stringify(myBranchIds)}</p>
-          <p data-testid="probe-branches">branches={branches.map((b) => b.id).join(',')}</p>
-          <p data-testid="probe-active">activeBranchId={activeBranchId}</p>
-          <p data-testid="probe-access-a">isBranchAccessible(br-a)={String(isBranchAccessible('br-a'))}</p>
-          <p data-testid="probe-access-b">isBranchAccessible(br-b)={String(isBranchAccessible('br-b'))}</p>
-          <p data-testid="probe-visible-count">visible treasury records={treasury.length}</p>
-          <p data-testid="probe-visible-total">visible treasury total={visibleTotal}</p>
-          <p data-testid="probe-rfb-a">recordsForBranch(br-a)={recordsForBranch(treasury, 'br-a').length}</p>
-          <p data-testid="probe-rfb-b">recordsForBranch(br-b)={recordsForBranch(treasury, 'br-b').length}</p>
-          <p data-testid="probe-rfb-all">recordsForBranch(ALL)={recordsForBranch(treasury, 'ALL').length}</p>
-        </div>
-        <button
-          type="button"
-          data-testid="probe-select-a"
-          onClick={() => setActiveBranchId('br-a')}
-          className="px-4 py-2 rounded-lg bg-white/10 text-white text-xs font-bold"
-        >
-          Try select br-a (should be ignored)
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, switchWorkspace, loginAsRole, firebaseUser } = useAuthWorkspace();
   const { seedDemoData } = useData();
   const [view, setView] = useState<'landing' | 'login' | 'signup'>('landing');
@@ -911,54 +745,11 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
     }
   }, []);
 
-  // Test harness for role-based home screens (QA only): visit any page with
-  // ?rolehome=test&role=Priest to render that role's dashboard home without
-  // Firebase. Never linked in UI. NOTE: placed BEFORE the isAuthenticated
-  // gate — the harness logs in as the role, which would otherwise flip the
-  // gate and unmount the harness on re-render.
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('rolehome') === 'test'
-  ) {
-    return <RoleHomeTestHarness />;
-  }
-
-  // Test harness for per-branch RBAC (QA only): ?branchrbac=test builds a
-  // 3-branch workspace, restricts the QA member to branches B+C, seeds one
-  // record per branch, and renders the real BranchSwitcher plus query probes.
-  // Never linked in UI.
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('branchrbac') === 'test'
-  ) {
-    return <BranchRBACTestHarness />;
-  }
-
   if (isAuthenticated) {
     // Firebase Auth check bypassed to allow mock auth
     // if (!firebaseUser) { ... }
     // Purohit One: the router enforces session-kind isolation.
     return <AppContentRouter />;
-  }
-
-  // Test harness for the first-run Setup Wizard (QA only): visit any page with
-  // ?wizard=test to drive the wizard without Firebase. Never linked in UI.
-  if (
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('wizard') === 'test'
-  ) {
-    return (
-      <SetupWizard
-        workspaceId="WS-TEST"
-        workspaceName="Test Mandir"
-        signupOrgType="Mandir"
-        planId="LITE"
-        onComplete={() => {
-          window.location.href = '/';
-        }}
-        onOpenCompliance={() => {}}
-      />
-    );
   }
 
   // (Setup-wizard trigger lives here; see shouldShowWizard below.)
