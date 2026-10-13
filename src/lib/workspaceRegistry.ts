@@ -174,6 +174,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // R-1: added — the setup wizard recommends these as Mandir defaults and
     // the Trustee/Accountant/Sevadar home screens link straight to them.
     'checkin', 'donorCare', 'hundi-audit', 'quick-chanda-pos',
+    // Cash Custody: hundi-to-bank chain of custody (Mandir-native).
+    'cash-custody',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -262,6 +264,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added 'donorCare' — wizard default for Trust.
     'donorCare',
+    // Cash Custody: hundi-to-bank chain of custody (Trust/NGO-native).
+    'cash-custody',
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -307,7 +311,9 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   DharmadaTrust: [
     // R-1: verified minimal — grant/compliance trust, no program desks.
     'dashboard', 'devotees', 'treasury', 'taxReceipts', 'campaigns',
-    'masterSettings', 'legalVault'
+    'masterSettings', 'legalVault',
+    // Cash Custody: donation-box chain of custody for trusts that receive cash.
+    'cash-custody',
   ]
 };
 
