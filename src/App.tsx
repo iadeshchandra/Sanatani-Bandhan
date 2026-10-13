@@ -59,6 +59,7 @@ const BulkImportDesk = lazy(() => import('./components/domain1/BulkImportDesk').
 const RakthaSevaDesk = lazy(() => import('./components/domain1/RakthaSevaDesk').then(m => ({ default: m.RakthaSevaDesk })));
 const FederationMultiBranchDesk = lazy(() => import('./components/domain1/FederationMultiBranchDesk').then(m => ({ default: m.FederationMultiBranchDesk })));
 const SevadarRosterDesk = lazy(() => import('./components/domain1/SevadarRosterDesk').then(m => ({ default: m.SevadarRosterDesk })));
+const DonorCareDesk = lazy(() => import('./components/domain1/DonorCareDesk').then(m => ({ default: m.DonorCareDesk })));
 
 // Domain 2: Financials & Assets
 const TreasuryLedgerDesk = lazy(() => import('./components/domain2/TreasuryLedgerDesk').then(m => ({ default: m.TreasuryLedgerDesk })));
@@ -263,6 +264,9 @@ const AppContent: React.FC = () => {
       case 'devotees':
       case 'devotee-grid':
         return <DevoteeGrid />;
+      case 'donorCare':
+      case 'donor-care':
+        return checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'SEVADAR']) ? <DonorCareDesk /> : <RestrictedAccess />;
       case 'checkin':
       case 'darshan-checkin':
       case 'gate-command':
