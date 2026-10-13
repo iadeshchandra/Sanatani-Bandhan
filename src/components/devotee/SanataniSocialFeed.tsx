@@ -11,6 +11,7 @@ import { db } from '../../firebase';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { DirectMessageChat } from '../common/DirectMessageChat';
+import { PurohitAuthorBadge } from '../purohit/PurohitAuthorBadge';
 import { useLanguage } from '../../context/LanguageContext';
 import { isValidLatLng } from '../../utils/geo';
 import { useToast } from '../../context/ToastContext';
@@ -799,6 +800,7 @@ export const SanataniSocialFeed: React.FC = () => {
                             Official
                           </span>
                         )}
+                        <PurohitAuthorBadge authorId={post.authorId} />
                         {post.feeling && (
                           <span className="text-xs font-medium text-temple-500">
                             is {post.feeling}
