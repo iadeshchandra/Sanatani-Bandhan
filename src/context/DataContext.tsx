@@ -1068,6 +1068,7 @@ interface DataContextType {
   addResidentPuja: (puja: Omit<ResidentPujaSchedule, 'id'>) => boolean;
   addPitruRecord: (record: Omit<PitruRecord, 'id'>) => boolean;
   addGurukulStudent: (student: Omit<GurukulStudent, 'id'>) => boolean;
+  updateGurukulStudent: (id: string, updates: Partial<GurukulStudent>) => void;
   purgeAutoDeleteRecords: () => void;
 
   // Phase 20: Bhoomi (Real Estate) mutators
@@ -1959,6 +1960,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: `dev_${ts}_seed_${i + 1}`,
         ...seedTag,
         name,
+        fullName: name,
         phone,
         gotra,
         joinedDate: isoDaysAgo(joinedAgo),
@@ -2223,17 +2225,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (seedProfile === 'gurukul') {
-      const studentSeed: Array<[string, string, string, string, number]> = [
-        // name, rollNo, courseLevel, guardian, attendancePct
-        ['Aditya Sharma', 'GS-2026-001', 'Prathama (Grammar)', 'Ramesh Sharma', 96],
-        ['Krishna Patel', 'GS-2026-002', 'Prathama (Grammar)', 'Mohan Patel', 92],
-        ['Rama Iyer', 'GS-2025-014', 'Madhyama (Shastras)', 'Suresh Iyer', 98],
-        ['Arjun Nair', 'GS-2025-015', 'Madhyama (Shastras)', 'Gopal Nair', 89],
-        ['Veda Vyas', 'GS-2024-007', 'Shastri (Philosophy)', 'Narayan Rao', 94],
-        ['Shiva Menon', 'GS-2024-008', 'Shastri (Philosophy)', 'Kumar Menon', 91],
+      const studentSeed: Array<[string, string, string, string, number, string, string[]]> = [
+        // name, rollNo, courseLevel, guardian, attendancePct, upanayanamDate, otherSamskaras
+        ['Aditya Sharma', 'GS-2026-001', 'Prathama (Grammar)', 'Ramesh Sharma', 96, '2024-04-22', ['Namakarana', 'Annaprashana']],
+        ['Krishna Patel', 'GS-2026-002', 'Prathama (Grammar)', 'Mohan Patel', 92, '2024-05-10', ['Namakarana', 'Chudakarana (Mundana)']],
+        ['Rama Iyer', 'GS-2025-014', 'Madhyama (Shastras)', 'Suresh Iyer', 98, '2022-03-18', ['Namakarana', 'Annaprashana', 'Chudakarana (Mundana)']],
+        ['Arjun Nair', 'GS-2025-015', 'Madhyama (Shastras)', 'Gopal Nair', 89, '2022-06-02', ['Namakarana', 'Vedarambha']],
+        ['Veda Vyas', 'GS-2024-007', 'Shastri (Philosophy)', 'Narayan Rao', 94, '2020-04-30', ['Namakarana', 'Annaprashana', 'Chudakarana (Mundana)', 'Vedarambha']],
+        ['Shiva Menon', 'GS-2024-008', 'Shastri (Philosophy)', 'Kumar Menon', 91, '2020-05-14', ['Namakarana', 'Vedarambha']],
       ];
       setAllGurukulStudents((prev) => [
-        ...studentSeed.map(([studentName, rollNo, courseLevel, guardianName, attendancePct], i) => ({
+        ...studentSeed.map(([studentName, rollNo, courseLevel, guardianName, attendancePct, upanayanamDate, otherSamskaras], i) => ({
           id: `stu_${ts}_seed_${i + 1}`,
           ...seedTag,
           studentName,
@@ -2244,6 +2246,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sandhyaVandanaRegularity: 85 + (i % 12),
           shlokaRecitationScore: 80 + (i % 15),
           attendancePct,
+          // R-1 (Gurukul vibe): demo shishya carry samskara journeys.
+          dateOfUpanayanam: upanayanamDate,
+          samskaras: otherSamskaras.map((name) => ({ name, date: upanayanamDate })),
         }) as unknown as GurukulStudent),
         ...prev,
       ]);
@@ -3006,6 +3011,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // R-1 (Gurukul vibe): partial update for shishya records — used for
+  // samskara recording. IndexedDB-local + Firestore merge write, mirroring
+  // the updateDevotee pattern.
+  const updateGurukulStudent = (id: string, updates: Partial<GurukulStudent>) => {
+    setAllGurukulStudents((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+    showToast('Shishya record updated', 'success');
+  };
+
   const addShift = (shift: Omit<SevadarDutyShift, 'id'>): boolean => {
     if (!checkAndIncrementModuleQuota('shifts').allowed) return false;
 
@@ -3116,6 +3131,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addResidentPuja,
         addPitruRecord,
         addGurukulStudent,
+        updateGurukulStudent,
         purgeAutoDeleteRecords,
         addBhoomiProperty,
         updateBhoomiProperty,
@@ -3143,7 +3159,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getBranchRecordCount,
         myBranchIds,
         isBranchAccessible,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible]);
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible]);
 
   return (
     <DataContext.Provider
@@ -3205,6 +3221,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addResidentPuja,
         addPitruRecord,
         addGurukulStudent,
+        updateGurukulStudent,
         purgeAutoDeleteRecords,
         addBhoomiProperty,
         updateBhoomiProperty,
