@@ -16,6 +16,7 @@ import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
 import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
+import { JyotishWorkspaceShell } from './jyotish/JyotishWorkspaceShell';
 import { PurohitReviewQueue } from './admin/PurohitReviewQueue';
 import { MembershipProvider } from './context/MembershipContext';
 import { useAuthWorkspace } from './context/AuthWorkspaceContext';
@@ -827,10 +828,10 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
  * kinds. A purohit-personal session renders ONLY the purohit workspace
  * shell — no org switcher, no workspace desks, no org data — and org
  * sessions can never reach purohit-personal routes. Single branch point.
- *
  * Solo Sanatani extends the same guard: a solo-personal session renders
- * ONLY the solo workspace shell. Three mutually exclusive kinds by
- * construction — 'org' | 'purohit' | 'solo' — so no session can leak
+ * ONLY the solo workspace shell. Jyotish One adds the fourth kind.
+ * Four mutually exclusive kinds by construction —
+ * 'org' | 'purohit' | 'solo' | 'jyotish' — so no session can leak
  * into another.
  */
 const AppContentRouter: React.FC = () => {
@@ -840,6 +841,9 @@ const AppContentRouter: React.FC = () => {
   }
   if (sessionKind === 'solo') {
     return <SoloWorkspaceShell />;
+  }
+  if (sessionKind === 'jyotish') {
+    return <JyotishWorkspaceShell />;
   }
   return <AppContent />;
 };
