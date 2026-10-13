@@ -89,6 +89,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'family', name: 'Household & Kul Parivar', domain: 1, domainTitle: 'Core Command & CRM', icon: Home },
   { id: 'vanshavali', name: 'Ancestral Lineage (Vanshavali)', domain: 1, domainTitle: 'Core Command & CRM', icon: GitFork },
   { id: 'guests', name: 'Guest & Visitor CRM', domain: 1, domainTitle: 'Core Command & CRM', icon: UserPlus },
+  { id: 'donorCare', name: 'Donor Care & Win-Back', domain: 1, domainTitle: 'Core Command & CRM', icon: HeartHandshake, badge: 'New' },
   { id: 'bulkImport', name: 'Bulk CSV Ingestion', domain: 1, domainTitle: 'Core Command & CRM', icon: FileSpreadsheet },
   { id: 'federation', name: 'Federation & Multi-Branch HQ', domain: 1, domainTitle: 'Core Command & CRM', icon: Network, badge: 'HQ Rollup' },
   { id: 'sevadar-roster', name: 'Sevadar HR & Volunteer Roster', domain: 1, domainTitle: 'Core Command & CRM', icon: UserCheck, badge: 'SOP / KYC' },
