@@ -171,7 +171,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       referenceNo: referenceNo.trim() || (paymentMode === 'UPI' ? `UPI-${Date.now().toString().slice(-6)}` : undefined),
       purpose: purpose.trim() || `${category} Contribution`,
       is80GEligible: true,
-      taxReceiptIssued: true,
+      // H-1: only claim issuance when the workspace is actually 80G-registered.
+      taxReceiptIssued: !!activeWorkspace?.trust80GRegistered,
       taxReceiptNumber: receiptSerialNo,
       devoteePan: pan.trim().toUpperCase() || undefined,
       auditVerified: true,
@@ -210,10 +211,16 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   // Action: Download Statutory 80G Tax PDF
   const handleDownload80G = async () => {
     if (!lastRecordedTx) return;
+    // H-1: the generator stamps SAMPLE when the workspace is not registered.
+    const registered = !!activeWorkspace?.trust80GRegistered;
     try {
       setIsGeneratingPdf(true);
       await generate80GTaxReceipt(lastRecordedTx, activeWorkspace, { download: true });
-      showToast('Statutory 80G Certificate downloaded', 'success', 'Form 10BE Compliant');
+      showToast(
+        registered ? 'Statutory 80G Certificate downloaded' : 'SAMPLE 80G certificate downloaded — register in Settings to issue valid receipts',
+        registered ? 'success' : 'warning',
+        'Form 10BE Compliant'
+      );
     } catch (err) {
       console.error(err);
       showToast('Error compiling 80G PDF', 'error');
@@ -296,11 +303,13 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                   </p>
                 </div>
 
-                {/* Statutory 80G Notification Tag */}
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-amber-400" />
+                {/* Statutory 80G Notification Tag — honest sample state when unregistered */}
+                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs ${activeWorkspace?.trust80GRegistered ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-red-500/10 border-dashed border-red-500/40 text-red-300'}`}>
+                  <ShieldCheck className={`w-4 h-4 shrink-0 ${activeWorkspace?.trust80GRegistered ? 'text-amber-400' : 'text-red-400'}`} />
                   <span>
-                    Sec 80G(5)(vi) eligible receipt. Recorded on the Mandir Treasury ledger.
+                    {activeWorkspace?.trust80GRegistered
+                      ? 'Sec 80G(5)(vi) eligible receipt. Recorded on the Mandir Treasury ledger.'
+                      : 'SAMPLE — this organisation is not 80G-registered. Add your registration in Settings to issue valid receipts.'}
                   </span>
                 </div>
 
@@ -323,7 +332,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                     className="flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-amber-500/40 text-amber-300 hover:text-amber-200 font-bold text-sm shadow-md transition-all transform active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     <FileText className="w-5 h-5 text-amber-400" />
-                    <span>{isGeneratingPdf ? 'Generating...' : '📄 Download 80G Tax PDF'}</span>
+                    <span>{isGeneratingPdf ? 'Generating...' : (activeWorkspace?.trust80GRegistered ? '📄 Download 80G Tax PDF' : '📄 Download SAMPLE 80G PDF')}</span>
                   </button>
                 </div>
 
