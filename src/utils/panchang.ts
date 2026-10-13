@@ -436,7 +436,9 @@ export const calculateDailyPanchang = (
     abhijitMuhurat: abhijitMuhuratStr,
     brahmaMuhurat: brahmaMuhuratStr,
     amritKaal: amritKaalStr,
-    vikramSamvat: year + 57,
+    // H-4: Vikram Samvat begins in Chaitra (Mar/Apr). Jan–Mar belong to the
+    // previous Samvat year: +56 then, +57 for Apr–Dec.
+    vikramSamvat: year + (date.getMonth() < 3 ? 56 : 57),
     sakaSamvat: year - 78,
     lunarMonth: LUNAR_MONTHS[lunarMonthIndex],
     moonPhasePercent: Math.round(normalizedPhase * 100),
@@ -445,7 +447,9 @@ export const calculateDailyPanchang = (
 };
 
 /**
- * Backward compatibility alias for legacy callers
+ * Backward compatibility alias for legacy callers.
+ * H-4: the old hardcoded moonrise ('08:14 PM'/'03:45 AM') was fake precision —
+ * removed. Callers needing moonrise must compute it from coordinates.
  */
 export const calculatePanchang = (date: Date = new Date()) => {
   const p = calculateDailyPanchang(date, 25.3176, 82.9739);
@@ -453,7 +457,6 @@ export const calculatePanchang = (date: Date = new Date()) => {
     ...p,
     monthLunar: p.lunarMonth,
     bengaliSan: date.getFullYear() - 593,
-    moonrise: p.paksha === 'Shukla' ? '08:14 PM' : '03:45 AM',
     rahuKalam: p.rahuKaal,
     yamaganda: p.yamagandam,
     gulikaKalam: p.gulikaKaal,
