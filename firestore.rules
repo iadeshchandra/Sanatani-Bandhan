@@ -341,19 +341,22 @@ service cloud.firestore {
 
     // One-time QR login pairing tokens — bearer-token pattern (Spark-plan,
     // server-free login). Doc IDs are unguessable 256-bit random values minted
-    // by staff; anyone holding the token may read + delete it exactly once
-    // (the claim flow burns it). Creates are staff-only per workspace, and
-    // expiry is bounded at create (≤10 min) and enforced client-side on claim.
+    // by staff; anyone holding the token may get + delete it exactly once
+    // (the claim flow burns it), but ONLY while it is unexpired — enforced
+    // server-side here, not just in client JS (C-3). `list` is denied: without
+    // it, unauthenticated visitors cannot enumerate/harvest the outstanding
+    // token pool. Token roles are allowlisted — never SuperAdmin.
     match /qrPairTokens/{tokenId} {
       allow create: if isLoggedIn()
         && request.resource.data.keys().hasAll(['memberId', 'workspaceId', 'role', 'expiresAt'])
+        && request.resource.data.role in ['Devotee', 'Sevadar', 'Priest', 'Accountant', 'Trustee']
         && (demoWriteOk(request.resource.data.get('workspaceId', null))
             || hasRole(request.resource.data.get('workspaceId', null), R_ANY_STAFF()))
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt > request.time
         && request.resource.data.expiresAt <= request.time + duration.value(600, 's');
-      allow read, delete: if true; // bearer token: possession of the ID is the credential
-      allow update: if false;
+      allow get, delete: if request.time < resource.data.expiresAt;
+      allow list, update: if false;
     }
 
     // Generic operational collections (annadanam, campaigns, check-ins...)
