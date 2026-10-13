@@ -33,6 +33,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { queueMutation } from '../services/offlineSyncService';
+import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { DevoteeProfile, SevaBooking, PurohitGig, VivahProfile } from '../types/b2c';
 import { VivahEngine } from '../components/devotee/VivahEngine';
 
@@ -44,6 +45,10 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
   const { showToast } = useToast();
   const { currentRole, switchRole } = useAuthWorkspace();
   const { language } = useLanguage();
+
+  // Canonical today line — single source of truth (src/utils/panchang.ts).
+  // Never hardcode tithi/paksha/samvat strings here.
+  const panchang = useMemo(() => calculatePanchang(new Date()), []);
 
   // Devotee State
   const [devotee, setDevotee] = useState<DevoteeProfile>({
@@ -269,14 +274,14 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
         ) : (
           <>
             {/* TOP STATUS & NAVIGATION STRIP */}
-        <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-wrap gap-y-2">
           <div className="flex items-center gap-2.5">
             {onBackToERP && (
               <button
                 type="button"
                 onClick={onBackToERP}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                title="Return to B2B Mandir ERP"
+                title="Return to the Institution ERP (staff workspace)"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
@@ -286,7 +291,7 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             </div>
             <div>
               <div className="text-xs font-black text-white flex items-center gap-1 leading-tight">
-                <span>Sanatani Super App</span>
+                <span>Devotee App Preview</span>
                 <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   B2C
                 </span>
@@ -295,6 +300,13 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
                 {devotee.name} &bull; {devotee.gotra}
               </div>
             </div>
+          </div>
+
+          {/* B2B/B2C boundary explainer — unmistakable hat labeling */}
+          <div className="px-4 pt-2 basis-full">
+            <p className="text-[10px] text-slate-500 text-center">
+              You're previewing the <span className="text-amber-400 font-bold">Devotee App</span> — what your community members see. Staff manage everything from the <span className="text-amber-400 font-bold">Institution ERP</span>.
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -312,7 +324,7 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
                 className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-amber-400 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Building2 className="w-3 h-3 text-amber-400" />
-                <span>Admin ERP</span>
+                <span>Institution ERP</span>
               </button>
             )}
           </div>
@@ -326,7 +338,7 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-400 uppercase tracking-wide">
                 <Compass className="w-3.5 h-3.5 text-amber-400" />
-                <span>Vedic Panjika Ephemeris</span>
+                <span>Vedic Panchang</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -336,12 +348,12 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
 
             <div>
               <div className="text-sm font-bold text-white">
-                Vikram Samvat 2083 &bull; Ashwina Paksha
+                {getPanchangTodayLine(panchang)}
               </div>
               <div className="text-xs text-slate-300 flex items-center gap-3 mt-1 font-mono">
-                <span>तिथि: <strong>Shukla Trayodashi</strong></span>
+                <span>तिथि: <strong>{panchang.tithi}</strong></span>
                 <span>&bull;</span>
-                <span>नक्षत्र: <strong>Rohini</strong></span>
+                <span>नक्षत्र: <strong>{panchang.nakshatra}</strong></span>
               </div>
             </div>
 
