@@ -451,6 +451,18 @@ export const HundiCountingAuditDesk: React.FC = () => {
         taxReceiptIssued: false,
       });
 
+      // C-8: honor the boolean — on false (quota blocked) the count was NOT
+      // posted, so neither the success toast nor the POSTED status may fire.
+      if (!success) {
+        showToast(
+          'Posting blocked: transaction quota reached for this workspace. The count was recorded but NOT posted to the ledger.',
+          'error',
+          'Quota Reached'
+        );
+        setIsPostingTreasury(false);
+        return;
+      }
+
       const newRecord: HundiSessionRecord = {
         id: `hundi-sess-${Date.now()}`,
         sessionCode,
