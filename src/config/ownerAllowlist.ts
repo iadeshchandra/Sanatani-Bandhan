@@ -17,7 +17,7 @@
  * emergency console stays locked.
  */
 export const OWNER_EMAILS: string[] = [
-  'poranray7744@gmail.com',
+  'iadeshchandra@gmail.com',
 ];
 
 const normalize = (email: string): string => email.toLowerCase().trim();
