@@ -4,6 +4,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { generateSampleDevoteeCSV, parseDevoteeCSV, IngestedDevoteeRow } from '../../utils/csvEngine';
 import { useToast } from '../../context/ToastContext';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const BulkImportDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
@@ -113,6 +114,7 @@ export const BulkImportDesk: React.FC = () => {
         <h3 className="font-extrabold text-base text-temple-200">
           Upload Devotee / Member CSV Spreadsheet
         </h3>
+        <div className="mt-2 flex justify-center"><LocalOnlyBadge /></div>
         <p className="text-xs text-temple-400 max-w-md mx-auto mt-1 mb-4">
           Columns supported: <code className="text-saffron-400">FullName, Phone, Gotra, SevaTier, Email, SpiritualName, Pravara, Address</code>
         </p>
