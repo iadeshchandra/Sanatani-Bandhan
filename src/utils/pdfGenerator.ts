@@ -302,11 +302,33 @@ export const generate80GTaxReceipt = async (
 
   const docRef = generateCryptoDocRef('80G');
 
+  // H-1: the registration gate is defined up-front so both the data and the
+  // watermark below use it. NEVER invent registration identifiers.
+  const is80GRegistered = !!workspace?.trust80GRegistered;
+
+  // H-1: unregistered workspace → stamp SAMPLE diagonally so the PDF can
+  // never be mistaken for a statutory certificate.
+  if (!is80GRegistered) {
+    doc.saveGraphicsState();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(42);
+    doc.setTextColor(220, 38, 38);
+    (doc as any).setGState?.((doc as any).GState?.({ opacity: 0.14 }));
+    doc.text('SAMPLE — NOT A VALID', 105, 130, { align: 'center', angle: 30 });
+    doc.text('80G CERTIFICATE', 105, 148, { align: 'center', angle: 30 });
+    doc.restoreGraphicsState();
+  }
+
   // Statutory Trust Profile Extraction
+  // H-1: NEVER invent registration identifiers. Real values come from the
+  // workspace's 80G registration (Settings → Legal). Unregistered workspaces
+  // get a clearly-marked SAMPLE certificate.
   const trustName = workspace?.name || 'Sanatani Bandhan Dharmik Trust';
-  const trustRegNumber = workspace?.trustRegNumber || workspace?.registrationNumber || 'TRUST/VEDIC/2024/001';
-  const exemption80GNumber = workspace?.taxExemptionNumber || workspace?.pan80GNumber || 'CIT(E)/80G/SB-2024-998';
-  const trustPan = workspace?.panNumber || workspace?.trustPan || workspace?.taxPan || 'AAATS1234F';
+  const trustRegNumber = workspace?.trustRegNumber || workspace?.registrationNumber || (is80GRegistered ? '—' : 'NOT REGISTERED');
+  const exemption80GNumber = is80GRegistered
+    ? (workspace?.trust80GURN || workspace?.taxExemptionNumber || workspace?.pan80GNumber || '—')
+    : 'NOT REGISTERED — SAMPLE';
+  const trustPan = workspace?.panNumber || workspace?.trustPan || workspace?.taxPan || (is80GRegistered ? '—' : 'NOT REGISTERED');
 
   const addressComponents = [
     workspace?.address,
@@ -317,7 +339,7 @@ export const generate80GTaxReceipt = async (
   ].filter(Boolean);
   const trustAddress = addressComponents.length > 0
     ? addressComponents.join(', ')
-    : 'Near Sanctum Sanctorum, Kashi Vishwanath Complex, Varanasi, UP, 221001, India';
+    : (is80GRegistered ? '—' : 'Sample address — update in Settings');
 
   // Transaction & Donor Details Extraction
   const donorName = transaction?.devoteeName || transaction?.donorName || 'Sanatani Devotee';
@@ -516,7 +538,9 @@ export const generate80GTaxReceipt = async (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(17, 24, 39);
-  doc.text('"This donation is eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961."', 20, 180);
+  doc.text(is80GRegistered
+    ? '"This donation is eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961."'
+    : '"SAMPLE — this organisation is not 80G-registered. No deduction may be claimed on this document."', 20, 180);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -779,7 +803,11 @@ export const generateBulkTaxReceiptsPDF = async (
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128);
     doc.text(workspace.address + ', ' + workspace.city + ', ' + workspace.country, 105, 28, { align: 'center' });
-    doc.text(`Trust Reg: ${workspace.trustRegNumber || 'TRUST/VEDIC/2024'} | 80G Exemption: ${workspace.taxExemptionNumber || 'CIT(E)/80G/SB-998'}`, 105, 34, { align: 'center' });
+    // H-1: never print fabricated registration identifiers on bulk receipts.
+    const bulkUrn = workspace?.trust80GRegistered
+      ? (workspace?.trust80GURN || workspace?.taxExemptionNumber || '—')
+      : 'NOT REGISTERED — SAMPLE';
+    doc.text(`Trust Reg: ${workspace.trustRegNumber || '—'} | 80G Exemption: ${bulkUrn}`, 105, 34, { align: 'center' });
 
     doc.setFillColor(180, 83, 9);
     doc.rect(11, 44, 188, 10, 'F');
