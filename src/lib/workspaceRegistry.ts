@@ -362,6 +362,85 @@ export const DESK_MAP: Record<string, DeskMetadata> = DESK_REGISTRY.reduce(
 );
 
 /**
+ * C-6 — Monetization: plan-tier gating for desks.
+ *
+ * Plan resolution is centralized here:
+ *   - 'DEMO' | 'LITE' | 'STANDARD' | 'ENTERPRISE' are honored verbatim.
+ *   - A missing/unknown planId defaults to 'LITE' (Seva Free) — NEVER 'DEMO'.
+ *
+ * DEMO workspaces see the full desk surface (access level 3): the binding
+ * constraint for demos is the separate 5-creates-per-module demo quota, not
+ * plan limits — the demo funnel must stay fully explorable.
+ */
+export type WorkspacePlanId = 'DEMO' | SubscriptionTier;
+
+const PLAN_ACCESS_LEVEL: Record<WorkspacePlanId, number> = {
+  DEMO: 3,
+  LITE: TIER_LEVELS.LITE,
+  STANDARD: TIER_LEVELS.STANDARD,
+  ENTERPRISE: TIER_LEVELS.ENTERPRISE,
+};
+
+export function resolvePlanId(planId?: string | null): WorkspacePlanId {
+  const p = (planId || '').toUpperCase();
+  if (p === 'DEMO' || p === 'LITE' || p === 'STANDARD' || p === 'ENTERPRISE') {
+    return p as WorkspacePlanId;
+  }
+  return 'LITE';
+}
+
+/**
+ * Is a DESK_REGISTRY desk (by its registry id, e.g. 'TreasuryLedgerDesk')
+ * allowed on the given workspace plan? Unknown desk ids are not plan-gated.
+ */
+export function isDeskAllowedForPlan(deskId: string, planId?: string | null): boolean {
+  const desk = DESK_MAP[deskId];
+  if (!desk) return true;
+  const planLevel = PLAN_ACCESS_LEVEL[resolvePlanId(planId)] ?? 1;
+  const deskLevel = TIER_LEVELS[desk.requiredTier] ?? 1;
+  return planLevel >= deskLevel;
+}
+
+/**
+ * Sidebar MODULE_CATALOG nav id → minimum required tier.
+ * Derived from PLAN_PRICING's includedDesks. Modules NOT listed here are not
+ * plan-gated (permissive default — never lock a desk we haven't mapped).
+ */
+export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
+  // LITE — Seva Free core desks
+  poojaBooking: 'LITE',
+  panchang: 'LITE',
+  'quick-chanda-pos': 'LITE',
+  sandeshBroadcast: 'LITE',
+  // STANDARD — operations suite
+  annadanam: 'STANDARD',
+  dharamshala: 'STANDARD',
+  goshala: 'STANDARD',
+  campaigns: 'STANDARD',
+  'sevadar-roster': 'STANDARD',
+  karmaLedger: 'STANDARD',
+  inventory: 'STANDARD',
+  taxReceipts: 'STANDARD',
+  // ENTERPRISE — ERP & governance
+  federation: 'ENTERPRISE',
+  treasury: 'ENTERPRISE',
+  'crisis-command': 'ENTERPRISE',
+};
+
+/** Is a sidebar module (by MODULE_CATALOG nav id) allowed on the plan? */
+export function isModuleAllowedForPlan(moduleId: string, planId?: string | null): boolean {
+  const required = MODULE_PLAN_TIER[moduleId];
+  if (!required) return true;
+  const planLevel = PLAN_ACCESS_LEVEL[resolvePlanId(planId)] ?? 1;
+  return planLevel >= (TIER_LEVELS[required] ?? 1);
+}
+
+/** Minimum tier required for a sidebar module, or null if not plan-gated. */
+export function requiredTierForModule(moduleId: string): SubscriptionTier | null {
+  return MODULE_PLAN_TIER[moduleId] ?? null;
+}
+
+/**
  * Filters DESK_REGISTRY to return only the modules the current user is
  * allowed to access based on their organization's subscription tier and
  * their personal RBAC role.
