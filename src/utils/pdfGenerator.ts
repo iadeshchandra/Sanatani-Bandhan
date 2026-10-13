@@ -997,7 +997,7 @@ export const generatePoojaSankalpPDF = async (
   doc.setTextColor(107, 114, 128);
   doc.text('Present this slip at Mandir sanctum sanctorum for Pushpanjali', 74, 165, { align: 'center' });
   doc.text(docRef, 74, 195, { align: 'center' });
-  doc.text('Made with ❤️ by TrackIQ Academy • Universal Community Management', 74, 200, { align: 'center' });
+  doc.text('Made with ❤️ for Dharmic institutions • Sanatani Bandhan', 74, 200, { align: 'center' });
 
   doc.save(`Sankalp_${booking.id}.pdf`);
 };
