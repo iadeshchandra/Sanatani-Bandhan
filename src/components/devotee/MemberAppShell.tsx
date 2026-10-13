@@ -18,7 +18,7 @@ import { PersonalAccountDesk } from '../account/PersonalAccountDesk';
 import DevoteeAccountPortal from '../domain5/DevoteeAccountPortal';
 import YatraNetDesk from '../domain7/YatraNetDesk';
 import { DevoteePortal } from './DevoteePortal';
-import { calculatePanchang } from '../../utils/panchang';
+import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 
 export default function MemberAppShell() {
   const { 
@@ -115,7 +115,7 @@ export default function MemberAppShell() {
           </span>
           <span className="font-bold text-saffron-300 flex items-center gap-1.5 truncate">
             <UserCircle className="w-3.5 h-3.5 text-saffron-400 shrink-0" />
-            <span className="truncate">Personal Devotee Space</span>
+            <span className="truncate">Devotee App Preview</span>
           </span>
           <span className="text-temple-400 hidden md:inline">•</span>
           <span className="text-temple-300 font-medium truncate hidden md:inline">
@@ -127,10 +127,10 @@ export default function MemberAppShell() {
           id="btn-safe-switch-org"
           onClick={handleSwitchToOrganisation}
           className="flex items-center gap-2 px-3.5 py-1 bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] rounded-lg shadow-sm transition-all border border-white/10 backdrop-blur-sm shrink-0 cursor-pointer"
-          title="Return to Organisation / Trustee Management Console with 46 Desks"
+          title="Return to the Institution ERP (staff workspace)"
         >
           <Building2 className="w-3.5 h-3.5 text-temple-950" />
-          <span>Switch to Organisation View</span>
+          <span>Institution ERP</span>
           <ArrowLeftRight className="w-3 h-3 text-temple-950" />
         </button>
       </aside>
@@ -173,8 +173,8 @@ export default function MemberAppShell() {
               </div>
               <div className="bg-white p-2 rounded-xl border border-temple-200/80 shadow-xs">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">Today's Tithi</p>
-                <p className="text-[11px] font-bold text-temple-800 truncate mt-0.5" title={panchang?.tithi || ''}>
-                  {panchang?.tithi ? panchang.tithi.slice(0, 14) : 'Shukla Paksha'}
+                <p className="text-[11px] font-bold text-temple-800 truncate mt-0.5" title={panchang ? getPanchangTodayLine(panchang) : ''}>
+                  {panchang?.tithi ? panchang.tithi : '—'}
                 </p>
               </div>
             </div>
@@ -220,17 +220,17 @@ export default function MemberAppShell() {
             <div className="bg-white p-3 rounded-xl border border-temple-200 shadow-xs">
               <div className="flex items-center gap-2 mb-2">
                 <Building2 className="w-4 h-4 text-saffron-600" />
-                <span className="text-xs font-bold text-temple-800">Organisation Console</span>
+                <span className="text-xs font-bold text-temple-800">Institution ERP</span>
               </div>
               <p className="text-[11px] text-temple-500 leading-snug mb-2.5">
-                Switch back to administer treasury, pujas, CRM and 46 mandir desks.
+                You're previewing the devotee app. Switch back to administer treasury, pujas, CRM and all desks.
               </p>
               <button
                 onClick={handleSwitchToOrganisation}
                 className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-temple-900 hover:bg-black text-saffron-400 text-xs font-bold rounded-lg transition-all shadow-xs"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>Return to Org View</span>
+                <span>Return to Institution ERP</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
