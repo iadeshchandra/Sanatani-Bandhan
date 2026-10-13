@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
+import { PreviewDataBadge } from '../common/PreviewDataBadge';
 import { useToast } from '../../context/ToastContext';
 
 // ----------------------------------------------------------------------------
@@ -487,6 +488,7 @@ export const SevadarRosterDesk: React.FC = () => {
               <UserCheck className="w-8 h-8 text-amber-500" />
               <span>Sevadar HR Desk & Nishkam Seva Roster</span>
             </h1>
+            <div className="pt-1"><PreviewDataBadge /></div>
 
             <p className="text-sm text-stone-300 max-w-3xl leading-relaxed">
               Autonomous volunteer vetting, KYC background check clearance, YatraNet pilgrimage sector deployments
