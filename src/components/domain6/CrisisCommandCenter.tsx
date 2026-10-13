@@ -8,6 +8,7 @@ import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'f
 import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { isValidLatLng } from '../../utils/geo';
 import { MapContainer, TileLayer, Marker, Circle, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -265,7 +266,10 @@ export const CrisisCommandCenter: React.FC = () => {
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 {incidents.map((inc, idx) => {
-                  if (!inc.location) return null;
+                  // Guard: a location object with missing/non-finite lat/lng
+                  // crashes Leaflet ("Invalid LatLng object") and takes the
+                  // whole desk down. Skip the marker instead.
+                  if (!inc.location || !isValidLatLng(inc.location.lat, inc.location.lng)) return null;
                   const isResolved = inc.sosStatus === 'RESOLVED';
                   return (
                     <Marker 
