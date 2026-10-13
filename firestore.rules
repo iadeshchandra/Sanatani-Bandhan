@@ -595,6 +595,7 @@ service cloud.firestore {
           && (
             request.resource.data.get('roles', {}) == resource.data.get('roles', {})
             || validPurohitAttach()
+            || validJyotishAttach()
           ));
       allow delete: if false;
 
@@ -603,8 +604,8 @@ service cloud.firestore {
       // upgrade flow). The diff constraint pins the roles key-set: the ONLY
       // change permitted on this path is setting purohitId — no other role
       // key can be added, changed or removed here, so a caller cannot smuggle
-      // arbitrary privilege keys into their own roles map. jyotishId stays
-      // immutable until Jyotish One ships (its own attach rule then).
+      // arbitrary privilege keys into their own roles map. jyotishId attaches
+      // via validJyotishAttach below (Jyotish One) — same key-set pinning.
       function validPurohitAttach() {
         let newRoles = request.resource.data.get('roles', {});
         let oldRoles = resource.data.get('roles', {});
@@ -614,6 +615,22 @@ service cloud.firestore {
           && newRoles.diff(oldRoles).affectedKeys().hasOnly(['purohitId'])
           && exists(/databases/$(database)/documents/purohits/$(newPid))
           && get(/databases/$(database)/documents/purohits/$(newPid)).data.get('uid', '') == request.auth.uid;
+      }
+
+      // A jyotishId may be attached only when the referenced
+      // `jyotishProfiles` doc exists and is owned by the caller (the
+      // BecomeJyotishModal upgrade flow). The diff constraint pins the roles
+      // key-set: the ONLY change permitted on this path is setting
+      // jyotishId — no other role key can be added, changed or removed here.
+      function validJyotishAttach() {
+        let newRoles = request.resource.data.get('roles', {});
+        let oldRoles = resource.data.get('roles', {});
+        let newJid = newRoles.get('jyotishId', '');
+        return newJid != ''
+          && newJid != oldRoles.get('jyotishId', '')
+          && newRoles.diff(oldRoles).affectedKeys().hasOnly(['jyotishId'])
+          && exists(/databases/$(database)/documents/jyotishProfiles/$(newJid))
+          && get(/databases/$(database)/documents/jyotishProfiles/$(newJid)).data.get('uid', '') == request.auth.uid;
       }
     }
 
@@ -729,6 +746,189 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
           && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
       allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------
+    // Jyotish One — independent jyotishi identity + verification +
+    // consultation marketplace. HUMAN REVIEW REQUIRED on this section.
+    // ------------------------------------------------------------------
+    // Mirrors the Purohit One rules above: global (non-workspace-scoped)
+    // collections, deny-by-default posture. Collections:
+    //   jyotishProfiles, jyotishApplications, jyotishConsultations (+
+    //   messages subcollection), jyotishReviews, jyotishAvailability,
+    //   jyotishEndorsements, jyotishInvites, jyotishReferrals.
+
+    // --- jyotishProfiles/{jyotishId}: public read (marketplace); owner +
+    // admin write. Tier/aggregates/uid are admin-only; public counter fields
+    // are refreshable by any signed-in user (publicly recomputable from the
+    // reviews collection — gaming detectable, admin-reversible).
+    match /jyotishProfiles/{jyotishId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && request.resource.data.get('ratingAggregate', 0) == 0
+        && request.resource.data.get('ratingCount', 0) == 0
+        && request.resource.data.get('completedConsultations', 0) == 0;
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('id', '') == resource.data.get('id', '')
+          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', ''))
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['ratingAggregate', 'ratingCount', 'completedConsultations', 'updatedAt'])
+          && request.resource.data.get('ratingAggregate', 0) <= 5
+          && request.resource.data.get('ratingCount', 0) <= 100000
+          && request.resource.data.get('completedConsultations', 0) <= 100000);
+      allow delete: if false;
+    }
+
+    // --- jyotishAvailability: public read; owner write.
+    match /jyotishAvailability/{jyotishId} {
+      allow read: if true;
+      allow write: if isSuperAdmin()
+        || (isLoggedIn()
+          && exists(/databases/$(database)/documents/jyotishProfiles/$(jyotishId))
+          && get(/databases/$(database)/documents/jyotishProfiles/$(jyotishId)).data.get('uid', '') == request.auth.uid);
+    }
+
+    // --- jyotishApplications: applicant + admin read; applicant creates as
+    // PENDING; only the platform admin decides (approve/reject).
+    match /jyotishApplications/{appId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('jyotishId', '') != ''
+        && request.resource.data.get('status', '') == 'PENDING';
+      allow update: if isSuperAdmin();
+      allow delete: if false;
+    }
+
+    // --- jyotishConsultations: public read (marketplace); signed-in
+    // devotees post; status machine enforced on the ordered path; only
+    // parties write.
+    function isConsultationParty() {
+      return isLoggedIn()
+        && (resource.data.get('devoteeUid', '') == request.auth.uid
+          || resource.data.get('assignedJyotishUid', '') == request.auth.uid);
+    }
+    function consultationTransitionOk() {
+      let from = resource.data.get('status', '');
+      let to = request.resource.data.get('status', '');
+      return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
+        || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
+        || (from == 'IN_PROGRESS' && to in ['COMPLETED'])
+        || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
+        || (from == to);
+    }
+    function consultationImmutableOk() {
+      return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
+        && request.resource.data.get('id', '') == resource.data.get('id', '')
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
+    }
+    match /jyotishConsultations/{consultationId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('devoteeUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'OPEN';
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
+          && (isConsultationParty()
+            // Accept flow: any jyotishi may claim an OPEN consultation;
+            // the claim itself names them as the assigned party.
+            || (resource.data.get('status', '') == 'OPEN'
+              && request.resource.data.get('status', '') == 'ASSIGNED'
+              && request.resource.data.get('assignedJyotishUid', '') == request.auth.uid)));
+      allow delete: if false;
+
+      // --- messages subcollection: only the two parties read/write.
+      match /messages/{messageId} {
+        function isMsgParty() {
+          let cpath = /databases/$(database)/documents/jyotishConsultations/$(consultationId);
+          return isLoggedIn()
+            && exists(cpath)
+            && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
+              || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+        }
+        allow read: if isMsgParty() || isSuperAdmin();
+        allow create: if isMsgParty()
+          && request.resource.data.get('senderUid', '') == request.auth.uid
+          && request.resource.data.get('text', '') != '';
+        allow update, delete: if false;
+      }
+    }
+
+    // --- jyotishEndorsements: public read; Trustees (any real org) endorse.
+    match /jyotishEndorsements/{endorsementId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && (isSuperAdmin() || roleIn(['Trustee', 'TRUSTEE']))
+        && request.resource.data.get('orgId', '') != ''
+        && request.resource.data.get('orgName', '') != ''
+        && request.resource.data.get('jyotishId', '') != ''
+        && request.resource.data.get('text', '') != '';
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // --- jyotishReviews: public read; deterministic ids (one rating per
+    // party per consultation); only consultation parties may rate, only
+    // after completion.
+    function consultationReviewPartyOk() {
+      let cpath = /databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('consultationId', ''));
+      return exists(cpath)
+        && get(cpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED']
+        && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
+          || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+    }
+    match /jyotishReviews/{reviewId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('reviewerUid', '') == request.auth.uid
+        && request.resource.data.get('consultationId', '') != ''
+        && request.resource.data.get('rating', 0) >= 1
+        && request.resource.data.get('rating', 0) <= 5
+        && consultationReviewPartyOk();
+      allow update, delete: if false;
+    }
+
+    // --- jyotishInvites: org → jyotishi staff invites. Readable by the
+    // invited jyotishi, org Trustees, and admins. Trustees create; the
+    // invited jyotishi may only flip status (accept/decline).
+    match /jyotishInvites/{inviteId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn()
+          && (resource.data.get('jyotishUid', '') == request.auth.uid
+            || roleIn(['Trustee', 'TRUSTEE'])));
+      allow create: if isSuperAdmin()
+        || (isLoggedIn() && roleIn(['Trustee', 'TRUSTEE'])
+          && request.resource.data.get('orgId', '') != ''
+          && request.resource.data.get('orgName', '') != ''
+          && request.resource.data.get('jyotishId', '') != ''
+          && request.resource.data.get('jyotishUid', '') != ''
+          && request.resource.data.get('status', '') == 'PENDING');
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && resource.data.get('jyotishUid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+      allow delete: if false;
+    }
+
+    // --- jyotishReferrals: cross-referrals jyotish ↔ purohit. Public read
+    // (they are trust signals); the referrer writes their own; the named
+    // professional must carry a badge (non-REGISTERED tier pinned at write).
+    match /jyotishReferrals/{referralId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('fromUid', '') == request.auth.uid
+        && request.resource.data.get('toRoleId', '') != ''
+        && request.resource.data.get('toTier', '') != ''
+        && request.resource.data.get('toTier', '') != 'REGISTERED'
+        && request.resource.data.get('reason', '') != '';
+      allow update, delete: if isSuperAdmin();
     }
 
     // NOTE: no catch-all allow — default deny.
