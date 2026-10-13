@@ -142,6 +142,21 @@ export interface BranchInfo {
   isMain?: boolean;
 }
 
+/**
+ * Per-branch RBAC (v2). One entry scopes a single member (login user) to a
+ * subset of the workspace's branches. This is the "workspace member record"
+ * for branch access: absent entry — or an entry with empty/undefined
+ * branchIds — means ALL branches (fully backward compatible).
+ */
+export interface BranchMemberAccess {
+  /** Member identifier: Firebase uid or login email (matched case-insensitively for email). */
+  memberId: string;
+  /** Display label shown in the Trustee management UI (name or email). */
+  label?: string;
+  /** Branch ids this member may access. Empty/undefined = all branches. */
+  branchIds?: string[];
+}
+
 export interface WorkspaceConfig extends Partial<TenantScoped> {
   id: string;
   name: string;
@@ -199,6 +214,12 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
    * consolidated views appear only when 2+ branches exist.
    */
   branches?: BranchInfo[];
+  /**
+   * Per-branch RBAC (v2): member → allowed branch ids. Managed by Trustees
+   * in Settings → Branches. No entry (or empty branchIds) = all branches.
+   * SuperAdmin always bypasses restrictions.
+   */
+  branchAccess?: BranchMemberAccess[];
 }
 
 export interface AuditLog extends TenantScoped {
