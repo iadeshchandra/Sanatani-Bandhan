@@ -257,7 +257,7 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
           {/* Top Security Badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold uppercase tracking-wider">
             <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            <span>FIDO2 / WebAuthn</span>
+            <span>Device Biometric</span>
           </div>
 
           {/* Biometric Sensor Visual Indicator */}
@@ -294,7 +294,7 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
               {modalStage === 'SCANNING'
                 ? 'Complete the biometric prompt on your device (FaceID / TouchID / Windows Hello) to confirm identity'
                 : modalStage === 'SUCCESS'
-                  ? 'Hardware authenticator assertion verified.'
+                  ? 'Device unlock verified on this device.'
                   : 'Falling back to PIN entry.'}
             </p>
           </div>
