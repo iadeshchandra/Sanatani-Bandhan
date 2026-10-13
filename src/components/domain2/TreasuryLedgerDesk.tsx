@@ -16,6 +16,15 @@ import { KpiCardSkeleton, TableSkeleton } from '../common/DeskSkeletons';
 import { EmptyState } from '../common/EmptyState';
 import { DataExportButton } from '../common/DataExportButton';
 import { formatINR, formatDateIST } from '../../utils/format';
+import { workspaceRegistry } from '../../lib/workspaceRegistry';
+import {
+  fireSuggestion,
+  milestoneFired,
+  markMilestone,
+  usePendingSuggestions,
+  enableModule,
+} from '../../suggestions/store';
+import { SuggestionCard, ModuleUpsellCard } from '../../suggestions/cards';
 import {
   Landmark,
   Plus,
@@ -170,10 +179,45 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 });
 
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
-  const { activeWorkspace, activeWorkspaceId } = useAuthWorkspace();
+  const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
   const { showToast } = useToast();
+  const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
+
+  const isModuleAvailable = (id: string) => {
+    if (!activeWorkspace) return true;
+    const natives = workspaceRegistry[activeWorkspace.type] || [];
+    const enabled = activeWorkspace.enabledModules || [];
+    return natives.includes(id) || enabled.includes(id);
+  };
+
+  const handleEnableSuggestion = (moduleId: string) => {
+    if (!activeWorkspace) return;
+    enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, workspaceId);
+    showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
+  };
+
+  // Seva Suggestions — trigger (b): donation volume milestone. When recorded
+  // donations cross 25, Donor Care & Win-Back becomes genuinely useful.
+  // Fires once per workspace; sticky-dismissed suggestions never re-fire.
+  useEffect(() => {
+    const count = (donations || []).length;
+    if (count >= 25 && !milestoneFired(workspaceId, 'donation-volume-25')) {
+      markMilestone(workspaceId, 'donation-volume-25');
+      fireSuggestion(
+        workspaceId,
+        'donorCare',
+        {
+          en: `${count} donations recorded — Donor Care & Win-Back thanks first-time donors and brings lapsed ones back.`,
+          hi: `${count} दान दर्ज — डोनर केयर पहली बार के दाताओं को धन्यवाद देता है और छूटे हुओं को वापस लाता है।`,
+          bn: `${count}টি অনুদান নথিভুক্ত — ডোনার কেয়ার প্রথমবারের দাতাদের ধন্যবাদ জানায় ও হারানোদের ফিরিয়ে আনে।`,
+        },
+        isModuleAvailable
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(donations || []).length, workspaceId]);
 
   const [treasury, setTreasury] = useState<TreasuryTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -627,6 +671,26 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         'success',
         'Voucher Posted'
       );
+
+      // Seva Suggestions — trigger (c): the first basic "Hundi Collection"
+      // voucher is the moment the full dual-custody Hundi Audit desk earns
+      // its place. Fires once per workspace.
+      if (
+        voucherCategory === 'Hundi Collection' &&
+        !milestoneFired(workspaceId, 'first-hundi-collection')
+      ) {
+        markMilestone(workspaceId, 'first-hundi-collection');
+        fireSuggestion(
+          workspaceId,
+          'hundi-audit',
+          {
+            en: 'You recorded a hundi collection — the Hundi & Golak Dual Audit desk opens it with two custodians and a tamper-proof count.',
+            hi: 'आपने हुंडी संग्रह दर्ज किया — हुंडी एवं गोलक दोहरी अंकेक्षण डेस्क इसे दो संरक्षकों और छेड़छाड़-रहित गिनती के साथ खोलता है।',
+            bn: 'আপনি হুন্ডি সংগ্রহ নথিভুক্ত করেছেন — হুন্ডি ও গোলক দ্বৈত নিরীক্ষা ডেস্ক দুই তত্ত্বাবধায়ক ও কারচুপি-মুক্ত গণনায় এটি খোলে।',
+          },
+          isModuleAvailable
+        );
+      }
       setShowVoucherModal(false);
       // Reset form
       setVoucherAmount('');
@@ -665,18 +729,22 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            {/* Hundi & Golak Dual Audit Desk */}
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => onNavigate('hundi-audit')}
-                className="px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
-                title="Open Hundi & Golak Dual-Custody Vault & Counting Desk"
-              >
-                <Lock className="w-4 h-4 text-amber-400" />
-                <span>Hundi Vault Desk</span>
-              </button>
-            )}
+            {/* Hundi & Golak Dual Audit Desk — upsell in-context when not enabled,
+                instead of a dead navigation to a blocked desk. */}
+            {onNavigate &&
+              (isModuleAvailable('hundi-audit') ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('hundi-audit')}
+                  className="px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                  title="Open Hundi & Golak Dual-Custody Vault & Counting Desk"
+                >
+                  <Lock className="w-4 h-4 text-amber-400" />
+                  <span>Hundi Vault Desk</span>
+                </button>
+              ) : (
+                <ModuleUpsellCard moduleId="hundi-audit" compact onEnable={handleEnableSuggestion} />
+              ))}
 
             {/* Tally CSV Export */}
             <button
@@ -738,6 +806,20 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             )}
           </div>
         </div>
+
+        {/* Seva Suggestions — contextual cards fired by treasury triggers */}
+        {sevaSuggestions.length > 0 && (
+          <div className="space-y-3" aria-live="polite">
+            {sevaSuggestions.map((s) => (
+              <SuggestionCard
+                key={s.key}
+                suggestion={s}
+                onEnable={handleEnableSuggestion}
+                onDismiss={dismissSevaSuggestion}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Top-Level Financial KPIs (3 Core Metrics) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
