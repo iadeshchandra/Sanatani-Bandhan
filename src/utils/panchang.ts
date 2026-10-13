@@ -466,3 +466,15 @@ export const calculatePanchang = (date: Date = new Date()) => {
     ],
   };
 };
+
+/**
+ * Canonical "today" line — the SINGLE source of truth for rendering today's
+ * tithi across the landing page, dashboard, header pill, and B2C views.
+ *
+ * NOTE: `tithi` already embeds the paksha (e.g. "Shukla Dwitiya"), so callers
+ * must NOT append `paksha` again (that produced the old "Shukla Dwitiya,
+ * Shukla Paksha" redundancy). No component may hardcode its own tithi string.
+ */
+export const getPanchangTodayLine = (
+  p: Pick<PanchangData, 'tithi' | 'lunarMonth' | 'vikramSamvat'>
+): string => `${p.tithi} • ${p.lunarMonth} • Vikram Samvat ${p.vikramSamvat}`;
