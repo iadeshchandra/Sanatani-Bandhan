@@ -81,7 +81,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useDemoStarter } from '../hooks/useDemoStarter';
-import { calculatePanchang } from '../utils/panchang';
+import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
 import { whatsappLink, hasWhatsApp } from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
@@ -572,7 +572,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   }, []);
 
-  const tithiLine = panchang ? `Today · ${panchang.tithi}, ${panchang.paksha} Paksha` : null;
+  const tithiLine = panchang ? `Today · ${getPanchangTodayLine(panchang)}` : null;
 
   const handleStartDemo = (type: WorkspaceType = 'Mandir') => {
     if (onDemoStart) {
@@ -680,7 +680,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 operatingSystem: 'Web browser, Progressive Web App',
                 applicationCategory: 'BusinessApplication',
                 description:
-                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 49 desks, and 100% offline-first. ₹0 forever.',
+                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 66 desks, and 100% offline-first. ₹0 forever.',
                 offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
               },
               {
@@ -799,7 +799,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={() => { setIsMobileMenuOpen(false); handleSignup(); }}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-white text-sm font-extrabold cursor-pointer"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-white text-sm font-extrabold cursor-pointer pressable"
             >
               CREATE FREE ACCOUNT
             </button>
@@ -895,7 +895,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={() => setDemoModalOpen(true)}
-                className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-white hover:bg-orange-50 border-2 border-stone-200 hover:border-orange-300 text-stone-800 font-black text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+                className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-white hover:bg-orange-50 border-2 border-stone-200 hover:border-orange-300 text-stone-800 font-black text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all cursor-pointer pressable"
               >
                 <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
                   <Play className="w-3 h-3 fill-white ml-0.5" />
@@ -906,7 +906,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Trusted by 140+ dharmic institutions across Bharat
+              Built for Mandirs, Goshalas, Ashrams, Gurukuls &amp; Sanghas across Bharat
             </p>
           </div>
         </section>
@@ -915,7 +915,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section className="border-y border-orange-100 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              ['49', 'Desks for every institution'],
+              ['66', 'Desks across 8 domains'],
               ['100%', 'Offline-first, zero internet needed'],
               ['80G', 'Instant tax receipts, Tally-ready'],
               ['₹0', 'Free forever — no card, no trial'],
@@ -1315,6 +1315,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </h2>
           </Reveal>
           {/* NOTE: replace with real testimonials once collected from pilot institutions. */}
+          <p className="text-center text-[11px] text-stone-400 italic mb-5">
+            Illustrative examples of what institutions achieve — real customer stories coming soon.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.role} delay={i * 90}>
@@ -1389,7 +1392,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   Bring your institution online tonight.
                 </h2>
                 <p className="mt-3 text-orange-100 max-w-xl mx-auto">
-                  Join 140+ institutions already running on Sanatani Bandhan. Free forever — no card, no salesman, no catch.
+                  Join institutions across Bharat running on Sanatani Bandhan. Free forever — no card, no salesman, no catch.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
                   <button
@@ -1455,7 +1458,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">All 49 desks</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">All 66 desks</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">Treasury &amp; 80G</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">Goshala &amp; Bhandar</button></li>
                 <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer">Why Dharma</button></li>
