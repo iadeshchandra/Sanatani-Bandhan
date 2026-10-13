@@ -11,20 +11,39 @@ const MAX_RECENTS = 5;
  */
 const mem: Record<string, string[]> = {};
 
+/**
+ * Guards against corrupt/stale stored ids (e.g. desk ids renamed between
+ * releases, or the literal string "undefined" leaking in from a bad call).
+ */
+function sanitizeIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return [];
+  return ids.filter(
+    (id): id is string =>
+      typeof id === 'string' && id.trim() !== '' && id !== 'undefined' && id !== 'null'
+  );
+}
+
 async function read(key: string): Promise<string[]> {
   try {
     const v = await get<string[]>(key);
-    if (Array.isArray(v)) return v;
+    const clean = sanitizeIds(v);
+    // Self-heal: persist the cleaned list so one bad write can't haunt the UI.
+    if (Array.isArray(v) && clean.length !== v.length) {
+      try { await set(key, clean); } catch { /* ignore */ }
+      mem[key] = clean;
+    }
+    return clean;
   } catch {
     /* idb unavailable — use memory */
   }
-  return mem[key] || [];
+  return sanitizeIds(mem[key]);
 }
 
 async function write(key: string, value: string[]): Promise<void> {
-  mem[key] = value;
+  const clean = sanitizeIds(value);
+  mem[key] = clean;
   try {
-    await set(key, value);
+    await set(key, clean);
   } catch {
     /* ignore */
   }
