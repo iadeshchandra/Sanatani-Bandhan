@@ -28,6 +28,7 @@ import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from '../../context/DataContext';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { trackViewItem, trackShare } from '../../utils/gtm';
+import { CountUp } from '../common/ui/CountUp';
 import { useToast } from '../../context/ToastContext';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { isModuleAllowed } from '../../lib/workspaceRegistry';
@@ -182,7 +183,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200 flex flex-col">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm shrink-0 relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm shrink-0 relative overflow-hidden anim-fade-up">
         <div className="relative z-10 flex flex-col gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -219,7 +220,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         </div>
 
         {/* Live Panjika Card — canonical today line via getPanchangTodayLine (single source of truth) */}
-        <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-xs flex flex-col sm:items-end relative z-10">
+        <div
+          className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-xs flex flex-col sm:items-end relative z-10 anim-fade-up"
+          style={{ '--i': 1 } as React.CSSProperties}
+        >
           <p className="font-bold text-slate-700">
             {getPanchangTodayLine(panchang)}
           </p>
@@ -232,17 +236,18 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         </div>
       </div>
 
-      {/* 4 Key Executive KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+      {/* 4 Key Executive KPIs — staggered entrance, count-up numbers */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0 anim-stagger">
         {/* Metric 1 - Devotee Directory */}
         {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
           <div
             onClick={() => handleNav('devotee-grid')}
+            style={{ '--i': 0 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors group"
           >
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{taxonomy.directoryName}</span>
             <div className="flex items-end justify-between mt-1">
-              <span className="text-2xl font-bold text-slate-900">{devotees.length}</span>
+              <span className="text-2xl font-bold text-slate-900"><CountUp value={devotees.length} /></span>
               <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded">KYC 100%</span>
             </div>
           </div>
@@ -252,12 +257,16 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'SUPER_ADMIN']) && (
           <div
             onClick={() => handleNav('treasury-ledger')}
+            style={{ '--i': 1 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors group"
           >
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Net Treasury Fund</span>
             <div className="flex items-end justify-between mt-1">
               <span className="text-2xl font-bold text-slate-900">
-                {activeWorkspace.currencySymbol} {netBalance.toLocaleString()}
+                <CountUp
+                  value={netBalance}
+                  format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`}
+                />
               </span>
               <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Synced</span>
             </div>
@@ -269,11 +278,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
             <div
               onClick={() => handleNav('gurukulAcademy')}
+              style={{ '--i': 2 } as React.CSSProperties}
               className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors group"
             >
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enrolled Students</span>
               <div className="flex items-end justify-between mt-1">
-                <span className="text-2xl font-bold text-slate-900">{gurukulStudents.length}</span>
+                <span className="text-2xl font-bold text-slate-900"><CountUp value={gurukulStudents.length} /></span>
                 <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">Brahmacharis</span>
               </div>
             </div>
@@ -282,11 +292,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           showSankalpKpi && checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'PUROHIT', 'SUPER_ADMIN']) && (
             <div
               onClick={() => handleNav('pooja-booking')}
+              style={{ '--i': 2 } as React.CSSProperties}
               className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-rose-300 transition-colors group"
             >
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reserved Sankalps</span>
               <div className="flex items-end justify-between mt-1">
-                <span className="text-2xl font-bold text-slate-900">{poojaBookings.length}</span>
+                <span className="text-2xl font-bold text-slate-900"><CountUp value={poojaBookings.length} /></span>
                 <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
               </div>
             </div>
@@ -297,11 +308,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         {showGauSevaKpi && checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
           <div
             onClick={() => handleNav('gau-seva-goshala')}
+            style={{ '--i': 3 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-saffron-300 transition-colors group"
           >
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gau Seva Units</span>
             <div className="flex items-end justify-between mt-1">
-              <span className="text-2xl font-bold text-slate-900">{cows.length}</span>
+              <span className="text-2xl font-bold text-slate-900"><CountUp value={cows.length} /></span>
               <span className="text-[10px] text-saffron-600 font-bold bg-saffron-50 px-1.5 py-0.5 rounded">Gomata</span>
             </div>
           </div>
