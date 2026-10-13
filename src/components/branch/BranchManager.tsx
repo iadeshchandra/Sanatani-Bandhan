@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { GitBranch, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { GitBranch, Plus, Pencil, Trash2, Check, X, ShieldCheck, UserPlus, UserMinus } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import type { BranchInfo } from '../../types';
+import type { BranchInfo, BranchMemberAccess } from '../../types';
 
 /**
  * BranchManager — workspace Settings section for multi-branch organisations.
@@ -29,6 +29,67 @@ export const BranchManager: React.FC = () => {
   if (activeWorkspace.id?.startsWith('DEMO_')) return null;
 
   const branches: BranchInfo[] = activeWorkspace.branches || [];
+  const branchAccess: BranchMemberAccess[] = activeWorkspace.branchAccess || [];
+
+  const [newMemberId, setNewMemberId] = useState('');
+  const [newMemberLabel, setNewMemberLabel] = useState('');
+
+  const persistAccess = (next: BranchMemberAccess[]) => {
+    updateWorkspaceDetails({ branchAccess: next });
+  };
+
+  const handleAddMember = () => {
+    const id = newMemberId.trim().toLowerCase();
+    if (!id) {
+      showToast("Enter the member's login email or user ID.", 'error');
+      return;
+    }
+    if (branchAccess.some((e) => e.memberId.toLowerCase() === id)) {
+      showToast('That member already has a branch-access entry.', 'error');
+      return;
+    }
+    persistAccess([
+      ...branchAccess,
+      {
+        memberId: id,
+        label: newMemberLabel.trim() || undefined,
+        // Start with full access; the Trustee unchecks branches to restrict.
+        branchIds: branches.map((b) => b.id),
+      },
+    ]);
+    setNewMemberId('');
+    setNewMemberLabel('');
+    showToast('Member added — uncheck branches to restrict their access.', 'success');
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    persistAccess(branchAccess.filter((e) => e.memberId !== memberId));
+    showToast('Branch restriction removed — member sees all branches again.', 'success');
+  };
+
+  const toggleMemberBranch = (memberId: string, branchId: string) => {
+    const next = branchAccess.map((e) => {
+      if (e.memberId !== memberId) return e;
+      // No explicit list (or empty) = all branches: materialise before toggling.
+      const current =
+        e.branchIds && e.branchIds.length > 0 ? e.branchIds : branches.map((b) => b.id);
+      const has = current.includes(branchId);
+      if (has && current.length === 1) {
+        showToast('Keep at least one branch — or remove the member to restore full access.', 'error');
+        return e;
+      }
+      return {
+        ...e,
+        branchIds: has ? current.filter((id) => id !== branchId) : [...current, branchId],
+      };
+    });
+    persistAccess(next);
+  };
+
+  const memberCanSee = (entry: BranchMemberAccess, branchId: string): boolean => {
+    if (!entry.branchIds || entry.branchIds.length === 0) return true;
+    return entry.branchIds.includes(branchId);
+  };
 
   const persist = (next: BranchInfo[]) => {
     updateWorkspaceDetails({ branches: next });
@@ -223,6 +284,95 @@ export const BranchManager: React.FC = () => {
           <Plus size={16} /> Add branch
         </button>
       </div>
+
+      {/* Per-branch RBAC (v2): restrict members to specific branches. */}
+      {isMultiBranch && (
+        <div className="mt-5 pt-5 border-t border-amber-200/70">
+          <h5 className="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+            <ShieldCheck size={14} /> Branch access
+          </h5>
+          <p className="text-[11px] text-gray-500 font-medium mb-4 leading-relaxed">
+            Restrict a member to specific branches — e.g. the Ayodhya manager sees
+            only Ayodhya. Members without an entry below see every branch.
+            Enforced in the data layer, not just the UI.
+          </p>
+
+          {branchAccess.length > 0 && (
+            <ul className="space-y-2 mb-4">
+              {branchAccess.map((entry) => (
+                <li
+                  key={entry.memberId}
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-2.5"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-bold text-gray-900 truncate">
+                        {entry.label || entry.memberId}
+                      </span>
+                      {entry.label && (
+                        <span className="block text-[11px] text-gray-500 truncate">{entry.memberId}</span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(entry.memberId)}
+                      className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 cursor-pointer"
+                      title="Remove restriction (member sees all branches again)"
+                    >
+                      <UserMinus size={14} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {branches.map((b) => {
+                      const checked = memberCanSee(entry, b.id);
+                      return (
+                        <label
+                          key={b.id}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors min-h-[36px] ${
+                            checked
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : 'bg-gray-50 border-gray-200 text-gray-400'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleMemberBranch(entry.memberId, b.id)}
+                            className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                          />
+                          {b.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={newMemberId}
+              onChange={(e) => setNewMemberId(e.target.value)}
+              placeholder="Member login email or user ID"
+              className="flex-1 p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none transition-all"
+            />
+            <input
+              value={newMemberLabel}
+              onChange={(e) => setNewMemberLabel(e.target.value)}
+              placeholder="Name (optional)"
+              className="sm:w-36 p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none transition-all"
+            />
+            <button
+              type="button"
+              onClick={handleAddMember}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-white border border-amber-300 hover:bg-amber-50 text-amber-800 text-sm font-bold transition-colors cursor-pointer min-h-[44px]"
+            >
+              <UserPlus size={16} /> Add member
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
