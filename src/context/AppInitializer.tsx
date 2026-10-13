@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { get, set } from 'idb-keyval';
+import { collection, deleteField, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { db } from '../services/firebaseClient';
 import { startDemoBackgroundService } from '../lib/dbUtils';
 
 interface InitialData {
@@ -42,6 +44,75 @@ const keys = [
   'sanatani_app_lang'
 ];
 
+/**
+ * C-7 one-time migration: strip plaintext `pin` from Firestore devotee docs.
+ *
+ * Devotee records live at `tenants/{workspaceId}/devotees`. For every local
+ * workspace (guarded by a per-workspace idb flag so this runs exactly once):
+ *   - `pin === 'REVOKED'`        → set `pinRevoked: true`, delete `pin`
+ *                                  (preserves the revocation status)
+ *   - `pin` present AND `pinHash` present → delete `pin`
+ *                                  (hash remains — nobody gets locked out)
+ *   - `pin` present but NO `pinHash`     → SKIP, count as skipped
+ *                                  (deleting here would lock the devotee out)
+ *
+ * Runs best-effort: on failure (e.g. offline) the flag is NOT set, so the
+ * migration retries on the next launch. Counts are logged to the console.
+ */
+async function migratePlaintextPins(workspaces: Array<{ id: string }>) {
+  for (const ws of workspaces || []) {
+    const wsId = ws?.id;
+    if (!wsId) continue;
+    const flagKey = `sb_pin_migration_v1_${wsId}`;
+    try {
+      if (await get(flagKey)) continue;
+
+      const colRef = collection(db, 'tenants', wsId, 'devotees');
+      // '!=' filters to docs where the field EXISTS (Firestore semantics).
+      const snap = await getDocs(query(colRef, where('pin', '!=', null)));
+
+      let cleared = 0;
+      let revoked = 0;
+      let skipped = 0;
+      let batch = writeBatch(db);
+      let ops = 0;
+      const commitIfFull = async () => {
+        if (ops >= 400) {
+          await batch.commit();
+          batch = writeBatch(db);
+          ops = 0;
+        }
+      };
+
+      snap.forEach((d) => {
+        const data = d.data() as { pin?: unknown; pinHash?: unknown };
+        if (data.pin === 'REVOKED') {
+          batch.update(d.ref, { pinRevoked: true, pin: deleteField() });
+          revoked++;
+          ops++;
+        } else if (data.pin != null && data.pinHash) {
+          batch.update(d.ref, { pin: deleteField() });
+          cleared++;
+          ops++;
+        } else if (data.pin != null) {
+          skipped++;
+        }
+        void commitIfFull();
+      });
+      if (ops > 0) await batch.commit();
+
+      await set(flagKey, true);
+      console.log(
+        `[C-7 PIN migration] workspace ${wsId}: cleared ${cleared} plaintext PIN(s), ` +
+        `converted ${revoked} REVOKED sentinel(s) → pinRevoked, skipped ${skipped} (no hash — left intact)`
+      );
+    } catch (err: any) {
+      // Best-effort: flag not set → retries next launch (e.g. when back online).
+      console.warn(`[C-7 PIN migration] workspace ${wsId} deferred:`, err?.message || err);
+    }
+  }
+}
+
 export const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [data, setData] = useState<InitialData | null>(null);
 
@@ -71,6 +142,9 @@ export const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ childr
         loaded[key] = val;
       }
       setData(loaded);
+
+      // C-7: one-time plaintext-PIN purge (best-effort, runs after data load).
+      void migratePlaintextPins(loaded.sanatani_workspaces);
     };
     load();
 
