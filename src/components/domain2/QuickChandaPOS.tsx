@@ -295,7 +295,7 @@ export const QuickChandaPOS: React.FC = () => {
   const [completedTransaction, setCompletedTransaction] = useState<{
     txId: string;
     receiptNo: string;
-    urn80G: string;
+    urn80G: string | null;
     date: string;
     totalAmount: number;
     items: CartItem[];
@@ -497,7 +497,13 @@ export const QuickChandaPOS: React.FC = () => {
       const timeStamp = now.getTime().toString();
       const generatedTxId = `POS-${now.getFullYear()}-${timeStamp.slice(-6)}`;
       const generatedReceiptNo = `SB-CHANDA-${now.getFullYear()}-${timeStamp.slice(-5)}`;
-      const generatedUrn = `AAATB80G2026${timeStamp.slice(-4)}`;
+      // H-1: NEVER fabricate a URN. A real 80G URN only exists when the
+      // workspace has completed 80G registration (Settings → Legal).
+      const is80GRegistered = !!activeWorkspace.trust80GRegistered;
+      const generatedUrn =
+        is80GRegistered && activeWorkspace.trust80GURN
+          ? activeWorkspace.trust80GURN
+          : null;
 
       const primaryCategory = cart[0]?.category || 'General Chanda';
       const itemsSummary = cart
@@ -524,7 +530,9 @@ export const QuickChandaPOS: React.FC = () => {
           sankalpNote ? ` | Sankalp: ${sankalpNote}` : ''
         }`,
         is80GEligible: is80GRequested,
-        taxReceiptIssued: is80GRequested,
+        // H-1: only claim a tax receipt was issued when the workspace is
+        // actually 80G-registered. Unregistered = sample receipt, no issuance.
+        taxReceiptIssued: is80GRequested && is80GRegistered,
         taxReceiptNumber: is80GRequested ? generatedReceiptNo : undefined,
       };
 
@@ -1096,6 +1104,25 @@ export const QuickChandaPOS: React.FC = () => {
             <div className="p-4 sm:p-6 overflow-y-auto bg-stone-900">
               {/* Paper Look Container */}
               <div className="bg-stone-50 text-stone-900 p-5 rounded-2xl shadow-inner font-mono text-xs border border-stone-300 space-y-3">
+                {/* H-1: unregistered workspace → honest SAMPLE state, no fake URN */}
+                {is80GRequested && !activeWorkspace.trust80GRegistered && (
+                  <div className="rounded-xl border-2 border-dashed border-amber-500 bg-amber-50 p-3 text-center space-y-2">
+                    <p className="font-black text-sm text-amber-800 uppercase tracking-widest">
+                      Sample — Not a valid 80G receipt
+                    </p>
+                    <p className="text-[11px] text-amber-900 font-sans leading-relaxed">
+                      This organisation is not 80G-registered. Add your 80G registration
+                      in Settings to issue valid receipts with a real URN.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'masterSettings' }))}
+                      className="text-[11px] font-bold text-amber-800 underline underline-offset-2 hover:text-amber-950 cursor-pointer"
+                    >
+                      Open Settings → 80G Registration
+                    </button>
+                  </div>
+                )}
                 {/* Mandir Header */}
                 <div className="text-center space-y-0.5 border-b border-dashed border-stone-400 pb-3">
                   <p className="font-black text-sm uppercase tracking-wide">
@@ -1105,7 +1132,7 @@ export const QuickChandaPOS: React.FC = () => {
                     {activeWorkspace.address || activeWorkspace.city || 'Sacred Temple Sanctum'}
                   </p>
                   <p className="text-[10px] text-stone-500">
-                    Trust Reg: {activeWorkspace.trustRegNumber || '1882/TR-SB-901'}
+                    Trust Reg: {activeWorkspace.trustRegNumber || '—'}
                   </p>
                   <p className="text-xs font-bold text-amber-700 uppercase mt-1">
                     *** CHANDA & SEVA RECEIPT ***
