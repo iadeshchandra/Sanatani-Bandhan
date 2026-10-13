@@ -69,9 +69,20 @@ export const DevoteeGrid: React.FC = () => {
   const canViewFinancials = checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
   const canRegister = checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'PUROHIT', 'VOLUNTEER', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
 
-  const { treasury, poojas, updateDevotee, deleteDevotee } = useData();
+  const { treasury, poojas, updateDevotee, deleteDevotee, recordsForBranch, activeBranchId, devotees: ctxDevotees } = useData();
   const [devotees, setDevotees] = useState<DevoteeMember[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Multi-branch: DataContext `ctxDevotees` is the source of truth — it is
+  // workspace- and branch-filtered. The Firestore-fetched local `devotees`
+  // state is used ONLY as a fallback when DataContext is empty, because it
+  // can hold stale copies without branchId that would leak across branches.
+  // (No-op for single-branch orgs.)
+  const branchScopedDevotees = useMemo(() => {
+    return ctxDevotees && ctxDevotees.length > 0
+      ? ctxDevotees
+      : recordsForBranch(devotees, activeBranchId);
+  }, [devotees, ctxDevotees, activeBranchId, recordsForBranch]);
 
   const fetchDevotees = async () => {
     if (!workspaceId) return;
@@ -181,7 +192,7 @@ export const DevoteeGrid: React.FC = () => {
 
   const handleBulkWhatsApp = () => {
     if (selectedIds.size === 0) return;
-    const selected = devotees.filter(d => selectedIds.has(d.id));
+    const selected = branchScopedDevotees.filter(d => selectedIds.has(d.id));
     // E.g. generating a csv or linking to a bulk whatsapp web sender
     showToast(`Prepared bulk messaging for ${selected.length} devotees.`, 'success');
   };
@@ -193,12 +204,12 @@ export const DevoteeGrid: React.FC = () => {
 
   // Extract unique gotras
   const uniqueGotras = useMemo(() => {
-    const set = new Set(devotees.map((d, idx) => d.gotra).filter(Boolean));
+    const set = new Set(branchScopedDevotees.map((d, idx) => d.gotra).filter(Boolean));
     return Array.from(set);
   }, [devotees]);
 
   const filteredDevotees = useMemo(() => {
-    return devotees.filter((d) => {
+    return branchScopedDevotees.filter((d) => {
       const matchSearch =
         d.fullName?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
         (d.spiritualName && d.spiritualName?.toLowerCase().includes(searchTerm?.toLowerCase())) ||
@@ -218,7 +229,7 @@ export const DevoteeGrid: React.FC = () => {
 
       return matchSearch && matchGotra && matchTier && matchGroup && matchAdvanced;
     });
-  }, [devotees, searchTerm, selectedGotra, selectedTier, filterGroup, advancedFilters]);
+  }, [branchScopedDevotees, searchTerm, selectedGotra, selectedTier, filterGroup, advancedFilters]);
 
   const selectedDevoteeDonations = useMemo(() => {
     if (!selectedDevotee) return [];
@@ -360,7 +371,7 @@ export const DevoteeGrid: React.FC = () => {
       });
       setEditingDevotee(null);
     } else {
-      if (!checkGate('devotees', devotees.length)) {
+      if (!checkGate('devotees', branchScopedDevotees.length)) {
         setIsAddModalOpen(false);
         return;
       }
@@ -511,7 +522,7 @@ export const DevoteeGrid: React.FC = () => {
 
   const handleExportCSV = () => {
     const headers = ['ID', 'Full Name', 'Spiritual Name', 'Phone', 'Email', 'Gotra', 'Seva Tier', 'Total Donated', 'PIN'];
-    const rows = devotees.map((d, idx) => [
+    const rows = branchScopedDevotees.map((d, idx) => [
       d.id,
       d.fullName,
       d.spiritualName || '',
@@ -586,7 +597,7 @@ export const DevoteeGrid: React.FC = () => {
               {taxonomy.workspaceLabel}
             </span>
             <span className="text-xs text-temple-600 font-mono">
-              Total {taxonomy.memberNoun}: {devotees.length}
+              Total {taxonomy.memberNoun}: {branchScopedDevotees.length}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-semibold text-temple-900">
