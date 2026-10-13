@@ -215,11 +215,17 @@ export interface AuthWorkspaceContextType {
    * (organisation membership, PUR-XXXXXX, JYO-XXXXXX) and switch sessions;
    * personal data (sadhana, saved, giving) lives in the solo store and
    * survives every upgrade.
+   *
+   * Jyotish One adds 'jyotish' = independent jyotishi personal workspace.
+   * Same hard guard, same dual-identity model as purohit.
    */
-  sessionKind: 'org' | 'purohit' | 'solo';
+  sessionKind: 'org' | 'purohit' | 'solo' | 'jyotish';
   purohitProfile: import('../types/purohit').PurohitIdentity | null;
   enterPurohitSession: (profile: import('../types/purohit').PurohitIdentity) => void;
   exitPurohitSession: () => void;
+  jyotishProfile: import('../types/jyotish').JyotishIdentity | null;
+  enterJyotishSession: (profile: import('../types/jyotish').JyotishIdentity) => void;
+  exitJyotishSession: () => void;
   soloProfile: import('../solo/types').SanataniProfile | null;
   enterSoloSession: (profile: import('../solo/types').SanataniProfile) => void;
   exitSoloSession: () => void;
@@ -277,9 +283,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   // Purohit One: independent-purohit session. Mutually exclusive with org
   // sessions — see the AppContent guard. Persisted so a refresh keeps the
   // purohit in their personal workspace (profile rehydrated by PurohitContext).
-  const [sessionKind, setSessionKind] = useState<'org' | 'purohit' | 'solo'>(() => {
+  const [sessionKind, setSessionKind] = useState<'org' | 'purohit' | 'solo' | 'jyotish'>(() => {
     try {
-      return (localStorage.getItem('sb_session_kind') as 'org' | 'purohit' | 'solo') || 'org';
+      return (localStorage.getItem('sb_session_kind') as 'org' | 'purohit' | 'solo' | 'jyotish') || 'org';
     } catch {
       return 'org';
     }
@@ -319,6 +325,28 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   };
   const exitSoloSession = () => {
     setSoloProfile(null);
+    setSessionKind('org');
+    try {
+      localStorage.removeItem('sb_session_kind');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  // Jyotish One: independent jyotishi session. Mirrors the purohit hard
+  // guard — entering jyotish never mounts org UI; the jyotish profile is
+  // rehydrated by JyotishContext on refresh (session kind persisted).
+  const [jyotishProfile, setJyotishProfile] = useState<import('../types/jyotish').JyotishIdentity | null>(null);
+  const enterJyotishSession = (profile: import('../types/jyotish').JyotishIdentity) => {
+    setJyotishProfile(profile);
+    setSessionKind('jyotish');
+    try {
+      localStorage.setItem('sb_session_kind', 'jyotish');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const exitJyotishSession = () => {
+    setJyotishProfile(null);
     setSessionKind('org');
     try {
       localStorage.removeItem('sb_session_kind');
@@ -1194,6 +1222,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         purohitProfile,
         enterPurohitSession,
         exitPurohitSession,
+        jyotishProfile,
+        enterJyotishSession,
+        exitJyotishSession,
         soloProfile,
         enterSoloSession,
         exitSoloSession,
