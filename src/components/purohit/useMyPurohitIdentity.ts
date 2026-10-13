@@ -22,20 +22,21 @@ export const useMyPurohitIdentity = () => {
     if (!uid) {
       setIdentity(null);
       setLoading(false);
-      return;
+      return null;
     }
     setLoading(true);
     try {
       const snap = await getDocs(
         query(collection(db, 'purohits'), where('uid', '==', uid), limit(1))
       );
-      setIdentity(
-        snap.empty
-          ? null
-          : ({ id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as PurohitIdentity)
-      );
+      const found = snap.empty
+        ? null
+        : ({ id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as PurohitIdentity);
+      setIdentity(found);
+      return found;
     } catch {
       setIdentity(null);
+      return null;
     } finally {
       setLoading(false);
     }

@@ -16,6 +16,7 @@ import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where, collection, limit } from 'firebase/firestore';
 import type { UserRole } from '../../types';
 import { PurohitSignupForm } from '../purohit/PurohitSignupForm';
+import { SoloSignupForm } from '../../solo/SoloSignupForm';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
 import { syncOrgPage } from '../../context/MembershipContext';
@@ -133,7 +134,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   const [language, setLanguage] = useState<'en'|'hi'|'bn'>('en'); 
   const t = (key: string) => (translations as any)[language][key] || key;
 
-  const [activeView, setActiveView] = useState<'LOGIN' | 'REGISTER' | 'PUROHIT'>(initialMode === 'signup' ? 'REGISTER' : 'LOGIN'); 
+  const [activeView, setActiveView] = useState<'LOGIN' | 'REGISTER' | 'SOLO' | 'PUROHIT' | 'JYOTISHI'>(initialMode === 'signup' ? 'SOLO' : 'LOGIN'); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine); 
@@ -739,27 +740,41 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           {/* Header toggles */}
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-semibold text-temple-900">
-              {activeView === 'LOGIN' ? 'Welcome Back' : activeView === 'REGISTER' ? 'Create Workspace' : 'Join as Purohit'}
+              {activeView === 'LOGIN' ? 'Welcome Back' : activeView === 'REGISTER' ? 'Create Workspace' : activeView === 'SOLO' ? 'Solo Sanatani' : activeView === 'JYOTISHI' ? 'Join as Jyotishi' : 'Join as Purohit'}
             </h3>
             
-            <div className="flex bg-temple-100 p-1 rounded-xl">
+            <div className="flex bg-temple-100 p-1 rounded-xl overflow-x-auto max-w-full">
                <button 
                  onClick={() => { setActiveView('LOGIN'); clearErrors(); }} 
-                 className={`px-4 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all ${activeView === 'LOGIN' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'LOGIN' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
                >
                  Login
                </button>
                <button 
+                 onClick={() => { setActiveView('SOLO'); clearErrors(); }} 
+                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'SOLO' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+                 title="Your personal Sanatani home — no organisation needed"
+               >
+                 🙏 Solo
+               </button>
+               <button 
                  onClick={() => { setActiveView('REGISTER'); clearErrors(); }} 
-                 className={`px-4 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all ${activeView === 'REGISTER' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'REGISTER' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+                 title="Create an organisation workspace"
                >
                  Sign Up
                </button>
                <button 
                  onClick={() => { setActiveView('PUROHIT'); clearErrors(); }} 
-                 className={`px-4 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all ${activeView === 'PUROHIT' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'PUROHIT' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
                >
                  🪔 Purohit
+               </button>
+               <button 
+                 onClick={() => { setActiveView('JYOTISHI'); clearErrors(); }} 
+                 className={`px-3 py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0 ${activeView === 'JYOTISHI' ? 'bg-white text-temple-900 shadow-sm' : 'text-temple-500 hover:text-temple-700'}`}
+               >
+                 🔮 Jyotishi
                </button>
             </div>
           </div>
@@ -838,6 +853,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     <p className="text-sm text-temple-500 mt-1">Your Google account is linked. What would you like to do first?</p>
                   </div>
                   <div className="space-y-3 pt-2">
+                    <button
+                      onClick={() => { setShowGoogleWelcome(null); setActiveView('SOLO'); }}
+                      className="w-full flex items-center gap-3 p-4 bg-white border-2 border-amber-400 hover:border-amber-600 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-xl">🙏</div>
+                      <div>
+                        <p className="text-sm font-black text-temple-900">Solo Sanatani <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5 ml-1">RECOMMENDED</span></p>
+                        <p className="text-xs text-temple-500">Your personal Sanatani home — no organisation needed.</p>
+                      </div>
+                    </button>
                     <button
                       onClick={() => { setShowGoogleWelcome(null); setActiveView('REGISTER'); }}
                       className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
@@ -1128,6 +1153,28 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     {loading ? <Loader2 size={18} className="animate-spin" /> : t('btn_create_dynamic').replace('{X}', regData.type.toUpperCase())}
                   </button>
                 </motion.form>
+              ) : activeView === 'SOLO' ? (
+                <SoloSignupForm />
+              ) : activeView === 'JYOTISHI' ? (
+                <div className="text-center py-10 px-4">
+                  <div className="text-5xl mb-4">🔮</div>
+                  <h4 className="text-lg font-black text-temple-900">Jyotish One is on the way</h4>
+                  <p className="text-sm text-temple-500 mt-2 max-w-sm mx-auto">
+                    Independent Jyotishi registration — your own Universal Jyotish ID
+                    (JYO-XXXXXX), consultation marketplace and verification — is the
+                    next suite in the build queue.
+                  </p>
+                  <p className="text-xs text-temple-400 mt-3">
+                    Tip: create a <b>Solo Sanatani</b> account now — your Sanatani ID
+                    will carry the Jyotishi identity when it launches. One account, many roles.
+                  </p>
+                  <button
+                    onClick={() => { setActiveView('SOLO'); clearErrors(); }}
+                    className="mt-6 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm font-black min-h-[44px]"
+                  >
+                    🙏 Create my Sanatani ID instead
+                  </button>
+                </div>
               ) : (
                 <PurohitSignupForm />
               )}
