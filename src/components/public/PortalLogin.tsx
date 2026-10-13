@@ -16,6 +16,7 @@ import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
+import { smartDefaultModulesFor } from '../../lib/workspaceRegistry';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where, collection, limit } from 'firebase/firestore';
@@ -649,6 +650,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         type: type,
         // C-6: every real signup starts on the Seva Free (LITE) plan.
         planId: 'LITE',
+        // Seva Suggestions: smart archetype defaults — the new workspace
+        // starts with its org type's high-confidence modules already
+        // enabled, so discovery isn't gated on visiting the App Store.
+        enabledModules: smartDefaultModulesFor(type),
         // H-11: record the provisioner — the creator is this workspace's
         // administrator, resolved back to Trustee on later logins.
         createdBy: user.uid,
