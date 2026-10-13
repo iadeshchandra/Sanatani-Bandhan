@@ -118,7 +118,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'purohitDesk', name: 'Purohit Diary & Dakshina', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: BookOpen },
   { id: 'purohitMarket', name: 'Global Scholar Marketplace', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Globe, badge: 'KYC Verified' },
   { id: 'pitruShradh', name: 'Pitru Paksha & Shradh Alerts', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: HeartHandshake },
-  { id: 'panchang', name: 'Vedic Panjika & Muhurat', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Calendar },
+  { id: 'panchang', name: 'Vedic Panchang & Muhurat', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Calendar },
   { id: 'yatranet-gis', name: 'YatraNet GIS Crowd & SOS', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Radio, badge: 'Live GIS' },
 
   // Domain 4: Specialized Desks
@@ -339,6 +339,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     getRecentDesks().then(setRecentIds).catch(() => {});
   }, []);
 
+  // Reliable mobile drawer close: Escape key + body scroll lock while open.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    if (window.innerWidth < 1024) document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
+
   const handleSelectModule = (id: string) => {
     // C-6: plan-locked desks don't navigate — they open the upgrade upsell.
     if (lockedModuleIds.has(id)) {
@@ -363,7 +378,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSwitchToPersonal = () => {
     setViewMode('MEMBER');
-    showToast('Switched to Personal Devotee View 🙏', 'success', 'Mode Changed');
+    showToast('Devotee App Preview — this is what your community members see 🙏', 'success', 'Mode Changed');
     if (window.innerWidth < 1024) onClose();
   };
 
@@ -492,22 +507,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const byId = new Map(filteredModules.map((m) => [m.id, m]));
     return pinnedIds
       .map((id) => byId.get(id))
-      .filter((m): m is NavItem => !!m);
+      .filter((m): m is NavItem => !!m && !!m.id && !!m.name);
   }, [pinnedIds, filteredModules]);
 
   const recentItems = useMemo(() => {
     const byId = new Map(filteredModules.map((m) => [m.id, m]));
     return recentIds
       .map((id) => byId.get(id))
-      .filter((m): m is NavItem => !!m && !pinnedIds.includes(m.id));
+      .filter((m): m is NavItem => !!m && !!m.id && !!m.name && !pinnedIds.includes(m.id));
   }, [recentIds, pinnedIds, filteredModules]);
 
   const resolveDisplayLabel = (item: NavItem): string => {
+    if (!item) return 'Desk';
     let label = t(item.id) !== item.id ? t(item.id) : item.name;
     if (item.id === 'devotees') {
       label = taxonomy.directoryName;
     }
-    return label;
+    // Never leak "undefined" into tooltips or row labels (stale/renamed ids).
+    return label || item.name || item.id || 'Desk';
   };
 
   const domainFilterPills = useMemo(() => {
@@ -540,11 +557,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
 
-      {/* Main Sidebar Component */}
+      {/* Main Sidebar Component — z-50 sits above the z-40 backdrop; inert when
+          closed on mobile so offscreen content can't capture focus or taps. */}
       <aside
         id="main-sidebar"
-        className={`fixed lg:static top-0 bottom-0 left-0 z-40 bg-temple-900 text-temple-300 flex flex-col shrink-0 transition-all duration-300 ease-in-out border-r border-temple-800 shadow-xl lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        inert={!isOpen ? true : undefined}
+        aria-hidden={!isOpen ? true : undefined}
+        className={`fixed lg:static top-0 bottom-0 left-0 z-50 lg:z-40 bg-temple-900 text-temple-300 flex flex-col shrink-0 transition-all duration-300 ease-in-out border-r border-temple-800 shadow-xl lg:translate-x-0 lg:visible ${
+          isOpen ? 'translate-x-0 visible' : '-translate-x-full invisible'
         } ${isCollapsed ? 'lg:w-[72px]' : 'w-72 sm:w-80 lg:w-72'}`}
       >
         {/* Top Header Bar for Sidebar */}
@@ -562,7 +582,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {activeWorkspace?.name || 'Organisation'}
                 </span>
                 <span className="text-[10px] text-temple-500 font-bold uppercase tracking-widest block">
-                  49 Desks Console
+                  66 Desks Console
                 </span>
               </div>
             )}
@@ -593,20 +613,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Quick Switch to Personal View Banner / Button */}
+        {/* Quick Switch to Devotee App Preview — unmistakable hat labeling */}
         {!isCollapsed && (
           <div className="p-3 bg-gradient-to-r from-saffron-500/10 via-saffron-500/10 to-transparent border-b border-temple-800">
             <button
               id="sidebar-btn-switch-personal"
               onClick={handleSwitchToPersonal}
               className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-saffron-500 to-saffron-600 hover:from-saffron-600 hover:to-saffron-700 text-temple-950 rounded-xl font-bold text-xs shadow-md transition-all border border-saffron-400 cursor-pointer group"
+              title="Preview what your devotees see in their app"
             >
               <div className="flex items-center gap-2">
                 <UserCircle className="w-4 h-4 text-temple-950" />
-                <span className="font-extrabold">Switch to Personal View</span>
+                <span className="font-extrabold">Devotee App Preview</span>
               </div>
               <ArrowLeftRight className="w-3.5 h-3.5 text-temple-950 group-hover:rotate-180 transition-transform duration-300" />
             </button>
+            <p className="text-[10px] text-temple-400 mt-1.5 px-1 leading-snug">
+              See the devotee-facing app. You're currently in the <span className="font-bold text-temple-200">Institution ERP</span>.
+            </p>
           </div>
         )}
 
@@ -616,7 +640,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={handleSwitchToPersonal}
               className="w-10 h-10 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-temple-950 flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
-              title="Switch to Personal Devotee View"
+              title="Devotee App Preview — what your community members see"
             >
               <UserCircle className="w-5 h-5" />
             </button>
