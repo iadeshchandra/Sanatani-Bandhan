@@ -115,7 +115,10 @@ export interface Workspace extends TenantScoped {
   trust12ANumber?: string;
   trustPAN?: string;
   pinRequired: boolean;
-  adminPin: string;
+  // Server-managed via POST /api/admin/tenants/:id/pin — never written by
+  // clients. Optional so signup/workspace writes omit the key entirely:
+  // firestore.rules denies ANY workspace doc carrying `adminPin`.
+  adminPin?: string;
   superAdmins?: string[];
   bloodGroup?: string;
   emergencyContact?: string;
@@ -193,7 +196,8 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   // (a rules-allowed field) so re-logins resolve back to Trustee.
   createdBy?: string;
   pinRequired: boolean;
-  adminPin: string;
+  // Server-managed — never written by clients (see Workspace above).
+  adminPin?: string;
   superAdmins?: string[];
   bloodGroup?: string;
   emergencyContact?: string;

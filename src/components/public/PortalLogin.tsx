@@ -550,7 +550,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         phone: phone,
         currency: currency.code,
         currencySymbol: currency.symbol,
-        adminPin: '', tagline: '', sampradaya: '', kuladevata: '', pinRequired: true // adminPin is server-managed (POST /api/admin/tenants/:id/pin) - never hardcode
+        tagline: '', sampradaya: '', kuladevata: '', pinRequired: true
       };
 
       // 2. Write User Document (Crucial for RBAC rules)
@@ -567,7 +567,22 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       });
 
       // 3. Write Workspace Document
+      // NOTE: no `adminPin` key — the rules deny any workspace doc carrying
+      // it (server-managed only). Writing it breaks signup with a
+      // "Missing or insufficient permissions" error.
       await setDoc(doc(db, 'workspaces', newWorkspace.id), newWorkspace);
+
+      // 3b. Creator self-provisions as the workspace's first Trustee.
+      // Rules path (c): allowed only when workspaces/{id}.createdBy == me
+      // and role == 'Trustee'. Without this edge the org-page sync below
+      // (trustee-only) and later trustee-gated writes fail for the creator.
+      await setDoc(doc(db, 'workspaceMembers', `${newWorkspace.id}_${user.uid}`), {
+        workspaceId: newWorkspace.id,
+        uid: user.uid,
+        role: 'Trustee',
+        via: 'creator',
+        joinedAt: serverTimestamp(),
+      });
 
       addWorkspace(newWorkspace);
       switchWorkspace(newWorkspace.id);
