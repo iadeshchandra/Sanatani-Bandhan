@@ -200,7 +200,8 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1.5 px-2.5 sm:px-4 min-h-[44px] py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-500 hover:from-saffron-500 hover:to-saffron-600 text-white font-bold text-xs sm:text-sm transition-all shadow-lg shadow-saffron-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron-300"
         >
           <Coins className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('quickPay')}</span>
+          {/* H-7: was t('quickPay') with no dictionary entry — rendered the literal key in production. */}
+          <span className="hidden sm:inline">Quick Chanda</span>
           <span className="sm:hidden">Pay</span>
         </button>
 
