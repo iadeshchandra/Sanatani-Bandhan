@@ -26,7 +26,7 @@ export const KarmaLedgerDesk: React.FC = () => {
             Karma Merit & Volunteer Seva Ledger
           </h2>
           <p className="text-xs text-temple-400 mt-0.5">
-            Transparent Dharmic recognition ranking devotees across Ratna, Vishesh, Kormi, and Sadharan tiers
+            Transparent Dharmic recognition ranking devotees across Ratna, Vishesh, Karmi, and Sadharan tiers
           </p>
         </div>
       </div>
@@ -49,13 +49,13 @@ export const KarmaLedgerDesk: React.FC = () => {
           </span>
           <h4 className="font-bold text-temple-100 text-sm">Special Sevadar</h4>
           <p className="text-temple-400 text-[11px]">
-            Priority festival seating, monthly Prasad courier, personalized Panjika alerts
+            Priority festival seating, monthly Prasad courier, personalized Panchang alerts
           </p>
         </div>
 
         <div className="bg-temple-900/90 border border-blue-500/40 rounded-2xl p-4 space-y-1">
           <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] uppercase">
-            Kormi Tier (300 - 599 pts)
+            Karmi Tier (300 - 599 pts)
           </span>
           <h4 className="font-bold text-temple-100 text-sm">Active Volunteer</h4>
           <p className="text-temple-400 text-[11px]">
