@@ -172,7 +172,7 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
   const { activeWorkspace, activeWorkspaceId } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
-  const { donations, addTreasuryTransaction } = useData();
+  const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
   const { showToast } = useToast();
 
   const [treasury, setTreasury] = useState<TreasuryTransaction[]>([]);
@@ -200,19 +200,19 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     fetchTransactions();
   }, [workspaceId]);
 
-  // Combine treasury and donations ensuring no missing records
+  // Combine treasury and donations ensuring no missing records.
+  // Multi-branch: DataContext `donations` is the single source of truth — it
+  // is workspace- and branch-filtered and carries the correct branchId. The
+  // Firestore-fetched local `treasury` state is used ONLY as a fallback when
+  // DataContext is empty, because it can hold stale copies without branchId
+  // that would otherwise leak across branches.
   const allLedgerRecords = useMemo(() => {
-    const combined = [...(treasury || [])];
-    if (donations && donations.length > 0) {
-      const existingIds = new Set(combined.map((t) => t.id));
-      for (const d of donations) {
-        if (!existingIds.has(d.id)) {
-          combined.push(d);
-        }
-      }
-    }
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [treasury, donations]);
+    const source =
+      donations && donations.length > 0
+        ? donations
+        : recordsForBranch(treasury || [], activeBranchId);
+    return [...source].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [treasury, donations, activeBranchId, recordsForBranch]);
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
