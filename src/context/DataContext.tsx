@@ -32,6 +32,7 @@ import {
   SevaSubscription,
 } from '../types';
 import { trackTreasuryPurchase, trackSignUp, trackGenerateLead } from '../utils/gtm';
+import { nextReceiptSeq, formatReceiptNumber } from '../utils/receiptNumbers';
 import { useAuthWorkspace } from './AuthWorkspaceContext';
 import { useToast } from './ToastContext';
 import { db } from '../lib/firebase';
@@ -1049,6 +1050,8 @@ interface DataContextType {
   promoteGuestToMember: (guestId: string) => void;
   addTreasuryTransaction: (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>) => boolean;
   updateTreasuryTransaction: (id: string, updates: Partial<TreasuryTransaction>) => void;
+  /** M-18: next sequential receipt number for a series (SB-80G / SB-CHANDA), per workspace+year. */
+  getNextReceiptNumber: (prefix: 'SB-80G' | 'SB-CHANDA') => string;
   addAsset: (asset: Omit<AssetRecord, 'id'>) => boolean;
   updateInventoryStock: (id: string, newStock: number) => void;
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastRestockedDate'>) => boolean;
@@ -1999,16 +2002,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!checkAndIncrementModuleQuota('treasury').allowed) return false;
     const id = `tx-${Date.now()}`;
     const now = Date.now();
+    // M-18: sequential, gap-detectable receipt numbers per workspace+year.
+    // Respect a caller-provided taxReceiptNumber (e.g. QuickChandaPOS prints
+    // the same number it stores — fixes the SB-CHANDA vs SB-80G mismatch);
+    // otherwise assign the next sequence. Never timestamp fragments.
+    const year = new Date().getFullYear();
+    const wsId = tx.workspaceId || activeWorkspace.id;
+    const existingNumbers = allTreasury
+      .filter((t) => (t.workspaceId || '') === wsId)
+      .map((t) => t.taxReceiptNumber);
+    const autoReceipt = tx.is80GEligible
+      ? formatReceiptNumber('SB-80G', year, nextReceiptSeq(existingNumbers, 'SB-80G', year))
+      : undefined;
     const newTx: any = {
       ...tx,
       id,
-      workspaceId: tx.workspaceId || activeWorkspace.id,
+      workspaceId: wsId,
       createdAt: tx.createdAt || now,
       updatedAt: tx.updatedAt || now,
       auditVerified: true,
-      taxReceiptNumber: tx.is80GEligible ? `SB-80G-${new Date().getFullYear()}-${id.slice(-4)}` : undefined,
+      taxReceiptNumber: tx.taxReceiptNumber || autoReceipt,
       _createdAt: now,
-      ...demoTtlFields(tx.workspaceId || activeWorkspace.id),
+      ...demoTtlFields(wsId),
     };
     
     // Optimistic UI Update
@@ -2076,6 +2091,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     return true;
   };
+
+  /**
+   * M-18: next sequential receipt number for a series, per active workspace
+   * and current year. POS desks call this BEFORE posting so the printed
+   * receipt and the stored record carry the same number.
+   */
+  const getNextReceiptNumber = useCallback((prefix: 'SB-80G' | 'SB-CHANDA'): string => {
+    const year = new Date().getFullYear();
+    const wsId = activeWorkspace?.id;
+    const existing = allTreasury
+      .filter((t) => (t.workspaceId || '') === wsId)
+      .map((t) => t.taxReceiptNumber);
+    return formatReceiptNumber(prefix, year, nextReceiptSeq(existing, prefix, year));
+  }, [allTreasury, activeWorkspace?.id]);
 
   const updateTreasuryTransaction = (id: string, updates: Partial<TreasuryTransaction>) => {
     setAllTreasury((prev) =>
@@ -2621,6 +2650,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`Sacred contribution of ₹${amount.toLocaleString()} received from ${donorName}!`, 'success', 'Mandir Nirman Donation');
   };
 
+  // M-3: memoize the provider value — the inline object literal used to
+  // re-create on every render (including the 60s purge tick), re-rendering
+  // every consumer. Deps are the full field list.
+  const contextValue: DataContextType = useMemo(() => ({
+
+        isDataLoading,
+        devotees,
+        puja_bookings,
+        donations,
+        inventory_items,
+        poojaBookings,
+        poojas: poojaBookings,
+        treasury,
+        inventory,
+        families,
+        vanshavali,
+        guests,
+        assets,
+        residentPujas,
+        purohits,
+        pitruRecords,
+        cows,
+        annadanamList,
+        rooms,
+        gurukulStudents,
+        campaigns,
+        matrimonyProfiles,
+        shlokas,
+        resolutions,
+        shifts,
+        bhoomiProperties,
+        rentReceipts,
+        fleetVehicles,
+        fuelLogs,
+        serviceRecords,
+        sevaSubscriptions,
+        seedDemoData,
+        addDevotee,
+        updateDevotee,
+        deleteDevotee,
+        addFamily,
+        updateVanshavali,
+        addGuest,
+        promoteGuestToMember,
+        addTreasuryTransaction,
+        updateTreasuryTransaction,
+        getNextReceiptNumber,
+        addAsset,
+        updateInventoryStock,
+        addInventoryItem,
+        addPoojaBooking,
+        updatePoojaStatus,
+        addCow,
+        adoptCow,
+        addAnnadanam,
+        addResolution,
+        voteOnResolution,
+        addShift,
+        addCampaignDonation,
+        addResidentPuja,
+        addPitruRecord,
+        addGurukulStudent,
+        purgeAutoDeleteRecords,
+        addBhoomiProperty,
+        updateBhoomiProperty,
+        deleteBhoomiProperty,
+        addRentReceipt,
+        addFleetVehicle,
+        updateFleetVehicle,
+        deleteFleetVehicle,
+        addFuelLog,
+        addServiceRecord,
+        addSevaSubscription,
+        updateSevaSubscription,
+        recordSubscriptionPayment,
+        demoUpsellModule,
+        closeDemoUpsell,
+        getDemoStats,
+        resetDemoWorkspace,
+        convertDemoToReal,
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal]);
+
   return (
     <DataContext.Provider
       value={{
@@ -2665,6 +2776,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         promoteGuestToMember,
         addTreasuryTransaction,
         updateTreasuryTransaction,
+        getNextReceiptNumber,
         addAsset,
         updateInventoryStock,
         addInventoryItem,
