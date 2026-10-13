@@ -184,7 +184,7 @@ export const CommunityPollsTab: React.FC = () => {
     setConfirmDialog({
       title: "Delete Poll Record",
       message: `🚨 DANGER: This will completely erase "${poll.title}" and all its voting history. Are you sure?`,
-      confirmText: t('delete_record') || "DELETE POLL",
+      confirmText: t('actions.deleteRecord') || "DELETE POLL",
       isDanger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -360,7 +360,7 @@ export const CommunityPollsTab: React.FC = () => {
             <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{confirmDialog.title}</h3>
             <p className="text-sm font-bold text-gray-500 mb-8 leading-relaxed whitespace-pre-wrap">{confirmDialog.message}</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('btn_cancel') || 'Cancel'}</button>
+              <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
               <button onClick={confirmDialog.onConfirm} className={`flex-1 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 ${confirmDialog.isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
                 {confirmDialog.confirmText}
               </button>
@@ -374,7 +374,7 @@ export const CommunityPollsTab: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-gray-100 pb-6">
         <div>
           <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 tracking-tight">
-            <BarChart3 className="text-saffron-500" size={26} /> {t('nav_polls') || 'Community Voting'}
+            <BarChart3 className="text-saffron-500" size={26} /> {t('nav.polls') || 'Community Voting'}
           </h2>
           <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-widest">
             Cryptographic decision making & consensus tracking.
@@ -747,7 +747,7 @@ export const CommunityPollsTab: React.FC = () => {
                  <textarea rows={4} value={concludeData.note} onChange={e => setConcludeData({...concludeData, note: e.target.value})} className="w-full p-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all resize-none shadow-sm" placeholder="e.g. Based on the majority vote, the committee will release the funds on Monday."></textarea>
                </div>
                <div className="flex gap-3">
-                 <button type="button" onClick={() => setShowConcludeModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('btn_cancel') || 'Cancel'}</button>
+                 <button type="button" onClick={() => setShowConcludeModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
                  <button type="submit" disabled={submitting} className="flex-[2] font-black py-4 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center justify-center gap-2">
                    {submitting ? <Loader2 size={16} className="animate-spin"/> : <><Lock size={16}/> CONCLUDE & PUBLISH</>}
                  </button>
