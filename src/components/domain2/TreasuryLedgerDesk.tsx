@@ -609,7 +609,18 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     };
 
     try {
-      addTreasuryTransaction(newTx);
+      // C-8: addTreasuryTransaction returns false when the module quota blocks
+      // the write — never inject the voucher locally in that case, or the
+      // ledger would show money that was never persisted.
+      const posted = addTreasuryTransaction(newTx);
+      if (!posted) {
+        showToast(
+          'Voucher NOT recorded: transaction quota reached for this workspace.',
+          'error',
+          'Quota Reached'
+        );
+        return;
+      }
       setTreasury((prev) => [newTx, ...prev]);
       showToast(
         `${voucherType === 'Income' ? 'Receipt' : 'Payment'} Voucher recorded on the General Ledger!`,
