@@ -32,7 +32,7 @@ import {
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
-import { offlineSyncProtocol } from '../services/offlineSyncProtocol';
+import { queueMutation } from '../services/offlineSyncService';
 import { DevoteeProfile, SevaBooking, PurohitGig, VivahProfile } from '../types/b2c';
 import { VivahEngine } from '../components/devotee/VivahEngine';
 
@@ -137,19 +137,14 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
       streakDays: (prev.streakDays || 14) + 1,
     }));
 
-    // Queue in offline meshnet protocol
-    offlineSyncProtocol.queueTransaction({
-      id: `pushp-${Date.now()}`,
-      payload: {
-        devoteeId: devotee.id,
-        action: 'PUSHPANJALI',
-        deity: selectedDeity,
-        credits: 10,
-      },
-      timestamp: Date.now(),
-      status: 'pending',
-      type: 'DEVOTEE_DAILY_SEVA',
-    });
+    // H-6: queue via the REAL offline outbox (IndexedDB). The old mesh/BLE
+    // simulation marked packets 'synced' with no I/O — deleted.
+    queueMutation('devotee_seva', 'PUSHPANJALI', {
+      devoteeId: devotee.id,
+      action: 'PUSHPANJALI',
+      deity: selectedDeity,
+      credits: 10,
+    }).catch((err) => console.warn('[DevoteePortal] pushpanjali queue failed:', err));
 
     showToast(
       `🌺 दिव्य पुष्पाञ्जलि अर्पण सफल! +10 Punya Mudras credited to your Dharmic Wallet.`,
@@ -183,14 +178,10 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
       muhurat: 'Abhijit Muhurat (11:48 AM - 12:36 PM)',
     };
 
-    // Queue in offline protocol
-    offlineSyncProtocol.queueTransaction({
-      id: newBooking.id,
-      payload: newBooking,
-      timestamp: Date.now(),
-      status: 'pending',
-      type: 'SEVA_BOOKING_SANCTUM',
-    });
+    // H-6: queue via the REAL offline outbox (IndexedDB). The old mesh/BLE
+    // simulation marked packets 'synced' with no I/O — deleted.
+    queueMutation('devotee_seva', 'SEVA_BOOKING', newBooking)
+      .catch((err) => console.warn('[DevoteePortal] seva booking queue failed:', err));
 
     setDevotee((prev) => ({
       ...prev,
@@ -787,14 +778,17 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             </div>
           </section>
 
-          {/* ZERO-INTERNET EMERGENCY PROTOCOL STRIP */}
+          {/* H-6: honest offline capability strip. The old "Meshnet Relay: BLE
+              Active" claimed a BLE mesh that doesn't exist (the simulated
+              protocol was deleted). This app genuinely works offline via
+              IndexedDB with an honest sync queue. */}
           <section className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400">
             <div className="flex items-center gap-2">
               <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>Meshnet Relay: <strong>BLE Active</strong></span>
+              <span>Offline Mode: <strong>changes save on this device</strong></span>
             </div>
             <span className="text-[10px] bg-slate-900 px-2 py-0.5 rounded text-slate-300 border border-slate-800">
-              Zero-Internet Ready
+              Auto-syncs when online
             </span>
           </section>
 
