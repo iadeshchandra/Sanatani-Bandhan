@@ -22,6 +22,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { SevaSubscription } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 const PLANS = ['Nitya Annadanam', 'Gau Seva Monthly', 'Deep Seva', 'Nitya Pushpanjali', 'Custom'] as const;
 const FREQUENCIES: SevaSubscription['frequency'][] = ['Monthly', 'Quarterly', 'Annually'];
@@ -516,7 +517,7 @@ export const RecurringSevaDesk: React.FC = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-extrabold text-temple-100 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-saffron-400" /> New Seva Subscription
+                <Sparkles className="w-5 h-5 text-saffron-400" /> New Seva Subscription <LocalOnlyBadge />
               </h3>
               <button type="button" onClick={() => setShowAddModal(false)} className="p-2 rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Close">
                 <X className="w-5 h-5" />
