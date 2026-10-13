@@ -1108,12 +1108,20 @@ interface DataContextType {
   recordsForBranch: <T extends { branchId?: string }>(records: T[], branch: string) => T[];
   /** How many scoped records reference a branch (guards branch deletion). */
   getBranchRecordCount: (branchId: string) => number;
+  /**
+   * Per-branch RBAC (v2). null = unrestricted (sees every branch);
+   * otherwise the branch ids this member may access. Enforced in
+   * matchesActiveBranch/recordsForBranch — not just the UI.
+   */
+  myBranchIds: string[] | null;
+  /** True when the current member may view a branch's records. */
+  isBranchAccessible: (branchId: string | undefined) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeWorkspaceId, activeWorkspace, currentRole, isAuthenticated, firebaseUser } = useAuthWorkspace();
+  const { activeWorkspaceId, activeWorkspace, currentRole, isAuthenticated, firebaseUser, currentUser } = useAuthWorkspace();
   const { showToast } = useToast();
   const initialData = useInitialData();
 
@@ -1614,10 +1622,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const mainBranchId: string | undefined =
     branches.find((b) => b.isMain)?.id || branches[0]?.id;
 
+  // ---- Per-branch RBAC (v2) ----
+  // The current member's allowed branches, resolved from
+  // activeWorkspace.branchAccess by matching uid or email. null =
+  // unrestricted (no entry, empty branchIds, or SuperAdmin — the platform
+  // owner always bypasses). Backward compatible: workspaces without
+  // branchAccess behave exactly as before.
+  const myBranchIds = useMemo<string[] | null>(() => {
+    if (currentRole === 'SuperAdmin') return null;
+    const access = activeWorkspace?.branchAccess;
+    if (!Array.isArray(access) || access.length === 0) return null;
+    const uid = currentUser?.id || (firebaseUser as { uid?: string } | null)?.uid;
+    const email = (currentUser?.email || (firebaseUser as { email?: string } | null)?.email || '').toLowerCase();
+    const entry = access.find(
+      (a) =>
+        (uid && a.memberId === uid) ||
+        (email && a.memberId.toLowerCase() === email)
+    );
+    if (!entry || !entry.branchIds || entry.branchIds.length === 0) return null;
+    return entry.branchIds;
+  }, [
+    activeWorkspace?.branchAccess,
+    currentUser?.id,
+    currentUser?.email,
+    (firebaseUser as { uid?: string } | null)?.uid,
+    (firebaseUser as { email?: string } | null)?.email,
+    currentRole,
+  ]);
+
+  /** True when the current member may view a branch's records. */
+  const isBranchAccessible = useCallback(
+    (branchId: string | undefined): boolean => {
+      if (!isMultiBranch) return true;
+      if (myBranchIds === null) return true;
+      return myBranchIds.includes(branchId || mainBranchId || '');
+    },
+    [isMultiBranch, myBranchIds, mainBranchId]
+  );
+
   // Reset to the consolidated view whenever the workspace changes.
   useEffect(() => {
     setActiveBranchId('ALL');
   }, [currentWsId]);
+
+  /**
+   * Branch selection guarded by per-branch RBAC: switching to an
+   * inaccessible branch is silently ignored (the switcher never offers it).
+   */
+  const selectBranch = useCallback(
+    (id: string) => {
+      if (isMultiBranch && id !== 'ALL' && !isBranchAccessible(id)) return;
+      setActiveBranchId(id);
+    },
+    [isMultiBranch, isBranchAccessible]
+  );
+
+  // Clamp the active branch when the restriction changes (e.g. a Trustee
+  // narrowed this member's access while they were viewing another branch).
+  useEffect(() => {
+    if (isMultiBranch && activeBranchId !== 'ALL' && !isBranchAccessible(activeBranchId)) {
+      setActiveBranchId('ALL');
+    }
+  }, [isMultiBranch, activeBranchId, isBranchAccessible]);
 
   /** Branch a record belongs to: explicit branchId, else the main branch. */
   const branchOf = useCallback(
@@ -1629,23 +1695,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const matchesActiveBranch = useCallback(
     (r: { branchId?: string }): boolean => {
       if (!isMultiBranch) return true; // invisible layer for single-org
+      // Per-branch RBAC (v2): a restricted member never sees other branches'
+      // records — enforced here in the query layer, not just the UI.
+      if (myBranchIds !== null && !myBranchIds.includes(branchOf(r) || '')) return false;
       if (activeBranchId === 'ALL') return true;
       return branchOf(r) === activeBranchId;
     },
-    [isMultiBranch, activeBranchId, branchOf]
+    [isMultiBranch, activeBranchId, branchOf, myBranchIds]
   );
 
   /**
    * Public selector: filter any branch-scoped record list to one branch
    * (or 'ALL' for the consolidated view). No-op for single-branch
-   * workspaces — queries behave exactly as before.
+   * workspaces — queries behave exactly as before. Per-branch RBAC: a
+   * restricted member's 'ALL' only aggregates their allowed branches, and
+   * an inaccessible branch id yields an empty list.
    */
   const recordsForBranch = useCallback(
     <T extends { branchId?: string }>(records: T[], branch: string): T[] => {
-      if (!isMultiBranch || branch === 'ALL') return records;
-      return records.filter((r) => (r.branchId || mainBranchId) === branch);
+      if (!isMultiBranch) return records;
+      const scoped =
+        myBranchIds === null
+          ? records
+          : records.filter((r) => myBranchIds.includes(r.branchId || mainBranchId || ''));
+      if (branch === 'ALL') return scoped;
+      if (myBranchIds !== null && !myBranchIds.includes(branch)) return [];
+      return scoped.filter((r) => (r.branchId || mainBranchId) === branch);
     },
-    [isMultiBranch, mainBranchId]
+    [isMultiBranch, mainBranchId, myBranchIds]
   );
 
   /**
@@ -3058,13 +3135,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetDemoWorkspace,
         convertDemoToReal,
         activeBranchId,
-        setActiveBranchId,
+        setActiveBranchId: selectBranch,
         branches,
         isMultiBranch,
         mainBranchId,
         recordsForBranch,
         getBranchRecordCount,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount]);
+        myBranchIds,
+        isBranchAccessible,
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible]);
 
   return (
     <DataContext.Provider
@@ -3145,12 +3224,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetDemoWorkspace,
         convertDemoToReal,
         activeBranchId,
-        setActiveBranchId,
+        setActiveBranchId: selectBranch,
         branches,
         isMultiBranch,
         mainBranchId,
         recordsForBranch,
         getBranchRecordCount,
+        myBranchIds,
+        isBranchAccessible,
       }}
     >
       {children}
