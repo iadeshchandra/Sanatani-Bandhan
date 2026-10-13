@@ -10,11 +10,13 @@ import {
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
+import { PurohitProvider } from '../../context/PurohitContext';
+import { InviteFromMarketplace } from '../purohit/InviteFromMarketplace';
 import { useLanguage } from '../../context/LanguageContext';
 import { PurohitProfile, PoojaBooking, ResidentPujaSchedule } from '../../types';
 
 // Tab Identifiers
-export type PurohitDeskTab = 'DIRECTORY' | 'ASSIGNMENT' | 'ROSTER' | 'DAKSHINA';
+export type PurohitDeskTab = 'DIRECTORY' | 'ASSIGNMENT' | 'ROSTER' | 'DAKSHINA' | 'MARKETPLACE';
 
 interface ShiftItem {
   id: string;
@@ -709,6 +711,7 @@ export const PurohitManagementDesk: React.FC = () => {
             { id: 'ASSIGNMENT', label: '2. Smart Ritual Assignment', icon: Flame, badge: `${displayBookings.length} Bookings` },
             { id: 'ROSTER', label: '3. Duty Roster & Aarti Shifts', icon: Calendar, badge: 'Daily Rotations' },
             { id: 'DAKSHINA', label: '4. Dakshina & Honorarium', icon: Coins, badge: `₹${financialTotals.gross.toLocaleString('en-IN')}` },
+            { id: 'MARKETPLACE', label: '5. Invite from Marketplace', icon: Search, badge: 'Purohit One' },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1408,6 +1411,17 @@ export const PurohitManagementDesk: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* ========================================================
+            TAB 5: INVITE FROM MARKETPLACE (Purohit One)
+        ======================================================== */}
+        {activeTab === 'MARKETPLACE' && (
+          <div className="animate-fadeIn">
+            <PurohitProvider>
+              <InviteFromMarketplace />
+            </PurohitProvider>
           </div>
         )}
 
