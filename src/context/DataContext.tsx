@@ -1516,30 +1516,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isDemoWorkspace(wsId)) return;
     clearDemoQuotaKeys(wsId);
     localStorage.removeItem(`sb_demo_seeded_${wsId}`);
+    // Clear versioned seed flags too (any version).
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('sb_demo_seeded_v') && k.endsWith(`_${wsId}`))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
     demoUpsellShownRef.current.clear();
     setDemoUpsellModule(null);
     const isUserRecord = (r: any) => r && r.workspaceId === wsId && !r.isDemoSeed;
-    setAllDevotees((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllFamilies((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllGuests((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllTreasury((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllAssets((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllInventory((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllPoojaBookings((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllResidentPujas((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllPitruRecords((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllCows((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllAnnadanamList((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllGurukulStudents((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllCampaigns((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllResolutions((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllShifts((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllBhoomiProperties((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllRentReceipts((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllFleetVehicles((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllFuelLogs((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllServiceRecords((prev) => prev.filter((r) => !isUserRecord(r)));
-    setAllSevaSubscriptions((prev) => prev.filter((r) => !isUserRecord(r)));
+    const isWsRecord = (r: any) => r && r.workspaceId === wsId;
+    // Reset clears EVERYTHING for this workspace (user records AND old seeds),
+    // then seedDemoData lays down a fresh seed set — no duplication.
+    setAllDevotees((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllFamilies((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllGuests((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllTreasury((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllAssets((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllInventory((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllPoojaBookings((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllResidentPujas((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllPitruRecords((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllCows((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllAnnadanamList((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllGurukulStudents((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllCampaigns((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllResolutions((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllShifts((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllBhoomiProperties((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllRentReceipts((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllFleetVehicles((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllFuelLogs((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllServiceRecords((prev) => prev.filter((r) => !isWsRecord(r)));
+    setAllSevaSubscriptions((prev) => prev.filter((r) => !isWsRecord(r)));
     seedDemoData(wsId, activeWorkspace.type || 'Mandir');
     showToast('Demo workspace reset with fresh sample data.', 'success', 'Demo Sandbox');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1732,9 +1741,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ----------------------------------------------------
 
   const seedDemoData = (workspaceId: string, type: string) => {
-    // Never seed twice for the same workspace; seeds never count against quota.
-    const seedFlag = `sb_demo_seeded_${workspaceId}`;
+    // Seed version: bump when seed content changes so existing demos pick up
+    // new seeds. Old-version flags are ignored, and stale seeds are cleared
+    // below before re-seeding (no duplication).
+    const DEMO_SEED_VERSION = 3;
+    const seedFlag = `sb_demo_seeded_v${DEMO_SEED_VERSION}_${workspaceId}`;
     if (localStorage.getItem(seedFlag) === '1') return;
+    // Clear any previous-version seeds for this workspace first.
+    const isStaleSeed = (r: any) => r && r.isDemoSeed && r.workspaceId === workspaceId;
+    setAllDevotees((prev) => prev.filter((r) => !isStaleSeed(r)));
+    setAllTreasury((prev) => prev.filter((r) => !isStaleSeed(r)));
+    setAllGurukulStudents((prev) => prev.filter((r) => !isStaleSeed(r)));
+    setAllCows((prev) => prev.filter((r) => !isStaleSeed(r)));
+    setAllGuests((prev) => prev.filter((r) => !isStaleSeed(r)));
+    setAllCampaigns((prev) => prev.filter((r) => !isStaleSeed(r)));
     localStorage.setItem(seedFlag, '1');
 
     const ts = Date.now();
