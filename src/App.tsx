@@ -18,6 +18,8 @@ import { QuickGuideModal } from './components/common/QuickGuideModal';
 import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
 import { QuickGuideProvider, useQuickGuide } from './context/QuickGuideContext';
 import { GlobalTelemetryModal } from './components/common/GlobalTelemetryModal';
+import { PlanLockedDesk } from './components/common/PlanLockedDesk';
+import { isModuleMountAllowed, requiredTierForModule, resolvePlanModuleId } from './lib/workspaceRegistry';
 import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant';
 import { TawkToWidget } from './components/common/TawkToWidget';
 import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
@@ -61,6 +63,7 @@ const SevadarRosterDesk = lazy(() => import('./components/domain1/SevadarRosterD
 // Domain 2: Financials & Assets
 const TreasuryLedgerDesk = lazy(() => import('./components/domain2/TreasuryLedgerDesk').then(m => ({ default: m.TreasuryLedgerDesk })));
 const TaxReceiptDesk = lazy(() => import('./components/domain2/TaxReceiptDesk').then(m => ({ default: m.TaxReceiptDesk })));
+const TallyExportDesk = lazy(() => import('./components/domain2/TallyExportDesk').then(m => ({ default: m.TallyExportDesk })));
 const Form10BDComplianceDesk = lazy(() => import('./components/domain2/Form10BDComplianceDesk').then(m => ({ default: m.Form10BDComplianceDesk })));
 const MandirCampaignsDesk = lazy(() => import('./components/domain2/MandirCampaignsDesk').then(m => ({ default: m.MandirCampaignsDesk })));
 const KarmaLedgerDesk = lazy(() => import('./components/domain2/KarmaLedgerDesk').then(m => ({ default: m.KarmaLedgerDesk })));
@@ -158,9 +161,12 @@ const AppContent: React.FC = () => {
     };
     window.addEventListener('navigate_module', handleNavigate);
     window.addEventListener('sanatani:navigate' as any, handleNavigate);
+    // M-10: legacy devotee portal dispatches 'NAVIGATE' — honor it too.
+    window.addEventListener('NAVIGATE' as any, handleNavigate);
     return () => {
       window.removeEventListener('navigate_module', handleNavigate);
       window.removeEventListener('sanatani:navigate' as any, handleNavigate);
+      window.removeEventListener('NAVIGATE' as any, handleNavigate);
     };
   }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
@@ -207,12 +213,34 @@ const AppContent: React.FC = () => {
   }
 
   const renderActiveDesk = () => {
-    // Strict Guard: Devotee cannot view any administrative desk (Domains 1-7)
+    // Strict Guard: Devotee cannot view any administrative desk (Domains 1-7),
+    // EXCEPT poojaBooking — devotee self-booking (M-10). The desk renders its
+    // devotee-friendly 'book' tab via its internal isDevotee path.
     if (currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE') {
-      if (!['devotee-portal', 'personal-portal', 'devotee-account'].includes(activeModule)) {
+      if (!['devotee-portal', 'personal-portal', 'devotee-account', 'poojaBooking', 'pooja-booking'].includes(activeModule)) {
         return <DevoteePortal onBackToERP={() => setActiveModule('dashboard')} />;
       }
+      if (['poojaBooking', 'pooja-booking'].includes(activeModule)) {
+        return <PoojaBookingDesk />;
+      }
       return <DevoteeAccountPortal />;
+    }
+
+    // H-2: plan-tier enforcement at desk mount (defense in depth with the
+    // Sidebar's nav-level lock badges). A LITE workspace cannot open an
+    // ENTERPRISE desk via deep link, alias URL, or navigate_module event.
+    // DEMO workspaces resolve to full access; the demo quota binds there.
+    // Unmapped modules are permissive by design (never lock what we haven't mapped).
+    if (!isModuleMountAllowed(activeModule, activeWorkspace?.planId)) {
+      const canonical = resolvePlanModuleId(activeModule);
+      const tier = requiredTierForModule(canonical) ?? 'STANDARD';
+      return (
+        <PlanLockedDesk
+          moduleId={canonical}
+          requiredTier={tier}
+          onBack={() => setActiveModule('dashboard')}
+        />
+      );
     }
 
     switch (activeModule) {
@@ -297,6 +325,9 @@ const AppContent: React.FC = () => {
       case 'taxReceipts':
       case 'tax-receipt-80g':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <TaxReceiptDesk /> : <RestrictedAccess />;
+      case 'tally-export':
+      case 'tallyExport':
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <TallyExportDesk /> : <RestrictedAccess />;
       case 'form10bd':
       case 'form-10bd':
       case 'form10bdCompliance':
