@@ -133,6 +133,11 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   idCardValidThru?: string;
   idCardIssuedOn?: string;
   gotra?: string;
+  /**
+   * Monetization plan (C-6): 'DEMO' for sandbox workspaces, otherwise
+   * 'LITE' | 'STANDARD' | 'ENTERPRISE' from PLAN_PRICING. Written at
+   * workspace creation; usePlanGate defaults a missing value to 'LITE'.
+   */
   planId?: string;
 }
 
@@ -218,11 +223,20 @@ export interface DevoteeMember extends TenantScoped {
   phone?: string;
   sponsorPhone?: string;
   email?: string;
-  pin: string;
+  /**
+   * C-7: DEPRECATED — plaintext PIN is never written to storage anymore.
+   * Kept optional for (a) the one-time in-memory reveal after regeneration and
+   * (b) reading legacy records until the AppInitializer migration clears them.
+   * Verification must use pinHash/pinSalt via src/utils/pinCrypto.ts.
+   */
+  pin?: string;
   /** PBKDF2-SHA256 hash of `pin` (100k iterations) — preferred for verification. */
   pinSalt?: string;
   /** Hex-encoded PBKDF2 output; see src/utils/pinCrypto.ts. */
   pinHash?: string;
+  /** C-7: revocation sentinel. Plaintext `pin` is never written to storage;
+      revoked credentials are marked here and the hash/salt are cleared. */
+  pinRevoked?: boolean;
   role: UserRole | LegacyUserRole | string;
   sevaIndex: number;
   sevaTier: SevaTier;
