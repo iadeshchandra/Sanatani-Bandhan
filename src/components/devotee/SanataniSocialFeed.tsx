@@ -12,6 +12,7 @@ import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { DirectMessageChat } from '../common/DirectMessageChat';
 import { useLanguage } from '../../context/LanguageContext';
+import { isValidLatLng } from '../../utils/geo';
 import { useToast } from '../../context/ToastContext';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
 import L from 'leaflet';
@@ -666,7 +667,7 @@ export const SanataniSocialFeed: React.FC = () => {
                 
                 <p className="text-sm font-bold text-red-900 border-l-2 border-red-400 pl-2 ml-1">{emergency.text}</p>
                 
-                {emergency.location && (
+                {emergency.location && isValidLatLng(emergency.location.lat, emergency.location.lng) && (
                   <div className="h-32 w-full rounded-xl overflow-hidden border border-red-200 z-0 relative isolate mt-1">
                     <MapContainer 
                       center={[emergency.location.lat, emergency.location.lng]} 
