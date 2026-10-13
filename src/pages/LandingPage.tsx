@@ -483,7 +483,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Mandir Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -1308,7 +1308,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Start free, grow when you are ready. Every plan includes the offline-first
-              PWA, all five institution types, and community support.
+              PWA, every institution type, and community support.
             </p>
           </Reveal>
 
@@ -1375,7 +1375,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <span className="absolute top-4 right-6 text-[11px] font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
                   {PLAN_PRICING.STANDARD.badge}
                 </span>
-                <h3 className="text-2xl font-black">Mandir Standard</h3>
+                <h3 className="text-2xl font-black">Standard</h3>
                 <p className="mt-1 text-sm text-orange-100">{PLAN_PRICING.STANDARD.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black">

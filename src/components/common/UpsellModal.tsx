@@ -21,7 +21,7 @@ interface UpsellModalProps {
 // with the same names the landing page advertises, prices read live from config.
 const DISPLAY_NAMES: Record<SubscriptionTier, string> = {
   LITE: 'Seva Free',
-  STANDARD: 'Mandir Standard',
+  STANDARD: 'Standard',
   ENTERPRISE: 'Enterprise',
 };
 
