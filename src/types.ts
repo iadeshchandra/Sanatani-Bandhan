@@ -70,6 +70,13 @@ export const normalizeSevaTier = (tier: string | undefined | null): SevaTier => 
 
 export interface TenantScoped {
   workspaceId: string;
+  /**
+   * Multi-branch scoping (v1). Optional for full backward compatibility:
+   * records WITHOUT a branchId belong to the workspace's main/default
+   * branch. Only workspaces with 2+ configured branches ever write this
+   * field — single-organisation workspaces never see or store it.
+   */
+  branchId?: string;
   createdAt?: number | string;
   updatedAt?: number | string;
 }
@@ -118,6 +125,21 @@ export interface Workspace extends TenantScoped {
   idCardIssuedOn?: string;
   gotra?: string;
   planId?: string;
+}
+
+/**
+ * Multi-branch support (v1). A branch is one physical location / centre of
+ * an organisation (e.g. the Kashi temple and the Ayodhya temple of one
+ * trust). DESIGN PRINCIPLE: branches are an optional layer — a workspace
+ * with no `branches` (or a single entry) behaves exactly as before and no
+ * branch UI is ever shown. Only 2+ branches reveal the switcher.
+ */
+export interface BranchInfo {
+  id: string;
+  name: string;
+  city?: string;
+  /** The primary location; records without a branchId belong here. */
+  isMain?: boolean;
 }
 
 export interface WorkspaceConfig extends Partial<TenantScoped> {
@@ -171,6 +193,12 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
    * workspace creation; usePlanGate defaults a missing value to 'LITE'.
    */
   planId?: string;
+  /**
+   * Multi-branch: optional list of locations. Absent/empty = single
+   * organisation (today's behaviour, zero branch UI). The switcher and
+   * consolidated views appear only when 2+ branches exist.
+   */
+  branches?: BranchInfo[];
 }
 
 export interface AuditLog extends TenantScoped {
