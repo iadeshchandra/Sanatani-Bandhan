@@ -90,7 +90,7 @@ export const generateSampleDevoteeCSV = (): void => {
   const sampleRows = [
     ['Sri Rajeshwar Sharma', '+91 98765 43210', 'Kashyapa', 'Ratna', 'rajesh@example.com', 'Ramadasa', 'Trayarsheya', 'Varanasi Sanctum Ward'],
     ['Smt. Sunita Devi', '+91 98111 22334', 'Bharadwaja', 'Vishesh', 'sunita@example.com', 'Radhika Devi', 'Pancharsheya', 'Ayodhya Dham'],
-    ['Sri Ananda Mohan Roy', '+91 98300 55667', 'Shandilya', 'Kormi', 'anand@example.com', 'Anandaji', 'Sandilya-Asita-Devala', 'Kolkata Mandir Ward'],
+    ['Sri Ananda Mohan Roy', '+91 98300 55667', 'Shandilya', 'Karmi', 'anand@example.com', 'Anandaji', 'Sandilya-Asita-Devala', 'Kolkata Mandir Ward'],
   ];
   exportToCSV('Sanatani_Devotees_Sample_Template.csv', sampleHeaders, sampleRows);
 };
@@ -218,7 +218,7 @@ export const bulkIngestDevotees = (
     const role: UserRole = ROLE_MIGRATION_MAP[rawRole] || ROLE_MIGRATION_MAP[rawRole.toUpperCase()] || 'Devotee';
 
     const rawTier = row['Tier'] || row['tier'] || 'Sadharan';
-    const sevaTier: SevaTier = ['Ratna', 'Vishesh', 'Kormi', 'Sadharan'].includes(rawTier)
+    const sevaTier: SevaTier = ['Ratna', 'Vishesh', 'Karmi', 'Sadharan'].includes(rawTier)
       ? (rawTier as SevaTier)
       : 'Sadharan';
 
