@@ -56,7 +56,17 @@ export const ROLE_MIGRATION_MAP: Record<string, UserRole> = {
 
 export type AppLanguage = 'en' | 'bn' | 'hi' | 'sa';
 
-export type SevaTier = 'Ratna' | 'Vishesh' | 'Kormi' | 'Sadharan';
+export type SevaTier = 'Ratna' | 'Vishesh' | 'Karmi' | 'Sadharan';
+
+/**
+ * Normalizes a stored seva tier. 'Kormi' was a pre-2026-10-13 spelling of
+ * 'Karmi' — legacy records are mapped forward so old data keeps working.
+ */
+export const normalizeSevaTier = (tier: string | undefined | null): SevaTier => {
+  if (tier === 'Kormi') return 'Karmi';
+  if (tier === 'Ratna' || tier === 'Vishesh' || tier === 'Karmi' || tier === 'Sadharan') return tier;
+  return 'Sadharan';
+};
 
 export interface TenantScoped {
   workspaceId: string;
