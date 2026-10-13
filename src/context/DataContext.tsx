@@ -24,6 +24,7 @@ import {
   TrusteeResolution,
   SevadarDutyShift,
   TenantScoped,
+  BranchInfo,
   BhoomiProperty,
   BhoomiRentReceipt,
   FleetVehicle,
@@ -1094,6 +1095,19 @@ interface DataContextType {
   getDemoStats: () => { totalCreates: number; perModule: Record<string, number> };
   resetDemoWorkspace: () => void;
   convertDemoToReal: (demoWorkspaceId: string, newWorkspaceId: string) => number;
+
+  // Multi-branch (v1) — invisible for single-organisation workspaces.
+  // activeBranchId is 'ALL' (consolidated) or a branch id; branches is the
+  // workspace's configured locations ([] for single-org).
+  activeBranchId: string;
+  setActiveBranchId: (id: string) => void;
+  branches: BranchInfo[];
+  isMultiBranch: boolean;
+  mainBranchId: string | undefined;
+  /** Filter any branch-scoped records to one branch ('ALL' = no filtering). */
+  recordsForBranch: <T extends { branchId?: string }>(records: T[], branch: string) => T[];
+  /** How many scoped records reference a branch (guards branch deletion). */
+  getBranchRecordCount: (branchId: string) => number;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -1587,29 +1601,114 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isGodMode = false; // Strictly disabled to enforce organization data isolation
   const currentWsId = activeWorkspaceId || activeWorkspace.id;
 
+  // ----------------------------------------------------
+  // MULTI-BRANCH (v1) — optional location layer.
+  // DESIGN PRINCIPLE: a single-organisation workspace (no `branches` array,
+  // or a single entry) must NEVER see the word "branch" or any branch UI.
+  // activeBranchId is 'ALL' (consolidated) or a branch id; it only filters
+  // when the workspace actually has 2+ branches.
+  // ----------------------------------------------------
+  const [activeBranchId, setActiveBranchId] = useState<string>('ALL');
+  const branches: BranchInfo[] = activeWorkspace?.branches || [];
+  const isMultiBranch = branches.length > 1;
+  const mainBranchId: string | undefined =
+    branches.find((b) => b.isMain)?.id || branches[0]?.id;
+
+  // Reset to the consolidated view whenever the workspace changes.
+  useEffect(() => {
+    setActiveBranchId('ALL');
+  }, [currentWsId]);
+
+  /** Branch a record belongs to: explicit branchId, else the main branch. */
+  const branchOf = useCallback(
+    (r: { branchId?: string }): string | undefined => r.branchId || mainBranchId,
+    [mainBranchId]
+  );
+
+  /** True when a record is visible under the current branch selection. */
+  const matchesActiveBranch = useCallback(
+    (r: { branchId?: string }): boolean => {
+      if (!isMultiBranch) return true; // invisible layer for single-org
+      if (activeBranchId === 'ALL') return true;
+      return branchOf(r) === activeBranchId;
+    },
+    [isMultiBranch, activeBranchId, branchOf]
+  );
+
+  /**
+   * Public selector: filter any branch-scoped record list to one branch
+   * (or 'ALL' for the consolidated view). No-op for single-branch
+   * workspaces — queries behave exactly as before.
+   */
+  const recordsForBranch = useCallback(
+    <T extends { branchId?: string }>(records: T[], branch: string): T[] => {
+      if (!isMultiBranch || branch === 'ALL') return records;
+      return records.filter((r) => (r.branchId || mainBranchId) === branch);
+    },
+    [isMultiBranch, mainBranchId]
+  );
+
+  /**
+   * Stamp for new records. Single-branch workspaces get `undefined`
+   * (the field is never written — zero UX/data tax). Multi-branch:
+   * explicit choice wins, else the viewed branch, else the main branch
+   * when viewing ALL (the UI says so via the switcher caption).
+   */
+  const stampBranchId = useCallback(
+    (provided?: string): string | undefined => {
+      if (!isMultiBranch) return undefined;
+      if (provided) return provided;
+      if (activeBranchId !== 'ALL') return activeBranchId;
+      return mainBranchId;
+    },
+    [isMultiBranch, activeBranchId, mainBranchId]
+  );
+
+  /** Guard for branch deletion: how many scoped records reference a branch. */
+  const getBranchRecordCount = useCallback(
+    (branchId: string): number => {
+      if (!isMultiBranch) return 0;
+      const inBranch = (r: { branchId?: string; workspaceId?: string }) =>
+        (!r.workspaceId || r.workspaceId === currentWsId) &&
+        (r.branchId || mainBranchId) === branchId;
+      return (
+        allDevotees.filter(inBranch).length +
+        allTreasury.filter(inBranch).length +
+        allPoojaBookings.filter(inBranch).length +
+        allInventory.filter(inBranch).length +
+        allAssets.filter(inBranch).length
+      );
+    },
+    [isMultiBranch, currentWsId, mainBranchId, allDevotees, allTreasury, allPoojaBookings, allInventory, allAssets]
+  );
+
   const devotees = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allDevotees
       : allDevotees.filter((d) => !d.workspaceId || d.workspaceId === currentWsId);
-  }, [allDevotees, currentWsId, isGodMode]);
+    return wsFiltered.filter(matchesActiveBranch);
+  }, [allDevotees, currentWsId, isGodMode, matchesActiveBranch]);
 
   const puja_bookings = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allPoojaBookings
       : allPoojaBookings.filter((p) => !p.workspaceId || p.workspaceId === currentWsId);
-  }, [allPoojaBookings, currentWsId, isGodMode]);
+    return wsFiltered.filter(matchesActiveBranch);
+  }, [allPoojaBookings, currentWsId, isGodMode, matchesActiveBranch]);
 
   const donations = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allTreasury
       : allTreasury.filter((t) => !t.workspaceId || t.workspaceId === currentWsId);
-  }, [allTreasury, currentWsId, isGodMode]);
+    return wsFiltered.filter(matchesActiveBranch);
+  }, [allTreasury, currentWsId, isGodMode, matchesActiveBranch]);
 
   const inventory_items = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allInventory
       : allInventory.filter((i) => !i.workspaceId || i.workspaceId === currentWsId);
-  }, [allInventory, currentWsId, isGodMode]);
+    return wsFiltered.filter(matchesActiveBranch);
+  }, [allInventory, currentWsId, isGodMode, matchesActiveBranch]);
 
   const poojaBookings = puja_bookings;
   const poojas = puja_bookings;
@@ -1629,10 +1728,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allGuests, currentWsId, isGodMode]);
 
   const assets = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allAssets
       : allAssets.filter((a) => !a.workspaceId || a.workspaceId === currentWsId);
-  }, [allAssets, currentWsId, isGodMode]);
+    return wsFiltered.filter(matchesActiveBranch);
+  }, [allAssets, currentWsId, isGodMode, matchesActiveBranch]);
 
   const pitruRecords = useMemo(() => {
     return isGodMode
@@ -2103,10 +2203,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const id = `dev-${Date.now()}`;
     const now = Date.now();
+    // Multi-branch: stamp the active branch (no-op → undefined for single-org).
+    const _branchId = stampBranchId((data as any).branchId);
     const newMember: any = {
       ...data,
       id,
       workspaceId: data.workspaceId || activeWorkspace.id,
+      ...(_branchId ? { branchId: _branchId } : {}),
       qrCodeRef: `QR-SB-${id.slice(-6).toUpperCase()}`,
       joinedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
@@ -2226,10 +2329,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const autoReceipt = tx.is80GEligible
       ? formatReceiptNumber('SB-80G', year, nextReceiptSeq(existingNumbers, 'SB-80G', year))
       : undefined;
+    // Multi-branch: stamp the active branch (no-op → undefined for single-org).
+    const _branchId = stampBranchId((tx as any).branchId);
     const newTx: any = {
       ...tx,
       id,
       workspaceId: wsId,
+      ...(_branchId ? { branchId: _branchId } : {}),
       createdAt: tx.createdAt || now,
       updatedAt: tx.updatedAt || now,
       auditVerified: true,
@@ -2336,10 +2442,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const id = `ast-${Date.now()}`;
     const now = Date.now();
+    // Multi-branch: stamp the active branch (no-op → undefined for single-org).
+    const _branchId = stampBranchId((asset as any).branchId);
     const newAst: any = {
       ...asset,
       id,
       workspaceId: asset.workspaceId || activeWorkspace.id,
+      ...(_branchId ? { branchId: _branchId } : {}),
       _createdAt: now,
       ...demoTtlFields(asset.workspaceId || activeWorkspace.id),
     };
@@ -2364,10 +2473,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const id = `inv-${Date.now()}`;
     const now = Date.now();
+    // Multi-branch: stamp the active branch (no-op → undefined for single-org).
+    const _branchId = stampBranchId((item as any).branchId);
     const newInv: any = {
       ...item,
       id,
       workspaceId: item.workspaceId || activeWorkspace.id,
+      ...(_branchId ? { branchId: _branchId } : {}),
       lastRestockedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
       ...demoTtlFields(item.workspaceId || activeWorkspace.id),
@@ -2384,10 +2496,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const id = `pb-${Date.now()}`;
     const now = Date.now();
+    // Multi-branch: stamp the active branch (no-op → undefined for single-org).
+    const _branchId = stampBranchId((booking as any).branchId);
     const newBooking: any = {
       ...booking,
       id,
       workspaceId: booking.workspaceId || activeWorkspace.id,
+      ...(_branchId ? { branchId: _branchId } : {}),
       receiptRef: `RCP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
       status: 'Confirmed',
       paymentStatus: 'Paid',
@@ -2942,7 +3057,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getDemoStats,
         resetDemoWorkspace,
         convertDemoToReal,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal]);
+        activeBranchId,
+        setActiveBranchId,
+        branches,
+        isMultiBranch,
+        mainBranchId,
+        recordsForBranch,
+        getBranchRecordCount,
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount]);
 
   return (
     <DataContext.Provider
@@ -3022,6 +3144,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getDemoStats,
         resetDemoWorkspace,
         convertDemoToReal,
+        activeBranchId,
+        setActiveBranchId,
+        branches,
+        isMultiBranch,
+        mainBranchId,
+        recordsForBranch,
+        getBranchRecordCount,
       }}
     >
       {children}
