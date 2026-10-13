@@ -26,7 +26,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from '../../context/DataContext';
-import { calculatePanchang } from '../../utils/panchang';
+import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { trackViewItem, trackShare } from '../../utils/gtm';
 import { useToast } from '../../context/ToastContext';
 import { MODULE_CATALOG } from '../common/Sidebar';
@@ -51,8 +51,17 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   };
   const { activeWorkspace, currentRole, checkPermission, currentDevotee } = useAuthWorkspace();
   const { language, t } = useLanguage();
-  const { devotees, treasury, poojaBookings, cows, shlokas } = useData();
+  const { devotees, treasury, poojaBookings, cows, shlokas, gurukulStudents } = useData();
   const { showToast } = useToast();
+
+  // Org-aware dashboard: temple-centric KPIs (sankalps, gau seva) are
+  // nonsensical in a school workspace. Swap/hide them per org type.
+  const orgTypeKey = (activeWorkspace.type || 'Mandir').toLowerCase();
+  const isGurukulLike = ['gurukul', 'vidyalaya', 'pathshala'].includes(orgTypeKey);
+  const isGoshalaLike = orgTypeKey === 'goshala';
+  const isMandirLike = ['mandir', 'kashikshetra', 'tirth'].includes(orgTypeKey);
+  const showSankalpKpi = !isGurukulLike; // schools don't take pooja sankalps
+  const showGauSevaKpi = isGoshalaLike || isMandirLike; // only cattle-keeping orgs
 
   const [currentShlokaIndex, setCurrentShlokaIndex] = useState(() => {
     // Mathematically seed using the day of the year so all users see the same daily shloka
@@ -209,13 +218,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
         </div>
 
-        {/* Live Panjika Card */}
+        {/* Live Panjika Card — canonical today line via getPanchangTodayLine (single source of truth) */}
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 text-xs flex flex-col sm:items-end relative z-10">
           <p className="font-bold text-slate-700">
-            {panchang.tithi} • <span className="text-slate-500 font-medium">{panchang.paksha}</span>
+            {getPanchangTodayLine(panchang)}
           </p>
           <p className="text-slate-500 mt-0.5">
-            {panchang.nakshatra} • Masa: {panchang.monthLunar}
+            {panchang.nakshatra} Nakshatra
           </p>
           <p className="text-slate-400 mt-1 font-mono text-[10px] uppercase tracking-wide">
             Abhijit: {panchang.abhijitMuhurat}
@@ -255,22 +264,37 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
         )}
 
-        {/* Metric 3 - Reserved Sankalps */}
-        {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'PUROHIT', 'SUPER_ADMIN']) && (
-          <div
-            onClick={() => handleNav('pooja-booking')}
-            className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-rose-300 transition-colors group"
-          >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reserved Sankalps</span>
-            <div className="flex items-end justify-between mt-1">
-              <span className="text-2xl font-bold text-slate-900">{poojaBookings.length}</span>
-              <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
+        {/* Metric 3 - Reserved Sankalps (temple orgs) / Enrolled Students (gurukul) */}
+        {isGurukulLike ? (
+          checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
+            <div
+              onClick={() => handleNav('gurukulAcademy')}
+              className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors group"
+            >
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enrolled Students</span>
+              <div className="flex items-end justify-between mt-1">
+                <span className="text-2xl font-bold text-slate-900">{gurukulStudents.length}</span>
+                <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">Brahmacharis</span>
+              </div>
             </div>
-          </div>
+          )
+        ) : (
+          showSankalpKpi && checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'PUROHIT', 'SUPER_ADMIN']) && (
+            <div
+              onClick={() => handleNav('pooja-booking')}
+              className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-rose-300 transition-colors group"
+            >
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reserved Sankalps</span>
+              <div className="flex items-end justify-between mt-1">
+                <span className="text-2xl font-bold text-slate-900">{poojaBookings.length}</span>
+                <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
+              </div>
+            </div>
+          )
         )}
 
-        {/* Metric 4 - Gau Seva Units */}
-        {checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
+        {/* Metric 4 - Gau Seva Units (only cattle-keeping orgs) */}
+        {showGauSevaKpi && checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
           <div
             onClick={() => handleNav('gau-seva-goshala')}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-saffron-300 transition-colors group"
@@ -519,7 +543,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                         {tx.type === 'Income' ? '+' : '-'}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-[11px] text-slate-800 truncate">{tx.category}</p>
+                        <p className="font-bold text-[11px] text-slate-800 truncate">{tx.category || 'General'}</p>
                         <p className="text-[9px] text-slate-500 truncate">
                           {tx.devoteeName || tx.purpose}
                         </p>
