@@ -380,7 +380,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     }
 
     if (!payload || payload.type !== 'sb-pair' || typeof payload.token !== 'string') {
-      setError(t('qr_not_login'));
+      setError(t('qr.notLoggedIn'));
       return;
     }
 
@@ -388,12 +388,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     try {
       snap = await getDoc(doc(db, 'qrPairTokens', payload.token));
     } catch {
-      setError(t('qr_offline'));
+      setError(t('qr.offline'));
       return;
     }
 
     if (!snap.exists()) {
-      setError(t('qr_expired'));
+      setError(t('qr.expired'));
       return;
     }
 
@@ -405,27 +405,27 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     if (!expMs || expMs < Date.now()) {
       // Best-effort cleanup of the stale token; claim still denied.
       deleteDoc(snap.ref).catch(() => {});
-      setError(t('qr_expired'));
+      setError(t('qr.expired'));
       return;
     }
 
     try {
       await deleteDoc(snap.ref); // single-use: burn the token before login
     } catch {
-      setError(t('qr_offline'));
+      setError(t('qr.offline'));
       return;
     }
 
     try {
       await signInAnonymously(auth);
     } catch {
-      setError(t('qr_offline'));
+      setError(t('qr.offline'));
       return;
     }
 
     const role = (typeof data.role === 'string' && data.role ? data.role : 'Devotee') as UserRole;
     loginAsRole(role, data.memberName || 'Devotee');
-    showToast(t('qr_success'), 'success');
+    showToast(t('qr.success'), 'success');
     onSuccess();
   };
 
@@ -568,7 +568,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}></div>
           
           <div className="relative z-10 flex flex-col items-center justify-center gap-3 text-center">
-             <AppLogo size="lg" showText={true} textVariant="light" subtitle={t('portal_subtitle')} />
+             <AppLogo size="lg" showText={true} textVariant="light" subtitle={t('auth.portalSubtitle')} />
           </div>
 
           <div className="relative z-10 my-16 flex flex-col items-center text-center">
@@ -616,7 +616,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           
           {/* Mobile Branding (Visible only on small screens) */}
           <div className="flex lg:hidden flex-col items-center justify-center gap-3 mb-8 pb-6 border-b border-temple-100 text-center">
-             <AppLogo size="md" showText={true} textVariant="dark" subtitle={t('portal_subtitle')} />
+             <AppLogo size="md" showText={true} textVariant="dark" subtitle={t('auth.portalSubtitle')} />
           </div>
 
           
@@ -731,7 +731,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('login_identity')}</label>
+                      <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('auth.identity')}</label>
                       <div className="relative group">
                         <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
                         <input type="text" required value={loginIdentity} onChange={e=>setLoginIdentity(e.target.value)} placeholder="Email, Phone, or ID" className="w-full pl-11 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" />
@@ -740,9 +740,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                     <div>
                       <div className="flex justify-between items-end mb-1.5">
-                        <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest">{t('login_pass')}</label>
+                        <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest">{t('auth.password')}</label>
                         <button type="button" onClick={handleForgotPassword} className="text-xs font-medium text-temple-500 hover:text-temple-900 transition-colors">
-                          {t('login_forgot')}
+                          {t('auth.forgotPassword')}
                         </button>
                       </div>
                       <div className="relative group">
@@ -788,7 +788,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                   </AnimatePresence>
 
                   <button type="submit" disabled={loading} className="w-full bg-temple-900 hover:bg-temple-800 text-white font-medium py-3 rounded-lg shadow-sm transition-colors text-sm flex justify-center items-center gap-2 mt-6 disabled:opacity-50 disabled:hover:translate-y-0">
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('btn_access_portal')}
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('auth.accessPortal')}
                   </button>
                 </motion.form>
               ) : (
@@ -804,18 +804,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                   <div className="bg-temple-50 border border-temple-200 p-4 rounded-lg flex items-start gap-3">
                     <AlertTriangle className="text-saffron-600 shrink-0 mt-0.5" size={20} />
                     <div>
-                      <h4 className="text-temple-900 font-semibold text-sm mb-1">{t('reg_warning_title')}</h4>
+                      <h4 className="text-temple-900 font-semibold text-sm mb-1">{t('reg.warningTitle')}</h4>
                       <p className="text-sm text-temple-600">
-                        {t('reg_warning_desc_1')}<strong className="font-bold text-temple-900">{regData.type}</strong>{t('reg_warning_desc_2')}
+                        {t('reg.warningDesc1')}<strong className="font-bold text-temple-900">{regData.type}</strong>{t('reg.warningDesc2')}
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-4 pt-4 border-t border-temple-100 space-y-4">
-                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
+                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><Building2 size={14}/> {t('reg.step1')}</h4>
                     
                     <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg_org_type')}</label>
+                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg.orgType')}</label>
                       <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm cursor-pointer">
                         <option value="Mandir">Mandir / Temple (मंदिर)</option>
                         <option value="Ashram">Ashram (आश्रम)</option>
@@ -835,7 +835,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg_org_name')} *</label>
+                      <label className="block text-sm font-medium text-temple-400 mb-1">{t('reg.orgName')} *</label>
                       <input type="text" required value={regData.commName} onChange={e=>setRegData({...regData, commName: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="e.g. Sri Ram Mandir Trust" />
                     </div>
 
@@ -872,7 +872,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_desc')}</label>
+                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg.desc')}</label>
                       <div className="relative group">
                         <AlignLeft size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-temple-900" />
                         <textarea rows={2} value={regData.description} onChange={e=>setRegData({...regData, description: e.target.value})} className="w-full pl-10 pr-4 p-3.5 w-full px-3 py-2 border border-temple-300 rounded-lg text-sm text-temple-900 focus:border-temple-900 focus:ring-1 focus:ring-temple-900 outline-none transition-all resize-none" placeholder={regData.type === 'PurohitSabha' ? 'Short description of your services...' : 'Short description of your community...'} />
@@ -881,21 +881,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                   </div>
 
                   <div className="space-y-4 pt-4 border-t border-temple-100 space-y-4">
-                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
+                    <h4 className="text-sm font-medium text-temple-400 border-b border-temple-200 pb-2 flex items-center gap-2"><User size={14}/> {t('reg.step2')}</h4>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_your_name')}</label>
+                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg.yourName')}</label>
                         <input type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Full Name" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_your_phone')}</label>
+                        <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg.yourPhone')}</label>
                         <input type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} className="w-full p-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Mobile Number" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg_official_email')}</label>
+                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('reg.officialEmail')}</label>
                       <div className="relative group">
                         <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
                         <input type="email" required value={regData.email} onChange={e=>setRegData({...regData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="admin@example.com" />
@@ -903,7 +903,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('login_pass')} *</label>
+                      <label className="block text-sm font-medium text-temple-400 mb-1.5">{t('auth.password')} *</label>
                       <div className="relative group">
                         <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 group-focus-within:text-saffron-500 transition-colors" />
                         <input type={showRegPassword ? "text" : "password"} required value={regData.password} onChange={e=>setRegData({...regData, password: e.target.value})} className="w-full pl-11 pr-11 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm" placeholder="Create a strong password" />
@@ -925,7 +925,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                   </AnimatePresence>
 
                   <button type="submit" disabled={loading} className="w-full bg-temple-900 hover:bg-temple-800 text-white font-medium py-2.5 rounded-lg shadow-sm transition-colors text-sm flex justify-center items-center gap-2 mt-6 disabled:opacity-50 disabled:hover:translate-y-0">
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('btn_create_dynamic').replace('{X}', regData.type.toUpperCase())}
+                    {loading ? <Loader2 size={18} className="animate-spin" /> : t('actions.createDynamic').replace('{X}', regData.type.toUpperCase())}
                   </button>
                 </motion.form>
               )}
