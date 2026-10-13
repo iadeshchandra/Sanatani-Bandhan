@@ -91,7 +91,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-saffron-300">
-              Vedic Panjika & Localized Muhurat Desk
+              Vedic Panchang & Localized Muhurat Desk
             </h1>
 
             <p className="text-xs sm:text-sm text-amber-200/70 max-w-2xl leading-relaxed">
