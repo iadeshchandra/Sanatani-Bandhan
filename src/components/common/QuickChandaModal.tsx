@@ -122,7 +122,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
     setSelectedDevoteeId(id);
     const found = devotees.find((d) => d.id === id);
     if (found) {
-      setDevoteeName(found.fullName);
+      setDevoteeName(found.fullName || found.name || found.spiritualName || '');
       if (found.phone) setPhone(found.phone);
     }
   };
@@ -428,7 +428,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                           <option value="">-- Quick select registered member --</option>
                           {devotees.slice(0, 50).map((d) => (
                             <option key={d.id} value={d.id}>
-                              {d.fullName} {d.phone ? `(${d.phone})` : ''}
+                              {d.fullName || d.name || d.spiritualName || 'Unnamed devotee'}{' '}
+                              {d.phone ? `(${d.phone})` : ''}
                             </option>
                           ))}
                         </select>
