@@ -17,6 +17,7 @@ import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where,
 import type { UserRole } from '../../types';
 import { PurohitSignupForm } from '../purohit/PurohitSignupForm';
 import { SoloSignupForm } from '../../solo/SoloSignupForm';
+import { JyotishSignupForm } from '../../jyotish/JyotishSignupForm';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
 import { syncOrgPage } from '../../context/MembershipContext';
@@ -1156,25 +1157,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
               ) : activeView === 'SOLO' ? (
                 <SoloSignupForm />
               ) : activeView === 'JYOTISHI' ? (
-                <div className="text-center py-10 px-4">
-                  <div className="text-5xl mb-4">🔮</div>
-                  <h4 className="text-lg font-black text-temple-900">Jyotish One is on the way</h4>
-                  <p className="text-sm text-temple-500 mt-2 max-w-sm mx-auto">
-                    Independent Jyotishi registration — your own Universal Jyotish ID
-                    (JYO-XXXXXX), consultation marketplace and verification — is the
-                    next suite in the build queue.
-                  </p>
-                  <p className="text-xs text-temple-400 mt-3">
-                    Tip: create a <b>Solo Sanatani</b> account now — your Sanatani ID
-                    will carry the Jyotishi identity when it launches. One account, many roles.
-                  </p>
-                  <button
-                    onClick={() => { setActiveView('SOLO'); clearErrors(); }}
-                    className="mt-6 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm font-black min-h-[44px]"
-                  >
-                    🙏 Create my Sanatani ID instead
-                  </button>
-                </div>
+                <JyotishSignupForm />
               ) : (
                 <PurohitSignupForm />
               )}
