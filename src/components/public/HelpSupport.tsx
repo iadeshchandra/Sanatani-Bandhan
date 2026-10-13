@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Search, Book, MessageCircle, FileText, Settings, Shield, ChevronRight, ArrowLeft, PlayCircle, LifeBuoy } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { SUPPORT_EMAIL } from '../../config/contact';
 
 export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { safeTranslate } = useLanguage();
@@ -336,7 +337,7 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <h3 className="text-xl font-bold text-indigo-900 mb-2">Still need help?</h3>
               <p className="text-indigo-700/80 font-medium">Our engineering and support team is available 24/7 for Enterprise customers.</p>
             </div>
-            <a href="mailto:support@sanatanibandhan.com" className="shrink-0 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="shrink-0 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Contact Support
             </a>
