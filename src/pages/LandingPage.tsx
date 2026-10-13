@@ -83,6 +83,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useDemoStarter } from '../hooks/useDemoStarter';
 import { calculatePanchang } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
+import { whatsappLink, hasWhatsApp } from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
@@ -993,7 +994,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={handleContact}
+                  onClick={() => {
+                    if (hasWhatsApp()) {
+                      window.open(
+                        whatsappLink('Namaste! I run a dharmic institution and want to talk about Sanatani Bandhan.'),
+                        '_blank', 'noopener'
+                      );
+                    } else {
+                      handleContact();
+                    }
+                  }}
                   className="mt-3 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-white/10 border-2 border-white/25 hover:bg-white/20 text-white text-sm font-extrabold transition-all cursor-pointer"
                 >
                   Talk to us
