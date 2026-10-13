@@ -12,6 +12,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
+import { BranchManager } from '../branch/BranchManager';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
 
 const getCurrencyDetails = (countryCode: string) => {
@@ -609,6 +610,9 @@ export const MasterSettingsDesk: React.FC = () => {
                         in SAMPLE mode until a real URN is saved.
                       </p>
                     </div>
+
+                    {/* Multi-branch: location management (admin-only inside) */}
+                    <BranchManager />
 
 <div>
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><FileSignature size={12}/> {localSafeTranslate('mission_desc', 'Mission / Description')}</label>
