@@ -16,6 +16,7 @@ import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
 import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
 import { PurohitReviewQueue } from './admin/PurohitReviewQueue';
+import { MembershipProvider } from './context/MembershipContext';
 import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { QuickGuideModal } from './components/common/QuickGuideModal';
 import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
@@ -57,6 +58,9 @@ const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome').
 
 // Domain 1: CRM & Lineage
 const DevoteeGrid = lazy(() => import('./components/domain1/DevoteeGrid').then(m => ({ default: m.DevoteeGrid })));
+const MembershipDesk = lazy(() => import('./components/org/MembershipDesk').then(m => ({ default: m.MembershipDesk })));
+const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m => ({ default: m.OrgDirectory })));
+const OrgPage = lazy(() => import('./components/org/OrgPage').then(m => ({ default: m.OrgPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
 const VanshavaliDesk = lazy(() => import('./components/domain1/VanshavaliDesk').then(m => ({ default: m.VanshavaliDesk })));
@@ -295,6 +299,10 @@ const AppContent: React.FC = () => {
       case 'devotees':
       case 'devotee-grid':
         return <DevoteeGrid />;
+      case 'membership':
+      case 'membership-desk':
+      case 'org-membership':
+        return checkPermission(['TRUSTEE', 'SuperAdmin']) ? <MembershipDesk /> : <RestrictedAccess />;
       case 'donorCare':
       case 'donor-care':
         return checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'SEVADAR']) ? <DonorCareDesk /> : <RestrictedAccess />;
@@ -1055,6 +1063,9 @@ const AppRouter: React.FC = () => {
           <Route path="/devotee" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
           <Route path="/devotee-portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
           <Route path="/portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
+          {/* Membership sprint: public organisation discovery + pages */}
+          <Route path="/orgs" element={<OrgDirectory />} />
+          <Route path="/org/:orgId" element={<OrgPage />} />
           <Route element={<MainAppView />} path="*" />
         </Routes>
         <OfflineIndicator />
@@ -1075,10 +1086,12 @@ export default function App() {
             <AuthWorkspaceProvider>
               <NotificationProvider>
                 <DataProvider>
-                  <QuickGuideProvider>
-                    <AppRouter />
-                    <GlobalSOSListener />
-                  </QuickGuideProvider>
+                  <MembershipProvider>
+                    <QuickGuideProvider>
+                      <AppRouter />
+                      <GlobalSOSListener />
+                    </QuickGuideProvider>
+                  </MembershipProvider>
                 </DataProvider>
               </NotificationProvider>
             </AuthWorkspaceProvider>
