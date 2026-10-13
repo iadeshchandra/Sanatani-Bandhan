@@ -43,6 +43,7 @@ import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { isValidLatLng } from '../../utils/geo';
 import { QRScanner } from '../common/QRScanner';
 import { OfflineSyncManager, QueuedAction } from '../../services/OfflineSyncManager';
 import { DevoteeCommsDrawer } from './DevoteeCommsDrawer';
@@ -510,6 +511,10 @@ export default function YatraNetDesk() {
     } else if (filterPeriod === 'verified') {
       list = list.filter((v) => v.verified || v.qrVerified);
     }
+
+    // Drop visits without valid GPS — Leaflet crashes the whole desk on
+    // undefined coordinates ("Invalid LatLng object").
+    list = list.filter((v) => isValidLatLng(v.latitude, v.longitude));
 
     return list;
   }, [visits, isAdminOrSevadar, currentUser?.id, searchQuery, filterPeriod]);
