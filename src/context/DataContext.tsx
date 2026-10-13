@@ -944,6 +944,19 @@ const DEMO_CREATES_PER_MODULE = 5;
 const PENDING_DEMO_CONVERSION_KEY = 'sb_pending_demo_conversion';
 const AUTO_PURGE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours auto-delete retention window
 
+/**
+ * SECURITY (C-4): the 24h auto-purge TTL is a DEMO-sandbox mechanism only.
+ * Real workspaces must NEVER receive an `_expiresAt` stamp — the sweeper
+ * would otherwise delete a temple's real records with no recovery.
+ * Spread the result into a new record literal: `...demoTtlFields(wsId)`.
+ */
+const demoTtlFields = (workspaceId: string | undefined | null): { _expiresAt?: number } => {
+  if (typeof workspaceId === 'string' && workspaceId.startsWith('DEMO_')) {
+    return { _expiresAt: Date.now() + AUTO_PURGE_TTL_MS };
+  }
+  return {};
+};
+
 export interface QuotaResult {
   allowed: boolean;
   /** Creates remaining in this module (0 when at limit). */
@@ -1290,45 +1303,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ----------------------------------------------------
   // AUTOMATIC DATA DELETION / SANDBOX PURGE CYCLE
-  // Temporary added records are marked with _createdAt / _expiresAt timestamps
-  // and cleaned on expiration (default 60 mins).
+  // Temporary DEMO-sandbox records are marked with _createdAt / _expiresAt
+  // timestamps and cleaned on expiration (default 60 mins).
+  // SECURITY (C-4/C-5): the purge predicate additionally requires the record's
+  // workspaceId to start with 'DEMO_'. This protects real-workspace records
+  // that were stamped with _expiresAt before the demo-gating fix.
   // ----------------------------------------------------
   const purgeAutoDeleteRecords = useCallback(() => {
     const now = Date.now();
+    const isLive = (item: any) =>
+      !item._expiresAt ||
+      item._expiresAt > now ||
+      !(typeof item.workspaceId === 'string' && item.workspaceId.startsWith('DEMO_'));
 
-    setAllDevotees((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllTreasury((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllPoojaBookings((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllInventory((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllAssets((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllCows((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllAnnadanamList((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllGuests((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllFamilies((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllResolutions((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
-    setAllShifts((prev) =>
-      prev.filter((item: any) => !item._expiresAt || item._expiresAt > now)
-    );
+    setAllDevotees((prev) => prev.filter(isLive));
+    setAllTreasury((prev) => prev.filter(isLive));
+    setAllPoojaBookings((prev) => prev.filter(isLive));
+    setAllInventory((prev) => prev.filter(isLive));
+    setAllAssets((prev) => prev.filter(isLive));
+    setAllCows((prev) => prev.filter(isLive));
+    setAllAnnadanamList((prev) => prev.filter(isLive));
+    setAllGuests((prev) => prev.filter(isLive));
+    setAllFamilies((prev) => prev.filter(isLive));
+    setAllResolutions((prev) => prev.filter(isLive));
+    setAllShifts((prev) => prev.filter(isLive));
   }, []);
 
   // Run auto-purge timer every 60 seconds
@@ -1437,14 +1435,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mine = records.filter((r) => r && r.workspaceId === demoWorkspaceId && !(r as any).isDemoSeed);
       if (mine.length === 0) return;
       moved += mine.length;
-      const copies = mine.map((r, i) => ({
-        ...r,
-        id: `${r.id || 'rec'}_migrated_${now}_${i}`,
-        workspaceId: newWorkspaceId,
-        isDemoSeed: false,
-        _createdAt: now,
-        _migratedFromDemo: demoWorkspaceId,
-      }));
+      const copies = mine.map((r, i) => {
+        // SECURITY (C-4): strip the demo auto-purge TTL — migrated records
+        // belong to a real workspace and must never expire.
+        const { _expiresAt, ...rest } = r as any;
+        return {
+          ...rest,
+          id: `${r.id || 'rec'}_migrated_${now}_${i}`,
+          workspaceId: newWorkspaceId,
+          isDemoSeed: false,
+          _createdAt: now,
+          _migratedFromDemo: demoWorkspaceId,
+        };
+      });
       setRecords((prev) => [...copies, ...prev]);
     };
     migrate(allDevotees, setAllDevotees);
@@ -1890,13 +1893,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       qrCodeRef: `QR-SB-${id.slice(-6).toUpperCase()}`,
       joinedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS, // Auto delete after TTL
+      ...demoTtlFields(data.workspaceId || activeWorkspace.id),
     };
 
     setAllDevotees((prev) => [newMember, ...prev]);
     trackSignUp({ memberId: newMember.id, gotra: newMember.gotra || '', sevaTier: 'Devotee', workspaceType: activeWorkspace.type, workspaceId: activeWorkspace.id });
+    // SECURITY (C-4): the auto-purge note is shown ONLY for demo sandboxes —
+    // real workspaces never expire records.
+    const enrolledWs = data.workspaceId || activeWorkspace.id;
     showToast(
-      `${data.fullName} enrolled into ${activeWorkspace.name}. (Auto-purge scheduled in 24h)`,
+      enrolledWs.startsWith('DEMO_')
+        ? `${data.fullName} enrolled into ${activeWorkspace.name}. (Auto-purge scheduled in 24h)`
+        : `${data.fullName} enrolled into ${activeWorkspace.name}.`,
       'success'
     );
     return id;
@@ -1927,7 +1935,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: family.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(family.workspaceId || activeWorkspace.id),
     };
     setAllFamilies((prev) => [newFam, ...prev]);
     showToast(`Household "${family.familyName}" recorded`, 'success');
@@ -1951,7 +1959,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workspaceId: guest.workspaceId || activeWorkspace.id,
       visitDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(guest.workspaceId || activeWorkspace.id),
     };
     setAllGuests((prev) => [newGuest, ...prev]);
     trackGenerateLead({ leadName: newGuest.name, purpose: newGuest.purpose, city: newGuest.city, workspaceType: activeWorkspace.type, workspaceId: activeWorkspace.id });
@@ -1998,7 +2006,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       auditVerified: true,
       taxReceiptNumber: tx.is80GEligible ? `SB-80G-${new Date().getFullYear()}-${id.slice(-4)}` : undefined,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(tx.workspaceId || activeWorkspace.id),
     };
     
     // Optimistic UI Update
@@ -2089,7 +2097,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: asset.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(asset.workspaceId || activeWorkspace.id),
     };
     setAllAssets((prev) => [{ ...newAst }, ...prev]);
     showToast(`Asset "${asset.name}" added to ledger`, 'success');
@@ -2118,7 +2126,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workspaceId: item.workspaceId || activeWorkspace.id,
       lastRestockedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(item.workspaceId || activeWorkspace.id),
     };
     setAllInventory((prev) => [newInv, ...prev]);
     showToast(`Item "${item.itemName}" added to store`, 'success');
@@ -2140,7 +2148,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: 'Confirmed',
       paymentStatus: 'Paid',
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(booking.workspaceId || activeWorkspace.id),
     };
     setAllPoojaBookings((prev) => [newBooking, ...prev]);
 
@@ -2180,7 +2188,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: cow.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(cow.workspaceId || activeWorkspace.id),
     };
     setAllCows((prev) => [newCow, ...prev]);
     showToast(`Gomata/Nandi record added: ${cow.name}`, 'success');
@@ -2219,7 +2227,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: prop.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(prop.workspaceId || activeWorkspace.id),
     };
     setAllBhoomiProperties((prev) => [newProp, ...prev]);
     showToast(`Property registered: ${prop.name}`, 'success', 'Bhoomi Registry');
@@ -2249,7 +2257,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: receipt.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(receipt.workspaceId || activeWorkspace.id),
     };
     setAllRentReceipts((prev) => [newReceipt, ...prev]);
     showToast(`Rent collected: ₹${receipt.amount.toLocaleString()} from ${receipt.tenantName}`, 'success', 'Rent Collection');
@@ -2278,7 +2286,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: vehicle.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(vehicle.workspaceId || activeWorkspace.id),
     };
     setAllFleetVehicles((prev) => [newVehicle, ...prev]);
     showToast(`Vehicle registered: ${vehicle.registrationNo}`, 'success', 'Vahan Fleet');
@@ -2308,7 +2316,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       totalCost: log.litersFilled * log.costPerLiter,
       workspaceId: log.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(log.workspaceId || activeWorkspace.id),
     };
     setAllFuelLogs((prev) => [newLog, ...prev]);
     // Keep the vehicle's live odometer in sync with the newest log
@@ -2333,7 +2341,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: record.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(record.workspaceId || activeWorkspace.id),
     };
     setAllServiceRecords((prev) => [newRecord, ...prev]);
     showToast(`Service logged (${record.serviceType}) — ${record.registrationNo}`, 'success', 'Vahan Fleet');
@@ -2368,7 +2376,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: sub.status || 'Active',
       workspaceId: sub.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(sub.workspaceId || activeWorkspace.id),
     };
     setAllSevaSubscriptions((prev) => [newSub, ...prev]);
     if (!silent) {
@@ -2444,7 +2452,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: ann.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(ann.workspaceId || activeWorkspace.id),
     };
     setAllAnnadanamList((prev) => [newAnn, ...prev]);
     addTreasuryTransaction({
@@ -2474,7 +2482,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: res.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(res.workspaceId || activeWorkspace.id),
     };
     setAllResolutions((prev) => [newRes, ...prev]);
     showToast(`Resolution ${res.resolutionNumber} saved to governance ledger`, 'success');
@@ -2503,7 +2511,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: puja.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(puja.workspaceId || activeWorkspace.id),
     };
     setAllResidentPujas((prev) => [newPuja, ...prev]);
     showToast('Resident Puja Schedule added', 'success');
@@ -2519,7 +2527,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: record.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(record.workspaceId || activeWorkspace.id),
     };
     setAllPitruRecords((prev) => [newRecord, ...prev]);
     showToast('Pitru Shradh Record added', 'success');
@@ -2535,7 +2543,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: student.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(student.workspaceId || activeWorkspace.id),
     };
     setAllGurukulStudents((prev) => [newStudent, ...prev]);
     showToast('Gurukul Vidyarthi Enrolled', 'success');
@@ -2552,7 +2560,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id,
       workspaceId: shift.workspaceId || activeWorkspace.id,
       _createdAt: now,
-      _expiresAt: now + AUTO_PURGE_TTL_MS,
+      ...demoTtlFields(shift.workspaceId || activeWorkspace.id),
     };
     setAllShifts((prev) => [newShift, ...prev]);
     showToast(`Sevadar shift assigned for ${shift.sevadarName}`, 'success');
