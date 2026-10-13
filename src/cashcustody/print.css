@@ -1,0 +1,11 @@
+/* Cash Custody — print styles: only the active report/slip prints. */
+@media print {
+  .no-print { display: none !important; }
+  body * { visibility: hidden; }
+  .print-report, .print-report *,
+  .print-slip, .print-slip * { visibility: visible; }
+  .print-report, .print-slip {
+    position: absolute; left: 0; top: 0; width: 100%;
+    border: none !important; box-shadow: none !important;
+  }
+}
