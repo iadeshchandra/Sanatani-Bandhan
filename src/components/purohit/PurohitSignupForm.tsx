@@ -15,6 +15,9 @@ import { auth, db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { PurohitProvider, usePurohit } from '../../context/PurohitContext';
 import { useToast } from '../../context/ToastContext';
+import { GoogleSignInButton } from '../auth/GoogleSignInButton';
+import type { GoogleAuthResult } from '../../lib/googleAuth';
+import { CheckCircle2 } from 'lucide-react';
 
 const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
@@ -35,25 +38,48 @@ const InnerForm: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Google-linked signup: the Google account replaces email/password.
+  const [googleUser, setGoogleUser] = useState<GoogleAuthResult | null>(null);
+
+  const handleGoogleSuccess = (result: GoogleAuthResult) => {
+    setGoogleUser(result);
+    setForm((f) => ({
+      ...f,
+      displayName: f.displayName || (result.displayName !== 'Sanatani Devotee' ? result.displayName : ''),
+      email: result.email || f.email,
+    }));
+    showToast(`Google linked (${result.email}). Complete your purohit details below.`, 'success');
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (form.password.length < 6) {
+    if (!googleUser && form.password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
     setLoading(true);
     try {
-      const email = form.email.trim().toLowerCase();
-      const cred = await createUserWithEmailAndPassword(auth, email, form.password);
-      const fbUser = cred.user;
+      const email = (googleUser?.email || form.email).trim().toLowerCase();
+      let fbUid: string;
+      if (googleUser) {
+        const current = auth.currentUser;
+        if (!current || current.uid !== googleUser.uid) {
+          setError('Google session expired — please tap the Google button again.');
+          setLoading(false);
+          return;
+        }
+        fbUid = current.uid;
+      } else {
+        const cred = await createUserWithEmailAndPassword(auth, email, form.password);
+        fbUid = cred.user.uid;
+      }
 
       // Enter the purohit session FIRST (provisional) so the auth-state
       // listener can never flash org UI before the identity is minted.
       enterPurohitSession({
         id: 'PUR-PENDING',
-        uid: fbUser.uid,
+        uid: fbUid,
         displayName: form.displayName.trim(),
         phone: form.phone.trim(),
         city: form.city.trim(),
@@ -70,7 +96,7 @@ const InnerForm: React.FC = () => {
       } as any);
 
       const identity = await mintPurohitIdentity({
-        uid: fbUser.uid,
+        uid: fbUid,
         email,
         displayName: form.displayName,
         phone: form.phone,
@@ -82,8 +108,8 @@ const InnerForm: React.FC = () => {
 
       // Identity-only user doc. No role — H-11: clients can never self-grant.
       await setDoc(
-        doc(db, 'users', fbUser.uid),
-        { uid: fbUser.uid, email, createdAt: serverTimestamp() },
+        doc(db, 'users', fbUid),
+        { uid: fbUid, email, createdAt: serverTimestamp() },
         { merge: true }
       ).catch(() => {});
 
@@ -118,6 +144,17 @@ const InnerForm: React.FC = () => {
         </p>
       </div>
 
+      {!googleUser ? (
+        <GoogleSignInButton mode="purohit" onSuccess={handleGoogleSuccess} onError={(m) => setError(m)} />
+      ) : (
+        <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3">
+          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+          <p className="text-xs font-bold text-emerald-800">
+            Google linked ({googleUser.email}) — no password needed. Complete your details below.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
@@ -129,14 +166,16 @@ const InnerForm: React.FC = () => {
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Email
           </label>
-          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className={inputCls} />
+          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className={inputCls} disabled={!!googleUser} />
         </div>
+        {!googleUser && (
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Password
           </label>
           <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" className={inputCls} />
         </div>
+        )}
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Phone
