@@ -2,22 +2,36 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, ShieldCheck, Star, ArrowRight, Zap, CheckCircle2, Building2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { SUBSCRIPTION_PLANS } from '../../config/planPricing';
+import { PLAN_PRICING, SubscriptionTier } from '../../config/planPricing';
 
 interface UpsellModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpgrade: () => void;
   module: string;
+  /**
+   * Optional override for the plan-card CTA buttons (default: 'Get Started' /
+   * 'Upgrade Workspace'). The sidebar plan-lock flow passes 'Talk to us'.
+   */
+  ctaLabel?: string;
 }
 
-export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpgrade, module }) => {
+// C-6: single pricing model. Legacy SUBSCRIPTION_PLANS names (SEVA/MANDIR/
+// SMART_PRO) are display-deprecated — the modal sells the PLAN_PRICING tiers
+// with the same names the landing page advertises, prices read live from config.
+const DISPLAY_NAMES: Record<SubscriptionTier, string> = {
+  LITE: 'Seva Free',
+  STANDARD: 'Mandir Standard',
+  ENTERPRISE: 'Enterprise',
+};
+
+export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpgrade, module, ctaLabel }) => {
   const { safeTranslate } = useLanguage();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   if (!isOpen) return null;
 
-  const plans = [SUBSCRIPTION_PLANS.SEVA, SUBSCRIPTION_PLANS.MANDIR, SUBSCRIPTION_PLANS.SMART_PRO];
+  const plans = [PLAN_PRICING.LITE, PLAN_PRICING.STANDARD, PLAN_PRICING.ENTERPRISE];
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -83,13 +97,13 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
         <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar bg-slate-50">
           <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan) => {
-              const isRecommended = plan.id === 'SMART_PRO';
-              const isPopular = plan.id === 'MANDIR';
+              const isRecommended = plan.tier === 'ENTERPRISE';
+              const isPopular = plan.tier === 'STANDARD';
               const price = plan.price[billingCycle];
 
               return (
                 <div 
-                  key={plan.id} 
+                  key={plan.tier} 
                   className={`rounded-3xl p-6 border relative overflow-hidden transition-all duration-300 ${
                     isRecommended 
                       ? 'bg-temple-900 border-temple-700 shadow-2xl transform lg:-translate-y-2' 
@@ -109,7 +123,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
                     {isRecommended ? <Star className="w-5 h-5 text-saffron-400 fill-saffron-400" /> : 
                      isPopular ? <Building2 className="w-5 h-5 text-indigo-500" /> :
                      <ShieldCheck className="w-5 h-5 text-emerald-500" />}
-                    {plan.name}
+                    {DISPLAY_NAMES[plan.tier]}
                   </h3>
                   
                   <p className={`mt-2 text-sm min-h-[40px] leading-relaxed ${isRecommended ? 'text-temple-300' : 'text-slate-500'}`}>
@@ -140,7 +154,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
                   <div className={`h-px w-full mb-6 ${isRecommended ? 'bg-white/10' : 'bg-slate-100'}`} />
 
                   <ul className="space-y-4">
-                    {plan.highlightedFeatures.map((feature, idx) => (
+                    {plan.highlightedPerks.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-3">
                         <CheckCircle2 className={`w-5 h-5 shrink-0 ${isRecommended ? 'text-saffron-400' : 'text-emerald-500'}`} />
                         <span className={`text-sm font-semibold leading-tight ${isRecommended ? 'text-slate-100' : 'text-slate-700'}`}>
@@ -158,7 +172,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
                     }`}
                   >
-                    {price === 0 ? 'Get Started' : 'Upgrade Workspace'}
+                    {ctaLabel ?? (price === 0 ? 'Get Started' : 'Upgrade Workspace')}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
