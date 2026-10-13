@@ -1810,6 +1810,12 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <p className="text-xs text-stone-300">
                 Comparing <span className="text-amber-300 font-bold">{currentUserKarta.fullName}</span> ({currentUserKarta.nakshatra}, {currentUserKarta.rashi}) with <span className="text-rose-300 font-bold">{selectedCandidateForMilan.candidateName}</span> ({selectedCandidateForMilan.nakshatra}, {selectedCandidateForMilan.rashi})
               </p>
+              {/* H-3: honest disclaimer — simplified illustration, not a jyotishi's analysis */}
+              <p className="text-[11px] text-amber-300/90 mt-2 leading-relaxed border-t border-stone-700/60 pt-2">
+                <strong>Illustrative only:</strong> this score is a simplified estimate for browsing and is
+                not a substitute for a qualified jyotishi's kundali analysis. Please consult your
+                family purohit before any marriage decision.
+              </p>
             </div>
 
             {/* CRITICAL SAGOTRA HARD BLOCK ALERT */}
