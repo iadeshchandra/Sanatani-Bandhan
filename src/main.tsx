@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './styles/motion.css';
 import { OfflineSyncManager } from './services/OfflineSyncManager';
 
 // Suppress React warning about duplicate keys for headless testing and handle sandbox Firestore permissions notices
