@@ -6,6 +6,7 @@ import { Layers, LayoutDashboard,
   GitFork,
   UserPlus,
   FileSpreadsheet,
+  FileCode2,
   Landmark,
   Receipt,
   Target,
@@ -65,6 +66,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { isModuleAllowed, isModuleAllowedForPlan, requiredTierForModule } from '../../lib/workspaceRegistry';
+import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
 import { UpsellModal } from './UpsellModal';
@@ -99,6 +101,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'ratna-bhandar', name: 'Ratna Bhandar & Bullion Vault', domain: 2, domainTitle: 'Financials & Assets', icon: Sparkles, badge: 'Dual-PIN' },
   { id: 'taxReceipts', name: 'Tax Certificates (80G/12A)', domain: 2, domainTitle: 'Financials & Assets', icon: Receipt },
   { id: 'form10bd', name: 'Form 10BD & CBDT Filing', domain: 2, domainTitle: 'Financials & Assets', icon: FileSpreadsheet, badge: 'E-File' },
+  { id: 'tally-export', name: 'Tally Prime XML Export', domain: 2, domainTitle: 'Financials & Assets', icon: FileCode2 },
   { id: 'campaigns', name: 'Crowdfunding & Mandir Nirman', domain: 2, domainTitle: 'Financials & Assets', icon: Target },
   { id: 'karmaLedger', name: 'Karma Merit & Volunteer Ledger', domain: 2, domainTitle: 'Financials & Assets', icon: Sparkles },
   { id: 'assets', name: 'Fixed Assets & Deity Ornaments', domain: 2, domainTitle: 'Financials & Assets', icon: Layers },
@@ -830,15 +833,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </aside>
 
-      {/* C-6: plan-lock upgrade upsell. Manual fulfillment v1 — the CTA routes
-          to /contact for a human conversation.
+      {/* C-6: plan-lock upgrade upsell. Manual fulfillment v1 — the CTA opens
+          WhatsApp with a prefilled upgrade message (falls back to /contact
+          if WhatsApp is ever unconfigured).
           TODO(v2): replace with a payment-gateway checkout (Razorpay/UPI). */}
       <UpsellModal
         isOpen={upgradeModuleId !== null}
         onClose={() => setUpgradeModuleId(null)}
         onUpgrade={() => {
+          const label = upgradeModuleId ? `${upgradeModuleId} (${lockTierLabelFor(upgradeModuleId) || 'PRO'} plan)` : '';
           setUpgradeModuleId(null);
-          navigate('/contact');
+          if (hasWhatsApp()) {
+            window.open(
+              whatsappLink(`Namaste! I want to upgrade my Sanatani Bandhan workspace to unlock: ${label}`),
+              '_blank', 'noopener'
+            );
+          } else {
+            navigate('/contact');
+          }
         }}
         module={upgradeModuleId ? `${upgradeModuleId} (${lockTierLabelFor(upgradeModuleId) || 'PRO'} plan)` : ''}
         ctaLabel="Talk to us"
