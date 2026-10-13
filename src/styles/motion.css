@@ -1,0 +1,167 @@
+/**
+ * motion.css — Sanatani Bandhan motion system.
+ *
+ * Warm, unhurried, temple-calm animation. Three rules for contributors:
+ *
+ *   1. GPU ONLY — animate `transform` and `opacity`, nothing else.
+ *      Never width / height / margin / padding / top / left (layout recalc kills FPS).
+ *   2. REDUCED MOTION — the kill-switch at the bottom of this file collapses
+ *      every animation to instant under `prefers-reduced-motion: reduce`.
+ *      JS-driven motion must ALSO check `usePrefersReducedMotion()`.
+ *   3. NO LAYOUT SHIFT — entrances use fill-mode `both` and transform-only
+ *      keyframes, so elements occupy their space from frame one (zero CLS).
+ *
+ * Conventions:
+ *   - `.anim-stagger` on a parent + `style={{ '--i': index }}` on children
+ *     for cascading entrances (delay capped at 8 steps).
+ *   - JS never runs animation loops for entrances — it only toggles classes.
+ *   - Easing is `cubic-bezier(0.22, 1, 0.36, 1)` everywhere; 180–420ms.
+ *     Nothing bouncy — this is a workplace tool, not a game.
+ */
+
+:root {
+  --sb-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sb-dur-fast: 180ms;
+  --sb-dur: 300ms;
+  --sb-dur-slow: 420ms;
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyframes — transform + opacity only                                */
+/* ------------------------------------------------------------------ */
+
+@keyframes sb-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes sb-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes sb-slide-in-right {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sb-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Desk-switch entrance (see the `main.grow` rule below). */
+@keyframes sb-desk-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ambient float — very slow, very subtle. For diya/mandala wrappers only. */
+@keyframes sb-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+
+/* Shimmer sweep — transform-based pseudo-element, no background animation. */
+@keyframes sb-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Utility classes                                                     */
+/* ------------------------------------------------------------------ */
+
+.anim-fade-up   { animation: sb-fade-up var(--sb-dur) var(--sb-ease) both; }
+.anim-fade-in   { animation: sb-fade-in var(--sb-dur-fast) ease-out both; }
+.anim-scale-in  { animation: sb-scale-in var(--sb-dur) var(--sb-ease) both; }
+.anim-slide-down { animation: sb-slide-down 220ms var(--sb-ease) both; }
+
+/* Modal + drawer open transitions (applied in the shared primitives). */
+.anim-modal  { animation: sb-scale-in var(--sb-dur) var(--sb-ease) both; }
+.anim-drawer { animation: sb-slide-in-right 360ms var(--sb-ease) both; }
+
+/* Staggered cascade: parent gets .anim-stagger, children set --i. */
+.anim-stagger > * {
+  animation: sb-fade-up var(--sb-dur) var(--sb-ease) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 65ms);
+}
+
+/* Ambient float for sacred-vibe moments (landing diya, hero mandala). */
+.anim-float { animation: sb-float 7s ease-in-out infinite; }
+
+/* Press feedback for primary CTAs — transform-only, 120ms. */
+.pressable { transition: transform 120ms ease-out; }
+.pressable:active { transform: scale(0.97); }
+
+/* Skeleton shimmer — replaces animate-pulse where a sweep reads better. */
+.anim-skeleton { position: relative; overflow: hidden; }
+.anim-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.09) 50%,
+    transparent 80%
+  );
+  animation: sb-shimmer 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* App-shell wiring (no JS edits required)                             */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Desk-switch transition. App.tsx renders <main class="grow ..."> whose
+ * direct child mounts a fresh desk component on every activeModule change.
+ * CSS animations run only on mount, so this re-triggers per desk switch
+ * and never replays on plain re-renders. Scoped to `main.grow` so the
+ * landing page and other <main> elements are untouched.
+ */
+main.grow > div > * {
+  animation: sb-desk-in var(--sb-dur) var(--sb-ease) both;
+}
+
+/*
+ * Sidebar nav mount — subtle once-only cascade. DeskRow keys are stable
+ * (`item.id-idx`), so items do not remount on navigation; this plays once.
+ */
+aside ul.space-y-1 > li {
+  animation: sb-fade-up 0.28s var(--sb-ease) both;
+}
+aside ul.space-y-1 > li:nth-child(1) { animation-delay: 15ms; }
+aside ul.space-y-1 > li:nth-child(2) { animation-delay: 45ms; }
+aside ul.space-y-1 > li:nth-child(3) { animation-delay: 75ms; }
+aside ul.space-y-1 > li:nth-child(4) { animation-delay: 105ms; }
+aside ul.space-y-1 > li:nth-child(5) { animation-delay: 135ms; }
+aside ul.space-y-1 > li:nth-child(6) { animation-delay: 165ms; }
+aside ul.space-y-1 > li:nth-child(7) { animation-delay: 195ms; }
+aside ul.space-y-1 > li:nth-child(n+8) { animation-delay: 210ms; }
+
+/* ------------------------------------------------------------------ */
+/* Reduced-motion kill switch                                          */
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .anim-float,
+  .anim-skeleton::after {
+    animation: none !important;
+  }
+}
