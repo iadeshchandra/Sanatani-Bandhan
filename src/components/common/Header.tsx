@@ -73,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
     setViewMode,
     logout,
     checkPermission,
+    enterSoloSession,
   } = useAuthWorkspace();
 
   const { language, setLanguage, t } = useLanguage();
@@ -382,7 +383,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* B2C Portal Switch */}
-              <div className="px-1 py-1 mb-2">
+              <div className="px-1 py-1 mb-2 space-y-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -398,6 +399,33 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span>Switch to Devotee View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRoleDropdown(false);
+                    // Org → solo: enter the personal session FIRST (provisional),
+                    // mirroring the purohit 'PUR-PENDING' pattern — the
+                    // SoloProvider lazy-mints the real SAN-XXXXXX on mount
+                    // (get-or-create, never duplicates). Works for Firebase
+                    // users and local demo sessions alike.
+                    enterSoloSession({
+                      id: 'SAN-PENDING',
+                      uid: '__pending__',
+                      displayName: '',
+                      languages: [],
+                      verificationTier: 'REGISTERED',
+                      roles: {},
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    } as any);
+                    showToast('Welcome to My Space 🙏', 'success');
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500 hover:to-teal-500 text-emerald-300 hover:text-slate-950 transition-all border border-emerald-500/40 cursor-pointer"
+                  title="Your personal Sanatani space — sadhana, panchang, saved texts"
+                >
+                  <span className="text-sm">🪔</span>
+                  <span>My Space</span>
                 </button>
               </div>
 

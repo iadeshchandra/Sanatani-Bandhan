@@ -566,6 +566,64 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/purohits/$(purohitId)).data.get('uid', '') == request.auth.uid);
     }
 
+    // ------------------------------------------------------------------
+    // Solo Sanatani — Universal Sanatani ID spine (sanataniProfiles/{uid})
+    // ------------------------------------------------------------------
+    // Person-scoped identity doc. Public read (the trust anchor for
+    // Sangam/marketplace later). Sensitive fields (gotra) are NEVER stored
+    // here — they live owner-only under `private/self` (see below).
+    // Deny-by-default: create pinned to the
+    // caller's own uid with REGISTERED tier and empty roles. Updates can
+    // never change id or verificationTier. The `roles` link map is
+    // append-only for identities the caller provably owns: a purohitId may
+    // be attached only when the referenced `purohits` doc exists and its
+    // uid is the caller (the BecomePurohitModal upgrade flow). Deletes denied.
+    match /sanataniProfiles/{uid} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && uid == request.auth.uid
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && request.resource.data.get('roles', {}) == {};
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && uid == request.auth.uid
+          && resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('id', '') == resource.data.get('id', '')
+          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          && (
+            request.resource.data.get('roles', {}) == resource.data.get('roles', {})
+            || validPurohitAttach()
+          ));
+      allow delete: if false;
+
+      // A purohitId may be attached only when the referenced `purohits`
+      // doc exists and is owned by the caller (the BecomePurohitModal
+      // upgrade flow). The diff constraint pins the roles key-set: the ONLY
+      // change permitted on this path is setting purohitId — no other role
+      // key can be added, changed or removed here, so a caller cannot smuggle
+      // arbitrary privilege keys into their own roles map. jyotishId stays
+      // immutable until Jyotish One ships (its own attach rule then).
+      function validPurohitAttach() {
+        let newRoles = request.resource.data.get('roles', {});
+        let oldRoles = resource.data.get('roles', {});
+        let newPid = newRoles.get('purohitId', '');
+        return newPid != ''
+          && newPid != oldRoles.get('purohitId', '')
+          && newRoles.diff(oldRoles).affectedKeys().hasOnly(['purohitId'])
+          && exists(/databases/$(database)/documents/purohits/$(newPid))
+          && get(/databases/$(database)/documents/purohits/$(newPid)).data.get('uid', '') == request.auth.uid;
+      }
+    }
+
+    // Solo Sanatani — private profile fields (gotra and future sensitive
+    // data). Owner-only: never publicly readable, unlike the profile doc
+    // above. Single well-known doc id keeps the rule tight.
+    match /sanataniProfiles/{uid}/private/self {
+      allow read, write: if isLoggedIn() && uid == request.auth.uid;
+    }
+
     // --- purohitApplications: applicant + admin read; applicant creates as
     // PENDING; only the platform admin decides (approve/reject).
     match /purohitApplications/{appId} {
