@@ -42,6 +42,8 @@ import { CommandPalette } from './components/common/CommandPalette';
 import { ConfirmProvider } from './components/common/ui';
 import { DemoBanner } from './components/public/DemoBanner';
 import { DemoUpsellModal } from './components/public/DemoUpsellModal';
+import { SetupWizard } from './components/onboarding/SetupWizard';
+import { shouldShowWizard } from './components/onboarding/wizardDeskMap';
 
 import { NotificationProvider } from './context/NotificationContext';
 const QRScanner = lazy(() => import('./components/admin/QRScanner').then(m => ({ default: m.QRScanner })));
@@ -178,6 +180,31 @@ const AppContent: React.FC = () => {
   const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
 
   const [isSahayataOpen, setIsSahayataOpen] = useState<boolean>(false);
+
+  // First-run Setup Wizard: shows exactly once per fresh (non-demo) workspace,
+  // right after signup. PortalLogin sets `sb_setup_pending` on registration;
+  // the wizard clears it and writes `sb_setup_done_<wsId>` on complete/skip.
+  const [showSetupWizard, setShowSetupWizard] = useState<boolean>(false);
+  React.useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      if (
+        shouldShowWizard({
+          workspaceId: activeWorkspace?.id,
+          currentRole,
+          storage: localStorage,
+        })
+      ) {
+        // Let the dashboard paint first — the wizard is a welcome, not a wall.
+        timer = setTimeout(() => setShowSetupWizard(true), 900);
+      }
+    } catch {
+      /* storage unavailable — no wizard */
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [activeWorkspace?.id, currentRole]);
   const { openGuide } = useQuickGuide();
 
   /**
@@ -587,6 +614,21 @@ const AppContent: React.FC = () => {
         onRegister={handleRegister}
       />
 
+      {/* First-run Setup Wizard: one-time onboarding after signup. */}
+      {showSetupWizard && activeWorkspace && (
+        <SetupWizard
+          workspaceId={activeWorkspace.id}
+          workspaceName={activeWorkspace.name}
+          signupOrgType={activeWorkspace.type}
+          planId={(activeWorkspace as { planId?: string }).planId}
+          onComplete={() => setShowSetupWizard(false)}
+          onOpenCompliance={() => {
+            setShowSetupWizard(false);
+            setActiveModule('masterSettings');
+          }}
+        />
+      )}
+
       <QuickChandaModal
         isOpen={isQuickChandaOpen}
         onClose={() => setIsQuickChandaOpen(false)}
@@ -660,6 +702,26 @@ const MainAppView: React.FC = () => {
     // Firebase Auth check bypassed to allow mock auth
     // if (!firebaseUser) { ... }
     return <AppContent />;
+  }
+
+  // Test harness for the first-run Setup Wizard (QA only): visit any page with
+  // ?wizard=test to drive the wizard without Firebase. Never linked in UI.
+  if (
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('wizard') === 'test'
+  ) {
+    return (
+      <SetupWizard
+        workspaceId="WS-TEST"
+        workspaceName="Test Mandir"
+        signupOrgType="Mandir"
+        planId="LITE"
+        onComplete={() => {
+          window.location.href = '/';
+        }}
+        onOpenCompliance={() => {}}
+      />
+    );
   }
 
   if (view === 'login' || view === 'signup') {
