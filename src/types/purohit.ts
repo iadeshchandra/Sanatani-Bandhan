@@ -13,7 +13,7 @@
  * - Endorsements may only be created by authenticated users naming a real
  *   workspace (rules check the workspace doc exists). Fake endorsements are
  *   publicly visible and admin-reversible.
- * - Tier auto-advancement (TEMPLE_ENDORSED / PLATFORM_VERIFIED) is performed
+ * - Tier auto-advancement (ORG_ENDORSED / PLATFORM_VERIFIED) is performed
  *   client-side along a strictly ordered path; the endorsement / gig / review
  *   records are the public audit trail. Server-authoritative advancement would
  *   need Cloud Functions (out of the $0 envelope) — noted as a follow-up.
@@ -26,13 +26,13 @@
 export type PurohitVerificationTier =
   | 'REGISTERED'
   | 'CREDENTIAL_VERIFIED'
-  | 'TEMPLE_ENDORSED'
+  | 'ORG_ENDORSED'
   | 'PLATFORM_VERIFIED';
 
 export const PUROHIT_TIERS: PurohitVerificationTier[] = [
   'REGISTERED',
   'CREDENTIAL_VERIFIED',
-  'TEMPLE_ENDORSED',
+  'ORG_ENDORSED',
   'PLATFORM_VERIFIED',
 ];
 
@@ -52,10 +52,10 @@ export const PUROHIT_TIER_META: Record<
     description: 'Vedic credentials reviewed and approved by the platform.',
     badge: '📜',
   },
-  TEMPLE_ENDORSED: {
-    label: 'Temple Endorsed',
-    labelHi: 'मंदिर समर्थित',
-    description: 'Endorsed by a registered temple / organisation.',
+  ORG_ENDORSED: {
+    label: 'Organisation Endorsed',
+    labelHi: 'संस्था समर्थित',
+    description: 'Endorsed by a registered organisation — mandir, sangha, ashram, gurukul, goshala or trust.',
     badge: '🏛️',
   },
   PLATFORM_VERIFIED: {
@@ -196,6 +196,7 @@ export interface PurohitEndorsement {
   id: string;
   orgId: string;
   orgName: string;
+  orgType?: string;
   purohitId: string;
   endorserUid: string;
   endorserName?: string;
@@ -244,7 +245,7 @@ export function tierIndex(tier: PurohitVerificationTier): number {
 
 /**
  * Effective tier = stored tier, auto-advanced by public evidence.
- * PLATFORM_VERIFIED needs TEMPLE_ENDORSED + (≥1 endorsement OR ≥10 gigs @ ≥4.5).
+ * PLATFORM_VERIFIED needs ORG_ENDORSED + (≥1 endorsement OR ≥10 gigs @ ≥4.5).
  * This mirrors what the client writes; rules enforce the ordered path.
  */
 export function computeEffectiveTier(
@@ -255,10 +256,10 @@ export function computeEffectiveTier(
 ): PurohitVerificationTier {
   let tier = stored;
   if (tier === 'CREDENTIAL_VERIFIED' && endorsementCount >= 1) {
-    tier = 'TEMPLE_ENDORSED';
+    tier = 'ORG_ENDORSED';
   }
   if (
-    tier === 'TEMPLE_ENDORSED' &&
+    tier === 'ORG_ENDORSED' &&
     (endorsementCount >= 1 || (completedGigs >= 10 && ratingAggregate >= 4.5))
   ) {
     tier = 'PLATFORM_VERIFIED';

@@ -31,8 +31,8 @@ const TIER_STYLE: Record<PurohitVerificationTier, { cls: string; glyph: string }
   REGISTERED: { cls: 'bg-stone-100 text-stone-500 border-stone-200', glyph: '○' },
   // Credential-verified: platform reviewed the credentials.
   CREDENTIAL_VERIFIED: { cls: 'bg-sky-100 text-sky-800 border-sky-300', glyph: '◈' },
-  // Temple-endorsed: a real organisation vouches for them.
-  TEMPLE_ENDORSED: { cls: 'bg-amber-100 text-amber-800 border-amber-300', glyph: '⬢' },
+  // Organisation-endorsed: a real organisation (mandir, sangha, ashram, gurukul, trust…) vouches for them.
+  ORG_ENDORSED: { cls: 'bg-amber-100 text-amber-800 border-amber-300', glyph: '⬢' },
   // Platform-verified: the only tier that earns the ✓.
   PLATFORM_VERIFIED: { cls: 'bg-emerald-100 text-emerald-900 border-emerald-400 font-black', glyph: '✓' },
 };

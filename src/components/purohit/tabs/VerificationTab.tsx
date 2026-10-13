@@ -100,7 +100,7 @@ export const VerificationTab: React.FC = () => {
                       )}
                     </p>
                   )}
-                  {t === 'TEMPLE_ENDORSED' && (
+                  {t === 'ORG_ENDORSED' && (
                     <p className="text-[11px] font-bold mt-1 text-stone-600">
                       Endorsements: {endorsements.length} (need ≥ 1)
                     </p>
@@ -242,7 +242,7 @@ export const VerificationTab: React.FC = () => {
       {/* Endorsements received */}
       {endorsements.length > 0 && (
         <Card>
-          <SectionTitle>Temple endorsements ({endorsements.length})</SectionTitle>
+          <SectionTitle>Organisation endorsements ({endorsements.length})</SectionTitle>
           <div className="space-y-3">
             {endorsements.map((e) => (
               <div key={e.id} className="border border-stone-200 rounded-xl p-3.5">

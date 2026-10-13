@@ -596,7 +596,7 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // PLATFORM_VERIFIED first, then by rating.
       const rank: Record<string, number> = {
         PLATFORM_VERIFIED: 0,
-        TEMPLE_ENDORSED: 1,
+        ORG_ENDORSED: 1,
         CREDENTIAL_VERIFIED: 2,
         REGISTERED: 3,
       };
@@ -636,6 +636,7 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: ref.id,
         orgId: activeWorkspace.id,
         orgName: activeWorkspace.name,
+        orgType: (activeWorkspace as any).type || (activeWorkspace as any).orgType || 'Organisation',
         purohitId,
         endorserUid: uid,
         text: text.slice(0, 500),
@@ -647,7 +648,7 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const psnap = await getDoc(doc(db, 'purohits', purohitId));
         if (psnap.exists() && (psnap.data() as any).verificationTier === 'CREDENTIAL_VERIFIED') {
           await updateDoc(doc(db, 'purohits', purohitId), {
-            verificationTier: 'TEMPLE_ENDORSED',
+            verificationTier: 'ORG_ENDORSED',
             updatedAt: now(),
           });
         }

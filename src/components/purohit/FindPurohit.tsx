@@ -143,14 +143,14 @@ export const FindPurohit: React.FC = () => {
                   </p>
                   <div>
                     <p className="text-[11px] font-black uppercase tracking-wide text-stone-400 mb-1.5">
-                      Temple endorsements ({(endorsements[p.id] || []).length})
+                      Organisation endorsements ({(endorsements[p.id] || []).length})
                     </p>
                     {(endorsements[p.id] || []).length === 0 ? (
                       <p className="text-[11px] text-stone-400">No endorsements yet.</p>
                     ) : (
                       (endorsements[p.id] || []).map((e: any) => (
                         <div key={e.id} className="text-xs bg-stone-50 border border-stone-200 rounded-lg p-2.5 mb-1.5">
-                          <p className="font-bold text-stone-800">🏛️ {e.orgName}</p>
+                          <p className="font-bold text-stone-800">🏛️ {e.orgName}{e.orgType ? <span className="ml-1.5 text-[10px] font-semibold text-stone-500 bg-stone-100 rounded-full px-1.5 py-0.5">{e.orgType}</span> : null}</p>
                           <p className="text-stone-600 mt-0.5">“{e.text}”</p>
                         </div>
                       ))

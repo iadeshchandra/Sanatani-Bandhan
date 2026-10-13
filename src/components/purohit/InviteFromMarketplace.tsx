@@ -51,7 +51,7 @@ export const InviteFromMarketplace: React.FC = () => {
 
   return (
     <Card>
-      <SectionTitle sub="Invite a verified independent purohit to serve as temple staff. They keep their independent profile; accepting links it here.">
+      <SectionTitle sub="Invite a verified independent purohit to serve on your organisation's staff — mandir, sangha, ashram, gurukul or trust. They keep their independent profile; accepting links it here.">
         Invite from marketplace
       </SectionTitle>
       <div className="grid sm:grid-cols-3 gap-2.5 mb-3">

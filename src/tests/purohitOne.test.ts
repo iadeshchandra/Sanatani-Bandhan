@@ -38,7 +38,7 @@ describe('Purohit One — four-tier verification pipeline', () => {
   const tiers: PurohitVerificationTier[] = [
     'REGISTERED',
     'CREDENTIAL_VERIFIED',
-    'TEMPLE_ENDORSED',
+    'ORG_ENDORSED',
     'PLATFORM_VERIFIED',
   ];
 
@@ -54,29 +54,29 @@ describe('Purohit One — four-tier verification pipeline', () => {
     });
   });
 
-  it('never skips tiers: REGISTERED cannot jump to TEMPLE_ENDORSED', () => {
+  it('never skips tiers: REGISTERED cannot jump to ORG_ENDORSED', () => {
     // Even with endorsements, REGISTERED stays until credentials are verified.
     expect(computeEffectiveTier('REGISTERED', 5, 50, 5.0)).toBe('REGISTERED');
   });
 
-  it('advances CREDENTIAL_VERIFIED → TEMPLE_ENDORSED → PLATFORM_VERIFIED on endorsement', () => {
-    // Per spec: endorsement moves CREDENTIAL_VERIFIED → TEMPLE_ENDORSED, and
-    // TEMPLE_ENDORSED + (≥1 endorsement) → PLATFORM_VERIFIED auto. The stored
-    // tier records TEMPLE_ENDORSED; the effective tier resolves to the top.
+  it('advances CREDENTIAL_VERIFIED → ORG_ENDORSED → PLATFORM_VERIFIED on endorsement', () => {
+    // Per spec: endorsement moves CREDENTIAL_VERIFIED → ORG_ENDORSED, and
+    // ORG_ENDORSED + (≥1 endorsement) → PLATFORM_VERIFIED auto. The stored
+    // tier records ORG_ENDORSED; the effective tier resolves to the top.
     expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 0, 0, 0)).toBe('CREDENTIAL_VERIFIED');
     expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 1, 0, 0)).toBe('PLATFORM_VERIFIED');
   });
 
-  it('advances TEMPLE_ENDORSED → PLATFORM_VERIFIED on merit', () => {
+  it('advances ORG_ENDORSED → PLATFORM_VERIFIED on merit', () => {
     // Merit path: 10 gigs @ ≥4.5 (no endorsement needed at this stage).
-    expect(computeEffectiveTier('TEMPLE_ENDORSED', 0, 10, 4.5)).toBe('PLATFORM_VERIFIED');
-    expect(computeEffectiveTier('TEMPLE_ENDORSED', 0, 10, 4.9)).toBe('PLATFORM_VERIFIED');
+    expect(computeEffectiveTier('ORG_ENDORSED', 0, 10, 4.5)).toBe('PLATFORM_VERIFIED');
+    expect(computeEffectiveTier('ORG_ENDORSED', 0, 10, 4.9)).toBe('PLATFORM_VERIFIED');
   });
 
   it('withholds PLATFORM_VERIFIED below the merit bar', () => {
-    expect(computeEffectiveTier('TEMPLE_ENDORSED', 0, 9, 5.0)).toBe('TEMPLE_ENDORSED');
-    expect(computeEffectiveTier('TEMPLE_ENDORSED', 0, 10, 4.4)).toBe('TEMPLE_ENDORSED');
-    expect(computeEffectiveTier('TEMPLE_ENDORSED', 0, 0, 0)).toBe('TEMPLE_ENDORSED');
+    expect(computeEffectiveTier('ORG_ENDORSED', 0, 9, 5.0)).toBe('ORG_ENDORSED');
+    expect(computeEffectiveTier('ORG_ENDORSED', 0, 10, 4.4)).toBe('ORG_ENDORSED');
+    expect(computeEffectiveTier('ORG_ENDORSED', 0, 0, 0)).toBe('ORG_ENDORSED');
   });
 
   it('is idempotent at the top tier', () => {
