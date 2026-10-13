@@ -111,6 +111,9 @@ const PathshalaDesk = lazy(() => import('./pathshala/PathshalaDesk').then(m => (
 // Goshala One — complete goshala-operations suite (Goshala only).
 const GoshalaDesk = lazy(() => import('./goshala/GoshalaDesk').then(m => ({ default: m.GoshalaDesk })));
 
+// Solo Sanatani — independent personal workspace (person-scoped, no org).
+const SoloWorkspaceShell = lazy(() => import('./solo/SoloWorkspaceShell').then(m => ({ default: m.SoloWorkspaceShell })));
+
 // Domain 5: Outreach & Scriptures
 const WhatsAppBroadcasterDesk = lazy(() => import('./components/domain5/WhatsAppBroadcasterDesk').then(m => ({ default: m.WhatsAppBroadcasterDesk })));
 const VedicCalendarEventsDesk = lazy(() => import('./components/domain5/VedicCalendarEventsDesk').then(m => ({ default: m.VedicCalendarEventsDesk })));
@@ -820,15 +823,23 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
 };
 
 /**
- * PUROHIT ONE HARD GUARD. Routes between the two mutually-exclusive session
+ * PUROHIT ONE HARD GUARD. Routes between the mutually-exclusive session
  * kinds. A purohit-personal session renders ONLY the purohit workspace
  * shell — no org switcher, no workspace desks, no org data — and org
  * sessions can never reach purohit-personal routes. Single branch point.
+ *
+ * Solo Sanatani extends the same guard: a solo-personal session renders
+ * ONLY the solo workspace shell. Three mutually exclusive kinds by
+ * construction — 'org' | 'purohit' | 'solo' — so no session can leak
+ * into another.
  */
 const AppContentRouter: React.FC = () => {
   const { sessionKind } = useAuthWorkspace();
   if (sessionKind === 'purohit') {
     return <PurohitWorkspaceShell />;
+  }
+  if (sessionKind === 'solo') {
+    return <SoloWorkspaceShell />;
   }
   return <AppContent />;
 };

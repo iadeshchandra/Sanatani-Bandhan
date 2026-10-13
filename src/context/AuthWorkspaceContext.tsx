@@ -208,11 +208,21 @@ export interface AuthWorkspaceContextType {
    * purohit shell — no org switcher, no workspace desks, no org data. The two
    * sessions are mutually exclusive by construction (a single early-return
    * branch in AppContent), so neither can leak into the other.
+   *
+   * Solo Sanatani adds 'solo' = independent personal workspace (no org, no
+   * profession). Same hard-guard pattern: when 'solo', AppContent renders
+   * ONLY the solo shell. A solo user can progressively attach roles
+   * (organisation membership, PUR-XXXXXX, JYO-XXXXXX) and switch sessions;
+   * personal data (sadhana, saved, giving) lives in the solo store and
+   * survives every upgrade.
    */
-  sessionKind: 'org' | 'purohit';
+  sessionKind: 'org' | 'purohit' | 'solo';
   purohitProfile: import('../types/purohit').PurohitIdentity | null;
   enterPurohitSession: (profile: import('../types/purohit').PurohitIdentity) => void;
   exitPurohitSession: () => void;
+  soloProfile: import('../solo/types').SanataniProfile | null;
+  enterSoloSession: (profile: import('../solo/types').SanataniProfile) => void;
+  exitSoloSession: () => void;
   updateWorkspaceType: (newType: WorkspaceType) => void;
   switchRole: (role: UserRole) => void;
   updateCurrentUserRole?: (role: UserRole) => void;
@@ -267,9 +277,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   // Purohit One: independent-purohit session. Mutually exclusive with org
   // sessions — see the AppContent guard. Persisted so a refresh keeps the
   // purohit in their personal workspace (profile rehydrated by PurohitContext).
-  const [sessionKind, setSessionKind] = useState<'org' | 'purohit'>(() => {
+  const [sessionKind, setSessionKind] = useState<'org' | 'purohit' | 'solo'>(() => {
     try {
-      return (localStorage.getItem('sb_session_kind') as 'org' | 'purohit') || 'org';
+      return (localStorage.getItem('sb_session_kind') as 'org' | 'purohit' | 'solo') || 'org';
     } catch {
       return 'org';
     }
@@ -287,6 +297,28 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   };
   const exitPurohitSession = () => {
     setPurohitProfile(null);
+    setSessionKind('org');
+    try {
+      localStorage.removeItem('sb_session_kind');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  // Solo Sanatani: independent personal session. Mirrors the purohit hard
+  // guard — entering solo never mounts org UI; the solo profile is rehydrated
+  // by SoloContext on refresh (session kind persisted like purohit).
+  const [soloProfile, setSoloProfile] = useState<import('../solo/types').SanataniProfile | null>(null);
+  const enterSoloSession = (profile: import('../solo/types').SanataniProfile) => {
+    setSoloProfile(profile);
+    setSessionKind('solo');
+    try {
+      localStorage.setItem('sb_session_kind', 'solo');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const exitSoloSession = () => {
+    setSoloProfile(null);
     setSessionKind('org');
     try {
       localStorage.removeItem('sb_session_kind');
@@ -1162,6 +1194,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         purohitProfile,
         enterPurohitSession,
         exitPurohitSession,
+        soloProfile,
+        enterSoloSession,
+        exitSoloSession,
         updateWorkspaceType,
         switchRole,
         updateCurrentUserRole: switchRole,
