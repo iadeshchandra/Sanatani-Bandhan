@@ -675,10 +675,24 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             ...(Array.isArray(uData.branches) ? uData.branches : []),
           ].filter(Boolean);
 
+          // Membership sprint: the rules-enforced workspaceMembers edge also
+          // grants access (join-request approvals and invite acceptances land
+          // here — clients can never forge it, Trustees write it).
+          let hasMemberEdge = false;
+          try {
+            const memSnap = await getDoc(
+              doc(db, 'workspaceMembers', `${newWorkspaceId}_${user.uid}`)
+            );
+            hasMemberEdge = memSnap.exists();
+          } catch {
+            hasMemberEdge = false;
+          }
+
           const hasAccess =
             uData.role === 'SuperAdmin' ||
             uData.role === 'SUPER_ADMIN' ||
             uData.isGlobalAdmin === true ||
+            hasMemberEdge ||
             accessibleList.includes(newWorkspaceId);
 
           if (hasAccess) {

@@ -70,18 +70,63 @@ service cloud.firestore {
     // wildcard '*' claim | SuperAdmin). The null-guard is load-bearing:
     // without it, `null == null` would grant membership for documents that
     // carry no tenant id (fail closed instead).
+    //
+    // Membership sprint: a rules-enforced `workspaceMembers/{tenant}_{uid}`
+    // edge ALSO confers membership. Trustees write these edges (join-request
+    // approvals); invited users write their own on invite-accept (verified
+    // against the invite doc). Clients can never forge membership.
+    function wsMemberPath(tenantId) {
+      return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + request.auth.uid);
+    }
+    function isWsMember(tenantId) {
+      return isLoggedIn() && tenantId != null && exists(wsMemberPath(tenantId));
+    }
+    function wsMemberRoleIn(tenantId, roles) {
+      return isWsMember(tenantId)
+        && get(wsMemberPath(tenantId)).data.get('role', null) in roles;
+    }
     function isTenantMember(tenantId) {
       return isLoggedIn() && tenantId != null && (
         isSuperAdmin() ||
         tenantId == effTenant() ||
-        effTenant() == '*'
+        effTenant() == '*' ||
+        isWsMember(tenantId)
       );
     }
 
     // Task contract: role check scoped to the tenant. SuperAdmin bypasses
     // role checks (needed for platform admins acting cross-tenant).
+    // Membership sprint: the workspaceMembers edge role counts too, so an
+    // invited Sevadar/Accountant/etc. passes staff gates in their org.
     function hasRole(tenantId, roles) {
-      return isSuperAdmin() || (isTenantMember(tenantId) && roleIn(roles));
+      return isSuperAdmin()
+        || (isTenantMember(tenantId) && (roleIn(roles) || wsMemberRoleIn(tenantId, roles)));
+    }
+
+    // Organisation Trustee for a specific org (used by membership flows):
+    // tenant member + Trustee/SuperAdmin via users-doc role OR the
+    // workspaceMembers edge role.
+    function isOrgTrustee(orgId) {
+      return isLoggedIn() && orgId != null && orgId != '' && (
+        isSuperAdmin() ||
+        (isTenantMember(orgId) && (
+          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']) ||
+          wsMemberRoleIn(orgId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+        ))
+      );
+    }
+
+    // Role-grant matrix for invites / member adds. A Trustee may grant
+    // operational roles at/below their own — never Trustee, never
+    // SuperAdmin. Only a SuperAdmin may grant those.
+    function grantableRole(orgId, targetRole) {
+      return isSuperAdmin() || (
+        isOrgTrustee(orgId) &&
+        !(targetRole in ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']) &&
+        targetRole in ['Priest', 'PRIEST', 'PUROHIT', 'Accountant', 'ACCOUNTANT',
+          'Sevadar', 'SEVADAR', 'Devotee', 'DEVOTEE', 'Member', 'MEMBER',
+          'CSO', 'Manager', 'MANAGER']
+      );
     }
 
     // DEMO sandboxes: public reads; writes need an authenticated session.
@@ -629,5 +674,141 @@ service cloud.firestore {
     }
 
     // NOTE: no catch-all allow — default deny.
+
+    // ------------------------------------------------------------------
+    // Membership sprint — Organisation Membership System
+    // ------------------------------------------------------------------
+    // Global (non-workspace-scoped) collections. Deny-by-default posture is
+    // preserved: every match below states its exact allow conditions.
+
+    // --- orgPages/{orgId}: public read (discovery + public org page).
+    // Write: org Trustee/SuperAdmin or platform admin, public fields only.
+    match /orgPages/{orgId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin() || (
+        isOrgTrustee(orgId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['orgId', 'name', 'type', 'city', 'state', 'country', 'about',
+           'logoUrl', 'coverUrl', 'verified', 'updatedAt'])
+        && request.resource.data.get('orgId', '') == orgId
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    // --- followers/{orgId}/users/{uid}: public read (counts); owner write.
+    match /followers/{orgId}/users/{uid} {
+      allow read: if true;
+      allow create: if isLoggedIn() && request.auth.uid == uid
+        && request.resource.data.get('uid', '') == uid;
+      allow update: if false;
+      allow delete: if isLoggedIn() && request.auth.uid == uid;
+    }
+
+    // --- joinRequests/{orgId}_{uid}: deterministic id = one pending per
+    // user per org. Create: the requesting user only, PENDING. Read:
+    // requester + org trustees + admin. Decide: org trustees only
+    // (APPROVED/REJECTED). A rejected user may re-request (PENDING again).
+    match /joinRequests/{requestId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('userUid', '') == request.auth.uid)
+        || (isLoggedIn() && isOrgTrustee(resource.data.get('orgId', '')));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('userUid', '') == request.auth.uid
+        && request.resource.data.get('orgId', '') != ''
+        && request.resource.data.get('status', '') == 'PENDING';
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && isOrgTrustee(resource.data.get('orgId', ''))
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt'])
+          && request.resource.data.get('status', '') in ['APPROVED', 'REJECTED'])
+        || (isLoggedIn() && resource.data.get('userUid', '') == request.auth.uid
+          && resource.data.get('status', '') == 'REJECTED'
+          && request.resource.data.get('status', '') == 'PENDING'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'message', 'createdAt']));
+      allow delete: if false;
+    }
+
+    // --- orgInvites/{inviteId}: org → user invitations.
+    // Create: org Trustee/SuperAdmin, role grant bounded by grantableRole()
+    // (a Trustee can never invite another Trustee), PENDING, future expiry.
+    // Read: the invited user (uid / token-email / users-doc phone match),
+    // org trustees, admin. Accept/decline: the invited user only, and only
+    // while PENDING and unexpired (rules enforce expiry server-side).
+    function inviteMatchesMe() {
+      return isLoggedIn() && (
+        resource.data.get('invitedUid', '') == request.auth.uid ||
+        (request.auth.token.email != null
+          && resource.data.get('invitedEmail', '') == request.auth.token.email) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('phone', '') != ''
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('phone', '')
+            == resource.data.get('invitedPhone', ''))
+      );
+    }
+    match /orgInvites/{inviteId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && (inviteMatchesMe()
+          || isOrgTrustee(resource.data.get('orgId', ''))));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orgId', '') != ''
+        && request.resource.data.get('status', '') == 'PENDING'
+        && request.resource.data.get('expiresAt', 0) > request.time.toMillis()
+        && request.resource.data.get('role', '') != ''
+        && grantableRole(request.resource.data.get('orgId', ''), request.resource.data.get('role', ''));
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && inviteMatchesMe()
+          && resource.data.get('status', '') == 'PENDING'
+          && resource.data.get('expiresAt', 0) > request.time.toMillis()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt'])
+          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+      allow delete: if false;
+    }
+
+    // --- workspaceMembers/{workspaceId}_{uid}: the rules-enforced membership
+    // edge. Read: the member, org trustees, admin. Create: (a) org trustee
+    // granting a bounded role (join approval / direct add), or (b) the user
+    // themselves accepting an invite — verified against the ACCEPTED invite
+    // doc (role must equal the invite's role: no self-escalation; invite
+    // must be unexpired). Update/delete: org trustees (+ role bound).
+    function inviteAcceptOk(inviteId, workspaceId, role) {
+      let ipath = /databases/$(database)/documents/orgInvites/$(inviteId);
+      return inviteId != '' && exists(ipath)
+        && get(ipath).data.get('status', '') == 'ACCEPTED'
+        && get(ipath).data.get('expiresAt', 0) > request.time.toMillis()
+        && get(ipath).data.get('orgId', '') == workspaceId
+        && get(ipath).data.get('role', '') == role
+        && (get(ipath).data.get('invitedUid', '') == request.auth.uid
+          || (request.auth.token.email != null
+            && get(ipath).data.get('invitedEmail', '') == request.auth.token.email));
+    }
+    match /workspaceMembers/{memberId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
+        || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', '')));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('workspaceId', '') != ''
+        && request.resource.data.get('uid', '') != ''
+        && request.resource.data.get('role', '') != ''
+        && (
+          // (a) Trustee grants for another user (join approval / direct add)
+          (isOrgTrustee(request.resource.data.get('workspaceId', ''))
+            && grantableRole(request.resource.data.get('workspaceId', ''),
+              request.resource.data.get('role', '')))
+          // (b) Self-accept of an invite: the invite must name me, be
+          // ACCEPTED and unexpired, and the role must equal the invite's.
+          || (request.resource.data.get('uid', '') == request.auth.uid
+            && inviteAcceptOk(
+              request.resource.data.get('viaInviteId', ''),
+              request.resource.data.get('workspaceId', ''),
+              request.resource.data.get('role', '')))
+        );
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', ''))
+          && grantableRole(resource.data.get('workspaceId', ''),
+            request.resource.data.get('role', '')));
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', '')));
+    }
   }
 }
