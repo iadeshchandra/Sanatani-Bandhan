@@ -503,15 +503,34 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             const data = userSnap.data();
             setUserDocData(data);
 
-            // Extract role and cast to UserRole with legacy normalizer
-            const rawRole = data.role || 'Devotee';
-            const normalizedRole: UserRole = (ROLE_MIGRATION_MAP[rawRole] || rawRole) as UserRole;
-            setRole(normalizedRole);
-            setCurrentRole(normalizedRole);
-
-            // Extract default workspace ID
+            // Extract default workspace ID first (needed for creator check)
             const targetWorkspaceId: string =
               data.defaultWorkspaceId || data.workspaceId || activeWorkspaceId || 'DEMO_ws-mandir';
+
+            // Extract role and cast to UserRole with legacy normalizer.
+            // H-11: no valid stored role → the recorded workspace creator is
+            // its administrator (Trustee); everyone else is Devotee.
+            const VALID_ROLES = ['SuperAdmin', 'Trustee', 'Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'];
+            const rawRole = String(data.role || '');
+            const normalized = (ROLE_MIGRATION_MAP[rawRole] || rawRole) as UserRole;
+            let resolvedRole: UserRole = 'Devotee';
+            if (rawRole && (VALID_ROLES as string[]).includes(normalized)) {
+              resolvedRole = normalized;
+            } else {
+              // Freshest persisted registry (avoids the stale closure — the
+              // effect below runs once with empty deps).
+              let persistedWs: WorkspaceConfig[] = workspaces;
+              try {
+                const stored = await get('sanatani_workspaces');
+                if (Array.isArray(stored) && stored.length > 0) persistedWs = stored;
+              } catch { /* fall back to closure state */ }
+              const creatorWs = persistedWs.find((w) => w.id === targetWorkspaceId);
+              if (creatorWs && (creatorWs as any).createdBy === firebaseAuthUser.uid) {
+                resolvedRole = 'Trustee';
+              }
+            }
+            setRole(resolvedRole);
+            setCurrentRole(resolvedRole);
 
             setWorkspaceId(targetWorkspaceId);
             setActiveWorkspaceId(targetWorkspaceId);
