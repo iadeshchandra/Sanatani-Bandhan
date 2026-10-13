@@ -97,6 +97,11 @@ export const PanchangMuhuratDesk: React.FC = () => {
             <p className="text-xs sm:text-sm text-amber-200/70 max-w-2xl leading-relaxed">
               Astronomical planetary hours with 8-part daylight partition for Rahu Kaal, Yamagandam, Gulika Kaal, and Abhijit Muhurat aligned to exact latitude & longitude.
             </p>
+            {/* H-4: honest approximation disclaimer — no ayanamsa correction; verify muhurats with a purohit */}
+            <p className="text-[11px] text-amber-300/80 max-w-2xl leading-relaxed border-l-2 border-amber-500/50 pl-3 mt-1">
+              <strong>Approximate:</strong> tithi/nakshatra are computed from mean lunar motion without
+              Lahiri ayanamsa correction. Please verify important muhurats with your purohit.
+            </p>
           </div>
 
           {/* Quick Date Control */}
