@@ -65,7 +65,7 @@ export const calculateNextShradhDate = (tithiLunar: string, paksha: string): Dat
 export const calculateSevaTier = (donations: number, hours: number): SevaTier => {
   if (donations >= 200001 || hours >= 501) return 'Ratna';
   if (donations >= 50001 || hours >= 201) return 'Vishesh';
-  if (donations >= 10001 || hours >= 51) return 'Kormi';
+  if (donations >= 10001 || hours >= 51) return 'Karmi';
   return 'Sadharan';
 };
 
@@ -170,10 +170,10 @@ export class PersonalizedReminderService {
     let pointsToNextTier = 0; 
     
     if (currentTier === 'Sadharan') {
-      nextTier = 'Kormi';
+      nextTier = 'Karmi';
       targetDonations = 10001;
       targetHours = 51;
-    } else if (currentTier === 'Kormi') {
+    } else if (currentTier === 'Karmi') {
       nextTier = 'Vishesh';
       targetDonations = 50001;
       targetHours = 201;
