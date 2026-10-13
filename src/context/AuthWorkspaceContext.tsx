@@ -482,7 +482,12 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         // Handle anonymous sandboxed demo sessions
         if (firebaseAuthUser.isAnonymous) {
           setIsAuthenticated(true);
-          const fallbackRole: UserRole = currentRole || 'Devotee';
+          // SECURITY (C-2): anonymous sessions are credential-less by definition
+          // and must NEVER inherit a persisted privileged role (e.g. a
+          // SuperAdmin role left behind on a shared temple computer). Any
+          // elevated demo access is granted explicitly via loginAsRole, which
+          // runs after this branch and sets role state directly.
+          const fallbackRole: UserRole = 'Devotee';
           setRole(fallbackRole);
           setCurrentRole(fallbackRole);
           setIsLoading(false);
@@ -990,6 +995,12 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsAuthenticated(false);
     set('sanatani_current_devotee', null);
     localStorage.removeItem('sanatani_web_session');
+    // SECURITY (C-2): a persisted privileged role must NEVER survive logout.
+    // On shared temple computers the next visitor would otherwise inherit it
+    // via the anonymous auto-login branch. Delete both the idb-keyval entry
+    // and the legacy localStorage key written by the persona switcher.
+    await del('sanatani_user_role');
+    localStorage.removeItem('sanatani_user_role');
     setWorkspaceId('DEMO_ws-mandir');
     setActiveWorkspaceId('DEMO_ws-mandir');
   };
@@ -1002,10 +1013,18 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   const addWorkspace = (newWorkspace: WorkspaceConfig) => {
     setWorkspaces((prev) => {
       const existing = prev.find((w) => w.id === newWorkspace.id);
+      // C-6 (monetization): every workspace carries a plan. Demo sandboxes
+      // are 'DEMO' (governed by the separate 5/module demo quota); every real
+      // workspace defaults to 'LITE' (Seva Free) — never silently DEMO.
+      const planId =
+        newWorkspace.planId ||
+        existing?.planId ||
+        (newWorkspace.id.startsWith('DEMO_') ? 'DEMO' : 'LITE');
+      const stamped: WorkspaceConfig = { ...newWorkspace, planId };
       if (existing) {
-        return prev.map((w) => (w.id === newWorkspace.id ? newWorkspace : w));
+        return prev.map((w) => (w.id === newWorkspace.id ? stamped : w));
       }
-      const updated = [...prev, newWorkspace];
+      const updated = [...prev, stamped];
       set('sanatani_workspaces', updated);
       return updated;
     });
