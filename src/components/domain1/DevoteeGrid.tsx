@@ -569,7 +569,7 @@ export const DevoteeGrid: React.FC = () => {
         return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'Vishesh':
         return 'bg-saffron-50 text-saffron-700 border-saffron-200';
-      case 'Kormi':
+      case 'Karmi':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       default:
         return 'bg-temple-50 text-temple-700 border-temple-200';
@@ -715,7 +715,7 @@ export const DevoteeGrid: React.FC = () => {
               <option value="all">All Tiers</option>
               <option value="Ratna">Ratna (Diamond)</option>
               <option value="Vishesh">Vishesh (Special)</option>
-              <option value="Kormi">Kormi (Active)</option>
+              <option value="Karmi">Karmi (Active)</option>
               <option value="Sadharan">Sadharan (General)</option>
             </select>
           </div>
@@ -1535,7 +1535,7 @@ export const DevoteeGrid: React.FC = () => {
                   >
                     <option value="Ratna">Ratna</option>
                     <option value="Vishesh">Vishesh</option>
-                    <option value="Kormi">Kormi</option>
+                    <option value="Karmi">Karmi</option>
                     <option value="Sadharan">Sadharan</option>
                   </select>
                 </div>
