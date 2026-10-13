@@ -159,6 +159,18 @@ export const purgeDemoRecordsFromFirestore = async () => {
       const deletePromises: Promise<void>[] = [];
       
       querySnapshot.forEach((docSnapshot) => {
+        // SECURITY (C-5): never delete a document whose workspace is not a
+        // demo sandbox. A stray `_expiresAt` on a real workspace's record
+        // must not become data loss — skip it loudly instead.
+        const data = docSnapshot.data() as { workspaceId?: unknown };
+        const wsId = typeof data.workspaceId === 'string' ? data.workspaceId : '';
+        if (!wsId.startsWith('DEMO_')) {
+          console.warn(
+            `[Demo Sandbox] Refusing to purge non-demo doc ${colName}/${docSnapshot.id} ` +
+            `(workspaceId=${JSON.stringify(wsId)}).`
+          );
+          return;
+        }
         deletePromises.push(deleteDoc(doc(db, colName, docSnapshot.id)));
       });
       
