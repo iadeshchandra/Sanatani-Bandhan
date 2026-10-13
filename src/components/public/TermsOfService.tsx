@@ -49,7 +49,7 @@ export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) =
 
           <h3>5. Intellectual Property</h3>
           <p>
-            The Sanatani Bandhan platform, including its codebase, design, architecture, and branding, remains the exclusive property of TrackIQ Academy. Your subscription grants you a revocable, non-exclusive license to use the software. You retain all rights and ownership to the data you input into the system.
+            The Sanatani Bandhan platform, including its codebase, design, architecture, and branding, remains the exclusive property of the Sanatani Bandhan platform. Your subscription grants you a revocable, non-exclusive license to use the software. You retain all rights and ownership to the data you input into the system.
           </p>
 
           <h3>6. Limitation of Liability</h3>
