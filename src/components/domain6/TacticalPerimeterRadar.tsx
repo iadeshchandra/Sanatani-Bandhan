@@ -73,9 +73,11 @@ export const TacticalPerimeterRadar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* H-6: was "Mesh Meshnet: 16 Nodes Active" — a hardcoded fake. No live
+              mesh exists; show honest connectivity state instead. */}
           <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-mono font-bold text-slate-600 shadow-xs">
             <Wifi className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Mesh Meshnet: 16 Nodes Active</span>
+            <span>{typeof navigator !== 'undefined' && navigator.onLine ? 'Online' : 'Offline — local mode'}</span>
           </span>
         </div>
       </div>
