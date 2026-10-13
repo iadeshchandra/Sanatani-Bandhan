@@ -53,6 +53,17 @@ export async function getPinnedDesks(): Promise<string[]> {
   return read(PINNED_KEY);
 }
 
+/**
+ * Replace the whole pinned set (used by the first-run Setup Wizard to pin
+ * the user's essential desks). Extends the existing favorites system —
+ * no parallel storage.
+ */
+export async function setPinnedDesks(ids: string[]): Promise<string[]> {
+  const clean = sanitizeIds(ids);
+  await write(PINNED_KEY, clean);
+  return clean;
+}
+
 export async function togglePinnedDesk(id: string): Promise<string[]> {
   const pinned = await read(PINNED_KEY);
   const next = pinned.includes(id) ? pinned.filter((p) => p !== id) : [...pinned, id];
