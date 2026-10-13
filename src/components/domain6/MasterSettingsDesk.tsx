@@ -75,6 +75,10 @@ export const MasterSettingsDesk: React.FC = () => {
     bannerUrl: activeWorkspace?.bannerUrl || '',
     registrationNo: activeWorkspace?.trustRegNumber || '',
     taxId: activeWorkspace?.taxExemptionNumber || '',
+    // H-1: 80G registration gate
+    eightyGRegistered: activeWorkspace?.trust80GRegistered || false,
+    eightyGURN: activeWorkspace?.trust80GURN || '',
+    eightyGRegNo: activeWorkspace?.trust80GRegNo || '',
     description: activeWorkspace?.tagline || ''
   });
   
@@ -202,6 +206,10 @@ export const MasterSettingsDesk: React.FC = () => {
         bannerUrl: workspaceInfo.bannerUrl || '',
         trustRegNumber: workspaceInfo.registrationNo?.trim() || '',
         taxExemptionNumber: workspaceInfo.taxId?.trim() || '',
+        // H-1: 80G registration gate — only a registered URN may appear on receipts.
+        trust80GRegistered: !!workspaceInfo.eightyGRegistered,
+        trust80GURN: workspaceInfo.eightyGURN?.trim() || '',
+        trust80GRegNo: workspaceInfo.eightyGRegNo?.trim() || '',
         tagline: workspaceInfo.description?.trim() || '',
         ...(coords && { location: coords })
       };
@@ -492,6 +500,38 @@ export const MasterSettingsDesk: React.FC = () => {
                       <div>
                         <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('tax_id', 'Tax ID (PAN/BIN/EIN)')}</label>
                         <input type="text" value={workspaceInfo.taxId} onChange={e=>setWorkspaceInfo({...workspaceInfo, taxId: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="Official Tax Identity"/>
+                      </div>
+                    </div>
+                    {/* H-1: 80G registration gate — receipts are SAMPLE until this is set */}
+                    <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
+                      <h5 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                        <Shield size={14}/> Section 80G Registration (Income Tax Act)
+                      </h5>
+                      <label className="flex items-start gap-3 cursor-pointer mb-4">
+                        <input
+                          type="checkbox"
+                          checked={!!workspaceInfo.eightyGRegistered}
+                          onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGRegistered: e.target.checked})}
+                          disabled={!isAdmin}
+                          className="mt-1 w-5 h-5 accent-amber-600 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-gray-800 leading-relaxed">
+                          This organisation is registered under Section 80G of the Income Tax Act, 1961
+                          <span className="block text-[11px] font-medium text-gray-500 mt-0.5">
+                            Until enabled, all 80G receipts are clearly marked SAMPLE and carry no URN — issuing
+                            unregistered 80G receipts is a compliance violation.
+                          </span>
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">80G URN (from IT Portal)</label>
+                          <input type="text" value={workspaceInfo.eightyGURN} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGURN: e.target.value.toUpperCase()})} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">80G Registration No.</label>
+                          <input type="text" value={workspaceInfo.eightyGRegNo} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGRegNo: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="CIT(E) approval number"/>
+                        </div>
                       </div>
                     </div>
                     <div>
