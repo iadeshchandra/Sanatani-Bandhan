@@ -20,11 +20,10 @@ import { DemoSelectionModal } from '../components/public/DemoSelectionModal';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { WorkspaceType } from '../types';
+import { WHATSAPP_URL, hasWhatsApp, SUPPORT_EMAIL } from '../config/contact';
 
-// TODO: replace with the real support inbox before launch.
-const SUPPORT_EMAIL = 'support@sanatanibandhan.web.app';
-// TODO: replace with the real WhatsApp channel link before launch, e.g. https://wa.me/919999900000
-const WHATSAPP_URL = 'https://wa.me/';
+// SUPPORT_EMAIL is still the placeholder inbox — the owner has not provided
+// the real one yet. WhatsApp is live (owner-provided +8801608533529).
 
 const ORG_OPTIONS: WorkspaceType[] = ['Mandir', 'Goshala', 'Ashram', 'Gurukul', 'Sangha'];
 
@@ -345,7 +344,6 @@ export const ContactPage: React.FC = () => {
                 <p className="text-sm text-stone-500 mt-1 mb-3">
                   For anything — support, onboarding, press.
                 </p>
-                {/* TODO: replace with the real support inbox before launch. */}
                 <a
                   href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-sm font-extrabold text-orange-700 underline break-all"
@@ -362,16 +360,19 @@ export const ContactPage: React.FC = () => {
                 <p className="text-sm text-stone-500 mt-1 mb-3">
                   Festival alerts & platform updates, straight to your phone.
                 </p>
-                {/* TODO: replace with the real WhatsApp channel link before launch. */}
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold transition-all cursor-pointer"
-                >
-                  Join channel
-                  <ArrowRight className="w-4 h-4" />
-                </a>
+                {hasWhatsApp() ? (
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold transition-all cursor-pointer"
+                  >
+                    Chat on WhatsApp
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <p className="text-sm text-stone-400 italic">WhatsApp support coming soon.</p>
+                )}
               </div>
 
               <div className="rounded-3xl p-6 shadow-xl bg-gradient-to-br from-stone-900 to-stone-800 text-white">
