@@ -164,7 +164,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'poojaBooking', 'mandirPuja', 'panchang', 'utsavPanjika',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'masterSettings', 'spiritualSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -173,13 +173,13 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ],
   Sangha: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
-    'sanghaDrills', 'panchayatPolls', 'matrimony',
+    'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
   ],
   Samaj: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
-    'sanghaDrills', 'panchayatPolls', 'matrimony',
+    'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
   ],
@@ -218,7 +218,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
     'campaigns', 'karmaLedger', 'assets', 'sevaTrust', 'rakthaSeva', 'annadanam',
     'sandeshBroadcast', 'dharmaMarketing', 'trusteeGovernance', 'legalVault', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -260,7 +260,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
 export const isModuleAllowed = (workspace: any, moduleId: string): boolean => {
   if (!workspace) return true;
   if (moduleId === 'dashboard' || moduleId === 'appStore') return true;
-  if (['sadhana-karma', 'sanatani-vivah', 'yatraNet', 'sevadar-roster', 'sevadarRoster'].includes(moduleId)) return true;
+  if (['sadhana-karma', 'yatraNet', 'sevadar-roster', 'sevadarRoster'].includes(moduleId)) return true;
 
   const workspaceType = typeof workspace === 'string' ? workspace : workspace.type;
   const allowedModules = workspaceRegistry[workspaceType as WorkspaceType];
