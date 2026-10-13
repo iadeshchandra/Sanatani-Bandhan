@@ -24,6 +24,8 @@ import { QuickGuideProvider, useQuickGuide } from './context/QuickGuideContext';
 import { GlobalTelemetryModal } from './components/common/GlobalTelemetryModal';
 import { PlanLockedDesk } from './components/common/PlanLockedDesk';
 import { isModuleMountAllowed, requiredTierForModule, resolvePlanModuleId } from './lib/workspaceRegistry';
+import { isModuleAllowedForOrgMount } from './lib/workspaceRegistry';
+import { OrgTypeRestrictedDesk } from './components/common/OrgTypeRestrictedDesk';
 import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant';
 import { TawkToWidget } from './components/common/TawkToWidget';
 import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
@@ -32,7 +34,6 @@ import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
 import { SmartLoginRouter } from './components/public/SmartLoginRouter';
 import { PortalLogin } from './components/public/PortalLogin';
-import { isModuleAllowed } from './lib/workspaceRegistry';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
 import { WorkspaceType, WorkspaceConfig, UserRole } from './types';
@@ -275,6 +276,24 @@ const AppContent: React.FC = () => {
           moduleId={canonical}
           requiredTier={tier}
           onBack={() => setActiveModule('dashboard')}
+        />
+      );
+    }
+
+    // R-1: org-type relevance enforcement at desk mount (defense in depth
+    // with the Sidebar's nav-level filtering). Direct navigation — deep link,
+    // Cmd+K, navigate_module events, guide CTAs — cannot open a desk that is
+    // not part of this organisation type's workspace (e.g. Sanatani Vivah
+    // inside a Gurukul). Composes with the per-case checkPermission RBAC
+    // gates below: org-type AND role must both pass. A Trustee can enable a
+    // non-native module via the App Store, which unblocks both nav and this
+    // guard (enabledModules opt-in).
+    if (!isModuleAllowedForOrgMount(activeWorkspace, activeModule)) {
+      return (
+        <OrgTypeRestrictedDesk
+          moduleId={activeModule}
+          onBack={() => setActiveModule('dashboard')}
+          onOpenAppStore={() => setActiveModule('appStore')}
         />
       );
     }
