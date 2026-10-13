@@ -97,7 +97,7 @@ export const Modal: React.FC<ModalProps> = ({
       role="presentation"
     >
       <div
-        className="absolute inset-0 bg-temple-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-temple-950/80 backdrop-blur-sm anim-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -112,6 +112,7 @@ export const Modal: React.FC<ModalProps> = ({
           'relative w-full bg-temple-900 border border-temple-700 rounded-2xl shadow-2xl',
           'max-h-[90vh] flex flex-col outline-none',
           'focus-visible:ring-2 focus-visible:ring-saffron-500',
+          'anim-modal',
           SIZE_CLASSES[size],
         ].join(' ')}
       >
