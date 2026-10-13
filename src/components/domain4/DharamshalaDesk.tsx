@@ -201,7 +201,7 @@ export const DharamshalaDesk: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Building className="w-6 h-6 text-indigo-600" />
-            {t('dharamshala') || 'Yatri Niwas & Dharamshala'}
+            {t('nav.dharamshala') || 'Yatri Niwas & Dharamshala'}
           </h1>
           <div className="mt-2"><PreviewDataBadge /></div>
           <p className="text-slate-500 text-sm mt-1">Manage pilgrim accommodations, bookings, and housekeeping.</p>
