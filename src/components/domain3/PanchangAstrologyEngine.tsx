@@ -264,6 +264,11 @@ export const PanchangAstrologyEngine: React.FC = () => {
               Geocoded to {activeCity?.name || activeWorkspace.name} ({activeLat.toFixed(2)}°N,{' '}
               {activeLon.toFixed(2)}°E) • Local Sunrise: <span className="text-amber-400 font-bold">{panchang.sunrise}</span>
             </p>
+            {/* H-4: honest approximation disclaimer — no ayanamsa correction */}
+            <p className="text-[11px] text-amber-300/80 leading-relaxed border-l-2 border-amber-500/50 pl-2.5 mt-1.5 max-w-2xl">
+              <strong>Approximate:</strong> tithi/nakshatra are computed from mean lunar motion without
+              Lahiri ayanamsa correction. Please verify important muhurats with your purohit.
+            </p>
           </div>
         </div>
 
