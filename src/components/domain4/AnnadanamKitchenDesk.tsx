@@ -7,6 +7,7 @@ import { formatINR } from '../../utils/format';
 import { sanitizeName, isValidQuantity } from '../../utils/validation';
 import { EmptyState } from '../common/EmptyState';
 import { DataExportButton } from '../common/DataExportButton';
+import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const AnnadanamKitchenDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
@@ -262,7 +263,7 @@ export const AnnadanamKitchenDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <h3 className="font-bold text-sm">Sponsor Maha Prasadam Annadanam</h3>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Sponsor Maha Prasadam Annadanam</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
