@@ -14,64 +14,41 @@ import {
 } from 'lucide-react';
 import { generateTallyVoucherXml, TallyTransaction } from '../../utils/tallyXmlGenerator';
 import { useToast } from '../../context/ToastContext';
-
-const INITIAL_TRANSACTIONS: TallyTransaction[] = [
-  {
-    id: 'TXN-2026-001',
-    date: '2026-09-24',
-    amount: 11000,
-    donorName: 'Rajesh & Sunita Sharma',
-    paymentMode: 'UPI',
-    category: 'Maha Rudrabhishek Sankalp',
-    pan: 'ABCPS1234F',
-    referenceNo: 'UPI/382910482910',
-  },
-  {
-    id: 'TXN-2026-002',
-    date: '2026-09-25',
-    amount: 25000,
-    donorName: 'Venkatesh Iyer Trust',
-    paymentMode: 'Bank Transfer',
-    category: 'Annadanam Mega Kitchen Fund',
-    pan: 'AAATV9876K',
-    referenceNo: 'NEFT/HDFC000123/9482',
-  },
-  {
-    id: 'TXN-2026-003',
-    date: '2026-09-26',
-    amount: 5100,
-    donorName: 'Ananya Mukherjee',
-    paymentMode: 'Cash',
-    category: 'Gau Seva Grass Sponsorship',
-    referenceNo: 'HUNDI-CASH-42',
-  },
-  {
-    id: 'TXN-2026-004',
-    date: '2026-09-26',
-    amount: 51000,
-    donorName: 'Om Prakash Agarwal & Sons',
-    paymentMode: 'Cheque',
-    category: 'Mandir Temple Renovation Corpus',
-    pan: 'AGRPA5544M',
-    referenceNo: 'CHQ-849201',
-  },
-];
+import { useData } from '../../context/DataContext';
 
 export const TallyExportDesk: React.FC = () => {
   const { showToast } = useToast();
+  const { treasury } = useData();
   const [fromDate, setFromDate] = useState<string>('2026-09-01');
   const [toDate, setToDate] = useState<string>('2026-09-30');
   const [companyName, setCompanyName] = useState<string>('Sri Sanatan Mandir Trust');
   const [showXmlPreview, setShowXmlPreview] = useState<boolean>(false);
 
+  // M-17: real ledger data — Income transactions from the treasury,
+  // mapped to Tally receipt vouchers. No sample data.
+  const ledgerTransactions: TallyTransaction[] = useMemo(() => {
+    return (treasury || [])
+      .filter((t) => t.type === 'Income')
+      .map((t) => ({
+        id: t.taxReceiptNumber || t.referenceNo || t.id,
+        date: (t.date || '').slice(0, 10),
+        amount: Number(t.amount) || 0,
+        donorName: t.devoteeName || t.vendorName || t.handledBy || 'Unknown donor',
+        paymentMode: t.paymentMode || 'Cash',
+        category: t.category || t.purpose || '',
+        pan: t.devoteePan || undefined,
+        referenceNo: t.referenceNo || undefined,
+      }));
+  }, [treasury]);
+
   // Filter transactions based on date range
   const filteredTransactions = useMemo(() => {
-    return INITIAL_TRANSACTIONS.filter((t) => {
+    return ledgerTransactions.filter((t) => {
       if (fromDate && t.date < fromDate) return false;
       if (toDate && t.date > toDate) return false;
       return true;
     });
-  }, [fromDate, toDate]);
+  }, [ledgerTransactions, fromDate, toDate]);
 
   const totalAmount = useMemo(() => {
     return filteredTransactions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -131,6 +108,9 @@ export const TallyExportDesk: React.FC = () => {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Automated double-entry voucher XML generation for temple auditors and Chartered Accountants (CAs).
+          </p>
+          <p className="text-xs text-emerald-700 font-semibold mt-1.5">
+            Source: your live treasury ledger ({ledgerTransactions.length} income transaction{ledgerTransactions.length !== 1 ? 's' : ''}) — no sample data.
           </p>
         </div>
 
