@@ -197,7 +197,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
   const getHaloDesign = (s: number) => {
     if(s >= 1500) return { color: 'from-yellow-400 via-saffron-500 to-purple-600', name: 'Ratna (Pillar)' };
     if(s >= 500) return { color: 'from-temple-300 to-blue-500', name: 'Vishesh (Core)' };
-    if(s >= 100) return { color: 'from-saffron-400 to-red-500', name: 'Kormi (Active)' };
+    if(s >= 100) return { color: 'from-saffron-400 to-red-500', name: 'Karmi (Active)' };
     return { color: 'from-temple-200 to-temple-300', name: 'Sadharan (Member)' };
   };
 
