@@ -34,7 +34,6 @@ import { LandingPage as LegacyLandingPage } from './components/public/LandingPag
 import { LandingPage } from './pages/LandingPage';
 import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
-import { SmartLoginRouter } from './components/public/SmartLoginRouter';
 import { PortalLogin } from './components/public/PortalLogin';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
@@ -856,7 +855,20 @@ const AppRouter: React.FC = () => {
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<SmartLoginRouter />} />
+          <Route
+            path="/login"
+            element={
+              <PortalLogin
+                initialMode="login"
+                onBack={() => {
+                  window.location.href = '/';
+                }}
+                onSuccess={() => {
+                  window.location.href = '/app';
+                }}
+              />
+            }
+          />
           <Route
             path="/signup"
             element={
