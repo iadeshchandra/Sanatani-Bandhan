@@ -212,7 +212,7 @@ export const DevoteeGrid: React.FC = () => {
         filterGroup === 'all' ||
         (filterGroup === 'staff' && d.role && d.role !== 'DEVOTEE') ||
         (filterGroup === 'donors' && ['Ratna', 'Vishesh'].includes(d.sevaTier)) ||
-        (filterGroup === 'revoked' && d.pin === 'REVOKED');
+        (filterGroup === 'revoked' && d.pinRevoked === true);
       
       const matchAdvanced = (d.totalDonated || 0) >= advancedFilters.minDonation;
 
@@ -375,7 +375,8 @@ export const DevoteeGrid: React.FC = () => {
         spiritualName: spiritualName.trim() || undefined,
         phone: phone.trim(),
         email: email.trim() || undefined,
-        pin: freshPin,
+        // C-7: NEVER write plaintext `pin` — only the hash/salt persist.
+        // The fresh PIN is shown to staff once via the ID-card/reveal flow.
         pinSalt: freshPinHash.salt,
         pinHash: freshPinHash.hash,
         role: 'DEVOTEE' as const,
@@ -811,7 +812,7 @@ export const DevoteeGrid: React.FC = () => {
                             {devotee.role}
                           </span>
                         )}
-                        {devotee.pin === 'REVOKED' && (
+                        {devotee.pinRevoked === true && (
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-rose-700 flex items-center gap-1">
                             <Ban className="w-2.5 h-2.5" />
                             Revoked
@@ -1004,7 +1005,7 @@ export const DevoteeGrid: React.FC = () => {
                               {devotee.role}
                             </span>
                           )}
-                          {devotee.pin === 'REVOKED' && (
+                          {devotee.pinRevoked === true && (
                             <span className="text-[9px] font-semibold uppercase tracking-wider text-rose-700 bg-rose-500/10 px-1 py-0.5 rounded border border-rose-500/30">
                               Revoked
                             </span>
@@ -1218,7 +1219,7 @@ export const DevoteeGrid: React.FC = () => {
                     <div>
                       <label className="block text-xs text-temple-600 mb-1.5 font-semibold">Authentication (Internal)</label>
                       <div className="flex items-center gap-3 bg-temple-50 p-2.5 rounded-xl border border-temple-200">
-                        {selectedDevoteeQr && selectedDevotee.pin !== 'REVOKED' ? (
+                        {selectedDevoteeQr && selectedDevotee.pinRevoked !== true ? (
                           showCredentials ? (
                             <img src={selectedDevoteeQr || undefined} alt="QR Code" className="w-12 h-12 rounded-lg bg-white p-0.5" />
                           ) : (
@@ -1227,12 +1228,12 @@ export const DevoteeGrid: React.FC = () => {
                             </div>
                           )
                         ) : (
-                          <Key className={`w-8 h-8 shrink-0 ${selectedDevotee.pin === 'REVOKED' ? 'text-rose-500' : 'text-saffron-600'}`} />
+                          <Key className={`w-8 h-8 shrink-0 ${selectedDevotee.pinRevoked === true ? 'text-rose-500' : 'text-saffron-600'}`} />
                         )}
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-0.5">
                             <p className="text-xs text-temple-700">Self-Service PIN</p>
-                            {selectedDevotee.pin !== 'REVOKED' && (
+                            {selectedDevotee.pinRevoked !== true && (
                               <button 
                                 type="button" 
                                 onClick={() => setShowCredentials(!showCredentials)} 
@@ -1243,8 +1244,8 @@ export const DevoteeGrid: React.FC = () => {
                               </button>
                             )}
                           </div>
-                          <p className={`font-mono text-xl font-semibold tracking-widest ${selectedDevotee.pin === 'REVOKED' ? 'text-rose-400 text-sm' : 'text-saffron-600'}`}>
-                            {selectedDevotee.pin === 'REVOKED' ? 'REVOKED' : (showCredentials ? (selectedDevotee.pin || 'N/A') : '••••')}
+                          <p className={`font-mono text-xl font-semibold tracking-widest ${selectedDevotee.pinRevoked === true ? 'text-rose-400 text-sm' : 'text-saffron-600'}`}>
+                            {selectedDevotee.pinRevoked === true ? 'REVOKED' : (showCredentials ? (selectedDevotee.pin || 'N/A') : '••••')}
                           </p>
                         </div>
                         <div className="flex flex-col gap-1.5 ml-2">
@@ -1253,8 +1254,10 @@ export const DevoteeGrid: React.FC = () => {
                              onClick={async () => {
                                const newPin = Math.floor(1000 + Math.random() * 9000).toString();
                                const newPinHash = await generatePinHash(newPin);
-                               updateDevotee(selectedDevotee.id, { pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash });
-                               setSelectedDevotee(prev => prev ? {...prev, pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash} : null);
+                               // C-7: persist ONLY the hash/salt — never the plaintext PIN.
+                               // The plaintext lives in React state only, for the one-time reveal below.
+                               updateDevotee(selectedDevotee.id, { pinSalt: newPinHash.salt, pinHash: newPinHash.hash, pinRevoked: false });
+                               setSelectedDevotee(prev => prev ? {...prev, pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash, pinRevoked: false} : null);
                                setShowCredentials(true);
                                showToast('New PIN generated successfully', 'success');
                              }}
@@ -1263,7 +1266,7 @@ export const DevoteeGrid: React.FC = () => {
                            >
                              <RefreshCw className="w-3 h-3" /> Renew
                            </button>
-                           {selectedDevotee.pin !== 'REVOKED' && (
+                           {selectedDevotee.pinRevoked !== true && (
                              <button
                                type="button"
                                disabled={selectedDevotee.id === currentDevotee?.id}
@@ -1274,8 +1277,11 @@ export const DevoteeGrid: React.FC = () => {
                                    confirmText: 'Revoke',
                                    cancelText: 'Cancel',
                                    onConfirm: () => {
-                                     updateDevotee(selectedDevotee.id, { pin: 'REVOKED' });
-                                     setSelectedDevotee(prev => prev ? {...prev, pin: 'REVOKED'} : null);
+                                     // C-7: revocation marks pinRevoked and clears the
+                                     // hash/salt so the old PIN can never verify again.
+                                     // Plaintext `pin` is never written to storage.
+                                     updateDevotee(selectedDevotee.id, { pinRevoked: true, pinHash: '', pinSalt: '' });
+                                     setSelectedDevotee(prev => prev ? {...prev, pinRevoked: true, pin: undefined, pinHash: '', pinSalt: ''} : null);
                                      setShowCredentials(false);
     setDetailTab('profile');
                                      showToast('Login credentials revoked', 'warning');
