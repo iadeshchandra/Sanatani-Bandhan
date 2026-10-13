@@ -1,0 +1,95 @@
+import React, { useMemo, useState } from 'react';
+import { useGoshala, uid } from './goshalaStore';
+import { GrantStatus } from './types';
+import { Card, Stat, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
+import { fmtDateEn, inr } from '../pathshala/bn';
+import { useToast } from '../context/ToastContext';
+
+/* Goshala One — Grant & scheme tracker: government goshala grants and
+   subsidies applied / approved / received / pending. The ₹50/day/animal
+   support (and its pending dues) is the #1 pain point per research. */
+
+const STATUSES: GrantStatus[] = ['applied', 'pending', 'approved', 'received', 'rejected'];
+
+export const GrantTab: React.FC = () => {
+  const { state, add, update, remove } = useGoshala();
+  const { tr } = useLocaleText();
+  const { showToast } = useToast();
+  const [f, setF] = useState({ scheme: '', authority: '', appliedDate: new Date().toISOString().slice(0, 10), status: 'applied' as GrantStatus, amountApplied: 0, amountReceived: 0, notes: '' });
+
+  const totals = useMemo(() => ({
+    applied: state.grants.reduce((s, g) => s + g.amountApplied, 0),
+    received: state.grants.reduce((s, g) => s + g.amountReceived, 0),
+    pending: state.grants.filter((g) => g.status === 'pending' || g.status === 'applied').reduce((s, g) => s + (g.amountApplied - g.amountReceived), 0),
+  }), [state.grants]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!f.scheme.trim()) { showToast(tr('goshala.grant.need', 'Enter scheme name', 'যোজনার নাম দিন', 'योजना का नाम दें'), 'warning'); return; }
+    add('grants', { id: uid('g'), scheme: f.scheme.trim(), authority: f.authority || undefined, appliedDate: f.appliedDate, status: f.status, amountApplied: Number(f.amountApplied) || 0, amountReceived: Number(f.amountReceived) || 0, notes: f.notes || undefined });
+    showToast(tr('goshala.saved', 'Saved', 'সংরক্ষিত', 'सहेजा गया'), 'success');
+    setF({ scheme: '', authority: '', appliedDate: new Date().toISOString().slice(0, 10), status: 'applied', amountApplied: 0, amountReceived: 0, notes: '' });
+  };
+
+  const statusTone = (s: GrantStatus) =>
+    s === 'received' ? 'bg-emerald-100 text-emerald-800' : s === 'rejected' ? 'bg-red-100 text-red-800' : s === 'approved' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800';
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-stone-800"><T en="Grants & schemes" bn="অনুদান ও যোজনা" hi="अनुदान एवं योजनाएँ" /></h2>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Stat label={<T en="Claimed" bn="দাবিকৃত" hi="दावा" />} value={inr(totals.applied)} tone="sky" />
+        <Stat label={<T en="Received" bn="প্রাপ্ত" hi="प्राप्त" />} value={inr(totals.received)} tone="emerald" />
+        <Stat label={<T en="Pending dues" bn="বকেয়া" hi="बकाया" />} value={inr(totals.pending)} sub={<T en="follow up!" bn="যোগাযোগ করুন!" hi="संपर्क करें!" />} tone="red" />
+      </div>
+
+      <Card>
+        <h3 className="font-bold text-stone-800 mb-3"><T en="Track a scheme" bn="যোজনা ট্র্যাক করুন" hi="योजना ट्रैक करें" /></h3>
+        <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3">
+          <Field label={<T en="Scheme" bn="যোজনা" hi="योजना" />}><input className={inputCls} value={f.scheme} onChange={(e) => setF({ ...f, scheme: e.target.value })} placeholder="Rashtriya Gokul Mission" /></Field>
+          <Field label={<T en="Authority" bn="কর্তৃপক্ষ" hi="प्राधिकरण" />}><input className={inputCls} value={f.authority} onChange={(e) => setF({ ...f, authority: e.target.value })} placeholder="Dept. of Animal Husbandry" /></Field>
+          <Field label={<T en="Applied on" bn="আবেদনের তারিখ" hi="आवेदन तिथि" />}><input type="date" className={inputCls} value={f.appliedDate} onChange={(e) => setF({ ...f, appliedDate: e.target.value })} /></Field>
+          <Field label={<T en="Status" bn="অবস্থা" hi="स्थिति" />}>
+            <select className={inputCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as GrantStatus })}>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
+          <Field label={<T en="Amount claimed ₹" bn="দাবিকৃত টাকা ₹" hi="दावा राशि ₹" />}><input type="number" min={0} className={inputCls} value={f.amountApplied || ''} onChange={(e) => setF({ ...f, amountApplied: Number(e.target.value) })} /></Field>
+          <Field label={<T en="Amount received ₹" bn="প্রাপ্ত টাকা ₹" hi="प्राप्त राशि ₹" />}><input type="number" min={0} className={inputCls} value={f.amountReceived || ''} onChange={(e) => setF({ ...f, amountReceived: Number(e.target.value) })} /></Field>
+          <Field label={<T en="Notes" bn="মন্তব্য" hi="टिप्पणी" />} className="sm:col-span-3"><input className={inputCls} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
+          <div className="sm:col-span-3"><Btn type="submit">{tr('goshala.saved', 'Saved', 'সংরক্ষিত', 'सहेजा गया')}</Btn></div>
+        </form>
+      </Card>
+
+      <Card>
+        <h3 className="font-bold text-stone-800 mb-3"><T en="Scheme register" bn="যোজনা নিবন্ধন" hi="योजना पंजी" /></h3>
+        {state.grants.length === 0 ? <Empty text="—" /> : (
+          <ul className="space-y-2">
+            {[...state.grants].sort((a, b) => b.appliedDate.localeCompare(a.appliedDate)).map((g) => (
+              <li key={g.id} className="border border-stone-200 rounded-xl px-3 py-2.5 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold">{g.scheme}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusTone(g.status)}`}>{g.status}</span>
+                  <span className="ml-auto text-stone-500">{fmtDateEn(g.appliedDate)}</span>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600 mt-1">
+                  {g.authority && <span>{g.authority}</span>}
+                  <span>{tr('goshala.grant.claimed', 'Claimed', 'দাবিকৃত', 'दावा')}: <b>{inr(g.amountApplied)}</b></span>
+                  <span>{tr('goshala.grant.received', 'Received', 'প্রাপ্ত', 'प्राप्त')}: <b className="text-emerald-700">{inr(g.amountReceived)}</b></span>
+                  {g.notes && <span className="w-full text-stone-500">{g.notes}</span>}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <select className="text-xs border border-stone-300 rounded-lg px-2 py-1" value={g.status} onChange={(e) => update('grants', g.id, { status: e.target.value as GrantStatus })}>
+                    {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button className="text-xs font-bold text-red-600 hover:underline" onClick={() => { if (confirm(tr('goshala.confirm_del', 'Delete?', 'মুছবেন?', 'हटाएँ?'))) remove('grants', g.id); }}>{tr('goshala.del', 'Delete', 'মুছুন', 'हटाएँ')}</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
+};
