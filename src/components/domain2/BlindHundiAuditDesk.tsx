@@ -17,6 +17,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 type DenominationKey = '500' | '200' | '100' | '50' | '20' | '10';
 
@@ -41,6 +42,7 @@ const INITIAL_COUNTS: DenominationCounts = {
 };
 
 export const BlindHundiAuditDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -166,14 +168,12 @@ export const BlindHundiAuditDesk: React.FC = () => {
               <EyeOff className="w-3 h-3" />
               <span>Anti-Collusion Maker-Checker Protocol</span>
             </span>
-            <span className="text-xs text-slate-500 font-mono">
-              Audit Session: HND-VAR-2026-09B &bull; Box: Golak-Main-Sanctum
-            </span>
+            <span className="text-xs text-slate-500 font-mono">{t('org.finance.hundiAudit.auditSessionHndvar202609bBullBoxGolakmai')}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Scale className="w-8 h-8 text-amber-600" />
-            <span>Dual-Blind Hundi Physical Audit</span>
+            <span>{t('org.finance.hundiAudit.dualblindHundiPhysicalAudit')}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Independent parallel counting terminals for Sevadar Maker and Trustee Checker with automated zero-variance reconciliation.
@@ -205,9 +205,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                   A
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-                    Counter A (Maker 1)
-                  </h3>
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">{t('org.finance.hundiAudit.counterAMaker1')}</h3>
                   <p className="text-[11px] text-slate-400 font-mono">Sevadar Terminal ID: SEV-014</p>
                 </div>
               </div>
@@ -230,12 +228,8 @@ export const BlindHundiAuditDesk: React.FC = () => {
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
                   <EyeOff className="w-7 h-7" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-800">
-                  Counter A Input Concealed
-                </h4>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Tally submitted and cryptographically blinded to prevent influencing Counter B.
-                </p>
+                <h4 className="text-sm font-bold text-slate-800">{t('org.finance.hundiAudit.counterAInputConcealed')}</h4>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">{t('org.finance.hundiAudit.tallySubmittedAndCryptographicallyBlinde')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -295,7 +289,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-all active:scale-98 cursor-pointer flex items-center gap-1.5"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Lock & Submit Counter A</span>
+                <span>{t('org.finance.hundiAudit.lockSubmitCounterA')}</span>
               </button>
             )}
           </div>
@@ -310,10 +304,8 @@ export const BlindHundiAuditDesk: React.FC = () => {
                   B
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-                    Counter B (Checker 2)
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">Trustee Terminal ID: TRU-003</p>
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">{t('org.finance.hundiAudit.counterBChecker2')}</h3>
+                  <p className="text-[11px] text-slate-400 font-mono">{t('org.finance.hundiAudit.trusteeTerminalIdTru003')}</p>
                 </div>
               </div>
 
@@ -335,12 +327,8 @@ export const BlindHundiAuditDesk: React.FC = () => {
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shadow-xs">
                   <EyeOff className="w-7 h-7" />
                 </div>
-                <h4 className="text-sm font-bold text-slate-800">
-                  Counter B Input Concealed
-                </h4>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Tally submitted and cryptographically blinded to prevent influencing Counter A.
-                </p>
+                <h4 className="text-sm font-bold text-slate-800">{t('org.finance.hundiAudit.counterBInputConcealed')}</h4>
+                <p className="text-xs text-slate-500 max-w-xs mx-auto">{t('org.finance.hundiAudit.tallySubmittedAndCryptographicallyBlinde2')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -400,7 +388,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-all active:scale-98 cursor-pointer flex items-center gap-1.5"
               >
                 <Lock className="w-3.5 h-3.5" />
-                <span>Lock & Submit Counter B</span>
+                <span>{t('org.finance.hundiAudit.lockSubmitCounterB')}</span>
               </button>
             )}
           </div>
@@ -479,9 +467,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                       {variances.length} Denomination Mismatch(es)
                     </span>
                   </div>
-                  <h3 className="text-xl font-black text-white tracking-tight mt-1">
-                    Variance Detected in Dual-Blind Physical Count
-                  </h3>
+                  <h3 className="text-xl font-black text-white tracking-tight mt-1">{t('org.finance.hundiAudit.varianceDetectedInDualblindPhysicalCount')}</h3>
                 </div>
               </div>
 
@@ -506,9 +492,9 @@ export const BlindHundiAuditDesk: React.FC = () => {
                     ⚠️ Variance in {v.denom.label}:
                   </span>
                   <div className="flex items-center gap-3 text-slate-300 mt-1 sm:mt-0">
-                    <span>Counter A: <strong>{v.countA}</strong></span>
+                    <span>{t('org.finance.hundiAudit.counterA')}<strong>{v.countA}</strong></span>
                     <span>&bull;</span>
-                    <span>Counter B: <strong>{v.countB}</strong></span>
+                    <span>{t('org.finance.hundiAudit.counterB')}<strong>{v.countB}</strong></span>
                     <span>&bull;</span>
                     <span className="text-rose-400 font-bold">
                       Discrepancy: {v.diff > 0 ? `+${v.diff}` : v.diff} Note(s) ({v.cashDiff > 0 ? `+₹${v.cashDiff}` : `-₹${Math.abs(v.cashDiff)}`})
