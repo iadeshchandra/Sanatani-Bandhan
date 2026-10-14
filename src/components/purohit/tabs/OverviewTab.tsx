@@ -3,6 +3,7 @@ import React from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { PUROHIT_TIER_META, PUROHIT_TIERS } from '../../../types/purohit';
 import { Card, SectionTitle, GhostButton, Stars, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
   const {
@@ -14,8 +15,9 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
     myInvites,
     respondToInvite,
   } = usePurohit();
+  const { t } = useLanguage();
 
-  if (!profile) return <EmptyState title="Loading your workspace…" />;
+  if (!profile) return <EmptyState title={t('purohit.overview.loading')} />;
 
   const activeGigs = myGigs.filter((g) =>
     ['ASSIGNED', 'IN_PROGRESS'].includes(g.status)
@@ -37,24 +39,24 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
     <div className="space-y-5">
       {/* Welcome */}
       <Card className="bg-gradient-to-br from-amber-600 to-orange-700 !border-0 text-white">
-        <p className="text-xs uppercase tracking-widest text-amber-200 font-bold">Namaste 🙏</p>
+        <p className="text-xs uppercase tracking-widest text-amber-200 font-bold">{t('purohit.overview.namaste')}</p>
         <h2 className="text-xl font-black mt-1">{profile.displayName}</h2>
         <p className="text-sm text-amber-100 mt-1">
           {profile.id} · {profile.city}
-          {profile.completedGigs > 0 && ` · ${profile.completedGigs} rituals completed`}
+          {profile.completedGigs > 0 && ` · ${profile.completedGigs} ${t('purohit.overview.ritualsCompleted')}`}
         </p>
         <div className="flex items-center gap-2 mt-3">
           <Stars value={profile.ratingAggregate} />
           <span className="text-xs text-amber-100">
-            {profile.ratingAggregate.toFixed(1)} ({profile.ratingCount} reviews)
+            {profile.ratingAggregate.toFixed(1)} ({profile.ratingCount} {t('purohit.overview.reviews')})
           </span>
         </div>
       </Card>
 
       {/* Tier progress */}
       <Card>
-        <SectionTitle sub="Higher tiers unlock priority ranking in devotee search.">
-          Verification journey
+        <SectionTitle sub={t('purohit.overview.verificationJourneySub')}>
+          {t('purohit.overview.verificationJourney')}
         </SectionTitle>
         <div className="flex items-center gap-1 sm:gap-2">
           {PUROHIT_TIERS.map((t, i) => {
@@ -89,11 +91,11 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
             onClick={claimTierAdvancement}
             className="mt-4 w-full px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black transition-colors min-h-[44px]"
           >
-            🎉 Claim {PUROHIT_TIER_META[effectiveTier!].label} tier
+            🎉 {t('purohit.overview.claimTier').replace('{tier}', PUROHIT_TIER_META[effectiveTier!].label)}
           </button>
         ) : (
           <GhostButton className="mt-4 w-full" onClick={() => goTo('verification')}>
-            Continue verification →
+            {t('purohit.overview.continueVerification')}
           </GhostButton>
         )}
       </Card>
@@ -101,10 +103,10 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Open gigs nearby', value: String(openGigs.length), go: 'find' },
-          { label: 'Active gigs', value: String(activeGigs.length), go: 'gigs' },
-          { label: 'This month', value: `₹${monthEarnings.toLocaleString('en-IN')}`, go: 'earnings' },
-          { label: 'Invites', value: String(pendingInvites.length), go: 'overview' },
+          { label: t('purohit.overview.statsOpenGigs'), value: String(openGigs.length), go: 'find' },
+          { label: t('purohit.overview.statsActiveGigs'), value: String(activeGigs.length), go: 'gigs' },
+          { label: t('purohit.overview.statsThisMonth'), value: `₹${monthEarnings.toLocaleString('en-IN')}`, go: 'earnings' },
+          { label: t('purohit.overview.statsInvites'), value: String(pendingInvites.length), go: 'overview' },
         ].map((s) => (
           <button key={s.label} type="button" onClick={() => goTo(s.go)} className="text-left">
             <Card className="hover:border-amber-300 transition-colors h-full">
@@ -118,8 +120,8 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
       {/* Invites */}
       {pendingInvites.length > 0 && (
         <Card>
-          <SectionTitle sub="Organisations inviting you as staff. Accepting links your profile — org data stays inside the org.">
-            Organisation invitations ({pendingInvites.length})
+          <SectionTitle sub={t('purohit.overview.invitesSub')}>
+            {t('purohit.overview.invitesTitle')} ({pendingInvites.length})
           </SectionTitle>
           <div className="space-y-3">
             {pendingInvites.map((inv) => (
@@ -132,14 +134,14 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
                     onClick={() => respondToInvite(inv, true)}
                     className="flex-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-black min-h-[44px]"
                   >
-                    Accept
+                    {t('purohit.overview.accept')}
                   </button>
                   <button
                     type="button"
                     onClick={() => respondToInvite(inv, false)}
                     className="flex-1 px-3 py-2 rounded-lg bg-stone-200 text-stone-700 text-xs font-bold min-h-[44px]"
                   >
-                    Decline
+                    {t('purohit.overview.decline')}
                   </button>
                 </div>
               </div>
@@ -151,7 +153,7 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
       {/* Active gigs */}
       {activeGigs.length > 0 && (
         <Card>
-          <SectionTitle>Active rituals</SectionTitle>
+          <SectionTitle>{t('purohit.overview.activeRituals')}</SectionTitle>
           <div className="space-y-2.5">
             {activeGigs.slice(0, 3).map((g) => (
               <button
