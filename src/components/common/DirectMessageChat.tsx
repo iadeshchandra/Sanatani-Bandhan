@@ -3,13 +3,16 @@ import { Send, Phone, MessageSquare, ShieldCheck, CheckCircle2, User, Loader2, X
 import { db } from '../../lib/firebase';
 import { collection, doc, query, onSnapshot, orderBy, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { scanMessage, createBypassFlag, fetchCustomPatterns, bypassWarningMessage, type CustomPattern } from '../../lib/bypassGuard';
 
 interface DirectMessageChatProps {
   recipientId: string;
   recipientName: string;
   recipientPhone: string;
-  contextType: 'PUROHIT' | 'VIVAH' | 'SOCIAL';
+  contextType: 'PUROHIT' | 'VIVAH' | 'SOCIAL' | 'MARKETPLACE';
   onClose?: () => void;
+  /** Enable marketplace anti-bypass scanning. orderId links flags to the order. */
+  bypassScan?: { enabled: boolean; orderId?: string };
 }
 
 export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
@@ -17,12 +20,15 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
   recipientName,
   recipientPhone,
   contextType,
-  onClose
+  onClose,
+  bypassScan,
 }) => {
   const { currentUser: session } = useAuthWorkspace();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [bypassWarned, setBypassWarned] = useState(false);
+  const customPatternsRef = useRef<CustomPattern[] | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isRecipientOnline, setIsRecipientOnline] = useState(false);
   const [isRecipientTyping, setIsRecipientTyping] = useState(false);
@@ -123,6 +129,29 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
       senderName: session.name || 'User',
       timestamp: serverTimestamp()
     });
+
+    // Marketplace anti-bypass scan: flag for review, never block.
+    if (bypassScan?.enabled) {
+      try {
+        if (customPatternsRef.current === null) {
+          customPatternsRef.current = await fetchCustomPatterns(db);
+        }
+        const result = scanMessage(msg, customPatternsRef.current || []);
+        if (result.flagged) {
+          setBypassWarned(true);
+          await createBypassFlag(db, session.id, {
+            orderId: bypassScan.orderId,
+            chatId,
+            messageText: msg,
+            reasons: result.reasons,
+            severity: result.severity,
+            recipientUid: recipientId,
+          });
+        }
+      } catch (err) {
+        console.warn('[bypassGuard] scan failed:', err);
+      }
+    }
     
     setDoc(doc(db, 'chats', chatId), {
       updatedAt: serverTimestamp(),
@@ -239,6 +268,12 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
 
       {/* Chat Input */}
       <div className="bg-white border-t border-temple-200 p-3">
+        {bypassWarned && (
+          <div className="mb-2 bg-amber-50 border border-amber-300 rounded-xl p-2.5 flex gap-2 items-start">
+            <p className="text-[11px] text-amber-900 leading-snug">{bypassWarningMessage('en')}</p>
+            <button type="button" onClick={() => setBypassWarned(false)} className="text-amber-700 shrink-0 p-1" aria-label="Dismiss"><X size={14} /></button>
+          </div>
+        )}
         <form onSubmit={handleSend} className="flex items-center gap-2 relative">
           <input
             type="text"

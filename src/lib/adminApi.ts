@@ -385,6 +385,63 @@ export const adminApi = {
       () => firestoreAdmin.providerDetail(providerId)
     ),
 
+  // Provider payments + anti-bypass (Spark-native)
+  providerPaymentQueue: (status: 'pending' | 'all' = 'pending') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerPaymentQueue(status)
+    ),
+  providerPaymentReview: (id: string, action: 'approved' | 'rejected' | 'platform_assigned', notes = '') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerPaymentReview(id, action, notes)
+    ),
+  providerInquiries: (status: 'open' | 'all' = 'open') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerInquiriesList(status)
+    ),
+  providerInquiryReply: (id: string, reply: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerInquiryReply(id, reply)
+    ),
+  bypassFlags: (status: 'pending' | 'all' = 'pending') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.bypassFlagsList(status)
+    ),
+  bypassFlagResolve: (id: string, action: 'dismiss' | 'warn' | 'suspend_gigs') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.bypassFlagResolve(id, action)
+    ),
+  issueStrike: (providerUid: string, type: 'bypass_attempt' | 'payment_fraud' | 'fake_completion' | 'other', orderId = '', notes = '') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.issueStrike(providerUid, type, orderId, notes)
+    ),
+  providerStrikes: (providerUid: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerStrikesList(providerUid)
+    ),
+  bypassKeywords: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.bypassKeywordsList()
+    ),
+  bypassKeywordSave: (input: { id?: string; pattern: string; label: string; severity?: 'low' | 'medium' | 'high'; active?: boolean }) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.bypassKeywordSave(input)
+    ),
+  bypassKeywordDelete: (id: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.bypassKeywordDelete(id)
+    ),
+
   // Messaging
   sendMessage: (payload: {
     title: string;
