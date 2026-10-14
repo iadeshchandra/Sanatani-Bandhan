@@ -72,6 +72,18 @@ export const BackendDownBanner: React.FC<{ onRetry?: () => void }> = ({ onRetry 
   </div>
 );
 
+/** Shared: badge for actions that genuinely need the Express backend
+ * (Firebase Auth Admin API, FCM, outbound email). Shown on the button itself —
+ * the tab keeps working for everything else. */
+export const RequiresBackendBadge: React.FC<{ label?: string }> = ({ label }) => (
+  <span
+    title="This action needs the deployed Cloud Functions backend (Firebase Auth Admin API). Everything else on this tab works in Spark-native mode."
+    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/40 text-[11px] font-black"
+  >
+    <Server className="w-3 h-3" /> {label || 'Requires backend'}
+  </span>
+);
+
 /** Shared: destructive-action confirm dialog. */
 export const ConfirmDialog: React.FC<{
   title: string;
@@ -177,6 +189,11 @@ const OverviewTab: React.FC = () => {
         }`} />
         <div className="text-sm">
           <span className="font-bold text-slate-200">Backend: {health?.status ?? 'unknown'}</span>
+          {health?.mode === 'spark-native' && (
+            <span className="text-sky-300 text-xs ml-2 font-mono" title="Running on Firestore directly — no Cloud Functions deployed. Deploy functions to unlock Auth admin, FCM push, and email.">
+              spark-native
+            </span>
+          )}
           {health?.version && <span className="text-slate-500 text-xs ml-2 font-mono">v{health.version}</span>}
           {health?.region && <span className="text-slate-500 text-xs ml-2 font-mono">{health.region}</span>}
           {typeof health?.uptimeSeconds === 'number' && (
@@ -245,6 +262,13 @@ const SystemTab: React.FC = () => {
         <h3 className="text-sm font-bold text-slate-200 mb-3">Backend configuration</h3>
         <div className="text-xs space-y-2 font-mono break-all">
           <p><span className="text-slate-500">VITE_BACKEND_URL = </span><span className="text-saffron-300">{BACKEND_URL}</span></p>
+          {health?.mode === 'spark-native' && (
+            <p className="font-sans text-sky-300/90 bg-sky-500/10 border border-sky-500/30 rounded-xl p-3">
+              Spark-native mode is active: admin operations run directly on Firestore under owner-validated
+              security rules — no server, no cost. Deploy Cloud Functions to unlock Auth user disable/enable,
+              FCM push, and outbound email.
+            </p>
+          )}
           <p className="text-slate-500 font-sans">Set this env var to your deployed Cloud Functions base URL. Deploy with:</p>
           <p className="bg-slate-900 rounded-lg p-2.5 text-emerald-300">firebase deploy --only functions</p>
         </div>
@@ -287,11 +311,17 @@ const SystemTab: React.FC = () => {
         <ul className="text-xs text-slate-400 space-y-1.5">
           <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Hosting + Firestore rules — deployed via CI</li>
           <li className="flex items-center gap-2">
-            {backendDown
-              ? <X className="w-4 h-4 text-amber-400 shrink-0" />
-              : <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
-            <span>Cloud Functions — {backendDown ? 'not detected (deploy required)' : 'reachable'}</span>
+            {health?.functionsDeployed
+              ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              : <X className="w-4 h-4 text-amber-400 shrink-0" />}
+            <span>Cloud Functions — {health?.functionsDeployed ? 'reachable' : 'not detected (deploy required)'}</span>
           </li>
+          {health?.mode === 'spark-native' && (
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+              <span>Spark-native admin — active (Firestore + owner rules)</span>
+            </li>
+          )}
         </ul>
       </div>
     </div>

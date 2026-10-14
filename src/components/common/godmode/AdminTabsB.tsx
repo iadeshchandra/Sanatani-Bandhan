@@ -5,7 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock } from 'lucide-react';
 import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, type MessageTemplate } from '../../../lib/adminApi';
-import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
+import { BackendDownBanner, ConfirmDialog, RequiresBackendBadge } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 
 /* ------------------------------- Moderation ------------------------------ */
@@ -18,6 +18,7 @@ export const ModerationTab: React.FC = () => {
   const [acting, setActing] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ id: string; action: 'dismiss' | 'hide_content' | 'warn_user' | 'suspend_user' } | null>(null);
   const [working, setWorking] = useState(false);
+  const [suspendNeedsBackend, setSuspendNeedsBackend] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,6 +41,8 @@ export const ModerationTab: React.FC = () => {
     if (r.ok) {
       showToast('Action recorded.', 'success');
       setReports(reports.filter((x) => x.id !== confirm.id));
+    } else if (r.requiresBackend) {
+      setSuspendNeedsBackend(true);
     } else {
       showToast(r.error || 'Action failed.', 'error');
     }
@@ -58,6 +61,9 @@ export const ModerationTab: React.FC = () => {
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-500">{reports.length} open report{reports.length === 1 ? '' : 's'}</p>
+      {suspendNeedsBackend && (
+        <div><RequiresBackendBadge label="Suspend needs the backend (Auth Admin API)" /></div>
+      )}
       {reports.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-10 text-center">
           <p className="text-3xl mb-2">🛡️</p>
@@ -286,7 +292,13 @@ export const MessagesTab: React.FC = () => {
     setSending(false);
     if (r.backendDown) { setBackendDown(true); return; }
     if (r.ok) {
-      showToast(scheduled ? 'Scheduled for +1h.' : 'Message sent.', 'success');
+      const fannedOut = (r.data as any)?.fannedOut !== false;
+      showToast(
+        scheduled ? 'Scheduled for +1h.'
+        : fannedOut ? 'Message delivered to inbox.'
+        : 'Campaign recorded — broadcast fan-out needs the backend.',
+        'success'
+      );
       setTitle(''); setBody(''); setAudValue('');
     } else {
       showToast(r.error || 'Send failed.', 'error');

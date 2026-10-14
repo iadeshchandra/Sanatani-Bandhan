@@ -5,7 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { Search, RefreshCw, Ban, CheckCircle2, XCircle } from 'lucide-react';
 import { adminApi, type UserRecord, type WorkspaceRecord, type VerificationApplication } from '../../../lib/adminApi';
-import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
+import { BackendDownBanner, ConfirmDialog, RequiresBackendBadge } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 
 /* -------------------------------- Users --------------------------------- */
@@ -18,6 +18,7 @@ export const UsersTab: React.FC = () => {
   const [backendDown, setBackendDown] = useState(false);
   const [confirm, setConfirm] = useState<'disable' | 'enable' | null>(null);
   const [working, setWorking] = useState(false);
+  const [needsBackend, setNeedsBackend] = useState(false);
 
   const search = useCallback(async () => {
     if (!email.trim()) return;
@@ -45,6 +46,8 @@ export const UsersTab: React.FC = () => {
     if (r.ok) {
       showToast(`User ${confirm}d.`, 'success');
       setUser({ ...user, disabled: confirm === 'disable' });
+    } else if (r.requiresBackend) {
+      setNeedsBackend(true);
     } else {
       showToast(r.error || 'Action failed.', 'error');
     }
@@ -100,6 +103,7 @@ export const UsersTab: React.FC = () => {
             >
               {user.disabled ? <><CheckCircle2 className="w-4 h-4" /> Enable</> : <><Ban className="w-4 h-4" /> Disable</>}
             </button>
+            {needsBackend && <div className="mt-2"><RequiresBackendBadge label="Disable/enable needs the backend" /></div>}
           </div>
         </div>
       )}
@@ -382,7 +386,7 @@ export const VerificationTab: React.FC = () => {
           ))}
         </div>
       )}
-      <p className="text-[11px] text-slate-600">Approvals run server-side: self-approval and tier-skipping are denied by the API.</p>
+      <p className="text-[11px] text-slate-600">Self-approval is denied. Every decision is written to the audit trail.</p>
     </div>
   );
 };
