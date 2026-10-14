@@ -817,14 +817,67 @@ async function payoutDecide(id: string, approve: boolean, note?: string): Promis
   if (!snap.exists()) return { ok: false, error: 'Payout not found.', code: 'NOT_FOUND' };
   const p: any = snap.data();
   if (p.status !== 'requested') return { ok: false, error: 'Payout is no longer pending.', code: 'STALE' };
+
+  // Rail-2 auto-deduction: outstanding platform dues are subtracted first.
+  // The math is stored line-by-line on the payout for full transparency.
+  let duesDeducted = 0;
+  let duesSettledIds: string[] = [];
+  if (approve && p.providerUid) {
+    try {
+      const duesS = await getDocs(query(
+        collection(db, 'platformDues'),
+        where('providerUid', '==', p.providerUid),
+        where('status', '==', 'pending'),
+        limit(200)
+      ));
+      const pendingDues = duesS.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }))
+        .sort((a: any, b: any) => String(a.createdAt?.toDate?.()?.toISOString?.() || '').localeCompare(String(b.createdAt?.toDate?.()?.toISOString?.() || '')));
+      let remaining = Number(p.amount || 0);
+      for (const d of pendingDues) {
+        if (remaining <= 0) break;
+        const take = Math.min(remaining, Number((d as any).amount || 0));
+        if (take >= Number((d as any).amount || 0)) {
+          // Fully covers this due → mark settled.
+          await updateDoc(doc(db, 'platformDues', (d as any).id), {
+            status: 'settled', settledBy: uid, settledAt: serverTimestamp(),
+            settleNote: `Auto-deducted from payout ${id}.`,
+          });
+          duesSettledIds.push((d as any).id);
+        }
+        // Partial coverage: reduce the due amount (keeps it pending).
+        else {
+          await updateDoc(doc(db, 'platformDues', (d as any).id), {
+            amount: Number((d as any).amount || 0) - take,
+            partialDeduction: take,
+            updatedAt: serverTimestamp(),
+          });
+        }
+        duesDeducted += take;
+        remaining -= take;
+      }
+    } catch (e) { console.error('[payoutDecide] dues auto-deduction failed:', e); }
+  }
+
+  const netPayout = Math.max(0, Number(p.amount || 0) - duesDeducted);
   await updateDoc(ref, {
     status: approve ? 'approved' : 'rejected',
     processedBy: uid,
     processedAt: serverTimestamp(),
     note: (note || '').slice(0, 500),
+    ...(approve && duesDeducted > 0 ? {
+      requestedAmount: Number(p.amount || 0),
+      duesDeducted,
+      duesSettledIds,
+      netAmount: netPayout,
+      deductionNote: `Platform dues auto-deducted: ৳${duesDeducted}. Net payout: ৳${netPayout}.`,
+    } : {}),
   });
-  await writeAudit('commission.payout.decide', { payoutId: id, approved: approve, amount: p.amount }, 'warn');
-  return { ok: true, data: { ok: true } };
+  await writeAudit('commission.payout.decide', {
+    payoutId: id, approved: approve, amount: p.amount,
+    ...(duesDeducted > 0 ? { duesDeducted, netAmount: netPayout } : {}),
+  }, 'warn');
+  return { ok: true, data: { ok: true, duesDeducted, netAmount: netPayout } };
 }
 
 async function payoutMarkPaid(id: string): Promise<NativeResult> {
@@ -1818,6 +1871,282 @@ async function bypassKeywordDelete(id: string): Promise<NativeResult> {
   return { ok: true, data: { ok: true } };
 }
 
+/* ------------------- Rail-2: platform dues (Layer 6) ------------------- */
+/**
+ * Every completed Rail-2 order creates a commission RECEIVABLE.
+ * The provider owes the platform 12% (or their assigned rate) of gross.
+ * Dues are settled via bKash, auto-deducted from Rail-1 payouts, and
+ * auto-pause gigs when overdue past threshold + grace.
+ */
+
+export async function duesCreateForOrder(orderId: string): Promise<boolean> {
+  try {
+    const s = await getDoc(doc(db, 'marketplaceOrders', orderId));
+    if (!s.exists()) return false;
+    const o: any = s.data();
+    if (o.rail !== 'rail2') return false;
+    // Idempotency: don't double-create.
+    const existing = await getDocs(query(collection(db, 'platformDues'), where('orderId', '==', orderId), limit(1)));
+    if (!existing.empty) return false;
+    await addDoc(collection(db, 'platformDues'), {
+      providerUid: o.providerUid,
+      orderId,
+      orderCode: o.orderCode || '',
+      gigTitle: o.gigTitle || '',
+      amount: Number(o.commissionAmount || 0),
+      currency: o.currency || 'INR',
+      ratePercent: Number(o.commissionPercent || 12),
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch { return false; }
+}
+
+async function duesList(status = 'all'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'platformDues'), limit(500)));
+  let dues = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), createdAt: tsToIso((d.data() as any).createdAt), settledAt: tsToIso((d.data() as any).settledAt) }));
+  if (status !== 'all') dues = dues.filter((d: any) => d.status === status);
+  dues.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  const totalPending = dues.filter((d: any) => d.status === 'pending').reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+  return { ok: true, data: { ok: true, dues, totalPending } };
+}
+
+async function dueSettle(id: string, note?: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'platformDues', id);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Due not found.', code: 'NOT_FOUND' };
+  const d: any = s.data();
+  if (d.status !== 'pending') return { ok: false, error: 'Due is not pending.', code: 'STALE' };
+  await updateDoc(ref, { status: 'settled', settledBy: uid, settledAt: serverTimestamp(), settleNote: (note || '').slice(0, 500) });
+  await writeAudit('rail2.due.settle', { dueId: id, providerUid: d.providerUid, amount: d.amount }, 'warn');
+  // Auto-unsuspend if no more pending dues past grace.
+  try { await checkDuesSuspension(d.providerUid); } catch { /* non-fatal */ }
+  return { ok: true, data: { ok: true } };
+}
+
+async function dueWaive(id: string, reason: string): Promise<NativeResult> {
+  requireOwner();
+  if (!reason.trim()) return { ok: false, error: 'Waiver reason is required.', code: 'BAD_INPUT' };
+  const ref = doc(db, 'platformDues', id);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Due not found.', code: 'NOT_FOUND' };
+  const d: any = s.data();
+  await updateDoc(ref, { status: 'waived', waiveReason: reason.trim().slice(0, 500), settledAt: serverTimestamp() });
+  await writeAudit('rail2.due.waive', { dueId: id, providerUid: d.providerUid, amount: d.amount, reason }, 'critical');
+  return { ok: true, data: { ok: true } };
+}
+
+async function duesSettingsGet(): Promise<NativeResult> {
+  requireOwner();
+  const s = await getDoc(doc(db, 'platformConfig', 'rail2'));
+  const d: any = s.exists() ? s.data() : {};
+  return {
+    ok: true,
+    data: {
+      ok: true,
+      duesThreshold: Number(d.duesThreshold ?? 2000),
+      duesGraceDays: Number(d.duesGraceDays ?? 15),
+    },
+  };
+}
+
+async function duesSettingsSave(duesThreshold: number, duesGraceDays: number): Promise<NativeResult> {
+  const uid = requireOwner();
+  const t = Math.max(0, Math.round(Number(duesThreshold) || 0));
+  const g = Math.max(1, Math.min(90, Math.round(Number(duesGraceDays) || 15)));
+  await setDoc(doc(db, 'platformConfig', 'rail2'), {
+    duesThreshold: t, duesGraceDays: g, updatedAt: serverTimestamp(), updatedBy: uid,
+  }, { merge: true });
+  await writeAudit('rail2.settings.save', { duesThreshold: t, duesGraceDays: g }, 'warn');
+  return { ok: true, data: { ok: true, duesThreshold: t, duesGraceDays: g } };
+}
+
+/**
+ * Auto-pause check: if a provider's oldest pending due exceeds
+ * threshold AND grace days → set duesSuspended. Clears when clean.
+ * Called after settle/waive and from the Risk dashboard.
+ */
+async function checkDuesSuspension(providerUid: string): Promise<NativeResult> {
+  requireOwner();
+  const cfg = await duesSettingsGet();
+  const threshold = Number((cfg.data as any).duesThreshold || 2000);
+  const graceDays = Number((cfg.data as any).duesGraceDays || 15);
+  const snap = await getDocs(query(collection(db, 'platformDues'), where('providerUid', '==', providerUid), where('status', '==', 'pending'), limit(200)));
+  const dues = snap.docs.map((d) => ({ ...(d.data() as any), createdAt: (d.data() as any).createdAt?.toDate?.()?.getTime?.() || 0 }));
+  const total = dues.reduce((s, d: any) => s + Number(d.amount || 0), 0);
+  const oldest = dues.length ? Math.min(...dues.map((d: any) => d.createdAt)) : 0;
+  const ageDays = oldest ? (Date.now() - oldest) / 86400000 : 0;
+  const shouldSuspend = total >= threshold && ageDays >= graceDays;
+  // Store on a provider profile doc (marketplaceProviders/{uid}).
+  const profRef = doc(db, 'marketplaceProviders', providerUid);
+  await setDoc(profRef, {
+    duesSuspended: shouldSuspend,
+    duesTotal: total,
+    duesCheckedAt: serverTimestamp(),
+    ...(shouldSuspend ? { suspendedAt: serverTimestamp(), suspendReason: 'Unpaid platform dues past grace period.' } : {}),
+  }, { merge: true });
+  if (shouldSuspend) {
+    await writeAudit('rail2.dues.auto_suspend', { providerUid, total, ageDays: Math.round(ageDays) }, 'critical');
+  }
+  return { ok: true, data: { ok: true, suspended: shouldSuspend, total, ageDays: Math.round(ageDays) } };
+}
+
+async function unsuspendProvider(providerUid: string): Promise<NativeResult> {
+  requireOwner();
+  await setDoc(doc(db, 'marketplaceProviders', providerUid), {
+    duesSuspended: false, manuallyUnsuspended: true, unsuspendedAt: serverTimestamp(),
+  }, { merge: true });
+  await writeAudit('rail2.dues.unsuspend', { providerUid }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/* ------------------- Rail-2: SMS verification (Layer 4) ------------------- */
+
+/** Owner asks a provider to forward the bKash 16222 SMS for an order. */
+async function requestSmsProof(orderId: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const s = await getDoc(doc(db, 'marketplaceOrders', orderId));
+  if (!s.exists()) return { ok: false, error: 'Order not found.', code: 'NOT_FOUND' };
+  const o: any = s.data();
+  await updateDoc(doc(db, 'marketplaceOrders', orderId), {
+    smsRequestedAt: serverTimestamp(), smsRequestedBy: uid, updatedAt: serverTimestamp(),
+  });
+  // Inbox message to provider (uses the existing `messages` collection).
+  await addDoc(collection(db, 'messages'), {
+    targetUid: o.providerUid,
+    title: `Payment verification — order ${o.orderCode || orderId.slice(0, 8)}`,
+    body: `Please forward the bKash/Nagad SMS (from 16222) for order ${o.orderCode || ''} (TrxID ${o.rail2Proof?.trxId || '—'}, amount ${o.rail2Proof?.amount || o.payableAmount || ''}). Reply to this message with the SMS text.`,
+    type: 'verification_request',
+    createdBy: uid,
+    read: false,
+    createdAt: serverTimestamp(),
+  });
+  await writeAudit('rail2.sms.request', { orderId, providerUid: o.providerUid }, 'info');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Owner marks an order's payment as SMS-verified. */
+async function verifySms(orderId: string): Promise<NativeResult> {
+  requireOwner();
+  const ref = doc(db, 'marketplaceOrders', orderId);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Order not found.', code: 'NOT_FOUND' };
+  await updateDoc(ref, { smsVerified: true, smsVerifiedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  await writeAudit('rail2.sms.verify', { orderId }, 'info');
+  return { ok: true, data: { ok: true } };
+}
+
+/* ------------------- Rail-2: risk dashboard (Layer 7) ------------------- */
+
+async function riskDashboard(): Promise<NativeResult> {
+  requireOwner();
+  const [ordersS, gigsS, duesS, flagsS] = await Promise.all([
+    getDocs(query(collection(db, 'marketplaceOrders'), limit(1000))),
+    getDocs(query(collection(db, 'marketplaceGigs'), limit(500))),
+    getDocs(query(collection(db, 'platformDues'), where('status', '==', 'pending'), limit(500))),
+    getDocs(query(collection(db, 'bypassFlags'), limit(200))),
+  ]);
+  const orders = ordersS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const gigs = gigsS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const dues = duesS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const now = Date.now();
+  const d30 = now - 30 * 86400000;
+  const d7 = now - 7 * 86400000;
+
+  const ts = (v: any) => { try { return v?.toDate?.()?.getTime?.() || 0; } catch { return 0; } };
+
+  // 1. High views, low orders — approximate via gig totalOrders vs a views field if present.
+  const highViewsLowOrders = gigs
+    .filter((g: any) => Number(g.views || 0) > 50 && Number(g.totalOrders || 0) < 2)
+    .map((g: any) => ({ gigId: g.id, title: g.title, providerUid: g.providerUid, views: g.views, orders: g.totalOrders }));
+
+  // 2. No-proof Rail-2: providers with >3 Rail-2 orders but zero submitted TrxIDs.
+  const rail2ByProvider: Record<string, any[]> = {};
+  for (const o of orders) {
+    if ((o as any).rail !== 'rail2') continue;
+    const p = (o as any).providerUid;
+    (rail2ByProvider[p] = rail2ByProvider[p] || []).push(o);
+  }
+  const noProofRail2 = Object.entries(rail2ByProvider)
+    .filter(([, os]) => os.length > 3 && os.every((o: any) => !o.rail2Proof?.trxId))
+    .map(([providerUid, os]) => ({ providerUid, rail2Orders: os.length, orderIds: os.slice(0, 5).map((o: any) => o.id) }));
+
+  // 3. Chatty non-bookers: clients with many orders in pending_payment but none paid.
+  // (Message counts aren't tracked; proxy via abandoned pending_payment orders.)
+  const byClient: Record<string, any[]> = {};
+  for (const o of orders) {
+    const c = (o as any).clientUid;
+    (byClient[c] = byClient[c] || []).push(o);
+  }
+  const chattyNonBookers = Object.entries(byClient)
+    .filter(([, os]) => os.filter((o: any) => o.status === 'pending_payment').length >= 3
+      && !os.some((o: any) => ['paid', 'accepted', 'in_progress', 'completed'].includes(o.status)))
+    .map(([clientUid, os]) => ({ clientUid, abandonedOrders: os.length }));
+
+  // 4. Rating velocity: gigs with high avgRating but few completed orders (suspicious).
+  const ratingVelocity = gigs
+    .filter((g: any) => Number(g.avgRating || 0) >= 4.8 && Number(g.totalOrders || 0) <= 3 && Number(g.totalOrders || 0) > 0)
+    .map((g: any) => ({ gigId: g.id, title: g.title, providerUid: g.providerUid, rating: g.avgRating, orders: g.totalOrders }));
+
+  // 5. Overdue dues.
+  const cfg = await duesSettingsGet().catch(() => ({ data: { duesThreshold: 2000, duesGraceDays: 15 } } as any));
+  const threshold = Number((cfg.data as any).duesThreshold || 2000);
+  const graceDays = Number((cfg.data as any).duesGraceDays || 15);
+  const duesByProvider: Record<string, any[]> = {};
+  for (const d of dues) {
+    const p = (d as any).providerUid;
+    (duesByProvider[p] = duesByProvider[p] || []).push(d);
+  }
+  const overdueDues = Object.entries(duesByProvider)
+    .map(([providerUid, ds]) => {
+      const total = ds.reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+      const oldest = Math.min(...ds.map((d: any) => ts(d.createdAt)));
+      const ageDays = oldest ? (now - oldest) / 86400000 : 0;
+      return { providerUid, total, ageDays: Math.round(ageDays), count: ds.length };
+    })
+    .filter((r) => r.total >= threshold && r.ageDays >= graceDays);
+
+  // Random audit picker: 10% of last week's Rail-2 orders (min 1, max 10).
+  const lastWeekRail2 = orders.filter((o: any) => (o as any).rail === 'rail2' && ts((o as any).createdAt) >= now - 7 * 86400000);
+  const pickN = Math.min(10, Math.max(lastWeekRail2.length > 0 ? 1 : 0, Math.ceil(lastWeekRail2.length * 0.1)));
+  const shuffled = [...lastWeekRail2].sort(() => Math.random() - 0.5);
+  const auditPick = shuffled.slice(0, pickN).map((o: any) => ({
+    orderId: o.id, orderCode: o.orderCode, providerUid: o.providerUid,
+    trxId: o.rail2Proof?.trxId || null, amount: o.rail2Proof?.amount || o.payableAmount,
+  }));
+
+  const bypassFlagCount = flagsS.size;
+
+  return {
+    ok: true,
+    data: {
+      ok: true,
+      highViewsLowOrders, noProofRail2, chattyNonBookers, ratingVelocity, overdueDues, auditPick,
+      bypassFlagCount,
+      summary: {
+        rail2Orders: orders.filter((o: any) => (o as any).rail === 'rail2').length,
+        pendingDuesTotal: dues.reduce((s: number, d: any) => s + Number(d.amount || 0), 0),
+        signals: highViewsLowOrders.length + noProofRail2.length + chattyNonBookers.length + ratingVelocity.length + overdueDues.length,
+      },
+    },
+  };
+}
+
+/** Owner triggers SMS-proof requests for the audit-picked orders. */
+async function auditPickRequestSms(orderIds: string[]): Promise<NativeResult> {
+  requireOwner();
+  let sent = 0;
+  for (const id of orderIds.slice(0, 10)) {
+    const r = await requestSmsProof(id);
+    if (r.ok) sent++;
+  }
+  await writeAudit('rail2.audit.batch_sms', { orderIds, sent }, 'warn');
+  return { ok: true, data: { ok: true, sent } };
+}
+
 /* --------------------------------- Export -------------------------------- */
 
 export const firestoreAdmin = {
@@ -1909,6 +2238,19 @@ export const firestoreAdmin = {
   bypassKeywordsList,
   bypassKeywordSave,
   bypassKeywordDelete,
+  // Rail-2 payment tracking stack
+  duesCreateForOrder,
+  duesList,
+  dueSettle,
+  dueWaive,
+  duesSettingsGet,
+  duesSettingsSave,
+  checkDuesSuspension,
+  unsuspendProvider,
+  requestSmsProof,
+  verifySms,
+  riskDashboard,
+  auditPickRequestSms,
 };
 
 export default firestoreAdmin;
