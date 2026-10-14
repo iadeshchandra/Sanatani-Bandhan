@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useSoloStore, uid, todayISO } from './soloStore';
 import { Card, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* SadhanaTab — japa counter, vrata observances, personal sankalpa.
  * =====================================================================
@@ -12,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 const QUICK_COUNTS = [108, 1008];
 
 export const SadhanaTab: React.FC = () => {
+  const { t } = useLanguage();
   const { state, add, remove, update } = useSoloStore();
   const { tr } = useLocaleText();
   const { showToast } = useToast();
@@ -93,7 +95,7 @@ export const SadhanaTab: React.FC = () => {
               className={`${inputCls} !w-28`}
               value={customCount}
               onChange={(e) => setCustomCount(e.target.value)}
-              placeholder="Custom"
+              placeholder={t('solo.sadhana.custom')}
             />
             <Btn variant="ghost" onClick={() => { const n = parseInt(customCount, 10); if (n > 0) { logJapa(n); setCustomCount(''); } }}>
               <T en="Add" bn="যোগ" hi="जोड़ें" />
@@ -144,7 +146,7 @@ export const SadhanaTab: React.FC = () => {
               <li key={v.id} className="flex items-center justify-between text-sm py-1.5 border-b border-stone-50">
                 <span>
                   <b className="text-stone-800">{v.name}</b> <span className="text-stone-400">· {v.date}</span>
-                  {v.observed && <span className="ml-2 text-emerald-600 text-xs font-bold">✓ observed</span>}
+                  {v.observed && <span className="ml-2 text-emerald-600 text-xs font-bold">{t('solo.sadhana.observed')}</span>}
                 </span>
                 <span className="flex gap-1">
                   {!v.observed && (
