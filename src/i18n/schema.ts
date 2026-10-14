@@ -29,6 +29,7 @@ export interface TranslationSchema {
     online: string;
     syncing: string;
     status: string;
+    back: string;
   };
   auth: {
     accessPortal: string;
@@ -36,6 +37,56 @@ export interface TranslationSchema {
     password: string;
     forgotPassword: string;
     portalSubtitle: string;
+    signinTitle: string;
+    signinSub: string;
+    signupTitle: string;
+    signupSub: string;
+    registerTitle: string;
+    registerSub: string;
+    signinDoor: string;
+    signupDoor: string;
+    signinHint: string;
+    signupHint: string;
+    creatingAccount: string;
+    signingIn: string;
+    secureNote: string;
+    trustOffline: string;
+    trustData: string;
+    trustNoAds: string;
+    biometricTitle: string;
+    biometricDesc: string;
+    biometricButton: string;
+    biometricNote: string;
+    biometricFailed: string;
+    qrLogin: string;
+    scanPass: string;
+    alignQr: string;
+    closeScanner: string;
+    cameraDenied: string;
+    orUseCredentials: string;
+    googleExpired: string;
+    googleMismatch: string;
+    sessionExpired: string;
+    internetRequired: string;
+    resetPasswordInternet: string;
+    resetLinkSent: string;
+    enterAdminEmail: string;
+    completeLocation: string;
+    fillRequired: string;
+    loginSuccess: string;
+    identityReconfirmed: string;
+    workspaceProvisioned: string;
+    masterPinVerified: string;
+    language: string;
+    offlineMode: string;
+    close: string;
+    scanId: string;
+    togglePassword: string;
+    useManualPassword: string;
+    reconfirm: string;
+    locationDetails: string;
+    country: string;
+    selectCountry: string;
   };
   qr: {
     expired: string;
@@ -55,11 +106,78 @@ export interface TranslationSchema {
     warningTitle: string;
     warningDesc1: string;
     warningDesc2: string;
+    unifiedNote: string;
   };
   actions: {
     cancel: string;
     createDynamic: string; // {X} is replaced with the org type at runtime
     deleteRecord: string;
+  };
+  solo: {
+    minting: string;
+    tabs: {
+      home: string;
+      sangam: string;
+      sadhana: string;
+      panchang: string;
+      saved: string;
+      giving: string;
+      jyotish: string;
+      marketplace: string;
+      wallet: string;
+      samskara: string;
+      profile: string;
+    };
+    switchWorkspace: string;
+    signOut: string;
+    orgView: string;
+    mySpace: string;
+    switchedToOrg: string;
+    switchedToPurohit: string;
+    switchedToJyotish: string;
+    noPurohitIdentity: string;
+    noJyotishIdentity: string;
+    wallet: {
+      history: string;
+      topUpRequests: string;
+      rejectedTopUps: string;
+      paymentQr: string;
+      chooseMethod: string;
+      enterAmount: string;
+      enterTrxId: string;
+      correctTrxId: string;
+      trxIdHint: string;
+      copyReference: string;
+      yourReference: string;
+      newReference: string;
+      includeReference: string;
+      sendExactly: string;
+      editTopUp: string;
+      topUpUpdated: string;
+      creditedNote: string;
+    };
+    signup: {
+      title: string;
+      yourName: string;
+      namePlaceholder: string;
+      phone: string;
+      phonePlaceholder: string;
+      email: string;
+      emailPlaceholder: string;
+      city: string;
+      cityPlaceholder: string;
+      gotra: string;
+      gotraPlaceholder: string;
+      password: string;
+      passwordHint: string;
+      passwordTooShort: string;
+      sanataniIdNote: string;
+      googleExpired: string;
+    };
+    sadhana: {
+      custom: string;
+      observed: string;
+    };
   };
 }
 
