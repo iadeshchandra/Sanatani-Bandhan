@@ -306,6 +306,85 @@ export const adminApi = {
   subscription: (workspaceId: string) =>
     withFallback(() => get(`/api/billing/subscription/${workspaceId}`), () => firestoreAdmin.subscription(workspaceId)),
 
+  // Payment method intelligence (Spark-native only)
+  paymentMethodStats: (period: '7d' | '30d' | '90d' | 'all' = '30d') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.paymentMethodStats(period)
+    ),
+  paymentHistory: (filters: { methodId?: string; status?: string; limit?: number } = {}) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.paymentHistory(filters)
+    ),
+  exportPaymentCSV: (period: '7d' | '30d' | '90d' | 'all' = 'all') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.exportPaymentCSV(period)
+    ),
+
+  // Marketplace (Spark-native; HTTP backend later)
+  marketplaceDashboard: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.marketplaceDashboard()
+    ),
+  marketplaceGigs: (filter: 'all' | 'active' | 'flagged' = 'all') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.marketplaceGigs(filter)
+    ),
+  gigModerate: (id: string, action: 'feature' | 'unfeature' | 'deactivate' | 'reactivate' | 'flag' | 'unflag') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.gigModerate(id, action)
+    ),
+  marketplaceOrders: (filters: { status?: string; providerId?: string; limit?: number } = {}) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.marketplaceOrders(filters)
+    ),
+  orderForceStatus: (id: string, status: 'completed' | 'cancelled' | 'refunded', note?: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.orderForceStatus(id, status, note)
+    ),
+  marketplaceDisputes: (status = 'all') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.marketplaceDisputes(status)
+    ),
+  disputeResolve: (id: string, resolution: 'refund_client' | 'release_provider' | 'split', splitClient = 0, splitProvider = 0, note = '') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.disputeResolve(id, resolution, splitClient, splitProvider, note)
+    ),
+  commissionOverrides: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.commissionOverrides()
+    ),
+  commissionOverrideSave: (o: any) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.commissionOverrideSave(o)
+    ),
+  commissionOverrideDelete: (id: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.commissionOverrideDelete(id)
+    ),
+  marketplaceProviders: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.marketplaceProviders()
+    ),
+  providerDetail: (providerId: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.providerDetail(providerId)
+    ),
+
   // Messaging
   sendMessage: (payload: {
     title: string;
