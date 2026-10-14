@@ -21,6 +21,7 @@ import {
 import { VivahProfile } from '../../types/b2c';
 import { calculateGunaMilan, AshtakootaBreakdown } from '../../utils/astrology/gunaMilan';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface VivahEngineProps {
   currentUser?: VivahProfile;
@@ -41,6 +42,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
   onBack,
 }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   // Current User Profile (defaults to Devotee's authenticated Kundali parameters)
   const [currentUser] = useState<VivahProfile>(
@@ -124,18 +126,18 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
   const handleRequestConnect = (profile: ExtendedVivahProfile, isGotraMatch: boolean) => {
     if (isGotraMatch) {
       showToast(
-        'Sagotra matches are prohibited by Shastric injunction. Connection requests are blocked.',
+        t('devotee.vivah.toastSagotraBlocked'),
         'error',
-        'Sagotra Injunction'
+        t('devotee.vivah.toastSagotraTitle')
       );
       return;
     }
 
     setSentRequests((prev) => ({ ...prev, [profile.id]: true }));
     showToast(
-      `Confidential connection proposal sent to ${profile.name}'s verified Dharmic family custodian.`,
+      t('devotee.vivah.toastProposalSent').replace('{name}', profile.name),
       'success',
-      'Vedic Proposal Dispatched'
+      t('devotee.vivah.toastProposalTitle')
     );
   };
 
@@ -156,7 +158,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
               type="button"
               onClick={onBack}
               className="p-2 -ml-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-800 text-slate-300 hover:text-amber-400 transition-all cursor-pointer"
-              title="Back to Devotee Portal"
+              title={t('devotee.vivah.backToPortal')}
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -167,18 +169,18 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                 <Heart className="w-4 h-4 text-white fill-white" />
               </div>
               <h1 className="text-sm font-black text-white tracking-wide">
-                Sanatani Vivah
+                {t('devotee.vivah.title')}
               </h1>
             </div>
             <p className="text-[10px] text-amber-400/90 font-mono tracking-tight">
-              Trusted Vedic Matchmaking
+              {t('devotee.vivah.subtitle')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] font-mono font-bold">
           <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
-          <span>Vedic Exogamy</span>
+          <span>{t('devotee.vivah.vedicExogamy')}</span>
         </div>
       </header>
 
@@ -187,10 +189,10 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
         <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-rose-950/30 border border-amber-500/30 text-xs shadow-lg space-y-1">
           <div className="flex items-center gap-1.5 font-bold text-amber-300 text-[11px]">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Ashtakoota Milan &amp; Gotra Exogamy Engine</span>
+            <span>{t('devotee.vivah.engineTitle')}</span>
           </div>
           <p className="text-[11px] text-slate-300 leading-relaxed">
-            Matches are scored across 36 astrological Gunas (Varna, Vashya, Tara, Yoni, Graha Maitri, Gana, Bhakoot &amp; Nadi). In accordance with Shastras, <strong>Sagotra (same gotra) marriages are prohibited</strong> to preserve healthy dharmic lineage.
+            {t('devotee.vivah.engineDesc')}
           </p>
         </div>
 
@@ -205,7 +207,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
               </div>
               <div>
                 <span className="text-[10px] font-mono uppercase text-amber-400 font-bold block">
-                  My Vedic Kundali Coordinates
+                  {t('devotee.vivah.myKundali')}
                 </span>
                 <span className="text-xs font-black text-white flex items-center gap-1">
                   {currentUser.name}
@@ -223,22 +225,22 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
 
           <div className="grid grid-cols-3 gap-2 text-xs font-mono">
             <div className="p-2.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Gotra</span>
+              <span className="text-[10px] text-slate-400 block">{t('devotee.vivah.gotra')}</span>
               <span className="text-amber-300 font-bold">{currentUser.gotra || 'Kashyapa'}</span>
             </div>
             <div className="p-2.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Nakshatra</span>
+              <span className="text-[10px] text-slate-400 block">{t('devotee.vivah.nakshatra')}</span>
               <span className="text-white font-bold">{currentUser.nakshatra || 'Rohini'}</span>
             </div>
             <div className="p-2.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Rashi</span>
+              <span className="text-[10px] text-slate-400 block">{t('devotee.vivah.rashi')}</span>
               <span className="text-white font-bold">{currentUser.rashi || 'Vrishabha'}</span>
             </div>
           </div>
 
           <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-800/80">
-            <span>Mandir Verified Identity: <strong>#MK-88219</strong></span>
-            <span className="text-amber-400 font-semibold">Active Profile ✓</span>
+            <span>{t('devotee.vivah.mandirVerified')} <strong>#MK-88219</strong></span>
+            <span className="text-amber-400 font-semibold">{t('devotee.vivah.activeProfile')}</span>
           </div>
         </div>
 
@@ -249,17 +251,14 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
         <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 flex items-start gap-2.5">
           <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-[11px] leading-relaxed text-amber-200/90">
-            <strong className="text-amber-300">Illustrative only:</strong> the Guna Milan score shown on
-            profiles is a simplified estimate for browsing — it is <strong>not</strong> a
-            substitute for a qualified jyotishi's kundali analysis. Please consult your
-            family purohit before any marriage decision.
+            <strong className="text-amber-300">{t('devotee.vivah.disclaimerTitle')}</strong> {t('devotee.vivah.disclaimer')}
           </p>
         </div>
 
         {/* FEED FILTER PILLS */}
         <div className="flex items-center justify-between gap-2 pt-1">
           <div className="text-xs font-black text-white flex items-center gap-1">
-            <span>Verified Dharmic Matches</span>
+            <span>{t('devotee.vivah.verifiedMatches')}</span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
               {matchProfiles.length}
             </span>
@@ -275,7 +274,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                   : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
-              All
+              {t('devotee.vivah.filterAll')}
             </button>
             <button
               type="button"
@@ -286,7 +285,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                   : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
-              Favorable
+              {t('devotee.vivah.filterFavorable')}
             </button>
           </div>
         </div>
@@ -330,15 +329,15 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                             {matchProfile.name}
                           </h3>
                           <span className="text-xs text-slate-400 font-mono">
-                            ({matchProfile.age} yrs)
+                            ({matchProfile.age} {t('devotee.vivah.yrs')})
                           </span>
                           {matchProfile.verified && (
                             <span
-                              title="Verified by Sri Kashi Vishwanath Purohit Trust"
+                              title={t('devotee.vivah.verified')}
                               className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-500/40 text-[9px] font-mono text-emerald-300 font-bold"
                             >
                               <BadgeCheck className="w-3 h-3 text-emerald-400" />
-                              Verified
+                              {t('devotee.vivah.verified')}
                             </span>
                           )}
                         </div>
@@ -357,21 +356,21 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                   {/* ASTROLOGICAL ATTRIBUTES GRID */}
                   <div className="grid grid-cols-4 gap-1.5 mt-3 pt-3 border-t border-slate-800/80 text-[11px] font-mono">
                     <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800/60">
-                      <span className="text-[9px] text-slate-500 uppercase block">Gotra</span>
+                      <span className="text-[9px] text-slate-500 uppercase block">{t('devotee.vivah.gotra')}</span>
                       <span className={`font-bold truncate block ${milan.isGotraMatch ? 'text-rose-400' : 'text-amber-300'}`}>
                         {matchProfile.gotra}
                       </span>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800/60">
-                      <span className="text-[9px] text-slate-500 uppercase block">Nakshatra</span>
+                      <span className="text-[9px] text-slate-500 uppercase block">{t('devotee.vivah.nakshatra')}</span>
                       <span className="text-white font-bold truncate block">{matchProfile.nakshatra}</span>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800/60">
-                      <span className="text-[9px] text-slate-500 uppercase block">Rashi</span>
+                      <span className="text-[9px] text-slate-500 uppercase block">{t('devotee.vivah.rashi')}</span>
                       <span className="text-white font-bold truncate block">{matchProfile.rashi}</span>
                     </div>
                     <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800/60">
-                      <span className="text-[9px] text-slate-500 uppercase block">Manglik</span>
+                      <span className="text-[9px] text-slate-500 uppercase block">{t('devotee.vivah.manglik')}</span>
                       <span className="text-emerald-300 font-bold truncate block">
                         {matchProfile.manglikStatus === 'Non-Manglik' ? 'No' : matchProfile.manglikStatus}
                       </span>
@@ -384,7 +383,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                       <div className="flex items-center gap-1.5">
                         <Flame className="w-4 h-4 text-amber-400 fill-amber-400 animate-pulse" />
                         <span className="text-xs font-black text-amber-400 tracking-wide">
-                          🔥 {milan.score}/{milan.outOf} Gunas Matched
+                          🔥 {t('devotee.vivah.gunasMatched').replace('{score}', String(milan.score)).replace('{outOf}', String(milan.outOf))}
                         </span>
                       </div>
 
@@ -427,10 +426,10 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                       <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <div className="font-bold text-rose-300">
-                          ⚠️ Same Gotra - Match Not Recommended per Shastras
+                          ⚠️ {t('devotee.vivah.sagotraWarning')}
                         </div>
                         <p className="text-[10px] text-rose-300/80 leading-relaxed">
-                          Both profiles share the <strong>{matchProfile.gotra}</strong> gotra. Classical Vedic law strictly prevents Sagotra marriages for genetic and spiritual exogamy.
+                          {t('devotee.vivah.sagotraDesc').replace('{gotra}', matchProfile.gotra)}
                         </p>
                       </div>
                     </div>
@@ -444,7 +443,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                         onClick={() => toggleBreakdown(matchProfile.id)}
                         className="w-full py-1.5 px-3 rounded-xl bg-slate-950/80 hover:bg-slate-800/80 border border-slate-800 text-[10px] font-mono text-slate-400 hover:text-amber-300 flex items-center justify-between transition-colors cursor-pointer"
                       >
-                        <span>Detailed 8-Ashtakoota Analysis</span>
+                        <span>{t('devotee.vivah.detailedAnalysis')}</span>
                         {isExpanded ? (
                           <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
                         ) : (
@@ -456,40 +455,40 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                         <div className="mt-2 p-3 rounded-2xl bg-slate-950/90 border border-slate-800 text-[10px] font-mono space-y-2 animate-in fade-in duration-200">
                           <div className="grid grid-cols-2 gap-2">
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">1. Varna (Work & Spirit):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.varna')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.varna.points} / 1</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">2. Vashya (Dominance):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.vashya')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.vashya.points} / 2</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">3. Tara (Longevity):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.tara')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.tara.points} / 3</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">4. Yoni (Physical):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.yoni')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.yoni.points} / 4</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">5. Graha Maitri (Mind):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.grahaMaitri')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.grahaMaitri.points} / 5</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">6. Gana (Temperament):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.gana')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.gana.points} / 6</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">7. Bhakoot (Family):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.bhakoot')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.bhakoot.points} / 7</span>
                             </div>
                             <div className="p-2 rounded-lg bg-slate-900 flex justify-between items-center">
-                              <span className="text-slate-400">8. Nadi (Health/Gene):</span>
+                              <span className="text-slate-400">{t('devotee.vivah.nadi')}:</span>
                               <span className="text-amber-300 font-bold">{milan.ashtakoota.nadi.points} / 8</span>
                             </div>
                           </div>
                           <div className="text-[9px] text-slate-500 pt-1 text-right">
-                            Total: {milan.score} / 36 points calculated via Vedic Ephemeris
+                            {t('devotee.vivah.totalScore').replace('{score}', String(milan.score))}
                           </div>
                         </div>
                       )}
@@ -499,7 +498,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                   {/* CONNECT ACTION BUTTON */}
                   <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3">
                     <div className="text-[10px] text-slate-400 font-mono">
-                      <span>Root Family: </span>
+                      <span>{t('devotee.vivah.rootFamily')} </span>
                       <strong className="text-slate-200">{matchProfile.familyValues.split(' ')[0]}</strong>
                     </div>
 
@@ -511,7 +510,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                         title="Sagotra marriages are restricted by Vedic Shastras"
                       >
                         <Lock className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Sagotra Restricted</span>
+                        <span>{t('devotee.vivah.sagotraRestricted')}</span>
                       </button>
                     ) : isRequested ? (
                       <button
@@ -520,7 +519,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                         className="px-4 py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5 cursor-default"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Proposal Dispatched ✓</span>
+                        <span>{t('devotee.vivah.proposalDispatched')}</span>
                       </button>
                     ) : (
                       <button
@@ -529,7 +528,7 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
                         className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
                       >
                         <Send className="w-3.5 h-3.5 text-slate-950" />
-                        <span>Request Connect</span>
+                        <span>{t('devotee.vivah.requestConnect')}</span>
                       </button>
                     )}
                   </div>
@@ -542,10 +541,10 @@ export const VivahEngine: React.FC<VivahEngineProps> = ({
         <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 text-[10px] font-mono text-slate-400 space-y-1">
           <div className="flex items-center gap-1.5 text-amber-400 font-bold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Purohit &amp; Mandir Trust Custodianship</span>
+            <span>{t('devotee.vivah.custodianship')}</span>
           </div>
           <p className="leading-relaxed">
-            All connection requests are routed through verified family elders or registered Purohit mediators. Phone numbers and private horoscope details are kept confidential until both parties give mutual consent.
+            {t('devotee.vivah.custodianshipDesc')}
           </p>
         </div>
       </div>
