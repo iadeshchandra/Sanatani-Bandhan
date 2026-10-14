@@ -1,0 +1,17 @@
+.ashram-print .no-print { display: none !important; }
+
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .ashram-report {
+    color: #000;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  .ashram-report h1 { font-size: 20px; margin: 0 0 4px; }
+  .ashram-report h2 { font-size: 15px; margin: 14px 0 6px; border-bottom: 1px solid #000; padding-bottom: 3px; }
+  .ashram-report table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ashram-report th, .ashram-report td { border: 1px solid #444; padding: 5px 7px; text-align: left; }
+  .ashram-report th { background: #eee; }
+  .ashram-report .meta { font-size: 12px; color: #333; margin: 2px 0; }
+  .ashram-report .sig { margin-top: 28px; display: flex; justify-content: space-between; font-size: 12px; }
+}
