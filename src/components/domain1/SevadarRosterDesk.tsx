@@ -34,6 +34,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
 import { PreviewDataBadge } from '../common/PreviewDataBadge';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ----------------------------------------------------------------------------
 // DATA TYPES
@@ -246,6 +247,7 @@ const INITIAL_SEVADARS: Sevadar[] = [
 // ----------------------------------------------------------------------------
 
 export const SevadarRosterDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { currentRole, activeWorkspace, currentUser } = useAuthWorkspace();
   const { openGuide } = useQuickGuide();
   const { showToast } = useToast();
@@ -486,7 +488,7 @@ export const SevadarRosterDesk: React.FC = () => {
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
               <UserCheck className="w-8 h-8 text-amber-500" />
-              <span>Sevadar HR Desk & Nishkam Seva Roster</span>
+              <span>{t('org.people.sevadarRoster.sevadarHrDeskNishkamSevaRoster')}</span>
             </h1>
             <div className="pt-1"><PreviewDataBadge /></div>
 
@@ -514,7 +516,7 @@ export const SevadarRosterDesk: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 hover:text-white font-bold text-sm transition-all min-h-[44px]"
             >
               <Plus className="w-4 h-4 text-amber-400" />
-              <span>Register Sevadar</span>
+              <span>{t('org.people.sevadarRoster.registerSevadar')}</span>
             </button>
           </div>
         </div>
@@ -526,7 +528,7 @@ export const SevadarRosterDesk: React.FC = () => {
               <Users className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Total Volunteers</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">{t('org.people.sevadarRoster.totalVolunteers')}</p>
               <p className="text-xl font-black text-white">{stats.total}</p>
             </div>
           </div>
@@ -996,17 +998,14 @@ export const SevadarRosterDesk: React.FC = () => {
                 <Plus className="w-5 h-5 text-amber-500" />
                 <span>Panel 3: New Registration</span>
               </h2>
-              <p className="text-xs text-stone-400 mt-0.5">
-                Register candidate for Nishkam Seva
-              </p>
+              <p className="text-xs text-stone-400 mt-0.5">{t('org.people.sevadarRoster.registerCandidateForNishkamSeva')}</p>
             </div>
           </div>
 
           <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
             {/* Full Name */}
             <div>
-              <label className="block text-xs font-bold text-stone-300 mb-1">
-                Volunteer Full Name <span className="text-amber-400">*</span>
+              <label className="block text-xs font-bold text-stone-300 mb-1">{t('org.people.sevadarRoster.volunteerFullName')}<span className="text-amber-400">*</span>
               </label>
               <input
                 type="text"
@@ -1020,8 +1019,7 @@ export const SevadarRosterDesk: React.FC = () => {
 
             {/* Phone Number */}
             <div>
-              <label className="block text-xs font-bold text-stone-300 mb-1">
-                Primary Phone (WhatsApp) <span className="text-amber-400">*</span>
+              <label className="block text-xs font-bold text-stone-300 mb-1">{t('org.people.sevadarRoster.primaryPhoneWhatsapp')}<span className="text-amber-400">*</span>
               </label>
               <input
                 type="tel"
@@ -1035,8 +1033,7 @@ export const SevadarRosterDesk: React.FC = () => {
 
             {/* Emergency Contact */}
             <div>
-              <label className="block text-xs font-bold text-stone-300 mb-1">
-                Emergency Contact (ICE) <span className="text-amber-400">*</span>
+              <label className="block text-xs font-bold text-stone-300 mb-1">{t('org.people.sevadarRoster.emergencyContactIce')}<span className="text-amber-400">*</span>
               </label>
               <input
                 type="tel"
@@ -1051,9 +1048,7 @@ export const SevadarRosterDesk: React.FC = () => {
             {/* Blood Group & Gotra */}
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-xs font-bold text-stone-300 mb-1">
-                  Blood Group
-                </label>
+                <label className="block text-xs font-bold text-stone-300 mb-1">{t('org.people.sevadarRoster.bloodGroup')}</label>
                 <select
                   value={formData.bloodGroup}
                   onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
@@ -1068,9 +1063,7 @@ export const SevadarRosterDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-stone-300 mb-1">
-                  Gotra (Lineage)
-                </label>
+                <label className="block text-xs font-bold text-stone-300 mb-1">{t('org.people.sevadarRoster.gotraLineage')}</label>
                 <input
                   type="text"
                   value={formData.gotra}
@@ -1163,9 +1156,7 @@ export const SevadarRosterDesk: React.FC = () => {
                       ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                       : 'bg-slate-950 border-stone-800 text-stone-400 hover:text-white'
                   }`}
-                >
-                  Pending Audit
-                </button>
+                >{t('org.people.sevadarRoster.pendingAudit')}</button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, initialStatus: 'VERIFIED' })}
@@ -1193,7 +1184,7 @@ export const SevadarRosterDesk: React.FC = () => {
                 />
                 <span className="text-[11px] text-stone-300 leading-snug">
                   I confirm candidate's solemn dedication to{' '}
-                  <strong className="text-amber-400">Nishkam Seva</strong> (selfless service)
+                  <strong className="text-amber-400">{t('org.people.sevadarRoster.nishkamSeva')}</strong> (selfless service)
                   and adherence to temple Shastric decorum.
                 </span>
               </label>
@@ -1287,7 +1278,7 @@ export const SevadarRosterDesk: React.FC = () => {
                   </p>
 
                   <div className="text-[11px] text-stone-300 space-y-0.5">
-                    <p>Phone: <strong className="text-white font-mono">{selectedSevadarForId.phone}</strong></p>
+                    <p>{t('org.people.sevadarRoster.phone')}<strong className="text-white font-mono">{selectedSevadarForId.phone}</strong></p>
                     <p className="text-amber-300">
                       Emergency (ICE):{' '}
                       <strong className="text-white font-mono">
@@ -1327,7 +1318,7 @@ export const SevadarRosterDesk: React.FC = () => {
 
                 <div className="text-right">
                   <span className="block text-[8px] text-stone-500">ISSUED BY</span>
-                  <span className="font-serif text-[10px] text-amber-400 font-bold">Trustee Board</span>
+                  <span className="font-serif text-[10px] text-amber-400 font-bold">{t('org.people.sevadarRoster.trusteeBoard')}</span>
                 </div>
               </div>
             </div>
@@ -1338,9 +1329,7 @@ export const SevadarRosterDesk: React.FC = () => {
                 type="button"
                 onClick={() => setIsIdModalOpen(false)}
                 className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-xs transition-colors"
-              >
-                Close Preview
-              </button>
+              >{t('org.people.sevadarRoster.closePreview')}</button>
 
               <button
                 type="button"
@@ -1348,7 +1337,7 @@ export const SevadarRosterDesk: React.FC = () => {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 cursor-pointer"
               >
                 <Printer className="w-4 h-4 text-slate-950" />
-                <span>Print Parichay Patra</span>
+                <span>{t('org.people.sevadarRoster.printParichayPatra')}</span>
               </button>
             </div>
           </div>
@@ -1428,16 +1417,12 @@ export const SevadarRosterDesk: React.FC = () => {
                 type="button"
                 onClick={() => setReassigningSevadar(null)}
                 className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold"
-              >
-                Cancel
-              </button>
+              >{t('org.people.sevadarRoster.cancel')}</button>
               <button
                 type="button"
                 onClick={handleSaveReassignment}
                 className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20"
-              >
-                Confirm Reassignment
-              </button>
+              >{t('org.people.sevadarRoster.confirmReassignment')}</button>
             </div>
           </div>
         </div>
