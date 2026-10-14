@@ -14,6 +14,8 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
 import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
 import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../../lib/paymentMethods';
+import { GeoPaymentsManager } from './GeoPaymentsManager';
+import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
 
@@ -216,7 +218,7 @@ export const MasterSettingsDesk: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [saving, setSaving] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING'>('GENERAL');
+  const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'GEO'>('GENERAL');
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
@@ -615,6 +617,11 @@ export const MasterSettingsDesk: React.FC = () => {
          <button onClick={() => setActiveTab('BILLING')} className={`pb-3 text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'BILLING' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
            <CreditCard size={16}/> Billing & Subscription
          </button>
+         {isOwnerEmail(auth.currentUser?.email) && (
+           <button onClick={() => setActiveTab('GEO')} className={`pb-3 text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GEO' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+             <Globe size={16}/> Geo Payments
+           </button>
+         )}
       </div>
 
       {activeTab === 'GENERAL' && (
@@ -1064,6 +1071,10 @@ export const MasterSettingsDesk: React.FC = () => {
           )}
         </div>
       </div>
+      )}
+
+      {activeTab === 'GEO' && isOwnerEmail(auth.currentUser?.email) && (
+        <GeoPaymentsManager />
       )}
 
       {/* ✨ SECURE UPGRADE & PAYMENT MODAL */}
