@@ -575,9 +575,20 @@ service cloud.firestore {
     }
     // Payouts: providers request via their own doc (future), owner decides.
     // For now the console seeds/manages; clients cannot write.
+    // Extended: providers may CREATE their own payout requests (applicantUid
+    // must match); owner approves / marks paid. orderIds[] links payouts to
+    // marketplace orders.
     match /payouts/{payoutId} {
-      allow read: if isSuperAdmin() || isOwner();
-      allow create, update: if isOwner();
+      allow read: if isSuperAdmin() || isOwner()
+        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+      allow create: if isOwner()
+        || (isLoggedIn()
+          && request.resource.data.get('providerUid', '') == request.auth.uid
+          && request.resource.data.get('status', '') == 'requested');
+      allow update: if isOwner()
+        || (isLoggedIn()
+          && resource.data.get('providerUid', '') == request.auth.uid
+          && request.resource.data.get('status', '') == 'requested');
       allow delete: if false;
     }
     // Announcements: active ones are public so the app can render banners.
@@ -604,6 +615,61 @@ service cloud.firestore {
     // Payment methods: public read so billing pages can render them;
     // only the owner creates/updates/deletes.
     match /paymentMethods/{methodId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // ---- Marketplace (Fiverr-like gigs for Purohit / Jyotishi) ----
+    // Gigs: public read (the marketplace browse); the provider owns their
+    // gigs (providerUid must match on create); owner can moderate anything.
+    match /marketplaceGigs/{gigId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('providerUid', '') == request.auth.uid
+        && request.resource.data.get('active', true) == true;
+      allow update: if isOwner()
+        || (isLoggedIn()
+          && resource.data.get('providerUid', '') == request.auth.uid
+          && request.resource.data.get('providerUid', '') == request.auth.uid);
+      allow delete: if isOwner();
+    }
+    // Orders: client creates (clientUid must match); provider + client read
+    // their own orders; status moves by owner, provider (accept/complete),
+    // or client (confirm/cancel while pending). Owner overrides all.
+    match /marketplaceOrders/{orderId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && (
+          resource.data.get('clientUid', '') == request.auth.uid
+          || resource.data.get('providerUid', '') == request.auth.uid));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('clientUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending_payment';
+      allow update: if isOwner()
+        || (isLoggedIn() && (
+          // Provider: accept / decline / mark complete on their orders
+          (resource.data.get('providerUid', '') == request.auth.uid
+            && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed'])
+          // Client: confirm completion, or cancel while still pending
+          || (resource.data.get('clientUid', '') == request.auth.uid
+            && request.resource.data.get('status', '') in ['completed', 'cancelled'])));
+      allow delete: if false;
+    }
+    // Disputes: either party on the order may open; owner resolves.
+    match /marketplaceDisputes/{disputeId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && (
+          resource.data.get('raisedByUid', '') == request.auth.uid
+          || resource.data.get('providerUid', '') == request.auth.uid
+          || resource.data.get('clientUid', '') == request.auth.uid));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('raisedByUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'open';
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Commission overrides: public read (marketplace shows "platform fee X%");
+    // owner-only writes. Applies to NEW orders only — existing orders keep
+    // their commissionPercent snapshot.
+    match /commissionOverrides/{overrideId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
