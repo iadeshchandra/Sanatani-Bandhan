@@ -110,6 +110,8 @@ const SmartBhandarProcurementDesk = lazy(() => import('./components/domain4/Smar
 const PathshalaDesk = lazy(() => import('./pathshala/PathshalaDesk').then(m => ({ default: m.PathshalaDesk })));
 // Goshala One — complete goshala-operations suite (Goshala only).
 const GoshalaDesk = lazy(() => import('./goshala/GoshalaDesk').then(m => ({ default: m.GoshalaDesk })));
+// Cash Custody — hundi-to-bank chain of custody (Mandir + Trust/NGO only).
+const CashCustodyDesk = lazy(() => import('./cashcustody/CashCustodyDesk').then(m => ({ default: m.CashCustodyDesk })));
 
 // Solo Sanatani — independent personal workspace (person-scoped, no org).
 const SoloWorkspaceShell = lazy(() => import('./solo/SoloWorkspaceShell').then(m => ({ default: m.SoloWorkspaceShell })));
@@ -385,6 +387,8 @@ const AppContent: React.FC = () => {
       case 'hundi-counting':
       case 'golak':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <HundiCountingAuditDesk /> : <RestrictedAccess />;
+      case 'cash-custody':
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <CashCustodyDesk /> : <RestrictedAccess />;
       case 'ratna-bhandar':
       case 'ratnaBhandar':
       case 'sacred-assets':
