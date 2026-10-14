@@ -102,6 +102,7 @@ export const DESK_NAMES: Record<string, string> = {
   'yoga-one': 'Yoga One — Shala Management',
   'matha-one': 'Matha One — Monastic Management',
   'satsang-one': 'Satsang One — Mandali Management',
+  'sabha-one': 'Sabha One — Purohit Sabha Management',
   panchang: 'Vedic Panchang & Muhurat',
   checkin: 'Gate Command & Check-In',
   campaigns: 'Crowdfunding & Mandir Nirman',
