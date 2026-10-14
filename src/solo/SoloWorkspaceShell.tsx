@@ -13,6 +13,7 @@ import { SavedTab } from './SavedTab';
 import { GivingTab } from './GivingTab';
 import { ProfileTab } from './ProfileTab';
 import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
+import { SangamView } from '../sangam/SangamView';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 
 /* SoloWorkspaceShell — the independent personal workspace.
@@ -29,10 +30,11 @@ import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
  *    BecomePurohitModal upgrade path.
  */
 
-type SoloTab = 'home' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'profile';
+type SoloTab = 'home' | 'sangam' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'profile';
 
 const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'home', en: 'My Space', bn: 'আমার স্থান', hi: 'मेरा स्थान' },
+  { id: 'sangam', en: '🪔 Sangam', bn: '🪔 সঙ্গম', hi: '🪔 संगम' },
   { id: 'sadhana', en: 'Sadhana', bn: 'সাধনা', hi: 'साधना' },
   { id: 'panchang', en: 'Panchang', bn: 'পঞ্জিকা', hi: 'पञ्चाङ्ग' },
   { id: 'saved', en: 'Saved', bn: 'সংরক্ষিত', hi: 'संग्रहीत' },
@@ -173,6 +175,7 @@ const InnerShell: React.FC = () => {
           <LocalOnlyBadge />
         </div>
         {tab === 'home' && <SoloHome goTab={setTab} />}
+        {tab === 'sangam' && <SangamView />}
         {tab === 'sadhana' && <SadhanaTab />}
         {tab === 'panchang' && <PanchangTab />}
         {tab === 'saved' && <SavedTab />}

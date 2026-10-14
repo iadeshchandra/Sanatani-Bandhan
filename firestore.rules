@@ -940,6 +940,167 @@ service cloud.firestore {
     // NOTE: no catch-all allow — default deny.
 
     // ------------------------------------------------------------------
+    // Sangam — the Sanatani social layer (personal view)
+    // ------------------------------------------------------------------
+    // Deny-by-default. Every actor is identity-anchored: posts carry the
+    // author's SAN id; purohit/jyotish tiers are validated against the
+    // canonical profile (badges are never client-forgivable); organisation
+    // page posts require a trustee role edge and are badged OFFICIAL.
+
+    // Badge validation: devotee/org authors carry no tier; purohit/jyotish
+    // tiers must match the canonical profile document.
+    function sangamAuthorTierOk() {
+      let kind = request.resource.data.get('authorKind', '');
+      let tier = request.resource.data.get('authorTier', '');
+      let roleId = request.resource.data.get('authorRoleId', '');
+      return (kind == 'devotee' && (tier == '' || tier == null))
+        || (kind == 'org' && (tier == '' || tier == null))
+        || (kind == 'purohit' && roleId != '' && roleId != null
+          && exists(/databases/$(database)/documents/purohits/$(roleId))
+          && tier == get(/databases/$(database)/documents/purohits/$(roleId)).data.get('verificationTier', ''))
+        || (kind == 'jyotish' && roleId != '' && roleId != null
+          && exists(/databases/$(database)/documents/jyotishProfiles/$(roleId))
+          && tier == get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('verificationTier', ''));
+    }
+
+    // Official page posts: only a trustee of that org may post as the page.
+    function sangamPagePostOk() {
+      let official = request.resource.data.get('isOfficialPagePost', false);
+      let orgId = request.resource.data.get('orgId', '');
+      return official == false || official == null
+        || (orgId != '' && orgId != null && isOrgTrustee(orgId));
+    }
+
+    // --- sangamPosts: public read (the community feed); author create;
+    // author may edit text/image only; admin moderates.
+    match /sangamPosts/{postId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
+           'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
+           'seva', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount', 'commentCount',
+           'shareCount', 'visibility', 'status'])
+        && request.resource.data.get('ashirvadCount', -1) == 0
+        && request.resource.data.get('commentCount', -1) == 0
+        && request.resource.data.get('shareCount', -1) == 0
+        && request.resource.data.get('status', '') == 'active'
+        && request.resource.data.get('visibility', '') == 'public'
+        && request.resource.data.get('text', '') != ''
+        && sangamAuthorTierOk()
+        && sangamPagePostOk();
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl', 'updatedAt'])
+          && request.resource.data.get('authorUid', '') == resource.data.get('authorUid', ''));
+      allow delete: if isSuperAdmin();
+    }
+
+    // --- sangamPosts/{postId}/ashirvad/{uid}: one Ashirvad per user (toggle).
+    match /sangamPosts/{postId}/ashirvad/{uid} {
+      allow read: if true;
+      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // --- sangamPosts/{postId}/volunteers/{uid}: seva volunteering (toggle).
+    match /sangamPosts/{postId}/volunteers/{uid} {
+      allow read: if true;
+      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // --- sangamComments: public read; signed-in create (author pinned,
+    // tier validated); author or admin edits.
+    match /sangamComments/{commentId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && request.resource.data.get('postId', '') != ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['postId', 'authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorTier', 'text', 'createdAt'])
+        && request.resource.data.get('text', '') != ''
+        && sangamAuthorTierOk();
+      allow update, delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+    }
+
+    // --- sangamCircles: public read; signed-in create; creator/admin update.
+    match /sangamCircles/{circleId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('creatorUid', '') == request.auth.uid
+        && request.resource.data.get('name', '') != ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['name', 'topic', 'description', 'creatorUid', 'creatorName', 'memberCount', 'createdAt']);
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['name', 'topic', 'description', 'updatedAt']));
+      allow delete: if isSuperAdmin();
+    }
+
+    // --- sangamCircles/{circleId}/members/{uid}: join/leave (toggle).
+    match /sangamCircles/{circleId}/members/{uid} {
+      allow read: if true;
+      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // --- sangamEvents: public read; signed-in create (org events need
+    // trustee); creator/admin update.
+    match /sangamEvents/{eventId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('creatorUid', '') == request.auth.uid
+        && request.resource.data.get('title', '') != ''
+        && (request.resource.data.get('orgId', '') == ''
+          || request.resource.data.get('orgId', null) == null
+          || isOrgTrustee(request.resource.data.get('orgId', '')))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'orgId', 'orgName',
+           'isOfficial', 'creatorUid', 'creatorName', 'rsvpCount', 'createdAt']);
+      allow update: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt']));
+      allow delete: if isSuperAdmin();
+    }
+
+    // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
+    match /sangamEvents/{eventId}/rsvps/{uid} {
+      allow read: if true;
+      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow update: if false;
+    }
+
+    // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;
+    // owner-only write (follow/unfollow).
+    match /sangamFollows/{followId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('followerUid', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['followerUid', 'targetType', 'targetId', 'targetName', 'createdAt']);
+      allow update: if false;
+      allow delete: if isLoggedIn() && resource.data.get('followerUid', '') == request.auth.uid;
+    }
+
+    // --- sangamReports: reporter create; reporter+admin read; admin triage.
+    match /sangamReports/{reportId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('reporterUid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('reporterUid', '') == request.auth.uid
+        && request.resource.data.get('targetId', '') != ''
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['reporterUid', 'reporterName', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
+        && request.resource.data.get('status', '') == 'open';
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // ------------------------------------------------------------------
     // Membership sprint — Organisation Membership System
     // ------------------------------------------------------------------
     // Global (non-workspace-scoped) collections. Deny-by-default posture is
