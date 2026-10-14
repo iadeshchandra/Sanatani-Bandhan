@@ -29,10 +29,8 @@ import { isValidPAN } from '../../utils/validation';
 import { DataExportButton } from '../common/DataExportButton';
 import { findReceiptGaps, findDuplicateReceipts, formatReceiptNumber } from '../../utils/receiptNumbers';
 import { downloadAuditPack } from '../../utils/auditPack';
-import { useLanguage } from '../../context/LanguageContext';
 
 export const TaxReceiptDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { treasury, donations, assets, updateTreasuryTransaction } = useData();
   const [isAuditPacking, setIsAuditPacking] = useState(false);
@@ -298,7 +296,7 @@ export const TaxReceiptDesk: React.FC = () => {
               <p>Missing 80G sequence numbers: <strong>{receiptIntegrity.gaps80G.map((s) => formatReceiptNumber('SB-80G', receiptIntegrity.year, s)).join(', ')}</strong></p>
             )}
             {receiptIntegrity.gapsChanda.length > 0 && (
-              <p>{t('org.finance.taxReceipts.missingChandaSequenceNumbers')}<strong>{receiptIntegrity.gapsChanda.map((s) => formatReceiptNumber('SB-CHANDA', receiptIntegrity.year, s)).join(', ')}</strong></p>
+              <p>Missing Chanda sequence numbers: <strong>{receiptIntegrity.gapsChanda.map((s) => formatReceiptNumber('SB-CHANDA', receiptIntegrity.year, s)).join(', ')}</strong></p>
             )}
             {receiptIntegrity.duplicates.length > 0 && (
               <p>Duplicate receipt numbers: <strong>{receiptIntegrity.duplicates.join(', ')}</strong></p>
@@ -380,7 +378,9 @@ export const TaxReceiptDesk: React.FC = () => {
         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/40 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div className="text-xs leading-relaxed">
-            <p className="font-black text-red-300 uppercase tracking-wider mb-1">{t('org.finance.taxReceipts.duplicate80gReceiptNumbersDetected')}</p>
+            <p className="font-black text-red-300 uppercase tracking-wider mb-1">
+              Duplicate 80G Receipt Numbers Detected
+            </p>
             <p className="text-red-200/90">
               {metrics.duplicateReceiptNumbers.length} receipt number{metrics.duplicateReceiptNumbers.length === 1 ? '' : 's'} appear{metrics.duplicateReceiptNumbers.length === 1 ? 's' : ''} more than once:{' '}
               <span className="font-mono font-bold">{metrics.duplicateReceiptNumbers.slice(0, 5).join(', ')}</span>
@@ -393,7 +393,7 @@ export const TaxReceiptDesk: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Deductible Amount */}
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
-          <p className="text-xs font-bold text-temple-400 uppercase tracking-wider">{t('org.finance.taxReceipts.total80gCollections')}</p>
+          <p className="text-xs font-bold text-temple-400 uppercase tracking-wider">Total 80G Collections</p>
           <p className="text-xl sm:text-2xl font-black text-amber-400 mt-1">
             ₹{metrics.totalAmount.toLocaleString('en-IN')}
           </p>
@@ -404,7 +404,7 @@ export const TaxReceiptDesk: React.FC = () => {
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-4 sm:p-5 shadow-lg">
           <p className="text-xs font-bold text-temple-400 uppercase tracking-wider">80G Eligible Receipts</p>
           <p className="text-xl sm:text-2xl font-black text-temple-100 mt-1">{metrics.totalCount}</p>
-          <p className="text-[11px] text-temple-400 mt-1">{t('org.finance.taxReceipts.recordedInTreasuryLedger')}</p>
+          <p className="text-[11px] text-temple-400 mt-1">Recorded in Treasury Ledger</p>
         </div>
 
         {/* 10BE Compliant (With PAN) */}
@@ -420,7 +420,7 @@ export const TaxReceiptDesk: React.FC = () => {
         {/* Critical Alert: Missing PAN */}
         <div className="bg-temple-900/90 border border-rose-500/40 rounded-2xl p-4 sm:p-5 shadow-lg bg-rose-950/25">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">{t('org.finance.taxReceipts.missingDonorPan')}</p>
+            <p className="text-xs font-bold text-rose-400 uppercase tracking-wider">Missing Donor PAN</p>
             <AlertTriangle className="w-4 h-4 text-rose-400" />
           </div>
           <p className="text-xl sm:text-2xl font-black text-rose-300 mt-1">{metrics.missingPanCount}</p>
@@ -484,7 +484,9 @@ export const TaxReceiptDesk: React.FC = () => {
                   setEndDate('');
                 }}
                 className="px-2.5 py-1.5 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold"
-              >{t('org.finance.taxReceipts.clearDates')}</button>
+              >
+                Clear Dates
+              </button>
             )}
           </div>
         </div>
@@ -493,7 +495,9 @@ export const TaxReceiptDesk: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-temple-800/80">
           <div className="flex items-center gap-2">
             <span className="text-xs text-temple-400 font-semibold flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-amber-400" />{t('org.finance.taxReceipts.filterBy')}</span>
+              <Filter className="w-3.5 h-3.5 text-amber-400" />
+              Filter By:
+            </span>
             <button
               type="button"
               onClick={() => setPanFilter('all')}
@@ -556,13 +560,13 @@ export const TaxReceiptDesk: React.FC = () => {
                     )}
                   </button>
                 </th>
-                <th className="py-4 px-3 font-extrabold text-temple-300">{t('org.finance.taxReceipts.date')}</th>
-                <th className="py-4 px-3 font-extrabold text-temple-300">{t('org.finance.taxReceipts.receiptNo')}</th>
-                <th className="py-4 px-3 font-extrabold text-temple-300">{t('org.finance.taxReceipts.donorName')}</th>
-                <th className="py-4 px-3 font-extrabold text-temple-300">{t('org.finance.taxReceipts.donorPanForm10be')}</th>
-                <th className="py-4 px-3 font-extrabold text-temple-300 text-right">{t('org.finance.taxReceipts.donationAmount')}</th>
-                <th className="py-4 px-3 font-extrabold text-temple-300 text-center">{t('org.finance.taxReceipts.complianceStatus')}</th>
-                <th className="py-4 px-4 font-extrabold text-temple-300 text-right">{t('org.finance.taxReceipts.actions')}</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300">Date</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300">Receipt No</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300">Donor Name</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300">Donor PAN (Form 10BE)</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300 text-right">Donation Amount</th>
+                <th className="py-4 px-3 font-extrabold text-temple-300 text-center">Compliance Status</th>
+                <th className="py-4 px-4 font-extrabold text-temple-300 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-temple-800/60">
@@ -638,7 +642,7 @@ export const TaxReceiptDesk: React.FC = () => {
                               title="Add Donor PAN for Form 10BE"
                             >
                               <Edit3 className="w-3 h-3" />
-                              <span>{t('org.finance.taxReceipts.add')}</span>
+                              <span>Add</span>
                             </button>
                           </div>
                         )}
@@ -713,7 +717,7 @@ export const TaxReceiptDesk: React.FC = () => {
             <div className="flex items-center justify-between border-b border-temple-800 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-base text-temple-100">{t('org.finance.taxReceipts.updateDonorPanForm10be')}</h3>
+                <h3 className="font-bold text-base text-temple-100">Update Donor PAN (Form 10BE)</h3>
               </div>
               <button
                 type="button"
@@ -726,11 +730,14 @@ export const TaxReceiptDesk: React.FC = () => {
 
             <form onSubmit={handleSavePan} className="space-y-4">
               <div className="bg-temple-950/70 p-3 rounded-xl border border-temple-800 space-y-1">
-                <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.donor')}<span className="font-bold text-temple-200">{editingTx.devoteeName}</span>
+                <p className="text-xs text-temple-400">
+                  Donor: <span className="font-bold text-temple-200">{editingTx.devoteeName}</span>
                 </p>
-                <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.receiptNo2')}<span className="font-mono text-amber-400">{editingTx.taxReceiptNumber || editingTx.id}</span>
+                <p className="text-xs text-temple-400">
+                  Receipt No: <span className="font-mono text-amber-400">{editingTx.taxReceiptNumber || editingTx.id}</span>
                 </p>
-                <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.amount')}<span className="font-bold text-emerald-400">₹{(editingTx.amount || 0).toLocaleString()}</span>
+                <p className="text-xs text-temple-400">
+                  Amount: <span className="font-bold text-emerald-400">₹{(editingTx.amount || 0).toLocaleString()}</span>
                 </p>
               </div>
 
@@ -758,7 +765,9 @@ export const TaxReceiptDesk: React.FC = () => {
                   type="button"
                   onClick={() => setEditingTx(null)}
                   className="px-4 py-2 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold"
-                >{t('org.finance.taxReceipts.cancel')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={isUpdatingPan}
