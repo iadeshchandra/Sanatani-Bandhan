@@ -18,7 +18,27 @@ import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
 import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
 import { JyotishWorkspaceShell } from './jyotish/JyotishWorkspaceShell';
-import { PurohitReviewQueue } from './admin/PurohitReviewQueue';
+import { Navigate } from 'react-router-dom';
+// Deprecated: PurohitReviewQueue used unsafe direct client writes.
+// Verification now lives in the unified GodMode console (/mysecretlogin).
+const PurohitReviewsRedirect: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 text-center">
+    <div className="max-w-md">
+      <p className="text-4xl mb-4">🪔</p>
+      <h1 className="text-lg font-bold text-white mb-2">Verification moved</h1>
+      <p className="text-sm text-slate-400 mb-6">
+        Purohit &amp; Jyotishi verification now runs through the unified sovereign console,
+        with server-side approval (self-approval denied).
+      </p>
+      <a
+        href="/mysecretlogin"
+        className="inline-block px-6 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black"
+      >
+        Open Sovereign Console
+      </a>
+    </div>
+  </div>
+);
 import { MembershipProvider } from './context/MembershipContext';
 import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { QuickGuideModal } from './components/common/QuickGuideModal';
@@ -154,7 +174,7 @@ const CrisisCommandCenter = lazy(() => import('./components/domain6/CrisisComman
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
-const GodModeBackend = lazy(() => import('./components/common/GodModeBackend').then(m => ({ default: m.GodModeBackend })));
+const GodModeBackend = lazy(() => import('./components/common/GodModeConsole2').then(m => ({ default: m.GodModeConsole2 })));
 import { PersonaSwitcher } from './components/dev/PersonaSwitcher';
 
 // Public / Devotee Portal
@@ -977,7 +997,9 @@ const AppRouter: React.FC = () => {
           >
             <Route element={<SuperAdminDashboard />} index />
             <Route element={<GlobalAnalytics />} path="analytics" />
-            <Route element={<PurohitReviewQueue />} path="purohit-reviews" />
+            {/* Deprecated: old PurohitReviewQueue used unsafe direct client writes to
+                purohitApplications. Verification now lives in the unified console. */}
+            <Route element={<PurohitReviewsRedirect />} path="purohit-reviews" />
           </Route>
           <Route path="/devotee" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
           <Route path="/devotee-portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
