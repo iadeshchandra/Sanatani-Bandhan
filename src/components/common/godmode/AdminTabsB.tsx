@@ -8,6 +8,7 @@ import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, ty
 import { BackendDownBanner, ConfirmDialog, RequiresBackendBadge } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentInsightsTab } from './AdminTabsG';
+import { TopupsTab, WalletsTab } from './AdminTabsI';
 
 /* ------------------------------- Moderation ------------------------------ */
 
@@ -254,20 +255,23 @@ const BillingClaims: React.FC = () => {
 };
 
 
-/* Billing tab with subtabs: Claims + Payment Insights */
+/* Billing tab with subtabs: Claims + Top-ups + Wallets + Payment Insights */
 export const BillingTab: React.FC = () => {
   const [sub, setSub] = React.useState('Claims');
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {['Claims', 'Payment Insights'].map((t) => (
+        {['Claims', 'Top-ups', 'Wallets', 'Payment Insights'].map((t) => (
           <button key={t} type="button" onClick={() => setSub(t)}
             className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap shrink-0 ${
               sub === t ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
             }`}>{t}</button>
         ))}
       </div>
-      {sub === 'Claims' ? <BillingClaims /> : <PaymentInsightsTab />}
+      {sub === 'Claims' ? <BillingClaims />
+        : sub === 'Top-ups' ? <TopupsTab />
+        : sub === 'Wallets' ? <WalletsTab />
+        : <PaymentInsightsTab />}
     </div>
   );
 };

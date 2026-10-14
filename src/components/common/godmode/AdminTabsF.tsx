@@ -20,6 +20,7 @@ import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
 import { DuesTab, RiskTab } from './MarketplaceDuesRisk';
+import { CommissionsTab } from './AdminTabsI';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -554,7 +555,7 @@ export const MarketplaceGigs: React.FC = () => {
 
 /* ------------------------------ Main tab ------------------------------ */
 
-const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
+const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
 
 export const MarketplaceTab: React.FC = () => {
   const [sub, setSub] = useState('Dashboard');
@@ -563,6 +564,7 @@ export const MarketplaceTab: React.FC = () => {
       <SubTabs tabs={MARKETPLACE_SUBTABS} active={sub} onChange={setSub} />
       {sub === 'Dashboard' && <MarketplaceDashboard />}
       {sub === 'Commission' && <CommissionControl />}
+      {sub === 'Revenue' && <CommissionsTab />}
       {sub === 'Orders' && <MarketplaceOrders />}
       {sub === 'Disputes' && <MarketplaceDisputes />}
       {sub === 'Payouts' && <MarketplacePayouts />}
