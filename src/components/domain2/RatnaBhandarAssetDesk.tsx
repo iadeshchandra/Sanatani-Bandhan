@@ -37,7 +37,6 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
-import { useLanguage } from '../../context/LanguageContext';
 
 export type AssetCategory = 'JEWELRY' | 'VIGRAHA' | 'SILVERWARE' | 'GEMSTONES';
 export type MetalType = '24K Gold' | '22K Gold' | 'Silver' | 'Ashtadhatu' | 'Other';
@@ -278,7 +277,6 @@ const ASSETS_STORAGE_KEY = 'sanatani_ratna_bhandar_assets';
 const AUDITS_STORAGE_KEY = 'sanatani_ratna_bhandar_audit_logs';
 
 export const RatnaBhandarAssetDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
   const { showToast } = useToast();
   const { openGuide } = useQuickGuide();
@@ -723,7 +721,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
       case 'JEWELRY':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-400/10 text-amber-300 border border-amber-400/20">Jewellery</span>;
       case 'VIGRAHA':
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-400/10 text-purple-300 border border-purple-400/20">{t('org.finance.ratnaBhandar.sacredVigraha')}</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-400/10 text-purple-300 border border-purple-400/20">Sacred Vigraha</span>;
       case 'SILVERWARE':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-300/15 text-slate-200 border border-slate-300/30">Silverware</span>;
       case 'GEMSTONES':
@@ -763,7 +761,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight mt-1 flex items-center gap-2">
-                <span>{t('org.finance.ratnaBhandar.ratnaBhandarSacredAssetDesk')}</span>
+                <span>Ratna Bhandar Sacred Asset Desk</span>
                 <span className="text-xs font-normal text-amber-400/80 font-mono hidden sm:inline">(रत्नभाण्डागारम्)</span>
               </h1>
               <p className="text-xs text-stone-400 mt-0.5">
@@ -792,7 +790,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-lg active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>{t('org.finance.ratnaBhandar.addSacredAsset')}</span>
+              <span>Add Sacred Asset</span>
             </button>
 
             {/* Print Register Button */}
@@ -820,7 +818,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               }`}
             >
               <Sparkles className="w-4 h-4" />
-              <span>{t('org.finance.ratnaBhandar.sacredAssetsVaultGrid')}</span>
+              <span>Sacred Assets Vault Grid</span>
               <span className="px-1.5 py-0.2 rounded-full bg-stone-950/40 text-[10px] text-stone-900 font-mono font-bold">
                 {assets.length}
               </span>
@@ -836,7 +834,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               }`}
             >
               <History className="w-4 h-4" />
-              <span>{t('org.finance.ratnaBhandar.physicalAuditRegisterLogs')}</span>
+              <span>Physical Audit Register Logs</span>
               <span className="px-1.5 py-0.2 rounded-full bg-stone-800 text-[10px] text-amber-300 font-mono">
                 {auditLogs.length}
               </span>
@@ -863,7 +861,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/20 transition-all" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <Coins className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalGoldWeight')}</span>
+              <Coins className="w-4 h-4 text-amber-400" />
+              Total Gold Weight
+            </span>
             <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
               24K + 22K
             </span>
@@ -884,7 +884,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="absolute top-0 right-0 w-24 h-24 bg-slate-300/10 rounded-full blur-xl pointer-events-none group-hover:bg-slate-300/20 transition-all" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <Scale className="w-4 h-4 text-slate-300" />{t('org.finance.ratnaBhandar.totalSilverWeight')}</span>
+              <Scale className="w-4 h-4 text-slate-300" />
+              Total Silver Weight
+            </span>
             <span className="text-[10px] font-mono text-slate-300 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-400/20">
               925 Fine
             </span>
@@ -904,7 +906,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
         <div className="bg-stone-900/90 border border-stone-800 p-4 sm:p-5 rounded-3xl relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalSacredAssets')}</span>
+              <Layers className="w-4 h-4 text-amber-400" />
+              Total Sacred Assets
+            </span>
             <span className="text-[10px] font-mono text-stone-400 bg-stone-800 px-2 py-0.5 rounded-full">
               Registered
             </span>
@@ -924,7 +928,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
         <div className="bg-stone-900/90 border border-amber-500/25 p-4 sm:p-5 rounded-3xl relative overflow-hidden shadow-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalBullionValuation')}</span>
+              <Award className="w-4 h-4 text-amber-400" />
+              Total Bullion Valuation
+            </span>
             <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               CBDT Insured
             </span>
@@ -1000,7 +1006,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-stone-800/80">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[11px] font-bold text-stone-400 flex items-center gap-1 mr-1">
-                  <Filter className="w-3.5 h-3.5 text-amber-400" />{t('org.finance.ratnaBhandar.category')}</span>
+                  <Filter className="w-3.5 h-3.5 text-amber-400" />
+                  Category:
+                </span>
                 {(['ALL', 'JEWELRY', 'VIGRAHA', 'SILVERWARE', 'GEMSTONES'] as const).map((cat) => (
                   <button
                     key={cat}
@@ -1032,7 +1040,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
                 <Sparkles className="w-8 h-8 opacity-60" />
               </div>
-              <h3 className="text-base font-bold text-white">{t('org.finance.ratnaBhandar.noSacredAssetsMatched')}</h3>
+              <h3 className="text-base font-bold text-white">No Sacred Assets Matched</h3>
               <p className="text-xs text-stone-400 max-w-md mx-auto">
                 Try modifying your search query or reset your category and location filters to inspect the vault assets.
               </p>
@@ -1045,7 +1053,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   setSelectedMetal('ALL');
                 }}
                 className="px-4 py-2 rounded-xl bg-amber-500 text-stone-950 font-bold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow"
-              >{t('org.finance.ratnaBhandar.resetAllFilters')}</button>
+              >
+                Reset All Filters
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1172,7 +1182,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                           className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md active:scale-95"
                         >
                           <Scale className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>{t('org.finance.ratnaBhandar.verifyAssetAudit')}</span>
+                          <span>Verify Asset (Audit)</span>
                         </button>
 
                         {/* Relocate Location Button */}
@@ -1213,7 +1223,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             <div>
               <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
                 <History className="w-5 h-5 text-amber-400" />
-                <span>{t('org.finance.ratnaBhandar.physicalVaultVerificationAuditRegister')}</span>
+                <span>Physical Vault Verification Audit Register</span>
               </h2>
               <p className="text-xs text-stone-400">
                 Statutory audit log of physical weighing sessions co-signed by Mandir Trustees under Section 36 of Indian Trusts Act.
@@ -1226,7 +1236,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 self-start"
             >
               <Printer className="w-4 h-4 text-amber-400" />
-              <span>{t('org.finance.ratnaBhandar.printAuditRegister')}</span>
+              <span>Print Audit Register</span>
             </button>
           </div>
 
@@ -1234,14 +1244,14 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-stone-800 text-stone-400 uppercase text-[10px] font-black tracking-wider bg-stone-950/60">
-                  <th className="py-3 px-4">{t('org.finance.ratnaBhandar.auditIdDate')}</th>
-                  <th className="py-3 px-4">{t('org.finance.ratnaBhandar.assetTagName')}</th>
-                  <th className="py-3 px-4">{t('org.finance.ratnaBhandar.auditorTrustee')}</th>
+                  <th className="py-3 px-4">Audit ID & Date</th>
+                  <th className="py-3 px-4">Asset Tag & Name</th>
+                  <th className="py-3 px-4">Auditor Trustee</th>
                   <th className="py-3 px-4">Verified Gross</th>
                   <th className="py-3 px-4">Verified Net</th>
                   <th className="py-3 px-4">Variance</th>
                   <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">{t('org.finance.ratnaBhandar.status')}</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-800/60 font-mono text-stone-300">
@@ -1318,7 +1328,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   <Scale className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.physicalWeighingAuditVerification')}</span>
+                  <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">
+                    Physical Weighing & Audit Verification
+                  </span>
                   <h3 className="text-lg font-black text-white">
                     {auditTargetAsset.assetName}
                   </h3>
@@ -1395,7 +1407,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               {/* Trustee Selection & Security PIN */}
               <div className="space-y-3 bg-stone-950/70 p-4 rounded-2xl border border-stone-800">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.ratnaBhandar.auditingTrusteeCustodian')}</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
+                    Auditing Trustee / Custodian
+                  </label>
                   <select
                     value={auditTrusteeName}
                     onChange={(e) => setAuditTrusteeName(e.target.value)}
@@ -1412,7 +1426,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                      <KeyRound className="w-3 h-3 text-amber-400" />{t('org.finance.ratnaBhandar.trusteeSecurityPin4digits')}</label>
+                      <KeyRound className="w-3 h-3 text-amber-400" />
+                      Trustee Security PIN (4-Digits)
+                    </label>
                     <span className="text-[10px] text-stone-500 font-mono">Default: 1008 or 1234</span>
                   </div>
                   <div className="relative">
@@ -1486,7 +1502,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   type="button"
                   onClick={() => setAuditTargetAsset(null)}
                   className="flex-1 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold transition-colors cursor-pointer"
-                >{t('org.finance.ratnaBhandar.cancel')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAudit}
@@ -1509,7 +1527,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.custodyTransferRelocation')}</span>
+                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">
+                  Custody Transfer & Relocation
+                </span>
                 <h3 className="text-lg font-black text-white">
                   Move {relocateTargetAsset.assetName}
                 </h3>
@@ -1530,7 +1550,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1.5">{t('org.finance.ratnaBhandar.selectDestinationCustodyLocation')}</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1.5">
+                  Select Destination Custody Location
+                </label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['GARBHAGRIHA', 'STRONG_ROOM', 'BANK_LOCKER'] as const).map((loc) => (
                     <button
@@ -1612,8 +1634,10 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredBullionAssetRegistration')}</span>
-                <h3 className="text-xl font-black text-white">{t('org.finance.ratnaBhandar.addNewSacredAsset')}</h3>
+                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">
+                  Sacred Bullion & Asset Registration
+                </span>
+                <h3 className="text-xl font-black text-white">Add New Sacred Asset</h3>
               </div>
               <button
                 type="button"
@@ -1642,7 +1666,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.ratnaBhandar.assetTagNumber')}</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
+                    Asset Tag Number
+                  </label>
                   <input
                     type="text"
                     required
@@ -1771,7 +1797,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.ratnaBhandar.donorEndowmentBy')}</label>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
+                    Donor / Endowment By
+                  </label>
                   <input
                     type="text"
                     value={newDonor}
@@ -1827,7 +1855,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
 
               {/* Notes */}
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.ratnaBhandar.consecrationNotesAstrologicalSpecificati')}</label>
+                <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
+                  Consecration Notes & Astrological Specifications
+                </label>
                 <textarea
                   rows={2}
                   value={newNotes}
@@ -1849,7 +1879,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 <button
                   type="submit"
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs transition-all shadow-lg cursor-pointer"
-                >{t('org.finance.ratnaBhandar.saveConsecrateInRegister')}</button>
+                >
+                  Save & Consecrate in Register
+                </button>
               </div>
             </form>
           </div>
@@ -1864,7 +1896,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredAssetDossier')}</span>
+                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">
+                  Sacred Asset Dossier
+                </span>
                 <h3 className="text-xl font-black text-white">{inspectTargetAsset.assetName}</h3>
                 <span className="text-xs font-mono text-stone-400">Tag: {inspectTargetAsset.tagNumber}</span>
               </div>
@@ -1916,14 +1950,14 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
 
               {inspectTargetAsset.donorName && (
                 <div className="p-3 bg-stone-950 rounded-xl border border-stone-800">
-                  <span className="text-stone-400 block text-[10px] uppercase font-bold">{t('org.finance.ratnaBhandar.endowmentDonor')}</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-bold">Endowment Donor:</span>
                   <span className="text-white font-bold">{inspectTargetAsset.donorName}</span>
                 </div>
               )}
 
               {inspectTargetAsset.notes && (
                 <div className="p-3 bg-stone-950 rounded-xl border border-stone-800">
-                  <span className="text-stone-400 block text-[10px] uppercase font-bold">{t('org.finance.ratnaBhandar.auditHistoryNotes')}</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-bold">Audit & History Notes:</span>
                   <p className="text-stone-300 leading-relaxed mt-0.5">{inspectTargetAsset.notes}</p>
                 </div>
               )}
@@ -1939,7 +1973,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-all shadow cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Scale className="w-4 h-4 stroke-[2.5]" />
-              <span>{t('org.finance.ratnaBhandar.performPhysicalWeighingAuditNow')}</span>
+              <span>Perform Physical Weighing Audit Now</span>
             </button>
           </div>
         </div>
