@@ -6,7 +6,6 @@ import {
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
-import { useLanguage } from '../../context/LanguageContext';
 
 interface DonorProfile {
   key: string;
@@ -44,7 +43,6 @@ function waMeLink(phone: string, message: string): string {
 const DAY = 86400000;
 
 export const DonorCareDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { treasury, devotees } = useData();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
   const { showToast } = useToast();
@@ -181,14 +179,18 @@ export const DonorCareDesk: React.FC = () => {
               >
                 <option>WhatsApp</option>
                 <option>In person</option>
-                <option>{t('org.people.donorCare.phoneCall')}</option>
+                <option>Phone call</option>
                 <option>Note</option>
               </select>
               <button
                 onClick={() => logThanks(d.key)}
                 className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold"
-              >{t('org.people.donorCare.save')}</button>
-              <button onClick={() => setLogFor(null)} className="text-xs font-bold text-slate-500 px-2">{t('org.people.donorCare.cancel')}</button>
+              >
+                Save
+              </button>
+              <button onClick={() => setLogFor(null)} className="text-xs font-bold text-slate-500 px-2">
+                Cancel
+              </button>
             </span>
           ) : (
             <button
@@ -231,7 +233,8 @@ export const DonorCareDesk: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-            <HeartHandshake className="w-7 h-7 text-rose-600" />{t('org.people.donorCare.donorCare')}</h1>
+            <HeartHandshake className="w-7 h-7 text-rose-600" /> Donor Care
+          </h1>
           <p className="text-slate-500 text-sm mt-1">
             Thank donors personally, win back the lapsed, and never miss an anniversary.
             Messages open as personal WhatsApp chats — no bulk automation, no spam.
