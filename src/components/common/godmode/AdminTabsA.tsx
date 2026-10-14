@@ -162,6 +162,21 @@ export const WorkspacesTab: React.FC = () => {
     }
   };
 
+  const toggleBypass = async (w: WorkspaceRecord) => {
+    const cur = (w as WorkspaceRecord & { limitsBypassed?: boolean }).limitsBypassed === true;
+    const label = cur ? 're-enable freemium limits for' : 'BYPASS all freemium limits for';
+    if (!window.confirm(`${label} ${w.name || w.id}?\n\nBypassed workspaces skip devotee/seat/transaction/branch caps. This is recorded in the audit trail.`)) return;
+    setWorking(true);
+    const r = await adminApi.setLimitsBypass(w.id, !cur);
+    setWorking(false);
+    if (r.ok) {
+      showToast(cur ? 'Limits re-enabled.' : 'Limits bypassed.', 'success');
+      setItems(items.map((x) => (x.id === w.id ? { ...x, limitsBypassed: !cur } as WorkspaceRecord : x)));
+    } else {
+      showToast(r.error || 'Could not update bypass.', 'error');
+    }
+  };
+
   const shown = filter.trim()
     ? items.filter((w) => `${w.name || ''} ${w.id} ${w.type || ''}`.toLowerCase().includes(filter.toLowerCase()))
     : items;
@@ -189,6 +204,22 @@ export const WorkspacesTab: React.FC = () => {
               <p className="text-[11px] text-slate-500 font-mono truncate">{w.id}{w.type ? ` · ${w.type}` : ''}{w.city ? ` · ${w.city}` : ''}</p>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px] font-mono font-bold">{w.planId || 'LITE'}</span>
+            {(w as WorkspaceRecord & { limitsBypassed?: boolean }).limitsBypassed && (
+              <span className="px-2.5 py-1 rounded-full bg-emerald-900/60 border border-emerald-700 text-emerald-300 text-[11px] font-bold">Limits bypassed</span>
+            )}
+            <button
+              type="button"
+              onClick={() => toggleBypass(w)}
+              disabled={working}
+              title="Owner override: skip all freemium usage limits for this workspace"
+              className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold ${
+                (w as WorkspaceRecord & { limitsBypassed?: boolean }).limitsBypassed
+                  ? 'bg-emerald-800 text-emerald-100 hover:bg-emerald-700'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {(w as WorkspaceRecord & { limitsBypassed?: boolean }).limitsBypassed ? '✓ Bypass on' : 'Bypass limits'}
+            </button>
             <button
               type="button"
               onClick={() => { setPlanFor(w); setNewPlan(w.planId || 'LITE'); }}

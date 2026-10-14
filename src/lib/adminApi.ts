@@ -247,6 +247,11 @@ export const adminApi = {
       () => post(`/api/admin/workspaces/${workspaceId}/plan`, { planId }),
       () => firestoreAdmin.setPlan(workspaceId, planId)
     ),
+  setLimitsBypass: (workspaceId: string, bypassed: boolean) =>
+    withFallback(
+      () => post(`/api/admin/workspaces/${workspaceId}/limits-bypass`, { bypassed }),
+      () => firestoreAdmin.setLimitsBypass(workspaceId, bypassed)
+    ),
 
   // Verification (unified — replaces the old purohitApplications client writes)
   verificationPending: (kind?: 'purohit' | 'jyotish') =>

@@ -210,7 +210,7 @@ async function listWorkspaces(limitN = 100): Promise<NativeResult> {
   const snap = await getDocs(query(collection(db, 'workspaces'), orderBy('createdAt', 'desc'), limit(Math.min(limitN, 200))));
   const workspaces = snap.docs.map((d) => {
     const v: any = d.data();
-    return { id: d.id, name: v.name, type: v.type, planId: v.planId || 'LITE', city: v.city, createdAt: tsToIso(v.createdAt) };
+    return { id: d.id, name: v.name, type: v.type, planId: v.planId || 'LITE', city: v.city, createdAt: tsToIso(v.createdAt), limitsBypassed: v.limitsBypassed === true };
   });
   return { ok: true, data: { success: true, workspaces } };
 }
@@ -222,6 +222,24 @@ async function setPlan(workspaceId: string, planId: string): Promise<NativeResul
   const prevPlan = (before.data() as any)?.planId || 'LITE';
   await updateDoc(ref, { planId, updatedAt: serverTimestamp() });
   await writeAudit('workspace.plan.change', { workspaceId, prevPlan, planId, actorUid: uid }, 'warn', workspaceId);
+  // Plan changed → drop the cached plan so new limits apply immediately.
+  try {
+    const { clearPlanCache } = await import('./planLimits');
+    clearPlanCache();
+  } catch { /* non-fatal */ }
+  return { ok: true, data: { success: true } };
+}
+
+/**
+ * Toggle the freemium limits bypass for a workspace.
+ * When true, all plan-limit checks (devotees/seats/transactions/branches)
+ * are skipped for that workspace. Owner-only. Audited.
+ */
+async function setLimitsBypass(workspaceId: string, bypassed: boolean): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'workspaces', workspaceId);
+  await updateDoc(ref, { limitsBypassed: bypassed, updatedAt: serverTimestamp() });
+  await writeAudit('workspace.limits.bypass', { workspaceId, bypassed, actorUid: uid }, 'warn', workspaceId);
   return { ok: true, data: { success: true } };
 }
 
@@ -1056,6 +1074,7 @@ export const firestoreAdmin = {
   enableUser,
   listWorkspaces,
   setPlan,
+  setLimitsBypass,
   verificationPending,
   verificationApprove,
   verificationReject,
