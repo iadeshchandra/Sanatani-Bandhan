@@ -34,6 +34,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { WorkspaceConfig } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ============================================================================
 // TYPES & DATA STRUCTURES
@@ -240,6 +241,7 @@ const INITIAL_SWEEPS: CashSweepRecord[] = [
 // ============================================================================
 
 export const FederationMultiBranchDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace, workspaces, switchWorkspace, addWorkspace, checkPermission, currentRole, currentUser } = useAuthWorkspace();
   const { treasury, donations } = useData();
   const { showToast } = useToast();
@@ -607,13 +609,12 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 <Network className="w-3.5 h-3.5 text-amber-400" />
                 Domain 1 • Parent-Child Federation Command Center
               </span>
-              <span className="text-xs text-stone-400 font-mono">
-                Mother Mandir HQ: <span className="text-amber-200 font-bold">{activeWorkspace?.name || 'Sri Sanatan Dharma Mandir'}</span>
+              <span className="text-xs text-stone-400 font-mono">{t('org.people.federation.motherMandirHq')}<span className="text-amber-200 font-bold">{activeWorkspace?.name || 'Sri Sanatan Dharma Mandir'}</span>
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight flex items-center gap-3">
-              <span>Federation Multi-Branch & Global Treasury Roll-Up</span>
+              <span>{t('org.people.federation.federationMultibranchGlobalTreasuryRollu')}</span>
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
@@ -641,7 +642,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg flex items-center gap-2 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <ArrowRightLeft className="w-4 h-4" />
-              <span>Initiate Cash Sweep</span>
+              <span>{t('org.people.federation.initiateCashSweep')}</span>
             </button>
           </div>
         </div>
@@ -709,9 +710,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
             {/* Metric 1: Total Federation Revenue */}
             <div className="bg-stone-900/90 rounded-2xl border border-stone-800 p-5 shadow-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
-                  Total Federation Revenue
-                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.totalFederationRevenue')}</span>
                 <div className="text-xl sm:text-2xl font-black text-white">
                   ₹{globalRollup.totalRevenue.toLocaleString('en-IN')}
                 </div>
@@ -728,9 +727,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
             {/* Metric 2: Total Federation Expenses */}
             <div className="bg-stone-900/90 rounded-2xl border border-stone-800 p-5 shadow-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
-                  Total Federation Expenses
-                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.totalFederationExpenses')}</span>
                 <div className="text-xl sm:text-2xl font-black text-rose-300">
                   ₹{globalRollup.totalExpenses.toLocaleString('en-IN')}
                 </div>
@@ -764,9 +761,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
             {/* Metric 4: Liquid Reserves Runway */}
             <div className="bg-stone-900/90 rounded-2xl border border-stone-800 p-5 shadow-xl flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
-                  Liquid Treasury Float
-                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.liquidTreasuryFloat')}</span>
                 <div className="text-xl sm:text-2xl font-black text-amber-300">
                   ₹{globalRollup.totalLiquidReserves.toLocaleString('en-IN')}
                 </div>
@@ -786,7 +781,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               <div>
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   <Landmark className="w-4 h-4 text-amber-400" />
-                  <span>Entity-by-Entity Comparative Master Ledger</span>
+                  <span>{t('org.people.federation.entitybyentityComparativeMasterLedger')}</span>
                 </h3>
                 <p className="text-xs text-stone-400 mt-0.5">
                   Side-by-side performance review comparing mother temple HQ and all affiliated regional branches.
@@ -811,7 +806,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     <th className="py-3 px-4 text-right">Inflow (₹)</th>
                     <th className="py-3 px-4 text-right">Outflow (₹)</th>
                     <th className="py-3 px-4 text-right">Net Surplus (₹)</th>
-                    <th className="py-3 px-4 text-right">Liquid Cash (₹)</th>
+                    <th className="py-3 px-4 text-right">{t('org.people.federation.liquidCash')}</th>
                     <th className="py-3 px-4 w-40">Expense Ratio</th>
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
@@ -905,9 +900,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                             type="button"
                             onClick={() => handleInitiateSweepForBranch(branch)}
                             className="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition-colors cursor-pointer"
-                          >
-                            Sweep Funds
-                          </button>
+                          >{t('org.people.federation.sweepFunds')}</button>
                         </td>
                       </tr>
                     );
@@ -944,8 +937,8 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 onChange={(e) => setSelectedClassification(e.target.value)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
-                <option value="ALL">All Classifications</option>
-                <option value="Mandir Branch">Mandir Branch</option>
+                <option value="ALL">{t('org.people.federation.allClassifications')}</option>
+                <option value="Mandir Branch">{t('org.people.federation.mandirBranch')}</option>
                 <option value="Ashram">Ashram</option>
                 <option value="Annakshetra">Annakshetra</option>
                 <option value="Goshala">Goshala</option>
@@ -1006,13 +999,13 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   {/* Financial Snapshot */}
                   <div className="grid grid-cols-2 gap-2 text-xs bg-stone-950/70 p-3 rounded-2xl border border-stone-800/80 mt-3">
                     <div>
-                      <span className="text-[10px] text-stone-500 uppercase font-bold block">Cash-in-Hand Float</span>
+                      <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('org.people.federation.cashinhandFloat')}</span>
                       <span className="font-black text-amber-300 text-sm">
                         ₹{branch.liquidBalance.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-stone-500 uppercase font-bold block">Enrolled Devotees</span>
+                      <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('org.people.federation.enrolledDevotees')}</span>
                       <span className="font-bold text-stone-200 text-sm">{branch.memberCount} Members</span>
                     </div>
                   </div>
@@ -1035,7 +1028,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     className="flex-1 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5" />
-                    <span>Sweep Float</span>
+                    <span>{t('org.people.federation.sweepFloat')}</span>
                   </button>
                 </div>
               </div>
@@ -1053,9 +1046,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
           <div className="bg-stone-900/80 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1 text-xs">
-              <span className="font-bold text-amber-300">
-                Federation Treasury Governance & Sweep Authorization Protocol:
-              </span>
+              <span className="font-bold text-amber-300">{t('org.people.federation.federationTreasuryGovernanceSweepAuthori')}</span>
               <p className="text-stone-300 leading-relaxed">
                 Inter-branch fund sweeps consolidate surplus donations from daughter units into the Mother Temple’s master endowment vault. Under Trust Governance Bylaws, <strong>only Master Trustees (SuperAdmin)</strong> possess authorized signing power to execute live sweeps.
               </p>
@@ -1072,23 +1063,19 @@ export const FederationMultiBranchDesk: React.FC = () => {
             {/* Left: Execution Form */}
             <div className="bg-stone-900/90 rounded-3xl border border-stone-800 p-6 shadow-2xl space-y-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
-                  Treasury Sweep Engine
-                </span>
-                <h3 className="text-lg font-black text-white mt-1">
-                  Execute Fund Transfer
-                </h3>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">{t('org.people.federation.treasurySweepEngine')}</span>
+                <h3 className="text-lg font-black text-white mt-1">{t('org.people.federation.executeFundTransfer')}</h3>
               </div>
 
               <form onSubmit={handleExecuteCashSweep} className="space-y-3.5 text-xs">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Transfer Archetype</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.transferArchetype')}</label>
                   <select
                     value={sweepForm.transferType}
                     onChange={(e) => setSweepForm({ ...sweepForm, transferType: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-amber-500"
                   >
-                    <option value="SWEEP_TO_HQ">Sweep to HQ Master Vault (Surplus Pull)</option>
+                    <option value="SWEEP_TO_HQ">{t('org.people.federation.sweepToHqMasterVaultSurplusPull')}</option>
                     <option value="HQ_DISPERSAL">HQ Capital Dispersal (Festival / Disaster Grant)</option>
                     <option value="INTER_BRANCH">Inter-Branch Re-allocation</option>
                   </select>
@@ -1157,21 +1144,21 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Bank Payment Rail</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.bankPaymentRail')}</label>
                   <select
                     value={sweepForm.transferMode}
                     onChange={(e) => setSweepForm({ ...sweepForm, transferMode: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-amber-500"
                   >
-                    <option value="NEFT">NEFT (National Electronic Funds Transfer)</option>
+                    <option value="NEFT">{t('org.people.federation.neftNationalElectronicFundsTransfer')}</option>
                     <option value="RTGS">RTGS (Real Time Gross Settlement)</option>
-                    <option value="IMPS">IMPS Immediate Transfer</option>
-                    <option value="Internal Treasury Journal">Internal Treasury Journal (Zero Fee)</option>
+                    <option value="IMPS">{t('org.people.federation.impsImmediateTransfer')}</option>
+                    <option value="Internal Treasury Journal">{t('org.people.federation.internalTreasuryJournalZeroFee')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Justification & Notes</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.justificationNotes')}</label>
                   <textarea
                     rows={2}
                     value={sweepForm.purpose}
@@ -1185,7 +1172,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01]"
                 >
                   <ArrowRightLeft className="w-4 h-4" />
-                  <span>Execute Cash Sweep & Log Journal</span>
+                  <span>{t('org.people.federation.executeCashSweepLogJournal')}</span>
                 </button>
               </form>
             </div>
@@ -1196,7 +1183,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 <div>
                   <h3 className="text-base font-black text-white flex items-center gap-2">
                     <Clock className="w-4 h-4 text-amber-400" />
-                    <span>Inter-Branch Sweep & Transfer Journal</span>
+                    <span>{t('org.people.federation.interbranchSweepTransferJournal')}</span>
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
                     Immutable statutory log of internal fund movements and bank transit vouchers.
@@ -1212,13 +1199,13 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-stone-950 border-b border-stone-800 text-stone-400 uppercase font-black tracking-wider text-[10px]">
-                      <th className="py-3 px-3">Sweep ID</th>
-                      <th className="py-3 px-3">Date & Time</th>
+                      <th className="py-3 px-3">{t('org.people.federation.sweepId')}</th>
+                      <th className="py-3 px-3">{t('org.people.federation.dateTime')}</th>
                       <th className="py-3 px-3">Route (From → To)</th>
-                      <th className="py-3 px-3 text-right">Amount (₹)</th>
-                      <th className="py-3 px-3">Mode & UTR</th>
-                      <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3 text-center">Voucher</th>
+                      <th className="py-3 px-3 text-right">{t('org.people.federation.amount')}</th>
+                      <th className="py-3 px-3">{t('org.people.federation.modeUtr')}</th>
+                      <th className="py-3 px-3">{t('org.people.federation.status')}</th>
+                      <th className="py-3 px-3 text-center">{t('org.people.federation.voucher')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-800/60 font-sans">
@@ -1355,7 +1342,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Physical Address</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.physicalAddress')}</label>
                 <input
                   type="text"
                   placeholder="e.g. Near Vishram Ghat, Mathura, UP - 281001"
@@ -1378,7 +1365,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Admin Contact Phone</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.adminContactPhone')}</label>
                   <input
                     type="text"
                     placeholder="e.g. +91 94120 55443"
@@ -1418,9 +1405,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddBranchModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
+                >{t('org.people.federation.cancel')}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black shadow-lg cursor-pointer"
@@ -1448,18 +1433,14 @@ export const FederationMultiBranchDesk: React.FC = () => {
             </button>
 
             <div className="text-center pb-3 border-b border-stone-800">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                Statutory Inter-Branch Voucher
-              </span>
-              <h3 className="text-base font-black text-white mt-1">
-                Cash Sweep Transfer Voucher
-              </h3>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{t('org.people.federation.statutoryInterbranchVoucher')}</span>
+              <h3 className="text-base font-black text-white mt-1">{t('org.people.federation.cashSweepTransferVoucher')}</h3>
               <span className="font-mono text-stone-400 text-[11px]">{selectedVoucher.id}</span>
             </div>
 
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 space-y-2">
               <div className="flex justify-between">
-                <span className="text-stone-400">Date & Timestamp:</span>
+                <span className="text-stone-400">{t('org.people.federation.dateTimestamp')}</span>
                 <span className="font-mono text-stone-200">{selectedVoucher.date}</span>
               </div>
               <div className="flex justify-between">
@@ -1471,13 +1452,13 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 <span className="font-bold text-emerald-300 text-right">{selectedVoucher.destinationBranchName}</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-stone-800">
-                <span className="text-stone-400 font-bold">Transfer Amount:</span>
+                <span className="text-stone-400 font-bold">{t('org.people.federation.transferAmount')}</span>
                 <span className="font-mono font-black text-emerald-400 text-sm">
                   ₹{selectedVoucher.amount.toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Payment Rail:</span>
+                <span className="text-stone-400">{t('org.people.federation.paymentRail')}</span>
                 <span className="text-stone-200 font-bold">{selectedVoucher.transferMode}</span>
               </div>
               <div className="flex justify-between">
@@ -1504,15 +1485,13 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print Voucher</span>
+                <span>{t('org.people.federation.printVoucher')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedVoucher(null)}
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black cursor-pointer"
-              >
-                Close
-              </button>
+              >{t('org.people.federation.close')}</button>
             </div>
           </div>
         </div>
@@ -1533,17 +1512,13 @@ export const FederationMultiBranchDesk: React.FC = () => {
             </button>
 
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                Multi-Branch Treasury Management
-              </span>
-              <h3 className="text-lg font-black text-white mt-1">
-                Initiate Inter-Branch Cash Sweep
-              </h3>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">{t('org.people.federation.multibranchTreasuryManagement')}</span>
+              <h3 className="text-lg font-black text-white mt-1">{t('org.people.federation.initiateInterbranchCashSweep')}</h3>
             </div>
 
             <form onSubmit={handleExecuteCashSweep} className="space-y-3.5">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Transfer Type</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.transferType')}</label>
                 <select
                   value={sweepForm.transferType}
                   onChange={(e) => setSweepForm({ ...sweepForm, transferType: e.target.value as any })}
@@ -1607,7 +1582,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Transfer Mode</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.transferMode')}</label>
                 <select
                   value={sweepForm.transferMode}
                   onChange={(e) => setSweepForm({ ...sweepForm, transferMode: e.target.value as any })}
@@ -1616,12 +1591,12 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   <option value="NEFT">NEFT (Standard Settlement)</option>
                   <option value="RTGS">RTGS (Instant High-Value)</option>
                   <option value="IMPS">IMPS (Immediate 24x7)</option>
-                  <option value="Internal Treasury Journal">Internal Treasury Journal</option>
+                  <option value="Internal Treasury Journal">{t('org.people.federation.internalTreasuryJournal')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Transfer Purpose</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('org.people.federation.transferPurpose')}</label>
                 <textarea
                   rows={2}
                   value={sweepForm.purpose}
@@ -1641,9 +1616,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black shadow-lg cursor-pointer"
-                >
-                  Authorize & Sweep
-                </button>
+                >{t('org.people.federation.authorizeSweep')}</button>
               </div>
             </form>
           </div>
