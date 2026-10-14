@@ -63,6 +63,13 @@ All authenticated endpoints expect: `Authorization: Bearer <Firebase ID token>`
 | GET | `/api/admin/audit-logs` | Owner | Query audit trail (`?action=&actorUid=&workspaceId=&severity=&limit=&cursor=`) |
 | POST | `/api/admin/bootstrap-owner` | Owner | One-time: register owner in `platform_admins` + stamp SuperAdmin claims |
 
+### Platform analytics (owner only)
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/admin/analytics/timeseries?days=14` | Owner | Daily user-signup + workspace-creation counts, last N days (max 90). Bounded range queries, server-side bucketing |
+| GET | `/api/admin/analytics/plans` | Owner | Workspace count per plan tier (`DEMO`/`LITE`/`STANDARD`/`ENTERPRISE`/`OTHER`) via parallel `count()` aggregations |
+
 ---
 
 ## Data export (`/api/export`)

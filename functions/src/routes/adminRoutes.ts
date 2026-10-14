@@ -376,6 +376,105 @@ router.get('/overview', requireOwner, async (req: AuthenticatedRequest, res: Res
 });
 
 /**
+ * GET /api/admin/analytics/timeseries?days=14 — Owner only.
+ * Daily signup counts for users and workspaces over the last N days.
+ * Uses bounded range queries (single-field index, auto-created) — free-tier friendly.
+ * Buckets server-side so the dashboard gets clean chart data.
+ */
+router.get('/analytics/timeseries', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const db = getFirestore();
+    const days = Math.min(Math.max(parseInt((req.query.days as string) || '14', 10) || 14, 1), 90);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setHours(0, 0, 0, 0);
+
+    // Bounded queries — never full collection scans.
+    const [userSnap, wsSnap] = await Promise.all([
+      db.collection('users').where('createdAt', '>=', cutoff).orderBy('createdAt', 'desc').limit(2000).get().catch(() => null),
+      db.collection('workspaces').where('createdAt', '>=', cutoff).orderBy('createdAt', 'desc').limit(2000).get().catch(() => null),
+    ]);
+
+    // Initialize all days to zero so the chart has no gaps.
+    const dayKeys: string[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dayKeys.push(d.toISOString().slice(0, 10));
+    }
+    const signupBuckets: Record<string, number> = {};
+    const wsBuckets: Record<string, number> = {};
+    dayKeys.forEach((k) => { signupBuckets[k] = 0; wsBuckets[k] = 0; });
+
+    const bucketize = (snap: any, buckets: Record<string, number>) => {
+      if (!snap) return;
+      snap.docs.forEach((doc: any) => {
+        const data = doc.data() as Record<string, any>;
+        const ts = data.createdAt;
+        // Firestore Timestamp or ISO string or millis.
+        let dateStr: string | null = null;
+        try {
+          if (ts && typeof ts.toDate === 'function') dateStr = ts.toDate().toISOString().slice(0, 10);
+          else if (typeof ts === 'string') dateStr = new Date(ts).toISOString().slice(0, 10);
+          else if (typeof ts === 'number') dateStr = new Date(ts).toISOString().slice(0, 10);
+        } catch { /* skip malformed */ }
+        if (dateStr && dateStr in buckets) buckets[dateStr] += 1;
+      });
+    };
+    bucketize(userSnap, signupBuckets);
+    bucketize(wsSnap, wsBuckets);
+
+    res.json({
+      success: true,
+      timeseries: {
+        days,
+        signups: dayKeys.map((date) => ({ date, count: signupBuckets[date] })),
+        workspaces: dayKeys.map((date) => ({ date, count: wsBuckets[date] })),
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error('[AdminRoutes] analytics/timeseries failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'TIMESERIES_FAILED', message: 'Could not load signup timeseries.' });
+  }
+});
+
+/**
+ * GET /api/admin/analytics/plans — Owner only.
+ * Workspace count per plan tier. Uses count() aggregations in parallel — cheap.
+ */
+router.get('/analytics/plans', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const db = getFirestore();
+    const planIds = ['DEMO', 'LITE', 'STANDARD', 'ENTERPRISE'];
+    const [total, ...counts] = await Promise.all([
+      db.collection('workspaces').count().get().then((s) => s.data().count).catch(() => -1),
+      ...planIds.map((p) =>
+        db.collection('workspaces').where('planId', '==', p).count().get().then((s) => s.data().count).catch(() => -1)
+      ),
+    ]);
+
+    const distribution = planIds.map((planId, i) => ({ planId, count: counts[i] }));
+    // Anything not matching a known plan (missing planId, custom values).
+    const known = counts.reduce((a: number, c: number) => a + (c < 0 ? 0 : c), 0);
+    const other = total >= 0 && known >= 0 ? Math.max(total - known, 0) : -1;
+    distribution.push({ planId: 'OTHER', count: other });
+
+    res.json({
+      success: true,
+      plans: {
+        total,
+        distribution,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error('[AdminRoutes] analytics/plans failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'PLANS_FAILED', message: 'Could not load plan distribution.' });
+  }
+});
+
+/**
  * GET /api/admin/users/lookup?email= — Owner only.
  * Support tool: find a user by email (Admin SDK, no PII in logs beyond email).
  */
