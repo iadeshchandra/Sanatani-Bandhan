@@ -48,6 +48,14 @@ service cloud.firestore {
       );
     }
 
+    // Platform owner: the canonical human owner UID. Used for Spark-native
+    // admin operations (no Cloud Functions deployed). Narrower than
+    // SuperAdmin claims — this is one verified human, checked by UID only.
+    // Rules are the hard boundary: even a compromised client can't widen this.
+    function isOwner() {
+      return isLoggedIn() && request.auth.uid == 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
+    }
+
     // Effective tenant: custom claim wins, else the users/{uid} document.
     function effTenant() {
       return request.auth == null ? null :
@@ -191,7 +199,7 @@ service cloud.firestore {
     //    Clients can never self-grant role / tenant / admin flags.
     // ------------------------------------------------------------------
     match /users/{userId} {
-      allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
       allow create: if isLoggedIn() && request.auth.uid == userId
         && !request.resource.data.keys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId'])
         && (
@@ -269,13 +277,16 @@ service cloud.firestore {
     match /workspaces/{workspaceId} {
       // NOTE: adminPinHash may only ever be written via the server
       // (POST /api/admin/tenants/:id/pin uses the Admin SDK and bypasses rules).
-      allow read: if isTenantMember(workspaceId);
+      allow read: if isTenantMember(workspaceId) || isOwner();
       // Anonymous (demo) sessions cannot create real workspaces — must sign in
       // with email/Google first. Closes demo → real Trustee escalation.
       allow create: if isLoggedIn() && !isAnonymous()
         && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
-      allow update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']);
+      // Owner (Spark-native console) may change plan fields only — never pins.
+      allow update: if (isOwner()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['planId', 'updatedAt']))
+        || ((demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
     }
 
@@ -437,35 +448,42 @@ service cloud.firestore {
         && hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
     }
 
-    // Audit logs — append-only, actor-bound.
+    // Audit logs — append-only, actor-bound. Owner gets full read + write
+    // (Spark-native console); everyone else keeps the existing tenant scoping.
     match /audit_logs/{logId} {
-      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
-      allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
-        && request.resource.data.get('actorId', '') == request.auth.uid;
+      allow read: if isOwner() || demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
+      allow create: if (isOwner() && request.resource.data.get('actorUid', '') == request.auth.uid)
+        || ((demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
+          && request.resource.data.get('actorId', '') == request.auth.uid);
       allow update, delete: if false;
     }
 
     // Verification applications — owner-reviewed, never client-writable beyond apply.
+    // Owner approves/rejects via the Spark-native console (update) or Admin SDK.
     match /verificationApplications/{appId} {
-      allow read: if isSuperAdmin();
+      allow read: if isSuperAdmin() || isOwner();
       allow create: if isLoggedIn()
         && request.resource.data.get('applicantUid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'pending';
-      allow update, delete: if false; // owner acts via Admin SDK only
+      allow update: if isOwner();
+      allow delete: if false;
     }
 
     // Moderation reports — reporter can file, only owner sees and acts.
     match /moderationReports/{reportId} {
-      allow read: if isSuperAdmin();
+      allow read: if isSuperAdmin() || isOwner();
       allow create: if isLoggedIn()
         && request.resource.data.get('reporterUid', '') == request.auth.uid;
-      allow update, delete: if false; // owner acts via Admin SDK only
+      allow update: if isOwner();
+      allow delete: if false;
     }
 
     // Moderation hide directives — read-only for clients, enforced in UI.
+    // Owner writes via the Spark-native console or Admin SDK.
     match /moderationHides/{hideId} {
       allow read: if isLoggedIn();
-      allow create, update, delete: if false; // owner writes via Admin SDK only
+      allow create, update: if isOwner();
+      allow delete: if false;
     }
 
     // Reminder queue — owner-triggered scheduled jobs write here; clients read own.
@@ -484,47 +502,53 @@ service cloud.firestore {
     }
 
     // Payment claims: any authenticated member files their own claim; only the
-    // owner reviews. Status flips happen via Admin SDK (transactional).
+    // owner reviews. Status flips happen via the Spark-native console or Admin SDK.
     match /paymentClaims/{claimId} {
-      allow read: if isSuperAdmin()
+      allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid);
       allow create: if isLoggedIn()
         && request.resource.data.get('applicantUid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'pending';
-      allow update, delete: if false; // owner acts via Admin SDK only
+      allow update: if isOwner();
+      allow delete: if false;
     }
 
-    // Subscriptions: readable by owner or workspace members; server-written.
+    // Subscriptions: readable by owner or workspace members; owner activates
+    // via the Spark-native console, server writes via the billing API.
     match /subscriptions/{workspaceId} {
-      allow read: if isSuperAdmin() || (isLoggedIn() && isTenantMember(workspaceId));
-      allow create, update, delete: if false; // billing API writes via Admin SDK only
+      allow read: if isSuperAdmin() || isOwner() || (isLoggedIn() && isTenantMember(workspaceId));
+      allow create, update: if isOwner();
+      allow delete: if false;
     }
 
     // ---- Messaging ----
     // Inbox messages: the target user reads their own; only the read flag is
-    // client-mutable (and only by the target user). Sending is Admin-SDK-only.
+    // client-mutable (and only by the target user). The owner sends via the
+    // Spark-native console or the messaging API.
     match /messages/{messageId} {
-      allow read: if isSuperAdmin()
+      allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('targetUid', '') == request.auth.uid);
-      allow create: if false; // messaging API writes via Admin SDK only
+      allow create: if isOwner();
       allow update: if isLoggedIn()
         && resource.data.get('targetUid', '') == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
       allow delete: if false;
     }
 
-    // Campaigns, scheduled messages, templates, broadcast caps: owner-only
-    // reads; all writes via Admin SDK.
+    // Campaigns, scheduled messages, templates: owner-only reads; owner writes
+    // campaigns/schedules via the Spark-native console, everything via Admin SDK.
     match /messageCampaigns/{campaignId} {
-      allow read: if isSuperAdmin();
-      allow create, update, delete: if false;
+      allow read: if isSuperAdmin() || isOwner();
+      allow create: if isOwner();
+      allow update, delete: if false;
     }
     match /scheduledMessages/{schedId} {
-      allow read: if isSuperAdmin();
-      allow create, update, delete: if false;
+      allow read: if isSuperAdmin() || isOwner();
+      allow create: if isOwner();
+      allow update, delete: if false;
     }
     match /messageTemplates/{templateId} {
-      allow read: if isSuperAdmin();
+      allow read: if isSuperAdmin() || isOwner();
       allow create, update, delete: if false;
     }
     match /broadcastCaps/{capId} {
