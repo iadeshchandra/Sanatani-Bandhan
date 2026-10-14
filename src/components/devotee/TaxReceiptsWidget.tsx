@@ -5,12 +5,14 @@ import { useScopedData } from '../../hooks/useScopedData';
 import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF } from '../../utils/pdfGenerator';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import JSZip from 'jszip';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export const TaxReceiptsWidget: React.FC = () => {
   const { currentDevotee, currentUser, activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   
   // Fetch only eligible income for the logged in user
   const donations = useScopedData<TreasuryTransaction>(
@@ -56,12 +58,12 @@ export const TaxReceiptsWidget: React.FC = () => {
     const pan = currentDevotee?.panNumber || '';
     
     try {
-      showToast('Generating Receipt...', 'info');
+      showToast(t('devotee.receipts.toastGenerating'), 'info');
       // Set isCopy = false for original download
       await generateTaxReceiptPDF(tx, activeWorkspace, 'save', false, pan);
     } catch (error) {
       console.error(error);
-      showToast('Failed to generate receipt', 'error');
+      showToast(t('devotee.receipts.toastFailed'), 'error');
     }
   };
 
@@ -70,7 +72,7 @@ export const TaxReceiptsWidget: React.FC = () => {
     
     setIsDownloadingAll(true);
     try {
-      showToast('Preparing ZIP file...', 'info');
+      showToast(t('devotee.receipts.toastPreparingZip'), 'info');
       const zip = new JSZip();
       const pan = currentDevotee?.panNumber || '';
       
@@ -90,10 +92,10 @@ export const TaxReceiptsWidget: React.FC = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showToast('ZIP downloaded successfully!', 'success');
+      showToast(t('devotee.receipts.toastZipSuccess'), 'success');
     } catch (error) {
       console.error(error);
-      showToast('Failed to generate ZIP file', 'error');
+      showToast(t('devotee.receipts.toastFailedZip'), 'error');
     } finally {
       setIsDownloadingAll(false);
     }
@@ -112,11 +114,11 @@ export const TaxReceiptsWidget: React.FC = () => {
         workspaceId: activeWorkspace?.id
       });
       
-      showToast(`Receipts for ${activeFY} sent to your registered email.`, 'success');
+      showToast(t('devotee.receipts.toastEmailSent').replace('{fy}', activeFY), 'success');
     } catch (error) {
       console.error(error);
       // Simulate success for local dev without functions running
-      showToast(`Simulated: Receipts for ${activeFY} sent to email.`, 'success');
+      showToast(t('devotee.receipts.toastEmailSent').replace('{fy}', activeFY), 'success');
     } finally {
       setIsEmailing(false);
     }
@@ -128,9 +130,9 @@ export const TaxReceiptsWidget: React.FC = () => {
         <div className="w-16 h-16 bg-temple-50 border-2 border-temple-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <FileText className="w-8 h-8 text-temple-300" />
         </div>
-        <h3 className="text-lg font-semibold text-temple-900 mb-1">No 80G Receipts Available</h3>
+        <h3 className="text-lg font-semibold text-temple-900 mb-1">{t('devotee.receipts.noReceipts')}</h3>
         <p className="text-sm text-temple-500 max-w-sm mx-auto">
-          You haven't made any 80G eligible donations yet. When you do, your tax exemption receipts will appear here.
+          {t('devotee.receipts.noReceiptsDesc')}
         </p>
       </div>
     );
@@ -143,9 +145,9 @@ export const TaxReceiptsWidget: React.FC = () => {
         <div>
           <h2 className="text-lg font-semibold text-temple-900 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            80G Tax Exemption Receipts
+            {t('devotee.receipts.title')}
           </h2>
-          <p className="text-sm text-temple-500 mt-1">Download certificates for your eligible donations.</p>
+          <p className="text-sm text-temple-500 mt-1">{t('devotee.receipts.subtitle')}</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -167,8 +169,8 @@ export const TaxReceiptsWidget: React.FC = () => {
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-             <h4 className="text-sm font-bold text-saffron-900">PAN Number Missing</h4>
-             <p className="text-xs text-saffron-700 mt-0.5">Your PAN is required on 80G receipts for tax filing. Please update it in your profile.</p>
+             <h4 className="text-sm font-bold text-saffron-900">{t('devotee.receipts.panMissing')}</h4>
+             <p className="text-xs text-saffron-700 mt-0.5">{t('devotee.receipts.panMissingDesc')}</p>
           </div>
         </div>
       )}
@@ -176,7 +178,7 @@ export const TaxReceiptsWidget: React.FC = () => {
       {/* Summary Cards */}
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-temple-100">
         <div className="bg-temple-50 p-4 rounded-xl border border-temple-100">
-           <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-1">Total Eligible ({activeFY})</p>
+           <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-1">{t('devotee.receipts.totalEligible').replace('{fy}', activeFY)}</p>
            <p className="text-2xl font-semibold text-emerald-600">₹{totalEligibleAmount.toLocaleString()}</p>
         </div>
         <div className="md:col-span-2 flex items-center justify-end gap-3">
@@ -185,14 +187,14 @@ export const TaxReceiptsWidget: React.FC = () => {
              disabled={isEmailing}
              className="flex items-center gap-2 px-4 py-2.5 bg-temple-50 hover:bg-temple-200 text-temple-700 text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
            >
-             <Mail className="w-4 h-4" /> {isEmailing ? 'Sending...' : 'Email All'}
+             <Mail className="w-4 h-4" /> {isEmailing ? t('devotee.receipts.sending') : t('devotee.receipts.emailAll')}
            </button>
            <button 
              onClick={handleBulkDownload}
              disabled={isDownloadingAll}
              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-sm transition-colors disabled:opacity-50"
            >
-             <FileArchive className="w-4 h-4" /> {isDownloadingAll ? 'Zipping...' : 'Download All (ZIP)'}
+             <FileArchive className="w-4 h-4" /> {isDownloadingAll ? t('devotee.receipts.zipping') : t('devotee.receipts.downloadAll')}
            </button>
         </div>
       </div>
@@ -202,11 +204,11 @@ export const TaxReceiptsWidget: React.FC = () => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-temple-50/80 border-b border-temple-100">
-              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">Date</th>
-              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">Receipt No</th>
-              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">Purpose</th>
-              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">Amount</th>
-              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest text-right">Action</th>
+              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">{t('devotee.receipts.date')}</th>
+              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">{t('devotee.receipts.receiptNo')}</th>
+              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">{t('devotee.receipts.purpose')}</th>
+              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest">{t('devotee.receipts.amount')}</th>
+              <th className="px-6 py-4 text-xs font-bold text-temple-500 uppercase tracking-widest text-right">{t('devotee.receipts.action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-temple-100">
@@ -232,7 +234,7 @@ export const TaxReceiptsWidget: React.FC = () => {
                   <button 
                     onClick={() => handleDownloadSingle(tx)}
                     className="inline-flex items-center justify-center w-10 h-10 bg-white border border-temple-200 text-temple-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                    title="Download Receipt"
+                    title={t('devotee.receipts.downloadReceipt')}
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -242,7 +244,7 @@ export const TaxReceiptsWidget: React.FC = () => {
             {activeDonations.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-sm text-temple-500 font-medium italic">
-                  No 80G eligible donations found for {activeFY}.
+                  {t('devotee.receipts.noDonationsForFy').replace('{fy}', activeFY)}
                 </td>
               </tr>
             )}
