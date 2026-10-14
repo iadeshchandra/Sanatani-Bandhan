@@ -89,8 +89,14 @@ export async function listGigs(filters: {
     const q = filters.search.toLowerCase();
     gigs = gigs.filter((g) => `${g.title} ${g.description} ${g.providerName || ''}`.toLowerCase().includes(q));
   }
-  // Featured first, then rating
-  gigs.sort((a, b) => Number(b.featured || false) - Number(a.featured || false) || Number(b.avgRating || 0) - Number(a.avgRating || 0));
+  // Sort: featured first, then verified providers, then most booked.
+  // Deliberately NOT rating-descending — ratings (ashirvad) reflect gratitude,
+  // not a leaderboard. Verification + availability lead.
+  gigs.sort((a, b) =>
+    Number(b.featured || false) - Number(a.featured || false) ||
+    Number((b as any).providerVerified ? 1 : 0) - Number((a as any).providerVerified ? 1 : 0) ||
+    Number(b.totalOrders || 0) - Number(a.totalOrders || 0)
+  );
   return gigs.slice(0, filters.limit || 100);
 }
 
@@ -109,6 +115,23 @@ export async function saveGig(gig: Partial<Gig> & { id?: string }): Promise<stri
   const uid = requireUser();
   if (!gig.title?.trim()) throw new Error('Title is required.');
   if (!gig.priceAmount || gig.priceAmount <= 0) throw new Error('Price must be positive.');
+  // Community (free) tier: max 3 active sevas. Pro: unlimited.
+  if (!gig.id) {
+    try {
+      const { getProviderTier } = await import('./firestoreAdmin');
+      const tier = await getProviderTier(uid);
+      if (tier !== 'pro') {
+        const existing = await myGigs();
+        const active = existing.filter((g) => g.active !== false);
+        if (active.length >= 3) {
+          throw new Error('Community tier allows 3 active sevas. Upgrade to Verified Seva Provider for unlimited.');
+        }
+      }
+    } catch (e: any) {
+      if (e?.message?.includes('Community tier')) throw e;
+      // tier lookup failure fails open — never block on infra hiccups
+    }
+  }
   const payload = {
     providerUid: uid,
     providerType: gig.providerType || 'purohit',
@@ -161,7 +184,10 @@ export async function createOrder(input: {
     if (e?.message?.includes('commission payment')) throw e;
     // query errors fail open — never block booking on infra hiccups
   }
-  const { ratePercent, source } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType);
+  const { ratePercent, source, tier } = await resolveCommissionRate(
+    gig.providerUid, gig.category, gig.providerType,
+    input.payAfterTask === true ? 'rail2' : 'rail1',
+  );
   const { commission, net } = computeCommission(Number(gig.priceAmount), ratePercent);
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
     gigId: gig.id, gigTitle: gig.title,
@@ -169,7 +195,8 @@ export async function createOrder(input: {
     clientUid: uid,
     amountGross: Number(gig.priceAmount), currency: gig.priceCurrency || 'INR',
     commissionPercent: ratePercent, commissionAmount: commission, providerNet: net,
-    commissionSource: source,
+    commissionSource: source, commissionTier: tier,
+    rail: input.payAfterTask === true ? 'rail2' : 'rail1',
     paymentMethodId: input.paymentMethodId, paymentRef: input.paymentRef || '',
     payWithWallet: input.payWithWallet === true,
     payAfterTask: input.payAfterTask === true,

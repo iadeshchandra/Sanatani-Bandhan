@@ -119,7 +119,7 @@ export async function createRail2Order(input: Rail2OrderInput): Promise<{
   const { payableAmount, amountCode, display } = assignPayableAmount(Number(gig.priceAmount), orderSeq, currency);
   const orderCode = generateOrderCode();
 
-  const { ratePercent, source } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType);
+  const { ratePercent, source, tier } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType, 'rail2');
   const { commission, net } = computeCommission(payableAmount, ratePercent);
 
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
@@ -131,7 +131,7 @@ export async function createRail2Order(input: Rail2OrderInput): Promise<{
     amountGross: Number(gig.priceAmount), currency,
     payableAmount, amountCode,
     commissionPercent: ratePercent, commissionAmount: commission, providerNet: net,
-    commissionSource: `${source} (Rail-2 receivable)`,
+    commissionSource: `${source} (Rail-2 receivable)`, commissionTier: tier,
     paymentMethodId: `provider:${method.methodType}`,
     providerMethodSnapshot: {
       methodType: method.methodType,
