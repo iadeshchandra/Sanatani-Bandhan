@@ -77,6 +77,7 @@ const MOCK_PROFILES: MockDevoteeProfile[] = [
 ];
 
 export const DarshanCheckInDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { getTaxonomy } = useLanguage();
   const [scanStatus, setScanStatus] = useState<ScanStatus>('idle');
   const [profileIndex, setProfileIndex] = useState(0);
@@ -154,9 +155,7 @@ export const DarshanCheckInDesk: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
               Domain 1 &bull; Biometric Turnstile Terminal
             </span>
-            <span className="text-xs text-slate-500 font-mono">
-              Terminal: TURNSTILE-GATE-02 &bull; Mode: High-Velocity
-            </span>
+            <span className="text-xs text-slate-500 font-mono">{t('org.people.darshanCheckin.terminalTurnstilegate02BullModeHighveloc')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <ScanFace className="w-8 h-8 text-amber-600" />
@@ -255,7 +254,7 @@ export const DarshanCheckInDesk: React.FC = () => {
           <div className="pt-4 border-t border-slate-800 relative z-10 flex items-center justify-between gap-3">
             <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Anti-Pass Scalping Vault Lock</span>
+              <span>{t('org.people.darshanCheckin.antipassScalpingVaultLock')}</span>
             </div>
 
             <button
@@ -318,9 +317,7 @@ export const DarshanCheckInDesk: React.FC = () => {
                     <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-emerald-400 block">
                       STATUS: PASS VERIFIED & AUTHENTICATED
                     </span>
-                    <span className="text-base font-black text-white">
-                      Valid Pilgrim Pass Issued
-                    </span>
+                    <span className="text-base font-black text-white">{t('org.people.darshanCheckin.validPilgrimPassIssued')}</span>
                   </div>
                 </div>
 
@@ -356,9 +353,7 @@ export const DarshanCheckInDesk: React.FC = () => {
                 {/* Shastric Gotra & Kuldevi Correlation */}
                 <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">
-                      Vedic Gotra
-                    </span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">{t('org.people.darshanCheckin.vedicGotra')}</span>
                     <span className="text-xs font-bold text-slate-200 mt-0.5 block flex items-center gap-1.5">
                       <Flame className="w-3.5 h-3.5 text-amber-500" />
                       {devoteeData.gotra}
