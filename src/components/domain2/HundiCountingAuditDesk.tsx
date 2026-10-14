@@ -43,7 +43,6 @@ import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { numberToWords } from '../../utils/pdfGenerator';
 import { DataExportButton } from '../common/DataExportButton';
 import { DevoteeMember } from '../../types';
-import { useLanguage } from '../../context/LanguageContext';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -135,7 +134,6 @@ const PRESET_TRUSTEES = [
 const STORAGE_KEY = 'sanatani_hundi_sessions';
 
 export const HundiCountingAuditDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
   const { addTreasuryTransaction, devotees } = useData();
   const { showToast } = useToast();
@@ -542,16 +540,16 @@ export const HundiCountingAuditDesk: React.FC = () => {
           {/* Session Details Grid */}
           <div className="grid grid-cols-2 gap-4 text-xs font-mono border-b border-black pb-3">
             <div>
-              <p><strong>{t('org.finance.hundiAudit.voucherNo')}</strong> {postedSession?.sessionCode || `HUNDI-${Date.now().toString().slice(-6)}`}</p>
-              <p><strong>{t('org.finance.hundiAudit.dateTime')}</strong> {postedSession?.date || new Date().toISOString().slice(0, 10)} {postedSession?.timestamp || ''}</p>
-              <p><strong>{t('org.finance.hundiAudit.hundiBox')}</strong> {currentHundiBox.name}</p>
+              <p><strong>Voucher No:</strong> {postedSession?.sessionCode || `HUNDI-${Date.now().toString().slice(-6)}`}</p>
+              <p><strong>Date & Time:</strong> {postedSession?.date || new Date().toISOString().slice(0, 10)} {postedSession?.timestamp || ''}</p>
+              <p><strong>Hundi Box:</strong> {currentHundiBox.name}</p>
               <p><strong>Box Identifier:</strong> {currentHundiBox.id} ({currentHundiBox.location})</p>
             </div>
             <div>
               <p><strong>Lead Seal Serial:</strong> {leadSealNo} (Physical Seal Intact)</p>
-              <p><strong>{t('org.finance.hundiAudit.cctvAuditRoom')}</strong> {cctvRoom}</p>
-              <p><strong>{t('org.finance.hundiAudit.treasuryRef')}</strong> {postedSession?.treasuryTxId || 'PENDING'}</p>
-              <p><strong>{t('org.finance.hundiAudit.status')}</strong> CO-SIGNED & POSTED TO GENERAL TREASURY</p>
+              <p><strong>CCTV Audit Room:</strong> {cctvRoom}</p>
+              <p><strong>Treasury Ref:</strong> {postedSession?.treasuryTxId || 'PENDING'}</p>
+              <p><strong>Status:</strong> CO-SIGNED & POSTED TO GENERAL TREASURY</p>
             </div>
           </div>
 
@@ -581,7 +579,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   );
                 })}
                 <tr className="bg-gray-100 font-bold">
-                  <td className="border border-black p-1">{t('org.finance.hundiAudit.subtotalPhysicalCash')}</td>
+                  <td className="border border-black p-1">Subtotal Physical Cash</td>
                   <td className="border border-black p-1 text-right">--</td>
                   <td className="border border-black p-1 text-right">₹{totalINRSubtotal.toLocaleString('en-IN')}</td>
                 </tr>
@@ -593,7 +591,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   </tr>
                 )}
                 <tr className="bg-black text-white font-black text-sm">
-                  <td className="border border-black p-2 uppercase">{t('org.finance.hundiAudit.grandTotalDeposited')}</td>
+                  <td className="border border-black p-2 uppercase">Grand Total Deposited</td>
                   <td className="border border-black p-2 text-right">--</td>
                   <td className="border border-black p-2 text-right">₹{grandTotalINR.toLocaleString('en-IN')}</td>
                 </tr>
@@ -603,7 +601,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
           {/* Amount in words */}
           <div className="p-2 border border-black text-xs">
-            <p><strong>{t('org.finance.hundiAudit.amountInWords')}</strong> {grandTotalWords}</p>
+            <p><strong>Amount in Words:</strong> {grandTotalWords}</p>
           </div>
 
           {/* Bullion Table if any */}
@@ -659,7 +657,9 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     CCTV ACTIVE • VAULT ROOM 1
                   </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-amber-100 tracking-tight mt-1">{t('org.finance.hundiAudit.hundiGolakDualcustodyCountingDesk')}</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-amber-100 tracking-tight mt-1">
+                  Hundi & Golak Dual-Custody Counting Desk
+                </h1>
                 <p className="text-xs text-stone-400 mt-0.5">
                   Mandir Treasury Vault Security • Dual Keyholder Authentication • Real-Time Denomination Tally
                 </p>
@@ -702,7 +702,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   }`}
                 >
                   <History className="w-4 h-4" />
-                  <span>{t('org.finance.hundiAudit.auditHistory')}</span>
+                  <span>Audit History</span>
                   <span className="px-1.5 py-0.2 rounded-full bg-stone-800 text-[10px] text-amber-300 font-mono">
                     {pastSessions.length}
                   </span>
@@ -730,7 +730,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center font-bold text-xs">
                     1
                   </div>
-                  <span className="text-xs font-black">{t('org.finance.hundiAudit.dualkeyVaultUnlock')}</span>
+                  <span className="text-xs font-black">Dual-Key Vault Unlock</span>
                 </div>
               </div>
 
@@ -775,7 +775,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center font-bold text-xs">
                     4
                   </div>
-                  <span className="text-xs font-black">{t('org.finance.hundiAudit.postedVoucher')}</span>
+                  <span className="text-xs font-black">Posted & Voucher</span>
                 </div>
               </div>
             </div>
@@ -801,7 +801,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 {/* Hundi Box & Lead Seal Details */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-stone-950 p-5 rounded-2xl border border-stone-800">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-stone-400">{t('org.finance.hundiAudit.selectHundiGolakBox')}</label>
+                    <label className="text-[11px] font-bold text-stone-400">Select Hundi / Golak Box</label>
                     <select
                       value={selectedHundiId}
                       onChange={(e) => setSelectedHundiId(e.target.value)}
@@ -840,7 +840,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-stone-400">{t('org.finance.hundiAudit.physicalSealIntegrity')}</label>
+                    <label className="text-[11px] font-bold text-stone-400">Physical Seal Integrity</label>
                     <div className="flex items-center gap-3 pt-2">
                       <label className="flex items-center gap-2 text-xs text-emerald-400 font-bold cursor-pointer">
                         <input
@@ -882,8 +882,10 @@ export const HundiCountingAuditDesk: React.FC = () => {
                           <KeyRound className="w-4 h-4" />
                         </div>
                         <div>
-                          <h3 className="text-xs font-black uppercase tracking-wider text-white">{t('org.finance.hundiAudit.keyholder1PrimaryCustodian')}</h3>
-                          <span className="text-[10px] font-mono text-stone-400">{t('org.finance.hundiAudit.chiefAccountantAdmin')}</span>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-white">
+                            Keyholder 1 (Primary Custodian)
+                          </h3>
+                          <span className="text-[10px] font-mono text-stone-400">Chief Accountant / Admin</span>
                         </div>
                       </div>
 
@@ -900,7 +902,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                     <div className="space-y-3">
                       <div>
-                        <label className="text-[10px] font-bold text-stone-400 block mb-1">{t('org.finance.hundiAudit.custodianNameRole')}</label>
+                        <label className="text-[10px] font-bold text-stone-400 block mb-1">Custodian Name & Role</label>
                         <input
                           type="text"
                           value={key1Name}
@@ -998,8 +1000,10 @@ export const HundiCountingAuditDesk: React.FC = () => {
                           <KeyRound className="w-4 h-4" />
                         </div>
                         <div>
-                          <h3 className="text-xs font-black uppercase tracking-wider text-white">{t('org.finance.hundiAudit.keyholder2WitnessCustodian')}</h3>
-                          <span className="text-[10px] font-mono text-stone-400">{t('org.finance.hundiAudit.trusteeHeadSevadar')}</span>
+                          <h3 className="text-xs font-black uppercase tracking-wider text-white">
+                            Keyholder 2 (Witness Custodian)
+                          </h3>
+                          <span className="text-[10px] font-mono text-stone-400">Trustee / Head Sevadar</span>
                         </div>
                       </div>
 
@@ -1016,7 +1020,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                     <div className="space-y-3">
                       <div>
-                        <label className="text-[10px] font-bold text-stone-400 block mb-1">{t('org.finance.hundiAudit.selectWitnessTrustee')}</label>
+                        <label className="text-[10px] font-bold text-stone-400 block mb-1">Select Witness Trustee</label>
                         <select
                           value={key2Name}
                           onChange={(e) => {
@@ -1123,7 +1127,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     }`}
                   >
                     <Unlock className="w-5 h-5" />
-                    <span>{t('org.finance.hundiAudit.breakLeadSealOpenHundiForCounting')}</span>
+                    <span>Break Lead Seal & Open Hundi for Counting</span>
                   </button>
                   {(!isKey1Unlocked || !isKey2Unlocked) && (
                     <p className="text-[11px] text-stone-500 mt-2">
@@ -1156,7 +1160,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                   <div className="flex items-center gap-3 flex-wrap justify-center">
                     <div className="px-3 py-1.5 rounded-xl bg-stone-950 border border-stone-800 text-center">
-                      <span className="text-[10px] text-stone-400 block">{t('org.finance.hundiAudit.notesValue')}</span>
+                      <span className="text-[10px] text-stone-400 block">Notes Value</span>
                       <strong className="text-xs text-white font-mono">₹{totalCashNotesINR.toLocaleString('en-IN')}</strong>
                     </div>
 
@@ -1188,7 +1192,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
                       <Coins className="w-4 h-4" />
-                      <span>{t('org.finance.hundiAudit.indianRupeeDenominationsNotesCoins')}</span>
+                      <span>Indian Rupee Denominations (Notes & Coins)</span>
                     </h3>
                     <span className="text-xs text-stone-400">
                       Tap bundle increment buttons or type count directly
@@ -1396,7 +1400,9 @@ export const HundiCountingAuditDesk: React.FC = () => {
                       }
                     }}
                     className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white text-xs font-bold transition-colors cursor-pointer"
-                  >{t('org.finance.hundiAudit.abortRelockVault')}</button>
+                  >
+                    Abort & Relock Vault
+                  </button>
 
                   <button
                     type="button"
@@ -1417,13 +1423,15 @@ export const HundiCountingAuditDesk: React.FC = () => {
               <div className="bg-stone-900/90 rounded-3xl border-2 border-amber-500/30 p-6 sm:p-8 space-y-6 shadow-2xl">
                 <div className="flex items-center justify-between border-b border-stone-800 pb-4">
                   <div>
-                    <h2 className="text-lg font-black text-white">{t('org.finance.hundiAudit.physicalCountAuditVerificationTreasuryHa')}</h2>
+                    <h2 className="text-lg font-black text-white">
+                      Physical Count Audit Verification & Treasury Handoff
+                    </h2>
                     <p className="text-xs text-stone-400">
                       Carefully verify denomination counts before co-signing and posting into the Central Mandir Treasury ledger.
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-stone-400 block font-mono">{t('org.finance.hundiAudit.totalNetOfferings')}</span>
+                    <span className="text-[10px] text-stone-400 block font-mono">Total Net Offerings</span>
                     <strong className="text-2xl font-black text-amber-300 font-mono">
                       ₹{grandTotalINR.toLocaleString('en-IN')}
                     </strong>
@@ -1454,13 +1462,13 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 {/* Audit Attestation Badges */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3.5 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
-                    <span className="text-[10px] text-stone-400 uppercase font-black">{t('org.finance.hundiAudit.hundiBoxSeal')}</span>
+                    <span className="text-[10px] text-stone-400 uppercase font-black">Hundi Box & Seal</span>
                     <p className="text-xs font-bold text-white">{currentHundiBox.name}</p>
                     <span className="text-[10px] text-amber-400 font-mono">Lead Seal #{leadSealNo}</span>
                   </div>
 
                   <div className="p-3.5 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
-                    <span className="text-[10px] text-stone-400 uppercase font-black">{t('org.finance.hundiAudit.custodian1Accountant')}</span>
+                    <span className="text-[10px] text-stone-400 uppercase font-black">Custodian 1 (Accountant)</span>
                     <p className="text-xs font-bold text-white">{key1Name}</p>
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> PIN Verified
@@ -1468,7 +1476,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   </div>
 
                   <div className="p-3.5 rounded-2xl bg-stone-950 border border-stone-800 space-y-1">
-                    <span className="text-[10px] text-stone-400 uppercase font-black">{t('org.finance.hundiAudit.custodian2Trustee')}</span>
+                    <span className="text-[10px] text-stone-400 uppercase font-black">Custodian 2 (Trustee)</span>
                     <p className="text-xs font-bold text-white">{key2Name}</p>
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> PIN Verified
@@ -1509,14 +1517,14 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   </div>
 
                   <div className="p-3 bg-stone-900 border-t border-stone-800 flex items-center justify-between text-xs font-black">
-                    <span className="text-white uppercase">{t('org.finance.hundiAudit.grandTotalToPost')}</span>
+                    <span className="text-white uppercase">Grand Total to Post:</span>
                     <span className="text-amber-300 font-mono text-base">₹{grandTotalINR.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
                 {/* Audit & Discrepancy Observation Notes */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-stone-400">{t('org.finance.hundiAudit.auditorCustodianAttestationNotes')}</label>
+                  <label className="text-xs font-bold text-stone-400">Auditor / Custodian Attestation Notes</label>
                   <textarea
                     rows={2}
                     value={auditNotes}
@@ -1543,11 +1551,11 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-stone-950 font-black text-xs shadow-xl shadow-emerald-500/20 cursor-pointer flex items-center gap-2 transition-transform hover:scale-105"
                   >
                     {isPostingTreasury ? (
-                      <span>{t('org.finance.hundiAudit.postingToTreasury')}</span>
+                      <span>Posting to Treasury...</span>
                     ) : (
                       <>
                         <ShieldCheck className="w-4 h-4" />
-                        <span>{t('org.finance.hundiAudit.cosignPostToCentralTreasuryLedger')}</span>
+                        <span>Co-Sign & Post to Central Treasury Ledger</span>
                       </>
                     )}
                   </button>
@@ -1565,7 +1573,9 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <h2 className="text-xl sm:text-2xl font-black text-white">{t('org.finance.hundiAudit.hundiCashCountCertifiedPostedToTreasury')}</h2>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    Hundi Cash Count Certified & Posted to Treasury
+                  </h2>
                   <p className="text-xs text-stone-400 max-w-lg mx-auto">
                     The total amount of <strong>₹{grandTotalINR.toLocaleString('en-IN')}</strong> has been posted as a verified income receipt to the Central Treasury Ledger under category <code>HUNDI_COLLECTION</code>.
                   </p>
@@ -1573,10 +1583,10 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                 {/* Session Reference Box */}
                 <div className="inline-flex items-center gap-3 bg-stone-950 px-4 py-2 rounded-2xl border border-stone-800 text-xs font-mono">
-                  <span className="text-stone-400">{t('org.finance.hundiAudit.voucherRef')}</span>
+                  <span className="text-stone-400">Voucher Ref:</span>
                   <strong className="text-amber-400">{postedSession?.sessionCode}</strong>
                   <span className="text-stone-600">•</span>
-                  <span className="text-emerald-400 font-bold">{t('org.finance.hundiAudit.auditVerified')}</span>
+                  <span className="text-emerald-400 font-bold">Audit Verified</span>
                 </div>
 
                 {/* Primary Actions */}
@@ -1587,7 +1597,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-lg transition-transform hover:scale-105 cursor-pointer flex items-center gap-2"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>{t('org.finance.hundiAudit.printOfficialAuditVoucher')}</span>
+                    <span>Print Official Audit Voucher</span>
                   </button>
 
                   <button
@@ -1596,7 +1606,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     className="px-6 py-3 rounded-2xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>{t('org.finance.hundiAudit.startNewHundiCount')}</span>
+                    <span>Start New Hundi Count</span>
                   </button>
                 </div>
               </div>
@@ -1611,7 +1621,9 @@ export const HundiCountingAuditDesk: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-black text-white">{t('org.finance.hundiAudit.historicalHundiCountingAuditRecords')}</h3>
+                <h3 className="text-base font-black text-white">
+                  Historical Hundi Counting Audit Records
+                </h3>
                 <p className="text-xs text-stone-400">
                   Review previously locked and verified Hundi sessions, lead seal records, and reprint vouchers.
                 </p>
@@ -1675,7 +1687,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                   <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-stone-800">
                     <div className="text-left md:text-right">
-                      <span className="text-[10px] text-stone-500 uppercase font-mono block">{t('org.finance.hundiAudit.depositedTotal')}</span>
+                      <span className="text-[10px] text-stone-500 uppercase font-mono block">Deposited Total</span>
                       <span className="text-base font-black text-amber-300 font-mono">
                         ₹{session.grandTotalINR.toLocaleString('en-IN')}
                       </span>
