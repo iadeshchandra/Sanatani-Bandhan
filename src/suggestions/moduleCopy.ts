@@ -239,6 +239,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'मंडली को व्हाट्सऐप अव्यवस्था के बिना चलाएं — सदस्य, सभाएं, भजन सूची, प्रसाद बारी और निधि।',
     bn: 'হোয়াটসঅ্যাপ বিশৃঙ্খলা ছাড়াই মণ্ডলী চালান — সদস্য, সমাবেশ, ভজন তালিকা, প্রসাদ পালা ও তহবিল।',
   },
+  'sabha-one': {
+    en: 'Run the purohit sabha properly — member directory, dues, welfare fund, training and festival duty rosters.',
+    hi: 'पुरोहित सभा को व्यवस्थित चलाएं — सदस्य निर्देशिका, शुल्क, कल्याण निधि, प्रशिक्षण और उत्सव कर्तव्य सूची।',
+    bn: 'পুরোহিত সভা সুষ্ঠুভাবে চালান — সদস্য নির্দেশিকা, চাঁদা, কল্যাণ তহবিল, প্রশিক্ষণ ও উৎসব দায়িত্ব তালিকা।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',

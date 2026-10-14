@@ -73,6 +73,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   'yoga-one': 'STANDARD',
   'matha-one': 'STANDARD',
   'satsang-one': 'STANDARD',
+  'sabha-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -192,6 +193,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'tirth-one',
     // Satsang One: mandali organizer tool (Mandir-native — mandirs host satsangs).
     'satsang-one',
+    // Sabha One: purohit sabha association management (Mandir hosts sabha chapters).
+    'sabha-one',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -283,6 +286,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'panchayatPolls', 'sandeshBroadcast', 'masterSettings', 'trusteeGovernance',
     // R-1: added 'donorCare' — wizard default for PurohitSabha.
     'donorCare',
+    // Sabha One: the sabha's own association management suite.
+    'sabha-one',
   ],
   Trust: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -579,6 +584,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Matha One (sannyasi registry, parampara, dinacharya, gurukul) belongs to Sangha / Ashram workspaces.',
   'satsang-one':
     'Satsang One (mandali members, gatherings, bhajans, prasad rotation) belongs to Satsang / Mandir / Ashram workspaces.',
+  'sabha-one':
+    'Sabha One (member directory, dues, welfare, training, duty roster) belongs to Purohit Sabha / Mandir workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
