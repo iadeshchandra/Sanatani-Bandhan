@@ -24,6 +24,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { PurohitProvider, usePurohit } from '../../context/PurohitContext';
 import { provisionalSoloProfile } from '../../solo/soloSession';
 import { VerificationBadge } from '../common/VerificationBadge';
+import { useLanguage } from '../../context/LanguageContext';
 import { OverviewTab } from './tabs/OverviewTab';
 import { FindGigsTab } from './tabs/FindGigsTab';
 import { MyGigsTab } from './tabs/MyGigsTab';
@@ -45,20 +46,22 @@ type PurohitTab =
   | 'profile'
   | 'marketplace';
 
-const TABS: { id: PurohitTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview', label: 'Home', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'find', label: 'Find Gigs', icon: <Search className="w-4 h-4" /> },
-  { id: 'gigs', label: 'My Gigs', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'earnings', label: 'Earnings', icon: <Wallet className="w-4 h-4" /> },
-  { id: 'availability', label: 'Availability', icon: <CalendarDays className="w-4 h-4" /> },
-  { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
-  { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" /> },
-  { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
-  { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
+const getTabs = (t: (k: string) => string): { id: PurohitTab; label: string; icon: React.ReactNode }[] => [
+  { id: 'overview', label: t('purohit.shell.tabs.home'), icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'find', label: t('purohit.shell.tabs.find'), icon: <Search className="w-4 h-4" /> },
+  { id: 'gigs', label: t('purohit.shell.tabs.gigs'), icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'earnings', label: t('purohit.shell.tabs.earnings'), icon: <Wallet className="w-4 h-4" /> },
+  { id: 'availability', label: t('purohit.shell.tabs.availability'), icon: <CalendarDays className="w-4 h-4" /> },
+  { id: 'verification', label: t('purohit.shell.tabs.verification'), icon: <BadgeCheck className="w-4 h-4" /> },
+  { id: 'reviews', label: t('purohit.shell.tabs.reviews'), icon: <Star className="w-4 h-4" /> },
+  { id: 'profile', label: t('purohit.shell.tabs.profile'), icon: <User className="w-4 h-4" /> },
+  { id: 'marketplace', label: t('purohit.shell.tabs.marketplace'), icon: <Store className="w-4 h-4" /> },
 ];
 
 const InnerShell: React.FC = () => {
+  const { t } = useLanguage();
   const { logout, exitPurohitSession, enterSoloSession } = useAuthWorkspace();
+  const TABS = getTabs(t);
   const { profile, profileLoading, effectiveTier, myInvites } = usePurohit();
   const [tab, setTab] = useState<PurohitTab>('overview');
 
@@ -85,7 +88,7 @@ const InnerShell: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-black text-stone-900 truncate">
-                  {profileLoading ? 'Loading…' : profile?.displayName || 'Purohit'}
+                  {profileLoading ? t('purohit.shell.loading') : profile?.displayName || t('purohit.shell.fallbackName')}
                 </h1>
                 {effectiveTier && <VerificationBadge tier={effectiveTier} />}
               </div>
@@ -105,9 +108,9 @@ const InnerShell: React.FC = () => {
                 type="button"
                 onClick={() => exitPurohitSession()}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-black transition-colors min-h-[44px]"
-                title="Switch to your devotee view"
+                title={t('purohit.shell.devoteeViewHint')}
               >
-                🙏 <span className="hidden sm:inline">Devotee view</span>
+                🙏 <span className="hidden sm:inline">{t('purohit.shell.devoteeView')}</span>
               </button>
             )}
             {/* Solo-first: Personal (Sanatani) is always one tap away. */}
@@ -115,9 +118,9 @@ const InnerShell: React.FC = () => {
               type="button"
               onClick={() => enterSoloSession(provisionalSoloProfile())}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black transition-colors min-h-[44px]"
-              title="Your personal Sanatani space — sadhana, panchang, Sangam"
+              title={t('purohit.shell.personalSpaceHint')}
             >
-              🪔 <span className="hidden sm:inline">Personal (Sanatani)</span>
+              🪔 <span className="hidden sm:inline">{t('purohit.shell.personalSanatani')}</span>
             </button>
             {pendingInvites > 0 && (
               <button
@@ -125,7 +128,7 @@ const InnerShell: React.FC = () => {
                 onClick={() => setTab('overview')}
                 className="relative p-2.5 rounded-xl bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
                 title={`${pendingInvites} organisation invitation(s)`}
-                aria-label={`${pendingInvites} organisation invitations`}
+                aria-label={`${pendingInvites} ${t('purohit.shell.invitesAria')}`}
               >
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center">
@@ -139,12 +142,12 @@ const InnerShell: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition-colors min-h-[44px]"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">{t('purohit.shell.logout')}</span>
             </button>
           </div>
         </div>
         {/* Tab bar */}
-        <nav className="max-w-6xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto" aria-label="Purohit workspace">
+        <nav className="max-w-6xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto" aria-label={t('purohit.shell.navLabel')}>
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -180,7 +183,7 @@ const InnerShell: React.FC = () => {
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">
         <p className="text-[11px] text-stone-400">
-          Purohit One · Independent purohit identity · {profile?.id || ''}
+          {t('purohit.shell.footer')} · {profile?.id || ''}
         </p>
       </footer>
     </div>
