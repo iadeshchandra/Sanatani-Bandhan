@@ -1240,6 +1240,353 @@ async function seedPlans(): Promise<NativeResult> {
   return { ok: true, data: { ok: true, seeded: PLAN_SEED.length } };
 }
 
+/* --------------------- Marketplace (Fiverr-like gigs) -------------------- */
+/* Data model:
+ * - marketplaceGigs: provider-owned service listings (public read)
+ * - marketplaceOrders: client bookings w/ commission snapshot (parties + owner)
+ * - marketplaceDisputes: open/resolved disputes (parties + owner)
+ * - commissionOverrides: per-category / per-provider rate overrides (owner)
+ * Commission snapshots at order time: rule changes never rewrite history.
+ */
+
+const ORDER_STATUSES = ['pending_payment', 'paid', 'accepted', 'in_progress', 'completed', 'cancelled', 'disputed', 'refunded'] as const;
+
+async function marketplaceDashboard(): Promise<NativeResult> {
+  requireOwner();
+  const [gigsS, ordersS, disputesS] = await Promise.all([
+    getDocs(query(collection(db, 'marketplaceGigs'), limit(500))),
+    getDocs(query(collection(db, 'marketplaceOrders'), limit(1000))),
+    getDocs(query(collection(db, 'marketplaceDisputes'), where('status', '==', 'open'), limit(200))),
+  ]);
+  const gigs = gigsS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const orders = ordersS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  let gmv = 0, commissionEarned = 0, activeOrders = 0;
+  const byProvider: Record<string, { gmv: number; commission: number; orders: number }> = {};
+  for (const o of orders) {
+    const gross = Number(o.amountGross || 0);
+    const comm = Number(o.commissionAmount || 0);
+    if (['paid', 'accepted', 'in_progress', 'completed'].includes(o.status)) {
+      gmv += gross; commissionEarned += comm;
+      const p = byProvider[o.providerId] || { gmv: 0, commission: 0, orders: 0 };
+      p.gmv += gross; p.commission += comm; p.orders += 1;
+      byProvider[o.providerId] = p;
+    }
+    if (['pending_payment', 'paid', 'accepted', 'in_progress'].includes(o.status)) activeOrders++;
+  }
+  const topProviders = Object.entries(byProvider)
+    .map(([providerId, s]) => ({ providerId, ...s }))
+    .sort((a, b) => b.gmv - a.gmv).slice(0, 10);
+  return {
+    ok: true,
+    data: {
+      ok: true,
+      kpis: {
+        gmv, commissionEarned, activeOrders,
+        openDisputes: disputesS.size,
+        activeGigs: gigs.filter((g: any) => g.active !== false).length,
+        totalGigs: gigs.length,
+      },
+      topProviders,
+    },
+  };
+}
+
+async function marketplaceGigs(filter: 'all' | 'active' | 'flagged' = 'all'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'marketplaceGigs'), limit(300)));
+  let gigs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), createdAt: tsToIso((d.data() as any).createdAt) }));
+  if (filter === 'active') gigs = gigs.filter((g: any) => g.active !== false);
+  if (filter === 'flagged') gigs = gigs.filter((g: any) => g.flagged === true);
+  return { ok: true, data: { ok: true, gigs } };
+}
+
+async function gigModerate(id: string, action: 'feature' | 'unfeature' | 'deactivate' | 'reactivate' | 'flag' | 'unflag'): Promise<NativeResult> {
+  const uid = requireOwner();
+  const patch: Record<string, any> = { updatedAt: serverTimestamp(), moderatedBy: uid };
+  if (action === 'feature') patch.featured = true;
+  if (action === 'unfeature') patch.featured = false;
+  if (action === 'deactivate') patch.active = false;
+  if (action === 'reactivate') patch.active = true;
+  if (action === 'flag') patch.flagged = true;
+  if (action === 'unflag') patch.flagged = false;
+  await updateDoc(doc(db, 'marketplaceGigs', id), patch);
+  await writeAudit('marketplace.gig.moderate', { gigId: id, action }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function marketplaceOrders(filters: { status?: string; providerId?: string; limit?: number } = {}): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'marketplaceOrders'), limit(Math.min(filters.limit || 200, 500))));
+  let orders = snap.docs.map((d) => ({
+    id: d.id, ...(d.data() as any),
+    createdAt: tsToIso((d.data() as any).createdAt),
+    completedAt: tsToIso((d.data() as any).completedAt),
+  }));
+  if (filters.status && filters.status !== 'all') orders = orders.filter((o: any) => o.status === filters.status);
+  if (filters.providerId) orders = orders.filter((o: any) => o.providerId === filters.providerId);
+  orders.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, orders } };
+}
+
+async function orderForceStatus(id: string, status: 'completed' | 'cancelled' | 'refunded', note?: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!['completed', 'cancelled', 'refunded'].includes(status)) {
+    return { ok: false, error: 'Invalid forced status.', code: 'BAD_STATUS' };
+  }
+  await updateDoc(doc(db, 'marketplaceOrders', id), {
+    status, ownerNote: note || '', resolvedBy: uid,
+    ...(status === 'completed' ? { completedAt: serverTimestamp() } : {}),
+    updatedAt: serverTimestamp(),
+  });
+  await writeAudit('marketplace.order.force', { orderId: id, status, note: note || '' }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function marketplaceDisputes(status = 'all'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'marketplaceDisputes'), limit(200)));
+  let disputes = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), createdAt: tsToIso((d.data() as any).createdAt) }));
+  if (status !== 'all') disputes = disputes.filter((d: any) => d.status === status);
+  disputes.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, disputes } };
+}
+
+async function disputeResolve(id: string, resolution: 'refund_client' | 'release_provider' | 'split', splitClient = 0, splitProvider = 0, note = ''): Promise<NativeResult> {
+  const uid = requireOwner();
+  const dSnap = await getDoc(doc(db, 'marketplaceDisputes', id));
+  if (!dSnap.exists()) return { ok: false, error: 'Dispute not found.', code: 'NOT_FOUND' };
+  const d: any = dSnap.data();
+  await updateDoc(doc(db, 'marketplaceDisputes', id), {
+    status: 'resolved', resolution, resolvedByUid: uid, resolvedAt: serverTimestamp(),
+    resolutionNote: note, splitClient, splitProvider,
+  });
+  // Move the underlying order to the terminal state matching the resolution.
+  if (d.orderId) {
+    const orderStatus = resolution === 'refund_client' ? 'refunded' : 'completed';
+    await updateDoc(doc(db, 'marketplaceOrders', d.orderId), {
+      status: orderStatus, disputeResolution: resolution, updatedAt: serverTimestamp(),
+    });
+  }
+  await writeAudit('marketplace.dispute.resolve', { disputeId: id, orderId: d.orderId, resolution }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/* ---------------- Commission overrides (per-category / per-provider) ---------------- */
+/* Resolution order for NEW orders: provider override > category override > global rule. */
+
+async function commissionOverrides(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(collection(db, 'commissionOverrides'));
+  const overrides = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  return { ok: true, data: { ok: true, overrides } };
+}
+
+async function commissionOverrideSave(o: {
+  id?: string; scope: 'category' | 'provider'; targetId: string; ratePercent: number;
+  minCommission?: number; maxCommission?: number; active?: boolean; note?: string;
+}): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (o.ratePercent < 0 || o.ratePercent > 90) {
+    return { ok: false, error: 'Rate must be 0–90%.', code: 'BAD_RATE' };
+  }
+  const payload = {
+    scope: o.scope, targetId: o.targetId, ratePercent: o.ratePercent,
+    minCommission: o.minCommission || 0, maxCommission: o.maxCommission || 0,
+    active: o.active !== false, note: o.note || '',
+    updatedAt: serverTimestamp(), updatedBy: uid,
+  };
+  if (o.id) {
+    await updateDoc(doc(db, 'commissionOverrides', o.id), payload);
+  } else {
+    await addDoc(collection(db, 'commissionOverrides'), { ...payload, createdAt: serverTimestamp() });
+  }
+  await writeAudit('marketplace.commission.override', { scope: o.scope, targetId: o.targetId, ratePercent: o.ratePercent }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function commissionOverrideDelete(id: string): Promise<NativeResult> {
+  requireOwner();
+  await updateDoc(doc(db, 'commissionOverrides', id), { active: false, updatedAt: serverTimestamp() });
+  await writeAudit('marketplace.commission.override.remove', { overrideId: id }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Resolve the effective commission for a NEW order (provider > category > global). */
+export async function resolveCommissionRate(providerId: string, category: string, providerType: string): Promise<{ ratePercent: number; source: string }> {
+  try {
+    const [overS, ruleS] = await Promise.all([
+      getDocs(query(collection(db, 'commissionOverrides'), where('active', '==', true), limit(100))),
+      getDocs(collection(db, 'commissionRules')),
+    ]);
+    const overrides = overS.docs.map((d) => d.data() as any);
+    const prov = overrides.find((o) => o.scope === 'provider' && o.targetId === providerId);
+    if (prov) return { ratePercent: Number(prov.ratePercent), source: `provider override (${prov.note || 'custom'})` };
+    const cat = overrides.find((o) => o.scope === 'category' && o.targetId === category);
+    if (cat) return { ratePercent: Number(cat.ratePercent), source: `category override (${category})` };
+    const rules = ruleS.docs.map((d) => d.data() as any).filter((r) => r.active !== false);
+    const rule = rules.find((r) => r.serviceType === providerType || r.serviceType === 'both') || rules[0];
+    if (rule) return { ratePercent: Number(rule.ratePercent || 0), source: 'global rule' };
+    return { ratePercent: 12, source: 'platform default' };
+  } catch {
+    return { ratePercent: 12, source: 'platform default (fallback)' };
+  }
+}
+
+export function computeCommission(gross: number, ratePercent: number, min = 0, max = 0): { commission: number; net: number } {
+  let commission = Math.round(gross * (ratePercent / 100));
+  if (min > 0) commission = Math.max(commission, min);
+  if (max > 0) commission = Math.min(commission, max);
+  return { commission, net: gross - commission };
+}
+
+async function providerDetail(providerId: string): Promise<NativeResult> {
+  requireOwner();
+  const [ordersS, payoutsS] = await Promise.all([
+    getDocs(query(collection(db, 'marketplaceOrders'), where('providerId', '==', providerId), limit(500))),
+    getDocs(query(collection(db, 'payouts'), where('providerUid', '==', providerId), limit(200))),
+  ]);
+  const orders = ordersS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const payouts = payoutsS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  let gmv = 0, commission = 0, netEarned = 0, pendingNet = 0;
+  for (const o of orders) {
+    const gross = Number(o.amountGross || 0);
+    const comm = Number(o.commissionAmount || 0);
+    const net = Number(o.providerNet ?? gross - comm);
+    if (o.status === 'completed') { gmv += gross; commission += comm; netEarned += net; }
+    else if (['paid', 'accepted', 'in_progress'].includes(o.status)) { gmv += gross; commission += comm; pendingNet += net; }
+  }
+  return { ok: true, data: { ok: true, providerId, gmv, commission, netEarned, pendingNet, orderCount: orders.length, payouts } };
+}
+
+async function marketplaceProviders(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'marketplaceOrders'), limit(1000)));
+  const byProvider: Record<string, { orders: number; gmv: number; commission: number; lastOrder: string }> = {};
+  for (const d of snap.docs) {
+    const o: any = d.data();
+    const p = byProvider[o.providerId] || { orders: 0, gmv: 0, commission: 0, lastOrder: '' };
+    p.orders++;
+    if (['paid', 'accepted', 'in_progress', 'completed'].includes(o.status)) {
+      p.gmv += Number(o.amountGross || 0);
+      p.commission += Number(o.commissionAmount || 0);
+    }
+    const c = tsToIso(o.createdAt) || '';
+    if (c > p.lastOrder) p.lastOrder = c;
+    byProvider[o.providerId] = p;
+  }
+  const providers = Object.entries(byProvider)
+    .map(([providerId, s]) => ({ providerId, providerType: '', ...s }))
+    .sort((a, b) => b.gmv - a.gmv);
+  return { ok: true, data: { ok: true, providers } };
+}
+
+/* ----------------- Payment method intelligence (PART 1) ----------------- */
+/* Every payment claim / upgrade request carries paymentMethodId (canonical id
+ * from the paymentMethods collection). Stats aggregate by method + period. */
+
+const METHOD_LABELS: Record<string, string> = {
+  bd_banglaqr: 'Bangla QR', bd_bkash: 'bKash', bd_nagad: 'Nagad',
+  in_upi: 'UPI', intl_wise: 'Wise', intl_payoneer: 'Payoneer',
+};
+
+function canonicalMethodId(raw: any): string {
+  const s = String(raw || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (s.includes('bangla') || s.includes('tallypay') || s.includes('qr')) return 'bd_banglaqr';
+  if (s.includes('bkash')) return 'bd_bkash';
+  if (s.includes('nagad')) return 'bd_nagad';
+  if (s.includes('rocket')) return 'bd_bkash';
+  if (s.includes('upi')) return 'in_upi';
+  if (s.includes('wise')) return 'intl_wise';
+  if (s.includes('payoneer')) return 'intl_payoneer';
+  if (s.includes('intl')) return 'intl_wise';
+  return 'unknown';
+}
+
+function periodStart(period: '7d' | '30d' | '90d' | 'all'): Date | null {
+  if (period === 'all') return null;
+  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+  return new Date(Date.now() - days * 24 * 3600 * 1000);
+}
+
+async function paymentMethodStats(period: '7d' | '30d' | '90d' | 'all' = '30d'): Promise<NativeResult> {
+  requireOwner();
+  const since = periodStart(period);
+  const [claimsS, upgradesS] = await Promise.all([
+    getDocs(query(collection(db, 'paymentClaims'), limit(1000))),
+    getDocs(query(collection(db, 'upgrade_requests'), limit(1000))),
+  ]);
+  const all: any[] = [
+    ...claimsS.docs.map((d) => ({ ...(d.data() as any), _src: 'claim' })),
+    ...upgradesS.docs.map((d) => ({ ...(d.data() as any), _src: 'upgrade' })),
+  ];
+  const byMethod: Record<string, { count: number; volume: number; approved: number; amounts: number[] }> = {};
+  for (const r of all) {
+    const ts = r.createdAt?.toDate?.() || r.timestamp?.toDate?.() || null;
+    if (since && ts && ts < since) continue;
+    const mid = r.paymentMethodId || canonicalMethodId(r.paymentMethod);
+    const m = byMethod[mid] || { count: 0, volume: 0, approved: 0, amounts: [] };
+    const amt = Number(r.amount || r.planPrice || 0);
+    m.count++; m.volume += amt; m.amounts.push(amt);
+    const st = String(r.status || '').toLowerCase();
+    if (st === 'approved' || st === 'active') m.approved++;
+    byMethod[mid] = m;
+  }
+  const methods = Object.entries(byMethod).map(([methodId, s]) => ({
+    methodId,
+    label: METHOD_LABELS[methodId] || methodId,
+    count: s.count,
+    volume: s.volume,
+    avgTicket: s.count ? Math.round(s.volume / s.count) : 0,
+    approvalRate: s.count ? Math.round((s.approved / s.count) * 100) : 0,
+  })).sort((a, b) => b.volume - a.volume);
+  return { ok: true, data: { ok: true, period, methods } };
+}
+
+async function paymentHistory(filters: { methodId?: string; status?: string; limit?: number } = {}): Promise<NativeResult> {
+  requireOwner();
+  const [claimsS, upgradesS] = await Promise.all([
+    getDocs(query(collection(db, 'paymentClaims'), limit(500))),
+    getDocs(query(collection(db, 'upgrade_requests'), limit(500))),
+  ]);
+  let rows: any[] = [
+    ...claimsS.docs.map((d) => {
+      const v: any = d.data();
+      return {
+        id: d.id, src: 'claim', methodId: v.paymentMethodId || canonicalMethodId(v.paymentMethod),
+        amount: Number(v.amount || 0), status: v.status, applicant: v.applicantUid || v.email || '',
+        trxId: v.transactionId || '', createdAt: tsToIso(v.createdAt),
+      };
+    }),
+    ...upgradesS.docs.map((d) => {
+      const v: any = d.data();
+      return {
+        id: d.id, src: 'upgrade', methodId: v.paymentMethodId || canonicalMethodId(v.paymentMethod),
+        amount: Number(v.amount || 0), status: v.status, applicant: v.contactInfo || v.adminName || '',
+        trxId: v.transactionId || '', createdAt: tsToIso(v.timestamp),
+      };
+    }),
+  ];
+  if (filters.methodId && filters.methodId !== 'all') rows = rows.filter((r) => r.methodId === filters.methodId);
+  if (filters.status && filters.status !== 'all') rows = rows.filter((r) => String(r.status).toLowerCase() === filters.status.toLowerCase());
+  rows.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, rows: rows.slice(0, filters.limit || 200) } };
+}
+
+async function exportPaymentCSV(period: '7d' | '30d' | '90d' | 'all' = 'all'): Promise<NativeResult> {
+  requireOwner();
+  const h = await paymentHistory({ limit: 2000 });
+  if (!h.ok) return h;
+  const rows: any[] = (h.data as any).rows || [];
+  const since = periodStart(period);
+  const filtered = since ? rows.filter((r) => !r.createdAt || new Date(r.createdAt) >= since) : rows;
+  const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = ['id,source,method,amount,status,applicant,trxId,createdAt',
+    ...filtered.map((r) => [r.id, r.src, r.methodId, r.amount, r.status, r.applicant, r.trxId, r.createdAt].map(esc).join(',')),
+  ].join('\n');
+  await writeAudit('billing.payments.export', { period, rows: filtered.length }, 'info');
+  return { ok: true, data: { ok: true, csv, count: filtered.length } };
+}
+
 /* --------------------------------- Export -------------------------------- */
 
 export const firestoreAdmin = {
@@ -1302,6 +1649,23 @@ export const firestoreAdmin = {
   paymentMethodSave,
   seedPaymentMethods,
   seedPlans,
+  // Marketplace (Fiverr-like gigs)
+  marketplaceDashboard,
+  marketplaceGigs,
+  gigModerate,
+  marketplaceOrders,
+  orderForceStatus,
+  marketplaceDisputes,
+  disputeResolve,
+  commissionOverrides,
+  commissionOverrideSave,
+  commissionOverrideDelete,
+  providerDetail,
+  marketplaceProviders,
+  // Payment method intelligence
+  paymentMethodStats,
+  paymentHistory,
+  exportPaymentCSV,
 };
 
 export default firestoreAdmin;

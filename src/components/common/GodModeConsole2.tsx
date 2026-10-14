@@ -19,7 +19,7 @@ import {
   Lock, KeyRound, LayoutDashboard, Users, Building2, BadgeCheck,
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
   X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
-  Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins,
+  Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store,
 } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
@@ -31,6 +31,7 @@ import { ModerationTab, BillingTab, MessagesTab, AuditTab } from './godmode/Admi
 import { InsightsTab, DatabaseExplorerTab } from './godmode/AdminTabsC';
 import { CommissionTab, ContentTab } from './godmode/AdminTabsD';
 import { SettingsTab, SupportTab } from './godmode/AdminTabsE';
+import { MarketplaceTab } from './godmode/AdminTabsF';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -39,7 +40,7 @@ interface GodModeConsole2Props {
 
 type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
   | 'billing' | 'commission' | 'messages' | 'audit'
-  | 'database' | 'content' | 'settings' | 'support' | 'system';
+  | 'database' | 'content' | 'settings' | 'support' | 'marketplace' | 'system';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Insights', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -49,6 +50,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'moderation', label: 'Moderation', icon: <ShieldAlert className="w-4 h-4" /> },
   { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'commission', label: 'Commission', icon: <HandCoins className="w-4 h-4" /> },
+  { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
   { id: 'content', label: 'Content', icon: <Megaphone className="w-4 h-4" /> },
@@ -298,6 +300,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'moderation': return <ModerationTab />;
       case 'billing': return <BillingTab />;
       case 'commission': return <CommissionTab />;
+      case 'marketplace': return <MarketplaceTab />;
       case 'messages': return <MessagesTab />;
       case 'database': return <DatabaseExplorerTab />;
       case 'content': return <ContentTab />;
