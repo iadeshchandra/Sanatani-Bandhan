@@ -186,7 +186,8 @@ service cloud.firestore {
 
     match /platform_leads/{leadId} {
       allow create: if true; // public lead-capture form
-      allow read, update, delete: if isSuperAdmin();
+      allow read, update: if isSuperAdmin() || isOwner();
+      allow delete: if isSuperAdmin();
     }
 
     match /app_config/{configId} {
@@ -549,10 +550,62 @@ service cloud.firestore {
     }
     match /messageTemplates/{templateId} {
       allow read: if isSuperAdmin() || isOwner();
-      allow create, update, delete: if false;
+      // Owner manages templates from the Console 3.0 Content Manager.
+      allow create, update, delete: if isOwner();
     }
     match /broadcastCaps/{capId} {
       allow read, write: if false; // server-internal rate-cap bookkeeping
+    }
+
+    // ---- Console 3.0: commission, content, settings, support ----
+    // All owner-managed via the Spark-native console. Clients never write.
+
+    // Commission rules: public read so the future marketplace UI can show
+    // "platform fee X%"; only the owner edits.
+    match /commissionRules/{ruleId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // Marketplace transactions: owner-only. Written by the future booking
+    // flow via Admin SDK; the console records status changes.
+    match /marketplaceTransactions/{txnId} {
+      allow read: if isSuperAdmin() || isOwner();
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+    // Payouts: providers request via their own doc (future), owner decides.
+    // For now the console seeds/manages; clients cannot write.
+    match /payouts/{payoutId} {
+      allow read: if isSuperAdmin() || isOwner();
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+    // Announcements: active ones are public so the app can render banners.
+    match /announcements/{annId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // Site content (landing page KV): public read, owner writes.
+    match /siteContent/{key} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // Feature flags: logged-in clients read (the app gates modules on these);
+    // only the owner toggles.
+    match /featureFlags/{flagId} {
+      allow read: if isLoggedIn();
+      allow create, update, delete: if isOwner();
+    }
+    // Plans: public read so pricing pages stay in sync; owner edits.
+    match /plans/{planId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // Platform config (maintenance mode etc.): public read of the main doc.
+    match /platformConfig/{cfgId} {
+      allow read: if true;
+      allow create, update: if isOwner();
+      allow delete: if false;
     }
 
     // Crisis events
