@@ -15,7 +15,7 @@ All authenticated endpoints expect: `Authorization: Bearer <Firebase ID token>`
 | Public | none | Anyone |
 | Authenticated | `requireAuth` | Any valid Firebase user |
 | Role | `requireRole(...)` | Users with the named role (SuperAdmin bypasses) |
-| Owner | `requireOwner` | Platform owner only — UID `ZBGzBZXdGgSJVkB9ZUixGPY1T353` or verified `iadeshchandra@gmail.com` |
+| Owner | `requireOwner` | Platform owner only — UID `sxIGHmvpYUTqPnpI1bLFT1O1cA62` or verified `iadeshchandra@gmail.com` |
 
 ---
 

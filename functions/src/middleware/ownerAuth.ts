@@ -7,7 +7,7 @@ import { AuthenticatedRequest, requireAuth } from './authMiddleware';
  * Matches the client-side GodMode gate (verified owner email).
  */
 export const OWNER_EMAIL = 'iadeshchandra@gmail.com';
-export const OWNER_UID = 'ZBGzBZXdGgSJVkB9ZUixGPY1T353';
+export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
 
 /**
  * isOwner(ctx) — true when the caller IS the platform owner, by UID or by
