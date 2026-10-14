@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { FirstRunLanguageGate } from './components/public/LanguagePicker';
 import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { JyotishProvider } from './context/JyotishContext';
 import { DataProvider } from './context/DataContext';
@@ -956,6 +957,7 @@ const AppContentRouter: React.FC = () => {
 const AppRouter: React.FC = () => {
   return (
     <LanguageProvider>
+      <FirstRunLanguageGate>
       {/* basename follows Vite's base so the app also works under a sub-path
           (e.g. GitHub Pages project sites served at /<repo>/). */}
       <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -1012,6 +1014,7 @@ const AppRouter: React.FC = () => {
         {/* Dev-only role tester: never renders in production builds. */}
         {import.meta.env.DEV && <PersonaSwitcher />}
       </BrowserRouter>
+      </FirstRunLanguageGate>
     </LanguageProvider>
   );
 };
