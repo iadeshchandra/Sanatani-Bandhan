@@ -356,7 +356,7 @@ router.get('/subscription/:workspaceId', requireAuth, async (req: AuthenticatedR
     const workspaceId = String(req.params.workspaceId);
     const db = getFirestore();
 
-    const isOwner = req.authContext && (uid === 'ZBGzBZXdGgSJVkB9ZUixGPY1T353'
+    const isOwner = req.authContext && (uid === 'sxIGHmvpYUTqPnpI1bLFT1O1cA62'
       || (req.authContext.email || '').toLowerCase() === 'iadeshchandra@gmail.com');
     if (!isOwner) {
       const memberSnap = await db.collection('workspaceMembers')
