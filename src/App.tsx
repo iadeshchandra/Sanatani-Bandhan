@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
+import { JyotishProvider } from './context/JyotishContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
 import { InstallPrompt } from './components/common/InstallPrompt';
@@ -1030,6 +1031,7 @@ export default function App() {
         <ToastProvider>
           <LanguageProvider>
             <AuthWorkspaceProvider>
+              <JyotishProvider>
               <NotificationProvider>
                 <DataProvider>
                   <MembershipProvider>
@@ -1041,6 +1043,7 @@ export default function App() {
                   </MembershipProvider>
                 </DataProvider>
               </NotificationProvider>
+              </JyotishProvider>
             </AuthWorkspaceProvider>
           </LanguageProvider>
         </ToastProvider>
