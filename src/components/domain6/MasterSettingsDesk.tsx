@@ -141,7 +141,7 @@ const MethodCard: React.FC<{
       </div>
     );
   }
-  // wise / payoneer
+  // payoneer (primary) / wise (fallback)
   const detail = method.type === 'wise' ? method.accountDetails : method.accountEmail;
   return (
     <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
@@ -502,7 +502,7 @@ export const MasterSettingsDesk: React.FC = () => {
     try {
       const requestRef = doc(collection(db, 'upgrade_requests'));
       // Canonical payment method id for per-method insights (see paymentMethods.ts).
-      const methodLabel = (paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod) || '';
+      const methodLabel = (paymentTab === 'INTL' ? 'INTL Gateway (Payoneer/Wise)' : upgradeForm.paymentMethod) || '';
       const ml = methodLabel.toLowerCase();
       const paymentMethodId =
         paymentTab === 'BD'
@@ -518,7 +518,7 @@ export const MasterSettingsDesk: React.FC = () => {
         adminName: currentUser?.name || 'Admin',
         contactInfo: upgradeForm.contact.trim(),
         senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : (upgradeForm.senderNumber.trim() || 'N/A'),
-        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod,
+        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Payoneer/Wise)' : upgradeForm.paymentMethod,
         paymentMethodId,
         paymentRegion: paymentTab,
         transactionId: upgradeForm.trxId.trim(),
