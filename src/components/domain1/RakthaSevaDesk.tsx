@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { HeartPulse, Search, Plus, Filter, Phone, MapPin, Activity, Droplet, Download, ShieldCheck, CheckCircle2, Users } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
-import { useLanguage } from '../../context/LanguageContext';
 
 interface BloodDonor {
   id: string;
@@ -25,7 +24,6 @@ const INITIAL_DONORS: BloodDonor[] = [
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export const RakthaSevaDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,15 +87,17 @@ export const RakthaSevaDesk: React.FC = () => {
             <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
               <HeartPulse className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{t('org.people.rakthaSeva.rakthaSevaBloodRegistry')}</h1>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Raktha Seva (Blood Registry)</h1>
           </div>
           <p className="text-sm text-slate-500 font-medium ml-11">Life-saving community emergency response & donor matching network.</p>
         </div>
         <div className="flex items-center gap-3 z-10">
           <button className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-colors shadow-sm flex items-center gap-2">
-            <Download className="w-4 h-4" />{t('org.people.rakthaSeva.exportDb')}</button>
+            <Download className="w-4 h-4" /> Export DB
+          </button>
           <button onClick={() => setIsAddModalOpen(true)} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-rose-500/30 flex items-center gap-2">
-            <Plus className="w-4 h-4" />{t('org.people.rakthaSeva.registerDonor')}</button>
+            <Plus className="w-4 h-4" /> Register Donor
+          </button>
         </div>
       </div>
 
@@ -139,7 +139,9 @@ export const RakthaSevaDesk: React.FC = () => {
             <button
               onClick={() => setFilterGroup('all')}
               className={`px-3 py-1.5 rounded-lg text-sm font-bold shrink-0 transition-colors ${filterGroup === 'all' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-            >{t('org.people.rakthaSeva.allTypes')}</button>
+            >
+              All Types
+            </button>
             {BLOOD_GROUPS.map((bg, idx) => (
               <button
                 key={bg}
@@ -157,10 +159,10 @@ export const RakthaSevaDesk: React.FC = () => {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
               <tr>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('org.people.rakthaSeva.donorDetails')}</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('org.people.rakthaSeva.bloodGroup')}</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('org.people.rakthaSeva.locationContact')}</th>
-                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t('org.people.rakthaSeva.statusAvailability')}</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Donor Details</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Blood Group</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Location / Contact</th>
+                <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status & Availability</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -213,7 +215,7 @@ export const RakthaSevaDesk: React.FC = () => {
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-rose-600" />
-                <h2 className="text-lg font-bold text-slate-800">{t('org.people.rakthaSeva.registerNewDonor')}</h2>
+                <h2 className="text-lg font-bold text-slate-800">Register New Donor</h2>
               </div>
               <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-200/50 rounded-full text-slate-500 transition-colors">
                 <Search className="w-4 h-4 hidden" /> {/* Dummy to avoid import issue if X is missing, wait I didn't import X. Let me use plain SVG */}
@@ -223,7 +225,7 @@ export const RakthaSevaDesk: React.FC = () => {
             
             <form onSubmit={handleAddDonor} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">{t('org.people.rakthaSeva.fullName')}</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
                 <input type="text" required value={newDonor.name || ''} onChange={e => setNewDonor({...newDonor, name: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" placeholder="e.g. Rahul Sharma" />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -234,7 +236,7 @@ export const RakthaSevaDesk: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">{t('org.people.rakthaSeva.phoneNumber')}</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
                   <input type="tel" required value={newDonor.phone || ''} onChange={e => setNewDonor({...newDonor, phone: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" placeholder="+91..." />
                 </div>
               </div>
@@ -244,8 +246,8 @@ export const RakthaSevaDesk: React.FC = () => {
               </div>
               
               <div className="pt-4 border-t border-slate-100 flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-5 py-2 hover:bg-slate-100 text-slate-600 font-bold rounded-xl transition-colors">{t('org.people.rakthaSeva.cancel')}</button>
-                <button type="submit" className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition-colors">{t('org.people.rakthaSeva.saveDonor')}</button>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-5 py-2 hover:bg-slate-100 text-slate-600 font-bold rounded-xl transition-colors">Cancel</button>
+                <button type="submit" className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition-colors">Save Donor</button>
               </div>
             </form>
           </div>
