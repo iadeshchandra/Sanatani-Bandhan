@@ -8,10 +8,12 @@ import {
   VEDIC_BRANCHES,
 } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, Field, inputCls, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const ID_PROOFS = ['Aadhaar', 'Voter ID', 'PAN Card', 'Parishad ID Card', 'Passport'];
 
 export const VerificationTab: React.FC = () => {
+  const { t } = useLanguage();
   const {
     profile,
     effectiveTier,
@@ -34,7 +36,7 @@ export const VerificationTab: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  if (!profile) return <EmptyState title="Loading…" />;
+  if (!profile) return <EmptyState title={t('purohit.verification.loading')} />;
 
   const current = effectiveTier || profile.verificationTier;
   const currentIdx = PUROHIT_TIERS.indexOf(current);
@@ -43,7 +45,7 @@ export const VerificationTab: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (myApplication?.status === 'PENDING') {
-      alert('Your application is already under review.');
+      alert(t('purohit.verification.alreadyUnderReview'));
       return;
     }
     setSubmitting(true);
@@ -59,7 +61,7 @@ export const VerificationTab: React.FC = () => {
         phone: form.phone.trim(),
       });
     } catch (err: any) {
-      alert(err.message || 'Submission failed');
+      alert(err.message || t('purohit.verification.submissionFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -67,8 +69,8 @@ export const VerificationTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <SectionTitle sub="Transparent pipeline — every tier has clear, public criteria.">
-        Verification
+      <SectionTitle sub={t('purohit.verification.titleSub')}>
+        {t('purohit.verification.title')}
       </SectionTitle>
 
       {/* Stepper */}
@@ -117,7 +119,7 @@ export const VerificationTab: React.FC = () => {
         </div>
         {canClaim && (
           <PrimaryButton className="w-full mt-4" onClick={claimTierAdvancement}>
-            🎉 Claim {PUROHIT_TIER_META[effectiveTier!].label}
+            🎉 {t('purohit.overview.claimTier').replace('{tier}', PUROHIT_TIER_META[effectiveTier!].label)}
           </PrimaryButton>
         )}
       </Card>
@@ -125,20 +127,19 @@ export const VerificationTab: React.FC = () => {
       {/* Application form */}
       {currentIdx < 1 && (
         <Card>
-          <SectionTitle sub="Reviewed by the platform team. Honest credentials only — false claims lead to permanent removal.">
-            Credential application
+          <SectionTitle sub={t('purohit.verification.pipelineSub')}>
+            {t('purohit.verification.credentialApplication')}
           </SectionTitle>
           {myApplication?.status === 'PENDING' ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-              <p className="font-black">⏳ Under review</p>
+              <p className="font-black">⏳ {t('purohit.verification.underReview')}</p>
               <p className="text-xs mt-1">
-                Submitted {new Date(myApplication.createdAt).toLocaleDateString('en-IN')}. You'll be
-                notified when the platform team decides.
+                {t('purohit.verification.submittedOn')} {new Date(myApplication.createdAt).toLocaleDateString('en-IN')}. {t('purohit.verification.notifiedWhen')}
               </p>
             </div>
           ) : (
             <form onSubmit={submit} className="space-y-4">
-              <Field label="Vedic certificates" hint="One per line: e.g. 'Acharya, Shukla Yajurveda — Sampurnanand Univ., 2018'">
+              <Field label={t('purohit.verification.vedicCerts')} hint={t('purohit.verification.vedicCertsExample')}>
                 <textarea
                   value={form.certificates}
                   onChange={(e) => setForm({ ...form, certificates: e.target.value })}
@@ -149,21 +150,21 @@ export const VerificationTab: React.FC = () => {
                 />
               </Field>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Gurukul affiliation">
+                <Field label={t('purohit.verification.gurukulAffiliation')}>
                   <input
                     value={form.gurukulAffiliation}
                     onChange={(e) => setForm({ ...form, gurukulAffiliation: e.target.value })}
                     className={inputCls}
-                    placeholder="e.g. Kashi Gurukulam"
+                    placeholder={t('purohit.verification.gurukulExample')}
                   />
                 </Field>
-                <Field label="Vedic branch">
+                <Field label={t('purohit.verification.vedicBranch')}>
                   <select
                     value={form.vedicBranch}
                     onChange={(e) => setForm({ ...form, vedicBranch: e.target.value })}
                     className={`${inputCls} bg-white`}
                   >
-                    <option value="">Select…</option>
+                    <option value="">{t('purohit.verification.selectPlaceholder')}</option>
                     {VEDIC_BRANCHES.map((b) => (
                       <option key={b}>{b}</option>
                     ))}
@@ -171,7 +172,7 @@ export const VerificationTab: React.FC = () => {
                 </Field>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="ID proof type">
+                <Field label={t('purohit.verification.idProofType')}>
                   <select
                     value={form.idProofType}
                     onChange={(e) => setForm({ ...form, idProofType: e.target.value })}
@@ -182,7 +183,7 @@ export const VerificationTab: React.FC = () => {
                     ))}
                   </select>
                 </Field>
-                <Field label="Years of experience">
+                <Field label={t('purohit.verification.yearsExp')}>
                   <input
                     type="number"
                     min={0}
@@ -193,24 +194,24 @@ export const VerificationTab: React.FC = () => {
                   />
                 </Field>
               </div>
-              <Field label="Specializations" hint="Comma-separated">
+              <Field label={t('purohit.verification.specializations')} hint={t('purohit.verification.commaSeparated')}>
                 <input
                   value={form.specializations}
                   onChange={(e) => setForm({ ...form, specializations: e.target.value })}
                   className={inputCls}
-                  placeholder="Vivah Samskara, Grihapravesh, Navagraha Havan"
+                  placeholder={t('purohit.verification.specsExample')}
                 />
               </Field>
-              <Field label="Languages" hint="Comma-separated">
+              <Field label={t('purohit.verification.languages')} hint={t('purohit.verification.commaSeparated')}>
                 <input
                   value={form.languages}
                   onChange={(e) => setForm({ ...form, languages: e.target.value })}
                   className={inputCls}
-                  placeholder="Sanskrit, Hindi, English"
+                  placeholder={t('purohit.verification.languagesExample')}
                 />
               </Field>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="City">
+                <Field label={t('purohit.verification.city')}>
                   <input
                     value={form.city}
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -218,7 +219,7 @@ export const VerificationTab: React.FC = () => {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Phone">
+                <Field label={t('purohit.verification.phone')}>
                   <input
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -228,11 +229,10 @@ export const VerificationTab: React.FC = () => {
                 </Field>
               </div>
               <PrimaryButton type="submit" className="w-full" disabled={submitting}>
-                {submitting ? 'Submitting…' : myApplication?.status === 'REJECTED' ? 'Re-submit application' : 'Submit for verification'}
+                {submitting ? t('purohit.verification.submitting') : myApplication?.status === 'REJECTED' ? t('purohit.verification.resubmitApp') : t('purohit.verification.submitApp')}
               </PrimaryButton>
               <p className="text-[11px] text-stone-400 text-center">
-                No document uploads in this version — list your credentials; the review team may ask for
-                scans over a verification call.
+                {t('purohit.verification.noUploads')}
               </p>
             </form>
           )}
@@ -242,14 +242,14 @@ export const VerificationTab: React.FC = () => {
       {/* Endorsements received */}
       {endorsements.length > 0 && (
         <Card>
-          <SectionTitle>Organisation endorsements ({endorsements.length})</SectionTitle>
+          <SectionTitle>{t('purohit.verification.endorsementsTitle')} ({endorsements.length})</SectionTitle>
           <div className="space-y-3">
             {endorsements.map((e) => (
               <div key={e.id} className="border border-stone-200 rounded-xl p-3.5">
                 <p className="text-sm font-black text-stone-900">🏛️ {e.orgName}</p>
                 <p className="text-xs text-stone-600 mt-1">“{e.text}”</p>
                 <p className="text-[11px] text-stone-400 mt-1.5">
-                  {e.ritualCount} rituals together · {new Date(e.createdAt).toLocaleDateString('en-IN')}
+                  {e.ritualCount} {t('purohit.verification.ritualsTogether')} · {new Date(e.createdAt).toLocaleDateString('en-IN')}
                 </p>
               </div>
             ))}
@@ -257,7 +257,7 @@ export const VerificationTab: React.FC = () => {
         </Card>
       )}
       <p className="text-[11px] text-stone-400 px-1">
-        Ritual types recognized: {RITUAL_TYPES.join(' · ')}
+        {t('purohit.verification.ritualTypesLabel')}: {RITUAL_TYPES.join(' · ')}
       </p>
     </div>
   );
