@@ -47,16 +47,20 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// Gracefully remove splash screen after React has mounted
-window.addEventListener('load', () => {
+// Dismiss splash once React has mounted. Do NOT wait for window.load —
+// it never fires reliably on mobile (slow/hung subresources), which left
+// the splash stuck forever on small viewports. Max 2s visible.
+function dismissSplash() {
   const splashScreen = document.getElementById('sb-splash-screen');
-  if (splashScreen) {
-    // Extended minimum delay to ensure the premium splash screen is visible
-    setTimeout(() => {
-      splashScreen.classList.add('fade-out');
-      setTimeout(() => {
-        splashScreen.remove();
-      }, 800); // Wait for CSS transition to finish before DOM removal
-    }, 4000); // 4 seconds minimum visibility
-  }
-});
+  if (!splashScreen || splashScreen.classList.contains('fade-out')) return;
+  splashScreen.classList.add('fade-out');
+  setTimeout(() => splashScreen.remove(), 800); // wait for CSS transition
+}
+// Dismiss shortly after first paint, regardless of load event.
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(dismissSplash, 1200);
+} else {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(dismissSplash, 1200));
+}
+// Hard ceiling: never show longer than 2.5s even if everything above fails.
+setTimeout(dismissSplash, 2500);

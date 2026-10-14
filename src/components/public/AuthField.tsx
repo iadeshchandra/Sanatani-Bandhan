@@ -11,14 +11,15 @@ interface AuthFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
   rightSlot?: React.ReactNode;
   multiline?: boolean;
   rows?: number;
+  error?: string;
 }
 
 export const AuthField: React.FC<AuthFieldProps> = ({
-  label, icon, rightSlot, multiline, rows = 2, className = '', id, ...rest
+  label, icon, rightSlot, multiline, rows = 2, className = '', id, error, ...rest
 }) => {
   const fieldId = id || `auth-field-${label.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
   const shell = 'auth-field relative';
-  const box = 'peer auth-ring w-full bg-white/[0.07] border border-white/15 rounded-2xl text-white text-[15px] font-medium placeholder:text-transparent outline-none transition-colors focus:bg-white/[0.10]';
+  const box = `peer auth-ring w-full bg-white/[0.07] border rounded-2xl text-white text-[15px] font-medium placeholder:text-transparent outline-none transition-colors focus:bg-white/[0.10] ${error ? 'border-red-400/60' : 'border-white/15'}`;
   const padIcon = icon ? 'pl-11' : 'pl-4';
   const padRight = rightSlot ? 'pr-11' : 'pr-4';
 
@@ -53,6 +54,9 @@ export const AuthField: React.FC<AuthFieldProps> = ({
         )}
         <label htmlFor={fieldId} className="auth-label">{label}</label>
       </div>
+      {error && (
+        <p className="text-[12px] font-semibold text-red-300 mt-1.5 ml-1">{error}</p>
+      )}
     </div>
   );
 };

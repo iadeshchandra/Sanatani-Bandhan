@@ -68,19 +68,26 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white flex justify-end">
-          <button
-            disabled={!selected}
-            onClick={() => selected && onSelect(selected)}
-            className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${
-              selected 
-                ? 'bg-saffron-500 hover:bg-saffron-600 text-white shadow-saffron-500/25' 
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            }`}
-          >
-            {safeTranslate('enter_demo_btn', 'Enter Demo Workspace', 'ডেমো ওয়ার্কস্পেসে প্রবেশ করুন', 'डेमो कार्यक्षेत्र दर्ज करें')}
-            <ArrowRight className="w-4 h-4" />
-          </button>
+        <div className="p-6 border-t border-slate-100 bg-white">
+          {!selected && (
+            <p className="text-[12px] font-semibold text-slate-500 text-center mb-3">
+              Select an institution type above to continue.
+            </p>
+          )}
+          <div className="flex justify-end">
+            <button
+              disabled={!selected}
+              onClick={() => selected && onSelect(selected)}
+              className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${
+                selected 
+                  ? 'bg-saffron-500 hover:bg-saffron-600 text-white shadow-saffron-500/25' 
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {safeTranslate('enter_demo_btn', 'Enter Demo Workspace', 'ডেমো ওয়ার্কস্পেসে প্রবেশ করুন', 'डेमो कार्यक्षेत्र दर्ज करें')}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>,
