@@ -817,6 +817,10 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       return allowedRoles.some((allowed) => {
         const normalizedAllowed = ROLE_MIGRATION_MAP[allowed] || allowed;
         if (normalizedAllowed === effectiveRole || allowed === effectiveRole) return true;
+        // Case-insensitive fallback: handles 'PRIEST' vs 'Priest' etc.
+        // even if ROLE_MIGRATION_MAP is missing a variant.
+        if (typeof normalizedAllowed === 'string' && typeof effectiveRole === 'string' &&
+            normalizedAllowed.toLowerCase() === effectiveRole.toLowerCase()) return true;
         // Trustee hierarchy grants operational leadership clearance
         if (effectiveRole === 'Trustee' && ['Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'].includes(normalizedAllowed)) {
           return true;
