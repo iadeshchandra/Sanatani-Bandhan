@@ -6,6 +6,7 @@ import { DevoteeMember } from '../../types';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DevoteeQRPassProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface DevoteeQRPassProps {
 
 export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, devotee, workspaceName }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   
   const [qrData, setQrData] = useState<string>('');
   const [expiryTime, setExpiryTime] = useState<number>(0);
@@ -43,7 +45,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
     const recentGens = history.filter((t: number) => t > oneHourAgo);
     
     if (recentGens.length >= 10 && !force) {
-      showToast('Rate limit exceeded. Try again later.', 'error');
+      showToast(t('devotee.qr.toastRateLimit'), 'error');
       return;
     }
 
@@ -54,7 +56,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
       // Auto-provision secret if missing (requires online)
       if (!secret) {
         if (isOffline) {
-          showToast('Cannot generate first-time QR while offline', 'error');
+          showToast(t('devotee.qr.toastCannotOffline'), 'error');
           setIsGenerating(false);
           return;
         }
@@ -94,10 +96,10 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
       // Update rate limit history
       localStorage.setItem('qr_gen_history', JSON.stringify([...recentGens, timestamp]));
       
-      if (force) showToast('QR Pass Regenerated', 'success');
+      if (force) showToast(t('devotee.qr.toastQrRegenerated'), 'success');
     } catch (error) {
       console.error(error);
-      showToast('Failed to generate secure QR Pass', 'error');
+      showToast(t('devotee.qr.toastFailedSecure'), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -142,7 +144,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
 
         {isOffline && (
           <div className="absolute top-4 left-4 z-20 bg-temple-900/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 backdrop-blur-md">
-            <WifiOff className="w-3 h-3" /> Offline Mode
+            <WifiOff className="w-3 h-3" /> {t('devotee.qr.offlineMode')}
           </div>
         )}
         
@@ -151,7 +153,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
           <div className="w-20 h-20 mx-auto bg-white rounded-xl p-1 shadow-sm mb-3 rotate-3 hover:rotate-0 transition-transform">
             <div className="w-full h-full rounded-xl bg-temple-50 overflow-hidden flex items-center justify-center">
               {photo ? (
-                <img src={photo} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={photo} alt={t('devotee.qr.avatar')} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-temple-300" />
               )}
@@ -162,7 +164,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
             {devotee.spiritualName || devotee.fullName || devotee.name}
           </h3>
           <p className="text-xs text-temple-500 font-bold uppercase tracking-widest mb-6">
-            {workspaceName || 'Digital Pass'}
+            {workspaceName || t('devotee.qr.digitalPass')}
           </p>
           
           {/* QR Container */}
@@ -181,7 +183,7 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
             ) : (
               <div className="w-[200px] h-[200px] bg-temple-50 flex flex-col items-center justify-center text-temple-400 rounded-xl">
                 <RefreshCw className="w-8 h-8 animate-spin mb-2" />
-                <span className="text-xs font-bold">Securing...</span>
+                <span className="text-xs font-bold">{t('devotee.qr.securing')}</span>
               </div>
             )}
           </div>
@@ -190,9 +192,9 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
             <div className="flex items-center gap-1.5 text-xs font-bold text-temple-500">
               <Clock className="w-4 h-4 text-emerald-600" />
               {expiryTime > 0 ? (
-                <span>Valid {hoursLeft}h</span>
+                <span>{t('devotee.qr.validHours').replace('{hours}', String(hoursLeft))}</span>
               ) : (
-                <span>Loading</span>
+                <span>{t('devotee.qr.loading')}</span>
               )}
             </div>
             
@@ -202,12 +204,12 @@ export const DevoteeQRPass: React.FC<DevoteeQRPassProps> = ({ isOpen, onClose, d
               className="flex items-center gap-1.5 px-3 py-1.5 bg-temple-50 hover:bg-temple-200 text-temple-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-              Refresh
+              {t('devotee.qr.refresh')}
             </button>
           </div>
 
           <div className="mt-6 flex items-center justify-center gap-2 text-emerald-700 font-bold text-sm bg-emerald-50 py-2.5 px-4 rounded-xl border border-emerald-100 w-full">
-            <Shield className="w-4 h-4" /> SECURE ENTRY PASS
+            <Shield className="w-4 h-4" /> {t('devotee.qr.secureEntryPass')}
           </div>
         </div>
       </div>
