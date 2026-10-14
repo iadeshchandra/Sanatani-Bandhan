@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, QrCode, Link2, CheckCircle2, Clock, XCircle, Info, Send, ShieldCheck, AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   myPaymentMethod, submitOwnPaymentMethod, usePlatformPayment,
   contactOwner, myInquiries, myStrikes,
@@ -105,10 +106,10 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
     <div className="space-y-3">
       {/* Current status */}
       <div className="bg-white border border-stone-200 rounded-2xl p-4">
-        <p className="text-[11px] font-black text-stone-500 uppercase mb-2">Current payment method</p>
+        <p className="text-[11px] font-black text-stone-500 uppercase mb-2">{t('marketplace.provider.currentMethod')}</p>
         <div className="flex items-center gap-2 flex-wrap">
           {currentIsPlatform ? (
-            <><ShieldCheck className="w-5 h-5 text-emerald-600" /><p className="text-sm font-black">Platform payment</p></>
+            <><ShieldCheck className="w-5 h-5 text-emerald-600" /><p className="text-sm font-black">{t('marketplace.provider.platformPayment')}</p></>
           ) : (
             <><CreditCard className="w-5 h-5 text-amber-600" /><p className="text-sm font-black">
               {method?.methodType === 'own_qr' ? 'My QR code' : method?.methodType === 'own_upi' ? 'My UPI ID' : 'My payment link'}
@@ -130,7 +131,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex gap-2.5">
         <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <div className="text-[11px] text-emerald-900">
-          <p className="font-black mb-0.5">Platform protection</p>
+          <p className="font-black mb-0.5">{t('marketplace.provider.platformProtection')}</p>
           <p>On-platform sevas receive dispute resolution, verified badge, ashirvad accumulation, and guaranteed dakshina processing. Direct arrangements outside the platform receive none of these protections.</p>
         </div>
       </div>
@@ -138,7 +139,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       {/* Actions */}
       <div className="grid grid-cols-2 gap-2">
         {!currentIsPlatform ? (
-          <button type="button" onClick={switchToPlatform} className={`${btnP} w-full`}>Use platform payment</button>
+          <button type="button" onClick={switchToPlatform} className={`${btnP} w-full`}>{t('marketplace.provider.usePlatform')}</button>
         ) : (
           <button type="button" onClick={() => setShowForm(!showForm)} className={`${btnG} w-full`}>
             <QrCode className="w-3.5 h-3.5 inline mr-1" /> Use my own method
@@ -152,7 +153,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       {/* Own-method form */}
       {showForm && (
         <div className="bg-white border border-amber-200 rounded-2xl p-4 space-y-3">
-          <p className="text-xs font-black">Request your own payment method</p>
+          <p className="text-xs font-black">{t('marketplace.provider.requestOwnMethod')}</p>
           <p className="text-[11px] text-stone-500">Requires owner approval. Explain why you need it — e.g. lower fees in your region, existing merchant account.</p>
           <div className="flex gap-1.5">
             {([['own_qr', 'QR code', QrCode], ['own_upi', 'UPI ID', CreditCard], ['own_link', 'Pay link', Link2]] as const).map(([id, label, Icon]) => (
@@ -163,16 +164,16 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
             ))}
           </div>
           {ownType === 'own_qr' && (
-            <label className="text-[11px] font-bold text-stone-500">QR image URL<input value={qrUrl} onChange={(e) => setQrUrl(e.target.value)} className={inputCls} placeholder="https://…/my-qr.png" /></label>
+            <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.qrUrl')}<input value={qrUrl} onChange={(e) => setQrUrl(e.target.value)} className={inputCls} placeholder="https://…/my-qr.png" /></label>
           )}
           {ownType === 'own_upi' && (
-            <label className="text-[11px] font-bold text-stone-500">UPI ID<input value={upiId} onChange={(e) => setUpiId(e.target.value)} className={inputCls} placeholder="name@upi" /></label>
+            <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.upiId')}<input value={upiId} onChange={(e) => setUpiId(e.target.value)} className={inputCls} placeholder="name@upi" /></label>
           )}
           {ownType === 'own_link' && (
-            <label className="text-[11px] font-bold text-stone-500">Payment link<input value={payLink} onChange={(e) => setPayLink(e.target.value)} className={inputCls} placeholder="https://…" /></label>
+            <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.paymentLink')}<input value={payLink} onChange={(e) => setPayLink(e.target.value)} className={inputCls} placeholder="https://…" /></label>
           )}
           <label className="text-[11px] font-bold text-stone-500">Account label (shown to clients)<input value={acctLabel} onChange={(e) => setAcctLabel(e.target.value)} className={inputCls} placeholder="e.g. My bKash merchant" /></label>
-          <label className="text-[11px] font-bold text-stone-500">Why do you need your own method?<textarea value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} rows={3} placeholder="Explain briefly…" /></label>
+          <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.whyNeedOwn')}<textarea value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} rows={3} placeholder={t('marketplace.provider.explainBriefly')} /></label>
           <button type="button" disabled={submitting} onClick={submitOwn} className={`${btnP} w-full`}>
             <Send className="w-3.5 h-3.5 inline mr-1" />{submitting ? 'Submitting…' : 'Submit for approval'}
           </button>
@@ -198,7 +199,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       {/* Inquiry history */}
       {inquiries.length > 0 && (
         <div className="bg-white border border-stone-200 rounded-2xl p-4">
-          <p className="text-[11px] font-black text-stone-500 uppercase mb-2">My messages to owner</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase mb-2">{t('marketplace.provider.myMessages')}</p>
           <div className="space-y-2">
             {inquiries.map((q) => (
               <div key={q.id} className="rounded-xl bg-stone-50 p-2.5 text-[11px]">
@@ -216,10 +217,10 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       {contactOpen && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setContactOpen(false)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black mb-3">Contact owner</h3>
+            <h3 className="font-black mb-3">{t('marketplace.provider.contactOwner')}</h3>
             <div className="space-y-3">
-              <label className="text-[11px] font-bold text-stone-500">Subject<input value={cSubject} onChange={(e) => setCSubject(e.target.value)} className={inputCls} placeholder="e.g. Payment method question" /></label>
-              <label className="text-[11px] font-bold text-stone-500">Message<textarea value={cMessage} onChange={(e) => setCMessage(e.target.value)} className={inputCls} rows={4} placeholder="Write your message…" /></label>
+              <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.subject')}<input value={cSubject} onChange={(e) => setCSubject(e.target.value)} className={inputCls} placeholder={t('marketplace.provider.subjectExample')} /></label>
+              <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.message')}<textarea value={cMessage} onChange={(e) => setCMessage(e.target.value)} className={inputCls} rows={4} placeholder={t('marketplace.provider.writeMessage')} /></label>
               <div className="flex gap-2">
                 <button type="button" onClick={sendInquiry} className={`${btnP} flex-1`}><Send className="w-3.5 h-3.5 inline mr-1" />Send</button>
                 <button type="button" onClick={() => setContactOpen(false)} className={`${btnG} flex-1`}>Cancel</button>
