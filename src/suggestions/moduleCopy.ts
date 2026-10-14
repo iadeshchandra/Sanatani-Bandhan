@@ -229,6 +229,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'पूरी शाला एक डेस्क से चलाएं — बैच, छात्र, उपस्थिति, शुल्क और पाठ डायरी।',
     bn: 'এক ডেস্ক থেকে পুরো শালা চালান — ব্যাচ, শিক্ষার্থী, উপস্থিতি, ফি ও পাঠ-ডায়েরি।',
   },
+  'matha-one': {
+    en: 'Keep the matha\u2019s sacred record — sannyasi registry, parampara lineage, dinacharya and gurukul.',
+    hi: 'मठ का पवित्र रिकॉर्ड रखें — संन्यासी रजिस्टर, परंपरा वंशावली, दिनचर्या और गुरुकुल।',
+    bn: 'মঠের পবিত্র রেকর্ড রাখুন — সন্ন্যাসী রেজিস্টার, পরম্পরা বংশ, দিনচর্যা ও গুরুকুল।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',
