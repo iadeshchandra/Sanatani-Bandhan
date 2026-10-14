@@ -1063,6 +1063,183 @@ async function supportLeadReply(id: string, title: string, body: string): Promis
   return { ok: true, data: { ok: true, inboxDelivered: !userSnap.empty } };
 }
 
+/* --------------------------- Payment methods ---------------------------- */
+
+const PM_SEED: Record<string, Record<string, any>> = {
+  bd_banglaqr: {
+    region: 'BD', type: 'bangla_qr', label: 'Bangla QR (TallyPay)', enabled: true,
+    number: '01701-987744', merchantName: 'AR ARTS AND COMPUTER', qrImageUrl: '/bangla-qr.png',
+    instructionsEn: [
+      'Open bKash, Nagad, Rocket or any bank app',
+      'Tap "QR Scan"',
+      'Scan the QR code above',
+      'Enter the amount',
+      'Enter your PIN to confirm',
+      'Copy the Transaction ID and submit it below',
+    ],
+    instructionsBn: [
+      'bKash, Nagad, Rocket বা যেকোনো ব্যাংক অ্যাপ খুলুন',
+      '"QR স্ক্যান" বাটনে ট্যাপ করুন',
+      'উপরের QR কোডটি স্ক্যান করুন',
+      'টাকার পরিমাণ লিখুন',
+      'নিশ্চিত করতে আপনার PIN দিন',
+      'Transaction ID কপি করে নিচে সাবমিট করুন',
+    ],
+  },
+  bd_bkash: {
+    region: 'BD', type: 'mobile', label: 'bKash / Rocket (Personal)', enabled: true,
+    number: '01608533529',
+    instructionsEn: ['Use the "Send Money" option.', 'Copy the Transaction ID and submit it below.'],
+    instructionsBn: ['"Send Money" অপশন ব্যবহার করুন।', 'Transaction ID কপি করে নিচে সাবমিট করুন।'],
+  },
+  bd_nagad: {
+    region: 'BD', type: 'mobile', label: 'Nagad (Personal)', enabled: true,
+    number: '01701987744',
+    instructionsEn: ['Use the "Send Money" option.', 'Copy the Transaction ID and submit it below.'],
+    instructionsBn: ['"Send Money" অপশন ব্যবহার করুন।', 'Transaction ID কপি করে নিচে সাবমিট করুন।'],
+  },
+  in_upi: {
+    region: 'IN', type: 'upi', label: 'UPI', enabled: true,
+    upiId: 'sanatanibandhan@upi', accountName: 'Sanatani Bandhan',
+    instructionsEn: [
+      'Open any UPI app (GPay, PhonePe, Paytm, BHIM)',
+      'Choose "Pay to UPI ID" and enter the UPI ID shown',
+      'Enter the amount and your UPI PIN to confirm',
+      'Copy the UTR / Transaction ID and submit it below',
+    ],
+    instructionsBn: [],
+  },
+  intl_wise: {
+    region: 'INTL', type: 'wise', label: 'Wise', enabled: true,
+    accountName: 'Adesh Chandra', accountDetails: '', link: 'https://wise.com/pay/me/adeshc',
+    instructionsEn: [
+      'Tap the button below to open our Wise payment page',
+      'Send the plan amount in USD',
+      'Copy the Wise transfer reference / Transaction ID',
+      'Paste it in the claim form below and submit',
+    ],
+    instructionsBn: [],
+  },
+  intl_payoneer: {
+    region: 'INTL', type: 'payoneer', label: 'Payoneer', enabled: true,
+    accountName: 'Adesh Chandra', accountEmail: '', link: 'https://www.payoneer.com/',
+    instructionsEn: [
+      'Tap the button below to open Payoneer',
+      'Send the plan amount in USD to our Payoneer account',
+      'Copy the Payoneer Transaction ID',
+      'Paste it in the claim form below and submit',
+    ],
+    instructionsBn: [],
+  },
+};
+
+const PM_EDITABLE_KEYS = [
+  'label', 'enabled', 'number', 'merchantName', 'qrImageUrl', 'upiId',
+  'accountName', 'accountDetails', 'accountEmail', 'link', 'type', 'region',
+];
+
+const pmLines = (v: unknown): string[] =>
+  Array.isArray(v)
+    ? v.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 20)
+    : typeof v === 'string'
+      ? v.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 20)
+      : [];
+
+async function paymentMethodsList(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(collection(db, 'paymentMethods'));
+  const methods = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  return { ok: true, data: { ok: true, methods } };
+}
+
+async function paymentMethodSave(id: string, patch: Record<string, any>): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!/^[a-z0-9_]{1,40}$/.test(id)) {
+    return { ok: false, error: 'Invalid method id.', code: 'BAD_KEY' };
+  }
+  const clean: Record<string, any> = { updatedAt: serverTimestamp(), updatedBy: uid };
+  for (const k of PM_EDITABLE_KEYS) {
+    if (patch[k] === undefined) continue;
+    if (k === 'enabled') clean[k] = !!patch[k];
+    else if (typeof patch[k] === 'string') clean[k] = patch[k].slice(0, 500);
+    else clean[k] = patch[k];
+  }
+  if (patch.instructionsEn !== undefined) clean.instructionsEn = pmLines(patch.instructionsEn);
+  if (patch.instructionsBn !== undefined) clean.instructionsBn = pmLines(patch.instructionsBn);
+  await setDoc(doc(db, 'paymentMethods', id), clean, { merge: true });
+  await writeAudit('settings.paymentMethod.save', { id }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Seed default payment methods (only creates docs that don't exist). */
+async function seedPaymentMethods(): Promise<NativeResult> {
+  const uid = requireOwner();
+  const snap = await getDocs(collection(db, 'paymentMethods'));
+  const existing = new Set(snap.docs.map((d) => d.id));
+  let seeded = 0;
+  for (const [id, m] of Object.entries(PM_SEED)) {
+    if (!existing.has(id)) {
+      await setDoc(doc(db, 'paymentMethods', id), {
+        ...m, updatedAt: serverTimestamp(), updatedBy: uid,
+      });
+      seeded++;
+    }
+  }
+  await writeAudit('settings.paymentMethod.seed', { seeded }, 'warn');
+  return { ok: true, data: { ok: true, seeded } };
+}
+
+/* ------------------------------ Plan seeding ---------------------------- */
+
+/** Final locked pricing — workspace tiers + professional plan. */
+const PLAN_SEED: Record<string, any>[] = [
+  {
+    id: 'seva', name: 'Seva Free',
+    priceMonthlyINR: 0, priceYearlyINR: 0,
+    priceMonthlyBDT: 0, priceYearlyBDT: 0,
+    priceMonthlyUSD: 0, priceYearlyUSD: 0,
+    limits: { maxDevotees: 100, maxTransactionsPerMonth: 500, maxSeats: 2, maxBranches: 1 },
+    active: true,
+  },
+  {
+    id: 'standard', name: 'Standard',
+    priceMonthlyINR: 499, priceYearlyINR: 4999,
+    priceMonthlyBDT: 700, priceYearlyBDT: 7000,
+    priceMonthlyUSD: 6, priceYearlyUSD: 60,
+    limits: { maxDevotees: 1000, maxTransactionsPerMonth: -1, maxSeats: 10, maxBranches: 3 },
+    active: true,
+  },
+  {
+    id: 'premium', name: 'Premium',
+    priceMonthlyINR: 1999, priceYearlyINR: 19999,
+    priceMonthlyBDT: 2800, priceYearlyBDT: 28000,
+    priceMonthlyUSD: 24, priceYearlyUSD: 240,
+    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: -1, maxBranches: -1 },
+    active: true,
+  },
+  {
+    id: 'purohit_pro', name: 'Purohit / Jyotishi Pro',
+    priceMonthlyINR: 199, priceYearlyINR: 1990,
+    priceMonthlyBDT: 280, priceYearlyBDT: 2800,
+    priceMonthlyUSD: 2.5, priceYearlyUSD: 25,
+    commissionPercent: 12,
+    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: 1, maxBranches: 1 },
+    active: true,
+  },
+];
+
+/** Seed/refresh the canonical plans (merge — never deletes owner edits to other plans). */
+async function seedPlans(): Promise<NativeResult> {
+  const uid = requireOwner();
+  for (const p of PLAN_SEED) {
+    await setDoc(doc(db, 'plans', p.id), {
+      ...p, updatedAt: serverTimestamp(), updatedBy: uid,
+    }, { merge: true });
+  }
+  await writeAudit('settings.plans.seed', { count: PLAN_SEED.length }, 'warn');
+  return { ok: true, data: { ok: true, seeded: PLAN_SEED.length } };
+}
+
 /* --------------------------------- Export -------------------------------- */
 
 export const firestoreAdmin = {
@@ -1120,6 +1297,11 @@ export const firestoreAdmin = {
   supportLeads,
   supportLeadSetStatus,
   supportLeadReply,
+  // Geo-based payment methods + plan seeding
+  paymentMethodsList,
+  paymentMethodSave,
+  seedPaymentMethods,
+  seedPlans,
 };
 
 export default firestoreAdmin;
