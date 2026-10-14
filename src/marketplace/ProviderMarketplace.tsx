@@ -214,6 +214,15 @@ const ProviderOrders: React.FC = () => {
           {(o as any).rail === 'rail2' && (o as any).orderCode && (
             <p className="text-[10px] text-stone-400 mt-1.5">Order ref: <b className="font-mono">{(o as any).orderCode}</b> · payable was {fmt((o as any).payableAmount || o.amountGross)}</p>
           )}
+          {o.status === 'awaiting_commission' && (
+            <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <p className="text-[11px] font-black text-amber-900">⏳ Awaiting platform commission</p>
+              <p className="text-[10px] text-amber-800 mt-0.5">
+                The client pays you directly, then pays the {fmt(Number((o as any).commissionAmount || 0))} commission to the platform.
+                The order completes after owner verification — then your review unlocks.
+              </p>
+            </div>
+          )}
           {(nextActions[o.status] || []).length > 0 && (
             <div className="flex gap-2 mt-2">
               {nextActions[o.status].map((a) => (

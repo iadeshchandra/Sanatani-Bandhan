@@ -14,7 +14,9 @@ import {
 } from '../lib/marketplace';
 import { detectRail } from '../lib/rail2';
 import { Rail2PaymentScreen } from './Rail2PaymentScreen';
+import { CommissionPayScreen } from './CommissionPayScreen';
 import { detectPayRegion } from '../lib/geoDetect';
+import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -57,18 +59,39 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const [notes, setNotes] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [working, setWorking] = useState(false);
+  const [payPath, setPayPath] = useState<'now' | 'wallet' | 'after'>('now');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   useEffect(() => { detectPayRegion().then(setRegion).catch(() => {}); }, []);
+  useEffect(() => { getWallet().then((w) => setWalletBalance(w.balance)).catch(() => setWalletBalance(0)); }, []);
 
   const methodId = region === 'BD' ? 'bd_banglaqr' : region === 'IN' ? 'in_upi' : 'intl_wise';
 
   const submit = async () => {
-    if (!payRef.trim()) { showToast('Enter your payment transaction/reference ID.', 'error'); return; }
     setWorking(true);
     try {
-      await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt });
-      showToast('Booking submitted! The provider will accept shortly.', 'success');
-      onDone();
+      if (payPath === 'wallet') {
+        // 1. Create the wallet order, 2. deduct from wallet in a batched write (rules-validated).
+        const orderId = await createOrder({
+          gigId: gig.id as string, paymentMethodId: 'wallet', clientNotes: notes, scheduledAt, payWithWallet: true,
+        });
+        await spendFromWallet(orderId);
+        showToast('Booked! Amount held in escrow from your wallet.', 'success');
+        onDone();
+      } else if (payPath === 'after') {
+        // No upfront payment. Provider completes → client pays directly →
+        // order waits for the platform commission (Path B gate).
+        await createOrder({
+          gigId: gig.id as string, paymentMethodId: 'pay_after_task', clientNotes: notes, scheduledAt, payAfterTask: true,
+        });
+        showToast('Booked! Pay the provider directly after the task, then the platform commission.', 'success');
+        onDone();
+      } else {
+        if (!payRef.trim()) { showToast('Enter your payment transaction/reference ID.', 'error'); setWorking(false); return; }
+        await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt });
+        showToast('Booking submitted! The provider will accept shortly.', 'success');
+        onDone();
+      }
     } catch (e: any) { showToast(e.message || 'Booking failed.', 'error'); }
     setWorking(false);
   };
@@ -91,8 +114,26 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <p className="text-[10px] text-stone-400 mt-1">Includes platform fee — what you see is what you pay.</p>
       </div>
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <p className="text-xs font-bold text-amber-900 mb-1">Step 1 — Pay {fmt(Number(gig.priceAmount))}</p>
-        <p className="text-[11px] text-amber-800">{payHint}</p>
+        <p className="text-xs font-bold text-amber-900 mb-2">Step 1 — How do you want to pay {fmt(Number(gig.priceAmount))}?</p>
+        <div className="space-y-2">
+          <button type="button" onClick={() => setPayPath('wallet')}
+            className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'wallet' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
+            <p className="text-xs font-black text-stone-900">👛 Wallet {walletBalance !== null && <span className="text-stone-500 font-bold">({fmt(walletBalance)} available)</span>}</p>
+            <p className="text-[10px] text-stone-500">Instant — held in escrow, released on completion. Recommended.</p>
+          </button>
+          <button type="button" onClick={() => setPayPath('now')}
+            className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'now' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
+            <p className="text-xs font-black text-stone-900">💳 Pay now (bKash / UPI / Wise)</p>
+            <p className="text-[10px] text-stone-500">Pay the platform, then paste the transaction ID below.</p>
+          </button>
+          <button type="button" onClick={() => setPayPath('after')}
+            className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'after' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
+            <p className="text-xs font-black text-stone-900">🤝 Pay after the task</p>
+            <p className="text-[10px] text-stone-500">Pay the provider directly after completion, then the 12% platform commission.</p>
+          </button>
+        </div>
+        {payPath === 'now' && (<>
+        <p className="text-[11px] text-amber-800 mt-2">{payHint}</p>
         <div className="flex gap-1.5 mt-2">
           {(['BD', 'IN', 'INTL'] as const).map((r) => (
             <button key={r} type="button" onClick={() => setRegion(r)}
@@ -101,11 +142,16 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
             </button>
           ))}
         </div>
+        </>)}
       </div>
+      {payPath === 'now' && (
       <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
         <p className="text-xs font-bold text-stone-800">Step 2 — Submit proof & book</p>
         <label className="text-[11px] font-bold text-stone-500">Payment transaction / reference ID*
           <input value={payRef} onChange={(e) => setPayRef(e.target.value)} className={inputCls} placeholder="e.g. TRX123ABC" /></label>
+      </div>
+      )}
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
         <label className="text-[11px] font-bold text-stone-500">Preferred date/time (optional)
           <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className={inputCls} /></label>
         <label className="text-[11px] font-bold text-stone-500">Notes for provider (optional)
@@ -127,6 +173,7 @@ const MyBookings: React.FC = () => {
   const [disputeFor, setDisputeFor] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
+  const [commissionFor, setCommissionFor] = useState<MarketplaceOrder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,6 +192,19 @@ const MyBookings: React.FC = () => {
     catch (e: any) { showToast(e.message, 'error'); }
   };
 
+  if (commissionFor) {
+    return (
+      <CommissionPayScreen
+        orderId={commissionFor.id as string}
+        orderCode={`SB-${String(commissionFor.id).slice(0, 6).toUpperCase()}`}
+        commissionAmount={Number((commissionFor as any).commissionAmount || 0)}
+        currency={((commissionFor as any).currency || 'BDT') as WalletCurrency}
+        onBack={() => setCommissionFor(null)}
+        onDone={() => { setCommissionFor(null); load(); }}
+      />
+    );
+  }
+
   if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
   return (
     <div className="space-y-3">
@@ -154,8 +214,18 @@ const MyBookings: React.FC = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0"><p className="text-sm font-black truncate">{o.gigTitle}</p>
               <p className="text-[11px] text-stone-500">{fmt(o.amountGross)} · {o.createdAt?.slice(0, 10)}</p></div>
-            <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace('_', ' ')}</span>
+            <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace(/_/g, ' ')}</span>
           </div>
+          {(o as any).walletPaid && (
+            <p className="text-[10px] font-bold text-sky-700 bg-sky-50 rounded-lg px-2 py-1 mt-2">👛 Paid from wallet — held in escrow</p>
+          )}
+          {o.status === 'awaiting_commission' && (
+            <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
+              <p className="text-[11px] font-black text-amber-900">⏳ Incomplete — commission pending</p>
+              <p className="text-[10px] text-amber-800 mt-0.5">Pay the {fmt(Number((o as any).commissionAmount || 0))} platform commission to complete this order and unlock reviews.</p>
+              <button type="button" onClick={() => setCommissionFor(o)} className={`${btnP} w-full mt-2`}>Pay commission</button>
+            </div>
+          )}
           <div className="flex gap-2 mt-2">
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
               <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>Confirm completion</button>
