@@ -19,6 +19,7 @@ import { WalletTab } from './WalletTab';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { SoloOnboardingTour } from './SoloOnboardingTour';
+import { useLanguage } from '../context/LanguageContext';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -36,21 +37,10 @@ import { SoloOnboardingTour } from './SoloOnboardingTour';
 
 type SoloTab = 'home' | 'sangam' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'marketplace' | 'wallet' | 'samskara' | 'profile';
 
-const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
-  { id: 'home', en: 'My Space', bn: 'আমার স্থান', hi: 'मेरा स्थान' },
-  { id: 'sangam', en: '🪔 Sangam', bn: '🪔 সঙ্গম', hi: '🪔 संगम' },
-  { id: 'sadhana', en: 'Sadhana', bn: 'সাধনা', hi: 'साधना' },
-  { id: 'panchang', en: 'Panchang', bn: 'পঞ্জিকা', hi: 'पञ्चाङ्ग' },
-  { id: 'saved', en: 'Saved', bn: 'সংরক্ষিত', hi: 'संग्रहीत' },
-  { id: 'giving', en: 'Giving', bn: 'দান', hi: 'दान' },
-  { id: 'jyotish', en: '🔮 Jyotish', bn: '🔮 জ্যোতিষ', hi: '🔮 ज्योतिष' },
-  { id: 'marketplace', en: '🏪 Marketplace', bn: '🏪 মার্কেটপ্লেস', hi: '🏪 बाज़ार' },
-  { id: 'wallet', en: '🪔 Seva Wallet', bn: '🪔 সেবা ওয়ালেট', hi: '🪔 सेवा वॉलेट' },
-  { id: 'samskara', en: '🪔 Samskara', bn: '🪔 সংস্কার', hi: '🪔 संस्कार' },
-  { id: 'profile', en: 'Profile', bn: 'প্রোফাইল', hi: 'परिचय' },
-];
+const TAB_IDS: SoloTab[] = ['home', 'sangam', 'sadhana', 'panchang', 'saved', 'giving', 'jyotish', 'marketplace', 'wallet', 'samskara', 'profile'];
 
 const InnerShell: React.FC = () => {
+  const { t } = useLanguage();
   const { soloProfile, exitSoloSession, enterPurohitSession, enterJyotishSession, logout, firebaseUser } = useAuthWorkspace();
   const { profile } = useSolo();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
@@ -65,12 +55,12 @@ const InnerShell: React.FC = () => {
   const switchToOrg = () => {
     exitSoloSession();
     setSwitchOpen(false);
-    showToast('Switched to Organisation view', 'success');
+    showToast(t('solo.switchedToOrg'), 'success');
   };
 
   const switchToPurohit = () => {
     if (!purohitIdentity) {
-      showToast('No purohit identity attached yet — use “Become a Purohit” below.', 'info');
+      showToast(t('solo.noPurohitIdentity'), 'info');
       setSwitchOpen(false);
       setTab('home');
       return;
@@ -82,7 +72,7 @@ const InnerShell: React.FC = () => {
 
   const switchToJyotish = () => {
     if (!jyotishIdentity) {
-      showToast('No jyotishi identity attached yet — use “Become a Jyotishi” below.', 'info');
+      showToast(t('solo.noJyotishIdentity'), 'info');
       setSwitchOpen(false);
       setTab('home');
       return;
@@ -102,7 +92,7 @@ const InnerShell: React.FC = () => {
               🪔
             </div>
             <div className="min-w-0">
-              <div className="text-white font-extrabold text-sm truncate">My Space</div>
+              <div className="text-white font-extrabold text-sm truncate">{t('solo.tabs.home')}</div>
               <div className="text-amber-400/90 text-[11px] font-mono truncate">{sanId}</div>
             </div>
           </div>
@@ -161,17 +151,17 @@ const InnerShell: React.FC = () => {
         </div>
         {/* Tab bar */}
         <nav className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-          {TABS.map((t) => (
+          {TAB_IDS.map((tabId) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tabId}
+              onClick={() => setTab(tabId)}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap min-h-[44px] transition-colors ${
-                tab === t.id
+                tab === tabId
                   ? 'bg-amber-500 text-temple-950'
                   : 'bg-white/10 text-amber-200/80 hover:bg-white/20'
               }`}
             >
-              {t.en}
+              {t(`solo.tabs.${tabId}`)}
             </button>
           ))}
         </nav>

@@ -18,11 +18,13 @@ import { useToast } from '../context/ToastContext';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../lib/googleAuth';
 import { CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
 
 const InnerForm: React.FC = () => {
+  const { t } = useLanguage();
   const { enterSoloSession } = useAuthWorkspace();
   const { ensureProfile } = useSolo();
   const { showToast } = useToast();
@@ -53,7 +55,7 @@ const InnerForm: React.FC = () => {
     e.preventDefault();
     setError('');
     if (!googleUser && form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('solo.signup.passwordTooShort'));
       return;
     }
     setLoading(true);
@@ -112,7 +114,7 @@ const InnerForm: React.FC = () => {
       className="space-y-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar"
     >
       <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-center">
-        <p className="text-xs font-black text-amber-800 uppercase tracking-widest">🙏 Solo Sanatani</p>
+        <p className="text-xs font-black text-amber-800 uppercase tracking-widest">{t('solo.signup.title')}</p>
         <p className="text-xs text-amber-700/80 mt-1 font-medium">
           Your personal Sanatani home — sadhana, panchang, saved shlokas, giving history.
           No organisation needed. Join one later, or become a Purohit / Jyotishi, anytime.
@@ -132,42 +134,33 @@ const InnerForm: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Your name
-          </label>
-          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Adesh Chandra" className={inputCls} />
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.yourName')}</label>
+          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={t('solo.signup.namePlaceholder')} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Email
-          </label>
-          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className={inputCls} disabled={!!googleUser} />
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.email')}</label>
+          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('solo.signup.emailPlaceholder')} className={inputCls} disabled={!!googleUser} />
         </div>
         {!googleUser && (
           <div>
-            <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-              Password
-            </label>
-            <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" className={inputCls} />
+            <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.password')}</label>
+            <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('solo.signup.passwordHint')} className={inputCls} />
           </div>
         )}
         <div>
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Phone <span className="normal-case font-medium text-temple-400">(optional)</span>
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.phone')} <span className="normal-case font-medium text-temple-400">(optional)</span>
           </label>
-          <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 …" className={inputCls} />
+          <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t('solo.signup.phonePlaceholder')} className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            City <span className="normal-case font-medium text-temple-400">(optional)</span>
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.city')} <span className="normal-case font-medium text-temple-400">(optional)</span>
           </label>
-          <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Dhaka" className={inputCls} />
+          <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder={t('solo.signup.cityPlaceholder')} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Gotra <span className="normal-case font-medium text-temple-400">(optional, private)</span>
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.gotra')} <span className="normal-case font-medium text-temple-400">(optional, private)</span>
           </label>
-          <input value={form.gotra} onChange={(e) => setForm({ ...form, gotra: e.target.value })} placeholder="e.g. Kashyap" className={inputCls} />
+          <input value={form.gotra} onChange={(e) => setForm({ ...form, gotra: e.target.value })} placeholder={t('solo.signup.gotraPlaceholder')} className={inputCls} />
         </div>
       </div>
 
@@ -182,11 +175,9 @@ const InnerForm: React.FC = () => {
         disabled={loading}
         className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-3 rounded-xl shadow-md transition-all text-sm disabled:opacity-50 min-h-[44px]"
       >
-        {loading ? 'Creating your Sanatani identity…' : '🙏 Create My Sanatani ID'}
+        {loading ? t('auth.creatingAccount') : t('solo.signup.title')}
       </button>
-      <p className="text-[11px] text-temple-400 text-center">
-        You’ll receive a permanent Universal Sanatani ID (SAN-XXXXXX) and land in your personal space.
-      </p>
+      <p className="text-[11px] text-temple-400 text-center">{t('solo.signup.sanataniIdNote')}</p>
     </motion.form>
   );
 };
