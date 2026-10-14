@@ -39,7 +39,7 @@ export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, 
           aria-selected={isActive}
           title={hints[d.id]}
           onClick={() => onChange(d.id)}
-          className={`relative flex-1 min-w-[86px] min-h-[48px] px-3 py-2.5 rounded-xl text-[12.5px] font-bold whitespace-nowrap transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`relative flex-1 min-w-[64px] sm:min-w-[86px] min-h-[44px] sm:min-h-[48px] px-2 sm:px-3 py-2.5 rounded-xl text-[11px] sm:text-[12.5px] font-bold whitespace-nowrap transition-colors duration-200 flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
             isActive ? 'text-[#2a1503]' : 'text-white/60 hover:text-white'
           }`}
         >

@@ -42,6 +42,8 @@ export function googleErrorMessage(err: any): string {
       return 'This email is already registered with a different sign-in method (email/password). Please sign in with your original method.';
     case 'auth/operation-not-allowed':
       return 'Google sign-in is not switched on for this app yet. Please use email login for now — the administrator has been notified.';
+    case 'auth/unauthorized-domain':
+      return 'This app address is not yet authorized for Google sign-in. Please use email login for now — the administrator has been notified.';
     case 'auth/network-request-failed':
       return 'No internet connection. Please check your network and try again.';
     default:

@@ -857,8 +857,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           </div>
 
           {/* ============ GLASS AUTH CARD ============ */}
-          <main className="auth-rise w-full flex" style={{ ['--d' as any]: '0.28s' }}>
-            <div className="auth-glass relative w-full rounded-[1.75rem] p-5 sm:p-8 flex flex-col overflow-hidden my-auto">
+          <main className="auth-rise w-full min-w-0 flex" style={{ ['--d' as any]: '0.28s' }}>
+            <div className="auth-glass relative w-full min-w-0 rounded-[1.75rem] p-5 sm:p-8 flex flex-col overflow-hidden my-auto">
               <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-saffron-300/70 to-transparent" />
 
               {/* Card header */}
