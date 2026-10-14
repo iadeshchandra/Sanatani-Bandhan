@@ -224,6 +224,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'कागज़ के टोकन का झंझट खत्म करें — दर्शन स्लॉट, लाइव कतार बोर्ड, सेवा पास और भीड़ गणना।',
     bn: 'কাগজের টোকেনের বিশৃঙ্খলা শেষ করুন — দর্শন স্লট, লাইভ সারি বোর্ড, সেবা পাস ও ভিড় গণনা।',
   },
+  'yoga-one': {
+    en: 'Run the whole shala from one desk — batches, students, attendance, fees and the class diary.',
+    hi: 'पूरी शाला एक डेस्क से चलाएं — बैच, छात्र, उपस्थिति, शुल्क और पाठ डायरी।',
+    bn: 'এক ডেস্ক থেকে পুরো শালা চালান — ব্যাচ, শিক্ষার্থী, উপস্থিতি, ফি ও পাঠ-ডায়েরি।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',

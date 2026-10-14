@@ -70,6 +70,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   'nyas-one': 'STANDARD',
   'utsav-one': 'STANDARD',
   'tirth-one': 'STANDARD',
+  'yoga-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -224,13 +225,16 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // R-1: added — the setup wizard recommends these as Ashram defaults.
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
     // Annakshetra One: kitchen & bhandara management (Ashram-native).
-    'ashram-one', 'annadanam', 'donorCare', 'annakshetra-one',
+    // Yoga One: yoga shala management (Ashram-native — yoga is taught at ashrams).
+    'ashram-one', 'annadanam', 'donorCare', 'annakshetra-one', 'yoga-one',
   ],
   Yoga: [
     // R-1: verified minimal — retreat/sadhana orgs need nothing more.
+    // Yoga One: yoga shala management (Yoga-native).
     'dashboard', 'devotees', 'guests', 'treasury',
     'ashramKutir', 'satsang',
-    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings'
+    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
+    'yoga-one',
   ],
   Satsang: [
     // R-1: verified minimal — kirtan/discourse circles need nothing more.
@@ -559,6 +563,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Utsav One (festival budgets, committees, vendors, crowds) belongs to Mahotsav Samiti / Mandir workspaces.',
   'tirth-one':
     'Tirth One (darshan slots, tokens, live queues, seva-darshan) belongs to Tirth / Mandir / Kashi Kshetra workspaces.',
+  'yoga-one':
+    'Yoga One (batches, students, attendance, fees) belongs to Yoga / Ashram workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
