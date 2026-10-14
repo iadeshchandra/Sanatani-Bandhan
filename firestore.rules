@@ -635,6 +635,8 @@ service cloud.firestore {
     // Orders: client creates (clientUid must match); provider + client read
     // their own orders; status moves by owner, provider (accept/complete),
     // or client (confirm/cancel while pending). Owner overrides all.
+    // COMMISSION PROTECTION: commissionPercent / commissionAmount / providerNet
+    // are snapshotted at creation and immutable for non-owners.
     match /marketplaceOrders/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -644,7 +646,11 @@ service cloud.firestore {
         && request.resource.data.get('clientUid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'pending_payment';
       allow update: if isOwner()
-        || (isLoggedIn() && (
+        || (isLoggedIn()
+          && request.resource.data.get('commissionPercent', 0) == resource.data.get('commissionPercent', 0)
+          && request.resource.data.get('commissionAmount', 0) == resource.data.get('commissionAmount', 0)
+          && request.resource.data.get('providerNet', 0) == resource.data.get('providerNet', 0)
+          && (
           // Provider: accept / decline / mark complete on their orders
           (resource.data.get('providerUid', '') == request.auth.uid
             && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed'])
@@ -676,6 +682,53 @@ service cloud.firestore {
     // Platform config (maintenance mode etc.): public read of the main doc.
     match /platformConfig/{cfgId} {
       allow read: if true;
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+
+    // ---- Marketplace anti-bypass + provider payments ----
+    // Provider payment methods: provider submits (forced 'pending'), reads own;
+    // only the owner approves / rejects / assigns platform rail.
+    match /providerPaymentMethods/{mId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('providerUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') in ['pending', 'platform_assigned'];
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Provider → owner inquiries: provider creates + reads own; owner manages.
+    match /providerInquiries/{inqId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('providerUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'open';
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Bypass flags: the sender's own client creates the flag when a message
+    // is scanned (senderId must match). Owner-only read. Excerpt only, never
+    // full message content (privacy).
+    match /bypassFlags/{flagId} {
+      allow read: if isOwner() || isSuperAdmin();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('senderUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending';
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Bypass keyword patterns: public read (clients need them to scan);
+    // owner-only writes.
+    match /bypassKeywords/{kwId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+    // Provider strikes: owner-only writes; provider reads own (transparency).
+    match /providerStrikes/{strikeId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
       allow create, update: if isOwner();
       allow delete: if false;
     }
