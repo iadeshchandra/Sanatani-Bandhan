@@ -654,6 +654,11 @@ service cloud.firestore {
           // Provider: accept / decline / mark complete on their orders
           (resource.data.get('providerUid', '') == request.auth.uid
             && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed'])
+          // Provider (pay-after-task): task done, now awaiting the platform commission
+          || (resource.data.get('providerUid', '') == request.auth.uid
+            && resource.data.get('payAfterTask', false) == true
+            && request.resource.data.get('status', '') == 'awaiting_commission'
+            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress'])
           // Provider (Rail-2): dispute a payment proof → back to pending_payment
           || (resource.data.get('providerUid', '') == request.auth.uid
             && resource.data.get('rail', '') == 'rail2'
@@ -662,6 +667,14 @@ service cloud.firestore {
           // Client: confirm completion, or cancel while still pending
           || (resource.data.get('clientUid', '') == request.auth.uid
             && request.resource.data.get('status', '') in ['completed', 'cancelled'])
+          // Client (wallet): pay from wallet → pending_payment becomes paid.
+          // The wallet debit is validated by the wallets/{uid} rule against
+          // this same order (batched write — both succeed or both fail).
+          || (resource.data.get('clientUid', '') == request.auth.uid
+            && resource.data.get('payWithWallet', false) == true
+            && resource.data.get('status', '') == 'pending_payment'
+            && request.resource.data.get('status', '') == 'paid'
+            && request.resource.data.get('escrowHeld', 0) == resource.data.get('amountGross', 0))
           // Client (Rail-2): submit payment proof → pending_payment becomes paid
           || (resource.data.get('clientUid', '') == request.auth.uid
             && resource.data.get('rail', '') == 'rail2'
@@ -764,6 +777,146 @@ service cloud.firestore {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && providerUid == request.auth.uid);
       allow create, update: if isOwner();
+      allow delete: if false;
+    }
+
+    // ---- Platform wallet + escrow top-up system ----
+    // Wallets: user reads own; owner full access. Balance changes are
+    // tightly validated:
+    //  - CLIENT DEBIT (spending): only via batched write against a real
+    //    marketplace order (pending_payment + payWithWallet). The order doc
+    //    acts as the idempotency key — replay fails because the order is no
+    //    longer pending_payment after the first debit.
+    //  - PROVIDER CREDIT (receiving net): only the exact providerNet of a
+    //    real order, initiated by an order party during completion.
+    //  - Owner bypasses all (top-up approvals, manual adjustments).
+    function walletDebitOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let orderId = data.get('lastDebitOrderId', '');
+      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let gross = get(opath).data.get('amountGross', 0);
+      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastDebitOrderId', 'currency'])
+        && orderId != '' && orderId != old.get('lastDebitOrderId', '')
+        && exists(opath)
+        && get(opath).data.get('clientUid', '') == request.auth.uid
+        && get(opath).data.get('payWithWallet', false) == true
+        && get(opath).data.get('status', '') == 'pending_payment'
+        && gross > 0
+        && data.get('balance', -1) == old.get('balance', 0) - gross
+        && data.get('balance', -1) >= 0
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0) + gross;
+    }
+    function walletCreditOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let orderId = data.get('lastCreditOrderId', '');
+      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let net = get(opath).data.get('providerNet', 0);
+      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastCreditOrderId', 'currency', 'uid'])
+        && orderId != '' && orderId != old.get('lastCreditOrderId', '')
+        && exists(opath)
+        && get(opath).data.get('providerUid', '') == uid
+        && (get(opath).data.get('clientUid', '') == request.auth.uid
+          || get(opath).data.get('providerUid', '') == request.auth.uid)
+        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && net > 0
+        && data.get('balance', -1) == old.get('balance', 0) + net
+        && data.get('totalReceived', -1) == old.get('totalReceived', 0) + net
+        && data.get('totalToppedUp', -1) == old.get('totalToppedUp', 0)
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0);
+    }
+    // Create-path for provider credit: the wallet doc may not exist yet when
+    // the first payout lands. Same order validation, starting from zero.
+    function walletCreditCreateOk(uid) {
+      let data = request.resource.data;
+      let orderId = data.get('lastCreditOrderId', '');
+      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let net = get(opath).data.get('providerNet', 0);
+      return orderId != ''
+        && exists(opath)
+        && get(opath).data.get('providerUid', '') == uid
+        && (get(opath).data.get('clientUid', '') == request.auth.uid
+          || get(opath).data.get('providerUid', '') == request.auth.uid)
+        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && net > 0
+        && data.get('balance', -1) == net
+        && data.get('totalReceived', -1) == net
+        && data.get('totalToppedUp', -1) == 0
+        && data.get('totalSpent', -1) == 0;
+    }
+    match /wallets/{uid} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && uid == request.auth.uid);
+      allow create: if isOwner()
+        || (isLoggedIn() && uid == request.auth.uid
+          && request.resource.data.get('balance', -1) == 0
+          && request.resource.data.get('totalToppedUp', -1) == 0
+          && request.resource.data.get('totalSpent', -1) == 0)
+        || (isLoggedIn() && walletCreditCreateOk(uid));
+      allow update: if isOwner()
+        || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
+        || (isLoggedIn() && walletCreditOk(uid));
+      allow delete: if false;
+    }
+    // Wallet transactions: append-only ledger. Clients record their own
+    // spend/top-up-requests; completion batches record the provider's
+    // receive + the platform's commission; owner records everything.
+    match /walletTransactions/{txnId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if isOwner()
+        || (isLoggedIn()
+          && request.resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('type', '') in ['spend', 'topup_request']
+          && request.resource.data.get('amount', 0) > 0)
+        || (isLoggedIn()
+          && request.resource.data.get('type', '') in ['receive', 'commission']
+          && request.resource.data.get('orderId', '') != ''
+          && (get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('clientUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('providerUid', '') == request.auth.uid));
+      allow update, delete: if false;
+    }
+    // Top-up claims: user files (pending only); owner approves → credits
+    // the wallet. Mirrors the paymentClaims pattern.
+    match /topupClaims/{claimId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.get('amount', 0) > 0
+        && request.resource.data.get('currency', '') in ['BDT', 'INR', 'USD'];
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Commission payments (Path B: post-task direct pay, commission to
+    // platform). Client or provider files; owner confirms → order completes.
+    match /commissionPayments/{payId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && (
+          resource.data.get('paidByUid', '') == request.auth.uid
+          || resource.data.get('clientUid', '') == request.auth.uid
+          || resource.data.get('providerUid', '') == request.auth.uid));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('paidByUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.get('amount', 0) > 0
+        && request.resource.data.get('orderId', '') != '';
+      allow update: if isOwner();
+      allow delete: if false;
+    }
+    // Platform revenue ledger: one doc per completed order, amount pinned to
+    // the order's commissionAmount. Recorded by an order party at completion.
+    match /platformRevenue/{orderId} {
+      allow read: if isOwner() || isSuperAdmin();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orderId', '') == orderId
+        && request.resource.data.get('recordedBy', '') == request.auth.uid
+        && request.resource.data.get('amount', -1) ==
+           get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -2)
+        && request.resource.data.get('amount', 0) >= 0;
+      allow update: if isOwner();
       allow delete: if false;
     }
 
