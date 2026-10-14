@@ -625,6 +625,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
+    // Geo payment region config: public read so billing pages can resolve
+    // regions; only the owner writes.
+    match /geoPaymentConfig/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
     // ---- Marketplace (Fiverr-like gigs for Purohit / Jyotishi) ----
     // Gigs: public read (the marketplace browse); the provider owns their
     // gigs (providerUid must match on create); owner can moderate anything.
