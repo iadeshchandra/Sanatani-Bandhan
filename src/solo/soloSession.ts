@@ -40,6 +40,25 @@ export async function fetchSanataniProfile(uid: string): Promise<SanataniProfile
 }
 
 /**
+ * Provisional solo profile for session switching (org / purohit / jyotish
+ * → Personal). Mirrors the org Header's "My Space" pattern: the
+ * SoloProvider lazy-mints the real SAN-XXXXXX on mount (get-or-create,
+ * never duplicates). Works for Firebase users and local demo sessions.
+ */
+export function provisionalSoloProfile(): SanataniProfile {
+  return {
+    id: 'SAN-PENDING',
+    uid: '__pending__',
+    displayName: '',
+    languages: [],
+    verificationTier: 'REGISTERED',
+    roles: {},
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  } as SanataniProfile;
+}
+
+/**
  * Get-or-create the Sanatani profile. Never duplicates: an existing profile
  * is returned as-is. Offline → mints locally, marked unsynced.
  */
