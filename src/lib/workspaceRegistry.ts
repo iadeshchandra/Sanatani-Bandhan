@@ -69,6 +69,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   'annakshetra-one': 'STANDARD',
   'nyas-one': 'STANDARD',
   'utsav-one': 'STANDARD',
+  'tirth-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -184,6 +185,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'annakshetra-one',
     // Utsav One: festival management — budgets, committees, vendors, crowds (Mandir-native).
     'utsav-one',
+    // Tirth One: darshan queue & token management (Mandir-native).
+    'tirth-one',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -296,6 +299,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'poojaBooking', 'mandirPuja', 'purohitDesk', 'panchang',
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
     'ashram-one', 'annadanam', 'satsang', 'utsavPanjika',
+    // Tirth One: darshan queue & token management (KashiKshetra-native).
+    'tirth-one',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
@@ -308,6 +313,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
     // Annakshetra One: kitchen & bhandara management (Tirth-native).
     'ashram-one', 'annadanam', 'utsavPanjika', 'annakshetra-one',
+    // Tirth One: darshan queue & token management (Tirth-native).
+    'tirth-one',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
@@ -550,6 +557,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Nyas One (registrations, filings, 85% rule, trustee governance) belongs to Trust / Dharmada Trust workspaces.',
   'utsav-one':
     'Utsav One (festival budgets, committees, vendors, crowds) belongs to Mahotsav Samiti / Mandir workspaces.',
+  'tirth-one':
+    'Tirth One (darshan slots, tokens, live queues, seva-darshan) belongs to Tirth / Mandir / Kashi Kshetra workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
