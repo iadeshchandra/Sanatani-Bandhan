@@ -11,10 +11,8 @@ import { DataExportButton } from '../common/DataExportButton';
 import { EmptyState } from '../common/EmptyState';
 import { isValidAmountOrZero, sanitizeName } from '../../utils/validation';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
-import { useLanguage } from '../../context/LanguageContext';
 
 export const InventoryDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { inventory, updateInventoryStock, addInventoryItem } = useData();
   const { showToast } = useToast();
@@ -188,7 +186,9 @@ export const InventoryDesk: React.FC = () => {
               {inventory.length} Tracked Consumables
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.finance.assets.storeConsumablesInventoryDesk')}</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
+            Store & Consumables Inventory Desk
+          </h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Monitor stock levels of Desi Ghee, Bhimseni Camphor, Akshat rice, and automatic reorder alerts
           </p>
@@ -209,7 +209,7 @@ export const InventoryDesk: React.FC = () => {
             className="px-4 py-2 rounded-xl bg-temple-800 hover:bg-temple-700 border border-temple-700 text-temple-200 font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>{t('org.finance.assets.exportPdf')}</span>
+            <span>Export PDF</span>
           </button>
           <DataExportButton
             filename={`inventory_stock_${new Date().toISOString().slice(0, 10)}.csv`}
@@ -232,7 +232,7 @@ export const InventoryDesk: React.FC = () => {
             className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
           >
           <Plus className="w-4 h-4" />
-          <span>{t('org.finance.assets.addStockItem')}</span>
+          <span>Add Stock Item</span>
           </button>
         </div>
       </div>
@@ -327,7 +327,9 @@ export const InventoryDesk: React.FC = () => {
                   setNewStockVal(item.currentStock);
                 }}
                 className="w-full py-1.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-200 text-xs font-semibold"
-              >{t('org.finance.assets.updateStockCount')}</button>
+              >
+                Update Stock Count
+              </button>
             </div>
           );
         })}
@@ -370,11 +372,15 @@ export const InventoryDesk: React.FC = () => {
                   type="button"
                   onClick={() => setEditingStockItem(null)}
                   className="px-3 py-1.5 rounded-xl bg-temple-800 text-temple-300 text-xs"
-                >{t('org.finance.assets.cancel2')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   className="px-4 py-1.5 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs"
-                >{t('org.finance.assets.saveStock')}</button>
+                >
+                  Save Stock
+                </button>
               </div>
             </form>
           </div>
@@ -386,7 +392,7 @@ export const InventoryDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">{t('org.finance.assets.addNewStoreConsumable')}</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Add New Store Consumable</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -411,7 +417,7 @@ export const InventoryDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.category2')}</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
@@ -421,7 +427,7 @@ export const InventoryDesk: React.FC = () => {
                     <option>Camphor & Dhoop</option>
                     <option>Rice & Grains</option>
                     <option>Spices & Dry Fruits</option>
-                    <option>{t('org.finance.assets.prasadSupplies')}</option>
+                    <option>Prasad Supplies</option>
                     <option>General Stores</option>
                   </select>
                 </div>
@@ -474,7 +480,7 @@ export const InventoryDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.supplierName')}</label>
+                <label className="block text-temple-300 font-semibold mb-1">Supplier Name</label>
                 <input
                   type="text"
                   value={supplierName}
@@ -494,7 +500,9 @@ export const InventoryDesk: React.FC = () => {
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
-                >{t('org.finance.assets.addItem')}</button>
+                >
+                  Add Item
+                </button>
               </div>
             </form>
           </div>
