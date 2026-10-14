@@ -1,0 +1,12 @@
+/* Nyas One — print stylesheet. Only the report area prints. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .print-area {
+    display: block !important;
+  }
+}
