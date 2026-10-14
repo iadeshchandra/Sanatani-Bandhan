@@ -13,6 +13,8 @@ import {
 } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../lib/paymentMethods';
+import { useLanguage } from '../context/LanguageContext';
+import { mkt, type MktLang } from '../lib/marketplaceCopy';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). */
 const orderMethods = (list: PaymentMethodDoc[]): PaymentMethodDoc[] =>
@@ -29,7 +31,7 @@ function TxnIcon({ type }: { type: string }) {
 }
 
 const TXN_LABEL: Record<string, string> = {
-  topup: 'Top-up', spend: 'Payment', receive: 'Received', commission: 'Platform fee',
+  topup: 'Top-up', spend: 'Seva offering', receive: 'Dakshina received', commission: 'Seva contribution',
   refund: 'Refund', adjustment: 'Adjustment', topup_request: 'Top-up request',
 };
 
@@ -147,6 +149,8 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
 
 export const WalletTab: React.FC = () => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
   const [claims, setClaims] = useState<TopupClaim[]>([]);
@@ -176,12 +180,12 @@ export const WalletTab: React.FC = () => {
       <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-0">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold text-white/80 uppercase tracking-widest">Wallet balance</p>
+            <p className="text-[11px] font-bold text-white/80 uppercase tracking-widest">{mkt(L, 'sevaWallet')}</p>
             <p className="text-3xl font-black mt-1">
               {loading ? '…' : fmtWallet(wallet?.balance || 0, currency)}
             </p>
             <p className="text-[11px] text-white/70 mt-1">
-              Topped up {fmtWallet(wallet?.totalToppedUp || 0, currency)} · Spent {fmtWallet(wallet?.totalSpent || 0, currency)}
+              {mkt(L, 'dakshinaBalance')}: {fmtWallet(wallet?.balance || 0, currency)}
             </p>
           </div>
           <WalletIcon className="w-10 h-10 text-white/60" />
@@ -189,7 +193,7 @@ export const WalletTab: React.FC = () => {
         <div className="flex gap-2 mt-4">
           <button type="button" onClick={() => setTopping(true)}
             className="flex-1 min-h-[48px] rounded-xl bg-white text-orange-700 font-black text-sm flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> Top Up
+            <Plus className="w-4 h-4" /> {mkt(L, 'addToSevaWallet')}
           </button>
           <button type="button" onClick={load} className="min-h-[48px] px-4 rounded-xl bg-white/20 text-white font-bold">
             <RefreshCw className="w-4 h-4" />

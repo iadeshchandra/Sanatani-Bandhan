@@ -45,7 +45,7 @@ const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'giving', en: 'Giving', bn: 'দান', hi: 'दान' },
   { id: 'jyotish', en: '🔮 Jyotish', bn: '🔮 জ্যোতিষ', hi: '🔮 ज्योतिष' },
   { id: 'marketplace', en: '🏪 Marketplace', bn: '🏪 মার্কেটপ্লেস', hi: '🏪 बाज़ार' },
-  { id: 'wallet', en: '👛 Wallet', bn: '👛 ওয়ালেট', hi: '👛 बटुआ' },
+  { id: 'wallet', en: '🪔 Seva Wallet', bn: '🪔 সেবা ওয়ালেট', hi: '🪔 सेवा वॉलेट' },
   { id: 'samskara', en: '🪔 Samskara', bn: '🪔 সংস্কার', hi: '🪔 संस्कार' },
   { id: 'profile', en: 'Profile', bn: 'প্রোফাইল', hi: 'परिचय' },
 ];
