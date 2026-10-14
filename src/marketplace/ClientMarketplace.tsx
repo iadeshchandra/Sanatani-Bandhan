@@ -36,13 +36,13 @@ const statusColor: Record<string, string> = {
 /* ------------------------------ Browse ------------------------------ */
 
 const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => {
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   return (
   <button type="button" onClick={onOpen} className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-amber-300 transition-colors min-h-[44px]">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
-        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">FEATURED</span>}
+        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">{t('marketplace.client.featured')}</span>}
         {(gig as any).providerVerified && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 mb-1 inline-block ml-1">✓ {L === 'en' ? 'VERIFIED' : L === 'bn' ? 'যাচাইকৃত' : 'सत्यापित'}</span>}
         <p className="text-sm font-black text-stone-900 truncate">{gig.title}</p>
         <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
@@ -246,10 +246,10 @@ const MyBookings: React.FC = () => {
           )}
           <div className="flex gap-2 mt-2">
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>Confirm completion</button>
+              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>{t('marketplace.client.confirmCompletion')}</button>
             )}
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Dispute</button>
+              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{t('marketplace.client.dispute')}</button>
             )}
           </div>
         </div>
@@ -257,13 +257,13 @@ const MyBookings: React.FC = () => {
       {disputeFor && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setDisputeFor(null)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black mb-3">Raise a dispute</h3>
+            <h3 className="font-black mb-3">{t('marketplace.client.raiseDispute')}</h3>
             <div className="space-y-3">
               <label className="text-[11px] font-bold text-stone-500">Reason*<input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={120} placeholder="e.g. Provider never showed up" /></label>
-              <label className="text-[11px] font-bold text-stone-500">Details<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
+              <label className="text-[11px] font-bold text-stone-500">{t('marketplace.client.details')}<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
               <div className="flex gap-2">
-                <button type="button" onClick={raise} className={`${btnP} flex-1`}>Submit dispute</button>
-                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>Cancel</button>
+                <button type="button" onClick={raise} className={`${btnP} flex-1`}>{t('marketplace.client.submitDispute')}</button>
+                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>{t('marketplace.client.cancel')}</button>
               </div>
             </div>
           </div>
@@ -340,11 +340,11 @@ export const ClientMarketplace: React.FC = () => {
           </div>
           <div className="flex gap-2">
             <select value={cat} onChange={(e) => setCat(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">All categories</option>
+              <option value="all">{t('marketplace.client.allCategories')}</option>
               {['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'].map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={ptype} onChange={(e) => setPtype(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">Purohit + Jyotishi</option><option value="purohit">Purohit</option><option value="jyotishi">Jyotishi</option>
+              <option value="all">{t('marketplace.client.purohitJyotishi')}</option><option value="purohit">{t('marketplace.client.purohit')}</option><option value="jyotishi">{t('marketplace.client.jyotishi')}</option>
             </select>
           </div>
           {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p> : (
