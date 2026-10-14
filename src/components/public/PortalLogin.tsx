@@ -321,6 +321,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   const [signupMinting, setSignupMinting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ identity?: string; credential?: string }>({});
   const [isOnline, setIsOnline] = useState(navigator.onLine); 
 
   // ENTERPRISE TOAST ENGINE
@@ -361,7 +362,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     };
   }, []);
 
-  const clearErrors = () => setError('');
+  const clearErrors = () => { setError(''); setFieldErrors({}); };
 
   // H-11: is this Firebase user the recorded creator of the workspace being
   // entered? Checked against the local workspace registry (populated at
@@ -462,7 +463,11 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     const ident = identityOverride || loginIdentity;
     const cred = credentialOverride || loginCredential;
     if (!ident || (!cred && !bypassAuthCheck)) {
-       return setError("Please provide Identity and Credential.");
+       const fe: { identity?: string; credential?: string } = {};
+       if (!ident) fe.identity = 'Please enter your email or phone number.';
+       if (!cred && !bypassAuthCheck) fe.credential = 'Please enter your password.';
+       setFieldErrors(fe);
+       return;
     }
 
     setLoading(true);
@@ -1210,6 +1215,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       exit={{ opacity: 0, x: -24 }}
                       transition={{ duration: 0.32, ease: 'easeOut' }}
                       onSubmit={handleSmartLogin as any}
+                      noValidate
                       className={`space-y-4 ${isScanning ? 'opacity-0' : 'opacity-100'}`}
                     >
                       <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
@@ -1246,18 +1252,20 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       <AuthField
                         label={t('login_identity')}
                         icon={<User size={17} />}
-                        type="text" required
+                        type="text"
                         value={loginIdentity}
-                        onChange={e => setLoginIdentity(e.target.value)}
+                        onChange={e => { setLoginIdentity(e.target.value); setFieldErrors(f => ({ ...f, identity: undefined })); }}
                         autoComplete="username"
+                        error={fieldErrors.identity}
                       />
                       <div>
                         <AuthField
                           label={t('login_pass')}
                           icon={<Key size={17} />}
-                          type={showLoginPassword ? 'text' : 'password'} required
+                          type={showLoginPassword ? 'text' : 'password'}
                           value={loginCredential}
-                          onChange={e => setLoginCredential(e.target.value)}
+                          onChange={e => { setLoginCredential(e.target.value); setFieldErrors(f => ({ ...f, credential: undefined })); }}
+                          error={fieldErrors.credential}
                           autoComplete="current-password"
                           rightSlot={
                             <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label="Toggle password visibility" className="p-1">
@@ -1272,30 +1280,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </div>
                       </div>
 
-                      {/* PROMINENT BIOMETRIC AUTHENTICATION BUTTON */}
-                      <div className="pt-1">
-                        <button
-                          type="button"
-                          onClick={handleBiometricLogin}
-                          onMouseMove={magneticGlow}
-                          className="auth-cta group relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-[13.5px] tracking-wide transition-all shadow-[0_10px_30px_rgba(16,185,129,0.35)] hover:shadow-[0_14px_40px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2.5 border border-emerald-300/30 min-h-[52px]"
-                        >
-                          <span className="auth-cta-shimmer" />
-                          <span className="relative flex items-center justify-center">
-                            <Fingerprint className="w-5 h-5 text-emerald-100 group-hover:scale-110 transition-transform" />
-                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
-                            </span>
-                          </span>
-                          <span className="relative">Re-confirm Session with FaceID / TouchID</span>
-                        </button>
-                        <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
-                          Device-unlock grade: re-confirms your existing signed-in session on this device.
-                          It cannot sign you in or grant access by itself — sign in with your credentials first.
-                        </p>
-                      </div>
-
                       {darkError}
 
                       <button
@@ -1307,9 +1291,31 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       >
                         <span className="auth-cta-shimmer" />
                         <span className="relative flex items-center gap-2">
-                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('btn_access_portal')}
+                          {loading ? (
+                            <>
+                              <Loader2 size={19} className="animate-spin" />
+                              <span>{activeView === 'SIGNUP' ? t('cred_creating') : 'Signing you in…'}</span>
+                            </>
+                          ) : t('btn_access_portal')}
                         </span>
                       </button>
+
+                      {/* Biometric re-confirmation — demoted to a subtle link below the
+                          primary action. It cannot sign you in; it only re-confirms
+                          an existing session on this device. */}
+                      <div className="pt-1 text-center">
+                        <button
+                          type="button"
+                          onClick={handleBiometricLogin}
+                          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/40 hover:text-emerald-300 transition-colors min-h-[44px] px-2"
+                        >
+                          <Fingerprint className="w-4 h-4" />
+                          <span className="underline underline-offset-2">Re-confirm session with FaceID / TouchID</span>
+                        </button>
+                        <p className="text-[10.5px] text-white/30 mt-1 font-medium leading-relaxed px-2">
+                          Only works if you're already signed in on this device.
+                        </p>
+                      </div>
                     </motion.form>
                   ) : orgRegisterOnly ? (
                     /* Progressive upgrade: an already-authenticated Solo user
@@ -1329,6 +1335,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       exit={{ opacity: 0, x: 24 }}
                       transition={{ duration: 0.32, ease: 'easeOut' }}
                       onSubmit={handleRegister}
+                      noValidate
                       className="space-y-4 max-h-[62vh] overflow-y-auto pr-1.5 custom-scrollbar"
                     >
                       {/* Google-linked signup: link first, then complete the form — no password needed.
