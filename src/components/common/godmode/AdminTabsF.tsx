@@ -18,6 +18,7 @@ import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { computeCommission } from '../../../lib/firestoreAdmin';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
+import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -492,6 +493,7 @@ export const MarketplaceProviders: React.FC = () => {
             <div className="bg-slate-900 rounded-lg p-2"><p className="text-[9px] text-slate-500">Pending</p><p className="text-sm font-black text-sky-300">{fmt(detail.pendingNet)}</p></div>
           </div>
           <p className="text-[10px] text-slate-500 mt-2">{detail.orderCount} orders · {detail.payouts?.length || 0} payouts</p>
+          <ProviderStrikesPanel providerUid={sel} />
           <button type="button" onClick={() => { setSel(null); setDetail(null); }} className={`${btnGhost} w-full mt-2`}>Close</button>
         </Card>
       )}
@@ -551,7 +553,7 @@ export const MarketplaceGigs: React.FC = () => {
 
 /* ------------------------------ Main tab ------------------------------ */
 
-const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Orders', 'Disputes', 'Payouts', 'Providers', 'Gigs'];
+const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Orders', 'Disputes', 'Payouts', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
 
 export const MarketplaceTab: React.FC = () => {
   const [sub, setSub] = useState('Dashboard');
@@ -565,6 +567,9 @@ export const MarketplaceTab: React.FC = () => {
       {sub === 'Payouts' && <MarketplacePayouts />}
       {sub === 'Providers' && <MarketplaceProviders />}
       {sub === 'Gigs' && <MarketplaceGigs />}
+      {sub === 'Pay Methods' && <ProviderPaymentsTab />}
+      {sub === 'Bypass Flags' && <BypassFlagsTab />}
+      {sub === 'Bypass Rules' && <BypassRulesTab />}
     </div>
   );
 };
