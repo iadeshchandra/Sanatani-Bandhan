@@ -1464,24 +1464,81 @@ async function commissionOverrideDelete(id: string): Promise<NativeResult> {
   return { ok: true, data: { ok: true } };
 }
 
-/** Resolve the effective commission for a NEW order (provider > category > global). */
-export async function resolveCommissionRate(providerId: string, category: string, providerType: string): Promise<{ ratePercent: number; source: string }> {
+/** Provider tier for commission purposes: 'pro' (active purohit_pro subscription) or 'community' (free). */
+export async function getProviderTier(providerUid: string): Promise<'pro' | 'community'> {
   try {
-    const [overS, ruleS] = await Promise.all([
+    const snap = await getDoc(doc(db, 'subscriptions', providerUid));
+    if (snap.exists()) {
+      const s: any = snap.data();
+      const active = s.status === 'active' && (!s.endDate || new Date(s.endDate) > new Date());
+      if (active && (s.planId === 'purohit_pro' || s.planId === 'jyotishi_pro')) return 'pro';
+    }
+    return 'community';
+  } catch {
+    return 'community';
+  }
+}
+
+/** Commission rate config: editable from GodMode. Defaults: free 15%, pro rail1 8%, pro rail2 12%. */
+export async function getCommissionConfig(): Promise<{ freeRate: number; proRail1Rate: number; proRail2Rate: number }> {
+  const defaults = { freeRate: 15, proRail1Rate: 8, proRail2Rate: 12 };
+  try {
+    const snap = await getDoc(doc(db, 'platformConfig', 'commission'));
+    if (snap.exists()) {
+      const c: any = snap.data();
+      return {
+        freeRate: Number(c.freeRate ?? defaults.freeRate),
+        proRail1Rate: Number(c.proRail1Rate ?? defaults.proRail1Rate),
+        proRail2Rate: Number(c.proRail2Rate ?? defaults.proRail2Rate),
+      };
+    }
+  } catch { /* fall through to defaults */ }
+  return defaults;
+}
+
+export async function saveCommissionConfig(cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number }): Promise<NativeResult> {
+  requireOwner();
+  const clean = {
+    freeRate: Math.min(100, Math.max(0, Number(cfg.freeRate) || 0)),
+    proRail1Rate: Math.min(100, Math.max(0, Number(cfg.proRail1Rate) || 0)),
+    proRail2Rate: Math.min(100, Math.max(0, Number(cfg.proRail2Rate) || 0)),
+    updatedAt: serverTimestamp(),
+    updatedBy: requireOwner(),
+  };
+  await setDoc(doc(db, 'platformConfig', 'commission'), clean, { merge: true });
+  await writeAudit('marketplace.commission.config', clean, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Resolve the effective commission for a NEW order.
+ *  Resolution order: provider override > category override > tier+rail default > fallback.
+ *  Rail-1 (platform-processed) is cheaper to encourage the trackable path. */
+export async function resolveCommissionRate(
+  providerId: string,
+  category: string,
+  providerType: string,
+  rail: 'rail1' | 'rail2' = 'rail1',
+): Promise<{ ratePercent: number; source: string; tier: 'pro' | 'community' }> {
+  try {
+    const [overS, ruleS, tier, cfg] = await Promise.all([
       getDocs(query(collection(db, 'commissionOverrides'), where('active', '==', true), limit(100))),
       getDocs(collection(db, 'commissionRules')),
+      getProviderTier(providerId),
+      getCommissionConfig(),
     ]);
     const overrides = overS.docs.map((d) => d.data() as any);
     const prov = overrides.find((o) => o.scope === 'provider' && o.targetId === providerId);
-    if (prov) return { ratePercent: Number(prov.ratePercent), source: `provider override (${prov.note || 'custom'})` };
+    if (prov) return { ratePercent: Number(prov.ratePercent), source: `provider override (${prov.note || 'custom'})`, tier };
     const cat = overrides.find((o) => o.scope === 'category' && o.targetId === category);
-    if (cat) return { ratePercent: Number(cat.ratePercent), source: `category override (${category})` };
+    if (cat) return { ratePercent: Number(cat.ratePercent), source: `category override (${category})`, tier };
     const rules = ruleS.docs.map((d) => d.data() as any).filter((r) => r.active !== false);
     const rule = rules.find((r) => r.serviceType === providerType || r.serviceType === 'both') || rules[0];
-    if (rule) return { ratePercent: Number(rule.ratePercent || 0), source: 'global rule' };
-    return { ratePercent: 12, source: 'platform default' };
+    if (rule && Number(rule.ratePercent) > 0) return { ratePercent: Number(rule.ratePercent), source: 'global rule', tier };
+    // Tier + rail default
+    const rate = tier === 'pro' ? (rail === 'rail1' ? cfg.proRail1Rate : cfg.proRail2Rate) : cfg.freeRate;
+    return { ratePercent: rate, source: `tier default (${tier}, ${rail})`, tier };
   } catch {
-    return { ratePercent: 12, source: 'platform default (fallback)' };
+    return { ratePercent: 12, source: 'platform default (fallback)', tier: 'community' };
   }
 }
 
@@ -2398,6 +2455,9 @@ export const firestoreAdmin = {
   explorerDeleteField,
   commissionRules,
   commissionRuleSave,
+  getCommissionConfig,
+  saveCommissionConfig,
+  getProviderTier,
   marketplaceTransactions,
   transactionSetStatus,
   payoutQueue,
