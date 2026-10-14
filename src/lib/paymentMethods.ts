@@ -12,7 +12,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { PayRegion } from './geoDetect';
 
-export type PaymentMethodType = 'bangla_qr' | 'mobile' | 'upi' | 'wise' | 'payoneer';
+export type PaymentMethodType = 'bangla_qr' | 'mobile' | 'upi' | 'wise' | 'payoneer' | 'bank' | 'crypto';
 
 export interface PaymentMethodDoc {
   id: string;
@@ -24,6 +24,8 @@ export interface PaymentMethodDoc {
   number?: string;
   merchantName?: string;
   qrImageUrl?: string;
+  /** Display priority within its region (lower = first). Managed from Geo Payments Manager. */
+  displayOrder?: number;
   /** India UPI. */
   upiId?: string;
   /** Wise / Payoneer. */
@@ -162,6 +164,7 @@ function mergeOne(id: string, data: Record<string, unknown>): PaymentMethodDoc {
     number: typeof data.number === 'string' ? data.number : d?.number,
     merchantName: typeof data.merchantName === 'string' ? data.merchantName : d?.merchantName,
     qrImageUrl: typeof data.qrImageUrl === 'string' ? data.qrImageUrl : d?.qrImageUrl,
+    displayOrder: typeof data.displayOrder === 'number' ? data.displayOrder : d?.displayOrder,
     upiId: typeof data.upiId === 'string' ? data.upiId : d?.upiId,
     accountName: typeof data.accountName === 'string' ? data.accountName : d?.accountName,
     accountDetails: typeof data.accountDetails === 'string' ? data.accountDetails : d?.accountDetails,
@@ -192,10 +195,14 @@ export async function getPaymentMethods(): Promise<PaymentMethodDoc[]> {
 
 /** Enabled methods for one region, in a stable display order. */
 export function methodsForRegion(methods: PaymentMethodDoc[], region: PayRegion): PaymentMethodDoc[] {
-  const order: Record<string, number> = { bd_banglaqr: 0, bd_bkash: 1, bd_nagad: 2, in_upi: 0, intl_payoneer: 0, intl_wise: 1 }; // Payoneer primary for INTL (BD founder)
+  // Legacy hardcoded fallback (pre-Geo-Payments-Manager). Owner-set
+  // displayOrder in Firestore always wins when present.
+  const legacyOrder: Record<string, number> = { bd_banglaqr: 0, bd_bkash: 1, bd_nagad: 2, in_upi: 0, intl_payoneer: 0, intl_wise: 1 }; // Payoneer primary for INTL (BD founder)
+  const rank = (m: PaymentMethodDoc): number =>
+    typeof m.displayOrder === 'number' ? m.displayOrder : (legacyOrder[m.id] ?? 99);
   return methods
     .filter((m) => m.region === region && m.enabled)
-    .sort((a, b) => (order[a.id] ?? 99) - (order[b.id] ?? 99));
+    .sort((a, b) => rank(a) - rank(b));
 }
 
 export function clearPaymentMethodsCache(): void {
