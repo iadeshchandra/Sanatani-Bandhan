@@ -99,6 +99,7 @@ export const DESK_NAMES: Record<string, string> = {
   'nyas-one': 'Nyas One — Compliance & Governance',
   'utsav-one': 'Utsav One — Festival & Mahotsav Management',
   'tirth-one': 'Tirth One — Darshan Queue & Tokens',
+  'yoga-one': 'Yoga One — Shala Management',
   panchang: 'Vedic Panchang & Muhurat',
   checkin: 'Gate Command & Check-In',
   campaigns: 'Crowdfunding & Mandir Nirman',
