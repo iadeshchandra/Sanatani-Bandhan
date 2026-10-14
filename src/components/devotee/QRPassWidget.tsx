@@ -6,10 +6,12 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const QRPassWidget: React.FC = () => {
   const { currentDevotee, activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   
   const [qrData, setQrData] = useState<string>('');
   const [expiryTime, setExpiryTime] = useState<number>(0);
@@ -37,7 +39,7 @@ export const QRPassWidget: React.FC = () => {
     const recentGens = history.filter((t: number) => t > oneHourAgo);
     
     if (recentGens.length >= 10 && !force) {
-      showToast('Rate limit exceeded. Try again later.', 'error');
+      showToast(t('devotee.qr.toastRateLimit'), 'error');
       return;
     }
 
@@ -48,7 +50,7 @@ export const QRPassWidget: React.FC = () => {
       // Auto-provision secret if missing (requires online)
       if (!secret) {
         if (isOffline) {
-          showToast('Cannot generate first-time QR while offline', 'error');
+          showToast(t('devotee.qr.toastCannotOffline'), 'error');
           setIsGenerating(false);
           return;
         }
@@ -88,10 +90,10 @@ export const QRPassWidget: React.FC = () => {
       // Update rate limit history
       localStorage.setItem('qr_gen_history', JSON.stringify([...recentGens, timestamp]));
       
-      if (force) showToast('QR Pass Regenerated', 'success');
+      if (force) showToast(t('devotee.qr.toastQrRegenerated'), 'success');
     } catch (error) {
       console.error(error);
-      showToast('Failed to generate QR Pass', 'error');
+      showToast(t('devotee.qr.toastFailed'), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -126,11 +128,11 @@ export const QRPassWidget: React.FC = () => {
         <div className="flex justify-between items-center w-full mb-6">
           <h2 className="text-xl font-semibold text-saffron-900 flex items-center gap-2">
             <Shield className="w-6 h-6 text-emerald-600" />
-            Digital Entry Pass
+            {t('devotee.qr.digitalEntryPass')}
           </h2>
           {isOffline && (
             <span className="flex items-center gap-1 text-xs font-bold bg-temple-50 text-temple-500 px-2 py-1 rounded-full">
-              <WifiOff className="w-3 h-3" /> Offline
+              <WifiOff className="w-3 h-3" /> {t('devotee.qr.offline')}
             </span>
           )}
         </div>
@@ -151,7 +153,7 @@ export const QRPassWidget: React.FC = () => {
           ) : (
             <div className="w-[220px] h-[220px] bg-temple-50 flex flex-col items-center justify-center text-temple-400 rounded-xl">
               <RefreshCw className="w-8 h-8 animate-spin mb-2" />
-              <span className="text-xs font-bold">Generating Secure Pass...</span>
+              <span className="text-xs font-bold">{t('devotee.qr.generatingSecurePass')}</span>
             </div>
           )}
           
@@ -177,9 +179,9 @@ export const QRPassWidget: React.FC = () => {
           <div className="flex items-center gap-2 text-xs font-bold text-temple-500">
             <Clock className="w-4 h-4 text-saffron-600" />
             {expiryTime > 0 ? (
-              <span>Valid for {hoursLeft} hours</span>
+              <span>{t('devotee.qr.validForHours').replace('{hours}', String(hoursLeft))}</span>
             ) : (
-              <span>Calculating...</span>
+              <span>{t('devotee.qr.calculating')}</span>
             )}
           </div>
           
@@ -189,7 +191,7 @@ export const QRPassWidget: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-temple-50 hover:bg-temple-200 text-temple-700 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('devotee.qr.refresh')}
           </button>
         </div>
       </div>
