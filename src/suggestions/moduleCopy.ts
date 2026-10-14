@@ -244,6 +244,16 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'संपूर्ण गोशाला OS — पशु, दूध, चारा, पशु-चिकित्सा और प्रायोजन।',
     bn: 'সম্পূর্ণ গোশালা OS — গবাদি, দুধ, খাদ্য, পশু-চিকিৎসা ও পৃষ্ঠপোষকতা।',
   },
+  'ashram-one': {
+    en: 'The complete yatri-stay OS — rooms, bookings, check-in/out, guest register, and bhandara planning.',
+    hi: 'संपूर्ण यात्री-निवास OS — कमरे, बुकिंग, चेक-इन/आउट, अतिथि पंजी और भंडारा योजना।',
+    bn: 'সম্পূর্ণ যাত্রী-নিবাস OS — কক্ষ, বুকিং, চেক-ইন/আউট, অতিথি নথি ও ভাণ্ডারা পরিকল্পনা।',
+  },
+  'cash-custody': {
+    en: 'Hundi-to-bank chain of custody — dual-custody openings, maker-checker counting, tamper-evident log.',
+    hi: 'हुंडी से बैंक तक अभिरक्षा श्रृंखला — द्वि-अभिरक्षा उद्घाटन, निर्माता-परीक्षक गणना।',
+    bn: 'হুন্ডি থেকে ব্যাংক পর্যন্ত হেফাজত শৃঙ্খলা — দ্বৈত উদ্বোধন, যাচাইকৃত গণনা।',
+  },
   satsang: {
     en: 'Organize kirtans and discourses — schedules, venues, and reminders handled.',
     hi: 'कीर्तन और प्रवचन आयोजित करें — समय, स्थान और स्मरण सब संभाला।',

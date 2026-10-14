@@ -65,6 +65,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   // STANDARD — operations suite
   annadanam: 'STANDARD',
   dharamshala: 'STANDARD',
+  'ashram-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -211,7 +212,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings', 'spiritualSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as Ashram defaults.
-    'dharamshala', 'annadanam', 'donorCare',
+    // Ashram One replaces the mock 'dharamshala' desk with the real suite.
+    'ashram-one', 'annadanam', 'donorCare',
   ],
   Yoga: [
     // R-1: verified minimal — retreat/sadhana orgs need nothing more.
@@ -279,7 +281,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   KashiKshetra: [
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
     'poojaBooking', 'mandirPuja', 'purohitDesk', 'panchang',
-    'dharamshala', 'annadanam', 'satsang', 'utsavPanjika',
+    // Ashram One replaces the mock 'dharamshala' desk with the real suite.
+    'ashram-one', 'annadanam', 'satsang', 'utsavPanjika',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
@@ -289,7 +292,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   Tirth: [
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
     'poojaBooking', 'mandirPuja', 'purohitDesk', 'panchang',
-    'dharamshala', 'annadanam', 'utsavPanjika',
+    // Ashram One replaces the mock 'dharamshala' desk with the real suite.
+    'ashram-one', 'annadanam', 'utsavPanjika',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
@@ -517,6 +521,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Annadanam desks belong to Annakshetra-running workspaces (Ashram, Tirth, Akshaya Patra, Trust).',
   dharamshala:
     'Yatri-stay desks belong to hospitality-running workspaces (Ashram, Tirth, Kashi Kshetra).',
+  'ashram-one':
+    'Ashram One (yatri stays, bookings, guest register) belongs to hospitality-running workspaces (Ashram, Tirth).',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
