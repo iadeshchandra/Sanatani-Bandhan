@@ -29,6 +29,11 @@ service cloud.firestore {
     function isLoggedIn() {
       return request.auth != null && request.auth.uid != null;
     }
+    // True for anonymous (demo) sessions — used to gate real-workspace creation.
+    function isAnonymous() {
+      return isLoggedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
 
     // Platform SuperAdmin: explicit claim, canonical role claim, or the
     // server-managed platform_admins registry (active != false).
@@ -256,7 +261,9 @@ service cloud.firestore {
       // NOTE: adminPinHash may only ever be written via the server
       // (POST /api/admin/tenants/:id/pin uses the Admin SDK and bypasses rules).
       allow read: if isTenantMember(workspaceId);
-      allow create: if isLoggedIn()
+      // Anonymous (demo) sessions cannot create real workspaces — must sign in
+      // with email/Google first. Closes demo → real Trustee escalation.
+      allow create: if isLoggedIn() && !isAnonymous()
         && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
       allow update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']);
@@ -267,13 +274,14 @@ service cloud.firestore {
     // 6. Root collections (keyed by `workspaceId` field) — deny by default
     // ------------------------------------------------------------------
 
-    // Financial ledger — append-only.
+    // Financial ledger — append-only. Demo workspaces are blocked from writing
+    // here: demo treasury stays local-only and never touches production Firestore.
     match /treasury/{docId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_FINANCE())
         || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow create: if hasRole(newDocWs(), R_FINANCE());
+      allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
       allow delete: if false;
     }
 
