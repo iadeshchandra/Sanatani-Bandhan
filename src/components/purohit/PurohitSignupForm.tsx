@@ -18,11 +18,13 @@ import { useToast } from '../../context/ToastContext';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
 import { CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
 
 const InnerForm: React.FC = () => {
+  const { t } = useLanguage();
   const { enterPurohitSession } = useAuthWorkspace();
   const { mintPurohitIdentity } = usePurohit();
   const { showToast } = useToast();
@@ -48,14 +50,14 @@ const InnerForm: React.FC = () => {
       displayName: f.displayName || (result.displayName !== 'Sanatani Devotee' ? result.displayName : ''),
       email: result.email || f.email,
     }));
-    showToast(`Google linked (${result.email}). Complete your purohit details below.`, 'success');
+    showToast(t('purohit.signup.googleLinked').replace('{email}', result.email || ''), 'success');
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!googleUser && form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('purohit.signup.passwordTooShort'));
       return;
     }
     setLoading(true);
@@ -137,10 +139,9 @@ const InnerForm: React.FC = () => {
       className="space-y-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar"
     >
       <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-center">
-        <p className="text-xs font-black text-amber-800 uppercase tracking-widest">🪔 Independent Purohit</p>
+        <p className="text-xs font-black text-amber-800 uppercase tracking-widest">🪔 {t('purohit.signup.title')}</p>
         <p className="text-xs text-amber-700/80 mt-1 font-medium">
-          No organisation needed. You get a personal workspace with zero org data — just your gigs,
-          earnings, verification and reviews.
+          {t('purohit.signup.noOrgSub')}
         </p>
       </div>
 
@@ -150,7 +151,7 @@ const InnerForm: React.FC = () => {
         <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
           <p className="text-xs font-bold text-emerald-800">
-            Google linked ({googleUser.email}) — no password needed. Complete your details below.
+            {t('purohit.signup.googleLinked').replace('{email}', googleUser.email || '')}
           </p>
         </div>
       )}
@@ -158,35 +159,35 @@ const InnerForm: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Display name
+            {t('purohit.signup.displayName')}
           </label>
-          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Pt. Ramesh Shastri" className={inputCls} />
+          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={t('purohit.signup.nameExample')} className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Email
           </label>
-          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className={inputCls} disabled={!!googleUser} />
+          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('purohit.signup.emailPlaceholder')} className={inputCls} disabled={!!googleUser} />
         </div>
         {!googleUser && (
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Password
           </label>
-          <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" className={inputCls} />
+          <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('purohit.signup.passwordMin')} className={inputCls} />
         </div>
         )}
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Phone
           </label>
-          <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 …" className={inputCls} />
+          <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t('purohit.signup.phonePlaceholder')} className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             City
           </label>
-          <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Varanasi" className={inputCls} />
+          <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder={t('purohit.signup.cityExample')} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
@@ -198,7 +199,7 @@ const InnerForm: React.FC = () => {
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Specializations <span className="normal-case font-medium text-temple-400">(comma-separated)</span>
           </label>
-          <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} placeholder="Vivah Samskara, Grihapravesh" className={inputCls} />
+          <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} placeholder={t('purohit.signup.specsPlaceholder')} className={inputCls} />
         </div>
       </div>
 
@@ -213,10 +214,10 @@ const InnerForm: React.FC = () => {
         disabled={loading}
         className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-3 rounded-xl shadow-md transition-all text-sm disabled:opacity-50 min-h-[44px]"
       >
-        {loading ? 'Creating your purohit identity…' : '🪔 Join as Purohit'}
+        {loading ? t('purohit.signup.creatingIdentity') : `🪔 ${t('purohit.signup.joinAs')}`}
       </button>
       <p className="text-[11px] text-temple-400 text-center">
-        You’ll receive a Universal Purohit ID (PUR-XXXXXX) and land in your personal workspace.
+        {t('purohit.signup.receiveId')}
       </p>
     </motion.form>
   );
