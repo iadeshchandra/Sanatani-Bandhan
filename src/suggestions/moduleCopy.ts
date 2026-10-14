@@ -204,7 +204,7 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'बिना बर्बादी हज़ारों को खिलाएं — हर अन्नदान की योजना, ट्रैकिंग और हिसाब।',
     bn: 'অপচয় ছাড়াই হাজারো মানুষকে খাওয়ান — প্রতিটি অন্নদানের পরিকল্পনা, ট্র্যাকিং ও হিসাব।',
   },
-  smartBhandar: {
+  'annakshetra-one': {
     en: 'Recipes that auto-calculate ingredients for 10 or 10,000 plates — and reorder in time.',
     hi: 'ऐसी रेसिपी जो 10 या 10,000 थालियों के लिए सामग्री स्वतः गिने — और समय पर मंगवाए।',
     bn: 'এমন রেসিপি যা ১০ বা ১০,০০০ থালার উপকরণ স্বয়ং হিসাব করে — ও সময়মতো আনায়।',

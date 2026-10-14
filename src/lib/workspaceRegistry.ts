@@ -66,6 +66,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   annadanam: 'STANDARD',
   dharamshala: 'STANDARD',
   'ashram-one': 'STANDARD',
+  'annakshetra-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -177,6 +178,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'checkin', 'donorCare', 'hundi-audit', 'quick-chanda-pos',
     // Cash Custody: hundi-to-bank chain of custody (Mandir-native).
     'cash-custody',
+    // Annakshetra One: kitchen & bhandara management (Mandir-native).
+    'annakshetra-one',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -213,7 +216,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as Ashram defaults.
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
-    'ashram-one', 'annadanam', 'donorCare',
+    // Annakshetra One: kitchen & bhandara management (Ashram-native).
+    'ashram-one', 'annadanam', 'donorCare', 'annakshetra-one',
   ],
   Yoga: [
     // R-1: verified minimal — retreat/sadhana orgs need nothing more.
@@ -268,6 +272,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'donorCare',
     // Cash Custody: hundi-to-bank chain of custody (Trust/NGO-native).
     'cash-custody',
+    // Annakshetra One: kitchen & bhandara management (Trust/NGO-native).
+    'annakshetra-one',
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -275,8 +281,9 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'trusteeGovernance', 'legalVault', 'masterSettings', 'crisis-command',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as AkshayaPatra defaults
-    // ('smartBhandar' for kitchen recipe/BOM scale; 'donorCare' for patrons).
-    'smartBhandar', 'donorCare',
+    // ('donorCare' for patrons). Annakshetra One replaces the mock
+    // 'smartBhandar' desk with the real kitchen & bhandara suite.
+    'annakshetra-one', 'donorCare',
   ],
   KashiKshetra: [
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
@@ -293,7 +300,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'dashboard', 'devotees', 'guests', 'treasury', 'taxReceipts', 'campaigns',
     'poojaBooking', 'mandirPuja', 'purohitDesk', 'panchang',
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
-    'ashram-one', 'annadanam', 'utsavPanjika',
+    // Annakshetra One: kitchen & bhandara management (Tirth-native).
+    'ashram-one', 'annadanam', 'utsavPanjika', 'annakshetra-one',
     'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
@@ -317,7 +325,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'dashboard', 'devotees', 'treasury', 'taxReceipts', 'campaigns',
     'masterSettings', 'legalVault',
     // Cash Custody: donation-box chain of custody for trusts that receive cash.
-    'cash-custody',
+    // Annakshetra One: kitchen & bhandara management (Trust/NGO-native).
+    'cash-custody', 'annakshetra-one',
   ]
 };
 
@@ -416,10 +425,13 @@ export const ORG_MODULE_ALIASES: Record<string, string> = {
   'gau-seva-goshala': 'goshala',
   'annadanam-kitchen': 'annadanam',
   'dharamshala-yatri-bhavan': 'dharamshala',
-  'smart-bhandar': 'smartBhandar',
-  bhandar: 'smartBhandar',
-  'bhandar-procurement': 'smartBhandar',
-  smartBhandarProcurement: 'smartBhandar',
+  // Annakshetra One replaces the mock 'smartBhandar' desk — old ids keep
+  // resolving to the real kitchen & bhandara suite.
+  'smart-bhandar': 'annakshetra-one',
+  bhandar: 'annakshetra-one',
+  'bhandar-procurement': 'annakshetra-one',
+  smartBhandarProcurement: 'annakshetra-one',
+  smartBhandar: 'annakshetra-one',
   'ashram-kutir': 'ashramKutir',
   ashramGoshalaGurukul: 'ashramKutir',
   'ashram-goshala-gurukul': 'ashramKutir',
@@ -523,6 +535,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Yatri-stay desks belong to hospitality-running workspaces (Ashram, Tirth, Kashi Kshetra).',
   'ashram-one':
     'Ashram One (yatri stays, bookings, guest register) belongs to hospitality-running workspaces (Ashram, Tirth).',
+  'annakshetra-one':
+    'Annakshetra One (kitchen inventory, recipes, bhandara, meal counts) belongs to kitchen-running workspaces (Mandir, Ashram, Tirth, Trust/NGO, Akshaya Patra).',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
