@@ -620,7 +620,7 @@ const SiteContentView: React.FC = () => {
     else showToast(r.error || 'Save failed.', 'error');
   };
 
-  const SUGGESTED = ['hero_title', 'hero_subtitle', 'testimonial_1', 'testimonial_2', 'faq_1_q', 'faq_1_a'];
+  const SUGGESTED = ['hero_title', 'hero_subtitle', 'testimonial_1', 'testimonial_2', 'faq_1_q', 'faq_1_a', 'seva_contribution_transparency_en', 'seva_contribution_transparency_bn', 'seva_contribution_transparency_hi'];
 
   if (loading) return <Loading />;
   return (

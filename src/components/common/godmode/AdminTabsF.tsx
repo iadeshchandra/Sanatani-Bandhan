@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { computeCommission } from '../../../lib/firestoreAdmin';
+import { adminApi } from '../../../lib/adminApi';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
@@ -117,15 +118,31 @@ const CommissionControl: React.FC = () => {
   const [editing, setEditing] = useState<any>(null);
   const [whatIf, setWhatIf] = useState({ gmv: 100000, rate: 12 });
   const [confirm, setConfirm] = useState<any>(null);
+  const [tierRates, setTierRates] = useState({ freeRate: 15, proRail1Rate: 8, proRail2Rate: 12 });
+  const [tierEditing, setTierEditing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [r, o] = await Promise.all([firestoreAdmin.commissionRules(), firestoreAdmin.commissionOverrides()]);
+    const [r, o, t] = await Promise.all([
+      firestoreAdmin.commissionRules(),
+      firestoreAdmin.commissionOverrides(),
+      adminApi.commissionConfig(),
+    ]);
     if (r.ok) setRules((r.data as any).rules || []);
     if (o.ok) setOverrides((o.data as any).overrides || []);
+    if (t && (t as any).ok && (t as any).data) {
+      const d = (t as any).data;
+      setTierRates({ freeRate: d.freeRate ?? 15, proRail1Rate: d.proRail1Rate ?? 8, proRail2Rate: d.proRail2Rate ?? 12 });
+    }
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  const saveTierRates = async () => {
+    const r = await adminApi.commissionConfigSave(tierRates);
+    if ((r as any).ok) { showToast('Tier rates saved — apply to new orders.', 'success'); setTierEditing(false); }
+    else showToast((r as any).error || 'Save failed.', 'error');
+  };
 
   const saveRule = async () => {
     if (!editing) return;
@@ -193,6 +210,24 @@ const CommissionControl: React.FC = () => {
         </div>
       </Card>
 
+      <Card className="border-emerald-500/20">
+        <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-1">Tier & rail rates</h4>
+        <p className="text-[10px] text-slate-500 mb-3">Providers choose Rail-1 (platform-paid, 8%) to save vs Rail-2 (direct, 12%). Community tier pays 15%.</p>
+        <div className="grid grid-cols-3 gap-2">
+          <label className="text-[11px] text-slate-500">Community %<input type="number" disabled={!tierEditing} value={tierRates.freeRate} onChange={(e) => setTierRates({ ...tierRates, freeRate: Number(e.target.value) })} className={inputCls} /></label>
+          <label className="text-[11px] text-slate-500">Pro · Rail-1 %<input type="number" disabled={!tierEditing} value={tierRates.proRail1Rate} onChange={(e) => setTierRates({ ...tierRates, proRail1Rate: Number(e.target.value) })} className={inputCls} /></label>
+          <label className="text-[11px] text-slate-500">Pro · Rail-2 %<input type="number" disabled={!tierEditing} value={tierRates.proRail2Rate} onChange={(e) => setTierRates({ ...tierRates, proRail2Rate: Number(e.target.value) })} className={inputCls} /></label>
+        </div>
+        <div className="flex gap-2 mt-3">
+          {tierEditing ? (<>
+            <button type="button" onClick={saveTierRates} className={`${btnPrimary} flex-1`}>Save rates</button>
+            <button type="button" onClick={() => { setTierEditing(false); load(); }} className={`${btnGhost} flex-1`}>Cancel</button>
+          </>) : (
+            <button type="button" onClick={() => setTierEditing(true)} className={`${btnGhost} w-full`}><Pencil className="w-3.5 h-3.5 inline mr-1" />Edit tier rates</button>
+          )}
+        </div>
+      </Card>
+
       <Card>
         <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3 flex items-center gap-2"><Calculator className="w-3.5 h-3.5" /> What-if calculator</h4>
         <div className="grid grid-cols-2 gap-2 mb-3">
@@ -200,6 +235,20 @@ const CommissionControl: React.FC = () => {
           <label className="text-[11px] text-slate-500">Rate %<input type="number" value={whatIf.rate} onChange={(e) => setWhatIf({ ...whatIf, rate: Number(e.target.value) })} className={inputCls} /></label>
         </div>
         <p className="text-sm text-slate-300">At <b className="text-slate-100">{whatIf.rate}%</b> on <b className="text-slate-100">{fmt(whatIf.gmv)}</b>/mo GMV → platform earns <b className="text-amber-300">{fmt(w.commission)}/mo</b> ({fmt(w.commission * 12)}/yr).</p>
+        <div className="mt-3 pt-3 border-t border-slate-800">
+          <p className="text-[10px] text-slate-500 mb-2">Hybrid model projection (same GMV, 70% Rail-1 / 30% Rail-2):</p>
+          {(() => {
+            const r1 = computeCommission(whatIf.gmv * 0.7, tierRates.proRail1Rate);
+            const r2 = computeCommission(whatIf.gmv * 0.3, tierRates.proRail2Rate);
+            const total = r1.commission + r2.commission;
+            return (
+              <p className="text-sm text-slate-300">
+                Rail-1 ({tierRates.proRail1Rate}%): <b className="text-emerald-300">{fmt(r1.commission)}</b> · Rail-2 ({tierRates.proRail2Rate}%): <b className="text-amber-300">{fmt(r2.commission)}</b> ·{' '}
+                Total: <b className="text-slate-100">{fmt(total)}/mo</b> ({fmt(total * 12)}/yr)
+              </p>
+            );
+          })()}
+        </div>
       </Card>
 
       {editing && (
