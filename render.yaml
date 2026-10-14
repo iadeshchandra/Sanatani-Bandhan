@@ -1,0 +1,19 @@
+# render.yaml — Render.com deployment for Sanatani Bandhan backend
+# Free tier: 750 hrs/month, sleeps after 15 min idle (~30s cold start)
+# No credit card required.
+services:
+  - type: web
+    name: sanatani-bandhan-api
+    runtime: node
+    plan: free
+    rootDir: functions
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set these in the Render dashboard (Environment tab):
+      # - FIREBASE_SERVICE_ACCOUNT (paste the full JSON as a secret)
+      # - SMTP_USER / SMTP_PASS (for email notifications)
+      # - WEBHOOK_SECRET (for payment webhook HMAC)
+      # - CORS_ORIGINS (comma-separated, e.g. https://sanatanibandhan.web.app)

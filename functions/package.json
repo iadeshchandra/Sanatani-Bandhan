@@ -1,1 +1,27 @@
-{"dependencies":{"cors":"^2.8.5","express":"^4.21.2","firebase-admin":"^12.7.0","firebase-functions":"^6.3.2","nodemailer":"^6.10.1"},"description":"Sanatani Bandhan API — Firebase Cloud Functions (1st gen, Spark-plan compatible)","devDependencies":{"@types/cors":"^2.8.17","@types/express":"^4.17.21","@types/node":"^20.19.0","@types/nodemailer":"^6.4.17","typescript":"^5.9.2"},"engines":{"node":"20"},"main":"lib/index.js","name":"sanatani-bandhan-functions","private":true,"scripts":{"build":"tsc"}}
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.2",
+    "nodemailer": "^6.10.1"
+  },
+  "description": "Sanatani Bandhan API \u2014 Firebase Cloud Functions (1st gen, Spark-plan compatible)",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.19.0",
+    "@types/nodemailer": "^6.4.17",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "name": "sanatani-bandhan-functions",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node lib/server.js"
+  }
+}
