@@ -8,6 +8,9 @@ import notificationRoutes from './routes/notificationRoutes';
 import geminiRoutes from './routes/geminiRoutes';
 import healthRoutes from './routes/healthRoutes';
 import exportRoutes from './routes/exportRoutes';
+import verificationRoutes from './routes/verificationRoutes';
+import moderationRoutes from './routes/moderationRoutes';
+import scheduledRoutes from './routes/scheduledRoutes';
 
 // Credential helper conforming to credential.cert API
 const credential = { cert };
@@ -54,6 +57,9 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/gemini', geminiRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/verification', verificationRoutes);
+app.use('/api/moderation', moderationRoutes);
+app.use('/api/scheduled', scheduledRoutes);
 
 // Health & readiness (public; see healthRoutes for dependency checks).
 app.use('/api/health', healthRoutes);

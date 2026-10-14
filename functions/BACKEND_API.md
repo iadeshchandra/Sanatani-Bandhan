@@ -107,6 +107,55 @@ Secrets (`adminPinHash`, `pin`, `pinHash`) are stripped from every export.
 
 ---
 
+## Verification (`/api/verification`)
+
+Server-side verification pipeline for Purohit/Jyotishi tiers. The client can
+only create profiles at `REGISTERED` (Firestore rules); tier upgrades happen
+exclusively through these endpoints. Applications live in the
+`verificationApplications` collection.
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/api/verification/apply` | Authenticated | Submit tier-upgrade application for own profile (one pending per profile) |
+| GET | `/api/verification/pending` | Owner | List pending applications (`?kind=`, `?limit=`) |
+| POST | `/api/verification/:id/approve` | Owner | Approve → sets canonical profile tier (never self-approval, never skips) |
+| POST | `/api/verification/:id/reject` | Owner | Reject with required reason |
+| GET | `/api/verification/applications/:id` | Owner | Full application detail for review UI |
+
+Tiers: `REGISTERED` → `CREDENTIAL_VERIFIED` → `ORG_ENDORSED` → `PLATFORM_VERIFIED`.
+
+---
+
+## Moderation (`/api/moderation`)
+
+Sangam trust & safety. Reports are private (owner-visible only). Content hides
+are recorded as directives in `moderationHides`; the client checks them before
+rendering.
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/api/moderation/report` | Authenticated | Report a post/comment (reason enum, dedup per user+target) |
+| GET | `/api/moderation/reports` | Owner | List reports (`?status=open\|actioned\|dismissed`, `?limit=`) |
+| POST | `/api/moderation/reports/:id/action` | Owner | `dismiss` / `hide_content` / `warn_user` / `suspend_user` |
+| POST | `/api/moderation/content/:id/hide` | Owner | Immediate hide without a report |
+| POST | `/api/moderation/users/:uid/unsuspend` | Owner | Reverse a suspension (appeal upheld) |
+
+---
+
+## Scheduled jobs (`/api/scheduled`)
+
+Trigger endpoints for time-based reminders. Owner-only, idempotent, support
+`{ dryRun: true }` previews. See `functions/SCHEDULED_JOBS.md` for the full
+design (free-tier triggers vs Cloud Scheduler on Blaze).
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/api/scheduled/samskara-reminders` | Owner | Enqueue samskara age-milestone reminders into `reminderQueue` |
+| POST | `/api/scheduled/shraddha-reminders` | Owner | Enqueue annual shraddha reminders (tithi overrides for testing) |
+| GET | `/api/scheduled/queue` | Owner | Inspect the reminder queue (`?status=`, `?limit=`) |
+
+---
+
 ## Audit trail
 
 Sensitive operations write to the `audit_logs` Firestore collection (append-only;
@@ -114,7 +163,11 @@ rules deny update/delete). Logged actions:
 
 `tenant.provision` · `claims.grant` · `workspace.pin_rotate` ·
 `workspace.plan_change` · `user.disable` · `user.enable` ·
-`data.export` · `owner.bootstrap`
+`data.export` · `owner.bootstrap` ·
+`verification.apply` · `verification.approve` · `verification.reject` ·
+`moderation.hide_content` · `moderation.warn_user` · `moderation.suspend_user` ·
+`moderation.unsuspend_user` · `moderation.dismiss` ·
+`scheduled.samskara_reminders` · `scheduled.shraddha_reminders`
 
 Each entry: `action`, `actorUid`, `actorEmail`, `workspaceId`, `targetType`,
 `targetId`, `details`, `ip`, `severity`, `createdAt` (server timestamp).
