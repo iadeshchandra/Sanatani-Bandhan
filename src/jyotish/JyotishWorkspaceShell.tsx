@@ -20,10 +20,13 @@ import {
   Bell,
   MessageCircle,
   HandHeart,
+  Store,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { provisionalSoloProfile } from '../solo/soloSession';
 import { JyotishProvider, useJyotish } from '../context/JyotishContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
+import { ProviderMarketplace } from '../marketplace/ProviderMarketplace';
 import {
   OverviewTab,
   FindConsultationsTab,
@@ -45,7 +48,8 @@ type JyotishTab =
   | 'verification'
   | 'reviews'
   | 'referrals'
-  | 'profile';
+  | 'profile'
+  | 'marketplace';
 
 const TABS: { id: JyotishTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Home', icon: <Sparkles className="w-4 h-4" /> },
@@ -57,10 +61,11 @@ const TABS: { id: JyotishTab; label: string; icon: React.ReactNode }[] = [
   { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" /> },
   { id: 'referrals', label: 'Referrals', icon: <HandHeart className="w-4 h-4" /> },
   { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
+  { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
 ];
 
 const InnerShell: React.FC = () => {
-  const { logout, exitJyotishSession } = useAuthWorkspace();
+  const { logout, exitJyotishSession, enterSoloSession } = useAuthWorkspace();
   const { profile, profileLoading, effectiveTier, myInvites } = useJyotish();
   const [tab, setTab] = useState<JyotishTab>('overview');
 
@@ -112,6 +117,15 @@ const InnerShell: React.FC = () => {
                 🙏 <span className="hidden sm:inline">Devotee view</span>
               </button>
             )}
+            {/* Solo-first: Personal (Sanatani) is always one tap away. */}
+            <button
+              type="button"
+              onClick={() => enterSoloSession(provisionalSoloProfile())}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black transition-colors min-h-[44px]"
+              title="Your personal Sanatani space — sadhana, panchang, Sangam"
+            >
+              🪔 <span className="hidden sm:inline">Personal (Sanatani)</span>
+            </button>
             {pendingInvites > 0 && (
               <button
                 type="button"
@@ -169,6 +183,7 @@ const InnerShell: React.FC = () => {
         {tab === 'reviews' && <ReviewsTab />}
         {tab === 'referrals' && <ReferralsTab />}
         {tab === 'profile' && <ProfileTab />}
+        {tab === 'marketplace' && <ProviderMarketplace providerType="jyotishi" providerName={profile?.displayName || ''} />}
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">

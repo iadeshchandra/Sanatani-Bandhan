@@ -18,9 +18,11 @@ import {
   User,
   LogOut,
   Bell,
+  Store,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { PurohitProvider, usePurohit } from '../../context/PurohitContext';
+import { provisionalSoloProfile } from '../../solo/soloSession';
 import { VerificationBadge } from '../common/VerificationBadge';
 import { OverviewTab } from './tabs/OverviewTab';
 import { FindGigsTab } from './tabs/FindGigsTab';
@@ -30,6 +32,7 @@ import { AvailabilityTab } from './tabs/AvailabilityTab';
 import { VerificationTab } from './tabs/VerificationTab';
 import { ReviewsTab } from './tabs/ReviewsTab';
 import { ProfileTab } from './tabs/ProfileTab';
+import { ProviderMarketplace } from '../../marketplace/ProviderMarketplace';
 
 type PurohitTab =
   | 'overview'
@@ -39,7 +42,8 @@ type PurohitTab =
   | 'availability'
   | 'verification'
   | 'reviews'
-  | 'profile';
+  | 'profile'
+  | 'marketplace';
 
 const TABS: { id: PurohitTab; label: string; icon: React.ReactNode }[] = [
   { id: 'overview', label: 'Home', icon: <Briefcase className="w-4 h-4" /> },
@@ -50,10 +54,11 @@ const TABS: { id: PurohitTab; label: string; icon: React.ReactNode }[] = [
   { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
   { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" /> },
   { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
+  { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
 ];
 
 const InnerShell: React.FC = () => {
-  const { logout, exitPurohitSession } = useAuthWorkspace();
+  const { logout, exitPurohitSession, enterSoloSession } = useAuthWorkspace();
   const { profile, profileLoading, effectiveTier, myInvites } = usePurohit();
   const [tab, setTab] = useState<PurohitTab>('overview');
 
@@ -105,6 +110,15 @@ const InnerShell: React.FC = () => {
                 🙏 <span className="hidden sm:inline">Devotee view</span>
               </button>
             )}
+            {/* Solo-first: Personal (Sanatani) is always one tap away. */}
+            <button
+              type="button"
+              onClick={() => enterSoloSession(provisionalSoloProfile())}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black transition-colors min-h-[44px]"
+              title="Your personal Sanatani space — sadhana, panchang, Sangam"
+            >
+              🪔 <span className="hidden sm:inline">Personal (Sanatani)</span>
+            </button>
             {pendingInvites > 0 && (
               <button
                 type="button"
@@ -161,6 +175,7 @@ const InnerShell: React.FC = () => {
         {tab === 'verification' && <VerificationTab />}
         {tab === 'reviews' && <ReviewsTab />}
         {tab === 'profile' && <ProfileTab />}
+        {tab === 'marketplace' && <ProviderMarketplace providerType="purohit" providerName={profile?.displayName || ''} />}
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">
