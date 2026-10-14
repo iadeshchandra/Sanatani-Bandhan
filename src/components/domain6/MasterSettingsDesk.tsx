@@ -12,6 +12,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
+import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
+import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../../lib/paymentMethods';
 import { BranchManager } from '../branch/BranchManager';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
 
@@ -24,6 +26,154 @@ const getCurrencyDetails = (countryCode: string) => {
     case 'USD': return { code: 'USD', symbol: '$' };
     default: return { code: 'BDT', symbol: '৳' }; 
   }
+};
+
+/* ---------- Geo-based payment views (BD / IN / INTL) ---------- */
+
+const REGION_ACCENT: Record<'BD' | 'IN' | 'INTL', { bar: string; border: string; bg: string; title: string; headBorder: string }> = {
+  BD: { bar: 'bg-green-500', border: 'border-green-200', bg: 'bg-green-50/50', title: 'text-green-800', headBorder: 'border-green-100' },
+  IN: { bar: 'bg-orange-500', border: 'border-orange-200', bg: 'bg-orange-50/50', title: 'text-orange-800', headBorder: 'border-orange-100' },
+  INTL: { bar: 'bg-blue-500', border: 'border-blue-200', bg: 'bg-blue-50/50', title: 'text-blue-800', headBorder: 'border-blue-100' },
+};
+
+const REGION_NAME: Record<'BD' | 'IN' | 'INTL', string> = {
+  BD: 'Bangladesh',
+  IN: 'India',
+  INTL: 'International',
+};
+
+/** Numbered how-to-pay steps — Bengali when the UI locale is bn and BN steps exist. */
+const PaySteps: React.FC<{ method: PaymentMethodDoc; language: string }> = ({ method, language }) => {
+  const steps = language === 'bn' && method.instructionsBn.length > 0 ? method.instructionsBn : method.instructionsEn;
+  if (steps.length === 0) return null;
+  return (
+    <ol className="space-y-2 mt-3">
+      {steps.map((s, i) => (
+        <li key={i} className="flex gap-3 items-start bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+          <span className="shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white text-[11px] font-black flex items-center justify-center">{i + 1}</span>
+          <span className="text-xs font-bold text-gray-700 leading-relaxed">{s}</span>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+const CopyValue: React.FC<{ label: string; value: string; onCopy: (v: string) => void }> = ({ label, value, onCopy }) => (
+  <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+    <div className="min-w-0">
+      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{label}</p>
+      <p className="text-xl font-black text-gray-900 font-mono tracking-wider break-all">{value}</p>
+    </div>
+    <button type="button" onClick={() => onCopy(value)} aria-label={`Copy ${label}`}
+      className="p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors shadow-sm shrink-0 ml-3 min-w-[44px] min-h-[44px] flex items-center justify-center">
+      <Copy size={16} />
+    </button>
+  </div>
+);
+
+/** One payment method card, rendered by type. */
+const MethodCard: React.FC<{
+  method: PaymentMethodDoc;
+  language: string;
+  onCopy: (v: string) => void;
+  onZoom: (url: string) => void;
+}> = ({ method, language, onCopy, onZoom }) => {
+  if (method.type === 'bangla_qr') {
+    return (
+      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex flex-col items-center">
+          {method.qrImageUrl ? (
+            <button type="button" onClick={() => onZoom(method.qrImageUrl!)} aria-label="Zoom QR code"
+              className="rounded-xl overflow-hidden shadow-md border border-gray-200 hover:scale-[1.02] transition-transform bg-white">
+              <img src={method.qrImageUrl} alt="Bangla QR payment code" className="w-52 h-52 object-contain" loading="lazy" />
+            </button>
+          ) : (
+            <div className="w-52 h-52 bg-gray-50 rounded-xl border border-dashed border-gray-300 flex items-center justify-center">
+              <QrCode size={40} className="text-gray-300" />
+            </div>
+          )}
+          <p className="text-xs font-black text-gray-800 uppercase tracking-widest mt-3">{method.label}</p>
+          {method.merchantName && <p className="text-[11px] font-bold text-gray-500 mt-0.5">{method.merchantName}</p>}
+          <p className="text-[10px] font-bold text-gray-400 text-center mt-1">Tap the QR to zoom. Scan from bKash, Nagad, Rocket, or any bank app.</p>
+        </div>
+        {method.number && (
+          <div className="mt-3"><CopyValue label="Merchant number" value={method.number} onCopy={onCopy} /></div>
+        )}
+        <PaySteps method={method} language={language} />
+      </div>
+    );
+  }
+  if (method.type === 'mobile') {
+    return (
+      <div className="space-y-3">
+        <CopyValue label={method.label} value={method.number || '—'} onCopy={onCopy} />
+        <PaySteps method={method} language={language} />
+      </div>
+    );
+  }
+  if (method.type === 'upi') {
+    return (
+      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+        <CopyValue label="UPI ID" value={method.upiId || '—'} onCopy={onCopy} />
+        {method.accountName && <p className="text-[11px] font-bold text-gray-500">Account: {method.accountName}</p>}
+        <PaySteps method={method} language={language} />
+      </div>
+    );
+  }
+  // wise / payoneer
+  const detail = method.type === 'wise' ? method.accountDetails : method.accountEmail;
+  return (
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+      {method.link && (
+        <button type="button" onClick={() => window.open(method.link, '_blank')}
+          className={`w-full text-white px-6 py-4 rounded-xl text-xs uppercase tracking-widest font-black flex justify-center items-center gap-2 mx-auto transition-all shadow-md hover:-translate-y-0.5 min-h-[52px] ${method.type === 'wise' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'}`}>
+          {method.type === 'wise' ? <Globe size={16} /> : <CreditCard size={16} />}
+          {method.type === 'wise' ? 'Open secure checkout (Wise)' : 'Pay via Payoneer'}
+        </button>
+      )}
+      {method.accountName && <p className="text-xs font-black text-gray-800">Account holder: {method.accountName}</p>}
+      {detail && <p className="text-xs font-mono font-bold text-gray-600 break-all bg-gray-50 p-3 rounded-xl border border-gray-100">{detail}</p>}
+      <PaySteps method={method} language={language} />
+    </div>
+  );
+};
+
+/** Region payment panel — reads owner-configured methods, graceful empty state. */
+const RegionPayView: React.FC<{
+  region: 'BD' | 'IN' | 'INTL';
+  methods: PaymentMethodDoc[];
+  language: string;
+  loading: boolean;
+  onCopy: (v: string) => void;
+  onZoom: (url: string) => void;
+}> = ({ region, methods, language, loading, onCopy, onZoom }) => {
+  const a = REGION_ACCENT[region];
+  const list = methodsForRegion(methods, region);
+  return (
+    <div className={`${a.bg} border ${a.border} rounded-3xl p-5 mb-6 shadow-sm relative overflow-hidden text-left`}>
+      <div className={`absolute top-0 left-0 w-1.5 h-full ${a.bar}`}></div>
+      <div className={`flex justify-between items-center border-b ${a.headBorder} pb-4 mb-4 pl-2`}>
+        <h4 className={`text-xs font-black ${a.title} uppercase tracking-widest flex items-center gap-2`}>
+          <CreditCard size={16} /> Payment Instructions — {REGION_NAME[region]}
+        </h4>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-10 text-gray-400">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      ) : list.length === 0 ? (
+        <p className="text-xs font-bold text-gray-500 text-center py-8 leading-relaxed">
+          No payment methods are enabled for your region right now.<br />Please contact support.
+        </p>
+      ) : (
+        <div className="space-y-4 pl-2">
+          {list.map((m) => (
+            <MethodCard key={m.id} method={m} language={language} onCopy={onCopy} onZoom={onZoom} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const MasterSettingsDesk: React.FC = () => {
@@ -106,8 +256,12 @@ export const MasterSettingsDesk: React.FC = () => {
   });
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [paymentTab, setPaymentTab] = useState<'BD' | 'INTL'>('BD'); 
+  const [paymentTab, setPaymentTab] = useState<'BD' | 'IN' | 'INTL'>('BD');
   const [copied, setCopied] = useState(false);
+  // Geo-based payment: auto-detect region, load owner-configured methods.
+  const [payRegion, setPayRegion] = useState<PayRegion | null>(null);
+  const [payMethods, setPayMethods] = useState<PaymentMethodDoc[]>([]);
+  const [regionLoading, setRegionLoading] = useState(false);
 
   const [upgradeForm, setUpgradeForm] = useState({ 
     contact: currentUser?.name || '', 
@@ -127,9 +281,37 @@ export const MasterSettingsDesk: React.FC = () => {
     (activeWorkspace as any)?.location?.lat ? (activeWorkspace as any)?.location : null
   );
 
-  const BKASH_ROCKET_NUM = "01608533529";
-  const NAGAD_NUM = "01701987744"; 
-  const INTL_PAYMENT_LINK = "https://wise.com/pay/me/adeshc";
+  // NOTE: payment numbers/links are owner-configured via GodMode → Settings →
+  // Payment Methods (paymentMethods collection). Hardcoded fallbacks live in
+  // src/lib/paymentMethods.ts for graceful degradation only.
+
+  // Geo-detect the payer's region when the upgrade modal opens and load
+  // the owner-configured payment methods. Manual tab taps override geo.
+  useEffect(() => {
+    if (!showUpgradeModal) return;
+    let cancelled = false;
+    (async () => {
+      setRegionLoading(true);
+      try {
+        const region = await detectPayRegion(currentUser?.phone || (activeWorkspace as any)?.phone);
+        if (cancelled) return;
+        setPayRegion(region);
+        setPaymentTab(region);
+        const methods = await getPaymentMethods();
+        if (cancelled) return;
+        setPayMethods(methods);
+      } finally {
+        if (!cancelled) setRegionLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showUpgradeModal]);
+
+  const switchRegion = (r: PayRegion) => {
+    setCachedRegion(r); // remember the manual choice for 24h
+    setPayRegion(r);
+    setPaymentTab(r);
+  };
 
   const isAdmin = checkPermission(['TRUSTEE']);
 
@@ -304,8 +486,8 @@ export const MasterSettingsDesk: React.FC = () => {
         communityName: workspaceInfo.name,
         adminName: currentUser?.name || 'Admin',
         contactInfo: upgradeForm.contact.trim(),
-        senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : 'N/A', 
-        paymentMethod: paymentTab === 'BD' ? upgradeForm.paymentMethod : 'INTL Gateway (Wise/Payoneer)', 
+        senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : (upgradeForm.senderNumber.trim() || 'N/A'), 
+        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod, 
         transactionId: upgradeForm.trxId.trim(),
         timestamp: serverTimestamp(),
         status: "PENDING",
@@ -861,87 +1043,29 @@ export const MasterSettingsDesk: React.FC = () => {
 
             <div className="p-6 sm:p-8 overflow-y-auto bg-white flex-1 scrollbar-hide">
 
-               <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-6 shadow-inner border border-gray-200">
-                 <button onClick={() => setPaymentTab('BD')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${paymentTab === 'BD' ? 'bg-white text-green-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   <CreditCard size={14} /> BD (৳{saasConfig.bdtPrice})
+               <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-4 shadow-inner border border-gray-200">
+                 <button onClick={() => switchRegion('BD')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'BD' ? 'bg-white text-green-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                   🇧🇩 BD (৳700)
                  </button>
-                 <button onClick={() => setPaymentTab('INTL')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${paymentTab === 'INTL' ? 'bg-white text-blue-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   <Globe size={14} /> INTL (${saasConfig.usdPrice})
+                 <button onClick={() => switchRegion('IN')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'IN' ? 'bg-white text-orange-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                   🇮🇳 IN (₹499)
+                 </button>
+                 <button onClick={() => switchRegion('INTL')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'INTL' ? 'bg-white text-blue-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                   🌍 INTL ($6)
                  </button>
                </div>
-
-               {paymentTab === 'BD' ? (
-                 <div className="bg-green-50/50 border border-green-200 rounded-3xl p-5 mb-6 shadow-sm relative overflow-hidden text-left">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
-                    <div className="flex justify-between items-center border-b border-green-100 pb-4 mb-4 pl-2">
-                      <h4 className="text-xs font-black text-green-800 uppercase tracking-widest flex items-center gap-2">
-                        <CreditCard size={16}/> Payment Instructions
-                      </h4>
-                      <span className="text-[10px] font-black text-gray-400 line-through">৳{saasConfig.originalBdtPrice?.toLocaleString()}</span>
-                    </div>
-
-                    <div className="space-y-3 pl-2">
-                       <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-green-100 shadow-sm hover:border-green-300 transition-colors">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                               {/* Empty placeholder for images */}
-                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">bKash / Rocket (Personal)</p>
-                            </div>
-                            <p className="text-xl font-black text-gray-900 font-mono tracking-wider">{BKASH_ROCKET_NUM}</p>
-                            <p className="text-[9px] font-bold text-gray-400 mt-1">Instruction: Use "Send Money" option.</p>
-                          </div>
-                          <button type="button" onClick={() => handleCopyNumber(BKASH_ROCKET_NUM)} className="p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors shadow-sm">
-                             <Copy size={16}/>
-                          </button>
-                       </div>
-
-                       <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-green-100 shadow-sm hover:border-green-300 transition-colors">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Nagad (Personal)</p>
-                            </div>
-                            <p className="text-xl font-black text-gray-900 font-mono tracking-wider">{NAGAD_NUM}</p>
-                            <p className="text-[9px] font-bold text-gray-400 mt-1">Instruction: Use "Send Money" option.</p>
-                          </div>
-                          <button type="button" onClick={() => handleCopyNumber(NAGAD_NUM)} className="p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors shadow-sm">
-                             <Copy size={16}/>
-                          </button>
-                       </div>
-
-                       <div className="flex flex-col items-center justify-center bg-white p-5 rounded-2xl border border-green-100 shadow-sm mt-4">
-                          <div className="flex items-center gap-4 mb-3">
-                             <div className="w-24 h-24 bg-gray-50 rounded-xl shadow-md border border-gray-200 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => setZoomedImage('/tallypay_qr.png')}>
-                               <QrCode size={36} className="text-gray-400"/>
-                             </div>
-                             <div className="w-24 h-24 bg-gray-50 rounded-xl shadow-md border border-gray-200 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform" onClick={() => setZoomedImage('/tallypay_guide.png')}>
-                               <FileText size={36} className="text-gray-400"/>
-                             </div>
-                          </div>
-                          <p className="text-xs font-black text-gray-800 uppercase tracking-widest">TallyPay / Bangla QR</p>
-                          <p className="text-[10px] font-bold text-gray-500 text-center mt-1">Tap image to zoom. Scan from bKash, Nagad, Rocket, or any Bank App.</p>
-                       </div>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="bg-blue-50/50 border border-blue-200 rounded-3xl p-8 mb-6 text-center shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-                    <div className="flex justify-center items-center gap-3 mb-4">
-                      <p className="text-xs font-black text-blue-800 uppercase tracking-widest flex items-center gap-2"><Globe size={16}/> Pay securely via International Gateways</p>
-                      <span className="text-[10px] font-black text-gray-400 line-through">${saasConfig.originalUsdPrice} USD</span>
-                    </div>
-
-                    <div className="flex flex-col gap-3 mt-4">
-                      <button type="button" onClick={() => window.open(INTL_PAYMENT_LINK, '_blank')} className="w-full bg-blue-600 text-white px-6 py-4 rounded-xl text-xs uppercase tracking-widest font-black flex justify-center items-center gap-2 mx-auto hover:bg-blue-700 transition-all shadow-md hover:-translate-y-0.5">
-                        OPEN SECURE CHECKOUT (WISE)
-                      </button>
-                      <button type="button" onClick={() => window.open('https://www.payoneer.com/', '_blank')} className="w-full bg-orange-600 text-white px-6 py-4 rounded-xl text-xs uppercase tracking-widest font-black flex justify-center items-center gap-2 mx-auto hover:bg-orange-700 transition-all shadow-md hover:-translate-y-0.5">
-                        PAY VIA PAYONEER (REQUEST LINK)
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] font-bold text-gray-500 mt-4 leading-relaxed bg-white p-3 rounded-xl border border-blue-100">Please copy your Wise or Payoneer Transaction ID after payment is complete and paste it below to verify.</p>
-                 </div>
+               {payRegion && (
+                 <p className="text-[10px] font-bold text-gray-400 text-center mb-4">
+                   Showing {REGION_NAME[payRegion]} methods{regionLoading ? '…' : ''} ·{' '}
+                   <button type="button" onClick={() => { clearCachedRegion(); setPayRegion(null); }}
+                     className="underline hover:text-gray-600">Wrong region? Pick manually above</button>
+                 </p>
                )}
+
+               <RegionPayView region={paymentTab} methods={payMethods} language={language}
+                 loading={regionLoading} onCopy={handleCopyNumber} onZoom={setZoomedImage} />
+
+               
 
                <form onSubmit={handleSubmitUpgrade} className="space-y-5">
                  <div className="border-t border-gray-200 pt-6 mb-4">
@@ -957,21 +1081,30 @@ export const MasterSettingsDesk: React.FC = () => {
                    </div>
                  </div>
 
-                 {paymentTab === 'BD' && (
+                 {paymentTab !== 'INTL' && (
                    <div className="grid grid-cols-2 gap-4">
                      <div>
                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Payment Method *</label>
                        <select required value={upgradeForm.paymentMethod} onChange={e=>setUpgradeForm({...upgradeForm, paymentMethod: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange shadow-sm cursor-pointer appearance-none transition-all">
-                         <option value="bKash">bKash</option>
-                         <option value="Nagad">Nagad</option>
-                         <option value="Rocket">Rocket</option>
-                         <option value="TallyPay/BanglaQR">TallyPay QR</option>
-                         <option value="Other">Other Bank</option>
+                         {paymentTab === 'BD' ? (
+                           <>
+                             <option value="bKash">bKash</option>
+                             <option value="Nagad">Nagad</option>
+                             <option value="Rocket">Rocket</option>
+                             <option value="TallyPay/BanglaQR">TallyPay QR</option>
+                             <option value="Other">Other Bank</option>
+                           </>
+                         ) : (
+                           <>
+                             <option value="UPI">UPI</option>
+                             <option value="Other">Other</option>
+                           </>
+                         )}
                        </select>
                      </div>
                      <div>
-                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Sender Number *</label>
-                       <input type="text" required value={upgradeForm.senderNumber} onChange={e=>setUpgradeForm({...upgradeForm, senderNumber: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange transition-all shadow-sm" placeholder="017..." />
+                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Sender Number {paymentTab === 'BD' ? '*' : '(optional)'}</label>
+                       <input type="text" required={paymentTab === 'BD'} value={upgradeForm.senderNumber} onChange={e=>setUpgradeForm({...upgradeForm, senderNumber: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange transition-all shadow-sm" placeholder={paymentTab === 'BD' ? '017...' : '98...'} />
                      </div>
                    </div>
                  )}
@@ -1007,13 +1140,13 @@ export const MasterSettingsDesk: React.FC = () => {
       {zoomedImage && createPortal(
         <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-sm z-[11000] flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
           <div className="relative max-w-3xl w-full flex justify-center items-center animate-in zoom-in-95">
-             <button onClick={() => setZoomedImage(null)} className="absolute -top-12 right-0 sm:-right-12 sm:top-0 bg-white/10 hover:bg-white/30 text-white p-3 rounded-full transition-colors backdrop-blur-md">
+             <button onClick={() => setZoomedImage(null)} aria-label="Close zoom"
+               className="absolute -top-12 right-0 sm:-right-12 sm:top-0 bg-white/10 hover:bg-white/30 text-white p-3 rounded-full transition-colors backdrop-blur-md min-w-[44px] min-h-[44px] flex items-center justify-center">
                <X size={24}/>
              </button>
-             {/* Replace this with an actual image tag if needed, omitted due to no actual path available currently */}
-             <div className="w-full h-96 bg-gray-800 flex items-center justify-center rounded-xl border border-white/20 shadow-2xl">
-                <p className="text-white font-black">{zoomedImage}</p>
-             </div>
+             <img src={zoomedImage} alt="Payment QR code (zoomed)"
+               className="w-full max-w-md max-h-[75vh] object-contain rounded-xl border border-white/20 shadow-2xl bg-white p-2"
+               onClick={(e) => e.stopPropagation()} />
           </div>
         </div>,
         document.body
