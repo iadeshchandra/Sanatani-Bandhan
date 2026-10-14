@@ -566,6 +566,13 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
+    // Platform config (commission tier rates etc): public read so booking
+    // flows resolve rates; owner-only writes.
+    match /platformConfig/{configId} {
+      allow read: if true;
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
     // Marketplace transactions: owner-only. Written by the future booking
     // flow via Admin SDK; the console records status changes.
     match /marketplaceTransactions/{txnId} {
