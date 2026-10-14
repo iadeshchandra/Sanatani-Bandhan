@@ -156,6 +156,56 @@ design (free-tier triggers vs Cloud Scheduler on Blaze).
 
 ---
 
+## Manual billing (`/api/billing`)
+
+Zero-gateway plan payments for Bangladesh/India: the owner configures where
+money goes (bKash / Nagad / UPI / PhonePe / bank), users pay in their own
+mobile-banking app, then submit the transaction ID. The owner verifies the
+payment in their own bKash/Nagad/UPI account and approves — approval is the
+only thing that activates a plan. Submitting a claim grants nothing.
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/api/billing/methods` | Public | Active payment methods + owner instructions (where to send money) |
+| POST | `/api/billing/methods` | Owner | Configure a payment method (id, name, account, locale instructions) |
+| POST | `/api/billing/payment-claims` | Authenticated | Submit a claim: workspaceId, plan, billingPeriod, method, transactionId, amount, proofUrl (5/hour; one pending per workspace; txid anti-replay) |
+| GET | `/api/billing/payment-claims` | Owner | Review queue (`?status=pending|approved|rejected`) |
+| POST | `/api/billing/payment-claims/:id/approve` | Owner | Verify + activate: transactional plan write with server-computed dates, mirrors `planId` to workspace. Audited (critical) |
+| POST | `/api/billing/payment-claims/:id/reject` | Owner | Reject with reason. Audited |
+| GET | `/api/billing/subscription/:workspaceId` | Member/Owner | Current plan, dates, days remaining, active/expired/none |
+
+Plans: `STANDARD` / `ENTERPRISE`; periods `monthly` (+1 month) / `yearly`
+(+1 year). Stored in `subscriptions/{workspaceId}` with `planStartAt` /
+`planEndAt` (server clock authoritative). Expired workspaces fall back to
+`LITE` in status responses.
+
+---
+
+## Messaging (`/api/messaging`)
+
+Owner-to-user messaging over two free channels: FCM push (unlimited, free
+via Admin SDK) + in-app inbox (Firestore, the source of truth — users
+without a push token still see everything).
+
+Client token registration (wire into the app once):
+`setDoc(doc(db, 'users', uid, 'fcmTokens', token), { token, platform: 'web', createdAt: serverTimestamp() })`
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/api/messaging/send` | Owner | Compose + deliver: title, body, type, audience `{ kind: single|workspace|role|all }`. Fans out to per-user inbox docs + FCM. Broadcasts capped at 3/day (Firestore-backed). Audited |
+| POST | `/api/messaging/schedule` | Owner | Queue a message for a future ISO time (festival greetings, reminders) |
+| POST | `/api/messaging/dispatch-due` | Owner | Deliver due scheduled messages (manual or Cloud Scheduler trigger). Idempotent |
+| GET | `/api/messaging/inbox` | Authenticated | Caller's own messages, unread-first, paginated |
+| POST | `/api/messaging/inbox/:id/read` | Authenticated | Mark own message as read (ownership re-checked) |
+| GET | `/api/messaging/templates` | Owner | Greeting/reminder templates with locale variants |
+| POST | `/api/messaging/templates` | Owner | Create template (`title`/`body` in `en` + `bn`/`hi`) |
+
+Audience kinds: `single` (one UID) · `workspace` (all members of a
+workspace) · `role` (all holders of a role, platform-wide) · `all` (every
+user — use carefully).
+
+---
+
 ## Audit trail
 
 Sensitive operations write to the `audit_logs` Firestore collection (append-only;
@@ -167,7 +217,10 @@ rules deny update/delete). Logged actions:
 `verification.apply` · `verification.approve` · `verification.reject` ·
 `moderation.hide_content` · `moderation.warn_user` · `moderation.suspend_user` ·
 `moderation.unsuspend_user` · `moderation.dismiss` ·
-`scheduled.samskara_reminders` · `scheduled.shraddha_reminders`
+`scheduled.samskara_reminders` · `scheduled.shraddha_reminders` ·
+`billing.method.upsert` · `billing.claim.submit` · `billing.claim.approve` ·
+`billing.claim.reject` · `messaging.send` · `messaging.schedule` ·
+`messaging.dispatch_due` · `messaging.template.create`
 
 Each entry: `action`, `actorUid`, `actorEmail`, `workspaceId`, `targetType`,
 `targetId`, `details`, `ip`, `severity`, `createdAt` (server timestamp).

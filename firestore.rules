@@ -208,6 +208,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // FCM device tokens for push delivery. Each user manages only their own
+    // tokens; the messaging backend reads them via the Admin SDK (which
+    // bypasses rules). Register client-side with:
+    //   setDoc(doc(db, 'users', uid, 'fcmTokens', token),
+    //          { token, platform: 'web', createdAt: serverTimestamp() })
+    match /users/{userId}/fcmTokens/{tokenId} {
+      allow read, write: if isLoggedIn() && request.auth.uid == userId;
+    }
+
     // ------------------------------------------------------------------
     // 4. Tenant partitions
     //    - /tenants/{id}: public discovery doc (name/city/type/logo only).
@@ -464,6 +473,62 @@ service cloud.firestore {
       allow read: if isLoggedIn()
         && resource.data.get('targetUid', '') == request.auth.uid;
       allow create, update, delete: if false; // scheduler writes via Admin SDK only
+    }
+
+    // ---- Manual billing (bKash / Nagad / UPI / PhonePe) ----
+    // Payment method instructions are public (users need to know where to send
+    // money); only the owner configures them.
+    match /paymentMethods/{methodId} {
+      allow read: if true;
+      allow create, update, delete: if false; // owner writes via Admin SDK only
+    }
+
+    // Payment claims: any authenticated member files their own claim; only the
+    // owner reviews. Status flips happen via Admin SDK (transactional).
+    match /paymentClaims/{claimId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('applicantUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending';
+      allow update, delete: if false; // owner acts via Admin SDK only
+    }
+
+    // Subscriptions: readable by owner or workspace members; server-written.
+    match /subscriptions/{workspaceId} {
+      allow read: if isSuperAdmin() || (isLoggedIn() && isTenantMember(workspaceId));
+      allow create, update, delete: if false; // billing API writes via Admin SDK only
+    }
+
+    // ---- Messaging ----
+    // Inbox messages: the target user reads their own; only the read flag is
+    // client-mutable (and only by the target user). Sending is Admin-SDK-only.
+    match /messages/{messageId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('targetUid', '') == request.auth.uid);
+      allow create: if false; // messaging API writes via Admin SDK only
+      allow update: if isLoggedIn()
+        && resource.data.get('targetUid', '') == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      allow delete: if false;
+    }
+
+    // Campaigns, scheduled messages, templates, broadcast caps: owner-only
+    // reads; all writes via Admin SDK.
+    match /messageCampaigns/{campaignId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+    match /scheduledMessages/{schedId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+    match /messageTemplates/{templateId} {
+      allow read: if isSuperAdmin();
+      allow create, update, delete: if false;
+    }
+    match /broadcastCaps/{capId} {
+      allow read, write: if false; // server-internal rate-cap bookkeeping
     }
 
     // Crisis events
