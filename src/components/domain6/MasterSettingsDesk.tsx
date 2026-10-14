@@ -133,16 +133,13 @@ const MethodCard: React.FC<{
     );
   }
   if (method.type === 'upi') {
+    // UPI QR: prefer configured qrImageUrl, fall back to /upi-qr.png directly
+    // (bypasses any stale paymentMethods build cache).
+    const upiQrSrc = method.qrImageUrl || '/upi-qr.png';
     return (
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex flex-col items-center">
-          {method.qrImageUrl ? (
-            <QrImage src={method.qrImageUrl} onZoom={onZoom} />
-          ) : (
-            <div className="w-52 h-52 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
-              <QrCode size={36} className="text-gray-400" />
-            </div>
-          )}
+          <QrImage src={upiQrSrc} onZoom={onZoom} />
           <p className="text-xs font-black text-gray-800 uppercase tracking-widest mt-3">{method.label}</p>
           <p className="text-[10px] font-bold text-gray-400 text-center mt-1">Tap the QR to zoom. Scan from GPay, PhonePe, Paytm, or BHIM.</p>
         </div>
