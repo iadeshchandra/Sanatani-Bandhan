@@ -367,7 +367,7 @@ const AppContent: React.FC = () => {
       // Domain 1
       case 'devotees':
       case 'devotee-grid':
-        return <DevoteeGrid />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <DevoteeGrid /> : <RestrictedAccess />;
       case 'membership':
       case 'membership-desk':
       case 'org-membership':
@@ -381,16 +381,16 @@ const AppContent: React.FC = () => {
         return checkPermission(['CSO', 'TRUSTEE', 'SEVADAR', 'VOLUNTEER']) ? <DarshanCheckInDesk /> : <RestrictedAccess />;
       case 'family':
       case 'household-census':
-        return <FamilyHouseholdDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <FamilyHouseholdDesk /> : <RestrictedAccess />;
       case 'vanshavali':
       case 'vanshavali-tree':
-        return <VanshavaliDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <VanshavaliDesk /> : <RestrictedAccess />;
       case 'guests':
       case 'guest-pipeline':
-        return <GuestManagerDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <GuestManagerDesk /> : <RestrictedAccess />;
       case 'rakthaSeva':
       case 'blood-registry':
-        return <RakthaSevaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <RakthaSevaDesk /> : <RestrictedAccess />;
       case 'bulkImport':
       case 'universal-csv':
         return checkPermission(['MANAGER', 'TRUSTEE']) ? <BulkImportDesk /> : <RestrictedAccess />;
@@ -410,7 +410,7 @@ const AppContent: React.FC = () => {
       case 'quickChandaPos':
       case 'chanda-pos':
       case 'counter-pos':
-        return <QuickChandaPOS />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'ACCOUNTANT', 'SEVADAR']) ? <QuickChandaPOS /> : <RestrictedAccess />;
       case 'treasury-audit':
       case 'treasuryAudit':
       case 'treasury':
@@ -452,7 +452,7 @@ const AppContent: React.FC = () => {
         return checkPermission(['MANAGER', 'TRUSTEE']) ? <MandirCampaignsDesk /> : <RestrictedAccess />;
       case 'karmaLedger':
       case 'karma-ledger':
-        return <KarmaLedgerDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'ACCOUNTANT']) ? <KarmaLedgerDesk /> : <RestrictedAccess />;
       case 'assets':
       case 'asset-register':
         return checkPermission(['MANAGER', 'TRUSTEE']) ? <AssetInventoryDesk /> : <RestrictedAccess />;
@@ -492,7 +492,7 @@ const AppContent: React.FC = () => {
       case 'purohit-unified':
       case 'purohitMarket':
       case 'purohit-marketplace':
-        return <PurohitPortalUnified />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest']) ? <PurohitPortalUnified /> : <RestrictedAccess />;
       case 'pitruShradh':
       case 'pitru-shradh':
         return checkPermission(['PUROHIT', 'MANAGER', 'TRUSTEE']) ? <PitruShradhDesk /> : <RestrictedAccess />;
@@ -500,51 +500,51 @@ const AppContent: React.FC = () => {
       case 'panchang-muhurat':
       case 'panchang-astrology-engine':
       case 'panchang-engine':
-        return <PanchangAstrologyEngine />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <PanchangAstrologyEngine /> : <RestrictedAccess />;
       case 'yatranet':
       case 'yatranet-gis':
       case 'yatra-gis':
       case 'crowd-control':
-        return <YatraNetCommandCenter />;
+        return checkPermission(['CSO', 'TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <YatraNetCommandCenter /> : <RestrictedAccess />;
 
       // Domain 4
       case 'goshala':
       case 'gau-seva-goshala':
-        return <GauSevaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <GauSevaDesk /> : <RestrictedAccess />;
       case 'annadanam':
       case 'annadanam-kitchen':
-        return <AnnadanamKitchenDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <AnnadanamKitchenDesk /> : <RestrictedAccess />;
       case 'dharamshala':
       case 'dharamshala-yatri-bhavan':
-        return <DharamshalaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <DharamshalaDesk /> : <RestrictedAccess />;
       case 'utsav-one':
-        return <UtsavDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <UtsavDesk /> : <RestrictedAccess />;
       case 'nyas-one':
-        return <NyasDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <NyasDesk /> : <RestrictedAccess />;
       case 'tirth-one':
-        return <TirthDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <TirthDesk /> : <RestrictedAccess />;
       case 'yoga-one':
-        return <YogaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <YogaDesk /> : <RestrictedAccess />;
       case 'matha-one':
-        return <MathaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <MathaDesk /> : <RestrictedAccess />;
       case 'satsang-one':
-        return <SatsangDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <SatsangDesk /> : <RestrictedAccess />;
       case 'sabha-one':
-        return <SabhaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <SabhaDesk /> : <RestrictedAccess />;
       case 'samskara-one':
-        return <SamskaraDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <SamskaraDesk /> : <RestrictedAccess />;
       case 'annakshetra-one':
       case 'smartBhandar':
       case 'smart-bhandar':
       case 'bhandar':
       case 'bhandar-procurement':
       case 'smartBhandarProcurement':
-        return <AnnakshetraDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <AnnakshetraDesk /> : <RestrictedAccess />;
       case 'ashramKutir':
       case 'ashram-kutir':
       case 'ashramGoshalaGurukul':
       case 'ashram-goshala-gurukul':
-        return <AshramGoshalaGurukulDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <AshramGoshalaGurukulDesk /> : <RestrictedAccess />;
       case 'gurukul':
       case 'gurukul-education':
       case 'gurukulAcademy':
@@ -552,17 +552,17 @@ const AppContent: React.FC = () => {
       case 'satsang':
       case 'sanghaDrills':
       case 'sevaTrust':
-        return <VedicSevaShikshaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <VedicSevaShikshaDesk /> : <RestrictedAccess />;
       case 'pathshala':
-        return <PathshalaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <PathshalaDesk /> : <RestrictedAccess />;
       case 'goshala-one':
-        return <GoshalaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <GoshalaDesk /> : <RestrictedAccess />;
       case 'ashram-one':
-        return <AshramDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <AshramDesk /> : <RestrictedAccess />;
       case 'granthLibrary':
       case 'sanskrit-library':
       case 'shlokaFeed':
-        return <SanskritLibraryDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <SanskritLibraryDesk /> : <RestrictedAccess />;
 
       // Domain 5
       case 'sandeshBroadcast':
@@ -570,7 +570,7 @@ const AppContent: React.FC = () => {
         return checkPermission(['MANAGER', 'TRUSTEE']) ? <WhatsAppBroadcasterDesk /> : <RestrictedAccess />;
       case 'utsavPanjika':
       case 'events-utsav':
-        return <VedicCalendarEventsDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <VedicCalendarEventsDesk /> : <RestrictedAccess />;
       case 'dharmicAssistant':
       case 'dharmic-assistant':
       case 'dharmaMarketing':
@@ -584,18 +584,18 @@ const AppContent: React.FC = () => {
       // Domain 7
       case 'sadhana-karma':
       case 'personal-sadhana':
-        return <PersonalSadhanaDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <PersonalSadhanaDesk /> : <RestrictedAccess />;
       case 'sanatani-vivah':
       case 'matrimony':
-        return <SanataniVivahDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'Priest', 'SEVADAR']) ? <SanataniVivahDesk /> : <RestrictedAccess />;
       case 'familyRootsMatrimony':
       case 'family-roots-matrimony':
       case 'familyRoots':
       case 'family-roots':
-        return <FamilyRootsMatrimonyDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <FamilyRootsMatrimonyDesk /> : <RestrictedAccess />;
       case 'yatraNet':
       case 'yatra-net':
-        return <YatraNetDesk />;
+        return checkPermission(['TRUSTEE', 'SuperAdmin', 'SEVADAR']) ? <YatraNetDesk /> : <RestrictedAccess />;
 
       // Domain 6
       case 'tactical-radar':
