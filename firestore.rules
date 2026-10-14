@@ -886,6 +886,8 @@ service cloud.firestore {
     }
     // Top-up claims: user files (pending only); owner approves → credits
     // the wallet. Mirrors the paymentClaims pattern.
+    // Users may edit their OWN pending claims (self-serve resubmit) but can
+    // never change status or uid — enforced here and in updateTopupClaim().
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -894,7 +896,12 @@ service cloud.firestore {
         && request.resource.data.get('status', '') == 'pending'
         && request.resource.data.get('amount', 0) > 0
         && request.resource.data.get('currency', '') in ['BDT', 'INR', 'USD'];
-      allow update: if isOwner();
+      allow update: if isOwner()
+        || (isLoggedIn()
+          && resource.data.get('uid', '') == request.auth.uid
+          && resource.data.get('status', '') == 'pending'
+          && request.resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.get('status', '') == 'pending');
       allow delete: if false;
     }
     // Commission payments (Path B: post-task direct pay, commission to
