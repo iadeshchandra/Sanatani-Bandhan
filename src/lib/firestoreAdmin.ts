@@ -2217,6 +2217,7 @@ async function topupQueue(status = 'pending'): Promise<NativeResult> {
       return {
         id: d.id, uid: v.uid, amount: v.amount, currency: v.currency,
         paymentMethodId: v.paymentMethodId, trxId: v.trxId, screenshotUrl: v.screenshotUrl,
+        reference: v.reference || '', expiresAt: tsToIso(v.expiresAt),
         status: v.status, rejectionReason: v.rejectionReason,
         createdAt: tsToIso(v.createdAt),
       };
@@ -2245,16 +2246,43 @@ async function topupApprove(id: string): Promise<NativeResult> {
     return { ok: false, error: `Currency mismatch: wallet is ${w.currency}, claim is ${currency}. Adjust manually.`, code: 'CURRENCY_MISMATCH' };
   }
 
+  // Pratham Seva bonus: first-ever approved top-up gets a flat thank-you credit.
+  // Constants mirror src/lib/wallet.ts (FIRST_TOPUP_BONUS / TOPUP_LIMITS).
+  const PRATHAM_BONUS: Record<string, number> = { BDT: 50, INR: 50, USD: 1 };
+  const PRATHAM_MIN: Record<string, number> = { BDT: 500, INR: 500, USD: 10 };
+  let bonusAmount = 0;
+  const alreadyBonused = Boolean(w?.hasReceivedFirstTopupBonus);
+  if (!alreadyBonused) {
+    try {
+      const priorSnap = await getDocs(query(
+        collection(db, 'topupClaims'),
+        where('uid', '==', claim.uid),
+        where('status', '==', 'approved'),
+        limit(2)
+      ));
+      // The current claim is still 'pending' at this point, so any approved
+      // docs found are PRIOR top-ups. Zero prior = this is the first.
+      const isFirstEver = priorSnap.size === 0;
+      if (isFirstEver && amount >= (PRATHAM_MIN[currency] || 0)) {
+        bonusAmount = PRATHAM_BONUS[currency] || 0;
+      }
+    } catch {
+      // Fail-closed on bonus: skip if the check errors.
+      bonusAmount = 0;
+    }
+  }
+
   await updateDoc(ref, { status: 'approved', reviewedByUid: uid, reviewedAt: serverTimestamp() });
   await setDoc(
     walletRef,
     {
       uid: claim.uid,
-      balance: before + amount,
+      balance: before + amount + bonusAmount,
       currency,
       totalToppedUp: Number(w?.totalToppedUp || 0) + amount,
       totalSpent: Number(w?.totalSpent || 0),
       totalReceived: Number(w?.totalReceived || 0),
+      hasReceivedFirstTopupBonus: true,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
@@ -2268,12 +2296,23 @@ async function topupApprove(id: string): Promise<NativeResult> {
     note: `Top-up approved (${claim.paymentMethodId}, TrxID ${claim.trxId})`,
     createdAt: serverTimestamp(),
   });
+  if (bonusAmount > 0) {
+    await addDoc(collection(db, 'walletTransactions'), {
+      uid: claim.uid,
+      type: 'topup',
+      amount: bonusAmount,
+      currency,
+      topupClaimId: id,
+      note: 'Pratham Seva bonus — thank you for your first top-up! 🙏',
+      createdAt: serverTimestamp(),
+    });
+  }
   await writeAudit(
     'wallet.topup.approve',
-    { claimId: id, uid: claim.uid, amount, currency, balanceBefore: before, balanceAfter: before + amount },
+    { claimId: id, uid: claim.uid, amount, currency, bonusAmount, balanceBefore: before, balanceAfter: before + amount + bonusAmount },
     'warn'
   );
-  return { ok: true, data: { ok: true, balanceAfter: before + amount } };
+  return { ok: true, data: { ok: true, balanceAfter: before + amount + bonusAmount, bonusAmount } };
 }
 
 async function topupReject(id: string, reason: string): Promise<NativeResult> {
