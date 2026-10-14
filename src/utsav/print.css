@@ -1,0 +1,13 @@
+/* Utsav One — print stylesheet. Only the report area prints. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .print-uc,
+  .print-summary {
+    display: block !important;
+  }
+}
