@@ -499,6 +499,48 @@ export const adminApi = {
       () => firestoreAdmin.auditPickRequestSms(orderIds)
     ),
 
+  // Wallet + escrow top-up
+  topupQueue: (status = 'pending') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.topupQueue(status)
+    ),
+  topupApprove: (id: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.topupApprove(id)
+    ),
+  topupReject: (id: string, reason: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.topupReject(id, reason)
+    ),
+  walletLookup: (uid: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.walletLookup(uid)
+    ),
+  walletAdjust: (uid: string, amount: number, reason: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.walletAdjust(uid, amount, reason)
+    ),
+  commissionPaymentsQueue: (status = 'pending') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.commissionPaymentsQueue(status)
+    ),
+  commissionPaymentConfirm: (id: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.commissionPaymentConfirm(id)
+    ),
+  platformRevenueStats: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.platformRevenueStats()
+    ),
+
   // Messaging
   sendMessage: (payload: {
     title: string;
