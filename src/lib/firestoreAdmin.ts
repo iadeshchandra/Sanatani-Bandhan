@@ -1587,6 +1587,237 @@ async function exportPaymentCSV(period: '7d' | '30d' | '90d' | 'all' = 'all'): P
   return { ok: true, data: { ok: true, csv, count: filtered.length } };
 }
 
+/* ----------------- Provider payments + anti-bypass (Spark-native) -----------------
+ * - providerPaymentMethods: approve / reject / assign-platform
+ * - providerInquiries: list + reply (delivered to provider inbox)
+ * - bypassFlags: review queue (dismiss / warn / suspend)
+ * - bypassKeywords: owner-editable detection patterns
+ * - providerStrikes: issue with automatic escalation
+ * --------------------------------------------------------------------------- */
+
+async function providerPaymentQueue(status: 'pending' | 'all' = 'pending'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'providerPaymentMethods'), limit(200)));
+  let rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  if (status === 'pending') rows = rows.filter((r: any) => r.status === 'pending');
+  rows.sort((a: any, b: any) => String(b.submittedAt?.toDate?.() || b.submittedAt || '').localeCompare(String(a.submittedAt?.toDate?.() || a.submittedAt || '')));
+  return { ok: true, data: { rows } };
+}
+
+async function providerPaymentReview(
+  id: string,
+  action: 'approved' | 'rejected' | 'platform_assigned',
+  reviewNotes = ''
+): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'providerPaymentMethods', id);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Record not found.' };
+  const rec: any = s.data();
+  await updateDoc(ref, {
+    status: action,
+    reviewNotes: reviewNotes.slice(0, 500),
+    reviewedByUid: uid,
+    reviewedAt: serverTimestamp(),
+  });
+  // Notify the provider via inbox
+  const titles: Record<string, string> = {
+    approved: '✅ Payment method approved',
+    rejected: '❌ Payment method not approved',
+    platform_assigned: 'ℹ️ Platform payment method assigned',
+  };
+  const bodies: Record<string, string> = {
+    approved: `Your own payment method has been approved.${reviewNotes ? `\n\nNote from review: ${reviewNotes}` : ''}\n\nClients will see your payment details at booking. The 12% platform commission still applies to every order.`,
+    rejected: `Your payment method request was not approved.${reviewNotes ? `\n\nReason: ${reviewNotes}` : ''}\n\nYou can use the platform payment method (no setup needed) or contact the owner to discuss.`,
+    platform_assigned: `The platform payment method has been assigned to your account.${reviewNotes ? `\n\nNote: ${reviewNotes}` : ''}\n\nClients pay through the platform; your net earnings (after 12% commission) are available for payout.`,
+  };
+  try {
+    await addDoc(collection(db, 'messages'), {
+      targetUid: rec.providerUid,
+      title: titles[action],
+      body: bodies[action],
+      type: 'announcement',
+      createdBy: uid,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+  } catch { /* non-fatal */ }
+  await writeAudit('marketplace.payment.review', { methodId: id, providerUid: rec.providerUid, action }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function providerInquiriesList(status: 'open' | 'all' = 'open'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'providerInquiries'), limit(200)));
+  let rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  if (status === 'open') rows = rows.filter((r: any) => r.status === 'open');
+  rows.sort((a: any, b: any) => String(b.createdAt?.toDate?.() || '').localeCompare(String(a.createdAt?.toDate?.() || '')));
+  return { ok: true, data: { rows } };
+}
+
+async function providerInquiryReply(id: string, reply: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!reply.trim()) return { ok: false, error: 'Reply cannot be empty.' };
+  const ref = doc(db, 'providerInquiries', id);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Inquiry not found.' };
+  const inq: any = s.data();
+  await updateDoc(ref, { status: 'replied', ownerReply: reply.slice(0, 2000), repliedAt: serverTimestamp() });
+  try {
+    await addDoc(collection(db, 'messages'), {
+      targetUid: inq.providerUid,
+      title: `💬 Reply: ${String(inq.subject || '').slice(0, 60)}`,
+      body: reply.slice(0, 2000),
+      type: 'announcement',
+      createdBy: uid,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+  } catch { /* non-fatal */ }
+  await writeAudit('marketplace.inquiry.reply', { inquiryId: id, providerUid: inq.providerUid }, 'info');
+  return { ok: true, data: { ok: true } };
+}
+
+/* ---------------- Bypass flags ---------------- */
+
+async function bypassFlagsList(status: 'pending' | 'all' = 'pending'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'bypassFlags'), limit(300)));
+  let rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  if (status === 'pending') rows = rows.filter((r: any) => r.status === 'pending');
+  rows.sort((a: any, b: any) => String(b.createdAt?.toDate?.() || '').localeCompare(String(a.createdAt?.toDate?.() || '')));
+  return { ok: true, data: { rows } };
+}
+
+async function bypassFlagResolve(id: string, action: 'dismiss' | 'warn' | 'suspend_gigs'): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'bypassFlags', id);
+  const s = await getDoc(ref);
+  if (!s.exists()) return { ok: false, error: 'Flag not found.' };
+  const flag: any = s.data();
+  await updateDoc(ref, { status: action === 'dismiss' ? 'dismissed' : 'actioned', actionTaken: action, resolvedByUid: uid, resolvedAt: serverTimestamp() });
+
+  if (action === 'warn') {
+    await issueStrikeInternal(flag.senderUid, 'bypass_attempt', flag.orderId || '', `Flagged message excerpt: "${String(flag.excerpt || '').slice(0, 80)}"`, uid);
+  } else if (action === 'suspend_gigs') {
+    await issueStrikeInternal(flag.senderUid, 'bypass_attempt', flag.orderId || '', `Flagged message excerpt: "${String(flag.excerpt || '').slice(0, 80)}" (owner chose suspension)`, uid);
+    // Suspend all active gigs for 7 days
+    try {
+      const gigs = await getDocs(query(collection(db, 'marketplaceGigs'), where('providerUid', '==', flag.senderUid), limit(100)));
+      const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      for (const g of gigs.docs) {
+        await updateDoc(doc(db, 'marketplaceGigs', g.id), { active: false, suspendedUntil: until, updatedAt: serverTimestamp() });
+      }
+    } catch { /* non-fatal */ }
+  }
+  await writeAudit('marketplace.bypass.resolve', { flagId: id, action, senderUid: flag.senderUid }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Internal strike issuer with automatic escalation. */
+async function issueStrikeInternal(
+  providerUid: string,
+  type: 'bypass_attempt' | 'payment_fraud' | 'fake_completion' | 'other',
+  orderId: string,
+  notes: string,
+  issuedByUid: string
+): Promise<{ strikeNumber: number; actionTaken: string }> {
+  const existing = await getDocs(query(collection(db, 'providerStrikes'), where('providerUid', '==', providerUid), limit(50)));
+  const strikeNumber = existing.size + 1;
+  let actionTaken: 'warning' | 'suspension_7d' | 'review_flagged' = 'warning';
+  if (strikeNumber === 2) actionTaken = 'suspension_7d';
+  else if (strikeNumber >= 3) actionTaken = 'review_flagged';
+
+  await addDoc(collection(db, 'providerStrikes'), {
+    providerUid,
+    type,
+    orderId: orderId || '',
+    notes: notes.slice(0, 500),
+    strikeNumber,
+    actionTaken,
+    issuedByUid,
+    createdAt: serverTimestamp(),
+  });
+
+  // Notify provider
+  const msgs: Record<string, string> = {
+    warning: `⚠️ Strike ${strikeNumber}: A marketplace policy violation was recorded on your account.\n\n${notes}\n\nPlease review the marketplace terms. Further violations lead to temporary suspension.`,
+    suspension_7d: `⛔ Strike ${strikeNumber}: Your gigs have been suspended for 7 days due to repeated policy violations.\n\n${notes}\n\nContact the owner if you believe this is a mistake.`,
+    review_flagged: `🚨 Strike ${strikeNumber}: Your account has been flagged for owner review due to repeated violations.\n\n${notes}\n\nThe owner will decide on further action.`,
+  };
+  try {
+    await addDoc(collection(db, 'messages'), {
+      targetUid: providerUid,
+      title: `Marketplace policy — strike ${strikeNumber}`,
+      body: msgs[actionTaken],
+      type: 'urgent',
+      createdBy: issuedByUid,
+      read: false,
+      createdAt: serverTimestamp(),
+    });
+  } catch { /* non-fatal */ }
+  return { strikeNumber, actionTaken };
+}
+
+async function issueStrike(
+  providerUid: string,
+  type: 'bypass_attempt' | 'payment_fraud' | 'fake_completion' | 'other',
+  orderId = '',
+  notes = ''
+): Promise<NativeResult> {
+  const uid = requireOwner();
+  const r = await issueStrikeInternal(providerUid, type, orderId, notes, uid);
+  await writeAudit('marketplace.strike.issue', { providerUid, type, ...r }, 'critical');
+  return { ok: true, data: r };
+}
+
+async function providerStrikesList(providerUid: string): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'providerStrikes'), where('providerUid', '==', providerUid), limit(50)));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  rows.sort((a: any, b: any) => Number(b.strikeNumber || 0) - Number(a.strikeNumber || 0));
+  return { ok: true, data: { rows, count: rows.length } };
+}
+
+/* ---------------- Bypass keyword patterns ---------------- */
+
+async function bypassKeywordsList(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'bypassKeywords'), limit(200)));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  return { ok: true, data: { rows } };
+}
+
+async function bypassKeywordSave(input: { id?: string; pattern: string; label: string; severity?: 'low' | 'medium' | 'high'; active?: boolean }): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!input.pattern?.trim() || !input.label?.trim()) return { ok: false, error: 'Pattern and label are required.' };
+  try { new RegExp(input.pattern); } catch { return { ok: false, error: 'Invalid regular expression.' }; }
+  const payload = {
+    pattern: input.pattern.trim().slice(0, 300),
+    label: input.label.trim().slice(0, 120),
+    severity: input.severity || 'medium',
+    active: input.active !== false,
+    updatedByUid: uid,
+    updatedAt: serverTimestamp(),
+  };
+  if (input.id) {
+    await updateDoc(doc(db, 'bypassKeywords', input.id), payload);
+  } else {
+    await addDoc(collection(db, 'bypassKeywords'), { ...payload, createdAt: serverTimestamp() });
+  }
+  await writeAudit('marketplace.bypass.keyword.save', { label: payload.label }, 'info');
+  return { ok: true, data: { ok: true } };
+}
+
+async function bypassKeywordDelete(id: string): Promise<NativeResult> {
+  requireOwner();
+  const s = await getDoc(doc(db, 'bypassKeywords', id));
+  if (!s.exists()) return { ok: false, error: 'Not found.' };
+  await updateDoc(doc(db, 'bypassKeywords', id), { active: false, updatedAt: serverTimestamp() });
+  await writeAudit('marketplace.bypass.keyword.delete', { id }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
 /* --------------------------------- Export -------------------------------- */
 
 export const firestoreAdmin = {
@@ -1666,6 +1897,18 @@ export const firestoreAdmin = {
   paymentMethodStats,
   paymentHistory,
   exportPaymentCSV,
+  // Provider payments + anti-bypass
+  providerPaymentQueue,
+  providerPaymentReview,
+  providerInquiriesList,
+  providerInquiryReply,
+  bypassFlagsList,
+  bypassFlagResolve,
+  issueStrike,
+  providerStrikesList,
+  bypassKeywordsList,
+  bypassKeywordSave,
+  bypassKeywordDelete,
 };
 
 export default firestoreAdmin;
