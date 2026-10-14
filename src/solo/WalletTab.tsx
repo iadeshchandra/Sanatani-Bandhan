@@ -147,7 +147,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
 
           <div className="flex items-center justify-between bg-white rounded-xl border border-amber-200 px-3 py-2 mb-2">
             <div>
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Your reference</p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('solo.wallet.yourReference')}</p>
               <p className="font-mono font-black text-stone-900 tracking-wider">{reference}</p>
             </div>
             <div className="flex gap-1">
@@ -165,7 +165,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
           <button type="button" onClick={() => copy(String(amt), 'Amount copied')}
             className="w-full flex items-center justify-between bg-white rounded-xl border-2 border-amber-300 px-3 py-2.5 mb-2 min-h-[52px]">
             <div className="text-left">
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Send exactly</p>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('solo.wallet.sendExactly')}</p>
               <p className="font-black text-lg text-stone-900">{fmtWallet(amt, currency)}</p>
             </div>
             <Copy className="w-5 h-5 text-amber-600" />
@@ -212,7 +212,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
         <Btn variant="primary" className="w-full min-h-[48px]" disabled={working} onClick={submit}>
           {working ? 'Submitting…' : `Submit top-up request (${reference})`}
         </Btn>
-        <p className="text-[10px] text-stone-400 mt-2 text-center">Your wallet is credited after the owner verifies the payment.</p>
+        <p className="text-[10px] text-stone-400 mt-2 text-center">{t('solo.wallet.creditedNote')}</p>
       </Card>
     </div>
   );
@@ -236,7 +236,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
         amount: Math.round(Number(amount)),
         screenshotUrl: screenshotUrl.trim(),
       });
-      showToast('Top-up request updated!', 'success');
+      showToast(t('solo.wallet.topUpUpdated'), 'success');
       onSaved();
     } catch (e: any) { showToast(e.message || 'Update failed.', 'error'); }
     setWorking(false);
@@ -244,7 +244,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
 
   return (
     <Modal onClose={onClose}>
-      <p className="text-sm font-black text-stone-900 mb-1">Edit top-up request</p>
+      <p className="text-sm font-black text-stone-900 mb-1">{t('solo.wallet.editTopUp')}</p>
       <p className="text-[11px] text-stone-500 mb-3 font-mono">{claim.reference || ''} · {fmtWallet(claim.amount, claim.currency)}</p>
       <div className="space-y-3">
         <Field label={`Amount (${fmtWallet(limits.min, claim.currency)} – ${fmtWallet(limits.max, claim.currency)})`}>
@@ -263,7 +263,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
             placeholder="https://…" />
         </Field>
         <div className="flex gap-2">
-          <Btn variant="secondary" className="flex-1" onClick={onClose}>Cancel</Btn>
+          <Btn variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Btn>
           <Btn variant="primary" className="flex-1" disabled={working} onClick={save}>
             {working ? 'Saving…' : 'Resubmit'}
           </Btn>
@@ -275,7 +275,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
 
 export const WalletTab: React.FC = () => {
   const { showToast } = useToast();
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
@@ -372,7 +372,7 @@ export const WalletTab: React.FC = () => {
       )}
 
       <Card>
-        <p className="text-xs font-black text-stone-800 mb-2 uppercase tracking-widest">History</p>
+        <p className="text-xs font-black text-stone-800 mb-2 uppercase tracking-widest">{t('solo.wallet.history')}</p>
         {txns.length === 0 ? <Empty text="No wallet activity yet." /> : (
           <div className="divide-y divide-stone-100">
             {txns.map((t) => (
