@@ -21,7 +21,7 @@ import {
   X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
   Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store,
 } from 'lucide-react';
-import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider } from '../../firebase';
+import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider, sendPasswordResetEmail } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
@@ -239,12 +239,45 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const [godEmail, setGodEmail] = useState('');
   const [godAccessKey, setGodAccessKey] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
 
   useEffect(() => {
     if (isOwnerEmail(firebaseUser?.email)) setIsUnlocked(true);
   }, [firebaseUser?.email]);
 
   if (!isOpen) return null;
+
+  const handleForgotPassword = async () => {
+    const email = godEmail.trim();
+    if (!email) {
+      showToast('Enter your owner email first, then tap Forgot password.', 'error');
+      return;
+    }
+    if (resetCooldown > 0) {
+      showToast(`Please wait ${resetCooldown}s before requesting another reset email.`, 'error');
+      return;
+    }
+    try {
+      // SECURITY: Only the owner email can receive a reset link.
+      // Non-owner emails get a generic message (no email enumeration).
+      if (isOwnerEmail(email)) {
+        await sendPasswordResetEmail(auth, email);
+      }
+      // Generic message either way — never reveal whether the email is the owner.
+      setResetSent(true);
+      setResetCooldown(60);
+      const timer = setInterval(() => {
+        setResetCooldown((c) => {
+          if (c <= 1) { clearInterval(timer); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+      showToast('If this email is registered, a password reset link has been sent.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send reset email.', 'error');
+    }
+  };
 
   const handleUnlockGodMode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,6 +412,14 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
                 className="w-full py-3 min-h-[44px] rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-600 text-slate-950 font-black text-xs uppercase tracking-wider hover:brightness-110"
               >
                 Authenticate
+              </button>
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={resetCooldown > 0}
+                className="w-full text-xs text-slate-500 hover:text-saffron-400 underline underline-offset-2 disabled:opacity-50 disabled:no-underline"
+              >
+                {resetCooldown > 0 ? `Reset email sent — retry in ${resetCooldown}s` : resetSent ? 'Resend password reset email' : 'Forgot password?'}
               </button>
             </form>
             <div className="w-full flex items-center gap-3 my-4">
