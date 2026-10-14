@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { Card, SectionTitle, PrimaryButton, Field, inputCls, TierBadge, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const ProfileTab: React.FC = () => {
+  const { t } = useLanguage();
   const { profile, updateProfile } = usePurohit();
   const [form, setForm] = useState({
     displayName: '',
@@ -38,7 +40,7 @@ export const ProfileTab: React.FC = () => {
     }
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!profile) return <EmptyState title="Loading…" />;
+  if (!profile) return <EmptyState title={t('purohit.profile.loading')} />;
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +60,7 @@ export const ProfileTab: React.FC = () => {
         dakshinaRangeMax: form.dakshinaRangeMax ? Math.max(0, parseInt(form.dakshinaRangeMax, 10) || 0) : undefined,
       } as any);
     } catch (err: any) {
-      alert(err.message || 'Save failed');
+      alert(err.message || t('purohit.profile.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -66,8 +68,8 @@ export const ProfileTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <SectionTitle sub="This is your public face in devotee search.">
-        Profile
+      <SectionTitle sub={t('purohit.profile.titleSub')}>
+        {t('purohit.profile.title')}
       </SectionTitle>
       <Card>
         <div className="flex items-center gap-3 mb-5">
@@ -78,52 +80,52 @@ export const ProfileTab: React.FC = () => {
             <p className="font-mono text-xs text-stone-500">{profile.id}</p>
             <TierBadge tier={profile.verificationTier} />
             {profile.linkedOrgName && (
-              <p className="text-[11px] text-stone-500 mt-1">Also serves at: {profile.linkedOrgName}</p>
+              <p className="text-[11px] text-stone-500 mt-1">{t('purohit.profile.alsoServesAt')}: {profile.linkedOrgName}</p>
             )}
           </div>
         </div>
         <form onSubmit={save} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Display name">
+            <Field label={t('purohit.profile.displayName')}>
               <input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required className={inputCls} />
             </Field>
-            <Field label="Phone">
+            <Field label={t('purohit.profile.phone')}>
               <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required className={inputCls} />
             </Field>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="City">
+            <Field label={t('purohit.profile.city')}>
               <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required className={inputCls} />
             </Field>
-            <Field label="State">
+            <Field label={t('purohit.profile.state')}>
               <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={inputCls} />
             </Field>
           </div>
-          <Field label="Languages" hint="Comma-separated">
-            <input value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} className={inputCls} placeholder="Sanskrit, Hindi, English" />
+          <Field label={t('purohit.profile.languages')} hint={t('purohit.profile.commaSeparated')}>
+            <input value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} className={inputCls} placeholder={t('purohit.profile.languagesPlaceholder')} />
           </Field>
-          <Field label="Specializations" hint="Comma-separated">
-            <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} className={inputCls} placeholder="Vivah Samskara, Grihapravesh" />
+          <Field label={t('purohit.profile.specializations')} hint={t('purohit.profile.commaSeparated')}>
+            <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} className={inputCls} placeholder={t('purohit.profile.specsPlaceholder')} />
           </Field>
           <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="Experience (yrs)">
+            <Field label={t('purohit.profile.experienceYrs')}>
               <input type="number" min={0} max={80} value={form.experienceYears} onChange={(e) => setForm({ ...form, experienceYears: e.target.value })} className={inputCls} />
             </Field>
-            <Field label="Dakshina min (₹)">
+            <Field label={t('purohit.profile.dakshinaMin')}>
               <input type="number" min={0} value={form.dakshinaRangeMin} onChange={(e) => setForm({ ...form, dakshinaRangeMin: e.target.value })} className={inputCls} placeholder="1100" />
             </Field>
-            <Field label="Dakshina max (₹)">
+            <Field label={t('purohit.profile.dakshinaMax')}>
               <input type="number" min={0} value={form.dakshinaRangeMax} onChange={(e) => setForm({ ...form, dakshinaRangeMax: e.target.value })} className={inputCls} placeholder="11000" />
             </Field>
           </div>
-          <Field label="Gurukul affiliation">
+          <Field label={t('purohit.profile.gurukulAffiliation')}>
             <input value={form.gurukulAffiliation} onChange={(e) => setForm({ ...form, gurukulAffiliation: e.target.value })} className={inputCls} />
           </Field>
-          <Field label="Bio" hint="Max 500 characters">
-            <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className={inputCls} placeholder="A short introduction for devotees…" />
+          <Field label={t('purohit.profile.bio')} hint={t('purohit.profile.bioHint')}>
+            <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className={inputCls} placeholder={t('purohit.profile.bioPlaceholder')} />
           </Field>
           <PrimaryButton type="submit" className="w-full" disabled={saving}>
-            {saving ? 'Saving…' : 'Save profile'}
+            {saving ? t('purohit.profile.saving') : t('purohit.profile.saveProfile')}
           </PrimaryButton>
         </form>
       </Card>
