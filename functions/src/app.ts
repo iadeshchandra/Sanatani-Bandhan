@@ -11,6 +11,8 @@ import exportRoutes from './routes/exportRoutes';
 import verificationRoutes from './routes/verificationRoutes';
 import moderationRoutes from './routes/moderationRoutes';
 import scheduledRoutes from './routes/scheduledRoutes';
+import billingRoutes from './routes/billingRoutes';
+import messagingRoutes from './routes/messagingRoutes';
 
 // Credential helper conforming to credential.cert API
 const credential = { cert };
@@ -60,6 +62,8 @@ app.use('/api/export', exportRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/scheduled', scheduledRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/messaging', messagingRoutes);
 
 // Health & readiness (public; see healthRoutes for dependency checks).
 app.use('/api/health', healthRoutes);
