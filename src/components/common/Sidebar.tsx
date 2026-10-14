@@ -40,6 +40,7 @@ import { Layers, LayoutDashboard,
   Scroll,
   Bot,
   Scale,
+  Ticket,
   Lock,
   UserCheck,
   Settings,
@@ -131,6 +132,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'annakshetra-one', name: 'Annakshetra One — Kitchen & Bhandara Management', domain: 4, domainTitle: 'Specialized Desks', icon: Soup, badge: 'New' },
   { id: 'nyas-one', name: 'Nyas One — Compliance & Governance', domain: 4, domainTitle: 'Specialized Desks', icon: Scale, badge: 'New' },
   { id: 'utsav-one', name: 'Utsav One — Festival & Mahotsav Management', domain: 4, domainTitle: 'Specialized Desks', icon: Sparkles, badge: 'New' },
+  { id: 'tirth-one', name: 'Tirth One — Darshan Queue & Tokens', domain: 4, domainTitle: 'Specialized Desks', icon: Ticket, badge: 'New' },
   { id: 'ashramKutir', name: 'Ashram Kutir & Sadhana Stays', domain: 4, domainTitle: 'Specialized Desks', icon: Moon },
   { id: 'dharamshala', name: 'Dharamshala Yatri Bhavan', domain: 4, domainTitle: 'Specialized Desks', icon: Home },
   { id: 'gurukul', name: 'Gurukul Residential Monitoring', domain: 4, domainTitle: 'Specialized Desks', icon: GraduationCap },
@@ -417,7 +419,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           'granthLibrary', 'utsavPanjika', 'dharmicAssistant', 'sadhana-karma',
           'rakthaSeva', 'goshala', 'annadanam', 'annakshetra-one', 'ashramKutir', 'dharamshala',
           'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one', 'ashram-one',
-          'utsav-one'
+          'utsav-one', 'tirth-one'
         ];
         hasRole = priestAllowed.includes(m.id) || m.domain === 3;
       } else if (currentRole === 'Accountant') {
