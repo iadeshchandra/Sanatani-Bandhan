@@ -19,6 +19,7 @@ import {
   Lock, KeyRound, LayoutDashboard, Users, Building2, BadgeCheck,
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
   X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
+  Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins,
 } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
@@ -27,22 +28,32 @@ import { useToast } from '../../context/ToastContext';
 import { adminApi, BACKEND_URL, BACKEND_DEPLOYED_HINT, type PlatformOverview, type HealthStatus } from '../../lib/adminApi';
 import { UsersTab, WorkspacesTab, VerificationTab } from './godmode/AdminTabsA';
 import { ModerationTab, BillingTab, MessagesTab, AuditTab } from './godmode/AdminTabsB';
+import { InsightsTab, DatabaseExplorerTab } from './godmode/AdminTabsC';
+import { CommissionTab, ContentTab } from './godmode/AdminTabsD';
+import { SettingsTab, SupportTab } from './godmode/AdminTabsE';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation' | 'billing' | 'messages' | 'audit' | 'system';
+type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
+  | 'billing' | 'commission' | 'messages' | 'audit'
+  | 'database' | 'content' | 'settings' | 'support' | 'system';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
-  { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+  { id: 'overview', label: 'Insights', icon: <LayoutDashboard className="w-4 h-4" /> },
   { id: 'users', label: 'Users', icon: <Users className="w-4 h-4" /> },
   { id: 'workspaces', label: 'Workspaces', icon: <Building2 className="w-4 h-4" /> },
   { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
   { id: 'moderation', label: 'Moderation', icon: <ShieldAlert className="w-4 h-4" /> },
   { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
+  { id: 'commission', label: 'Commission', icon: <HandCoins className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
+  { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
+  { id: 'content', label: 'Content', icon: <Megaphone className="w-4 h-4" /> },
+  { id: 'settings', label: 'Settings', icon: <SlidersHorizontal className="w-4 h-4" /> },
+  { id: 'support', label: 'Support', icon: <LifeBuoy className="w-4 h-4" /> },
   { id: 'audit', label: 'Audit Log', icon: <ScrollText className="w-4 h-4" /> },
   { id: 'system', label: 'System', icon: <Server className="w-4 h-4" /> },
 ];
@@ -126,118 +137,6 @@ export const ConfirmDialog: React.FC<{
     </div>
   </div>
 );
-
-/* ------------------------------ Overview tab ----------------------------- */
-
-const OverviewTab: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<PlatformOverview | null>(null);
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [backendDown, setBackendDown] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setErr(null);
-    setBackendDown(false);
-    const [ov, hl] = await Promise.all([adminApi.overview(), adminApi.health()]);
-    if (ov.backendDown || hl.backendDown) {
-      setBackendDown(true);
-    } else {
-      if (ov.ok && ov.data?.overview) setOverview(ov.data.overview);
-      else setErr(ov.error || 'Could not load overview.');
-      if (hl.ok && hl.data) setHealth(hl.data);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20 text-slate-500 text-sm">
-        <RefreshCw className="w-5 h-5 animate-spin mr-2" /> Loading live platform data…
-      </div>
-    );
-  }
-  if (backendDown) return <BackendDownBanner onRetry={load} />;
-  if (err) {
-    return (
-      <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-200">
-        {err}
-        <button type="button" onClick={load} className="ml-3 underline text-xs">Retry</button>
-      </div>
-    );
-  }
-
-  const cards = [
-    { label: 'Workspaces', value: overview?.workspaces ?? '—' },
-    { label: 'Users', value: overview?.users ?? '—' },
-    { label: 'Tenants', value: overview?.tenants ?? '—' },
-  ];
-
-  return (
-    <div className="space-y-5">
-      {/* Backend health strip — real data only */}
-      <div className={`rounded-2xl border p-4 flex items-center gap-3 ${
-        health?.status === 'ok' ? 'border-emerald-500/30 bg-emerald-500/5'
-        : health?.status === 'degraded' ? 'border-amber-500/30 bg-amber-500/5'
-        : 'border-red-500/30 bg-red-500/5'
-      }`}>
-        <span className={`w-3 h-3 rounded-full ${
-          health?.status === 'ok' ? 'bg-emerald-400' : health?.status === 'degraded' ? 'bg-amber-400' : 'bg-red-400'
-        }`} />
-        <div className="text-sm">
-          <span className="font-bold text-slate-200">Backend: {health?.status ?? 'unknown'}</span>
-          {health?.mode === 'spark-native' && (
-            <span className="text-sky-300 text-xs ml-2 font-mono" title="Running on Firestore directly — no Cloud Functions deployed. Deploy functions to unlock Auth admin, FCM push, and email.">
-              spark-native
-            </span>
-          )}
-          {health?.version && <span className="text-slate-500 text-xs ml-2 font-mono">v{health.version}</span>}
-          {health?.region && <span className="text-slate-500 text-xs ml-2 font-mono">{health.region}</span>}
-          {typeof health?.uptimeSeconds === 'number' && (
-            <span className="text-slate-500 text-xs ml-2">uptime {Math.floor(health.uptimeSeconds / 3600)}h</span>
-          )}
-        </div>
-        <button type="button" onClick={load} className="ml-auto p-2 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white" aria-label="Refresh">
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        {cards.map((c) => (
-          <div key={c.label} className="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">
-            <p className="text-[11px] uppercase tracking-wider text-slate-500">{c.label}</p>
-            <p className="text-2xl font-black text-white mt-1">{typeof c.value === 'number' && c.value < 0 ? '—' : c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">
-        <h3 className="text-sm font-bold text-slate-200 mb-3">Recent workspaces</h3>
-        {!overview?.recentWorkspaces?.length ? (
-          <p className="text-xs text-slate-500">No workspaces yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {overview.recentWorkspaces.map((w) => (
-              <div key={w.id} className="flex items-center gap-3 text-xs py-2 border-b border-slate-800/50 last:border-0">
-                <span className="font-bold text-slate-200 truncate flex-1">{w.name || w.id}</span>
-                {w.type && <span className="text-slate-500">{w.type}</span>}
-                {w.planId && (
-                  <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">{w.planId}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {overview?.generatedAt && (
-          <p className="text-[11px] text-slate-600 mt-3">Updated {new Date(overview.generatedAt).toLocaleString()}</p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 /* ------------------------------ System tab ------------------------------- */
 
@@ -392,13 +291,18 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
 
   const renderTab = () => {
     switch (tab) {
-      case 'overview': return <OverviewTab />;
+      case 'overview': return <InsightsTab goToTab={(t: string) => setTab(t as TabId)} />;
       case 'users': return <UsersTab />;
       case 'workspaces': return <WorkspacesTab />;
       case 'verification': return <VerificationTab />;
       case 'moderation': return <ModerationTab />;
       case 'billing': return <BillingTab />;
+      case 'commission': return <CommissionTab />;
       case 'messages': return <MessagesTab />;
+      case 'database': return <DatabaseExplorerTab />;
+      case 'content': return <ContentTab />;
+      case 'settings': return <SettingsTab />;
+      case 'support': return <SupportTab />;
       case 'audit': return <AuditTab />;
       case 'system': return <SystemTab />;
     }
@@ -414,7 +318,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-saffron-200">Sovereign Console</h2>
-                <span className="px-2 py-0.5 rounded-md bg-saffron-500/20 text-saffron-300 text-[10px] font-mono border border-saffron-500/40 uppercase font-bold">v2.0</span>
+                <span className="px-2 py-0.5 rounded-md bg-saffron-500/20 text-saffron-300 text-[10px] font-mono border border-saffron-500/40 uppercase font-bold">v3.0</span>
               </div>
               <p className="text-xs text-slate-400 truncate">Platform administration — live backend data</p>
             </div>
