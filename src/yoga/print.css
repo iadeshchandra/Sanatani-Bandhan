@@ -1,0 +1,15 @@
+/* Yoga One — print stylesheet. */
+
+@media print {
+  .no-print { display: none !important; }
+  .print-area { padding: 0 !important; }
+  .print-report {
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+  }
+  .print-receipt {
+    border: 2px dashed #333 !important;
+    padding: 12px !important;
+  }
+  body { background: #fff !important; }
+}
