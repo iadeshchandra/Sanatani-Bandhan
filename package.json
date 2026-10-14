@@ -36,6 +36,7 @@
     "idb-keyval": "^6.3.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "pdfmake": "^0.2.10",
     "jsqr": "^1.4.0",
     "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
