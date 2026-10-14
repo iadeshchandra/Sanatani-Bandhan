@@ -14,6 +14,7 @@ import { GivingTab } from './GivingTab';
 import { ProfileTab } from './ProfileTab';
 import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
 import { SangamView } from '../sangam/SangamView';
+import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 
 /* SoloWorkspaceShell — the independent personal workspace.
@@ -30,7 +31,7 @@ import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
  *    BecomePurohitModal upgrade path.
  */
 
-type SoloTab = 'home' | 'sangam' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'profile';
+type SoloTab = 'home' | 'sangam' | 'sadhana' | 'panchang' | 'saved' | 'giving' | 'jyotish' | 'samskara' | 'profile';
 
 const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'home', en: 'My Space', bn: 'আমার স্থান', hi: 'मेरा स्थान' },
@@ -40,6 +41,7 @@ const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
   { id: 'saved', en: 'Saved', bn: 'সংরক্ষিত', hi: 'संग्रहीत' },
   { id: 'giving', en: 'Giving', bn: 'দান', hi: 'दान' },
   { id: 'jyotish', en: '🔮 Jyotish', bn: '🔮 জ্যোতিষ', hi: '🔮 ज्योतिष' },
+  { id: 'samskara', en: '🪔 Samskara', bn: '🪔 সংস্কার', hi: '🪔 संस्कार' },
   { id: 'profile', en: 'Profile', bn: 'প্রোফাইল', hi: 'परिचय' },
 ];
 
@@ -181,6 +183,7 @@ const InnerShell: React.FC = () => {
         {tab === 'saved' && <SavedTab />}
         {tab === 'giving' && <GivingTab />}
         {tab === 'jyotish' && <JyotishMarketplace />}
+        {tab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
         {tab === 'profile' && <ProfileTab />}
       </main>
     </div>
