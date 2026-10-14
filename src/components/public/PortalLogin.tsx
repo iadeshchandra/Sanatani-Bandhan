@@ -12,18 +12,18 @@ import './auth-animations.css';
 import { AuthArt, type AuthLang } from './AuthArt';
 import { AuthField } from './AuthField';
 import { AuthDoors, type AuthDoorId } from './AuthDoors';
+import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
 import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
 import { smartDefaultModulesFor } from '../../lib/workspaceRegistry';
+import { resolveSigninDestination } from '../../lib/signinRouting';
+import { mintOrFetchSanataniProfile } from '../../solo/soloSession';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
 import { doc, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, query, where, collection, limit } from 'firebase/firestore';
 import type { UserRole } from '../../types';
-import { PurohitSignupForm } from '../purohit/PurohitSignupForm';
-import { SoloSignupForm } from '../../solo/SoloSignupForm';
-import { JyotishSignupForm } from '../../jyotish/JyotishSignupForm';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
 import { syncOrgPage } from '../../context/MembershipContext';
@@ -61,23 +61,44 @@ const translations = {
     door_login: 'Login',
     door_solo: 'Solo',
     door_signup: 'Sign Up',
+    door_signin: 'Sign In',
     door_purohit: 'Purohit',
     door_jyotishi: 'Jyotishi',
     hint_login: 'Sign in to your account',
+    hint_signin: 'Sign in to your account',
     hint_solo: 'Your personal Sanatani home — no organisation needed',
-    hint_signup: 'Create an organisation workspace',
+    hint_signup: 'Create your account — your personal Sanatani home',
     hint_purohit: 'Register as a purohit — earn a PUR-XXXXXX identity',
     hint_jyotishi: 'Register as a jyotishi — earn a JYO-XXXXXX identity',
     view_login_title: 'Welcome back',
     view_login_sub: 'Sign in to your Sanatani identity',
-    view_solo_title: 'Solo Sanatani',
-    view_solo_sub: 'Your personal Sanatani home — no organisation needed',
+    view_signin_title: 'Welcome back',
+    view_signin_sub: 'Sign in to your Sanatani identity',
+    view_signup_title: 'Create your account',
+    view_signup_sub: 'Your personal Sanatani home — upgrade anytime',
+    /* Unified signup — Step 1: credentials first */
+    cred_title: 'Create your account',
+    cred_sub: 'One account for everything — your personal space is created automatically.',
+    cred_or_email: 'OR USE EMAIL',
+    cred_name: 'Your name',
+    cred_name_ph: 'e.g. Adesh Chandra',
+    cred_email: 'Email',
+    cred_email_ph: 'you@example.com',
+    cred_password: 'Password',
+    cred_password_ph: 'Min 6 characters',
+    cred_continue: 'Continue',
+    cred_creating: 'Creating your account…',
+    cred_secure_note: 'Secured by Firebase Authentication',
+    solo_minting: 'Creating your Sanatani ID…',
+    cred_name_required: 'Please enter your name.',
+    cred_password_min: 'Password must be at least 6 characters.',
+    cred_email_in_use: 'This email is already registered. Try signing in instead.',
+    cred_failed: 'Account creation failed. Please try again.',
+    cred_google_expired: 'Google session expired — please tap the Google button again.',
+    /* Unified signup — Step 2: role question after auth */
+    reg_unified_note: 'Signed in as {name} — just add your contact number below.',
     view_register_title: 'Create workspace',
     view_register_sub: 'Bring your institution onto Sanatani Bandhan',
-    view_purohit_title: 'Join as Purohit',
-    view_purohit_sub: 'Offer rituals, earn a verified PUR-XXXXXX identity',
-    view_jyotishi_title: 'Join as Jyotishi',
-    view_jyotishi_sub: 'Offer consultations, earn a verified JYO-XXXXXX identity',
     trust_offline: 'Offline-first',
     trust_data: 'Your data stays yours',
     trust_noads: 'No ads, ever'
@@ -114,23 +135,42 @@ const translations = {
     door_login: 'लॉगिन',
     door_solo: 'सोलो',
     door_signup: 'साइन अप',
+    door_signin: 'साइन इन',
     door_purohit: 'पुरोहित',
     door_jyotishi: 'ज्योतिषी',
     hint_login: 'अपने खाते में साइन इन करें',
+    hint_signin: 'अपने खाते में साइन इन करें',
     hint_solo: 'आपका व्यक्तिगत सनातनी घर — किसी संगठन की आवश्यकता नहीं',
-    hint_signup: 'संगठन कार्यक्षेत्र बनाएं',
+    hint_signup: 'अपना खाता बनाएं — आपका व्यक्तिगत सनातनी घर',
     hint_purohit: 'पुरोहित के रूप में पंजीकरण करें — PUR-XXXXXX पहचान पाएं',
     hint_jyotishi: 'ज्योतिषी के रूप में पंजीकरण करें — JYO-XXXXXX पहचान पाएं',
     view_login_title: 'फिर से स्वागत है',
     view_login_sub: 'अपनी सनातनी पहचान में साइन इन करें',
-    view_solo_title: 'सोलो सनातनी',
-    view_solo_sub: 'आपका व्यक्तिगत सनातनी घर — किसी संगठन की आवश्यकता नहीं',
+    view_signin_title: 'फिर से स्वागत है',
+    view_signin_sub: 'अपनी सनातनी पहचान में साइन इन करें',
+    view_signup_title: 'अपना खाता बनाएं',
+    view_signup_sub: 'आपका व्यक्तिगत सनातनी घर — कभी भी अपग्रेड करें',
+    cred_title: 'अपना खाता बनाएं',
+    cred_sub: 'सब कुछ के लिए एक खाता — आपका व्यक्तिगत स्थान स्वतः बन जाएगा।',
+    cred_or_email: 'या ईमेल से',
+    cred_name: 'आपका नाम',
+    cred_name_ph: 'जैसे आदेश चंद्र',
+    cred_email: 'ईमेल',
+    cred_email_ph: 'you@example.com',
+    cred_password: 'पासवर्ड',
+    cred_password_ph: 'कम से कम 6 अक्षर',
+    cred_continue: 'आगे बढ़ें',
+    cred_creating: 'आपका खाता बनाया जा रहा है…',
+    cred_secure_note: 'Firebase Authentication द्वारा सुरक्षित',
+    solo_minting: 'आपकी सनातनी आईडी बनाई जा रही है…',
+    cred_name_required: 'कृपया अपना नाम दर्ज करें।',
+    cred_password_min: 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।',
+    cred_email_in_use: 'यह ईमेल पहले से पंजीकृत है। साइन इन करने का प्रयास करें।',
+    cred_failed: 'खाता निर्माण विफल। कृपया पुनः प्रयास करें।',
+    cred_google_expired: 'Google सत्र समाप्त — कृपया Google बटन फिर से दबाएं।',
+    reg_unified_note: '{name} के रूप में साइन इन — नीचे सिर्फ अपना संपर्क नंबर जोड़ें।',
     view_register_title: 'कार्यक्षेत्र बनाएं',
     view_register_sub: 'अपनी संस्था को सनातनी बंधन से जोड़ें',
-    view_purohit_title: 'पुरोहित बनें',
-    view_purohit_sub: 'अनुष्ठान सेवा दें, सत्यापित PUR-XXXXXX पहचान पाएं',
-    view_jyotishi_title: 'ज्योतिषी बनें',
-    view_jyotishi_sub: 'परामर्श दें, सत्यापित JYO-XXXXXX पहचान पाएं',
     trust_offline: 'ऑफ़लाइन-फर्स्ट',
     trust_data: 'आपका डेटा आपका ही रहता है',
     trust_noads: 'कोई विज्ञापन नहीं'
@@ -167,23 +207,42 @@ const translations = {
     door_login: 'লগইন',
     door_solo: 'সোলো',
     door_signup: 'সাইন আপ',
+    door_signin: 'সাইন ইন',
     door_purohit: 'পুরোহিত',
     door_jyotishi: 'জ্যোতিষী',
     hint_login: 'আপনার অ্যাকাউন্টে সাইন ইন করুন',
+    hint_signin: 'আপনার অ্যাকাউন্টে সাইন ইন করুন',
     hint_solo: 'আপনার ব্যক্তিগত সনাতনী ঘর — কোনো সংস্থার প্রয়োজন নেই',
-    hint_signup: 'সংস্থার ওয়ার্কস্পেস তৈরি করুন',
+    hint_signup: 'আপনার অ্যাকাউন্ট তৈরি করুন — আপনার ব্যক্তিগত সনাতনী ঘর',
     hint_purohit: 'পুরোহিত হিসেবে নিবন্ধন করুন — PUR-XXXXXX পরিচয় পান',
     hint_jyotishi: 'জ্যোতিষী হিসেবে নিবন্ধন করুন — JYO-XXXXXX পরিচয় পান',
     view_login_title: 'আবার স্বাগতম',
     view_login_sub: 'আপনার সনাতনী পরিচয়ে সাইন ইন করুন',
-    view_solo_title: 'সোলো সনাতনী',
-    view_solo_sub: 'আপনার ব্যক্তিগত সনাতনী ঘর — কোনো সংস্থার প্রয়োজন নেই',
+    view_signin_title: 'আবার স্বাগতম',
+    view_signin_sub: 'আপনার সনাতনী পরিচয়ে সাইন ইন করুন',
+    view_signup_title: 'আপনার অ্যাকাউন্ট তৈরি করুন',
+    view_signup_sub: 'আপনার ব্যক্তিগত সনাতনী ঘর — যেকোনো সময় আপগ্রেড করুন',
+    cred_title: 'আপনার অ্যাকাউন্ট তৈরি করুন',
+    cred_sub: 'সবকিছুর জন্য একটি অ্যাকাউন্ট — আপনার ব্যক্তিগত স্থান স্বয়ংক্রিয়ভাবে তৈরি হবে।',
+    cred_or_email: 'অথবা ইমেল দিয়ে',
+    cred_name: 'আপনার নাম',
+    cred_name_ph: 'যেমন আদেশ চন্দ্র',
+    cred_email: 'ইমেল',
+    cred_email_ph: 'you@example.com',
+    cred_password: 'পাসওয়ার্ড',
+    cred_password_ph: 'কমপক্ষে ৬ অক্ষর',
+    cred_continue: 'এগিয়ে যান',
+    cred_creating: 'আপনার অ্যাকাউন্ট তৈরি হচ্ছে…',
+    cred_secure_note: 'Firebase Authentication দ্বারা সুরক্ষিত',
+    solo_minting: 'আপনার সনাতনী আইডি তৈরি হচ্ছে…',
+    cred_name_required: 'অনুগ্রহ করে আপনার নাম লিখুন।',
+    cred_password_min: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।',
+    cred_email_in_use: 'এই ইমেল ইতিমধ্যে নিবন্ধিত। সাইন ইন করার চেষ্টা করুন।',
+    cred_failed: 'অ্যাকাউন্ট তৈরি ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।',
+    cred_google_expired: 'Google সেশন শেষ — অনুগ্রহ করে Google বোতাম আবার চাপুন।',
+    reg_unified_note: '{name} হিসেবে সাইন ইন — নিচে শুধু আপনার যোগাযোগ নম্বর যোগ করুন।',
     view_register_title: 'ওয়ার্কস্পেস তৈরি করুন',
     view_register_sub: 'আপনার প্রতিষ্ঠানকে সনাতনী বন্ধনে আনুন',
-    view_purohit_title: 'পুরোহিত হিসেবে যোগ দিন',
-    view_purohit_sub: 'অনুষ্ঠান সেবা দিন, যাচাইকৃত PUR-XXXXXX পরিচয় পান',
-    view_jyotishi_title: 'জ্যোতিষী হিসেবে যোগ দিন',
-    view_jyotishi_sub: 'পরামর্শ দিন, যাচাইকৃত JYO-XXXXXX পরিচয় পান',
     trust_offline: 'অফলাইন-ফার্স্ট',
     trust_data: 'আপনার ডেটা আপনারই থাকে',
     trust_noads: 'কোনো বিজ্ঞাপন নয়'
@@ -205,10 +264,16 @@ interface PortalLoginProps {
   initialMode?: 'login' | 'signup';
   onBack: () => void;
   onSuccess: () => void;
+  /**
+   * Solo-first progressive flow: renders ONLY the organisation-registration
+   * form for an already-authenticated user (the "Register an Organisation"
+   * upgrade card in the Solo dashboard links here). No doors, no chooser.
+   */
+  orgRegisterOnly?: boolean;
 }
 
-export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession } = useAuthWorkspace();
+export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess, orgRegisterOnly = false }) => {
+  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   // Locale follows the app-wide LanguageContext (English default). The auth
   // page's own selector also pushes the choice back to the global locale.
@@ -244,7 +309,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     b.style.setProperty('--my', `${(e.clientY - r.top).toFixed(0)}px`);
   };
 
-  const [activeView, setActiveView] = useState<'LOGIN' | 'REGISTER' | 'SOLO' | 'PUROHIT' | 'JYOTISHI'>(initialMode === 'signup' ? 'SOLO' : 'LOGIN'); 
+  const [activeView, setActiveView] = useState<AuthDoorId>(initialMode === 'signup' ? 'SIGNUP' : 'SIGNIN');
+  // Solo-first progressive flow: Sign Up = credentials ONLY. There is no
+  // role/path choice — every new account becomes a Solo Sanatani by default
+  // and lands in the personal dashboard. Upgrades (organisation, purohit,
+  // jyotishi) are discovered later from the "Grow with Sanatani Bandhan"
+  // section inside the Solo dashboard.
+  const [signupCreds, setSignupCreds] = useState<SignupCreds | null>(null);
+  // True while the fresh Solo identity (SAN-XXXXXX) is minted after
+  // credentials complete.
+  const [signupMinting, setSignupMinting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine); 
@@ -434,10 +508,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
   /**
    * Post-auth finalization shared by email/password AND Google sign-in.
-   * Resolves the role from users/{uid} (H-11: never self-granted),
-   * routes independent purohits to their personal workspace, and otherwise
-   * signs the user into the org context. Google users get the identical
-   * treatment — no privileged role is ever minted here.
+   * Resolves the role from users/{uid} (H-11: never self-granted), then
+   * routes by RBAC priority (see src/lib/signinRouting.ts):
+   *   SuperAdmin → admin view · Trustee/member → MRU org dashboard ·
+   *   Purohit → purohit dashboard · Jyotishi → jyotishi dashboard ·
+   *   everyone else → Solo personal dashboard (identity minted get-or-create).
+   * The session switcher keeps "Personal (Sanatani)" one tap away from any
+   * role view. Google users get the identical treatment — no privileged
+   * role is ever minted here.
    */
   const finalizeLogin = async (fbUser: any, emailToUse: string) => {
     // H-11: NEVER self-grant Trustee. The role comes from the authoritative
@@ -480,38 +558,134 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       }
     }
 
-    // Purohit One: an independent purohit's account belongs to no
-    // organisation. Route them straight into their personal workspace.
-    // Dual-identity (devotee_upgrade) users stay in org context here —
-    // the mode switcher in their account area flips them over.
+    const displayName = fbUser.displayName || fbUser.email || 'Sanatani Devotee';
+
+    // Org membership edges (rules-enforced workspaceMembers docs) — used to
+    // land trustees/staff on their most-recently-used org dashboard.
+    let trusteeOrgId = '';
+    let memberOrgId = '';
+    let memberRole: UserRole = 'Devotee';
+    try {
+      const memSnap = await getDocs(
+        query(collection(db, 'workspaceMembers'), where('uid', '==', fbUser.uid), limit(20))
+      );
+      const edges: Array<{ workspaceId: string; role: string; joinedAt: number }> = [];
+      memSnap.forEach((d) => {
+        const m = d.data() as any;
+        if (m?.workspaceId) {
+          edges.push({
+            workspaceId: String(m.workspaceId),
+            role: String(m.role || ''),
+            joinedAt: typeof m.joinedAt?.toMillis === 'function' ? m.joinedAt.toMillis() : 0,
+          });
+        }
+      });
+      // MRU: the locally last-used workspace wins when it is one of the
+      // user's edges; otherwise the most recently joined edge.
+      let mruWs = '';
+      try { mruWs = localStorage.getItem('sanatani_active_workspace_id') || ''; } catch { /* no storage */ }
+      const byMru = (list: typeof edges) =>
+        list.find((e) => e.workspaceId === mruWs) ||
+        [...list].sort((a, b) => b.joinedAt - a.joinedAt)[0];
+      const trusteeEdge = byMru(edges.filter((e) => e.role === 'Trustee'));
+      const anyEdge = byMru(edges);
+      if (trusteeEdge) trusteeOrgId = trusteeEdge.workspaceId;
+      else if (anyEdge) {
+        memberOrgId = anyEdge.workspaceId;
+        memberRole = (ROLE_MIGRATION_MAP[anyEdge.role] || anyEdge.role || 'Devotee') as UserRole;
+      }
+    } catch (memErr) {
+      console.warn('[PortalLogin] workspace-member lookup failed:', (memErr as any)?.message);
+    }
+
+    // Purohit One: a purohit's profile routes them to their personal
+    // workspace (session-kind isolation; the switcher offers Personal).
+    let purohitProfile: any = null;
     try {
       const pSnap = await getDocs(
         query(collection(db, 'purohits'), where('uid', '==', fbUser.uid), limit(1))
       );
       if (!pSnap.empty) {
-        const pData = pSnap.docs[0].data() as any;
-        if (pData?.source === 'independent') {
-          enterPurohitSession({ id: pSnap.docs[0].id, ...pData });
-          showToast('Welcome back to your purohit workspace', 'success');
-          onSuccess();
-          return;
-        }
+        purohitProfile = { id: pSnap.docs[0].id, ...(pSnap.docs[0].data() as any) };
       }
     } catch (pErr) {
-      console.warn('[PortalLogin] purohit lookup failed, continuing org login:', (pErr as any)?.message);
+      console.warn('[PortalLogin] purohit lookup failed:', (pErr as any)?.message);
     }
 
-    // On successful Firebase Auth, push the user to the authenticated dashboard
-    loginAsRole(role, fbUser.displayName || fbUser.email || 'Sanatani Devotee');
-    showToast("Secure Login Successful", "success");
-    onSuccess();
+    // Jyotish One: mirror of the purohit lookup.
+    let jyotishProfile: any = null;
+    try {
+      const jSnap = await getDocs(
+        query(collection(db, 'jyotishProfiles'), where('uid', '==', fbUser.uid), limit(1))
+      );
+      if (!jSnap.empty) {
+        jyotishProfile = { id: jSnap.docs[0].id, ...(jSnap.docs[0].data() as any) };
+      }
+    } catch (jErr) {
+      console.warn('[PortalLogin] jyotish lookup failed:', (jErr as any)?.message);
+    }
+
+    const dest = resolveSigninDestination({
+      role,
+      trusteeOrgId,
+      memberOrgId,
+      memberRole,
+      fallbackWorkspaceId: activeWorkspace?.id || '',
+      hasPurohitProfile: !!purohitProfile,
+      hasJyotishProfile: !!jyotishProfile,
+    });
+
+    // Leave any personal session before entering an org/admin session so
+    // the AppContentRouter guard renders the right shell.
+    const ensureOrgSessionKind = () => {
+      if (sessionKind === 'solo') exitSoloSession();
+      else if (sessionKind === 'purohit') exitPurohitSession();
+      else if (sessionKind === 'jyotish') exitJyotishSession();
+    };
+
+    switch (dest.kind) {
+      case 'admin':
+        ensureOrgSessionKind();
+        loginAsRole('SuperAdmin', displayName);
+        showToast('Secure Login Successful', 'success');
+        onSuccess();
+        return;
+      case 'org': {
+        ensureOrgSessionKind();
+        // Best-effort: land on the MRU org dashboard. A denial keeps the
+        // current workspace — the workspace switcher remains available.
+        try { await switchWorkspace(dest.workspaceId); } catch { /* keep current */ }
+        loginAsRole(dest.role, displayName);
+        showToast('Secure Login Successful', 'success');
+        onSuccess();
+        return;
+      }
+      case 'purohit':
+        enterPurohitSession(purohitProfile);
+        showToast('Welcome back to your purohit workspace', 'success');
+        onSuccess();
+        return;
+      case 'jyotish':
+        enterJyotishSession(jyotishProfile);
+        showToast('Welcome back to your jyotishi workspace', 'success');
+        onSuccess();
+        return;
+      case 'solo':
+      default: {
+        // Solo-first: the default landing is the personal dashboard. The
+        // identity is minted get-or-create — never duplicates.
+        const profile = await mintOrFetchSanataniProfile(fbUser.uid, displayName, fbUser.email || emailToUse);
+        enterSoloSession(profile);
+        showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+        onSuccess();
+        return;
+      }
+    }
   };
 
   // Google sign-in state. When set, the email/password register form is
   // skipped — the Google-linked account is used for workspace creation.
   const [googleUser, setGoogleUser] = useState<GoogleAuthResult | null>(null);
-  // New Google users choose their path instead of landing on a blank screen.
-  const [showGoogleWelcome, setShowGoogleWelcome] = useState<GoogleAuthResult | null>(null);
 
   /** Google on the LOGIN view: identical finalization to email login. */
   const handleGoogleLogin = async (result: GoogleAuthResult) => {
@@ -524,8 +698,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         return;
       }
       if (result.isNewUser) {
-        // Brand-new Google user: offer paths instead of stranding them.
-        setShowGoogleWelcome(result);
+        // Solo-first: a brand-new Google user becomes a Solo Sanatani —
+        // no role question, straight to the personal dashboard.
+        const profile = await mintOrFetchSanataniProfile(
+          result.uid,
+          result.displayName && result.displayName !== 'Sanatani Devotee' ? result.displayName : '',
+          result.email
+        );
+        await setDoc(doc(db, 'users', result.uid), {
+          uid: result.uid,
+          email: result.email,
+          createdAt: serverTimestamp(),
+        }, { merge: true }).catch(() => {});
+        enterSoloSession(profile);
+        showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+        onSuccess();
         return;
       }
       await finalizeLogin(fbUser, result.email);
@@ -550,6 +737,42 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
   const handleGoogleError = (message: string) => {
     setError(message);
+  };
+
+  /**
+   * Solo-first signup completion. Step 1 (SignupCredentialsStep) created the
+   * Firebase Auth user — there is no Step 2. The Solo Sanatani identity
+   * (SAN-XXXXXX) is minted here via the SAME get-or-create path the Solo
+   * signup form used (no logic change), then the personal session starts
+   * and the user lands in their Solo dashboard.
+   */
+  const completeSoloSignup = async (creds: SignupCreds) => {
+    clearErrors();
+    setSignupCreds(creds);
+    setSignupMinting(true);
+    try {
+      const current = auth.currentUser;
+      if (!current || current.uid !== creds.uid) {
+        setError('Session expired — please start again from the Sign Up tab.');
+        setSignupCreds(null);
+        return;
+      }
+      // Mint-or-fetch: an existing profile is returned as-is, never duplicated.
+      const profile = await mintOrFetchSanataniProfile(creds.uid, creds.displayName, creds.email);
+      // Identity-only user doc. No role — clients can never self-grant.
+      await setDoc(doc(db, 'users', creds.uid), {
+        uid: creds.uid,
+        email: creds.email,
+        createdAt: serverTimestamp(),
+      }, { merge: true }).catch(() => {});
+      enterSoloSession(profile);
+      showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+      onSuccess();
+    } catch (err: any) {
+      setError(err?.message || 'Could not create your Sanatani ID. Please try again.');
+    } finally {
+      setSignupMinting(false);
+    }
   };
 
   /**
@@ -624,16 +847,37 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     if (!navigator.onLine) return setError("Internet connection required to create a new workspace.");
 
     const { commName, type, adminName, email, phone, password, country, state, city, street, currency } = regData;
+    // Progressive upgrade (orgRegisterOnly): the user is already signed in —
+    // reuse the live session's identity, exactly like the unified Step 1
+    // session below.
+    const sessionCreds = orgRegisterOnly && auth.currentUser && firebaseUser && auth.currentUser.uid === (firebaseUser as any).uid
+      ? {
+          uid: auth.currentUser.uid,
+          displayName: auth.currentUser.displayName || (firebaseUser as any).displayName || '',
+          email: auth.currentUser.email || '',
+        }
+      : null;
+    // Unified signup (Step 1) already authenticated — reuse those credentials.
+    const unifiedCreds = signupCreds || sessionCreds;
+    const effAdminName = unifiedCreds?.displayName || adminName;
+    const effEmail = unifiedCreds?.email || email;
     // Google-linked signup skips the password (the Google account is the credential).
-    if (!commName || !adminName || !email || !phone || (!password && !googleUser)) return setError("Please fill all core required fields.");
+    if (!commName || !effAdminName || !effEmail || !phone || (!password && !googleUser && !unifiedCreds)) return setError("Please fill all core required fields.");
     if (!country || !state || !city) return setError("Please complete the Location / Address Picker section.");
 
     setLoading(true);
     try {
-      // 1. Firebase Auth user: Google-linked accounts reuse the linked uid;
-      //    otherwise create the email/password user as before.
+      // 1. Firebase Auth user: unified Step 1 session first, then Google-linked
+      //    accounts reuse the linked uid; otherwise create the email/password
+      //    user as before.
       let user: any;
-      if (googleUser) {
+      if (unifiedCreds) {
+        const current = auth.currentUser;
+        if (!current || current.uid !== unifiedCreds.uid) {
+          return setError("Session expired — please start again from the Sign Up tab.");
+        }
+        user = current;
+      } else if (googleUser) {
         const current = auth.currentUser;
         if (!current || current.uid !== googleUser.uid) {
           return setError("Google session expired — please tap “Sign up with Google” again.");
@@ -661,7 +905,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         city: city,
         state: state,
         country: country,
-        email: email,
+        email: effEmail,
         phone: phone,
         currency: currency.code,
         currencySymbol: currency.symbol,
@@ -675,9 +919,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       // Trustee access is resolved via workspaces/{id}.createdBy at login.
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
-        email: email,
+        email: effEmail,
         phone: phone,
-        name: adminName,
+        name: effAdminName,
         createdAt: serverTimestamp()
       });
 
@@ -701,6 +945,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
       addWorkspace(newWorkspace);
       switchWorkspace(newWorkspace.id);
+      // Progressive upgrade: a Solo user registering an organisation leaves
+      // the personal session so the router lands on the new org dashboard
+      // (the Solo identity itself is untouched — one tap back via Personal).
+      if (sessionKind === 'solo') exitSoloSession();
       loginAsRole('Trustee', adminName);
 
       // First-run Setup Wizard: mark this fresh workspace as pending setup so
@@ -741,13 +989,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   };
 
 
-  // Per-door card titles (locale-driven).
+  // Per-door card titles (locale-driven). In org-upgrade mode the card
+  // always shows the workspace-creation title.
   const viewMeta: Record<AuthDoorId, { title: string; sub: string }> = {
-    LOGIN: { title: t('view_login_title'), sub: t('view_login_sub') },
-    SOLO: { title: t('view_solo_title'), sub: t('view_solo_sub') },
-    REGISTER: { title: t('view_register_title'), sub: t('view_register_sub') },
-    PUROHIT: { title: t('view_purohit_title'), sub: t('view_purohit_sub') },
-    JYOTISHI: { title: t('view_jyotishi_title'), sub: t('view_jyotishi_sub') },
+    SIGNIN: { title: t('view_signin_title'), sub: t('view_signin_sub') },
+    SIGNUP: orgRegisterOnly
+      ? { title: t('view_register_title'), sub: t('view_register_sub') }
+      : { title: t('view_signup_title'), sub: t('view_signup_sub') },
   };
 
   const trustBadges = [
@@ -882,25 +1130,22 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                 </div>
               </div>
 
-              {/* Five doors — sliding segmented control */}
+              {/* Two doors — sliding segmented control (hidden in the
+                  org-upgrade flow: the user is already signed in). */}
+              {!orgRegisterOnly && (
               <AuthDoors
                 active={activeView}
-                onChange={(d) => { setActiveView(d); clearErrors(); }}
+                onChange={(d) => { setActiveView(d); clearErrors(); if (d === 'SIGNUP') { setSignupCreds(null); setSignupMinting(false); } }}
                 labels={{
-                  LOGIN: t('door_login'),
-                  SOLO: t('door_solo'),
-                  REGISTER: t('door_signup'),
-                  PUROHIT: t('door_purohit'),
-                  JYOTISHI: t('door_jyotishi'),
+                  SIGNIN: t('door_signin'),
+                  SIGNUP: t('door_signup'),
                 }}
                 hints={{
-                  LOGIN: t('hint_login'),
-                  SOLO: t('hint_solo'),
-                  REGISTER: t('hint_signup'),
-                  PUROHIT: t('hint_purohit'),
-                  JYOTISHI: t('hint_jyotishi'),
+                  SIGNIN: t('hint_signin'),
+                  SIGNUP: t('hint_signup'),
                 }}
               />
+              )}
 
               {/* Tab content */}
               <div className="flex-1 relative mt-6">
@@ -957,78 +1202,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                 </AnimatePresence>
 
                 <AnimatePresence mode="wait">
-                  {showGoogleWelcome ? (
-                    <motion.div
-                      key="google-welcome"
-                      initial={{ opacity: 0, x: 24 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 }}
-                      transition={{ duration: 0.32 }}
-                      className="rounded-2xl bg-[#f7f4ef]/95 p-4 sm:p-6 text-center"
-                    >
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-lg">
-                        {(showGoogleWelcome.displayName || 'S').charAt(0).toUpperCase()}
-                      </div>
-                      <div className="mt-3">
-                        <h3 className="text-xl font-black text-temple-900">
-                          Namaste{showGoogleWelcome.displayName && showGoogleWelcome.displayName !== 'Sanatani Devotee' ? `, ${showGoogleWelcome.displayName.split(' ')[0]}` : ''}! 🙏
-                        </h3>
-                        <p className="text-sm text-temple-500 mt-1">Your Google account is linked. What would you like to do first?</p>
-                      </div>
-                      <div className="space-y-3 pt-4 text-left">
-                        <button
-                          onClick={() => { setShowGoogleWelcome(null); setActiveView('SOLO'); }}
-                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-amber-400 hover:border-amber-600 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-xl">🙏</div>
-                          <div>
-                            <p className="text-sm font-black text-temple-900">Solo Sanatani <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5 ml-1">RECOMMENDED</span></p>
-                            <p className="text-xs text-temple-500">Your personal Sanatani home — no organisation needed.</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => { setShowGoogleWelcome(null); setActiveView('REGISTER'); }}
-                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0"><Building2 size={20} /></div>
-                          <div>
-                            <p className="text-sm font-black text-temple-900">Create an Organisation</p>
-                            <p className="text-xs text-temple-500">Mandir, sangha, ashram, gurukul, trust…</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => { setShowGoogleWelcome(null); setActiveView('PUROHIT'); }}
-                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 text-xl">🪔</div>
-                          <div>
-                            <p className="text-sm font-black text-temple-900">Join as Purohit</p>
-                            <p className="text-xs text-temple-500">Offer ritual services, get verified.</p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const r = showGoogleWelcome;
-                            setShowGoogleWelcome(null);
-                            setLoading(true);
-                            try {
-                              const fbUser = auth.currentUser;
-                              if (fbUser) await finalizeLogin(fbUser, r.email);
-                            } finally {
-                              setLoading(false);
-                            }
-                          }}
-                          className="w-full flex items-center gap-3 p-4 bg-white border-2 border-temple-200 hover:border-amber-500 rounded-2xl text-left transition-all shadow-sm hover:shadow-md min-h-[44px]"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><User size={20} /></div>
-                          <div>
-                            <p className="text-sm font-black text-temple-900">Continue as Devotee</p>
-                            <p className="text-xs text-temple-500">Explore, follow organisations, join later.</p>
-                          </div>
-                        </button>
-                      </div>
-                    </motion.div>
-                  ) : activeView === 'LOGIN' ? (
+                  {activeView === 'SIGNIN' ? (
                     <motion.form
                       key="login"
                       initial={{ opacity: 0, x: 24 }}
@@ -1137,7 +1311,17 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </span>
                       </button>
                     </motion.form>
-                  ) : activeView === 'REGISTER' ? (
+                  ) : orgRegisterOnly ? (
+                    /* Progressive upgrade: an already-authenticated Solo user
+                       registering their organisation — no doors, just the form. */
+                    <motion.div
+                      key="org-register"
+                      initial={{ opacity: 0, x: 24 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 }}
+                      transition={{ duration: 0.32, ease: 'easeOut' }}
+                    >
+                      {true && (
                     <motion.form
                       key="register"
                       initial={{ opacity: 0, x: -24 }}
@@ -1147,8 +1331,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       onSubmit={handleRegister}
                       className="space-y-4 max-h-[62vh] overflow-y-auto pr-1.5 custom-scrollbar"
                     >
-                      {/* Google-linked signup: link first, then complete the form — no password needed. */}
-                      {!googleUser ? (
+                      {/* Google-linked signup: link first, then complete the form — no password needed.
+                          Unified signup (Step 1) already authenticated — skip entirely. */}
+                      {(signupCreds || orgRegisterOnly) ? null : !googleUser ? (
                         <GoogleSignInButton mode="signup" onSuccess={handleGoogleSignup} onError={handleGoogleError} />
                       ) : (
                         <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
@@ -1238,21 +1423,35 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       <div className="space-y-4 pt-4 border-t border-white/10">
                         <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
 
+                        {(signupCreds || orgRegisterOnly) ? (
+                          /* Identity already established — just the phone. */
+                          <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
+                            <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
+                            <p className="text-[12px] font-bold text-emerald-200">
+                              {t('reg_unified_note').replace('{name}', signupCreds?.displayName || (firebaseUser as any)?.displayName || (firebaseUser as any)?.email || '')}
+                            </p>
+                          </div>
+                        ) : null}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
+                          {!(signupCreds || orgRegisterOnly) && (
+                            <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
+                          )}
                           <AuthField label={t('reg_your_phone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} autoComplete="tel" />
                         </div>
 
-                        <AuthField
-                          label={t('reg_official_email')}
-                          icon={<Mail size={17} />}
-                          type="email" required
-                          value={regData.email}
-                          onChange={e=>setRegData({...regData, email: e.target.value})}
-                          autoComplete="email"
-                        />
+                        {!(signupCreds || orgRegisterOnly) && (
+                          <AuthField
+                            label={t('reg_official_email')}
+                            icon={<Mail size={17} />}
+                            type="email" required
+                            value={regData.email}
+                            onChange={e=>setRegData({...regData, email: e.target.value})}
+                            autoComplete="email"
+                          />
+                        )}
 
-                        {!googleUser && (
+                        {!googleUser && !signupCreds && !orgRegisterOnly && (
                           <AuthField
                             label={`${t('login_pass')} *`}
                             icon={<Lock size={17} />}
@@ -1284,25 +1483,35 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </span>
                       </button>
                     </motion.form>
-                  ) : (
-                    /* SOLO / PUROHIT / JYOTISHI keep their verified light-theme
-                       forms; the paper sheet preserves them pixel-identically. */
-                    <motion.div
-                      key={'door-' + activeView}
-                      initial={{ opacity: 0, x: 24 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 }}
-                      transition={{ duration: 0.32, ease: 'easeOut' }}
-                      className="rounded-2xl bg-[#f7f4ef]/95 p-4 sm:p-6 shadow-[inset_0_2px_14px_rgba(0,0,0,0.07)]"
-                    >
-                      {activeView === 'SOLO' ? (
-                        <SoloSignupForm />
-                      ) : activeView === 'JYOTISHI' ? (
-                        <JyotishSignupForm />
-                      ) : (
-                        <PurohitSignupForm />
                       )}
                     </motion.div>
+                  ) : signupMinting ? (
+                    /* Solo identity is being minted — the only "Step 2". */
+                    <motion.div
+                      key="solo-minting"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -12 }}
+                      transition={{ duration: 0.32 }}
+                      className="py-10 flex flex-col items-center text-center gap-4"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-saffron-400 to-orange-600 flex items-center justify-center shadow-[0_10px_30px_rgba(255,142,0,0.45)]">
+                        <Loader2 size={28} className="animate-spin text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-black text-[15px]">{t('solo_minting')}</p>
+                        <p className="text-white/50 text-[12.5px] font-medium mt-1">{t('cred_secure_note')}</p>
+                      </div>
+                      {darkError}
+                    </motion.div>
+                  ) : (
+                    /* Step 1 — credentials first, no decisions. On completion
+                       the Solo identity is minted automatically. */
+                    <SignupCredentialsStep
+                      key="signup-creds"
+                      onComplete={completeSoloSignup}
+                      t={t}
+                    />
                   )}
                 </AnimatePresence>
               </div>

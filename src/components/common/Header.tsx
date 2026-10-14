@@ -425,7 +425,7 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Your personal Sanatani space — sadhana, panchang, saved texts"
                 >
                   <span className="text-sm">🪔</span>
-                  <span>My Space</span>
+                  <span>Personal (Sanatani)</span>
                 </button>
               </div>
 
