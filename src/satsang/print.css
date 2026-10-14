@@ -1,0 +1,8 @@
+/* Satsang One — print stylesheet. */
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .print-report { color: #000 !important; }
+  .print-report * { color: #000 !important; border-color: #ccc !important; background: #fff !important; }
+}
