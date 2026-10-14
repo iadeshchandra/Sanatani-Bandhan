@@ -1,14 +1,35 @@
 import { Router, Request, Response } from 'express';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 const router = Router();
 
 /**
+ * Verify gateway webhook signature (HMAC-SHA256). Rejects forged callbacks.
+ * Each gateway must send its signature in the x-webhook-signature header,
+ * computed over the raw request body with the shared WEBHOOK_SECRET.
+ */
+function verifyWebhookSignature(req: Request): boolean {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) return false; // fail closed: no secret configured = reject all
+  const signature = req.headers['x-webhook-signature'] as string;
+  if (!signature) return false;
+  const rawBody = JSON.stringify(req.body);
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+
+/**
  * Universal IPN Webhook listener for global payment gateways (Stripe, Razorpay, bKash, etc.)
  * POST /api/webhooks/payments
+ * Requires valid HMAC signature — unsigned/forged callbacks are rejected.
  */
 router.post('/payments', async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!verifyWebhookSignature(req)) {
+      res.status(401).json({ error: 'Unauthorized', message: 'Invalid or missing webhook signature' });
+      return;
+    }
     const { tenantId, transactionId, amount, currency, gateway, devoteeName } = req.body;
 
     // 1. Validate required fields

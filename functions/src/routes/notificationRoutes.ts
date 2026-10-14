@@ -1,13 +1,15 @@
 import { Router, Request, Response } from 'express';
 import nodemailer from 'nodemailer';
+import { requireAuth } from '../middleware/authMiddleware';
 
 const router = Router();
 
 /**
  * Zero-Cost Notification Engine - Email Dispatch
  * POST /api/notifications/email
+ * Requires authentication — prevents open-relay abuse.
  */
-router.post('/email', async (req: Request, res: Response): Promise<void> => {
+router.post('/email', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { to, subject, text, html } = req.body;
 
@@ -60,7 +62,7 @@ router.post('/email', async (req: Request, res: Response): Promise<void> => {
  * Zero-Cost Notification Engine - Telegram Alert Dispatch
  * POST /api/notifications/telegram
  */
-router.post('/telegram', async (req: Request, res: Response): Promise<void> => {
+router.post('/telegram', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { message, chatId } = req.body;
 

@@ -956,7 +956,8 @@ service cloud.firestore {
     // page posts require a trustee role edge and are badged OFFICIAL.
 
     // Badge validation: devotee/org authors carry no tier; purohit/jyotish
-    // tiers must match the canonical profile document.
+    // tiers must match the canonical profile document AND the profile must
+    // belong to the requester (prevents impersonating another verified pro).
     function sangamAuthorTierOk() {
       let kind = request.resource.data.get('authorKind', '');
       let tier = request.resource.data.get('authorTier', '');
@@ -965,9 +966,11 @@ service cloud.firestore {
         || (kind == 'org' && (tier == '' || tier == null))
         || (kind == 'purohit' && roleId != '' && roleId != null
           && exists(/databases/$(database)/documents/purohits/$(roleId))
+          && get(/databases/$(database)/documents/purohits/$(roleId)).data.get('uid', '') == request.auth.uid
           && tier == get(/databases/$(database)/documents/purohits/$(roleId)).data.get('verificationTier', ''))
         || (kind == 'jyotish' && roleId != '' && roleId != null
           && exists(/databases/$(database)/documents/jyotishProfiles/$(roleId))
+          && get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('uid', '') == request.auth.uid
           && tier == get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('verificationTier', ''));
     }
 
