@@ -436,6 +436,36 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Verification applications — owner-reviewed, never client-writable beyond apply.
+    match /verificationApplications/{appId} {
+      allow read: if isSuperAdmin();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('applicantUid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending';
+      allow update, delete: if false; // owner acts via Admin SDK only
+    }
+
+    // Moderation reports — reporter can file, only owner sees and acts.
+    match /moderationReports/{reportId} {
+      allow read: if isSuperAdmin();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('reporterUid', '') == request.auth.uid;
+      allow update, delete: if false; // owner acts via Admin SDK only
+    }
+
+    // Moderation hide directives — read-only for clients, enforced in UI.
+    match /moderationHides/{hideId} {
+      allow read: if isLoggedIn();
+      allow create, update, delete: if false; // owner writes via Admin SDK only
+    }
+
+    // Reminder queue — owner-triggered scheduled jobs write here; clients read own.
+    match /reminderQueue/{reminderId} {
+      allow read: if isLoggedIn()
+        && resource.data.get('targetUid', '') == request.auth.uid;
+      allow create, update, delete: if false; // scheduler writes via Admin SDK only
+    }
+
     // Crisis events
     match /crisis_events/{eventId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
