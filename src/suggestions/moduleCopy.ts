@@ -214,6 +214,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'कोई फाइलिंग फिर कभी न छूटे — 12A/80G/FCRA नवीनीकरण, ITR-7, 10BE और 85% नियम, ट्रैक्ड।',
     bn: 'আর কোনো ফাইলিং মিস নয় — ১২এ/৮০জি/এফসিআরএ নবায়ন, আইটিআর-৭, ১০বিই ও ৮৫% নিয়ম ট্র্যাকড।',
   },
+  'utsav-one': {
+    en: 'Run the whole mahotsav from one desk — budgets, committees, vendors, program and crowd safety.',
+    hi: 'पूरा महोत्सव एक डेस्क से चलाएं — बजट, समिति, विक्रेता, कार्यक्रम और भीड़ सुरक्षा।',
+    bn: 'এক ডেস্ক থেকে পুরো মহোৎসব চালান — বাজেট, সমিতি, বিক্রেতা, কার্যক্রম ও ভিড় নিরাপত্তা।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',

@@ -68,6 +68,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   'ashram-one': 'STANDARD',
   'annakshetra-one': 'STANDARD',
   'nyas-one': 'STANDARD',
+  'utsav-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -181,6 +182,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'cash-custody',
     // Annakshetra One: kitchen & bhandara management (Mandir-native).
     'annakshetra-one',
+    // Utsav One: festival management — budgets, committees, vendors, crowds (Mandir-native).
+    'utsav-one',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -317,6 +320,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'socialWall', 'trusteeGovernance', 'crisis-command', 'masterSettings',
     // R-1: added — crowd pain in the wizard routes to gate check-in & GIS.
     'checkin', 'donorCare', 'yatranet-gis',
+    // Utsav One: festival management — budgets, committees, vendors, crowds (Mahotsav Samiti-native).
+    'utsav-one',
   ],
   Purohit: [
     // R-1: verified minimal — personal purohit workspace, no org surface.
@@ -543,6 +548,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Annakshetra One (kitchen inventory, recipes, bhandara, meal counts) belongs to kitchen-running workspaces (Mandir, Ashram, Tirth, Trust/NGO, Akshaya Patra).',
   'nyas-one':
     'Nyas One (registrations, filings, 85% rule, trustee governance) belongs to Trust / Dharmada Trust workspaces.',
+  'utsav-one':
+    'Utsav One (festival budgets, committees, vendors, crowds) belongs to Mahotsav Samiti / Mandir workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
