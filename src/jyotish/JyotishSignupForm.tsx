@@ -17,6 +17,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { JyotishProvider, useJyotish } from '../context/JyotishContext';
 import { mintOrFetchSanataniProfile } from '../solo/soloSession';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../lib/googleAuth';
 import { CheckCircle2 } from 'lucide-react';
@@ -26,6 +27,7 @@ const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
 
 const InnerForm: React.FC = () => {
+  const { t } = useLanguage();
   const { enterJyotishSession } = useAuthWorkspace();
   const { mintJyotishIdentity } = useJyotish();
   const { showToast } = useToast();
@@ -52,14 +54,14 @@ const InnerForm: React.FC = () => {
       displayName: f.displayName || (result.displayName !== 'Sanatani Devotee' ? result.displayName : ''),
       email: result.email || f.email,
     }));
-    showToast(`Google linked (${result.email}). Complete your jyotishi details below.`, 'success');
+    showToast(t('jyotish.signup.googleLinked').replace('{email}', result.email || ''), 'success');
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!googleUser && form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('jyotish.signup.passwordTooShort'));
       return;
     }
     setLoading(true);
@@ -159,10 +161,9 @@ const InnerForm: React.FC = () => {
       className="space-y-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar"
     >
       <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl text-center">
-        <p className="text-xs font-black text-indigo-800 uppercase tracking-widest">🔮 Independent Jyotishi</p>
+        <p className="text-xs font-black text-indigo-800 uppercase tracking-widest">🔮 {t('jyotish.signup.title')}</p>
         <p className="text-xs text-indigo-700/80 mt-1 font-medium">
-          No organisation needed. You get a personal workspace with zero org data — just your
-          consultations, earnings, verification and reviews.
+          {t('jyotish.signup.noOrgSub')} earnings, verification and reviews.
         </p>
       </div>
 
@@ -172,7 +173,7 @@ const InnerForm: React.FC = () => {
         <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center gap-3">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
           <p className="text-xs font-bold text-emerald-800">
-            Google linked ({googleUser.email}) — no password needed. Complete your details below.
+            {t('jyotish.signup.googleLinked').replace('{email}', googleUser.email || '')}
           </p>
         </div>
       )}
@@ -180,41 +181,41 @@ const InnerForm: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Display name
+            {t('jyotish.signup.displayName')}
           </label>
-          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Pt. Devkinandan Shastri" className={inputCls} />
+          <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={t('jyotish.signup.nameExample')} className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Email
           </label>
-          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className={inputCls} disabled={!!googleUser} />
+          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('jyotish.signup.emailPlaceholder')} className={inputCls} disabled={!!googleUser} />
         </div>
         {!googleUser && (
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Password
+            {t('jyotish.signup.password')}
           </label>
-          <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Min 6 characters" className={inputCls} />
+          <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('jyotish.signup.passwordMin')} className={inputCls} />
         </div>
         )}
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Phone
           </label>
-          <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 …" className={inputCls} />
+          <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t('jyotish.signup.phonePlaceholder')} className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             City
           </label>
-          <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Varanasi" className={inputCls} />
+          <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder={t('jyotish.signup.cityExample')} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
             Parampara / Lineage <span className="normal-case font-medium text-temple-400">(optional)</span>
           </label>
-          <input value={form.parampara} onChange={(e) => setForm({ ...form, parampara: e.target.value })} placeholder="e.g. Parashara parampara, Kashi" className={inputCls} />
+          <input value={form.parampara} onChange={(e) => setForm({ ...form, parampara: e.target.value })} placeholder={t('jyotish.signup.paramparaExample')} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
@@ -241,7 +242,7 @@ const InnerForm: React.FC = () => {
         disabled={loading}
         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-black py-3 rounded-xl shadow-md transition-all text-sm disabled:opacity-50 min-h-[44px]"
       >
-        {loading ? 'Creating your jyotishi identity…' : '🔮 Join as Jyotishi'}
+        {loading ? t('jyotish.signup.creatingIdentity') : `🔮 ${t('jyotish.signup.joinAs')}`}
       </button>
       <p className="text-[11px] text-temple-400 text-center">
         You’ll receive a Universal Jyotish ID (JYO-XXXXXX) and land in your personal workspace.
