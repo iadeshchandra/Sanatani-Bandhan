@@ -110,6 +110,8 @@ const SmartBhandarProcurementDesk = lazy(() => import('./components/domain4/Smar
 const PathshalaDesk = lazy(() => import('./pathshala/PathshalaDesk').then(m => ({ default: m.PathshalaDesk })));
 // Goshala One — complete goshala-operations suite (Goshala only).
 const GoshalaDesk = lazy(() => import('./goshala/GoshalaDesk').then(m => ({ default: m.GoshalaDesk })));
+// Ashram One — complete yatri stay-management suite (Ashram + Tirth only).
+const AshramDesk = lazy(() => import('./ashram/AshramDesk').then(m => ({ default: m.AshramDesk })));
 // Cash Custody — hundi-to-bank chain of custody (Mandir + Trust/NGO only).
 const CashCustodyDesk = lazy(() => import('./cashcustody/CashCustodyDesk').then(m => ({ default: m.CashCustodyDesk })));
 
@@ -499,6 +501,8 @@ const AppContent: React.FC = () => {
         return <PathshalaDesk />;
       case 'goshala-one':
         return <GoshalaDesk />;
+      case 'ashram-one':
+        return <AshramDesk />;
       case 'granthLibrary':
       case 'sanskrit-library':
       case 'shlokaFeed':
