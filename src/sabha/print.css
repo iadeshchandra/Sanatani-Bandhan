@@ -1,0 +1,10 @@
+/* Sabha One — print stylesheet: clean reports and receipts. */
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .print-report {
+    color: #1c1917;
+  }
+  .print-report .grid { break-inside: avoid; }
+}
