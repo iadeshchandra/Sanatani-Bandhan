@@ -119,6 +119,8 @@ const MathaDesk = lazy(() => import('./matha/MathaDesk').then(m => ({ default: m
 const SatsangDesk = lazy(() => import('./satsang/SatsangDesk').then(m => ({ default: m.SatsangDesk })));
 // Sabha One — purohit sabha association management (PurohitSabha + Mandir only).
 const SabhaDesk = lazy(() => import('./sabha/SabhaDesk').then(m => ({ default: m.SabhaDesk })));
+// Samskara One — family lifecycle suite: 16 samskaras, pitra records, shraddha (universal).
+const SamskaraDesk = lazy(() => import('./samskara/SamskaraDesk').then(m => ({ default: m.SamskaraDesk })));
 // Annakshetra One — complete kitchen & bhandara management suite (Mandir + Ashram + Tirth + Trust/NGO + Akshaya Patra).
 const AnnakshetraDesk = lazy(() => import('./annakshetra/AnnakshetraDesk').then(m => ({ default: m.AnnakshetraDesk })));
 // Pathshala One — complete school-management suite (Gurukul + Vidyalaya only).
@@ -507,6 +509,8 @@ const AppContent: React.FC = () => {
         return <SatsangDesk />;
       case 'sabha-one':
         return <SabhaDesk />;
+      case 'samskara-one':
+        return <SamskaraDesk />;
       case 'annakshetra-one':
       case 'smartBhandar':
       case 'smart-bhandar':
@@ -871,6 +875,37 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
  * 'org' | 'purohit' | 'solo' | 'jyotish' — so no session can leak
  * into another.
  */
+/**
+ * Solo-first progressive flow: the "Register an Organisation" upgrade card
+ * in the Solo dashboard links to /register-org. The user is already signed
+ * in — PortalLogin reuses the live session for the existing workspace-
+ * creation flow. Signed-out visitors are sent to /login first.
+ */
+const OrgRegisterRoute: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuthWorkspace();
+  // Grace for slow Firebase session resolution — redirect only once the
+  // auth state is known, so a signed-in user never flashes through /login.
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0b0620] text-white/70 text-sm font-bold">
+        Loading…
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    window.location.href = '/login';
+    return null;
+  }
+  return (
+    <PortalLogin
+      initialMode="signup"
+      orgRegisterOnly
+      onBack={() => { window.location.href = '/app'; }}
+      onSuccess={() => { window.location.href = '/app'; }}
+    />
+  );
+};
+
 const AppContentRouter: React.FC = () => {
   const { sessionKind } = useAuthWorkspace();
   if (sessionKind === 'purohit') {
@@ -949,6 +984,11 @@ const AppRouter: React.FC = () => {
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           <Route path="/org/:orgId" element={<OrgPage />} />
+          {/* Solo-first progressive flow: an already-authenticated Solo user
+              registers their organisation here (the "Grow with Sanatani
+              Bandhan" upgrade card links here). Reuses PortalLogin's
+              workspace-creation form with the live session — no re-login. */}
+          <Route path="/register-org" element={<OrgRegisterRoute />} />
           <Route element={<MainAppView />} path="*" />
         </Routes>
         <OfflineIndicator />
