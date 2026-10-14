@@ -136,6 +136,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'vidyalaya', name: 'Weekend Heritage School', domain: 4, domainTitle: 'Specialized Desks', icon: BookMarked },
   { id: 'pathshala', name: 'Pathshala — Complete School Management', domain: 4, domainTitle: 'Specialized Desks', icon: BookOpen, badge: 'New' },
   { id: 'goshala-one', name: 'Goshala One — Complete Goshala Operations', domain: 4, domainTitle: 'Specialized Desks', icon: Heart, badge: 'New' },
+  { id: 'ashram-one', name: 'Ashram One — Complete Yatri Stay Management', domain: 4, domainTitle: 'Specialized Desks', icon: Home, badge: 'New' },
   { id: 'satsang', name: 'Satsang, Kirtan & Discourse', domain: 4, domainTitle: 'Specialized Desks', icon: Radio },
   { id: 'sanghaDrills', name: 'Sangha & Shakha Mobilization', domain: 4, domainTitle: 'Specialized Desks', icon: Swords },
   { id: 'sevaTrust', name: 'Humanitarian Seva Trust', domain: 4, domainTitle: 'Specialized Desks', icon: Cross },
@@ -413,7 +414,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           'pitruShradh', 'panchang', 'yatranet-gis', 'shlokaFeed', 'satsang',
           'granthLibrary', 'utsavPanjika', 'dharmicAssistant', 'sadhana-karma',
           'rakthaSeva', 'goshala', 'annadanam', 'smartBhandar', 'ashramKutir', 'dharamshala',
-          'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one'
+          'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one', 'ashram-one'
         ];
         hasRole = priestAllowed.includes(m.id) || m.domain === 3;
       } else if (currentRole === 'Accountant') {
