@@ -42,8 +42,30 @@ export const BecomeJyotishModal: React.FC<BecomeJyotishModalProps> = ({ isOpen, 
   });
   const [saving, setSaving] = useState(false);
   const [minted, setMinted] = useState<JyotishIdentity | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (!isOpen) return null;
+
+  const isOfflineError = (err: any): boolean => {
+    const msg = String(err?.message || err?.code || '').toLowerCase();
+    return msg.includes('offline') || msg.includes('network') || msg.includes('failed to get document') || msg.includes('unavailable');
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.displayName.trim()) errs.displayName = 'Please enter your display name.';
+    if (!form.phone.trim()) errs.phone = 'Please enter your phone number.';
+    if (!form.city.trim()) errs.city = 'Please enter your city.';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const clearError = (field: string) => {
+    if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  };
+
+  const errCls = (field: string) => errors[field] ? 'border-red-500 focus:ring-red-500' : '';
+  const errMsg = (field: string) => errors[field] ? <p className="text-xs text-red-600 font-bold mt-1">{errors[field]}</p> : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +73,7 @@ export const BecomeJyotishModal: React.FC<BecomeJyotishModalProps> = ({ isOpen, 
       showToast('Please sign in first.', 'error');
       return;
     }
+    if (!validate()) return;
     setSaving(true);
     try {
       const identity = await mintJyotishIdentity({
@@ -73,7 +96,11 @@ export const BecomeJyotishModal: React.FC<BecomeJyotishModalProps> = ({ isOpen, 
       setMinted(identity);
       showToast(`Welcome, ${identity.displayName}! Your Jyotish ID is ${identity.id}`, 'success');
     } catch (err: any) {
-      showToast(err.message || 'Could not create jyotishi identity', 'error');
+      if (isOfflineError(err)) {
+        showToast('Connection required — please check your internet and try again.', 'error');
+      } else {
+        showToast(err.message || 'Could not create jyotishi identity', 'error');
+      }
     } finally {
       setSaving(false);
     }
@@ -101,19 +128,19 @@ export const BecomeJyotishModal: React.FC<BecomeJyotishModalProps> = ({ isOpen, 
         </div>
 
         {!minted ? (
-          <form onSubmit={submit} className="p-6 space-y-4">
+          <form onSubmit={submit} noValidate className="p-6 space-y-4">
             <div>
               <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Display name</label>
-              <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Pt. Devkinandan Shastri" className={inputCls} />
+              <input value={form.displayName} onChange={(e) => { setForm({ ...form, displayName: e.target.value }); clearError('displayName'); }} placeholder="e.g. Pt. Devkinandan Shastri" className={`${inputCls} ${errCls('displayName')}`} aria-invalid={!!errors.displayName} />{errMsg('displayName')}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Phone</label>
-                <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 …" className={inputCls} />
+                <input value={form.phone} onChange={(e) => { setForm({ ...form, phone: e.target.value }); clearError('phone'); }} placeholder="+91 …" className={`${inputCls} ${errCls('phone')}`} aria-invalid={!!errors.phone} />{errMsg('phone')}
               </div>
               <div>
                 <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">City</label>
-                <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Varanasi" className={inputCls} />
+                <input value={form.city} onChange={(e) => { setForm({ ...form, city: e.target.value }); clearError('city'); }} placeholder="e.g. Varanasi" className={`${inputCls} ${errCls('city')}`} aria-invalid={!!errors.city} />{errMsg('city')}
               </div>
             </div>
             <div>

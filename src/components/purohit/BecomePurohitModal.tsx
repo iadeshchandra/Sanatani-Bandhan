@@ -37,8 +37,27 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
   });
   const [saving, setSaving] = useState(false);
   const [minted, setMinted] = useState<import('../../types/purohit').PurohitIdentity | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (!isOpen) return null;
+
+  const isOfflineError = (err: any): boolean => {
+    const msg = String(err?.message || err?.code || '').toLowerCase();
+    return msg.includes('offline') || msg.includes('network') || msg.includes('failed to get document') || msg.includes('unavailable');
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.displayName.trim()) errs.displayName = 'Please enter your display name.';
+    if (!form.phone.trim()) errs.phone = 'Please enter your phone number.';
+    if (!form.city.trim()) errs.city = 'Please enter your city.';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const clearError = (field: string) => {
+    if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +65,7 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
       showToast('Please sign in first.', 'error');
       return;
     }
+    if (!validate()) return;
     setSaving(true);
     try {
       const identity = await mintPurohitIdentity({
@@ -61,7 +81,11 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
       setMinted(identity);
       showToast(`Welcome, ${identity.displayName}! Your Purohit ID is ${identity.id}`, 'success');
     } catch (err: any) {
-      showToast(err.message || 'Could not create purohit identity', 'error');
+      if (isOfflineError(err)) {
+        showToast('Connection required — please check your internet and try again.', 'error');
+      } else {
+        showToast(err.message || 'Could not create purohit identity', 'error');
+      }
     } finally {
       setSaving(false);
     }
@@ -125,7 +149,7 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
               </button>
             </div>
           ) : (
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} noValidate className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900">
                 <p className="font-black mb-1">Dual identity, one login</p>
                 <p>
@@ -137,31 +161,34 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">Display name</span>
                 <input
                   value={form.displayName}
-                  onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-                  required
-                  className={`${inputCls} mt-1`}
+                  onChange={(e) => { setForm({ ...form, displayName: e.target.value }); clearError('displayName'); }}
+                  className={`${inputCls} mt-1 ${errors.displayName ? 'border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="e.g. Pt. Ramesh Shastri"
+                  aria-invalid={!!errors.displayName}
                 />
+                {errors.displayName && <p className="text-xs text-red-600 font-bold mt-1">{errors.displayName}</p>}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">Phone</span>
                   <input
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    required
-                    className={`${inputCls} mt-1`}
+                    onChange={(e) => { setForm({ ...form, phone: e.target.value }); clearError('phone'); }}
+                    className={`${inputCls} mt-1 ${errors.phone ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    aria-invalid={!!errors.phone}
                   />
+                  {errors.phone && <p className="text-xs text-red-600 font-bold mt-1">{errors.phone}</p>}
                 </label>
                 <label className="block">
                   <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">City</span>
                   <input
                     value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    required
-                    className={`${inputCls} mt-1`}
+                    onChange={(e) => { setForm({ ...form, city: e.target.value }); clearError('city'); }}
+                    className={`${inputCls} mt-1 ${errors.city ? 'border-red-500 focus:ring-red-500' : ''}`}
                     placeholder="e.g. Varanasi"
+                    aria-invalid={!!errors.city}
                   />
+                  {errors.city && <p className="text-xs text-red-600 font-bold mt-1">{errors.city}</p>}
                 </label>
               </div>
               <label className="block">
