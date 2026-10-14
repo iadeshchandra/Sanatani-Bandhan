@@ -501,18 +501,30 @@ export const MasterSettingsDesk: React.FC = () => {
     setSubmittingTrx(true);
     try {
       const requestRef = doc(collection(db, 'upgrade_requests'));
+      // Canonical payment method id for per-method insights (see paymentMethods.ts).
+      const methodLabel = (paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod) || '';
+      const ml = methodLabel.toLowerCase();
+      const paymentMethodId =
+        paymentTab === 'BD'
+          ? (ml.includes('bangla') || ml.includes('tallypay') || ml.includes('qr') ? 'bd_banglaqr'
+            : ml.includes('nagad') ? 'bd_nagad'
+            : ml.includes('rocket') ? 'bd_bkash' : 'bd_bkash')
+          : paymentTab === 'IN' ? 'in_upi'
+          : (ml.includes('payoneer') ? 'intl_payoneer' : 'intl_wise');
       await setDoc(requestRef, {
         requestId: requestRef.id,
         communityId: activeWorkspace?.id,
         communityName: workspaceInfo.name,
         adminName: currentUser?.name || 'Admin',
         contactInfo: upgradeForm.contact.trim(),
-        senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : (upgradeForm.senderNumber.trim() || 'N/A'), 
-        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod, 
+        senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : (upgradeForm.senderNumber.trim() || 'N/A'),
+        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Wise/Payoneer)' : upgradeForm.paymentMethod,
+        paymentMethodId,
+        paymentRegion: paymentTab,
         transactionId: upgradeForm.trxId.trim(),
         timestamp: serverTimestamp(),
         status: "PENDING",
-        requestedPlan: "SMART_PRO" 
+        requestedPlan: "SMART_PRO"
       });
 
       setShowUpgradeModal(false);
