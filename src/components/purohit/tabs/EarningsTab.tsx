@@ -2,8 +2,10 @@
 import React, { useMemo } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { Card, SectionTitle, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const EarningsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { myGigs } = usePurohit();
 
   const released = useMemo(
@@ -38,37 +40,37 @@ export const EarningsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <SectionTitle sub="Computed from gigs whose dakshina was released. Workflow-level tracking — actual settlement happens off-platform until a payment partner is integrated.">
-        Earnings
+      <SectionTitle sub={t('purohit.earnings.titleSub')}>
+        {t('purohit.earnings.title')}
       </SectionTitle>
 
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <p className="text-lg font-black text-stone-900">₹{lifetime.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Lifetime</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{t('purohit.earnings.lifetime')}</p>
         </Card>
         <Card>
           <p className="text-lg font-black text-stone-900">{released.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Released gigs</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{t('purohit.earnings.releasedGigs')}</p>
         </Card>
         <Card>
           <p className="text-lg font-black text-stone-900">
             ₹{released.length ? Math.round(lifetime / released.length).toLocaleString('en-IN') : 0}
           </p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Avg / ritual</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{t('purohit.earnings.avgRitual')}</p>
         </Card>
       </div>
 
       {byMonth.length === 0 ? (
         <Card>
           <EmptyState
-            title="No released earnings yet"
-            sub="When a devotee confirms your completed ritual, its dakshina appears here, month by month."
+            title={t('purohit.earnings.noEarnings')}
+            sub={t('purohit.earnings.noEarningsSub')}
           />
         </Card>
       ) : (
         <Card>
-          <p className="text-sm font-black text-stone-900 mb-4">Monthly earnings</p>
+          <p className="text-sm font-black text-stone-900 mb-4">{t('purohit.earnings.monthly')}</p>
           <div className="space-y-3">
             {byMonth.map((m) => (
               <div key={m.key}>
