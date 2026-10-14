@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { requireAuth, AuthenticatedRequest } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -163,12 +164,12 @@ router.post('/validate-key', async (req: Request, res: Response): Promise<void> 
 /**
  * POST /api/gemini/dharmic-assistant
  * ----------------------------------
- * Full dharmic assistant with caller-supplied system instruction and context.
- * Body: { prompt, systemInstruction?, customApiKey?, ... } (extra fields ignored).
- * Returns { success: true, result } — the shape DharmicQueryAssistant expects.
- * Uses the caller's customApiKey when provided, else the server GEMINI_API_KEY.
+ * Authenticated. Full dharmic assistant with caller-supplied system
+ * instruction and context. Body: { prompt, systemInstruction?, customApiKey?, ... }.
+ * Requires auth because custom system instructions could otherwise be abused
+ * to burn the server's Gemini quota via prompt injection.
  */
-router.post('/dharmic-assistant', async (req: Request, res: Response): Promise<void> => {
+router.post('/dharmic-assistant', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     if (isRateLimited(clientIp(req))) {
       res.status(429).json({ success: false, error: 'Too many questions. Please wait a minute.' });

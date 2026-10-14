@@ -3,6 +3,9 @@ import { createHash } from 'crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { requireAuth, requireRole, requireSuperAdmin, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { requireOwner, OWNER_UID, OWNER_EMAIL } from '../middleware/ownerAuth';
+import { auditLog, queryAuditLogs } from '../lib/audit';
+import { standardLimiter } from '../middleware/rateLimit';
 
 const router = Router();
 
@@ -112,6 +115,18 @@ router.post('/tenants', requireRole('SuperAdmin'), async (req: AuthenticatedRequ
 
     console.log(`[AdminRoutes] Provisioned new tenant partition: ${tenantId} (${code})`);
 
+    await auditLog({
+      action: 'tenant.provision',
+      actorUid: req.authContext?.uid || 'unknown',
+      actorEmail: req.authContext?.email,
+      workspaceId: tenantId,
+      targetType: 'tenant',
+      targetId: tenantId,
+      severity: 'warn',
+      details: { name: name.trim(), code, tier: tier || 'Standard' },
+      ip: ((req.headers['x-forwarded-for'] as string) || '').split(',')[0]?.trim() || req.ip,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Tenant partition provisioned successfully',
@@ -190,6 +205,19 @@ router.post('/users/:uid/claims', requireRole('SuperAdmin'), async (req: Authent
     );
 
     console.log(`[AdminRoutes] Claims set for ${uid}:`, claims);
+
+    await auditLog({
+      action: 'claims.grant',
+      actorUid: req.authContext?.uid || 'unknown',
+      actorEmail: req.authContext?.email,
+      workspaceId: typeof tenantId === 'string' ? tenantId : undefined,
+      targetType: 'user',
+      targetId: uid,
+      severity: 'critical',
+      details: { role, tenantId: tenantId || null, roles: claims.roles || [] },
+      ip: ((req.headers['x-forwarded-for'] as string) || '').split(',')[0]?.trim() || req.ip,
+    });
+
     res.json({ success: true, uid, claims });
   } catch (error: any) {
     console.error('[AdminRoutes] Error setting claims:', error);
@@ -225,6 +253,19 @@ router.post('/tenants/:tenantId/pin', requireRole('SuperAdmin'), async (req: Aut
       { merge: true }
     );
     console.log(`[AdminRoutes] Admin PIN hash rotated for workspace ${tenantId}`);
+
+    await auditLog({
+      action: 'workspace.pin_rotate',
+      actorUid: req.authContext?.uid || 'unknown',
+      actorEmail: req.authContext?.email,
+      workspaceId: tenantId,
+      targetType: 'workspace',
+      targetId: tenantId,
+      severity: 'critical',
+      details: { note: 'Admin PIN hash rotated (plaintext never stored)' },
+      ip: ((req.headers['x-forwarded-for'] as string) || '').split(',')[0]?.trim() || req.ip,
+    });
+
     res.json({ success: true, tenantId, message: 'Admin PIN updated (stored as peppered hash only).' });
   } catch (error: any) {
     console.error('[AdminRoutes] Error setting PIN:', error);
@@ -281,4 +322,287 @@ router.post('/treasury/export', requireRole('Accountant', 'Trustee', 'SuperAdmin
 });
 
 export { requireSuperAdmin };
+
+/* ============================================================================
+ * PLATFORM OWNER OVERSIGHT — requireOwner (strongest gate)
+ * ----------------------------------------------------------------------------
+ * These endpoints let the platform owner "handle the full app ecosystem":
+ * usage overview, user lookup/support, plan management, account safety,
+ * and audit-trail queries. Every mutating action writes an audit entry.
+ * ========================================================================== */
+
+function actorIp(req: AuthenticatedRequest): string {
+  return ((req.headers['x-forwarded-for'] as string) || '').split(',')[0]?.trim() || req.ip || 'unknown';
+}
+
+/**
+ * GET /api/admin/overview — Owner only.
+ * Platform pulse: workspace/user counts, recent signups, plan distribution.
+ * Lightweight: uses count() aggregations, not full scans.
+ */
+router.get('/overview', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const db = getFirestore();
+    const [wsCount, userCount, tenantCount] = await Promise.all([
+      db.collection('workspaces').count().get().then((s) => s.data().count).catch(() => -1),
+      db.collection('users').count().get().then((s) => s.data().count).catch(() => -1),
+      db.collection('tenants').count().get().then((s) => s.data().count).catch(() => -1),
+    ]);
+
+    // Recent workspaces (last 10) for a live feel.
+    let recentWorkspaces: any[] = [];
+    try {
+      const snap = await db.collection('workspaces').orderBy('createdAt', 'desc').limit(10).get();
+      recentWorkspaces = snap.docs.map((d) => {
+        const data = d.data() as Record<string, any>;
+        return { id: d.id, name: data.name, type: data.type, planId: data.planId, createdAt: data.createdAt };
+      });
+    } catch { /* collection may use different timestamp field */ }
+
+    res.json({
+      success: true,
+      overview: {
+        workspaces: wsCount,
+        users: userCount,
+        tenants: tenantCount,
+        recentWorkspaces,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error: any) {
+    console.error('[AdminRoutes] overview failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'OVERVIEW_FAILED', message: 'Could not load platform overview.' });
+  }
+});
+
+/**
+ * GET /api/admin/users/lookup?email= — Owner only.
+ * Support tool: find a user by email (Admin SDK, no PII in logs beyond email).
+ */
+router.get('/users/lookup', requireOwner, standardLimiter.byUser('lookup'), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: 'Bad Request', code: 'INVALID_INPUT', message: 'A valid ?email= query param is required.' });
+      return;
+    }
+    const user = await getAuth().getUserByEmail(email).catch(() => null);
+    if (!user) {
+      res.status(404).json({ error: 'Not Found', code: 'USER_NOT_FOUND', message: 'No user with that email.' });
+      return;
+    }
+    const userDoc = await getFirestore().collection('users').doc(user.uid).get().catch(() => null);
+    res.json({
+      success: true,
+      user: {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        disabled: user.disabled,
+        emailVerified: user.emailVerified,
+        createdAt: user.metadata.creationTime,
+        lastSignIn: user.metadata.lastSignInTime,
+        customClaims: user.customClaims || {},
+        profile: userDoc?.exists ? userDoc.data() : null,
+      },
+    });
+  } catch (error: any) {
+    console.error('[AdminRoutes] user lookup failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'LOOKUP_FAILED', message: 'User lookup failed.' });
+  }
+});
+
+/**
+ * POST /api/admin/users/:uid/disable — Owner only.
+ * Safety tool: disable an abusive/compromised account. Audited (critical).
+ */
+router.post('/users/:uid/disable', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { uid } = req.params;
+    const { reason } = req.body || {};
+    if (uid === OWNER_UID) {
+      res.status(400).json({ error: 'Bad Request', code: 'INVALID_INPUT', message: 'The platform owner account cannot be disabled.' });
+      return;
+    }
+    await getAuth().updateUser(uid, { disabled: true });
+    const ctx = req.authContext!;
+    await auditLog({
+      action: 'user.disable',
+      actorUid: ctx.uid,
+      actorEmail: ctx.email,
+      targetType: 'user',
+      targetId: uid,
+      severity: 'critical',
+      details: { reason: typeof reason === 'string' ? reason.slice(0, 500) : 'not specified' },
+      ip: actorIp(req),
+    });
+    res.json({ success: true, uid, disabled: true });
+  } catch (error: any) {
+    console.error('[AdminRoutes] disable failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'DISABLE_FAILED', message: 'Could not disable user.' });
+  }
+});
+
+/**
+ * POST /api/admin/users/:uid/enable — Owner only. Re-enable a disabled account. Audited.
+ */
+router.post('/users/:uid/enable', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { uid } = req.params;
+    await getAuth().updateUser(uid, { disabled: false });
+    const ctx = req.authContext!;
+    await auditLog({
+      action: 'user.enable',
+      actorUid: ctx.uid,
+      actorEmail: ctx.email,
+      targetType: 'user',
+      targetId: uid,
+      severity: 'warn',
+      ip: actorIp(req),
+    });
+    res.json({ success: true, uid, disabled: false });
+  } catch (error: any) {
+    console.error('[AdminRoutes] enable failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'ENABLE_FAILED', message: 'Could not enable user.' });
+  }
+});
+
+/**
+ * GET /api/admin/workspaces — Owner only.
+ * Paginated workspace list for oversight. ?limit= (max 100), ?cursor= (doc id).
+ */
+router.get('/workspaces', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || '25'), 10) || 25, 1), 100);
+    const db = getFirestore();
+    let q: FirebaseFirestore.Query = db.collection('workspaces').orderBy('name').limit(limit);
+    const cursor = String(req.query.cursor || '');
+    if (cursor) {
+      const cur = await db.collection('workspaces').doc(cursor).get();
+      if (cur.exists) q = q.startAfter(cur);
+    }
+    const snap = await q.get();
+    const workspaces = snap.docs.map((d) => {
+      const { adminPinHash: _h, ...rest } = d.data() as Record<string, any>;
+      return { id: d.id, ...rest };
+    });
+    res.json({
+      success: true,
+      workspaces,
+      nextCursor: snap.docs.length === limit ? snap.docs[snap.docs.length - 1].id : null,
+    });
+  } catch (error: any) {
+    console.error('[AdminRoutes] workspaces list failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'LIST_FAILED', message: 'Could not list workspaces.' });
+  }
+});
+
+const KNOWN_PLANS = ['DEMO', 'LITE', 'STANDARD', 'ENTERPRISE'];
+
+/**
+ * POST /api/admin/workspaces/:id/plan — Owner only.
+ * Set a workspace's subscription plan. Audited (critical — billing impact).
+ */
+router.post('/workspaces/:id/plan', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { planId, note } = req.body || {};
+    if (typeof planId !== 'string' || !KNOWN_PLANS.includes(planId.toUpperCase())) {
+      res.status(400).json({
+        error: 'Bad Request',
+        code: 'INVALID_INPUT',
+        message: `planId must be one of: ${KNOWN_PLANS.join(', ')}`,
+      });
+      return;
+    }
+    const db = getFirestore();
+    const ref = db.collection('workspaces').doc(id);
+    const before = await ref.get();
+    if (!before.exists) {
+      res.status(404).json({ error: 'Not Found', code: 'WORKSPACE_NOT_FOUND', message: 'Workspace not found.' });
+      return;
+    }
+    const prevPlan = (before.data() as any)?.planId || 'LITE';
+    await ref.set(
+      {
+        planId: planId.toUpperCase(),
+        planUpdatedAt: FieldValue.serverTimestamp(),
+        planUpdatedBy: req.authContext!.uid,
+      },
+      { merge: true }
+    );
+    await auditLog({
+      action: 'workspace.plan_change',
+      actorUid: req.authContext!.uid,
+      actorEmail: req.authContext!.email,
+      workspaceId: id,
+      targetType: 'workspace',
+      targetId: id,
+      severity: 'critical',
+      details: { from: prevPlan, to: planId.toUpperCase(), note: typeof note === 'string' ? note.slice(0, 500) : undefined },
+      ip: actorIp(req),
+    });
+    res.json({ success: true, workspaceId: id, previousPlan: prevPlan, planId: planId.toUpperCase() });
+  } catch (error: any) {
+    console.error('[AdminRoutes] plan change failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'PLAN_FAILED', message: 'Could not update plan.' });
+  }
+});
+
+/**
+ * GET /api/admin/audit-logs — Owner only.
+ * Query the platform audit trail. ?action=&actorUid=&workspaceId=&severity=&limit=&cursor=
+ */
+router.get('/audit-logs', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { entries, nextCursor } = await queryAuditLogs({
+      action: (req.query.action as string) || undefined,
+      actorUid: (req.query.actorUid as string) || undefined,
+      workspaceId: (req.query.workspaceId as string) || undefined,
+      severity: (req.query.severity as string) || undefined,
+      limit: parseInt(String(req.query.limit || '50'), 10) || 50,
+      startAfterId: (req.query.cursor as string) || undefined,
+    });
+    res.json({ success: true, entries, nextCursor });
+  } catch (error: any) {
+    console.error('[AdminRoutes] audit query failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'AUDIT_FAILED', message: 'Could not query audit logs.' });
+  }
+});
+
+/**
+ * POST /api/admin/bootstrap-owner — Owner identity only (self-bootstrap).
+ * One-time setup: registers the hardcoded owner UID in platform_admins and
+ * stamps isSuperAdmin custom claims, so GodMode + owner API work end to end.
+ * Only the owner UID/email can call it, and it can only target the owner —
+ * there is no privilege-escalation vector here by construction.
+ */
+router.post('/bootstrap-owner', requireOwner, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const db = getFirestore();
+    await db.collection('platform_admins').doc(OWNER_UID).set(
+      {
+        email: OWNER_EMAIL,
+        active: true,
+        bootstrappedAt: FieldValue.serverTimestamp(),
+        bootstrappedBy: 'self',
+      },
+      { merge: true }
+    );
+    await getAuth().setCustomUserClaims(OWNER_UID, { role: 'SuperAdmin', isSuperAdmin: true });
+    await auditLog({
+      action: 'owner.bootstrap',
+      actorUid: OWNER_UID,
+      actorEmail: OWNER_EMAIL,
+      severity: 'critical',
+      details: { note: 'Owner self-bootstrap: platform_admins + SuperAdmin claims' },
+      ip: actorIp(req),
+    });
+    res.json({ success: true, message: 'Owner registered in platform_admins with SuperAdmin claims.' });
+  } catch (error: any) {
+    console.error('[AdminRoutes] bootstrap failed:', error?.message || error);
+    res.status(500).json({ error: 'Internal Server Error', code: 'BOOTSTRAP_FAILED', message: 'Owner bootstrap failed.' });
+  }
+});
+
 export default router;

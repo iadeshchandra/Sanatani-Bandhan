@@ -6,6 +6,8 @@ import authRoutes from './routes/authRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import geminiRoutes from './routes/geminiRoutes';
+import healthRoutes from './routes/healthRoutes';
+import exportRoutes from './routes/exportRoutes';
 
 // Credential helper conforming to credential.cert API
 const credential = { cert };
@@ -32,8 +34,18 @@ try {
 // Express app (no listen here — the Cloud Function wrapper owns the server).
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// CORS: restrict to known front-ends when CORS_ORIGINS is set (comma-separated).
+// Falls back to open CORS for the PWA's multiple hosting targets.
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  corsOrigins.length
+    ? cors({ origin: corsOrigins, credentials: true })
+    : cors()
+);
+app.use(express.json({ limit: '1mb' })); // bound body size against abuse
 
 // API routes
 app.use('/api/admin', adminRoutes);
@@ -41,14 +53,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/gemini', geminiRoutes);
+app.use('/api/export', exportRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    message: 'Sanatani Bandhan API is running',
-  });
-});
+// Health & readiness (public; see healthRoutes for dependency checks).
+app.use('/api/health', healthRoutes);
 
 export default app;
