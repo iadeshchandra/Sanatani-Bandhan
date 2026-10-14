@@ -129,6 +129,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'goshala', name: 'Goshala Sanctuary & Gomata Records', domain: 4, domainTitle: 'Specialized Desks', icon: Heart, badge: 'Gau Seva' },
   { id: 'annadanam', name: 'Annadanam & Prasad Seva', domain: 4, domainTitle: 'Specialized Desks', icon: Utensils },
   { id: 'annakshetra-one', name: 'Annakshetra One — Kitchen & Bhandara Management', domain: 4, domainTitle: 'Specialized Desks', icon: Soup, badge: 'New' },
+  { id: 'nyas-one', name: 'Nyas One — Compliance & Governance', domain: 4, domainTitle: 'Specialized Desks', icon: Scale, badge: 'New' },
   { id: 'ashramKutir', name: 'Ashram Kutir & Sadhana Stays', domain: 4, domainTitle: 'Specialized Desks', icon: Moon },
   { id: 'dharamshala', name: 'Dharamshala Yatri Bhavan', domain: 4, domainTitle: 'Specialized Desks', icon: Home },
   { id: 'gurukul', name: 'Gurukul Residential Monitoring', domain: 4, domainTitle: 'Specialized Desks', icon: GraduationCap },
