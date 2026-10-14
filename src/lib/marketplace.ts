@@ -15,7 +15,7 @@ import {
   addDoc, setDoc, updateDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { resolveCommissionRate, computeCommission } from './firestoreAdmin';
+import { resolveCommissionRate, computeCommission, duesCreateForOrder } from './firestoreAdmin';
 
 export interface Gig {
   id?: string;
@@ -200,6 +200,13 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
     ...(to === 'completed' ? { completedAt: serverTimestamp() } : {}),
     updatedAt: serverTimestamp(),
   });
+  // Rail-2: completing an order creates the platform's commission receivable.
+  // Idempotent (checks for existing due). Fail-open: never blocks completion.
+  if (to === 'completed' && o.rail === 'rail2') {
+    try {
+      await duesCreateForOrder(id);
+    } catch { /* non-fatal — owner can backfill from the Risk tab */ }
+  }
 }
 
 export async function openDispute(orderId: string, reason: string, details: string): Promise<string> {

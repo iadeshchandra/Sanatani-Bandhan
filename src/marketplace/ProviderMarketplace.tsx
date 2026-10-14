@@ -5,7 +5,7 @@
  * Subtabs: My Services (gig CRUD) · Orders (accept/complete) · Earnings (payout).
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard } from 'lucide-react';
+import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard, HandCoins } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ProviderPaymentSettings } from './ProviderPaymentSettings';
 import {
@@ -14,6 +14,8 @@ import {
   providerEarningsSummary, requestPayout, listMyPayouts,
   type Gig, type MarketplaceOrder,
 } from '../lib/marketplace';
+import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from '../lib/rail2';
+import { ProviderDues } from './ProviderDues';
 
 export const GIG_CATEGORIES = ['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'];
 
@@ -119,10 +121,18 @@ const ProviderOrders: React.FC = () => {
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
+  const [disputeNote, setDisputeNote] = useState('');
+  const [disputing, setDisputing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setOrders(await myOrdersAsProvider()); } catch (e: any) { showToast(e.message, 'error'); }
+    try {
+      const [os] = await Promise.all([
+        myOrdersAsProvider(),
+        autoConfirmStaleProofs().then((n) => { if (n > 0) showToast(`${n} payment proof(s) auto-confirmed after 48h.`, 'info'); }).catch(() => {}),
+      ]);
+      setOrders(os);
+    } catch (e: any) { showToast(e.message, 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -130,6 +140,21 @@ const ProviderOrders: React.FC = () => {
   const go = async (o: MarketplaceOrder, to: 'accepted' | 'cancelled' | 'in_progress' | 'completed') => {
     setWorking(o.id as string);
     try { await orderTransition(o.id as string, to); showToast('Order updated.', 'success'); load(); }
+    catch (e: any) { showToast(e.message, 'error'); }
+    setWorking(null);
+  };
+
+  const confirmReceipt = async (o: MarketplaceOrder) => {
+    setWorking(o.id as string);
+    try { await confirmRail2Receipt(o.id as string); showToast('Payment confirmed. You can start work.', 'success'); load(); }
+    catch (e: any) { showToast(e.message, 'error'); }
+    setWorking(null);
+  };
+
+  const disputeProof = async (o: MarketplaceOrder) => {
+    if (!disputeNote.trim()) { showToast('Explain the issue with the payment.', 'error'); return; }
+    setWorking(o.id as string);
+    try { await disputeRail2Amount(o.id as string, disputeNote); showToast('Disputed. The client has been notified to re-submit.', 'success'); setDisputing(null); setDisputeNote(''); load(); }
     catch (e: any) { showToast(e.message, 'error'); }
     setWorking(null);
   };
@@ -159,6 +184,36 @@ const ProviderOrders: React.FC = () => {
             <span className="text-stone-500">Fee <b className="text-amber-700">{fmt(o.commissionAmount)}</b></span>
             <span className="text-stone-500">You get <b className="text-emerald-700">{fmt(o.providerNet)}</b></span>
           </div>
+          {/* Rail-2: payment proof awaiting confirmation */}
+          {(o as any).rail === 'rail2' && o.status === 'paid' && (o as any).rail2Proof && !(o as any).rail2Proof.confirmedAt && (
+            <div className="mt-2 bg-sky-50 border border-sky-200 rounded-xl p-3">
+              <p className="text-[11px] font-black text-sky-900">💰 Payment proof submitted</p>
+              <p className="text-[11px] text-sky-800 mt-1">
+                TrxID: <b className="font-mono">{(o as any).rail2Proof.trxId}</b> · Amount: <b>{fmt((o as any).rail2Proof.amount)}</b>
+                {(o as any).rail2Proof.amountMismatch && <span className="text-amber-700 font-bold"> ⚠️ differs from payable amount</span>}
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button type="button" disabled={working === o.id} onClick={() => confirmReceipt(o)} className={`${btnP} flex-1`}>
+                  {working === o.id ? '…' : '✓ Confirm receipt'}
+                </button>
+                <button type="button" onClick={() => setDisputing(disputing === o.id ? null : (o.id as string))} className={btnG}>
+                  Dispute
+                </button>
+              </div>
+              {disputing === o.id && (
+                <div className="mt-2 space-y-2">
+                  <textarea value={disputeNote} onChange={(e) => setDisputeNote(e.target.value)}
+                    className={inputCls} rows={2} maxLength={500} placeholder="What's wrong? (wrong amount, invalid TrxID…)" />
+                  <button type="button" disabled={working === o.id} onClick={() => disputeProof(o)} className={`${btnP} w-full`}>
+                    Submit dispute
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {(o as any).rail === 'rail2' && (o as any).orderCode && (
+            <p className="text-[10px] text-stone-400 mt-1.5">Order ref: <b className="font-mono">{(o as any).orderCode}</b> · payable was {fmt((o as any).payableAmount || o.amountGross)}</p>
+          )}
           {(nextActions[o.status] || []).length > 0 && (
             <div className="flex gap-2 mt-2">
               {nextActions[o.status].map((a) => (
@@ -251,13 +306,13 @@ const ProviderEarnings: React.FC = () => {
 /* ------------------------------ Main ------------------------------ */
 
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
-  const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'payments'>('services');
+  const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'dues' | 'payments'>('services');
   return (
     <div className="space-y-3">
-      <div className="flex gap-1.5">
-        {([['services', 'My Services', Package], ['orders', 'Orders', Star], ['earnings', 'Earnings', Wallet], ['payments', 'Payments', CreditCard]] as const).map(([id, label, Icon]) => (
+      <div className="flex gap-1.5 overflow-x-auto">
+        {([['services', 'My Services', Package], ['orders', 'Orders', Star], ['earnings', 'Earnings', Wallet], ['dues', 'Dues', HandCoins], ['payments', 'Payments', CreditCard]] as const).map(([id, label, Icon]) => (
           <button key={id} type="button" onClick={() => setTab(id)}
-            className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 ${tab === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>
+            className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>
             <Icon className="w-3.5 h-3.5" />{label}
           </button>
         ))}
@@ -265,6 +320,7 @@ export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi
       {tab === 'services' && <MyServices providerType={providerType} providerName={providerName || ''} />}
       {tab === 'orders' && <ProviderOrders />}
       {tab === 'earnings' && <ProviderEarnings />}
+      {tab === 'dues' && <ProviderDues providerType={providerType} />}
       {tab === 'payments' && <ProviderPaymentSettings providerType={providerType} providerName={providerName} />}
     </div>
   );

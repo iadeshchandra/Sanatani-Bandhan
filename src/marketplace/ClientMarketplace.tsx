@@ -12,6 +12,8 @@ import {
   listGigs, getGig, createOrder, myOrdersAsClient, orderTransition, openDispute,
   type Gig, type MarketplaceOrder,
 } from '../lib/marketplace';
+import { detectRail } from '../lib/rail2';
+import { Rail2PaymentScreen } from './Rail2PaymentScreen';
 import { detectPayRegion } from '../lib/geoDetect';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
@@ -193,6 +195,21 @@ export const ClientMarketplace: React.FC = () => {
   const [cat, setCat] = useState('all');
   const [ptype, setPtype] = useState('all');
   const [booking, setBooking] = useState<Gig | null>(null);
+  const [bookingRail, setBookingRail] = useState<'rail1' | 'rail2' | null>(null);
+  const [detecting, setDetecting] = useState(false);
+
+  const openBooking = async (g: Gig) => {
+    setDetecting(true);
+    try {
+      const { rail } = await detectRail(g.providerUid);
+      setBookingRail(rail);
+      setBooking(g);
+    } catch {
+      setBookingRail('rail1');
+      setBooking(g);
+    }
+    setDetecting(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -208,7 +225,14 @@ export const ClientMarketplace: React.FC = () => {
     return true;
   });
 
-  if (booking) return <BookGig gig={booking} onBack={() => setBooking(null)} onDone={() => { setBooking(null); setView('bookings'); }} />;
+  if (booking) {
+    const closeBooking = () => { setBooking(null); setBookingRail(null); };
+    const doneBooking = () => { setBooking(null); setBookingRail(null); setView('bookings'); };
+    if (bookingRail === 'rail2') {
+      return <Rail2PaymentScreen gig={booking} onBack={closeBooking} onDone={doneBooking} />;
+    }
+    return <BookGig gig={booking} onBack={closeBooking} onDone={doneBooking} />;
+  }
 
   return (
     <div className="space-y-3">
@@ -236,7 +260,7 @@ export const ClientMarketplace: React.FC = () => {
           {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p> : (
             <div className="space-y-2.5">
               {filtered.length === 0 && <Empty text="No services match. Try another search." />}
-              {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => setBooking(g)} />)}
+              {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => openBooking(g)} />)}
             </div>
           )}
         </>
