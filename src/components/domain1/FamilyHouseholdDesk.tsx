@@ -5,10 +5,8 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { MemberSearchSelect } from '../common/MemberSearchSelect';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
-import { useLanguage } from '../../context/LanguageContext';
 
 export const FamilyHouseholdDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { families, devotees, addFamily } = useData();
   const { showToast } = useToast();
@@ -72,7 +70,9 @@ export const FamilyHouseholdDesk: React.FC = () => {
               {families.length} Registered Households
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.people.familyHousehold.householdFamilyCensusDesk')}</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
+            Household & Family Census Desk
+          </h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Group individual devotees into joint households under ancestral Gotra & Kuladevata
           </p>
@@ -84,7 +84,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
           className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>{t('org.people.familyHousehold.registerNewHousehold')}</span>
+          <span>Register New Household</span>
         </button>
       </div>
 
@@ -105,7 +105,8 @@ export const FamilyHouseholdDesk: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm text-temple-100">{fam.familyName}</h3>
-                    <p className="text-xs text-saffron-400 font-medium">{t('org.people.familyHousehold.gotra')}<span className="font-bold">{fam.gotra}</span> • Kuladevata: {fam.kuladevata}
+                    <p className="text-xs text-saffron-400 font-medium">
+                      Gotra: <span className="font-bold">{fam.gotra}</span> • Kuladevata: {fam.kuladevata}
                     </p>
                   </div>
                 </div>
@@ -123,11 +124,11 @@ export const FamilyHouseholdDesk: React.FC = () => {
                   </span>
                 </p>
                 <p>
-                  <span className="text-temple-400">{t('org.people.familyHousehold.contactPhone')}</span>{' '}
+                  <span className="text-temple-400">Contact Phone:</span>{' '}
                   <span className="font-mono text-saffron-400">{fam.contactPhone}</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">{t('org.people.familyHousehold.residenceAddress')}</span>{' '}
+                  <span className="text-temple-400">Residence Address:</span>{' '}
                   <span className="text-temple-200">{fam.residenceAddress}</span>
                 </p>
                 {fam.notes && (
@@ -140,14 +141,14 @@ export const FamilyHouseholdDesk: React.FC = () => {
               {/* Family Seva Stats */}
               <div className="p-3 rounded-xl bg-temple-950/60 border border-temple-800 flex items-center justify-between text-xs">
                 <div>
-                  <p className="text-[10px] text-temple-400 uppercase font-semibold">{t('org.people.familyHousehold.cumulativeChanda')}</p>
+                  <p className="text-[10px] text-temple-400 uppercase font-semibold">Cumulative Chanda</p>
                   <p className="font-black text-saffron-400 text-sm">
                     ₹{(fam.totalFamilyDonations || (karta ? karta.totalDonated : 0)).toLocaleString()}
                   </p>
                 </div>
                 {fam.lastChandaDate && (
                   <div className="text-right">
-                    <p className="text-[10px] text-temple-400 uppercase font-semibold">{t('org.people.familyHousehold.lastSevaDate')}</p>
+                    <p className="text-[10px] text-temple-400 uppercase font-semibold">Last Seva Date</p>
                     <p className="font-mono text-temple-300 text-[11px]">{fam.lastChandaDate}</p>
                   </div>
                 )}
@@ -162,7 +163,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl w-full max-w-lg shadow-2xl p-6 text-temple-100">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">{t('org.people.familyHousehold.registerKulParivarHousehold')}</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Register Kul Parivar (Household)</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -197,7 +198,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">{t('org.people.familyHousehold.ancestralGotra')}</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Ancestral Gotra</label>
                   <input
                     type="text"
                     value={gotra}
@@ -217,7 +218,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">{t('org.people.familyHousehold.residenceAddress2')}</label>
+                <label className="block text-temple-300 font-semibold mb-1">Residence Address</label>
                 <input
                   type="text"
                   value={residenceAddress}
@@ -227,7 +228,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">{t('org.people.familyHousehold.historicalNotesAncestralVillage')}</label>
+                <label className="block text-temple-300 font-semibold mb-1">Historical Notes / Ancestral Village</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -241,11 +242,15 @@ export const FamilyHouseholdDesk: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
-                >{t('org.people.familyHousehold.cancel')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
-                >{t('org.people.familyHousehold.saveHousehold')}</button>
+                >
+                  Save Household
+                </button>
               </div>
             </form>
           </div>
