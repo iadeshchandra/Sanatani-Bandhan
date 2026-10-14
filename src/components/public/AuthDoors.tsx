@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { KeyRound, User, Building2, Flame, Sparkles } from 'lucide-react';
+import { KeyRound, UserPlus } from 'lucide-react';
 
-export type AuthDoorId = 'LOGIN' | 'SOLO' | 'REGISTER' | 'PUROHIT' | 'JYOTISHI';
+export type AuthDoorId = 'SIGNIN' | 'SIGNUP';
 
 /**
- * AuthDoors — animated segmented control for the five auth doors.
+ * AuthDoors — animated segmented control for the two auth doors.
  * The active pill slides between doors via motion layoutId
  * (GPU transform, no measurement code, no layout thrash).
  */
@@ -17,18 +17,15 @@ interface AuthDoorsProps {
 }
 
 const DOORS: { id: AuthDoorId; icon: React.ReactNode }[] = [
-  { id: 'LOGIN', icon: <KeyRound size={15} /> },
-  { id: 'SOLO', icon: <User size={15} /> },
-  { id: 'REGISTER', icon: <Building2 size={15} /> },
-  { id: 'PUROHIT', icon: <Flame size={15} /> },
-  { id: 'JYOTISHI', icon: <Sparkles size={15} /> },
+  { id: 'SIGNIN', icon: <KeyRound size={15} /> },
+  { id: 'SIGNUP', icon: <UserPlus size={15} /> },
 ];
 
 export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, hints }) => (
   <div
     role="tablist"
     aria-label="Choose how to enter"
-    className="relative flex items-stretch gap-1 p-1.5 rounded-2xl bg-black/30 border border-white/10 backdrop-blur-md overflow-x-auto"
+    className="relative flex items-stretch gap-1 p-1.5 rounded-2xl bg-black/30 border border-white/10 backdrop-blur-md"
   >
     {DOORS.map((d) => {
       const isActive = d.id === active;
@@ -39,7 +36,7 @@ export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, 
           aria-selected={isActive}
           title={hints[d.id]}
           onClick={() => onChange(d.id)}
-          className={`relative flex-1 min-w-[64px] sm:min-w-[86px] min-h-[44px] sm:min-h-[48px] px-2 sm:px-3 py-2.5 rounded-xl text-[11px] sm:text-[12.5px] font-bold whitespace-nowrap transition-colors duration-200 flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer ${
+          className={`relative flex-1 min-h-[48px] px-3 py-2.5 rounded-xl text-[13px] sm:text-[14px] font-bold whitespace-nowrap transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
             isActive ? 'text-[#2a1503]' : 'text-white/60 hover:text-white'
           }`}
         >
