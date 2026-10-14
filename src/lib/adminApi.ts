@@ -442,6 +442,63 @@ export const adminApi = {
       () => firestoreAdmin.bypassKeywordDelete(id)
     ),
 
+  // Rail-2 payment tracking stack
+  duesList: (status: string = 'all') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.duesList(status)
+    ),
+  dueSettle: (id: string, note?: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.dueSettle(id, note)
+    ),
+  dueWaive: (id: string, reason: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.dueWaive(id, reason)
+    ),
+  duesSettingsGet: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.duesSettingsGet()
+    ),
+  duesSettingsSave: (threshold: number, graceDays: number) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.duesSettingsSave(threshold, graceDays)
+    ),
+  checkDuesSuspension: (providerUid: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.checkDuesSuspension(providerUid)
+    ),
+  unsuspendProvider: (providerUid: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.unsuspendProvider(providerUid)
+    ),
+  requestSmsProof: (orderId: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.requestSmsProof(orderId)
+    ),
+  verifySms: (orderId: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.verifySms(orderId)
+    ),
+  riskDashboard: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.riskDashboard()
+    ),
+  auditPickRequestSms: (orderIds: string[]) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.auditPickRequestSms(orderIds)
+    ),
+
   // Messaging
   sendMessage: (payload: {
     title: string;
