@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useMembership, syncOrgPage } from '../../context/MembershipContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
+import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { TRUSTEE_GRANTABLE_ROLES, WorkspaceMembership, JoinRequest } from '../../types/membership';
 
 type Tab = 'MEMBERS' | 'REQUESTS' | 'INVITE';
@@ -33,6 +35,7 @@ export const MembershipDesk: React.FC = () => {
   const [tab, setTab] = useState<Tab>('MEMBERS');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
 
   // Keep the public page in sync whenever a trustee opens this desk.
   useEffect(() => {
@@ -49,6 +52,8 @@ export const MembershipDesk: React.FC = () => {
   const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    // Freemium seat-limit enforcement — invite counts as a staff seat.
+    if (!(await guardPlanLimit('seats'))) return;
     setInviteBusy(true);
     try {
       await sendInvite({
@@ -308,6 +313,9 @@ export const MembershipDesk: React.FC = () => {
             </div>
           )}
         </form>
+      )}
+      {limitModalInfo && (
+        <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
       )}
     </div>
   );

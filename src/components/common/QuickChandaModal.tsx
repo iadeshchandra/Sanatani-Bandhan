@@ -21,6 +21,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
+import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { generate80GTaxReceipt } from '../../utils/pdfGenerator';
 import { TreasuryTransaction } from '../../types';
@@ -48,6 +50,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { devotees, addTreasuryTransaction } = useData();
   const { showToast } = useToast();
+  const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,6 +183,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
 
     // Save to Firestore via tenant treasury service
     try {
+      // Freemium monthly-transaction-limit enforcement.
+      if (!(await guardPlanLimit('transactions'))) return;
       await addTransaction(workspaceId, newTx);
       if (addTreasuryTransaction) {
         addTreasuryTransaction(newTx);
@@ -642,6 +647,9 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
           </div>
         </motion.div>
       </div>
+      {limitModalInfo && (
+        <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
+      )}
     </AnimatePresence>
   );
 };

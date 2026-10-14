@@ -3,6 +3,8 @@ import { GitBranch, Plus, Pencil, Trash2, Check, X, ShieldCheck, UserPlus, UserM
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
+import { LimitReachedModal } from '../billing/LimitReachedModal';
 import type { BranchInfo, BranchMemberAccess } from '../../types';
 
 /**
@@ -16,6 +18,7 @@ export const BranchManager: React.FC = () => {
   const { activeWorkspace, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const { getBranchRecordCount, isMultiBranch } = useData();
   const { showToast } = useToast();
+  const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
 
   const [newName, setNewName] = useState('');
   const [newCity, setNewCity] = useState('');
@@ -91,12 +94,14 @@ export const BranchManager: React.FC = () => {
     updateWorkspaceDetails({ branches: next });
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const name = newName.trim();
     if (!name) {
       showToast('Give the branch a name first.', 'error');
       return;
     }
+    // Freemium branch-limit enforcement.
+    if (!(await guardPlanLimit('branches'))) return;
     const branch: BranchInfo = {
       id: `br-${Date.now()}`,
       name,
@@ -369,6 +374,9 @@ export const BranchManager: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+      {limitModalInfo && (
+        <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
       )}
     </div>
   );
