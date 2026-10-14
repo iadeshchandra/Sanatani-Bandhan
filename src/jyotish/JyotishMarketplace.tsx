@@ -71,6 +71,7 @@ export const JyotishMarketplace: React.FC = () => (
 
 const FindJyotish: React.FC = () => {
   const { browseJyotishis, getEndorsements } = useJyotish();
+  const { t } = useLanguage();
   const [list, setList] = useState<JyotishIdentity[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState('');
@@ -94,17 +95,17 @@ const FindJyotish: React.FC = () => {
 
   return (
     <Card>
-      <SectionTitle>Find a Jyotishi</SectionTitle>
+      <SectionTitle>{t('jyotish.findJyotishi')}</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
-        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className={inputCls} />
+        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('jyotish.city')} className={inputCls} />
         <select value={spec} onChange={(e) => setSpec(e.target.value)} className={inputCls}>
-          <option value="">Any specialization</option>
+          <option value="">{t('jyotish.anySpecialization')}</option>
           {JYOTISH_SPECIALIZATIONS.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </select>
-        <input value={lang} onChange={(e) => setLang(e.target.value)} placeholder="Language" className={inputCls} />
-        <Btn onClick={search}>Search</Btn>
+        <input value={lang} onChange={(e) => setLang(e.target.value)} placeholder={t('jyotish.languageSearch')} className={inputCls} />
+        <Btn onClick={search}>{t('jyotish.search')}</Btn>
       </div>
       {loading ? (
         <p className="text-sm text-stone-400">Searching…</p>
@@ -181,6 +182,7 @@ const EndorseForm: React.FC<{ jyotishId: string; open: boolean; setOpen: (b: boo
   open,
   setOpen,
 }) => {
+  const { t } = useLanguage();
   const { endorseJyotish } = useJyotish();
   const { showToast } = useToast();
   const [text, setText] = useState('');
@@ -211,10 +213,10 @@ const EndorseForm: React.FC<{ jyotishId: string; open: boolean; setOpen: (b: boo
   return (
     <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-3 space-y-2">
       <p className="text-xs font-bold text-indigo-800">Trustee endorsement (public record)</p>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder="Why does your organisation vouch for this jyotishi?" className="w-full px-3 py-2 rounded-xl border border-stone-300 text-sm" />
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={t('jyotish.endorseReasonPlaceholder')} className="w-full px-3 py-2 rounded-xl border border-stone-300 text-sm" />
       <div className="flex gap-2">
-        <input type="number" min={0} value={count} onChange={(e) => setCount(e.target.value)} placeholder="Consultations together" className="w-32 px-3 py-2 rounded-xl border border-stone-300 text-sm" />
-        <Btn onClick={submit} disabled={saving || !text.trim()}>Submit endorsement</Btn>
+        <input type="number" min={0} value={count} onChange={(e) => setCount(e.target.value)} placeholder={t('jyotish.consultationsTogether')} className="w-32 px-3 py-2 rounded-xl border border-stone-300 text-sm" />
+        <Btn onClick={submit} disabled={saving || !text.trim()}>{t('jyotish.submitEndorsement')}</Btn>
         <Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
       </div>
     </div>
@@ -226,6 +228,7 @@ const EndorseForm: React.FC<{ jyotishId: string; open: boolean; setOpen: (b: boo
 /* ------------------------------------------------------------------ */
 
 const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
+  const { t } = useLanguage();
   const { postConsultation } = useJyotish();
   const { firebaseUser } = useAuthWorkspace();
   const [form, setForm] = useState({
@@ -283,7 +286,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
 
   return (
     <Card>
-      <SectionTitle>Post a consultation requirement</SectionTitle>
+      <SectionTitle>{t('jyotish.postRequirement')}</SectionTitle>
       <p className="text-xs text-stone-500 mb-4">
         Any registered jyotishi can accept. Birth details are used only for the chart reading.
       </p>
@@ -313,7 +316,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
               <input type="time" value={form.birthTime} onChange={(e) => setForm({ ...form, birthTime: e.target.value })} className={inputCls} />
             </Field>
             <Field label="Birth place">
-              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder="City" className={inputCls} />
+              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('jyotish.city')} className={inputCls} />
             </Field>
           </div>
         )}
@@ -326,7 +329,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
               <input type="time" value={form.partnerBirthTime} onChange={(e) => setForm({ ...form, partnerBirthTime: e.target.value })} className={inputCls} />
             </Field>
             <Field label="Partner birth place">
-              <input value={form.partnerBirthPlace} onChange={(e) => setForm({ ...form, partnerBirthPlace: e.target.value })} placeholder="City" className={inputCls} />
+              <input value={form.partnerBirthPlace} onChange={(e) => setForm({ ...form, partnerBirthPlace: e.target.value })} placeholder={t('jyotish.city')} className={inputCls} />
             </Field>
           </div>
         )}
@@ -350,7 +353,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
           </Field>
         </div>
         <Field label="Notes for the jyotishi">
-          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inputCls} placeholder="What would you like guidance on?" />
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inputCls} placeholder={t('jyotish.guidancePlaceholder')} />
         </Field>
         <p className="text-[11px] text-stone-400">
           Payments happen directly between you and the jyotishi — no money moves through this app.
@@ -369,6 +372,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
 
 const MyConsultationsDevotee: React.FC = () => {
   const { myPostedConsultations, submitReview, hasReviewed, advanceConsultation } = useJyotish();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [openChatId, setOpenChatId] = useState<string | null>(null);
   const [ratingFor, setRatingFor] = useState<Consultation | null>(null);
@@ -377,7 +381,7 @@ const MyConsultationsDevotee: React.FC = () => {
 
   return (
     <Card>
-      <SectionTitle>My consultations</SectionTitle>
+      <SectionTitle>{t('jyotish.myConsultations')}</SectionTitle>
       {sorted.length === 0 ? (
         <Empty text="You haven't posted any consultation requirements yet." />
       ) : (
@@ -436,6 +440,7 @@ const RateDialog: React.FC<{
   onClose: () => void;
   submitReview: (c: Consultation, rating: number, note: string) => Promise<void>;
 }> = ({ consultation, onClose, submitReview }) => {
+  const { t } = useLanguage();
   const [rating, setRating] = useState(5);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -464,7 +469,7 @@ const RateDialog: React.FC<{
             </button>
           ))}
         </div>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="How was the guidance? (optional)" className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={t('jyotish.guidanceFeedback')} className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
         <div className="flex gap-2">
           <Btn onClick={send} disabled={saving} className="flex-1">{saving ? 'Submitting…' : 'Submit rating'}</Btn>
           <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
