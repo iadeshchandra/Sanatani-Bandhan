@@ -191,7 +191,7 @@ const PlansView: React.FC = () => {
           <Plus className="w-4 h-4" /> New plan
         </button>
       </div>
-      {plans.length === 0 && <Empty text="No plan overrides. Built-in pricing (LITE ₹0 / STANDARD ₹1,499 / ENTERPRISE ₹4,999) applies." />}
+      {plans.length === 0 && <Empty text="No plan overrides. Built-in pricing (SEVA ₹0 / STANDARD ₹499 / PREMIUM ₹1,999 / PUROHIT_PRO ₹199 + 12%) applies." />}
       {plans.map((p) => (
         <Card key={p.id}>
           <div className="flex items-start justify-between gap-2">
