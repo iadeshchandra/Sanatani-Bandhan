@@ -1,5 +1,5 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -52,14 +52,14 @@ import { isModuleAllowedForOrgMount } from './lib/workspaceRegistry';
 import { OrgTypeRestrictedDesk } from './components/common/OrgTypeRestrictedDesk';
 import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant';
 import { TawkToWidget } from './components/common/TawkToWidget';
-import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
 import { LandingPage } from './pages/LandingPage';
 import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { PortalLogin } from './components/public/PortalLogin';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
-import { WorkspaceType, WorkspaceConfig } from './types';
+
 import { AdminLayout } from './admin/AdminLayout';
 import { SuperAdminDashboard } from './admin/SuperAdminDashboard';
 import { GlobalAnalytics } from './admin/GlobalAnalytics';
@@ -788,21 +788,17 @@ const AppContent: React.FC = () => {
   );
 };
 
-const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, switchWorkspace, loginAsRole, firebaseUser } = useAuthWorkspace();
-  const { seedDemoData } = useData();
-  const [view, setView] = useState<'landing' | 'login' | 'signup'>('landing');
+const MainAppView: React.FC = () => {
+  const { isAuthenticated } = useAuthWorkspace();
+  const navigate = useNavigate();
 
   // Demo conversion handoff: the in-app demo banner/modal dispatches this
   // after stashing `sb_pending_demo_conversion`, so the user lands on signup.
   React.useEffect(() => {
-    const showSignup = () => setView('signup');
+    const showSignup = () => navigate('/signup');
     window.addEventListener('sanatani:show-signup', showSignup);
     return () => window.removeEventListener('sanatani:show-signup', showSignup);
-  }, []);
-
-  if (window.location.pathname === '/mysecretlogin') {
-    return <GodModeBackend isOpen={true} onClose={() => window.location.href = '/'} />;
-  }
+  }, [navigate]);
 
   React.useEffect(() => {
     // SECURITY: URL-based credential login (?action=autologin&id=&pin=) was
@@ -817,73 +813,13 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   }, []);
 
   if (isAuthenticated) {
-    // Firebase Auth check bypassed to allow mock auth
-    // if (!firebaseUser) { ... }
     // Purohit One: the router enforces session-kind isolation.
     return <AppContentRouter />;
   }
 
-  // (Setup-wizard trigger lives here; see shouldShowWizard below.)
-  if (view === 'login' || view === 'signup') {
-    return (
-      <PortalLogin 
-        initialMode={view} 
-        onBack={() => setView('landing')} 
-        onSuccess={() => {}} 
-      />
-    );
-  }
-
-  const handleStartDemo = (type: WorkspaceType) => {
-    // Generate a temporary demo workspace ID
-    const demoId = `DEMO_${type.toUpperCase()}_${Date.now()}`;
-    const demoWorkspace: WorkspaceConfig = {
-      id: demoId,
-      name: `${type} Demo Sandbox`,
-      type: type,
-      tagline: 'Interactive Test Environment',
-      address: 'Virtual Demo Environment',
-      city: 'Kashi',
-      state: 'Uttar Pradesh',
-      country: 'Bharat (India)',
-      currency: 'INR',
-      currencySymbol: '₹',
-      phone: '+91 99999 00000',
-      email: `demo@${type.toLowerCase()}.org`,
-      sampradaya: 'Demo Mode',
-      kuladevata: 'Demo',
-      pinRequired: false,
-      // SECURITY: demo workspaces never carry a real admin PIN. Admin auth is
-      // verified server-side via /api/auth/verify-pin; this field is inert.
-      adminPin: '',
-    };
-    
-    // Add to local state (ephemeral if not synced to firestore)
-    addWorkspace(demoWorkspace);
-    switchWorkspace(demoId);
-    
-    // Inject test user session
-    loginAsRole('Trustee', 'Demo User');
-    if (seedDemoData) {
-      seedDemoData(demoId, type);
-    }
-    
-    // Fire analytics
-    if ((window as any).dataLayer) {
-      (window as any).dataLayer.push({
-        event: 'start_trial',
-        workspace_type: type
-      });
-    }
-  };
-
-  return (
-    <LegacyLandingPage 
-      onLoginClick={() => setView('login')} 
-      onSignupClick={() => setView('signup')} 
-      onDemoStart={handleStartDemo}
-    />
-  );
+  // Unauthenticated — the RequireAuth wrapper on /app redirects to /login,
+  // this is a fallback for direct MainAppView renders.
+  return <Navigate to="/login" replace />;
 };
 
 /**
@@ -905,6 +841,7 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
  */
 const OrgRegisterRoute: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuthWorkspace();
+  const navigate = useNavigate();
   // Grace for slow Firebase session resolution — redirect only once the
   // auth state is known, so a signed-in user never flashes through /login.
   if (isLoading) {
@@ -915,17 +852,91 @@ const OrgRegisterRoute: React.FC = () => {
     );
   }
   if (!isAuthenticated) {
-    window.location.href = '/login';
-    return null;
+    return <Navigate to="/login" replace />;
   }
   return (
     <PortalLogin
       initialMode="signup"
       orgRegisterOnly
-      onBack={() => { window.location.href = '/app'; }}
-      onSuccess={() => { window.location.href = '/app'; }}
+      onBack={() => navigate('/app')}
+      onSuccess={() => navigate('/app')}
     />
   );
+};
+
+/**
+ * RequireAuth — route guard for authenticated-only routes.
+ * Redirects to /login if not authenticated. Shows a loading state while
+ * Firebase session is resolving to avoid redirect flashes.
+ */
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuthWorkspace();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0b0620] text-white/70 text-sm font-bold">
+        Loading…
+      </div>
+    );
+  }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+/**
+ * RedirectIfAuthenticated — for /login and /signup. If already signed in,
+ * send to /app instead of showing the auth form again.
+ */
+const RedirectIfAuthenticated: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuthWorkspace();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0b0620] text-white/70 text-sm font-bold">
+        Loading…
+      </div>
+    );
+  }
+  if (isAuthenticated) {
+    return <Navigate to="/app" replace />;
+  }
+  return <>{children}</>;
+};
+
+/** /login route — PortalLogin in login mode, SPA navigation. */
+const LoginRoute: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <PortalLogin
+      initialMode="login"
+      onBack={() => navigate('/')}
+      onSuccess={() => navigate('/app')}
+    />
+  );
+};
+
+/** /signup route — PortalLogin in signup mode, SPA navigation. */
+const SignupRoute: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <PortalLogin
+      initialMode="signup"
+      onBack={() => navigate('/')}
+      onSuccess={() => navigate('/app')}
+    />
+  );
+};
+
+/** /devotee route — DevoteePortal with SPA back navigation. */
+const DevoteeRoute: React.FC = () => {
+  const navigate = useNavigate();
+  return <DevoteePortal onBackToERP={() => navigate('/')} />;
+};
+
+/** /mysecretlogin route — GodMode console, SPA close navigation. */
+const GodModeRoute: React.FC = () => {
+  const navigate = useNavigate();
+  return <GodModeBackend isOpen={true} onClose={() => navigate('/')} />;
 };
 
 const AppContentRouter: React.FC = () => {
@@ -949,36 +960,14 @@ const AppRouter: React.FC = () => {
           (e.g. GitHub Pages project sites served at /<repo>/). */}
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
+          {/* Public */}
           <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/login"
-            element={
-              <PortalLogin
-                initialMode="login"
-                onBack={() => {
-                  window.location.href = '/';
-                }}
-                onSuccess={() => {
-                  window.location.href = '/app';
-                }}
-              />
-            }
-          />
-          <Route
-            path="/signup"
-            element={
-              <PortalLogin
-                initialMode="signup"
-                onBack={() => {
-                  window.location.href = '/';
-                }}
-                onSuccess={() => {
-                  window.location.href = '/app';
-                }}
-              />
-            }
-          />
           <Route path="/contact" element={<ContactPage />} />
+          {/* Auth — redirect to /app if already signed in */}
+          <Route path="/login" element={<RedirectIfAuthenticated><LoginRoute /></RedirectIfAuthenticated>} />
+          <Route path="/signup" element={<RedirectIfAuthenticated><SignupRoute /></RedirectIfAuthenticated>} />
+          {/* Authenticated app shell */}
+          <Route path="/app" element={<RequireAuth><MainAppView /></RequireAuth>} />
           {/* Secret Obfuscated Platform Route: Accessed via URL typing only, strictly guarded */}
           <Route
             path="/system-override"
@@ -988,6 +977,7 @@ const AppRouter: React.FC = () => {
               </SystemOverrideGuard>
             }
           />
+          <Route path="/mysecretlogin" element={<GodModeRoute />} />
           <Route
             element={
               <SystemOverrideGuard>
@@ -1002,9 +992,10 @@ const AppRouter: React.FC = () => {
                 purohitApplications. Verification now lives in the unified console. */}
             <Route element={<PurohitReviewsRedirect />} path="purohit-reviews" />
           </Route>
-          <Route path="/devotee" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
-          <Route path="/devotee-portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
-          <Route path="/portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
+          {/* Devotee portal — canonical /devotee, aliases redirect */}
+          <Route path="/devotee" element={<DevoteeRoute />} />
+          <Route path="/devotee-portal" element={<Navigate to="/devotee" replace />} />
+          <Route path="/portal" element={<Navigate to="/devotee" replace />} />
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           <Route path="/org/:orgId" element={<OrgPage />} />
@@ -1013,7 +1004,9 @@ const AppRouter: React.FC = () => {
               Bandhan" upgrade card links here). Reuses PortalLogin's
               workspace-creation form with the live session — no re-login. */}
           <Route path="/register-org" element={<OrgRegisterRoute />} />
-          <Route element={<MainAppView />} path="*" />
+          {/* 404 */}
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
         <OfflineIndicator />
         {/* Dev-only role tester: never renders in production builds. */}
