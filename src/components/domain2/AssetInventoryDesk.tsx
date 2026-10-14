@@ -5,8 +5,10 @@ import { useData } from '../../context/DataContext';
 import { AssetRecord } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AssetInventoryDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { assets, addAsset } = useData();
   const { showToast } = useToast();
@@ -59,16 +61,12 @@ export const AssetInventoryDesk: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-temple-900/90 border border-temple-800 p-6 rounded-3xl shadow-xl">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">
-              Fixed Asset & Vault Registry
-            </span>
+            <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">{t('org.finance.assets.fixedAssetVaultRegistry')}</span>
             <span className="text-xs text-temple-400 font-mono">
               Total Valuation: ₹{totalAssetValuation.toLocaleString()}
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
-            Fixed Assets & Deity Ornaments Ledger
-          </h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.finance.assets.fixedAssetsDeityOrnamentsLedger')}</h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Audit register for Deity Swarna Mukut, Sanctum Gold, Real Estate, and Sabha acoustics
           </p>
@@ -80,7 +78,7 @@ export const AssetInventoryDesk: React.FC = () => {
           className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Register Fixed Asset</span>
+          <span>{t('org.finance.assets.registerFixedAsset')}</span>
         </button>
       </div>
 
@@ -112,7 +110,7 @@ export const AssetInventoryDesk: React.FC = () => {
 
               <div className="py-2 space-y-1 text-xs text-temple-300">
                 <p>
-                  <span className="text-temple-400">Custodian:</span>{' '}
+                  <span className="text-temple-400">{t('org.finance.assets.custodian')}</span>{' '}
                   <span className="font-medium text-temple-100">{asset.custodian}</span>
                 </p>
                 <p>
@@ -125,7 +123,7 @@ export const AssetInventoryDesk: React.FC = () => {
                 </p>
                 {asset.donorName && (
                   <p>
-                    <span className="text-temple-400">Donor:</span>{' '}
+                    <span className="text-temple-400">{t('org.finance.assets.donor')}</span>{' '}
                     <span className="text-saffron-400 font-semibold">{asset.donorName}</span>
                   </p>
                 )}
@@ -133,7 +131,7 @@ export const AssetInventoryDesk: React.FC = () => {
 
               <div className="p-3 rounded-xl bg-temple-950/60 border border-temple-800 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-temple-400 font-semibold uppercase">Asset Valuation</p>
+                  <p className="text-[10px] text-temple-400 font-semibold uppercase">{t('org.finance.assets.assetValuation')}</p>
                   <p className="text-lg font-black text-saffron-400">₹{(asset.valuation || 0).toLocaleString()}</p>
                 </div>
                 <ShieldCheck className="w-5 h-5 text-saffron-500 opacity-80" />
@@ -177,7 +175,7 @@ export const AssetInventoryDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Category</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.category')}</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
@@ -205,7 +203,7 @@ export const AssetInventoryDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Custodian</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.custodian2')}</label>
                   <input
                     type="text"
                     value={custodian}
@@ -215,7 +213,7 @@ export const AssetInventoryDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Vault / Location</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.vaultLocation')}</label>
                   <input
                     type="text"
                     value={location}
@@ -226,7 +224,7 @@ export const AssetInventoryDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Donor Name (If Donated)</label>
+                <label className="block text-temple-300 font-semibold mb-1">{t('org.finance.assets.donorNameIfDonated')}</label>
                 <input
                   type="text"
                   value={donorName}
@@ -240,15 +238,11 @@ export const AssetInventoryDesk: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
-                >
-                  Cancel
-                </button>
+                >{t('org.finance.assets.cancel')}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
-                >
-                  Save Asset
-                </button>
+                >{t('org.finance.assets.saveAsset')}</button>
               </div>
             </form>
           </div>
