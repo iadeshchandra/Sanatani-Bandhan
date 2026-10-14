@@ -101,6 +101,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'treasury', name: 'Treasury & Expense Ledger', domain: 2, domainTitle: 'Financials & Assets', icon: Landmark, badge: 'Auto-Audit' },
   { id: 'treasury-audit', name: 'Treasury & Audit Ledger', domain: 2, domainTitle: 'Financials & Assets', icon: Landmark, badge: 'Audit' },
   { id: 'hundi-audit', name: 'Hundi & Golak Dual Audit', domain: 2, domainTitle: 'Financials & Assets', icon: Lock, badge: '2-Key' },
+  { id: 'cash-custody', name: 'Cash Custody — Hundi Chain of Custody', domain: 2, domainTitle: 'Financials & Assets', icon: Lock, badge: 'New' },
   { id: 'ratna-bhandar', name: 'Ratna Bhandar & Bullion Vault', domain: 2, domainTitle: 'Financials & Assets', icon: Sparkles, badge: 'Dual-PIN' },
   { id: 'taxReceipts', name: 'Tax Certificates (80G/12A)', domain: 2, domainTitle: 'Financials & Assets', icon: Receipt },
   { id: 'form10bd', name: 'Form 10BD & CBDT Filing', domain: 2, domainTitle: 'Financials & Assets', icon: FileSpreadsheet, badge: 'E-File' },
