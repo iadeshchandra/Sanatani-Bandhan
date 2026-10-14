@@ -97,6 +97,7 @@ export const DESK_NAMES: Record<string, string> = {
   annadanam: 'Annadanam & Prasad Seva',
   'annakshetra-one': 'Annakshetra One — Kitchen & Bhandara Management',
   'nyas-one': 'Nyas One — Compliance & Governance',
+  'utsav-one': 'Utsav One — Festival & Mahotsav Management',
   panchang: 'Vedic Panchang & Muhurat',
   checkin: 'Gate Command & Check-In',
   campaigns: 'Crowdfunding & Mandir Nirman',
