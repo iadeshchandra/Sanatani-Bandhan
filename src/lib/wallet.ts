@@ -30,6 +30,8 @@ export interface Wallet {
   totalReceived: number;
   lastDebitOrderId?: string;
   lastCreditOrderId?: string;
+  /** Pratham Seva bonus claimed — prevents double-grant. */
+  hasReceivedFirstTopupBonus?: boolean;
   updatedAt?: any;
 }
 
@@ -53,14 +55,42 @@ export interface TopupClaim {
   paymentMethodId: string;
   trxId: string;
   screenshotUrl?: string;
+  /** Unique per-top-up reference, e.g. TOP-XXXXXX. Shown on the instruction screen. */
+  reference: string;
+  /** Pending claims expire this many hours after creation (client-side display). */
+  expiresAt?: any;
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
   reviewedByUid?: string;
   reviewedAt?: any;
   createdAt?: any;
+  updatedAt?: any;
 }
 
+/** Display status including client-side expiry (no backend needed). */
+export type TopupClaimDisplayStatus = 'pending' | 'approved' | 'rejected' | 'expired';
+
 export const CURRENCY_SYMBOL: Record<WalletCurrency, string> = { BDT: '৳', INR: '₹', USD: '$' };
+
+/**
+ * Top-up limits per currency (betting-site style: shown inline in the form).
+ * BD/IN: ৳500–30,000 / ₹500–30,000 · INTL: $10–1,000.
+ */
+export const TOPUP_LIMITS: Record<WalletCurrency, { min: number; max: number }> = {
+  BDT: { min: 500, max: 30000 },
+  INR: { min: 500, max: 30000 },
+  USD: { min: 10, max: 1000 },
+};
+
+/** Pending top-up claims expire after this many hours (client-side display). */
+export const TOPUP_EXPIRY_HOURS = 48;
+
+/**
+ * Pratham Seva — first-ever approved top-up bonus (flat thank-you credit, no wagering).
+ * Granted when the owner's approval credits the user's first approved top-up
+ * AND the top-up amount meets the currency's minimum.
+ */
+export const FIRST_TOPUP_BONUS: Record<WalletCurrency, number> = { BDT: 50, INR: 50, USD: 1 };
 
 export function currencyForRegion(region: 'BD' | 'IN' | 'INTL'): WalletCurrency {
   return region === 'BD' ? 'BDT' : region === 'IN' ? 'INR' : 'USD';
@@ -70,6 +100,40 @@ export function fmtWallet(amount: number, currency: WalletCurrency): string {
   const sym = CURRENCY_SYMBOL[currency] || '';
   const n = Math.round(Number(amount) || 0).toLocaleString('en-IN');
   return `${sym}${n}`;
+}
+
+/**
+ * Generate a unique top-up reference like TOP-XXXXXX.
+ * Excludes I, O, 0, 1 to avoid visual confusion.
+ */
+export function generateTopupReference(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let ref = '';
+  for (let i = 0; i < 6; i++) {
+    ref += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `TOP-${ref}`;
+}
+
+/** Client-side expiry check — a pending claim past expiresAt shows as Expired. */
+export function isClaimExpired(claim: TopupClaim): boolean {
+  if (claim.status !== 'pending') return false;
+  const exp = (claim.expiresAt as any)?.toDate?.();
+  if (!exp) return false;
+  return exp.getTime() < Date.now();
+}
+
+/** Resolve the user-facing status (pending → expired when past expiresAt). */
+export function claimDisplayStatus(claim: TopupClaim): TopupClaimDisplayStatus {
+  if (claim.status === 'pending' && isClaimExpired(claim)) return 'expired';
+  return claim.status;
+}
+
+/** Mask a TrxID for display: show first 4 + last 2, e.g. TRX9…P2. */
+export function maskTrxId(trxId: string): string {
+  const t = (trxId || '').trim();
+  if (t.length <= 6) return t;
+  return `${t.slice(0, 4)}…${t.slice(-2)}`;
 }
 
 function requireUser(): string {
@@ -121,6 +185,7 @@ export async function getWallet(): Promise<Wallet> {
       totalReceived: Number(d.totalReceived || 0),
       lastDebitOrderId: d.lastDebitOrderId,
       lastCreditOrderId: d.lastCreditOrderId,
+      hasReceivedFirstTopupBonus: Boolean(d.hasReceivedFirstTopupBonus),
       updatedAt: d.updatedAt,
     };
   } catch {
@@ -151,11 +216,21 @@ export async function getTransactions(limitN = 50): Promise<WalletTransaction[]>
 /** File a top-up claim: "I paid X via method Y, TrxID Z". Owner approves → wallet credited. */
 export async function fileTopupClaim(input: {
   amount: number; currency: WalletCurrency; paymentMethodId: string; trxId: string; screenshotUrl?: string;
-}): Promise<string> {
+  /** Pre-generated reference (shown on the instruction screen). Generated here if omitted. */
+  reference?: string;
+}): Promise<{ claimId: string; reference: string }> {
   const uid = requireUser();
   const amount = Math.round(Number(input.amount));
+  const limits = TOPUP_LIMITS[input.currency];
   if (!amount || amount <= 0) throw new Error('Enter a valid amount.');
+  if (limits && (amount < limits.min || amount > limits.max)) {
+    throw new Error(
+      `Amount must be between ${fmtWallet(limits.min, input.currency)} and ${fmtWallet(limits.max, input.currency)}.`
+    );
+  }
   if (!input.trxId.trim()) throw new Error('Transaction ID is required.');
+  const reference = (input.reference || generateTopupReference()).toUpperCase().slice(0, 12);
+  const expiresAt = new Date(Date.now() + TOPUP_EXPIRY_HOURS * 60 * 60 * 1000);
   const batch = writeBatch(db);
   const claimRef = doc(collection(db, 'topupClaims'));
   batch.set(claimRef, {
@@ -165,6 +240,8 @@ export async function fileTopupClaim(input: {
     paymentMethodId: input.paymentMethodId,
     trxId: input.trxId.trim().slice(0, 120),
     screenshotUrl: (input.screenshotUrl || '').slice(0, 500),
+    reference,
+    expiresAt,
     status: 'pending',
     createdAt: serverTimestamp(),
   });
@@ -175,14 +252,55 @@ export async function fileTopupClaim(input: {
     amount,
     currency: input.currency,
     topupClaimId: claimRef.id,
-    note: `Top-up request via ${input.paymentMethodId}`,
+    note: `Top-up request ${reference} via ${input.paymentMethodId}`,
     createdAt: serverTimestamp(),
   });
   await batch.commit();
-  return claimRef.id;
+  return { claimId: claimRef.id, reference };
 }
 
-/** Own pending top-up claims. */
+/**
+ * Self-serve "Edit & resubmit": fix a pending claim's TrxID / screenshot / amount.
+ * Only the claim owner can edit, only while pending. Status can never be
+ * changed by the user (enforced here AND in firestore.rules).
+ */
+export async function updateTopupClaim(
+  claimId: string,
+  patch: { trxId?: string; screenshotUrl?: string; amount?: number }
+): Promise<void> {
+  const uid = requireUser();
+  const ref = doc(db, 'topupClaims', claimId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Claim not found.');
+  const claim = snap.data() as any;
+  if (claim.uid !== uid) throw new Error('Not your claim.');
+  if (claim.status !== 'pending') throw new Error('Only pending claims can be edited.');
+  if (isClaimExpired(claim as TopupClaim)) throw new Error('This claim has expired. Please file a new top-up request.');
+
+  const updates: Record<string, any> = { updatedAt: serverTimestamp() };
+  if (patch.trxId !== undefined) {
+    if (!patch.trxId.trim()) throw new Error('Transaction ID is required.');
+    updates.trxId = patch.trxId.trim().slice(0, 120);
+  }
+  if (patch.screenshotUrl !== undefined) {
+    updates.screenshotUrl = patch.screenshotUrl.slice(0, 500);
+  }
+  if (patch.amount !== undefined) {
+    const amt = Math.round(Number(patch.amount));
+    const currency = claim.currency as WalletCurrency;
+    const limits = TOPUP_LIMITS[currency];
+    if (!amt || amt <= 0) throw new Error('Enter a valid amount.');
+    if (limits && (amt < limits.min || amt > limits.max)) {
+      throw new Error(
+        `Amount must be between ${fmtWallet(limits.min, currency)} and ${fmtWallet(limits.max, currency)}.`
+      );
+    }
+    updates.amount = amt;
+  }
+  await updateDoc(ref, updates);
+}
+
+/** Own top-up claims (all statuses). */
 export async function myTopupClaims(): Promise<TopupClaim[]> {
   const uid = auth.currentUser?.uid;
   if (!uid) return [];
