@@ -139,6 +139,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'matha-one', name: 'Matha One — Monastic Management', domain: 4, domainTitle: 'Specialized Desks', icon: Sunrise, badge: 'New' },
   { id: 'satsang-one', name: 'Satsang One — Mandali Management', domain: 4, domainTitle: 'Specialized Desks', icon: Music, badge: 'New' },
   { id: 'sabha-one', name: 'Sabha One — Purohit Sabha Management', domain: 4, domainTitle: 'Specialized Desks', icon: Landmark, badge: 'New' },
+  { id: 'samskara-one', name: 'Samskara One — Family Lifecycle', domain: 4, domainTitle: 'Specialized Desks', icon: HeartHandshake, badge: 'New' },
   { id: 'ashramKutir', name: 'Ashram Kutir & Sadhana Stays', domain: 4, domainTitle: 'Specialized Desks', icon: Moon },
   { id: 'dharamshala', name: 'Dharamshala Yatri Bhavan', domain: 4, domainTitle: 'Specialized Desks', icon: Home },
   { id: 'gurukul', name: 'Gurukul Residential Monitoring', domain: 4, domainTitle: 'Specialized Desks', icon: GraduationCap },
@@ -425,7 +426,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           'granthLibrary', 'utsavPanjika', 'dharmicAssistant', 'sadhana-karma',
           'rakthaSeva', 'goshala', 'annadanam', 'annakshetra-one', 'ashramKutir', 'dharamshala',
           'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one', 'ashram-one',
-          'utsav-one', 'tirth-one', 'yoga-one', 'matha-one', 'satsang-one', 'sabha-one'
+          'utsav-one', 'tirth-one', 'yoga-one', 'matha-one', 'satsang-one', 'sabha-one', 'samskara-one'
         ];
         hasRole = priestAllowed.includes(m.id) || m.domain === 3;
       } else if (currentRole === 'Accountant') {
