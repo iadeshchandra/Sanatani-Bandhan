@@ -25,6 +25,7 @@ import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvEngine';
 import { nextReceiptSeq, formatReceiptNumber } from '../../utils/receiptNumbers';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputCls =
   'w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-temple-950/80 border border-temple-800 text-temple-100 placeholder-temple-500 text-sm focus:border-saffron-500 focus:outline-none transition-colors';
@@ -55,6 +56,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const currentRentMonth = () => new Date().toISOString().slice(0, 7);
 
 export const BhoomiRealEstateDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const { bhoomiProperties, rentReceipts, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addTreasuryTransaction } = useData();
   const { showToast } = useToast();
@@ -298,13 +300,13 @@ export const BhoomiRealEstateDesk: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={handleExportRegister} className={btnGhost}>
-            <Download className="w-4 h-4" /> <span>Register CSV</span>
+            <Download className="w-4 h-4" /> <span>{t('org.finance.bhoomi.registerCsv')}</span>
           </button>
           <button type="button" onClick={handleExportLedger} className={btnGhost}>
-            <Download className="w-4 h-4" /> <span>Ledger CSV</span>
+            <Download className="w-4 h-4" /> <span>{t('org.finance.bhoomi.ledgerCsv')}</span>
           </button>
           <button type="button" onClick={openAddModal} className={btnPrimary}>
-            <Plus className="w-4 h-4" /> <span>Add Property</span>
+            <Plus className="w-4 h-4" /> <span>{t('org.finance.bhoomi.addProperty')}</span>
           </button>
         </div>
       </div>
@@ -313,8 +315,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
-            <Building2 className="w-4 h-4 text-saffron-400" /> Total Properties
-          </div>
+            <Building2 className="w-4 h-4 text-saffron-400" />{t('org.finance.bhoomi.totalProperties')}</div>
           <p className="text-3xl font-extrabold text-temple-100 mt-2">{kpis.total}</p>
           <p className="text-xs text-temple-500 mt-1">{kpis.occupied} occupied • {kpis.total - kpis.occupied} vacant / maintenance</p>
         </div>
@@ -364,7 +365,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-12 text-center">
           <Building2 className="w-10 h-10 text-temple-600 mx-auto mb-3" />
           <p className="text-temple-200 font-bold">No properties found</p>
-          <p className="text-xs text-temple-500 mt-1">Register your first trust property to start the rent roll.</p>
+          <p className="text-xs text-temple-500 mt-1">{t('org.finance.bhoomi.registerYourFirstTrustPropertyToStartThe')}</p>
           <button type="button" onClick={openAddModal} className={`${btnPrimary} mx-auto mt-4`}>
             <Plus className="w-4 h-4" /> <span>Add Property</span>
           </button>
@@ -462,8 +463,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
       <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-extrabold text-temple-100 text-sm flex items-center gap-2">
-            <FileText className="w-4 h-4 text-saffron-400" /> Rent Collection Ledger
-          </h3>
+            <FileText className="w-4 h-4 text-saffron-400" />{t('org.finance.bhoomi.rentCollectionLedger')}</h3>
           <span className="text-[11px] text-temple-500 font-mono">
             Total collected: ₹{rentReceipts.reduce((s, r) => s + r.amount, 0).toLocaleString()}
           </span>
@@ -472,13 +472,13 @@ export const BhoomiRealEstateDesk: React.FC = () => {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-temple-500 uppercase text-[10px] tracking-wider border-b border-temple-800">
-                <th className="py-2 pr-3">Receipt</th>
+                <th className="py-2 pr-3">{t('org.finance.bhoomi.receipt')}</th>
                 <th className="py-2 pr-3">Property</th>
                 <th className="py-2 pr-3">Tenant</th>
                 <th className="py-2 pr-3">Month</th>
-                <th className="py-2 pr-3 text-right">Amount</th>
-                <th className="py-2 pr-3">Paid Date</th>
-                <th className="py-2 pr-3">Mode</th>
+                <th className="py-2 pr-3 text-right">{t('org.finance.bhoomi.amount')}</th>
+                <th className="py-2 pr-3">{t('org.finance.bhoomi.paidDate')}</th>
+                <th className="py-2 pr-3">{t('org.finance.bhoomi.mode')}</th>
                 <th className="py-2">Collected By</th>
               </tr>
             </thead>
@@ -509,28 +509,28 @@ export const BhoomiRealEstateDesk: React.FC = () => {
           <div className="bg-temple-900 border border-temple-700 rounded-3xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">{editingProperty ? 'Edit Property' : 'Add Property'}</h3><LocalOnlyBadge /></div>
-              <button type="button" onClick={() => setIsPropertyModalOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-temple-800 text-temple-300 hover:bg-temple-700" aria-label="Close">
+              <button type="button" onClick={() => setIsPropertyModalOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-temple-800 text-temple-300 hover:bg-temple-700" aria-label={t('org.finance.bhoomi.close')}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSaveProperty} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2"><label className={labelCls}>Property Name *</label><input value={pName} onChange={(e) => setPName(e.target.value)} className={inputCls} placeholder="e.g. Shree Ganesh Complex — Shop 12" /></div>
               <div><label className={labelCls}>Property Type</label><select value={pType} onChange={(e) => setPType(e.target.value)} className={inputCls}>{PROPERTY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
-              <div><label className={labelCls}>Status</label><select value={pStatus} onChange={(e) => setPStatus(e.target.value as BhoomiProperty['status'])} className={inputCls}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.status')}</label><select value={pStatus} onChange={(e) => setPStatus(e.target.value as BhoomiProperty['status'])} className={inputCls}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
               <div className="sm:col-span-2"><label className={labelCls}>Address *</label><input value={pAddress} onChange={(e) => setPAddress(e.target.value)} className={inputCls} placeholder="Full address" /></div>
               <div><label className={labelCls}>Area (sq ft)</label><input type="number" min={0} value={pArea} onChange={(e) => setPArea(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Monthly Rent (₹) *</label><input type="number" min={0} value={pRent} onChange={(e) => setPRent(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>Deposit Amount (₹)</label><input type="number" min={0} value={pDeposit} onChange={(e) => setPDeposit(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.depositAmount')}</label><input type="number" min={0} value={pDeposit} onChange={(e) => setPDeposit(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Annual Escalation %</label><input type="number" min={0} max={100} value={pEscalation} onChange={(e) => setPEscalation(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} placeholder="e.g. 5" /></div>
-              <div><label className={labelCls}>Tenant Name</label><input value={pTenant} onChange={(e) => setPTenant(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Tenant Phone</label><input value={pTenantPhone} onChange={(e) => setPTenantPhone(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.tenantName')}</label><input value={pTenant} onChange={(e) => setPTenant(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.tenantPhone')}</label><input value={pTenantPhone} onChange={(e) => setPTenantPhone(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Lease Start</label><input type="date" value={pLeaseStart} onChange={(e) => setPLeaseStart(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Lease End</label><input type="date" value={pLeaseEnd} onChange={(e) => setPLeaseEnd(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Document Ref (Agreement No)</label><input value={pDocRef} onChange={(e) => setPDocRef(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Notes</label><input value={pNotes} onChange={(e) => setPNotes(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.notes')}</label><input value={pNotes} onChange={(e) => setPNotes(e.target.value)} className={inputCls} /></div>
               <div className="sm:col-span-2 flex gap-2 pt-2">
                 <button type="submit" className={`${btnPrimary} flex-1`}><TrendingUp className="w-4 h-4" /> <span>{editingProperty ? 'Save Changes' : 'Register Property'}</span></button>
-                <button type="button" onClick={() => setIsPropertyModalOpen(false)} className={btnGhost}>Cancel</button>
+                <button type="button" onClick={() => setIsPropertyModalOpen(false)} className={btnGhost}>{t('org.finance.bhoomi.cancel')}</button>
               </div>
             </form>
           </div>
@@ -554,14 +554,14 @@ export const BhoomiRealEstateDesk: React.FC = () => {
               <div><label className={labelCls}>Rent Month (YYYY-MM)</label><input type="month" value={rMonth} onChange={(e) => setRMonth(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Amount (₹) *</label><input type="number" min={0} value={rAmount} onChange={(e) => setRAmount(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Paid Date</label><input type="date" value={rPaidDate} onChange={(e) => setRPaidDate(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Payment Mode</label><select value={rMode} onChange={(e) => setRMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={rMode} onChange={(e) => setRMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
               <div><label className={labelCls}>Collected By</label><input value={rCollectedBy} onChange={(e) => setRCollectedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
               <div><label className={labelCls}>Notes</label><input value={rNotes} onChange={(e) => setRNotes(e.target.value)} className={inputCls} /></div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-[11px] text-emerald-200">
                 Auto-posts an <span className="font-bold">Income → "Property Rent Income"</span> entry to the Treasury Ledger with receipt reference.
               </div>
               <div className="flex gap-2">
-                <button type="submit" className={`${btnPrimary} flex-1`}><IndianRupee className="w-4 h-4" /> <span>Confirm Collection</span></button>
+                <button type="submit" className={`${btnPrimary} flex-1`}><IndianRupee className="w-4 h-4" /> <span>{t('org.finance.bhoomi.confirmCollection')}</span></button>
                 <button type="button" onClick={() => setIsRentModalOpen(false)} className={btnGhost}>Cancel</button>
               </div>
             </form>
