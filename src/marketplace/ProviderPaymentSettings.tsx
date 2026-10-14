@@ -121,8 +121,8 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
         )}
         <p className="text-[11px] text-stone-500 mt-2">
           {currentIsPlatform
-            ? 'Clients pay through the platform. 12% commission is deducted automatically; your net is available for payout.'
-            : 'Your approved method is shown to clients at booking. The 12% platform commission still applies to every order.'}
+            ? '🪔 Yajmans offer dakshina through the platform. A small seva contribution sustains our dharmic mission; your net dakshina is available for payout.'
+            : '🪔 Your approved method is shown to yajmans at booking. The seva contribution still applies to every seva — it sustains Sanatani Bandhan.'}
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
         <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
         <div className="text-[11px] text-emerald-900">
           <p className="font-black mb-0.5">Platform protection</p>
-          <p>On-platform orders get dispute resolution, verified badge, review accumulation, and guaranteed payout processing. Off-platform deals get none of these.</p>
+          <p>On-platform sevas receive dispute resolution, verified badge, ashirvad accumulation, and guaranteed dakshina processing. Direct arrangements outside the platform receive none of these protections.</p>
         </div>
       </div>
 
@@ -242,7 +242,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
           <p className="text-[11px] text-red-900">Your request was not approved. You can submit a new request or use the platform payment method.</p>
         </div>
       )}
-      <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1"><Info className="w-3 h-3" /> All payment activity is covered by the 12% platform commission.</p>
+      <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1"><Info className="w-3 h-3" /> Every seva carries a small seva contribution that sustains our dharmic mission.</p>
     </div>
   );
 };

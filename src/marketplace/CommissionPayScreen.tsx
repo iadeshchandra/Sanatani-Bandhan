@@ -67,7 +67,7 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
         orderId, amount: commissionAmount, currency,
         paymentMethodId: methodId, trxId: trxId.trim(),
       });
-      showToast('Commission payment submitted! The order completes after owner verification.', 'success');
+      showToast('Seva contribution submitted! The seva completes after verification.', 'success');
       onDone();
     } catch (e: any) { showToast(e.message || 'Submission failed.', 'error'); }
     setWorking(false);
@@ -79,13 +79,13 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
 
       <Card className="border-amber-300 bg-amber-50">
         <p className="text-xs font-black text-amber-900 flex items-center gap-1.5 mb-1">
-          <AlertTriangle className="w-4 h-4" /> Commission pending — order incomplete
+          <AlertTriangle className="w-4 h-4" /> Seva contribution pending — seva incomplete
         </p>
         <p className="text-[11px] text-amber-800">
-          Pay the platform commission below. The order completes and reviews unlock after the owner verifies your payment.
+          Offer the seva contribution below. The seva completes and ashirvad unlock after verification.
         </p>
         <div className="flex justify-between items-center mt-3 pt-3 border-t border-amber-200">
-          <span className="text-xs font-bold text-amber-800">Platform commission (12%)</span>
+          <span className="text-xs font-bold text-amber-800">Seva contribution</span>
           <span className="text-xl font-black text-amber-900">{fmtWallet(commissionAmount, currency)}</span>
         </div>
         <button type="button" onClick={() => copy(orderCode)}
@@ -140,7 +140,7 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
           <input value={trxId} onChange={(e) => setTrxId(e.target.value)} className={inputCls} placeholder="e.g. TRX9F8K2P" />
         </Field>
         <Btn variant="primary" className="w-full min-h-[48px]" disabled={working} onClick={submit}>
-          <CheckCircle2 className="w-4 h-4 inline mr-1" /> {working ? 'Submitting…' : 'Submit commission payment'}
+          <CheckCircle2 className="w-4 h-4 inline mr-1" /> {working ? 'Submitting…' : 'Submit seva contribution'}
         </Btn>
       </Card>
     </div>

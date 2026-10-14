@@ -66,8 +66,8 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
         <p className="text-2xl font-black mt-1 text-stone-950">{fmt(total)}</p>
         <p className="text-[11px] text-stone-500 mt-1">
           {total > 0
-            ? 'Commission owed on direct (Rail-2) bookings. Settle to keep your gigs visible.'
-            : 'All settled. Thank you for keeping the marketplace fair! 🙏'}
+            ? 'Seva contribution owed on direct bookings. Settle to keep your sevas visible. 🙏'
+            : 'All settled. Dhanyavaad for sustaining the dharmic mission! 🙏'}
         </p>
         {total > 0 && (
           <button type="button" onClick={() => setSettleOpen(true)} className={`${btnP} w-full mt-3`}>
@@ -83,7 +83,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
             <div key={d.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
               <div>
                 <p className="text-xs font-black">{fmt(d.amount)} <span className="font-normal text-stone-400">· {d.orderCode || d.orderId?.slice(0, 8)}</span></p>
-                <p className="text-[10px] text-stone-500">12% commission · {String(d.createdAt?.toDate?.()?.toISOString?.() || '').slice(0, 10)}</p>
+                <p className="text-[10px] text-stone-500">Seva contribution · {String(d.createdAt?.toDate?.()?.toISOString?.() || '').slice(0, 10)}</p>
               </div>
               <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-800">PENDING</span>
             </div>
@@ -116,7 +116,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
               <li>Tap "I've paid" below — include the TrxID so we can verify.</li>
             </ol>
             <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2 mt-3 flex gap-1.5">
-              <AlertTriangle className="w-4 h-4 shrink-0" /> Unpaid dues above the threshold auto-pause your gigs after the grace period.
+              <AlertTriangle className="w-4 h-4 shrink-0" /> Unpaid dues above the threshold auto-pause your sevas after the grace period.
             </p>
             <div className="flex gap-2 mt-3">
               <button type="button" disabled={settling} onClick={requestSettle} className={`${btnP} flex-1`}>

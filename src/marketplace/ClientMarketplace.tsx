@@ -17,6 +17,8 @@ import { Rail2PaymentScreen } from './Rail2PaymentScreen';
 import { CommissionPayScreen } from './CommissionPayScreen';
 import { detectPayRegion } from '../lib/geoDetect';
 import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
+import { useLanguage } from '../context/LanguageContext';
+import { mkt, type MktLang } from '../lib/marketplaceCopy';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -33,27 +35,37 @@ const statusColor: Record<string, string> = {
 
 /* ------------------------------ Browse ------------------------------ */
 
-const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => (
+const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => {
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
+  return (
   <button type="button" onClick={onOpen} className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-amber-300 transition-colors min-h-[44px]">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
         {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">FEATURED</span>}
+        {(gig as any).providerVerified && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 mb-1 inline-block ml-1">✓ {L === 'en' ? 'VERIFIED' : L === 'bn' ? 'যাচাইকৃত' : 'सत्यापित'}</span>}
         <p className="text-sm font-black text-stone-900 truncate">{gig.title}</p>
         <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
         <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
-          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />{Number(gig.avgRating || 0).toFixed(1)} ({gig.totalOrders || 0})
+          <span aria-hidden>🙏</span>{gig.totalOrders || 0} {mkt(L, 'ashirvad')}
           <span className="mx-1">·</span><Clock className="w-3 h-3" />{gig.durationMinutes}m
         </p>
       </div>
-      <p className="text-sm font-black text-amber-700 shrink-0">{fmt(Number(gig.priceAmount))}</p>
+      <div className="text-right shrink-0">
+        <p className="text-[9px] text-stone-400 font-bold">{mkt(L, 'suggestedDakshina')}</p>
+        <p className="text-sm font-black text-amber-700">{fmt(Number(gig.priceAmount))}</p>
+      </div>
     </div>
   </button>
-);
+  );
+};
 
 /* ------------------------------ Booking ------------------------------ */
 
 const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = ({ gig, onDone, onBack }) => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [region, setRegion] = useState<'BD' | 'IN' | 'INTL'>('BD');
   const [payRef, setPayRef] = useState('');
   const [notes, setNotes] = useState('');
@@ -76,7 +88,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
           gigId: gig.id as string, paymentMethodId: 'wallet', clientNotes: notes, scheduledAt, payWithWallet: true,
         });
         await spendFromWallet(orderId);
-        showToast('Booked! Amount held in escrow from your wallet.', 'success');
+        showToast('Seva requested! Dakshina held securely until completion.', 'success');
         onDone();
       } else if (payPath === 'after') {
         // No upfront payment. Provider completes → client pays directly →
@@ -84,7 +96,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         await createOrder({
           gigId: gig.id as string, paymentMethodId: 'pay_after_task', clientNotes: notes, scheduledAt, payAfterTask: true,
         });
-        showToast('Booked! Pay the provider directly after the task, then the platform commission.', 'success');
+        showToast('Seva requested! Offer dakshina directly after completion, then the seva contribution.', 'success');
         onDone();
       } else {
         if (!payRef.trim()) { showToast('Enter your payment transaction/reference ID.', 'error'); setWorking(false); return; }
@@ -109,27 +121,27 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <p className="text-sm font-black text-stone-900">{gig.title}</p>
         <p className="text-xs text-stone-500">{gig.providerName} · {gig.durationMinutes} min</p>
         <div className="flex justify-between mt-2 text-sm">
-          <span className="text-stone-500">Service price</span><b>{fmt(Number(gig.priceAmount))}</b>
+          <span className="text-stone-500">{mkt(L, 'suggestedDakshina')}</span><b>{fmt(Number(gig.priceAmount))}</b>
         </div>
-        <p className="text-[10px] text-stone-400 mt-1">Includes platform fee — what you see is what you pay.</p>
+        <p className="text-[10px] text-stone-400 mt-1">{L === 'en' ? 'Includes a small seva contribution that sustains Sanatani Bandhan — what you see is what you offer.' : L === 'bn' ? 'সনাতনী বন্ধনকে টিকিয়ে রাখে এমন একটি ছোট সেবা অবদান অন্তর্ভুক্ত — যা দেখছেন তাই অর্পণ করুন।' : 'सनातनी बंधन को बनाए रखने वाला एक छोटा सेवा योगदान शामिल — जो दिख रहा है वही अर्पित करें।'}</p>
       </div>
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <p className="text-xs font-bold text-amber-900 mb-2">Step 1 — How do you want to pay {fmt(Number(gig.priceAmount))}?</p>
+        <p className="text-xs font-bold text-amber-900 mb-2">{mkt(L, 'takeSankalp')} — {L === 'en' ? 'how would you like to offer' : L === 'bn' ? 'আপনি কীভাবে অর্পণ করতে চান' : 'आप कैसे अर्पित करना चाहेंगे'} {fmt(Number(gig.priceAmount))}?</p>
         <div className="space-y-2">
           <button type="button" onClick={() => setPayPath('wallet')}
             className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'wallet' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
-            <p className="text-xs font-black text-stone-900">👛 Wallet {walletBalance !== null && <span className="text-stone-500 font-bold">({fmt(walletBalance)} available)</span>}</p>
-            <p className="text-[10px] text-stone-500">Instant — held in escrow, released on completion. Recommended.</p>
+            <p className="text-xs font-black text-stone-900">🪔 {mkt(L, 'sevaWallet')} {walletBalance !== null && <span className="text-stone-500 font-bold">({fmt(walletBalance)} available)</span>}</p>
+            <p className="text-[10px] text-stone-500">{L === 'en' ? 'Instant — held safely, released on completion. Recommended.' : L === 'bn' ? 'তাৎক্ষণিক — নিরাপদে রাখা হয়, সম্পন্ন হলে মুক্তি পায়।' : 'तुरंत — सुरक्षित रखा जाता है, पूर्ण होने पर जारी।'}</p>
           </button>
           <button type="button" onClick={() => setPayPath('now')}
             className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'now' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
-            <p className="text-xs font-black text-stone-900">💳 Pay now (bKash / UPI / Wise)</p>
-            <p className="text-[10px] text-stone-500">Pay the platform, then paste the transaction ID below.</p>
+            <p className="text-xs font-black text-stone-900">💳 {L === 'en' ? 'Offer now (bKash / UPI / Wise)' : L === 'bn' ? 'এখনই অর্পণ করুন' : 'अभी अर्पित करें'}</p>
+            <p className="text-[10px] text-stone-500">{L === 'en' ? 'Offer dakshina now, then share the transaction reference.' : L === 'bn' ? 'এখনই দক্ষিণা অর্পণ করুন।' : 'अभी दक्षिणा अर्पित करें।'}</p>
           </button>
           <button type="button" onClick={() => setPayPath('after')}
             className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'after' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
-            <p className="text-xs font-black text-stone-900">🤝 Pay after the task</p>
-            <p className="text-[10px] text-stone-500">Pay the provider directly after completion, then the 12% platform commission.</p>
+            <p className="text-xs font-black text-stone-900">🤝 {L === 'en' ? 'Offer after the seva' : L === 'bn' ? 'সেবার পরে অর্পণ করুন' : 'सेवा के बाद अर्पित करें'}</p>
+            <p className="text-[10px] text-stone-500">{L === 'en' ? 'Offer dakshina directly after completion, then the seva contribution.' : L === 'bn' ? 'সম্পন্ন হওয়ার পরে সরাসরি দক্ষিণা দিন।' : 'पूर्ण होने के बाद सीधे दक्षिणा दें।'}</p>
           </button>
         </div>
         {payPath === 'now' && (<>
@@ -157,7 +169,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <label className="text-[11px] font-bold text-stone-500">Notes for provider (optional)
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} rows={2} maxLength={500} placeholder="Gotra, address, special requests…" /></label>
         <button type="button" disabled={working} onClick={submit} className={`${btnP} w-full`}>
-          {working ? 'Submitting…' : <><CheckCircle2 className="w-4 h-4 inline mr-1" /> Confirm booking</>}
+          {working ? 'Submitting…' : <><CheckCircle2 className="w-4 h-4 inline mr-1" /> {mkt(L, 'takeSankalp')}</>}
         </button>
       </div>
     </div>
@@ -168,6 +180,8 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
 
 const MyBookings: React.FC = () => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [disputeFor, setDisputeFor] = useState<string | null>(null);
@@ -183,7 +197,7 @@ const MyBookings: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const confirmDone = async (o: MarketplaceOrder) => {
-    try { await orderTransition(o.id as string, 'completed'); showToast('Marked complete. Thank you!', 'success'); load(); }
+    try { await orderTransition(o.id as string, 'completed'); showToast(L === 'en' ? 'Seva complete. Dhanyavaad! 🙏' : L === 'bn' ? 'সেবা সম্পূর্ণ। ধন্যবাদ! 🙏' : 'सेवा पूर्ण। धन्यवाद! 🙏', 'success'); load(); }
     catch (e: any) { showToast(e.message, 'error'); }
   };
   const raise = async () => {
@@ -208,7 +222,7 @@ const MyBookings: React.FC = () => {
   if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
   return (
     <div className="space-y-3">
-      {orders.length === 0 && <Empty text="No bookings yet." />}
+      {orders.length === 0 && <Empty text={mkt(L, 'noSevasYet')} />}
       {orders.map((o) => (
         <div key={o.id} className="bg-white rounded-2xl border border-stone-200 p-4">
           <div className="flex items-start justify-between gap-2">
@@ -221,9 +235,13 @@ const MyBookings: React.FC = () => {
           )}
           {o.status === 'awaiting_commission' && (
             <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <p className="text-[11px] font-black text-amber-900">⏳ Incomplete — commission pending</p>
-              <p className="text-[10px] text-amber-800 mt-0.5">Pay the {fmt(Number((o as any).commissionAmount || 0))} platform commission to complete this order and unlock reviews.</p>
-              <button type="button" onClick={() => setCommissionFor(o)} className={`${btnP} w-full mt-2`}>Pay commission</button>
+              <p className="text-[11px] font-black text-amber-900">⏳ {L === 'en' ? 'Incomplete — seva contribution pending' : L === 'bn' ? 'অসম্পূর্ণ — সেবা অবদান বাকি' : 'अपूर्ण — सेवा योगदान शेष'}</p>
+              <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en'
+                ? `Offer the ${fmt(Number((o as any).commissionAmount || 0))} seva contribution to complete this seva and unlock ashirvad.`
+                : L === 'bn'
+                ? `এই সেবা সম্পূর্ণ করতে ${fmt(Number((o as any).commissionAmount || 0))} সেবা অবদান অর্পণ করুন।`
+                : `इस सेवा को पूर्ण करने के लिए ${fmt(Number((o as any).commissionAmount || 0))} सेवा योगदान अर्पित करें।`}</p>
+              <button type="button" onClick={() => setCommissionFor(o)} className={`${btnP} w-full mt-2`}>{L === 'en' ? 'Offer contribution' : L === 'bn' ? 'অবদান অর্পণ করুন' : 'योगदान अर्पित करें'}</button>
             </div>
           )}
           <div className="flex gap-2 mt-2">
@@ -258,6 +276,8 @@ const MyBookings: React.FC = () => {
 /* ------------------------------ Main ------------------------------ */
 
 export const ClientMarketplace: React.FC = () => {
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [view, setView] = useState<'browse' | 'bookings'>('browse');
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -307,7 +327,7 @@ export const ClientMarketplace: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5">
-        {([['browse', '🔍 Browse services'], ['bookings', '📋 My bookings']] as const).map(([id, label]) => (
+        {([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`]] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setView(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black ${view === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>{label}</button>
         ))}

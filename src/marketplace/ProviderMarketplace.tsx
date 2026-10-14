@@ -8,6 +8,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard, HandCoins } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ProviderPaymentSettings } from './ProviderPaymentSettings';
+import { useLanguage } from '../context/LanguageContext';
+import { mkt, contributionNote, type MktLang } from '../lib/marketplaceCopy';
 import {
   listGigs, myGigs, saveGig, setGigActive,
   myOrdersAsProvider, orderTransition,
@@ -37,6 +39,8 @@ function fmt(n: number) { return `₹${Math.round(n).toLocaleString('en-IN')}`; 
 
 const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName: string }> = ({ providerType, providerName }) => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Gig> | null>(null);
@@ -78,21 +82,21 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
           </div>
         </div>
       ))}
-      {gigs.length === 0 && <Empty text="No services yet. Create your first offering below." />}
+      {gigs.length === 0 && <Empty text={L === 'en' ? 'No sevas yet. Offer your first seva below.' : L === 'bn' ? 'এখনও কোনো সেবা নেই। নিচে আপনার প্রথম সেবা দিন।' : 'अभी कोई सेवा नहीं। नीचे अपनी पहली सेवा दें।'} />}
       <button type="button" onClick={() => setEditing({ title: '', description: '', priceAmount: 501, durationMinutes: 60, category: 'Puja', languages: [], active: true })} className={`${btnP} w-full`}>
-        <Plus className="w-4 h-4 inline mr-1" /> New service
+        <Plus className="w-4 h-4 inline mr-1" /> {L === 'en' ? 'New seva' : L === 'bn' ? 'নতুন সেবা' : 'नई सेवा'}
       </button>
 
       {editing && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setEditing(null)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black text-stone-900 mb-3">{editing.id ? 'Edit service' : 'New service'}</h3>
+            <h3 className="font-black text-stone-900 mb-3">{editing.id ? (L === 'en' ? 'Edit seva' : L === 'bn' ? 'সেবা সম্পাদনা' : 'सेवा संपादित करें') : (L === 'en' ? 'New seva' : L === 'bn' ? 'নতুন সেবা' : 'नई सेवा')}</h3>
             <div className="space-y-3">
-              <label className="text-[11px] font-bold text-stone-500">Title*<input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className={inputCls} placeholder="e.g. Satyanarayan Katha at home" maxLength={120} /></label>
-              <label className="text-[11px] font-bold text-stone-500">Description<textarea value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className={inputCls} rows={3} maxLength={2000} placeholder="What's included, what to prepare…" /></label>
+              <label className="text-[11px] font-bold text-stone-500">{L === 'en' ? 'Title*' : L === 'bn' ? 'শিরোনাম*' : 'शीर्षक*'}<input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className={inputCls} placeholder="e.g. Satyanarayan Katha at home" maxLength={120} /></label>
+              <label className="text-[11px] font-bold text-stone-500">{L === 'en' ? 'Description' : L === 'bn' ? 'বিবরণ' : 'विवरण'}<textarea value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className={inputCls} rows={3} maxLength={2000} placeholder="What's included, what to prepare…" /></label>
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-[11px] font-bold text-stone-500">Price (₹)*<input type="number" value={editing.priceAmount || ''} onChange={(e) => setEditing({ ...editing, priceAmount: Number(e.target.value) })} className={inputCls} /></label>
-                <label className="text-[11px] font-bold text-stone-500">Duration (min)<input type="number" value={editing.durationMinutes || 60} onChange={(e) => setEditing({ ...editing, durationMinutes: Number(e.target.value) })} className={inputCls} /></label>
+                <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'suggestedDakshina')}*<input type="number" value={editing.priceAmount || ''} onChange={(e) => setEditing({ ...editing, priceAmount: Number(e.target.value) })} className={inputCls} /></label>
+                <label className="text-[11px] font-bold text-stone-500">{L === 'en' ? 'Duration (min)' : L === 'bn' ? 'সময়কাল (মিনিট)' : 'अवधि (मिनट)'}<input type="number" value={editing.durationMinutes || 60} onChange={(e) => setEditing({ ...editing, durationMinutes: Number(e.target.value) })} className={inputCls} /></label>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-[11px] font-bold text-stone-500">Category
@@ -101,7 +105,7 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
                   </select></label>
                 <label className="text-[11px] font-bold text-stone-500">Languages (comma)<input value={(editing.languages || []).join(', ')} onChange={(e) => setEditing({ ...editing, languages: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} className={inputCls} placeholder="Hindi, Bengali" /></label>
               </div>
-              <p className="text-[10px] text-stone-400">Platform fee is set by Sanatani Bandhan (currently ~12%) and shown to clients at booking. You receive the net amount.</p>
+              <p className="text-[10px] text-stone-400">🪔 {contributionNote(L, 12)}</p>
               <div className="flex gap-2">
                 <button type="button" onClick={save} className={`${btnP} flex-1`}>Save service</button>
                 <button type="button" onClick={() => setEditing(null)} className={`${btnG} flex-1`}>Cancel</button>
@@ -118,6 +122,8 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
 
 const ProviderOrders: React.FC = () => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
@@ -180,9 +186,9 @@ const ProviderOrders: React.FC = () => {
             <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace('_', ' ')}</span>
           </div>
           <div className="flex gap-3 mt-2 text-[11px]">
-            <span className="text-stone-500">Gross <b className="text-stone-800">{fmt(o.amountGross)}</b></span>
-            <span className="text-stone-500">Fee <b className="text-amber-700">{fmt(o.commissionAmount)}</b></span>
-            <span className="text-stone-500">You get <b className="text-emerald-700">{fmt(o.providerNet)}</b></span>
+            <span className="text-stone-500">{L === 'en' ? 'Dakshina' : L === 'bn' ? 'দক্ষিণা' : 'दक्षिणा'} <b className="text-stone-800">{fmt(o.amountGross)}</b></span>
+            <span className="text-stone-500">{mkt(L, 'sevaContribution')} <b className="text-amber-700">{fmt(o.commissionAmount)}</b></span>
+            <span className="text-stone-500">{L === 'en' ? 'You receive' : L === 'bn' ? 'আপনি পান' : 'आपको मिलता है'} <b className="text-emerald-700">{fmt(o.providerNet)}</b></span>
           </div>
           {/* Rail-2: payment proof awaiting confirmation */}
           {(o as any).rail === 'rail2' && o.status === 'paid' && (o as any).rail2Proof && !(o as any).rail2Proof.confirmedAt && (
@@ -216,7 +222,7 @@ const ProviderOrders: React.FC = () => {
           )}
           {o.status === 'awaiting_commission' && (
             <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <p className="text-[11px] font-black text-amber-900">⏳ Awaiting platform commission</p>
+              <p className="text-[11px] font-black text-amber-900">⏳ {L === 'en' ? 'Awaiting seva contribution' : L === 'bn' ? 'সেবা অবদানের অপেক্ষায়' : 'सेवा योगदान की प्रतीक्षा'}</p>
               <p className="text-[10px] text-amber-800 mt-0.5">
                 The client pays you directly, then pays the {fmt(Number((o as any).commissionAmount || 0))} commission to the platform.
                 The order completes after owner verification — then your review unlocks.
@@ -315,11 +321,19 @@ const ProviderEarnings: React.FC = () => {
 /* ------------------------------ Main ------------------------------ */
 
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'dues' | 'payments'>('services');
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5 overflow-x-auto">
-        {([['services', 'My Services', Package], ['orders', 'Orders', Star], ['earnings', 'Earnings', Wallet], ['dues', 'Dues', HandCoins], ['payments', 'Payments', CreditCard]] as const).map(([id, label, Icon]) => (
+        {([
+          ['services', mkt(L, 'mySevas'), Package],
+          ['orders', mkt(L, 'sevaBookings'), Star],
+          ['earnings', mkt(L, 'dakshinaReceived'), Wallet],
+          ['dues', L === 'en' ? 'Dues' : L === 'bn' ? 'বকেয়া' : 'बकाया', HandCoins],
+          ['payments', L === 'en' ? 'Payments' : L === 'bn' ? 'পেমেন্ট' : 'भुगतान', CreditCard],
+        ] as const).map(([id, label, Icon]) => (
           <button key={id} type="button" onClick={() => setTab(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>
             <Icon className="w-3.5 h-3.5" />{label}
