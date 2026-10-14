@@ -234,6 +234,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'मठ का पवित्र रिकॉर्ड रखें — संन्यासी रजिस्टर, परंपरा वंशावली, दिनचर्या और गुरुकुल।',
     bn: 'মঠের পবিত্র রেকর্ড রাখুন — সন্ন্যাসী রেজিস্টার, পরম্পরা বংশ, দিনচর্যা ও গুরুকুল।',
   },
+  'satsang-one': {
+    en: 'Run the mandali without WhatsApp chaos — members, gatherings, bhajan list, prasad rotation and the fund.',
+    hi: 'मंडली को व्हाट्सऐप अव्यवस्था के बिना चलाएं — सदस्य, सभाएं, भजन सूची, प्रसाद बारी और निधि।',
+    bn: 'হোয়াটসঅ্যাপ বিশৃঙ্খলা ছাড়াই মণ্ডলী চালান — সদস্য, সমাবেশ, ভজন তালিকা, প্রসাদ পালা ও তহবিল।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',

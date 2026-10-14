@@ -72,6 +72,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   'tirth-one': 'STANDARD',
   'yoga-one': 'STANDARD',
   'matha-one': 'STANDARD',
+  'satsang-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -189,6 +190,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'utsav-one',
     // Tirth One: darshan queue & token management (Mandir-native).
     'tirth-one',
+    // Satsang One: mandali organizer tool (Mandir-native — mandirs host satsangs).
+    'satsang-one',
   ],
   Goshala: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -230,7 +233,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // Annakshetra One: kitchen & bhandara management (Ashram-native).
     // Yoga One: yoga shala management (Ashram-native — yoga is taught at ashrams).
     // Matha One: monastic management (Ashram-native — ashrams keep parampara records).
-    'ashram-one', 'annadanam', 'donorCare', 'annakshetra-one', 'yoga-one', 'matha-one',
+    // Satsang One: mandali organizer tool (Ashram-native — ashrams host satsangs).
+    'ashram-one', 'annadanam', 'donorCare', 'annakshetra-one', 'yoga-one', 'matha-one', 'satsang-one',
   ],
   Yoga: [
     // R-1: verified minimal — retreat/sadhana orgs need nothing more.
@@ -244,7 +248,9 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // R-1: verified minimal — kirtan/discourse circles need nothing more.
     'dashboard', 'devotees', 'family', 'treasury',
     'satsang', 'granthLibrary', 'shlokaFeed',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings'
+    'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
+    // Satsang One: mandali organizer tool (Satsang-native).
+    'satsang-one',
   ],
   Gurukul: [
     'dashboard', 'devotees', 'treasury', 'inventory',
@@ -571,6 +577,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Yoga One (batches, students, attendance, fees) belongs to Yoga / Ashram workspaces.',
   'matha-one':
     'Matha One (sannyasi registry, parampara, dinacharya, gurukul) belongs to Sangha / Ashram workspaces.',
+  'satsang-one':
+    'Satsang One (mandali members, gatherings, bhajans, prasad rotation) belongs to Satsang / Mandir / Ashram workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:
