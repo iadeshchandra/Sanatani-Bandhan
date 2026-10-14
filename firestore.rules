@@ -283,9 +283,9 @@ service cloud.firestore {
       // with email/Google first. Closes demo → real Trustee escalation.
       allow create: if isLoggedIn() && !isAnonymous()
         && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
-      // Owner (Spark-native console) may change plan fields only — never pins.
+      // Owner (Spark-native console) may change plan + limits-bypass fields only — never pins.
       allow update: if (isOwner()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['planId', 'updatedAt']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
