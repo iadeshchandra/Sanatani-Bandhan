@@ -99,7 +99,7 @@ export const PAYMENT_METHOD_DEFAULTS: Record<string, PaymentMethodDoc> = {
     enabled: true,
     upiId: 'sanatanibandhan@upi',
     accountName: 'Sanatani Bandhan',
-    qrImageUrl: '/upi-qr.png',
+    qrImageUrl: '/upi-qr.png', // UPI QR for Indian payments (added 2026-10-14)
     instructionsEn: [
       'Open any UPI app (GPay, PhonePe, Paytm, BHIM)',
       'Choose "Pay to UPI ID" and enter the UPI ID shown',
