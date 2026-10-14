@@ -55,7 +55,9 @@ import { generateStandardA_AutoLoginQR, generateStandardB_GatePassQR } from '../
 import { generatePinHash } from '../../utils/pinCrypto';
 
 import { usePlanGate } from '../../hooks/usePlanGate';
+import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { UpsellModal } from '../common/UpsellModal';
+import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { QuickChandaModal } from '../common/QuickChandaModal';
 import { addDevotee, getDevotees } from '../../services/devoteeService';
 
@@ -63,6 +65,7 @@ export const DevoteeGrid: React.FC = () => {
   const { activeWorkspace, activeWorkspaceId, currentRole, currentDevotee, checkPermission } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
+  const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
   
   const canExport = checkPermission(['TRUSTEE', 'MANAGER', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
   const canManage = checkPermission(['TRUSTEE', 'MANAGER', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
@@ -371,6 +374,12 @@ export const DevoteeGrid: React.FC = () => {
       });
       setEditingDevotee(null);
     } else {
+      // Freemium usage-limit enforcement (Firestore-backed plan). Fires before
+      // the legacy hardcoded gate so owner-edited limits take effect.
+      if (!(await guardPlanLimit('devotees'))) {
+        setIsAddModalOpen(false);
+        return;
+      }
       if (!checkGate('devotees', branchScopedDevotees.length)) {
         setIsAddModalOpen(false);
         return;
@@ -1742,6 +1751,9 @@ export const DevoteeGrid: React.FC = () => {
         onUpgrade={() => { window.location.href = '/?action=signup'; }} 
         module={upsellModule} 
       />
+      {limitModalInfo && (
+        <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
+      )}
       <QuickChandaModal
         isOpen={isQuickChandaOpen}
         onClose={() => setIsQuickChandaOpen(false)}
