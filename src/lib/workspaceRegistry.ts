@@ -67,6 +67,7 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   dharamshala: 'STANDARD',
   'ashram-one': 'STANDARD',
   'annakshetra-one': 'STANDARD',
+  'nyas-one': 'STANDARD',
   goshala: 'STANDARD',
   campaigns: 'STANDARD',
   'sevadar-roster': 'STANDARD',
@@ -274,6 +275,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'cash-custody',
     // Annakshetra One: kitchen & bhandara management (Trust/NGO-native).
     'annakshetra-one',
+    // Nyas One: compliance & governance — registrations, filings, 85% rule (Trust-native).
+    'nyas-one',
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
@@ -326,7 +329,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'masterSettings', 'legalVault',
     // Cash Custody: donation-box chain of custody for trusts that receive cash.
     // Annakshetra One: kitchen & bhandara management (Trust/NGO-native).
-    'cash-custody', 'annakshetra-one',
+    // Nyas One: compliance & governance (Trust-native).
+    'cash-custody', 'annakshetra-one', 'nyas-one',
   ]
 };
 
@@ -537,6 +541,8 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
     'Ashram One (yatri stays, bookings, guest register) belongs to hospitality-running workspaces (Ashram, Tirth).',
   'annakshetra-one':
     'Annakshetra One (kitchen inventory, recipes, bhandara, meal counts) belongs to kitchen-running workspaces (Mandir, Ashram, Tirth, Trust/NGO, Akshaya Patra).',
+  'nyas-one':
+    'Nyas One (registrations, filings, 85% rule, trustee governance) belongs to Trust / Dharmada Trust workspaces.',
   ashramKutir:
     'Kutir & stay desks belong to Ashram / Yoga retreat workspaces.',
   satsang:

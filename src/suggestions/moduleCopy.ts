@@ -209,6 +209,11 @@ export const MODULE_COPY: Record<string, ModuleCopy> = {
     hi: 'ऐसी रेसिपी जो 10 या 10,000 थालियों के लिए सामग्री स्वतः गिने — और समय पर मंगवाए।',
     bn: 'এমন রেসিপি যা ১০ বা ১০,০০০ থালার উপকরণ স্বয়ং হিসাব করে — ও সময়মতো আনায়।',
   },
+  'nyas-one': {
+    en: 'Never miss a filing again — 12A/80G/FCRA renewals, ITR-7, 10BE and the 85% rule, tracked.',
+    hi: 'कोई फाइलिंग फिर कभी न छूटे — 12A/80G/FCRA नवीनीकरण, ITR-7, 10BE और 85% नियम, ट्रैक्ड।',
+    bn: 'আর কোনো ফাইলিং মিস নয় — ১২এ/৮০জি/এফসিআরএ নবায়ন, আইটিআর-৭, ১০বিই ও ৮৫% নিয়ম ট্র্যাকড।',
+  },
   ashramKutir: {
     en: 'Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.',
     hi: 'कुटीर प्रवास और साधना शिविरों का प्रबंधन करें — बुकिंग, कमरे और मौन, व्यवस्थित।',
