@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HandCoins, RefreshCw, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { myPlatformDues, type PlatformDue } from '../lib/rail2';
 import { contactOwner } from '../lib/providerPayments';
 
@@ -20,6 +21,7 @@ const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 t
 function fmt(n: number) { return `৳${Math.round(n).toLocaleString('bn-BD')}`; }
 
 export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = ({ providerType }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [dues, setDues] = useState<PlatformDue[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,7 +63,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
       <div className={`rounded-2xl border p-4 ${total > 0 ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-200'}`}>
         <div className="flex items-center gap-2">
           <HandCoins className={`w-5 h-5 ${total > 0 ? 'text-amber-700' : 'text-emerald-700'}`} />
-          <p className="text-xs font-black uppercase tracking-widest text-stone-700">Platform dues</p>
+          <p className="text-xs font-black uppercase tracking-widest text-stone-700">{t('marketplace.provider.platformDues')}</p>
         </div>
         <p className="text-2xl font-black mt-1 text-stone-950">{fmt(total)}</p>
         <p className="text-[11px] text-stone-500 mt-1">
@@ -78,14 +80,14 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
 
       {pending.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black text-stone-500 uppercase">Outstanding</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase">{t('marketplace.provider.outstanding')}</p>
           {pending.map((d) => (
             <div key={d.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
               <div>
                 <p className="text-xs font-black">{fmt(d.amount)} <span className="font-normal text-stone-400">· {d.orderCode || d.orderId?.slice(0, 8)}</span></p>
                 <p className="text-[10px] text-stone-500">Seva contribution · {String(d.createdAt?.toDate?.()?.toISOString?.() || '').slice(0, 10)}</p>
               </div>
-              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-800">PENDING</span>
+              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-800">{t('marketplace.provider.pending')}</span>
             </div>
           ))}
         </div>
@@ -93,7 +95,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
 
       {history.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black text-stone-500 uppercase">History</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase">{t('marketplace.provider.history')}</p>
           {history.slice(0, 10).map((d) => (
             <div key={d.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center opacity-70">
               <p className="text-xs font-black">{fmt(d.amount)} <span className="font-normal text-stone-400">· {d.orderCode || ''}</span></p>
@@ -122,7 +124,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
               <button type="button" disabled={settling} onClick={requestSettle} className={`${btnP} flex-1`}>
                 <CheckCircle2 className="w-4 h-4 inline mr-1" />{settling ? 'Sending…' : "I've paid — notify platform"}
               </button>
-              <button type="button" onClick={() => setSettleOpen(false)} className={`${btnG} flex-1`}>Cancel</button>
+              <button type="button" onClick={() => setSettleOpen(false)} className={`${btnG} flex-1`}>{t('marketplace.provider.cancel')}</button>
             </div>
           </div>
         </div>
