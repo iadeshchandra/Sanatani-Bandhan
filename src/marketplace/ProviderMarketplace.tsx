@@ -39,7 +39,7 @@ function fmt(n: number) { return `₹${Math.round(n).toLocaleString('en-IN')}`; 
 
 const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName: string }> = ({ providerType, providerName }) => {
   const { showToast } = useToast();
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,8 +107,8 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
               </div>
               <p className="text-[10px] text-stone-400">🪔 {contributionNote(L, 12)}</p>
               <div className="flex gap-2">
-                <button type="button" onClick={save} className={`${btnP} flex-1`}>Save service</button>
-                <button type="button" onClick={() => setEditing(null)} className={`${btnG} flex-1`}>Cancel</button>
+                <button type="button" onClick={save} className={`${btnP} flex-1`}>{t('marketplace.provider.saveService')}</button>
+                <button type="button" onClick={() => setEditing(null)} className={`${btnG} flex-1`}>{t('marketplace.provider.cancel')}</button>
               </div>
             </div>
           </div>
@@ -122,7 +122,7 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
 
 const ProviderOrders: React.FC = () => {
   const { showToast } = useToast();
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -276,17 +276,17 @@ const ProviderEarnings: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3"><p className="text-[10px] text-emerald-700 font-bold">AVAILABLE</p><p className="text-lg font-black text-emerald-800">{fmt(sum.available)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">LIFETIME EARNED</p><p className="text-lg font-black text-stone-900">{fmt(sum.earned)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">IN PROGRESS</p><p className="text-lg font-black text-stone-900">{fmt(sum.pending)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">PAID OUT</p><p className="text-lg font-black text-stone-900">{fmt(sum.paidOut)}</p></div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3"><p className="text-[10px] text-emerald-700 font-bold">{t('marketplace.provider.available')}</p><p className="text-lg font-black text-emerald-800">{fmt(sum.available)}</p></div>
+        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">{t('marketplace.provider.lifetimeEarned')}</p><p className="text-lg font-black text-stone-900">{fmt(sum.earned)}</p></div>
+        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">{t('marketplace.provider.inProgress')}</p><p className="text-lg font-black text-stone-900">{fmt(sum.pending)}</p></div>
+        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">{t('marketplace.provider.paidOut')}</p><p className="text-lg font-black text-stone-900">{fmt(sum.paidOut)}</p></div>
       </div>
       <button type="button" disabled={sum.available <= 0} onClick={() => setReqOpen(true)} className={`${btnP} w-full disabled:opacity-40`}>
         <Wallet className="w-4 h-4 inline mr-1" /> Request payout
       </button>
       {payouts.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black text-stone-500 uppercase">Payout history</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase">{t('marketplace.provider.payoutHistory')}</p>
           {payouts.map((p: any) => (
             <div key={p.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
               <div><p className="text-xs font-black">{fmt(p.amount)}</p><p className="text-[10px] text-stone-500">{p.method} · {p.requestedAt?.slice?.(0, 10) || ''}</p></div>
@@ -298,17 +298,17 @@ const ProviderEarnings: React.FC = () => {
       {reqOpen && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setReqOpen(false)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black mb-3">Request payout</h3>
+            <h3 className="font-black mb-3">{t('marketplace.provider.requestPayout')}</h3>
             <div className="space-y-3">
               <label className="text-[11px] font-bold text-stone-500">Amount (₹, max {fmt(sum.available)})<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></label>
               <label className="text-[11px] font-bold text-stone-500">Method
                 <select value={method} onChange={(e) => setMethod(e.target.value as any)} className={inputCls}>
-                  <option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank transfer</option><option value="wise">Wise</option>
+                  <option value="bkash">{t('marketplace.provider.bkash')}</option><option value="nagad">{t('marketplace.provider.nagad')}</option><option value="bank">{t('marketplace.provider.bankTransfer')}</option><option value="wise">{t('marketplace.provider.wise')}</option>
                 </select></label>
-              <label className="text-[11px] font-bold text-stone-500">Account details<input value={acct} onChange={(e) => setAcct(e.target.value)} className={inputCls} placeholder="bKash number / account no" /></label>
+              <label className="text-[11px] font-bold text-stone-500">{t('marketplace.provider.accountDetails')}<input value={acct} onChange={(e) => setAcct(e.target.value)} className={inputCls} placeholder={t('marketplace.provider.accountPlaceholder')} /></label>
               <div className="flex gap-2">
-                <button type="button" onClick={submit} className={`${btnP} flex-1`}><Send className="w-3.5 h-3.5 inline mr-1" />Submit request</button>
-                <button type="button" onClick={() => setReqOpen(false)} className={`${btnG} flex-1`}>Cancel</button>
+                <button type="button" onClick={submit} className={`${btnP} flex-1`}><Send className="w-3.5 h-3.5 inline mr-1" />{t('marketplace.provider.submitRequest')}</button>
+                <button type="button" onClick={() => setReqOpen(false)} className={`${btnG} flex-1`}>{t('marketplace.provider.cancel')}</button>
               </div>
             </div>
           </div>
@@ -321,7 +321,7 @@ const ProviderEarnings: React.FC = () => {
 /* ------------------------------ Main ------------------------------ */
 
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'dues' | 'payments'>('services');
   return (
