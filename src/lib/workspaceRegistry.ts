@@ -27,8 +27,9 @@ import { SubscriptionTier, TIER_LEVELS } from '../config/planPricing';
  * C-6 — Monetization: plan-tier gating for desks.
  *
  * Plan resolution is centralized here:
- *   - 'DEMO' | 'LITE' | 'STANDARD' | 'ENTERPRISE' are honored verbatim.
- *   - A missing/unknown planId defaults to 'LITE' (Seva Free) — NEVER 'DEMO'.
+ *   - 'DEMO' | 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO' honored verbatim.
+ *     Legacy 'LITE' → 'SEVA', 'ENTERPRISE' → 'PREMIUM'.
+ *   - A missing/unknown planId defaults to 'SEVA' (Seva Free) — NEVER 'DEMO'.
  *
  * DEMO workspaces see the full desk surface (access level 3): the binding
  * constraint for demos is the separate 5-creates-per-module demo quota, not
@@ -38,17 +39,20 @@ export type WorkspacePlanId = 'DEMO' | SubscriptionTier;
 
 const PLAN_ACCESS_LEVEL: Record<WorkspacePlanId, number> = {
   DEMO: 3,
-  LITE: TIER_LEVELS.LITE,
+  SEVA: TIER_LEVELS.SEVA,
   STANDARD: TIER_LEVELS.STANDARD,
-  ENTERPRISE: TIER_LEVELS.ENTERPRISE,
+  PREMIUM: TIER_LEVELS.PREMIUM,
+  PUROHIT_PRO: TIER_LEVELS.PUROHIT_PRO,
 };
 
 export function resolvePlanId(planId?: string | null): WorkspacePlanId {
   const p = (planId || '').toUpperCase();
-  if (p === 'DEMO' || p === 'LITE' || p === 'STANDARD' || p === 'ENTERPRISE') {
+  if (p === 'LITE') return 'SEVA'; // legacy alias
+  if (p === 'ENTERPRISE') return 'PREMIUM'; // legacy alias
+  if (p === 'DEMO' || p === 'SEVA' || p === 'STANDARD' || p === 'PREMIUM' || p === 'PUROHIT_PRO') {
     return p as WorkspacePlanId;
   }
-  return 'LITE';
+  return 'SEVA';
 }
 
 /**
@@ -57,11 +61,11 @@ export function resolvePlanId(planId?: string | null): WorkspacePlanId {
  * plan-gated (permissive default — never lock a desk we haven't mapped).
  */
 export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
-  // LITE — Seva Free core desks
-  poojaBooking: 'LITE',
-  panchang: 'LITE',
-  'quick-chanda-pos': 'LITE',
-  sandeshBroadcast: 'LITE',
+  // SEVA — Seva Free core desks
+  poojaBooking: 'SEVA',
+  panchang: 'SEVA',
+  'quick-chanda-pos': 'SEVA',
+  sandeshBroadcast: 'SEVA',
   // STANDARD — operations suite
   annadanam: 'STANDARD',
   dharamshala: 'STANDARD',
@@ -80,10 +84,10 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
   karmaLedger: 'STANDARD',
   inventory: 'STANDARD',
   taxReceipts: 'STANDARD',
-  // ENTERPRISE — ERP & governance
-  federation: 'ENTERPRISE',
-  treasury: 'ENTERPRISE',
-  'crisis-command': 'ENTERPRISE',
+  // PREMIUM — ERP & governance
+  federation: 'PREMIUM',
+  treasury: 'PREMIUM',
+  'crisis-command': 'PREMIUM',
 };
 
 /** Is a sidebar module (by MODULE_CATALOG nav id) allowed on the plan? */
@@ -104,7 +108,7 @@ export function requiredTierForModule(moduleId: string): SubscriptionTier | null
  * The desk switch in App.tsx accepts many alias spellings per desk
  * (e.g. 'treasury-ledger', 'hundi', 'golak' all mount the treasury desk).
  * Tier enforcement at desk mount must resolve through this map, otherwise
- * a LITE workspace could open an ENTERPRISE desk via an unmapped alias URL.
+ * a SEVA workspace could open a PREMIUM desk via an unmapped alias URL.
  * Modules not listed here are not plan-gated (permissive by design).
  */
 export const MODULE_ID_ALIASES: Record<string, string> = {

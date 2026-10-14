@@ -20,9 +20,10 @@ interface UpsellModalProps {
 // SMART_PRO) are display-deprecated — the modal sells the PLAN_PRICING tiers
 // with the same names the landing page advertises, prices read live from config.
 const DISPLAY_NAMES: Record<SubscriptionTier, string> = {
-  LITE: 'Seva Free',
+  SEVA: 'Seva Free',
   STANDARD: 'Standard',
-  ENTERPRISE: 'Enterprise',
+  PREMIUM: 'Premium',
+  PUROHIT_PRO: 'Purohit / Jyotishi Pro',
 };
 
 export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpgrade, module, ctaLabel }) => {
@@ -31,7 +32,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
 
   if (!isOpen) return null;
 
-  const plans = [PLAN_PRICING.LITE, PLAN_PRICING.STANDARD, PLAN_PRICING.ENTERPRISE];
+  const plans = [PLAN_PRICING.SEVA, PLAN_PRICING.STANDARD, PLAN_PRICING.PREMIUM];
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -87,7 +88,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
             >
               Annually
               <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${billingCycle === 'annual' ? 'bg-emerald-100 text-emerald-700' : 'bg-white/20 text-white'}`}>
-                Save 20%
+                2 months free
               </span>
             </button>
           </div>
@@ -97,7 +98,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
         <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar bg-slate-50">
           <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan) => {
-              const isRecommended = plan.tier === 'ENTERPRISE';
+              const isRecommended = plan.tier === 'PREMIUM';
               const isPopular = plan.tier === 'STANDARD';
               const price = plan.price[billingCycle];
 
