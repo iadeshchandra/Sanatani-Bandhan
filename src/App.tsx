@@ -105,6 +105,8 @@ const GauSevaDesk = lazy(() => import('./components/domain4/GauSevaDesk').then(m
 const AnnadanamKitchenDesk = lazy(() => import('./components/domain4/AnnadanamKitchenDesk').then(m => ({ default: m.AnnadanamKitchenDesk })));
 const VedicSevaShikshaDesk = lazy(() => import('./components/domain4/VedicSevaShikshaDesk').then(m => ({ default: m.VedicSevaShikshaDesk })));
 const AshramGoshalaGurukulDesk = lazy(() => import('./components/domain4/AshramGoshalaGurukulDesk').then(m => ({ default: m.AshramGoshalaGurukulDesk })));
+// Nyas One — Trust/NGO compliance & governance suite (Trust + DharmadaTrust only).
+const NyasDesk = lazy(() => import('./nyas/NyasDesk').then(m => ({ default: m.NyasDesk })));
 // Annakshetra One — complete kitchen & bhandara management suite (Mandir + Ashram + Tirth + Trust/NGO + Akshaya Patra).
 const AnnakshetraDesk = lazy(() => import('./annakshetra/AnnakshetraDesk').then(m => ({ default: m.AnnakshetraDesk })));
 // Pathshala One — complete school-management suite (Gurukul + Vidyalaya only).
@@ -479,6 +481,8 @@ const AppContent: React.FC = () => {
       case 'dharamshala':
       case 'dharamshala-yatri-bhavan':
         return <DharamshalaDesk />;
+      case 'nyas-one':
+        return <NyasDesk />;
       case 'annakshetra-one':
       case 'smartBhandar':
       case 'smart-bhandar':
