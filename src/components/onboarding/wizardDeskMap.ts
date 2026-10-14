@@ -101,6 +101,7 @@ export const DESK_NAMES: Record<string, string> = {
   'tirth-one': 'Tirth One — Darshan Queue & Tokens',
   'yoga-one': 'Yoga One — Shala Management',
   'matha-one': 'Matha One — Monastic Management',
+  'satsang-one': 'Satsang One — Mandali Management',
   panchang: 'Vedic Panchang & Muhurat',
   checkin: 'Gate Command & Check-In',
   campaigns: 'Crowdfunding & Mandir Nirman',
