@@ -7,20 +7,19 @@ import { resolvePlanId, WorkspacePlanId } from '../lib/workspaceRegistry';
  * usePlanGate — monetization enforcement (C-6), unified on PLAN_PRICING.
  *
  * Plan resolution (see resolvePlanId in lib/workspaceRegistry):
- *   - 'DEMO' | 'LITE' | 'STANDARD' | 'ENTERPRISE' honored verbatim.
- *   - A missing/unknown planId defaults to 'LITE' (Seva Free) — NEVER 'DEMO'.
- *     The old code defaulted to DEMO (6 records), which silently throttled
- *     every real workspace while the landing page advertised Seva Free.
+ *   - 'DEMO' | 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO' honored verbatim
+ *     (legacy 'LITE' → 'SEVA', 'ENTERPRISE' → 'PREMIUM').
+ *   - A missing/unknown planId defaults to 'SEVA' (Seva Free) — NEVER 'DEMO'.
  *
- * DEMO workspaces resolve to LITE's limits inside this gate; the binding
+ * DEMO workspaces resolve to SEVA's limits inside this gate; the binding
  * constraint for demos is the separate 5-creates-per-module demo quota
  * (checkAndIncrementModuleQuota in DataContext), which fires long before
  * any plan limit could.
  */
 
-/** PLAN_PRICING tier used for limit/feature lookups ('DEMO' → 'LITE'). */
+/** PLAN_PRICING tier used for limit/feature lookups ('DEMO' → 'SEVA'). */
 const pricingTierFor = (planId: WorkspacePlanId): SubscriptionTier =>
-  planId === 'DEMO' ? 'LITE' : planId;
+  planId === 'DEMO' ? 'SEVA' : planId;
 
 export const usePlanGate = () => {
   const { activeWorkspace } = useAuthWorkspace();

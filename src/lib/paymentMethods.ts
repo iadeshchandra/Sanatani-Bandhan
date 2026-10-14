@@ -191,7 +191,7 @@ export async function getPaymentMethods(): Promise<PaymentMethodDoc[]> {
 
 /** Enabled methods for one region, in a stable display order. */
 export function methodsForRegion(methods: PaymentMethodDoc[], region: PayRegion): PaymentMethodDoc[] {
-  const order: Record<string, number> = { bd_banglaqr: 0, bd_bkash: 1, bd_nagad: 2, in_upi: 0, intl_wise: 0, intl_payoneer: 1 };
+  const order: Record<string, number> = { bd_banglaqr: 0, bd_bkash: 1, bd_nagad: 2, in_upi: 0, intl_payoneer: 0, intl_wise: 1 }; // Payoneer primary for INTL (BD founder)
   return methods
     .filter((m) => m.region === region && m.enabled)
     .sort((a, b) => (order[a.id] ?? 99) - (order[b.id] ?? 99));

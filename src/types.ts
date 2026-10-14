@@ -17,7 +17,7 @@ export type LegacyUserRole =
   | 'CSO'
   | 'ANONYMOUS';
 
-export type SubscriptionTier = 'LITE' | 'STANDARD' | 'ENTERPRISE';
+export type SubscriptionTier = 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO';
 
 export const ROLE_MIGRATION_MAP: Record<string, UserRole> = {
   admin: 'SuperAdmin',
@@ -212,8 +212,8 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   gotra?: string;
   /**
    * Monetization plan (C-6): 'DEMO' for sandbox workspaces, otherwise
-   * 'LITE' | 'STANDARD' | 'ENTERPRISE' from PLAN_PRICING. Written at
-   * workspace creation; usePlanGate defaults a missing value to 'LITE'.
+   * 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO' from PLAN_PRICING.
+   * Written at workspace creation; usePlanGate defaults a missing value to 'SEVA'.
    */
   planId?: string;
   /**

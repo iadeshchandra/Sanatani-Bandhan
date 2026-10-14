@@ -1,6 +1,19 @@
-import { SubscriptionTier as GlobalSubscriptionTier } from '../types';
+/**
+ * planPricing.ts — Canonical pricing model (final, locked 2026-10-14).
+ *
+ * Freemium model: EVERY plan includes ALL features; only usage caps differ.
+ * Tiers: SEVA (free) / STANDARD / PREMIUM / PUROHIT_PRO (individuals).
+ *
+ * Per-region prices: INR (India), BDT (Bangladesh), USD (International).
+ * The flat `price` field (INR) is kept for backward compatibility with
+ * existing UI (UpsellModal, PlanLockedDesk) — new code should prefer
+ * `regionalPrices`.
+ *
+ * Usage caps are the source of truth in src/lib/planLimits.ts — the caps
+ * here mirror those values for display purposes.
+ */
 
-export type SubscriptionTier = 'LITE' | 'STANDARD' | 'ENTERPRISE';
+export type SubscriptionTier = 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO';
 
 export interface TierLimits {
   devotees: number; // -1 means unlimited
@@ -36,6 +49,17 @@ export interface TierFeatures {
   prioritySupport: boolean;
 }
 
+export interface RegionalPrice {
+  monthly: number;
+  annual: number;
+}
+
+export interface RegionalPrices {
+  inr: RegionalPrice;
+  bdt: RegionalPrice;
+  usd: RegionalPrice;
+}
+
 export interface TierPricingConfig {
   tier: SubscriptionTier;
   name: string;
@@ -43,204 +67,75 @@ export interface TierPricingConfig {
   tagline: string;
   description: string;
   targetAudience: string;
+  /** Flat INR price — backward compat for existing UI. New code: use regionalPrices. */
   price: {
     monthly: number;
     annual: number;
     currency: string;
     currencySymbol: string;
   };
+  /** Per-region pricing (locked 2026-10-14). */
+  regionalPrices: RegionalPrices;
   limits: TierLimits;
   features: TierFeatures;
   includedDesks: readonly string[];
   highlightedPerks: string[];
 }
 
+/** All features on — the freemium model. Only apiAccess/customDomain are Premium-gated (infra). */
+const ALL_FEATURES: TierFeatures = {
+  poojaBooking: true,
+  panchangMuhurat: true,
+  quickChanda: true,
+  whatsappBroadcasting: true,
+  annadanamKitchen: true,
+  dharamshala: true,
+  gauSeva: true,
+  mandirCampaigns: true,
+  sevadarRoster: true,
+  karmaLedger: true,
+  inventory: true,
+  taxReceipts: true,
+  multiBranch: true,
+  treasuryLedger: true,
+  auditLogs: true,
+  crisisCommand: true,
+  userRolesManagement: true,
+  doubleEntryAccounting: true,
+  customDomain: false,
+  apiAccess: false,
+  prioritySupport: true,
+};
+
 export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
-  LITE: {
-    tier: 'LITE',
-    name: 'Lite - Shrines & Small Temples',
-    badge: 'STARTER',
-    tagline: 'Digital essentials and ritual reservations for local shrines',
-    description: 'Perfect for local shrines, village temples, and independent purohits focusing on day-to-day rituals and community connectivity.',
-    targetAudience: 'Small Temples/Shrines',
-    price: {
-      monthly: 0,
-      annual: 0,
-      currency: 'INR',
-      currencySymbol: '₹'
+  SEVA: {
+    tier: 'SEVA',
+    name: 'Seva Free',
+    badge: 'FREE FOREVER',
+    tagline: 'Every feature, generous free limits — dharma technology for every institution',
+    description: 'The complete Sanatani Bandhan suite, free forever. All features included; usage caps keep it sustainable.',
+    targetAudience: 'All institutions getting started',
+    price: { monthly: 0, annual: 0, currency: 'INR', currencySymbol: '₹' },
+    regionalPrices: {
+      inr: { monthly: 0, annual: 0 },
+      bdt: { monthly: 0, annual: 0 },
+      usd: { monthly: 0, annual: 0 },
     },
     limits: {
       devotees: 100,
-      transactions: 250,
+      transactions: 500,
       events: 10,
       storageMB: 250,
       adminSeats: 2,
       branches: 1,
-      pdfsPerMonth: 10
+      pdfsPerMonth: 10,
     },
-    features: {
-      poojaBooking: true,
-      panchangMuhurat: true,
-      quickChanda: true,
-      whatsappBroadcasting: true,
-      annadanamKitchen: false,
-      dharamshala: false,
-      gauSeva: false,
-      mandirCampaigns: false,
-      sevadarRoster: false,
-      karmaLedger: false,
-      inventory: false,
-      taxReceipts: false,
-      multiBranch: false,
-      treasuryLedger: false,
-      auditLogs: false,
-      crisisCommand: false,
-      userRolesManagement: false,
-      doubleEntryAccounting: false,
-      customDomain: false,
-      apiAccess: false,
-      prioritySupport: false
-    },
+    features: { ...ALL_FEATURES },
     includedDesks: [
-      'PoojaBookingDesk',
-      'PanchangMuhuratDesk',
-      'QuickChandaModal',
-      'WhatsAppBroadcasterDesk'
-    ],
-    highlightedPerks: [
-      'Pooja Booking Desk for ritual scheduling',
-      'Panchang & Muhurat calculation desk',
-      'Quick Chanda & Seva modal donation portal',
-      'WhatsApp Broadcaster for devotee announcements',
-      'Up to 100 Devotee profiles & 1 Branch'
-    ]
-  },
-  STANDARD: {
-    tier: 'STANDARD',
-    name: 'Standard - Ashrams & Medium Trusts',
-    badge: 'POPULAR',
-    tagline: 'Operational logistics, seva rosters, and charity management',
-    description: 'Comprehensive operational suite for growing temples, ashrams, goshalas, and charitable community trusts.',
-    targetAudience: 'Ashrams/Medium Trusts',
-    price: {
-      monthly: 1499,
-      annual: 14990,
-      currency: 'INR',
-      currencySymbol: '₹'
-    },
-    limits: {
-      devotees: 2500,
-      transactions: 10000,
-      events: 100,
-      storageMB: 2500,
-      adminSeats: 8,
-      branches: 3,
-      pdfsPerMonth: 100
-    },
-    features: {
-      poojaBooking: true,
-      panchangMuhurat: true,
-      quickChanda: true,
-      whatsappBroadcasting: true,
-      annadanamKitchen: true,
-      dharamshala: true,
-      gauSeva: true,
-      mandirCampaigns: true,
-      sevadarRoster: true,
-      karmaLedger: true,
-      inventory: true,
-      taxReceipts: true,
-      multiBranch: false,
-      treasuryLedger: false,
-      auditLogs: false,
-      crisisCommand: false,
-      userRolesManagement: false,
-      doubleEntryAccounting: false,
-      customDomain: false,
-      apiAccess: false,
-      prioritySupport: true
-    },
-    includedDesks: [
-      // Includes all LITE features
       'PoojaBookingDesk',
       'PanchangMuhuratDesk',
       'QuickChandaModal',
       'WhatsAppBroadcasterDesk',
-      // Plus STANDARD logistics desks
-      'AnnadanamKitchenDesk',
-      'DharamshalaDesk',
-      'GauSevaDesk',
-      'MandirCampaignsDesk',
-      'SevadarRosterDesk',
-      'KarmaLedgerDesk',
-      'InventoryDesk',
-      'TaxReceiptDesk'
-    ],
-    highlightedPerks: [
-      'All Lite features included',
-      'Annadanam Kitchen & Prasadam management',
-      'Dharamshala & Kutir guest room reservations',
-      'Gau Seva cattle care & feed monitoring',
-      'Mandir Campaigns & fundraising goals',
-      'Sevadar Roster & volunteer duty shifts',
-      'Karma Ledger micro-seva registry',
-      'Inventory & temple store stock ledger',
-      '80G Tax Receipt Desk with instant PDF generation',
-      'Up to 2,500 Devotees & 3 Branches'
-    ]
-  },
-  ENTERPRISE: {
-    tier: 'ENTERPRISE',
-    name: 'Enterprise - Mega Temples & Federations',
-    badge: 'ERP & GOVERNANCE',
-    tagline: 'Multi-branch ERP, double-entry accounting, and high-trust audit security',
-    description: 'Mission-critical enterprise control center for mega temples, national federations, pilgrim tirths, and multi-branch trust councils.',
-    targetAudience: 'Mega Temples/Federations',
-    price: {
-      monthly: 4999,
-      annual: 49990,
-      currency: 'INR',
-      currencySymbol: '₹'
-    },
-    limits: {
-      devotees: -1, // Unlimited
-      transactions: -1, // Unlimited
-      events: -1, // Unlimited
-      storageMB: 50000,
-      adminSeats: -1, // Unlimited
-      branches: -1, // Unlimited
-      pdfsPerMonth: -1 // Unlimited
-    },
-    features: {
-      poojaBooking: true,
-      panchangMuhurat: true,
-      quickChanda: true,
-      whatsappBroadcasting: true,
-      annadanamKitchen: true,
-      dharamshala: true,
-      gauSeva: true,
-      mandirCampaigns: true,
-      sevadarRoster: true,
-      karmaLedger: true,
-      inventory: true,
-      taxReceipts: true,
-      multiBranch: true,
-      treasuryLedger: true,
-      auditLogs: true,
-      crisisCommand: true,
-      userRolesManagement: true,
-      doubleEntryAccounting: true,
-      customDomain: true,
-      apiAccess: true,
-      prioritySupport: true
-    },
-    includedDesks: [
-      // Includes all LITE features
-      'PoojaBookingDesk',
-      'PanchangMuhuratDesk',
-      'QuickChandaModal',
-      'WhatsAppBroadcasterDesk',
-      // Includes all STANDARD features
       'AnnadanamKitchenDesk',
       'DharamshalaDesk',
       'GauSevaDesk',
@@ -249,34 +144,169 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
       'KarmaLedgerDesk',
       'InventoryDesk',
       'TaxReceiptDesk',
-      // Plus ENTERPRISE governance & ERP
+    ],
+    highlightedPerks: [
+      'Every feature included — no gated desks',
+      'Pooja Booking, Panchang & Muhurat, Quick Chanda',
+      'Annadanam Kitchen, Dharamshala, Gau Seva',
+      '80G Tax Receipts with instant PDF',
+      'Up to 100 devotees · 500 transactions/mo · 2 seats · 1 branch',
+    ],
+  },
+  STANDARD: {
+    tier: 'STANDARD',
+    name: 'Standard',
+    badge: 'POPULAR',
+    tagline: 'Room to grow — higher caps for thriving institutions',
+    description: 'Everything in Seva Free, with raised limits for growing temples, ashrams, goshalas and trusts.',
+    targetAudience: 'Growing institutions',
+    price: { monthly: 499, annual: 4999, currency: 'INR', currencySymbol: '₹' },
+    regionalPrices: {
+      inr: { monthly: 499, annual: 4999 },
+      bdt: { monthly: 700, annual: 7000 },
+      usd: { monthly: 6, annual: 60 },
+    },
+    limits: {
+      devotees: 1000,
+      transactions: -1,
+      events: 100,
+      storageMB: 2500,
+      adminSeats: 10,
+      branches: 3,
+      pdfsPerMonth: 100,
+    },
+    features: { ...ALL_FEATURES },
+    includedDesks: [
+      'PoojaBookingDesk',
+      'PanchangMuhuratDesk',
+      'QuickChandaModal',
+      'WhatsAppBroadcasterDesk',
+      'AnnadanamKitchenDesk',
+      'DharamshalaDesk',
+      'GauSevaDesk',
+      'MandirCampaignsDesk',
+      'SevadarRosterDesk',
+      'KarmaLedgerDesk',
+      'InventoryDesk',
+      'TaxReceiptDesk',
+    ],
+    highlightedPerks: [
+      'Everything in Seva Free',
+      'Up to 1,000 devotees · unlimited transactions',
+      '10 staff seats · 3 branches',
+      'Priority support',
+    ],
+  },
+  PREMIUM: {
+    tier: 'PREMIUM',
+    name: 'Premium',
+    badge: 'UNLIMITED',
+    tagline: 'Unlimited everything, plus API access and custom domain',
+    description: 'For large institutions, federations and tirths — unlimited caps, API access, and white-label domain.',
+    targetAudience: 'Large institutions & federations',
+    price: { monthly: 1999, annual: 19999, currency: 'INR', currencySymbol: '₹' },
+    regionalPrices: {
+      inr: { monthly: 1999, annual: 19999 },
+      bdt: { monthly: 2800, annual: 28000 },
+      usd: { monthly: 24, annual: 240 },
+    },
+    limits: {
+      devotees: -1,
+      transactions: -1,
+      events: -1,
+      storageMB: 50000,
+      adminSeats: -1,
+      branches: -1,
+      pdfsPerMonth: -1,
+    },
+    features: { ...ALL_FEATURES, customDomain: true, apiAccess: true },
+    includedDesks: [
+      'PoojaBookingDesk',
+      'PanchangMuhuratDesk',
+      'QuickChandaModal',
+      'WhatsAppBroadcasterDesk',
+      'AnnadanamKitchenDesk',
+      'DharamshalaDesk',
+      'GauSevaDesk',
+      'MandirCampaignsDesk',
+      'SevadarRosterDesk',
+      'KarmaLedgerDesk',
+      'InventoryDesk',
+      'TaxReceiptDesk',
       'WorkspaceSelectorDesk',
       'TreasuryLedgerDesk',
       'AuditLogDesk',
       'CrisisCommandCenter',
-      'UserRolesDesk'
+      'UserRolesDesk',
     ],
     highlightedPerks: [
-      'All Lite and Standard features included',
-      'WorkspaceSelectorDesk for multi-branch mandir federations',
-      'TreasuryLedgerDesk for double-entry GAAP accounting',
-      'AuditLogDesk for immutable cryptographically verifiable logs',
-      'CrisisCommandCenter for crowd management and emergency SOS',
-      'UserRolesDesk for fine-grained RBAC matrix governance',
-      'Unlimited devotees, transactions, admin seats, and branches',
-      'Dedicated SLA and priority engineering support'
-    ]
-  }
+      'Everything in Standard',
+      'Unlimited devotees, transactions, seats & branches',
+      'API access & custom domain',
+      'Dedicated SLA and priority engineering support',
+    ],
+  },
+  PUROHIT_PRO: {
+    tier: 'PUROHIT_PRO',
+    name: 'Purohit / Jyotishi Pro',
+    badge: 'PROFESSIONALS',
+    tagline: 'Verified badge, better ranking, dispute protection — plus 12% per booking',
+    description: 'For individual purohits and jyotishis on the marketplace. Verified badge, ranking boost, and dispute protection.',
+    targetAudience: 'Purohits & Jyotishis',
+    price: { monthly: 199, annual: 1990, currency: 'INR', currencySymbol: '₹' },
+    regionalPrices: {
+      inr: { monthly: 199, annual: 1990 },
+      bdt: { monthly: 280, annual: 2800 },
+      usd: { monthly: 2.5, annual: 25 },
+    },
+    limits: {
+      devotees: -1,
+      transactions: -1,
+      events: -1,
+      storageMB: 1000,
+      adminSeats: 1,
+      branches: 1,
+      pdfsPerMonth: 50,
+    },
+    features: { ...ALL_FEATURES },
+    includedDesks: [
+      'PoojaBookingDesk',
+      'PanchangMuhuratDesk',
+      'QuickChandaModal',
+      'WhatsAppBroadcasterDesk',
+    ],
+    highlightedPerks: [
+      'Verified Pro badge on your profile',
+      'Higher ranking in marketplace search',
+      'Dispute protection & priority review',
+      '12% commission per completed booking',
+    ],
+  },
 };
 
 export const TIER_LEVELS: Record<SubscriptionTier, number> = {
-  LITE: 1,
+  SEVA: 1,
   STANDARD: 2,
-  ENTERPRISE: 3
+  PREMIUM: 3,
+  PUROHIT_PRO: 2,
 };
 
-// Legacy compatibility exports for existing components (UpsellModal, usePlanGate)
-export type PlanId = 'DEMO' | 'SEVA' | 'MANDIR' | 'SMART_PRO' | 'SAMPRADAYA' | 'LITE' | 'STANDARD' | 'ENTERPRISE';
+// ---------------------------------------------------------------------------
+// Legacy compatibility shim — maps old plan ids to the new tiers so existing
+// components (usePlanGate, UpsellModal, workspaceRegistry) keep working.
+// ---------------------------------------------------------------------------
+
+export type PlanId =
+  | 'DEMO'
+  | 'SEVA'
+  | 'MANDIR'
+  | 'SMART_PRO'
+  | 'SAMPRADAYA'
+  | 'LITE'
+  | 'STANDARD'
+  | 'ENTERPRISE'
+  | 'PREMIUM'
+  | 'PUROHIT_PRO';
 
 export interface PlanPrice {
   monthly: number;
@@ -323,83 +353,61 @@ export interface PlanDefinition {
   highlightedFeatures: string[];
 }
 
+/** Build a legacy PlanDefinition from a canonical tier config. */
+function fromTier(id: PlanId, cfg: TierPricingConfig): PlanDefinition {
+  return {
+    id,
+    name: cfg.name,
+    badge: cfg.badge,
+    description: cfg.description,
+    price: { ...cfg.price },
+    limits: {
+      devotees: cfg.limits.devotees,
+      transactions: cfg.limits.transactions,
+      events: cfg.limits.events,
+      storageMB: cfg.limits.storageMB,
+      adminSeats: cfg.limits.adminSeats,
+      pdfsPerMonth: cfg.limits.pdfsPerMonth,
+    },
+    // Legacy feature map: all true under the freemium model.
+    features: {
+      devotee_directory: true,
+      treasury_ledger: true,
+      pooja_calendar: true,
+      dharamshala: true,
+      asset_inventory: true,
+      panchayat_polling: true,
+      sanatani_vivah: true,
+      purohit_market: true,
+      vanshavali: true,
+      data_export: true,
+      qr_biometric: true,
+      whatsapp_broadcast: true,
+      offline_emergency: true,
+      yatra_net: true,
+      god_mode_audit: true,
+    },
+    highlightedFeatures: [...cfg.highlightedPerks],
+  };
+}
+
 export const SUBSCRIPTION_PLANS: Record<PlanId, PlanDefinition> = {
   DEMO: {
+    ...fromTier('DEMO', PLAN_PRICING.SEVA),
     id: 'DEMO',
     name: 'Public Demo',
     description: 'Temporary sandbox for exploration',
-    price: { monthly: 0, annual: 0, currency: 'INR', currencySymbol: '₹' },
     limits: { devotees: 6, transactions: 6, events: 2, storageMB: 10, adminSeats: 1, pdfsPerMonth: 0 },
-    features: { devotee_directory: true, treasury_ledger: true, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: true, sanatani_vivah: true, purohit_market: true, vanshavali: true, data_export: false, qr_biometric: true, whatsapp_broadcast: false, offline_emergency: true, yatra_net: true, god_mode_audit: false },
-    highlightedFeatures: ['Sandbox access']
+    highlightedFeatures: ['Sandbox access'],
   },
-  SEVA: {
-    id: 'SEVA',
-    name: 'Seva Plan (Lite)',
-    badge: 'CORE',
-    description: 'Perfect for small temples and local trusts getting started.',
-    price: { monthly: 0, annual: 0, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: 100, transactions: 250, events: 10, storageMB: 250, adminSeats: 2, pdfsPerMonth: 10 },
-    features: { devotee_directory: true, treasury_ledger: false, pooja_calendar: true, dharamshala: false, asset_inventory: false, panchayat_polling: false, sanatani_vivah: false, purohit_market: false, vanshavali: false, data_export: false, qr_biometric: false, whatsapp_broadcast: true, offline_emergency: false, yatra_net: false, god_mode_audit: false },
-    highlightedFeatures: ['Up to 100 Devotees', 'Pooja Booking Desk', 'WhatsApp Broadcasts']
-  },
-  MANDIR: {
-    id: 'MANDIR',
-    name: 'Mandir Essentials (Standard)',
-    badge: 'POPULAR',
-    description: 'The standard suite for growing local temples and mid-sized trusts.',
-    price: { monthly: 1499, annual: 14990, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: 2500, transactions: 10000, events: 100, storageMB: 2500, adminSeats: 8, pdfsPerMonth: 100 },
-    features: { devotee_directory: true, treasury_ledger: true, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: false, sanatani_vivah: false, purohit_market: false, vanshavali: false, data_export: true, qr_biometric: true, whatsapp_broadcast: true, offline_emergency: true, yatra_net: false, god_mode_audit: false },
-    highlightedFeatures: ['Annadanam & Kitchen', 'Dharamshala Desk', 'Gau Seva & Inventory', '80G Tax Receipts']
-  },
-  SMART_PRO: {
-    id: 'SMART_PRO',
-    name: 'Smart Pro (Enterprise)',
-    badge: 'RECOMMENDED',
-    description: 'Complete enterprise ecosystem for large organizations and global trusts.',
-    price: { monthly: 4999, annual: 49990, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: -1, transactions: -1, events: -1, storageMB: 50000, adminSeats: -1, pdfsPerMonth: -1 },
-    features: { devotee_directory: true, treasury_ledger: true, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: true, sanatani_vivah: true, purohit_market: true, vanshavali: true, data_export: true, qr_biometric: true, whatsapp_broadcast: true, offline_emergency: true, yatra_net: true, god_mode_audit: true },
-    highlightedFeatures: ['Multi-Branch Selector', 'Double-Entry Accounting', 'Audit Logs & Crisis Command', 'Granular User Roles']
-  },
-  SAMPRADAYA: {
-    id: 'SAMPRADAYA',
-    name: 'Sampradaya Enterprise',
-    description: 'Custom solutions for massive trusts requiring dedicated servers.',
-    price: { monthly: 0, annual: 0, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: -1, transactions: -1, events: -1, storageMB: -1, adminSeats: -1, pdfsPerMonth: -1 },
-    features: { devotee_directory: true, treasury_ledger: true, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: true, sanatani_vivah: true, purohit_market: true, vanshavali: true, data_export: true, qr_biometric: true, whatsapp_broadcast: true, offline_emergency: true, yatra_net: true, god_mode_audit: true },
-    highlightedFeatures: ['Custom Deployments', 'Dedicated Infrastructure', 'SLA Guarantees']
-  },
-  LITE: {
-    id: 'LITE',
-    name: 'Lite Tier',
-    badge: 'STARTER',
-    description: 'Essential digital presence and ritual reservations',
-    price: { monthly: 0, annual: 0, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: 100, transactions: 250, events: 10, storageMB: 250, adminSeats: 2, pdfsPerMonth: 10 },
-    features: { devotee_directory: true, treasury_ledger: false, pooja_calendar: true, dharamshala: false, asset_inventory: false, panchayat_polling: false, sanatani_vivah: false, purohit_market: false, vanshavali: false, data_export: false, qr_biometric: false, whatsapp_broadcast: true, offline_emergency: false, yatra_net: false, god_mode_audit: false },
-    highlightedFeatures: ['Pooja Booking Desk', 'Panchang & Muhurat', 'Quick Chanda Modal', 'WhatsApp Broadcaster']
-  },
-  STANDARD: {
-    id: 'STANDARD',
-    name: 'Standard Tier',
-    badge: 'POPULAR',
-    description: 'Operational logistics, seva management, and inventory',
-    price: { monthly: 1499, annual: 14990, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: 2500, transactions: 10000, events: 100, storageMB: 2500, adminSeats: 8, pdfsPerMonth: 100 },
-    features: { devotee_directory: true, treasury_ledger: false, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: false, sanatani_vivah: false, purohit_market: false, vanshavali: false, data_export: true, qr_biometric: true, whatsapp_broadcast: true, offline_emergency: true, yatra_net: false, god_mode_audit: false },
-    highlightedFeatures: ['Annadanam Kitchen', 'Dharamshala Desk', 'Gau Seva Desk', 'Mandir Campaigns', 'Sevadar Roster', 'Karma Ledger', 'Inventory Desk', '80G Tax Receipts']
-  },
-  ENTERPRISE: {
-    id: 'ENTERPRISE',
-    name: 'Enterprise Tier',
-    badge: 'ERP & GOVERNANCE',
-    description: 'Multi-branch ERP, double-entry treasury, and audit security',
-    price: { monthly: 4999, annual: 49990, currency: 'INR', currencySymbol: '₹' },
-    limits: { devotees: -1, transactions: -1, events: -1, storageMB: 50000, adminSeats: -1, pdfsPerMonth: -1 },
-    features: { devotee_directory: true, treasury_ledger: true, pooja_calendar: true, dharamshala: true, asset_inventory: true, panchayat_polling: true, sanatani_vivah: true, purohit_market: true, vanshavali: true, data_export: true, qr_biometric: true, whatsapp_broadcast: true, offline_emergency: true, yatra_net: true, god_mode_audit: true },
-    highlightedFeatures: ['WorkspaceSelectorDesk', 'TreasuryLedgerDesk', 'AuditLogDesk', 'CrisisCommandCenter', 'UserRolesDesk']
-  }
+  SEVA: fromTier('SEVA', PLAN_PRICING.SEVA),
+  // Legacy aliases → new tiers
+  LITE: fromTier('LITE', PLAN_PRICING.SEVA),
+  MANDIR: fromTier('MANDIR', PLAN_PRICING.STANDARD),
+  STANDARD: fromTier('STANDARD', PLAN_PRICING.STANDARD),
+  SMART_PRO: fromTier('SMART_PRO', PLAN_PRICING.PREMIUM),
+  SAMPRADAYA: fromTier('SAMPRADAYA', PLAN_PRICING.PREMIUM),
+  ENTERPRISE: fromTier('ENTERPRISE', PLAN_PRICING.PREMIUM),
+  PREMIUM: fromTier('PREMIUM', PLAN_PRICING.PREMIUM),
+  PUROHIT_PRO: fromTier('PUROHIT_PRO', PLAN_PRICING.PUROHIT_PRO),
 };
