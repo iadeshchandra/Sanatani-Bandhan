@@ -3,7 +3,6 @@ import { GitFork, Plus, User, Sparkles, ChevronDown, ChevronRight, X } from 'luc
 import { useData } from '../../context/DataContext';
 import { VanshavaliNode } from '../../types';
 import { useToast } from '../../context/ToastContext';
-import { useLanguage } from '../../context/LanguageContext';
 
 interface TreeNodeProps {
   node: VanshavaliNode;
@@ -61,7 +60,7 @@ const TreeNodeComponent: React.FC<TreeNodeProps> = ({ node, onAddChild }) => {
             className="text-[10px] px-2 py-1 rounded-lg bg-temple-800 hover:bg-saffron-500 hover:text-temple-950 text-saffron-300 font-semibold flex items-center gap-1 transition-all cursor-pointer"
           >
             <Plus className="w-3 h-3" />
-            <span>{t('org.people.vanshavali.addDescendant')}</span>
+            <span>Add Descendant</span>
           </button>
 
           {hasChildren && (
@@ -104,7 +103,6 @@ const TreeNodeComponent: React.FC<TreeNodeProps> = ({ node, onAddChild }) => {
 };
 
 export const VanshavaliDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { vanshavali, updateVanshavali } = useData();
   const { showToast } = useToast();
 
@@ -172,7 +170,9 @@ export const VanshavaliDesk: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">
               Vedic Vanshavali Engine
             </span>
-            <span className="text-xs text-temple-400 font-mono">{t('org.people.vanshavali.preserving7GenerationsOfGotraLineage')}</span>
+            <span className="text-xs text-temple-400 font-mono">
+              Preserving 7 Generations of Gotra Lineage
+            </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
             Ancestral Lineage Tree (Vanshavali)
@@ -234,7 +234,7 @@ export const VanshavaliDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">{t('org.people.vanshavali.gotra')}</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Gotra</label>
                   <input
                     type="text"
                     value={childGotra}
@@ -268,7 +268,7 @@ export const VanshavaliDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">{t('org.people.vanshavali.shastricNotesAchievements')}</label>
+                <label className="block text-temple-300 font-semibold mb-1">Shastric Notes / Achievements</label>
                 <input
                   type="text"
                   value={notes}
@@ -283,11 +283,15 @@ export const VanshavaliDesk: React.FC = () => {
                   type="button"
                   onClick={() => setSelectedParent(null)}
                   className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
-                >{t('org.people.vanshavali.cancel')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
-                >{t('org.people.vanshavali.addToTree')}</button>
+                >
+                  Add to Tree
+                </button>
               </div>
             </form>
           </div>
