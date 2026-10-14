@@ -122,13 +122,25 @@ const PlansView: React.FC = () => {
     else showToast(r.error || 'Save failed.', 'error');
   };
 
+  const seedPricing = async () => {
+    setWorking(true);
+    const r = await firestoreAdmin.seedPlans();
+    setWorking(false);
+    if (r.ok) { showToast(`Final pricing seeded (${r.data.seeded} plans).`, 'success'); load(); }
+    else showToast(r.error || 'Seed failed.', 'error');
+  };
+
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-400">
         Plans defined here override the built-in pricing. Changing a price affects new subscriptions immediately.
       </p>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={seedPricing} disabled={working}
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
+          <RefreshCw className="w-4 h-4" /> Seed final pricing
+        </button>
         <button type="button" onClick={() => setForm(blank)}
           className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">
           <Plus className="w-4 h-4" /> New plan
@@ -267,10 +279,179 @@ export const SettingsTab: React.FC = () => {
   const [sub, setSub] = useState('Feature Flags');
   return (
     <div className="space-y-4">
-      <SubTabs tabs={['Feature Flags', 'Plans', 'Maintenance']} active={sub} onChange={setSub} />
+      <SubTabs tabs={['Feature Flags', 'Plans', 'Payment Methods', 'Maintenance']} active={sub} onChange={setSub} />
       {sub === 'Feature Flags' && <FlagsView />}
       {sub === 'Plans' && <PlansView />}
+      {sub === 'Payment Methods' && <PaymentsView />}
       {sub === 'Maintenance' && <MaintenanceView />}
+    </div>
+  );
+};
+
+/* ----------------------------- Payment Methods ---------------------------- */
+
+const PM_FIELD_DEFS: { key: string; label: string; hint: string }[] = [
+  { key: 'label', label: 'Label', hint: 'Display name, e.g. Bangla QR (TallyPay)' },
+  { key: 'number', label: 'Number', hint: 'Mobile / merchant number' },
+  { key: 'merchantName', label: 'Merchant name', hint: 'Shown under the QR' },
+  { key: 'qrImageUrl', label: 'QR image URL', hint: '/bangla-qr.png or a full https URL' },
+  { key: 'upiId', label: 'UPI ID', hint: 'India UPI VPA' },
+  { key: 'accountName', label: 'Account name', hint: 'Wise / Payoneer holder name' },
+  { key: 'accountDetails', label: 'Account details', hint: 'Wise account / routing details' },
+  { key: 'accountEmail', label: 'Account email', hint: 'Payoneer email' },
+  { key: 'link', label: 'Payment link', hint: 'Wise pay link / Payoneer URL' },
+];
+
+const PaymentsView: React.FC = () => {
+  const { showToast } = useToast();
+  const [methods, setMethods] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState<Record<string, any>>({});
+  const [working, setWorking] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const r = await firestoreAdmin.paymentMethodsList();
+    if (r.ok) setMethods(r.data.methods);
+    else showToast(r.error || 'Failed.', 'error');
+    setLoading(false);
+  }, [showToast]);
+  useEffect(() => { load(); }, [load]);
+
+  const seed = async () => {
+    setWorking(true);
+    const r = await firestoreAdmin.seedPaymentMethods();
+    setWorking(false);
+    if (r.ok) { showToast(`Seeded ${r.data.seeded} payment method(s).`, 'success'); load(); }
+    else showToast(r.error || 'Seed failed.', 'error');
+  };
+
+  const openEdit = (m: any) => {
+    setEditing(m);
+    setForm({
+      label: m.label || '',
+      enabled: m.enabled !== false,
+      number: m.number || '',
+      merchantName: m.merchantName || '',
+      qrImageUrl: m.qrImageUrl || '',
+      upiId: m.upiId || '',
+      accountName: m.accountName || '',
+      accountDetails: m.accountDetails || '',
+      accountEmail: m.accountEmail || '',
+      link: m.link || '',
+      instructionsEn: Array.isArray(m.instructionsEn) ? m.instructionsEn.join('\n') : (m.instructionsEn || ''),
+      instructionsBn: Array.isArray(m.instructionsBn) ? m.instructionsBn.join('\n') : (m.instructionsBn || ''),
+    });
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    setWorking(true);
+    const r = await firestoreAdmin.paymentMethodSave(editing.id, form);
+    setWorking(false);
+    if (r.ok) { showToast('Payment method saved.', 'success'); setEditing(null); load(); }
+    else showToast(r.error || 'Save failed.', 'error');
+  };
+
+  const toggle = async (m: any) => {
+    setWorking(true);
+    const r = await firestoreAdmin.paymentMethodSave(m.id, { enabled: !(m.enabled !== false) });
+    setWorking(false);
+    if (r.ok) { showToast(`“${m.label || m.id}” ${m.enabled !== false ? 'disabled' : 'enabled'}.`, 'success'); load(); }
+    else showToast(r.error || 'Failed.', 'error');
+  };
+
+  const regionName = (r: string) => (r === 'BD' ? '🇧🇩 Bangladesh' : r === 'IN' ? '🇮🇳 India' : '🌍 International');
+
+  if (loading) return <Loading text="Loading payment methods…" />;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-400">
+        These are what users see on the billing page, per region. Toggle a method off to hide it instantly.
+        The Bangla QR image lives at <span className="font-mono text-saffron-300">/bangla-qr.png</span> — replace the file in
+        <span className="font-mono text-saffron-300"> public/ </span> or paste a full URL below to change it.
+      </p>
+      {methods.length === 0 && (
+        <Card className="border-dashed">
+          <p className="text-xs text-slate-500 mb-3">No payment methods configured yet. Seed the defaults:</p>
+          <button type="button" onClick={seed} disabled={working}
+            className="px-5 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black disabled:opacity-50">
+            {working ? 'Seeding…' : 'Seed default methods'}
+          </button>
+        </Card>
+      )}
+      {['BD', 'IN', 'INTL'].map((region) => {
+        const list = methods.filter((m) => (m.region || 'INTL') === region);
+        if (list.length === 0) return null;
+        return (
+          <div key={region} className="space-y-2">
+            <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">{regionName(region)}</h4>
+            {list.map((m) => (
+              <Card key={m.id}>
+                <div className="flex items-start gap-3">
+                  <button type="button" onClick={() => toggle(m)} disabled={working}
+                    className="shrink-0 mt-0.5 disabled:opacity-50" aria-label="Toggle enabled">
+                    {m.enabled !== false
+                      ? <ToggleRight className="w-7 h-7 text-emerald-400" />
+                      : <ToggleLeft className="w-7 h-7 text-slate-600" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-sm">{m.label || m.id}</p>
+                    <p className="text-[11px] text-slate-500 font-mono truncate">
+                      {[m.number, m.upiId, m.accountEmail].filter(Boolean).join(' · ') || m.type}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => openEdit(m)}
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-200 shrink-0">
+                    Edit
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        );
+      })}
+
+      {editing && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-1">Edit {editing.label || editing.id}</h3>
+            <p className="text-[11px] text-slate-500 font-mono mb-4">{editing.id} · {editing.region} · {editing.type}</p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer min-h-[44px]">
+                <input type="checkbox" checked={!!form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+                  className="w-5 h-5 accent-emerald-500" />
+                <span className="text-sm text-slate-200 font-bold">Enabled (visible to users)</span>
+              </label>
+              {PM_FIELD_DEFS.map((f) => (
+                <div key={f.key}>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">{f.label}</label>
+                  <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                    placeholder={f.hint} className={inputCls} />
+                </div>
+              ))}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1">Instructions — English (one step per line)</label>
+                <textarea value={form.instructionsEn} onChange={(e) => setForm({ ...form, instructionsEn: e.target.value })}
+                  rows={5} className={inputCls + ' font-normal'} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1">Instructions — বাংলা (one step per line)</label>
+                <textarea value={form.instructionsBn} onChange={(e) => setForm({ ...form, instructionsBn: e.target.value })}
+                  rows={5} className={inputCls + ' font-normal'} />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setEditing(null)}
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={save} disabled={working}
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  {working ? 'Saving…' : 'Save'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

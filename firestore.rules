@@ -601,6 +601,12 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
+    // Payment methods: public read so billing pages can render them;
+    // only the owner creates/updates/deletes.
+    match /paymentMethods/{methodId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
     // Platform config (maintenance mode etc.): public read of the main doc.
     match /platformConfig/{cfgId} {
       allow read: if true;
