@@ -48,6 +48,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -1240,6 +1241,85 @@ async function seedPaymentMethods(): Promise<NativeResult> {
   }
   await writeAudit('settings.paymentMethod.seed', { seeded }, 'warn');
   return { ok: true, data: { ok: true, seeded } };
+}
+
+/** Delete a payment method (owner only, with confirmation in UI). */
+async function paymentMethodDelete(id: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!/^[a-z0-9_]{1,40}$/.test(id)) {
+    return { ok: false, error: 'Invalid method id.', code: 'BAD_KEY' };
+  }
+  await deleteDoc(doc(db, 'paymentMethods', id));
+  await writeAudit('settings.paymentMethod.delete', { id, by: uid }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/* ------------------------- Geo payment regions ------------------------- */
+
+const GEO_CONFIG_DOC = 'config';
+const GEO_CONFIG_COLLECTION = 'geoPaymentConfig';
+
+/** Read the owner-configured geo regions (falls back to defaults client-side). */
+async function geoConfigGet(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDoc(doc(db, GEO_CONFIG_COLLECTION, GEO_CONFIG_DOC));
+  const data = snap.exists() ? snap.data() : null;
+  return { ok: true, data: { ok: true, config: data } };
+}
+
+const GEO_REGION_ID_RE = /^[A-Z0-9]{2,10}$/;
+
+/** Save the geo region configuration (owner only). */
+async function geoConfigSave(config: {
+  regions: Array<{
+    id: string; name: string; currency: string; currencySymbol: string;
+    countryCodes: string[]; ipCountries: string[]; enabled: boolean; flag?: string;
+  }>;
+  defaultRegion: string;
+}): Promise<NativeResult> {
+  const uid = requireOwner();
+  if (!config || !Array.isArray(config.regions) || config.regions.length === 0) {
+    return { ok: false, error: 'At least one region is required.', code: 'BAD_INPUT' };
+  }
+  if (config.regions.length > 20) {
+    return { ok: false, error: 'Too many regions (max 20).', code: 'BAD_INPUT' };
+  }
+  const seen = new Set<string>();
+  const cleanRegions = [];
+  for (const r of config.regions) {
+    if (!r || typeof r.id !== 'string' || !GEO_REGION_ID_RE.test(r.id.trim().toUpperCase())) {
+      return { ok: false, error: `Invalid region id: ${String(r && r.id)}`, code: 'BAD_INPUT' };
+    }
+    const id = r.id.trim().toUpperCase();
+    if (seen.has(id)) return { ok: false, error: `Duplicate region id: ${id}`, code: 'BAD_INPUT' };
+    seen.add(id);
+    cleanRegions.push({
+      id,
+      name: String(r.name || id).slice(0, 60),
+      currency: String(r.currency || 'USD').slice(0, 10).toUpperCase(),
+      currencySymbol: String(r.currencySymbol || '$').slice(0, 8),
+      countryCodes: Array.isArray(r.countryCodes)
+        ? r.countryCodes.map((x) => String(x).replace(/\D/g, '')).filter(Boolean).slice(0, 10)
+        : [],
+      ipCountries: Array.isArray(r.ipCountries)
+        ? r.ipCountries.map((x) => String(x).toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean).slice(0, 10)
+        : [],
+      enabled: r.enabled !== false,
+      flag: typeof r.flag === 'string' ? r.flag.slice(0, 12) : '',
+    });
+  }
+  const defaultRegion = String(config.defaultRegion || '').toUpperCase();
+  if (!seen.has(defaultRegion)) {
+    return { ok: false, error: 'Default region must be one of the configured regions.', code: 'BAD_INPUT' };
+  }
+  await setDoc(doc(db, GEO_CONFIG_COLLECTION, GEO_CONFIG_DOC), {
+    regions: cleanRegions,
+    defaultRegion,
+    updatedAt: serverTimestamp(),
+    updatedBy: uid,
+  });
+  await writeAudit('settings.geoConfig.save', { regions: cleanRegions.length, defaultRegion }, 'warn');
+  return { ok: true, data: { ok: true } };
 }
 
 /* ------------------------------ Plan seeding ---------------------------- */
@@ -2523,6 +2603,9 @@ export const firestoreAdmin = {
   paymentMethodsList,
   paymentMethodSave,
   seedPaymentMethods,
+  paymentMethodDelete,
+  geoConfigGet,
+  geoConfigSave,
   seedPlans,
   // Marketplace (Fiverr-like gigs)
   marketplaceDashboard,
