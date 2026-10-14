@@ -1,0 +1,11 @@
+/* Matha One — print stylesheet. */
+
+@media print {
+  .no-print { display: none !important; }
+  .print-area { padding: 0 !important; }
+  .print-report {
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+  }
+  body { background: #fff !important; }
+}
