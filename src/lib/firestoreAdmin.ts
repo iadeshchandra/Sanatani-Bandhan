@@ -2149,6 +2149,222 @@ async function auditPickRequestSms(orderIds: string[]): Promise<NativeResult> {
 
 /* --------------------------------- Export -------------------------------- */
 
+/* ------------------- Wallet + escrow top-up (owner) ------------------- */
+
+async function topupQueue(status = 'pending'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'topupClaims'), where('status', '==', status), limit(100)));
+  const claims = snap.docs
+    .map((d) => {
+      const v: any = d.data();
+      return {
+        id: d.id, uid: v.uid, amount: v.amount, currency: v.currency,
+        paymentMethodId: v.paymentMethodId, trxId: v.trxId, screenshotUrl: v.screenshotUrl,
+        status: v.status, rejectionReason: v.rejectionReason,
+        createdAt: tsToIso(v.createdAt),
+      };
+    })
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, claims } };
+}
+
+/** Approve a top-up: credit the user's wallet + ledger entry + audit. */
+async function topupApprove(id: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'topupClaims', id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, error: 'Claim not found.', code: 'NOT_FOUND' };
+  const claim: any = snap.data();
+  if (claim.status !== 'pending') return { ok: false, error: 'Claim is no longer pending.', code: 'STALE' };
+  const amount = Math.round(Number(claim.amount));
+  if (!amount || amount <= 0) return { ok: false, error: 'Invalid claim amount.', code: 'BAD_AMOUNT' };
+
+  const walletRef = doc(db, 'wallets', claim.uid);
+  const walletSnap = await getDoc(walletRef);
+  const before = walletSnap.exists() ? Number((walletSnap.data() as any).balance || 0) : 0;
+  const w = walletSnap.exists() ? (walletSnap.data() as any) : null;
+  const currency = ['BDT', 'INR', 'USD'].includes(claim.currency) ? claim.currency : 'BDT';
+  if (w && w.currency && w.currency !== currency) {
+    return { ok: false, error: `Currency mismatch: wallet is ${w.currency}, claim is ${currency}. Adjust manually.`, code: 'CURRENCY_MISMATCH' };
+  }
+
+  await updateDoc(ref, { status: 'approved', reviewedByUid: uid, reviewedAt: serverTimestamp() });
+  await setDoc(
+    walletRef,
+    {
+      uid: claim.uid,
+      balance: before + amount,
+      currency,
+      totalToppedUp: Number(w?.totalToppedUp || 0) + amount,
+      totalSpent: Number(w?.totalSpent || 0),
+      totalReceived: Number(w?.totalReceived || 0),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+  await addDoc(collection(db, 'walletTransactions'), {
+    uid: claim.uid,
+    type: 'topup',
+    amount,
+    currency,
+    topupClaimId: id,
+    note: `Top-up approved (${claim.paymentMethodId}, TrxID ${claim.trxId})`,
+    createdAt: serverTimestamp(),
+  });
+  await writeAudit(
+    'wallet.topup.approve',
+    { claimId: id, uid: claim.uid, amount, currency, balanceBefore: before, balanceAfter: before + amount },
+    'warn'
+  );
+  return { ok: true, data: { ok: true, balanceAfter: before + amount } };
+}
+
+async function topupReject(id: string, reason: string): Promise<NativeResult> {
+  requireOwner();
+  const ref = doc(db, 'topupClaims', id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, error: 'Claim not found.', code: 'NOT_FOUND' };
+  const claim: any = snap.data();
+  if (claim.status !== 'pending') return { ok: false, error: 'Claim is no longer pending.', code: 'STALE' };
+  await updateDoc(ref, {
+    status: 'rejected', rejectionReason: reason.slice(0, 500),
+    reviewedByUid: requireOwner(), reviewedAt: serverTimestamp(),
+  });
+  await writeAudit('wallet.topup.reject', { claimId: id, uid: claim.uid, reason: reason.slice(0, 200) }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Owner view of a user's wallet + recent ledger. */
+async function walletLookup(uid: string): Promise<NativeResult> {
+  requireOwner();
+  const walletSnap = await getDoc(doc(db, 'wallets', uid));
+  const wallet = walletSnap.exists() ? { id: walletSnap.id, ...(walletSnap.data() as any) } : null;
+  let txns: any[] = [];
+  try {
+    const snap = await getDocs(query(collection(db, 'walletTransactions'), where('uid', '==', uid), limit(50)));
+    txns = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), createdAt: tsToIso((d.data() as any).createdAt) }));
+  } catch { /* fail-open on read */ }
+  let user: any = null;
+  try {
+    const usnap = await getDoc(doc(db, 'users', uid));
+    if (usnap.exists()) user = { id: usnap.id, ...(usnap.data() as any) };
+  } catch { /* optional */ }
+  return { ok: true, data: { ok: true, wallet, txns, user } };
+}
+
+/** Manual owner credit/debit with reason. Every adjustment is audit-logged with before/after. */
+async function walletAdjust(uid: string, amount: number, reason: string): Promise<NativeResult> {
+  const ownerUid = requireOwner();
+  const delta = Math.round(Number(amount));
+  if (!delta || delta === 0) return { ok: false, error: 'Amount must be non-zero.', code: 'BAD_AMOUNT' };
+  if (!reason.trim()) return { ok: false, error: 'A reason is required.', code: 'NO_REASON' };
+  const walletRef = doc(db, 'wallets', uid);
+  const walletSnap = await getDoc(walletRef);
+  const before = walletSnap.exists() ? Number((walletSnap.data() as any).balance || 0) : 0;
+  const after = before + delta;
+  if (after < 0) return { ok: false, error: 'Adjustment would make the balance negative.', code: 'NEGATIVE' };
+  const w = walletSnap.exists() ? (walletSnap.data() as any) : null;
+  await setDoc(
+    walletRef,
+    {
+      uid,
+      balance: after,
+      currency: w?.currency || 'BDT',
+      totalToppedUp: Number(w?.totalToppedUp || 0) + (delta > 0 ? delta : 0),
+      totalSpent: Number(w?.totalSpent || 0),
+      totalReceived: Number(w?.totalReceived || 0),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+  await addDoc(collection(db, 'walletTransactions'), {
+    uid,
+    type: 'adjustment',
+    amount: Math.abs(delta),
+    currency: w?.currency || 'BDT',
+    note: `Owner ${delta > 0 ? 'credit' : 'debit'}: ${reason.slice(0, 300)}`,
+    createdAt: serverTimestamp(),
+  });
+  await writeAudit(
+    'wallet.adjust',
+    { uid, delta, reason: reason.slice(0, 200), balanceBefore: before, balanceAfter: after, by: ownerUid },
+    'critical'
+  );
+  return { ok: true, data: { ok: true, balanceAfter: after } };
+}
+
+/** Pending commission payments (Path B). */
+async function commissionPaymentsQueue(status = 'pending'): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'commissionPayments'), where('status', '==', status), limit(100)));
+  const items = snap.docs
+    .map((d) => {
+      const v: any = d.data();
+      return {
+        id: d.id, orderId: v.orderId, clientUid: v.clientUid, providerUid: v.providerUid,
+        amount: v.amount, currency: v.currency, paidByUid: v.paidByUid, payerRole: v.payerRole,
+        paymentMethodId: v.paymentMethodId, trxId: v.trxId, status: v.status,
+        createdAt: tsToIso(v.createdAt),
+      };
+    })
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, payments: items } };
+}
+
+/** Confirm a commission payment → order completes (Path B gate opens). */
+async function commissionPaymentConfirm(id: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'commissionPayments', id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, error: 'Payment not found.', code: 'NOT_FOUND' };
+  const pay: any = snap.data();
+  if (pay.status !== 'pending') return { ok: false, error: 'Payment is no longer pending.', code: 'STALE' };
+
+  const orderRef = doc(db, 'marketplaceOrders', pay.orderId);
+  const orderSnap = await getDoc(orderRef);
+  if (!orderSnap.exists()) return { ok: false, error: 'Order not found.', code: 'ORDER_NOT_FOUND' };
+  const order: any = orderSnap.data();
+  if (Number(pay.amount) < Number(order.commissionAmount || 0)) {
+    return { ok: false, error: `Paid ${pay.amount} is less than the ${order.commissionAmount} commission due.`, code: 'UNDERPAID' };
+  }
+
+  await updateDoc(ref, { status: 'confirmed', confirmedByUid: uid, confirmedAt: serverTimestamp() });
+  await updateDoc(orderRef, { status: 'completed', commissionPaidVia: pay.id, completedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  // Platform revenue ledger for the confirmed commission.
+  try {
+    await setDoc(doc(db, 'platformRevenue', pay.orderId), {
+      orderId: pay.orderId,
+      amount: Number(order.commissionAmount || 0),
+      currency: order.currency || 'BDT',
+      providerUid: order.providerUid,
+      clientUid: order.clientUid,
+      recordedBy: uid,
+      via: 'commission_payment',
+      createdAt: serverTimestamp(),
+    });
+  } catch { /* non-fatal — revenue backfill possible */ }
+  await writeAudit(
+    'marketplace.commission.confirm',
+    { paymentId: id, orderId: pay.orderId, amount: pay.amount, paidBy: pay.paidByUid },
+    'warn'
+  );
+  return { ok: true, data: { ok: true } };
+}
+
+/** Platform revenue dashboard: totals + recent entries. */
+async function platformRevenueStats(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'platformRevenue'), limit(500)));
+  const entries = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), createdAt: tsToIso((d.data() as any).createdAt) }));
+  const byCurrency: Record<string, number> = {};
+  for (const e of entries) {
+    const c = String(e.currency || 'BDT');
+    byCurrency[c] = (byCurrency[c] || 0) + Number(e.amount || 0);
+  }
+  entries.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  return { ok: true, data: { ok: true, totals: byCurrency, count: entries.length, recent: entries.slice(0, 50) } };
+}
+
 export const firestoreAdmin = {
   isOwnerUid,
   overview,
@@ -2251,6 +2467,15 @@ export const firestoreAdmin = {
   verifySms,
   riskDashboard,
   auditPickRequestSms,
+  // Wallet + escrow top-up
+  topupQueue,
+  topupApprove,
+  topupReject,
+  walletLookup,
+  walletAdjust,
+  commissionPaymentsQueue,
+  commissionPaymentConfirm,
+  platformRevenueStats,
 };
 
 export default firestoreAdmin;
