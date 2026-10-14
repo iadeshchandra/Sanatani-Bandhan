@@ -23,6 +23,7 @@ import {
   Store,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { useLanguage } from '../context/LanguageContext';
 import { provisionalSoloProfile } from '../solo/soloSession';
 import { JyotishProvider, useJyotish } from '../context/JyotishContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
@@ -51,23 +52,25 @@ type JyotishTab =
   | 'profile'
   | 'marketplace';
 
-const TABS: { id: JyotishTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview', label: 'Home', icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'find', label: 'Find Work', icon: <Search className="w-4 h-4" /> },
-  { id: 'consultations', label: 'My Consultations', icon: <MessageCircle className="w-4 h-4" /> },
-  { id: 'earnings', label: 'Earnings', icon: <Wallet className="w-4 h-4" /> },
-  { id: 'availability', label: 'Availability', icon: <CalendarDays className="w-4 h-4" /> },
-  { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
-  { id: 'reviews', label: 'Reviews', icon: <Star className="w-4 h-4" /> },
-  { id: 'referrals', label: 'Referrals', icon: <HandHeart className="w-4 h-4" /> },
-  { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
-  { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
+const getTabs = (t: (k: string) => string): { id: JyotishTab; label: string; icon: React.ReactNode }[] => [
+  { id: 'overview', label: t('jyotish.shell.tabs.home'), icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'find', label: t('jyotish.shell.tabs.find'), icon: <Search className="w-4 h-4" /> },
+  { id: 'consultations', label: t('jyotish.shell.tabs.consultations'), icon: <MessageCircle className="w-4 h-4" /> },
+  { id: 'earnings', label: t('jyotish.shell.tabs.earnings'), icon: <Wallet className="w-4 h-4" /> },
+  { id: 'availability', label: t('jyotish.shell.tabs.availability'), icon: <CalendarDays className="w-4 h-4" /> },
+  { id: 'verification', label: t('jyotish.shell.tabs.verification'), icon: <BadgeCheck className="w-4 h-4" /> },
+  { id: 'reviews', label: t('jyotish.shell.tabs.reviews'), icon: <Star className="w-4 h-4" /> },
+  { id: 'referrals', label: t('jyotish.shell.tabs.referrals'), icon: <HandHeart className="w-4 h-4" /> },
+  { id: 'profile', label: t('jyotish.shell.tabs.profile'), icon: <User className="w-4 h-4" /> },
+  { id: 'marketplace', label: t('jyotish.shell.tabs.marketplace'), icon: <Store className="w-4 h-4" /> },
 ];
 
 const InnerShell: React.FC = () => {
+  const { t } = useLanguage();
   const { logout, exitJyotishSession, enterSoloSession } = useAuthWorkspace();
   const { profile, profileLoading, effectiveTier, myInvites } = useJyotish();
   const [tab, setTab] = useState<JyotishTab>('overview');
+  const TABS = getTabs(t);
 
   const handleLogout = async () => {
     exitJyotishSession();
@@ -92,7 +95,7 @@ const InnerShell: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-black text-stone-900 truncate">
-                  {profileLoading ? 'Loading…' : profile?.displayName || 'Jyotishi'}
+                  {profileLoading ? t('jyotish.shell.loading') : profile?.displayName || t('jyotish.shell.title')}
                 </h1>
                 {effectiveTier && <VerificationBadge tier={effectiveTier} subject="Jyotishi" />}
               </div>
@@ -112,9 +115,9 @@ const InnerShell: React.FC = () => {
                 type="button"
                 onClick={() => exitJyotishSession()}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-100 hover:bg-violet-200 text-violet-800 text-xs font-black transition-colors min-h-[44px]"
-                title="Switch to your devotee view"
+                title={t('jyotish.shell.devoteeView')}
               >
-                🙏 <span className="hidden sm:inline">Devotee view</span>
+                🙏 <span className="hidden sm:inline">{t('jyotish.shell.devoteeView')}</span>
               </button>
             )}
             {/* Solo-first: Personal (Sanatani) is always one tap away. */}
@@ -122,17 +125,17 @@ const InnerShell: React.FC = () => {
               type="button"
               onClick={() => enterSoloSession(provisionalSoloProfile())}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black transition-colors min-h-[44px]"
-              title="Your personal Sanatani space — sadhana, panchang, Sangam"
+              title={t('jyotish.shell.personalSpace')}
             >
-              🪔 <span className="hidden sm:inline">Personal (Sanatani)</span>
+              🪔 <span className="hidden sm:inline">{t('jyotish.shell.personalSanatani')}</span>
             </button>
             {pendingInvites > 0 && (
               <button
                 type="button"
                 onClick={() => setTab('overview')}
                 className="relative p-2.5 rounded-xl bg-indigo-100 text-indigo-800 hover:bg-indigo-200 transition-colors"
-                title={`${pendingInvites} organisation invitation(s)`}
-                aria-label={`${pendingInvites} organisation invitations`}
+                title={t('jyotish.shell.invites').replace('{n}', String(pendingInvites))}
+                aria-label={t('jyotish.shell.invites').replace('{n}', String(pendingInvites))}
               >
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center">
@@ -146,26 +149,26 @@ const InnerShell: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition-colors min-h-[44px]"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">{t('jyotish.shell.logout')}</span>
             </button>
           </div>
         </div>
         {/* Tab bar */}
-        <nav className="max-w-6xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto" aria-label="Jyotishi workspace">
-          {TABS.map((t) => (
+        <nav className="max-w-6xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto" aria-label={t('jyotish.shell.navLabel')}>
+          {TABS.map((tab) => (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(tab.id)}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] ${
-                tab === t.id
+                tab === tab.id
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
                   : 'bg-white text-stone-600 border border-stone-200 hover:border-indigo-300 hover:text-indigo-700'
               }`}
             >
-              {t.icon}
-              {t.label}
-              {t.id === 'verification' && effectiveTier !== 'PLATFORM_VERIFIED' && (
+              {tab.icon}
+              {tab.label}
+              {tab.id === 'verification' && effectiveTier !== 'PLATFORM_VERIFIED' && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               )}
             </button>
