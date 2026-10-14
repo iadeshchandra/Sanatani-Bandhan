@@ -63,6 +63,8 @@ export interface PlanDoc {
   priceYearlyINR: number;
   priceMonthlyBDT: number;
   priceYearlyBDT: number;
+  priceMonthlyUSD: number;
+  priceYearlyUSD: number;
   limits: PlanLimits;
   active: boolean;
 }
@@ -76,6 +78,8 @@ const PLAN_DEFAULTS: Record<Exclude<CanonicalPlan, 'demo'>, PlanDoc> = {
     priceYearlyINR: 0,
     priceMonthlyBDT: 0,
     priceYearlyBDT: 0,
+    priceMonthlyUSD: 0,
+    priceYearlyUSD: 0,
     limits: { maxDevotees: 100, maxTransactionsPerMonth: 500, maxSeats: 2, maxBranches: 1 },
     active: true,
   },
@@ -86,6 +90,8 @@ const PLAN_DEFAULTS: Record<Exclude<CanonicalPlan, 'demo'>, PlanDoc> = {
     priceYearlyINR: 4999,
     priceMonthlyBDT: 700,
     priceYearlyBDT: 7000,
+    priceMonthlyUSD: 6,
+    priceYearlyUSD: 60,
     limits: { maxDevotees: 1000, maxTransactionsPerMonth: -1, maxSeats: 10, maxBranches: 3 },
     active: true,
   },
@@ -96,7 +102,33 @@ const PLAN_DEFAULTS: Record<Exclude<CanonicalPlan, 'demo'>, PlanDoc> = {
     priceYearlyINR: 19999,
     priceMonthlyBDT: 2800,
     priceYearlyBDT: 28000,
+    priceMonthlyUSD: 24,
+    priceYearlyUSD: 240,
     limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: -1, maxBranches: -1 },
+    active: true,
+  },
+};
+
+/**
+ * Professional plans (Purohit / Jyotishi) — separate from workspace tiers.
+ * Commission is the marketplace take-rate applied per completed booking.
+ */
+export interface ProPlan extends PlanDoc {
+  commissionPercent: number;
+}
+
+export const PRO_PLANS: Record<string, ProPlan> = {
+  purohit_pro: {
+    id: 'purohit_pro',
+    name: 'Purohit / Jyotishi Pro',
+    priceMonthlyINR: 199,
+    priceYearlyINR: 1990,
+    priceMonthlyBDT: 280,
+    priceYearlyBDT: 2800,
+    priceMonthlyUSD: 2.5,
+    priceYearlyUSD: 25,
+    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: 1, maxBranches: 1 },
+    commissionPercent: 12,
     active: true,
   },
 };
@@ -147,6 +179,8 @@ function mergeWithDefaults(canonical: Exclude<CanonicalPlan, 'demo'>, data: Reco
     priceYearlyINR: typeof data.priceYearlyINR === 'number' ? data.priceYearlyINR : d.priceYearlyINR,
     priceMonthlyBDT: typeof data.priceMonthlyBDT === 'number' ? data.priceMonthlyBDT : d.priceMonthlyBDT,
     priceYearlyBDT: typeof data.priceYearlyBDT === 'number' ? data.priceYearlyBDT : d.priceYearlyBDT,
+    priceMonthlyUSD: typeof data.priceMonthlyUSD === 'number' ? data.priceMonthlyUSD : d.priceMonthlyUSD,
+    priceYearlyUSD: typeof data.priceYearlyUSD === 'number' ? data.priceYearlyUSD : d.priceYearlyUSD,
     limits: {
       maxDevotees: typeof lim.maxDevotees === 'number' ? lim.maxDevotees : d.limits.maxDevotees,
       maxTransactionsPerMonth:
