@@ -2,8 +2,10 @@
 import React, { useMemo, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { Card, SectionTitle, PrimaryButton, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const FindGigsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { openGigs, acceptGig, profile } = usePurohit();
   const [cityFilter, setCityFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -19,12 +21,12 @@ export const FindGigsTab: React.FC = () => {
   }, [openGigs, cityFilter, typeFilter]);
 
   const handleAccept = async (gig: any) => {
-    if (!confirm(`Accept "${gig.ritualType}" for ${gig.devoteeName}?`)) return;
+    if (!confirm(`${t('purohit.find.acceptConfirm')}: "${gig.ritualType}" — ${gig.devoteeName}`)) return;
     setAccepting(gig.id);
     try {
       await acceptGig(gig);
     } catch (e: any) {
-      alert(e.message || 'Could not accept gig');
+      alert(e.message || t('purohit.find.acceptFailed'));
     } finally {
       setAccepting(null);
     }
@@ -33,14 +35,14 @@ export const FindGigsTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <Card>
-        <SectionTitle sub="Open requirements from devotees. Accept to take the ritual.">
-          Find rituals ({filtered.length})
+        <SectionTitle sub={t('purohit.find.titleSub')}>
+          {t('purohit.find.findTitle')} ({filtered.length})
         </SectionTitle>
         <div className="grid sm:grid-cols-2 gap-3">
           <input
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
-            placeholder="Filter by city…"
+            placeholder={t('purohit.find.filterCity')}
             className="px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm min-h-[44px]"
           />
           <select
@@ -48,12 +50,12 @@ export const FindGigsTab: React.FC = () => {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm min-h-[44px] bg-white"
           >
-            <option value="">All ritual types</option>
-            <option>Havan & Yajna</option>
-            <option>Samskara & Vivah</option>
-            <option>Katha & Shanti</option>
-            <option>Vastu & Grihapravesh</option>
-            <option>Mandir Sanctum</option>
+            <option value="">{t('purohit.find.allTypes')}</option>
+            <option>{t('purohit.find.catHavanYajna')}</option>
+            <option>{t('purohit.find.catSamskaraVivah')}</option>
+            <option>{t('purohit.find.catKathaShanti')}</option>
+            <option>{t('purohit.find.catVastuGrihapravesh')}</option>
+            <option>{t('purohit.find.catMandirSanctum')}</option>
           </select>
         </div>
       </Card>
@@ -61,8 +63,8 @@ export const FindGigsTab: React.FC = () => {
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
-            title="No open requirements right now"
-            sub="New devotee requirements appear here. Keep your city and specializations updated so the right gigs find you."
+            title={t('purohit.find.noOpen')}
+            sub={t('purohit.find.noOpenSub')}
           />
         </Card>
       ) : (
@@ -77,7 +79,7 @@ export const FindGigsTab: React.FC = () => {
                   </p>
                   {g.notes && <p className="text-xs text-stone-600 mt-1.5 italic">“{g.notes}”</p>}
                   <p className="text-xs font-bold text-emerald-700 mt-1.5">
-                    Budget: ₹{g.budgetMin.toLocaleString('en-IN')} – ₹{g.budgetMax.toLocaleString('en-IN')}
+                    {t('purohit.find.budget')}: ₹{g.budgetMin.toLocaleString('en-IN')} – ₹{g.budgetMax.toLocaleString('en-IN')}
                   </p>
                 </div>
               </div>
@@ -86,7 +88,7 @@ export const FindGigsTab: React.FC = () => {
                 disabled={accepting === g.id}
                 onClick={() => handleAccept(g)}
               >
-                {accepting === g.id ? 'Accepting…' : 'Accept this ritual'}
+                {accepting === g.id ? t('purohit.find.accepting') : t('purohit.find.acceptRitual')}
               </PrimaryButton>
             </Card>
           ))}
@@ -94,7 +96,7 @@ export const FindGigsTab: React.FC = () => {
       )}
       {profile && (
         <p className="text-[11px] text-stone-400 text-center px-4">
-          Showing as {profile.displayName} ({profile.id}) · {profile.verificationTier.replace(/_/g, ' ')}
+          {t('purohit.find.showingAs')} {profile.displayName} ({profile.id}) · {profile.verificationTier.replace(/_/g, ' ')}
         </p>
       )}
     </div>
