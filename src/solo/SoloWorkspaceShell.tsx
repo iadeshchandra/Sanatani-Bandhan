@@ -16,6 +16,7 @@ import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
 import { SangamView } from '../sangam/SangamView';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
+import { SoloOnboardingTour } from './SoloOnboardingTour';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -186,6 +187,9 @@ const InnerShell: React.FC = () => {
         {tab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
         {tab === 'profile' && <ProfileTab />}
       </main>
+
+      {/* First-run onboarding tour for brand-new Solo users. */}
+      <SoloOnboardingTour onNavigate={(t) => setTab(t as SoloTab)} />
     </div>
   );
 };
