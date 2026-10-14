@@ -1,0 +1,16 @@
+/* Tirth One — print stylesheet: token slips, daily darshan report. */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .print-token {
+    border: 2px dashed #0f766e;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 320px;
+    margin: 0 auto;
+    font-family: system-ui, sans-serif;
+  }
+  .print-report table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .print-report th, .print-report td { border: 1px solid #d6d3d1; padding: 6px 8px; text-align: left; }
+  .print-report th { background: #f0fdfa; }
+}
