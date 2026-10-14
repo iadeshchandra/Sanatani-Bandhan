@@ -3,13 +3,15 @@ import React, { useMemo, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { GigStatus } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, GhostButton, GigStatusBadge, EmptyState } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
-const NEXT_ACTION: Partial<Record<GigStatus, { next: GigStatus; label: string }>> = {
-  ASSIGNED: { next: 'IN_PROGRESS', label: 'Start ritual' },
-  IN_PROGRESS: { next: 'COMPLETED', label: 'Mark complete' },
-};
+const getNextAction = (t: (k: string) => string): Partial<Record<GigStatus, { next: GigStatus; label: string }>> => ({
+  ASSIGNED: { next: 'IN_PROGRESS', label: t('purohit.gigs.startRitual') },
+  IN_PROGRESS: { next: 'COMPLETED', label: t('purohit.gigs.markComplete') },
+});
 
 export const MyGigsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { myGigs, advanceGig, submitReview, hasReviewed } = usePurohit();
   const [filter, setFilter] = useState<'active' | 'done' | 'all'>('active');
   const [working, setWorking] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export const MyGigsTab: React.FC = () => {
     try {
       await advanceGig(gig, next);
     } catch (e: any) {
-      alert(e.message || 'Could not update gig');
+      alert(e.message || t('purohit.gigs.updateFailed'));
     } finally {
       setWorking(null);
     }
@@ -42,7 +44,7 @@ export const MyGigsTab: React.FC = () => {
       setRating(5);
       setRatingNote('');
     } catch (e: any) {
-      alert(e.message || 'Could not submit rating');
+      alert(e.message || t('purohit.gigs.ratingFailed'));
     } finally {
       setWorking(null);
     }
@@ -50,8 +52,8 @@ export const MyGigsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <SectionTitle sub="Accept, perform, and complete your rituals. Ratings open after completion.">
-        My rituals
+      <SectionTitle sub={t('purohit.gigs.titleSub')}>
+        {t('purohit.gigs.title')}
       </SectionTitle>
       <div className="flex gap-1.5">
         {(['active', 'done', 'all'] as const).map((f) => (
@@ -63,7 +65,7 @@ export const MyGigsTab: React.FC = () => {
               filter === f ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'
             }`}
           >
-            {f === 'done' ? 'Completed' : f}
+            {f === 'done' ? t('purohit.gigs.filterDone') : f === 'active' ? t('purohit.gigs.filterActive') : t('purohit.gigs.filterAll')}
           </button>
         ))}
       </div>
@@ -71,13 +73,13 @@ export const MyGigsTab: React.FC = () => {
       {filtered.length === 0 ? (
         <Card>
           <EmptyState
-            title={filter === 'active' ? 'No active rituals' : 'Nothing here yet'}
-            sub="Accepted gigs appear here. Find open requirements in the Find Gigs tab."
+            title={filter === 'active' ? t('purohit.gigs.noActive') : t('purohit.gigs.nothingHere')}
+            sub={t('purohit.gigs.noActiveSub')}
           />
         </Card>
       ) : (
         filtered.map((g) => {
-          const action = NEXT_ACTION[g.status as GigStatus];
+          const action = getNextAction(t)[g.status as GigStatus];
           const canRate =
             ['COMPLETED', 'DAKSHINA_RELEASED'].includes(g.status) && !hasReviewed(g.id);
           return (
@@ -91,10 +93,10 @@ export const MyGigsTab: React.FC = () => {
                   </p>
                   {g.dakshinaAgreed ? (
                     <p className="text-xs font-bold text-emerald-700 mt-1">
-                      Agreed dakshina: ₹{g.dakshinaAgreed.toLocaleString('en-IN')}
+                      {t('purohit.gigs.agreedDakshina')}: ₹{g.dakshinaAgreed.toLocaleString('en-IN')}
                     </p>
                   ) : (
-                    <p className="text-xs text-stone-400 mt-1">Dakshina: per budget / to be agreed</p>
+                    <p className="text-xs text-stone-400 mt-1">{t('purohit.gigs.dakshinaTBD')}</p>
                   )}
                 </div>
                 <GigStatusBadge status={g.status} />
@@ -109,24 +111,24 @@ export const MyGigsTab: React.FC = () => {
                     disabled={working === g.id}
                     onClick={() => doAdvance(g, action.next)}
                   >
-                    {working === g.id ? 'Updating…' : action.label}
+                    {working === g.id ? t('purohit.gigs.updating') : action.label}
                   </PrimaryButton>
                 )}
                 {g.status === 'COMPLETED' && (
                   <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex-1">
-                    Waiting for the devotee to confirm — dakshina releases on confirmation.
+                    {t('purohit.gigs.waitingConfirm')}
                   </p>
                 )}
                 {canRate && (
                   <GhostButton className="flex-1" onClick={() => setRatingFor(ratingFor === g.id ? null : g.id)}>
-                    {ratingFor === g.id ? 'Close' : 'Rate devotee'}
+                    {ratingFor === g.id ? t('purohit.gigs.close') : t('purohit.gigs.rateDevotee')}
                   </GhostButton>
                 )}
               </div>
 
               {ratingFor === g.id && (
                 <div className="mt-3 border-t border-stone-100 pt-3 space-y-2.5">
-                  <p className="text-xs font-bold text-stone-700">How was working with {g.devoteeName}?</p>
+                  <p className="text-xs font-bold text-stone-700">{t('purohit.gigs.howWas').replace('{name}', g.devoteeName)}</p>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <button
@@ -134,7 +136,7 @@ export const MyGigsTab: React.FC = () => {
                         type="button"
                         onClick={() => setRating(i)}
                         className={`text-2xl ${i <= rating ? 'text-amber-500' : 'text-stone-300'}`}
-                        aria-label={`${i} star`}
+                        aria-label={`${i} ★`}
                       >
                         ★
                       </button>
@@ -143,12 +145,12 @@ export const MyGigsTab: React.FC = () => {
                   <textarea
                     value={ratingNote}
                     onChange={(e) => setRatingNote(e.target.value)}
-                    placeholder="A short note (optional)…"
+                    placeholder={t('purohit.gigs.notePlaceholder')}
                     rows={2}
                     className="w-full px-3 py-2 rounded-xl border border-stone-300 text-sm"
                   />
                   <PrimaryButton className="w-full" disabled={working === g.id} onClick={() => doRate(g)}>
-                    {working === g.id ? 'Submitting…' : 'Submit rating'}
+                    {working === g.id ? t('purohit.gigs.submitting') : t('purohit.gigs.submitRating')}
                   </PrimaryButton>
                 </div>
               )}
