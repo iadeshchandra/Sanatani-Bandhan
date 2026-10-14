@@ -95,7 +95,7 @@ export const DESK_NAMES: Record<string, string> = {
   dharamshala: 'Dharamshala Yatri Bhavan',
   guests: 'Guest & Visitor CRM',
   annadanam: 'Annadanam & Prasad Seva',
-  smartBhandar: 'Smart Bhandar & Recipe BOM',
+  'annakshetra-one': 'Annakshetra One — Kitchen & Bhandara Management',
   panchang: 'Vedic Panchang & Muhurat',
   checkin: 'Gate Command & Check-In',
   campaigns: 'Crowdfunding & Mandir Nirman',
@@ -124,7 +124,7 @@ const ORG_DEFAULTS: Record<string, string[]> = {
   MahotsavSamiti: ['dashboard', 'utsavPanjika', 'devotees', 'treasury', 'campaigns', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
   Tirth: ['dashboard', 'yatranet-gis', 'dharamshala', 'guests', 'treasury', 'quick-chanda-pos', 'donorCare', 'sandeshBroadcast'],
   Vidyalaya: ['dashboard', 'vidyalaya', 'gurukulAcademy', 'devotees', 'treasury', 'granthLibrary', 'donorCare', 'sandeshBroadcast'],
-  AkshayaPatra: ['dashboard', 'annadanam', 'smartBhandar', 'inventory', 'treasury', 'donorCare', 'sevadar-roster', 'campaigns'],
+  AkshayaPatra: ['dashboard', 'annadanam', 'annakshetra-one', 'inventory', 'treasury', 'donorCare', 'sevadar-roster', 'campaigns'],
   PurohitSabha: ['dashboard', 'poojaBooking', 'devotees', 'panchang', 'treasury', 'donorCare', 'sandeshBroadcast', 'granthLibrary'],
   KashiKshetra: ['dashboard', 'devotees', 'treasury', 'yatranet-gis', 'utsavPanjika', 'poojaBooking', 'donorCare', 'dharamshala'],
 };
