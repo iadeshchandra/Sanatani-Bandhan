@@ -19,7 +19,6 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { TRUSTEE_GRANTABLE_ROLES, WorkspaceMembership, JoinRequest } from '../../types/membership';
-import { useLanguage } from '../../context/LanguageContext';
 
 type Tab = 'MEMBERS' | 'REQUESTS' | 'INVITE';
 
@@ -27,7 +26,6 @@ const ROLE_OPTIONS =
   TRUSTEE_GRANTABLE_ROLES.map((r) => ({ value: r, label: r }));
 
 export const MembershipDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const {
     orgMembers, orgJoinRequests, orgInvites,
@@ -270,7 +268,7 @@ export const MembershipDesk: React.FC = () => {
               ))}
               {currentRole === 'SuperAdmin' && (
                 <>
-                  <option value="Trustee">{t('org.people.membership.trusteeSuperadminOnly')}</option>
+                  <option value="Trustee">Trustee (SuperAdmin only)</option>
                   <option value="SuperAdmin">SuperAdmin (SuperAdmin only)</option>
                 </>
               )}
