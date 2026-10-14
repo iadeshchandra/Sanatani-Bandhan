@@ -115,6 +115,8 @@ const TirthDesk = lazy(() => import('./tirth/TirthDesk').then(m => ({ default: m
 const YogaDesk = lazy(() => import('./yoga/YogaDesk').then(m => ({ default: m.YogaDesk })));
 // Matha One — monastic management suite (Sangha + Ashram only).
 const MathaDesk = lazy(() => import('./matha/MathaDesk').then(m => ({ default: m.MathaDesk })));
+// Satsang One — mandali organizer suite (Satsang + Mandir + Ashram only).
+const SatsangDesk = lazy(() => import('./satsang/SatsangDesk').then(m => ({ default: m.SatsangDesk })));
 // Annakshetra One — complete kitchen & bhandara management suite (Mandir + Ashram + Tirth + Trust/NGO + Akshaya Patra).
 const AnnakshetraDesk = lazy(() => import('./annakshetra/AnnakshetraDesk').then(m => ({ default: m.AnnakshetraDesk })));
 // Pathshala One — complete school-management suite (Gurukul + Vidyalaya only).
@@ -499,6 +501,8 @@ const AppContent: React.FC = () => {
         return <YogaDesk />;
       case 'matha-one':
         return <MathaDesk />;
+      case 'satsang-one':
+        return <SatsangDesk />;
       case 'annakshetra-one':
       case 'smartBhandar':
       case 'smart-bhandar':
