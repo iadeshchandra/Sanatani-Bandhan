@@ -62,7 +62,6 @@ import { QuickChandaModal } from '../common/QuickChandaModal';
 import { addDevotee, getDevotees } from '../../services/devoteeService';
 
 export const DevoteeGrid: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace, activeWorkspaceId, currentRole, currentDevotee, checkPermission } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
@@ -613,7 +612,9 @@ export const DevoteeGrid: React.FC = () => {
           <h2 className="text-xl sm:text-2xl font-semibold text-temple-900">
             {taxonomy.directoryName}
           </h2>
-          <p className="text-xs text-temple-600 mt-0.5">{t('org.people.devoteeGrid.comprehensiveDirectoryWithGotraPravaraSe')}</p>
+          <p className="text-xs text-temple-600 mt-0.5">
+            Comprehensive directory with Gotra, Pravara, Seva Tiers, and QR Gate Passes
+          </p>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -625,7 +626,7 @@ export const DevoteeGrid: React.FC = () => {
                 className="hidden sm:flex px-3.5 py-2 rounded-xl bg-white hover:bg-temple-50 border border-temple-200 text-temple-700 text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{t('org.people.devoteeGrid.exportCsv')}</span>
+                <span>Export CSV</span>
               </button>
               <button
                 type="button"
@@ -634,7 +635,7 @@ export const DevoteeGrid: React.FC = () => {
                 className="hidden sm:flex px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>{t('org.people.devoteeGrid.bulkPrintIds')}</span>
+                <span>Bulk Print IDs</span>
               </button>
             </>
           )}
@@ -663,14 +664,16 @@ export const DevoteeGrid: React.FC = () => {
             <span className="flex items-center justify-center bg-saffron-500 text-white font-semibold w-6 h-6 rounded-full text-xs">
               {selectedIds.size}
             </span>
-            <span className="text-sm font-semibold text-temple-900">{t('org.people.devoteeGrid.selected')}</span>
+            <span className="text-sm font-semibold text-temple-900">Selected</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 text-xs text-temple-600 hover:text-temple-900 transition-colors">{t('org.people.devoteeGrid.clear')}</button>
+            <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 text-xs text-temple-600 hover:text-temple-900 transition-colors">Clear</button>
             <button onClick={handleBulkWhatsApp} className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
-              <MessageCircle className="w-3.5 h-3.5" />{t('org.people.devoteeGrid.broadcast')}</button>
+              <MessageCircle className="w-3.5 h-3.5" /> Broadcast
+            </button>
             <button onClick={handleBulkTag} className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
-              <Tag className="w-3.5 h-3.5" />{t('org.people.devoteeGrid.updateTags')}</button>
+              <Tag className="w-3.5 h-3.5" /> Update Tags
+            </button>
           </div>
         </div>
       )}
@@ -707,13 +710,13 @@ export const DevoteeGrid: React.FC = () => {
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.gotra')}</span>
+            <span className="text-temple-600 font-medium">Gotra:</span>
             <select
               value={selectedGotra}
               onChange={(e) => setSelectedGotra(e.target.value)}
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
-              <option value="all">{t('org.people.devoteeGrid.allGotras')}</option>
+              <option value="all">All Gotras</option>
               {uniqueGotras.map((g, idx) => (
                 <option key={g} value={g}>
                   {g}
@@ -723,13 +726,13 @@ export const DevoteeGrid: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.tier')}</span>
+            <span className="text-temple-600 font-medium">Tier:</span>
             <select
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
-              <option value="all">{t('org.people.devoteeGrid.allTiers')}</option>
+              <option value="all">All Tiers</option>
               <option value="Ratna">Ratna (Diamond)</option>
               <option value="Vishesh">Vishesh (Special)</option>
               <option value="Karmi">Karmi (Active)</option>
@@ -737,13 +740,13 @@ export const DevoteeGrid: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.minChanda')}</span>
+            <span className="text-temple-600 font-medium">Min Chanda:</span>
             <select
               value={advancedFilters.minDonation}
               onChange={(e) => setAdvancedFilters(prev => ({ ...prev, minDonation: Number(e.target.value) }))}
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
-              <option value={0}>{t('org.people.devoteeGrid.any')}</option>
+              <option value={0}>Any</option>
               <option value={1000}>₹1,000+</option>
               <option value={10000}>₹10,000+</option>
               <option value={100000}>₹1,00,000+</option>
@@ -776,7 +779,7 @@ export const DevoteeGrid: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white border border-temple-200 rounded-xl shadow-sm text-center">
           <div className="w-8 h-8 border-4 border-saffron-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-          <p className="text-xs font-semibold text-temple-700">{t('org.people.devoteeGrid.loadingDevoteeRecordsFromFirestore')}</p>
+          <p className="text-xs font-semibold text-temple-700">Loading Devotee Records from Firestore...</p>
         </div>
       ) : layoutView === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -831,7 +834,9 @@ export const DevoteeGrid: React.FC = () => {
                         )}
                         {devotee.pinRevoked === true && (
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-rose-700 flex items-center gap-1">
-                            <Ban className="w-2.5 h-2.5" />{t('org.people.devoteeGrid.revoked')}</span>
+                            <Ban className="w-2.5 h-2.5" />
+                            Revoked
+                          </span>
                         )}
                       </div>
                     </div>
@@ -849,7 +854,7 @@ export const DevoteeGrid: React.FC = () => {
                 {/* Dharmic Lineage & Vitals */}
                 <div className="py-3 space-y-1.5 text-xs text-temple-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-temple-600">{t('org.people.devoteeGrid.gotraKul')}</span>
+                    <span className="text-temple-600">Gotra & Kul:</span>
                     <span className="font-semibold text-temple-900">
                       {devotee.gotra} {devotee.varnaKul ? `(${devotee.varnaKul})` : ''}
                     </span>
@@ -867,7 +872,7 @@ export const DevoteeGrid: React.FC = () => {
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-temple-600">{t('org.people.devoteeGrid.phone')}</span>
+                    <span className="text-temple-600">Phone:</span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-saffron-600">{devotee.phone}</span>
                       <a href={`https://wa.me/${devotee.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400" title="Message on WhatsApp">
@@ -900,11 +905,11 @@ export const DevoteeGrid: React.FC = () => {
                 {canViewFinancials && (
                   <div className="p-2.5 rounded-xl bg-white shadow-sm border border-temple-200 grid grid-cols-2 gap-2 text-center text-xs my-2">
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">{t('org.people.devoteeGrid.totalChanda')}</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Total Chanda</p>
                       <p className="font-semibold text-saffron-600">₹{(devotee.totalDonated || 0).toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">{t('org.people.devoteeGrid.sevaIndex')}</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Index</p>
                       <p className="font-semibold text-purple-400">{devotee.sevaIndex || 0} pts</p>
                     </div>
                   </div>
@@ -932,7 +937,7 @@ export const DevoteeGrid: React.FC = () => {
                     title="Download Smart Pass PDF"
                   >
                     <QrCode className="w-3.5 h-3.5" />
-                    <span>{t('org.people.devoteeGrid.pass')}</span>
+                    <span>Pass</span>
                   </button>
                 )}
 
@@ -975,12 +980,12 @@ export const DevoteeGrid: React.FC = () => {
                     className="w-4 h-4 rounded border-temple-200 bg-temple-50 text-saffron-600 focus:ring-saffron-500/50 cursor-pointer"
                   />
                 </th>
-                <th className="px-4 py-3">{t('org.people.devoteeGrid.member')}</th>
-                <th className="px-4 py-3">{t('org.people.devoteeGrid.lineageGotra')}</th>
-                <th className="px-4 py-3">{t('org.people.devoteeGrid.contact')}</th>
-                <th className="px-4 py-3">{t('org.people.devoteeGrid.sevaTier')}</th>
+                <th className="px-4 py-3">Member</th>
+                <th className="px-4 py-3">Lineage / Gotra</th>
+                <th className="px-4 py-3">Contact</th>
+                <th className="px-4 py-3">Seva Tier</th>
                 {canViewFinancials && <th className="px-4 py-3 text-right">Total Chanda</th>}
-                <th className="px-4 py-3 text-right">{t('org.people.devoteeGrid.actions')}</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-temple-800/60 text-temple-700">
@@ -1069,14 +1074,14 @@ export const DevoteeGrid: React.FC = () => {
                           <button
                             onClick={(e) => { e.stopPropagation(); openEditModal(devotee); }}
                             className="p-1.5 rounded-lg text-temple-600 hover:text-temple-900 hover:bg-temple-100 transition-colors"
-                            title={t('org.people.devoteeGrid.edit')}
+                            title="Edit"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDelete(devotee); }}
                             className="p-1.5 rounded-lg text-temple-600 hover:text-rose-400 hover:bg-rose-900/30 transition-colors"
-                            title={t('org.people.devoteeGrid.delete')}
+                            title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1133,13 +1138,15 @@ export const DevoteeGrid: React.FC = () => {
                 onClick={() => setDetailTab('profile' as any)}
                 className={`py-3 px-4 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${detailTab === 'profile' ? 'border-saffron-500 text-saffron-600' : 'border-transparent text-temple-600 hover:text-temple-700'}`}
               >
-                <UserCog className="w-4 h-4" />{t('org.people.devoteeGrid.profileInfo')}</button>
+                <UserCog className="w-4 h-4" /> Profile Info
+              </button>
               {canViewFinancials && (
                 <button
                   onClick={() => setDetailTab('donations' as any)}
                   className={`py-3 px-4 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${detailTab === 'donations' ? 'border-saffron-500 text-saffron-600' : 'border-transparent text-temple-600 hover:text-temple-700'}`}
                 >
-                  <Receipt className="w-4 h-4" />{t('org.people.devoteeGrid.ledger')}</button>
+                  <Receipt className="w-4 h-4" /> Ledger
+                </button>
               )}
               <button
                 onClick={() => setDetailTab('timeline' as any)}
@@ -1157,14 +1164,15 @@ export const DevoteeGrid: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3 bg-white shadow-sm p-4 rounded-xl border border-temple-200">
                   <h3 className="text-sm font-semibold text-temple-600 flex items-center gap-2 mb-2">
-                    <UserCog className="w-4 h-4" />{t('org.people.devoteeGrid.personalInformation')}</h3>
+                    <UserCog className="w-4 h-4" /> Personal Information
+                  </h3>
                   <div className="space-y-2 text-sm text-temple-700">
                     {selectedDevotee.spiritualName && (
-                      <p><span className="text-temple-500 w-24 inline-block">{t('org.people.devoteeGrid.spiritualName')}</span> <span className="italic text-saffron-600">{selectedDevotee.spiritualName}</span></p>
+                      <p><span className="text-temple-500 w-24 inline-block">Spiritual Name:</span> <span className="italic text-saffron-600">{selectedDevotee.spiritualName}</span></p>
                     )}
                     <p><span className="text-temple-500 w-24 inline-block">Phone:</span> <span className="font-mono text-temple-900">{selectedDevotee.phone}</span></p>
-                    {selectedDevotee.email && <p><span className="text-temple-500 w-24 inline-block">{t('org.people.devoteeGrid.email')}</span> <span>{selectedDevotee.email}</span></p>}
-                    {selectedDevotee.address && <p><span className="text-temple-500 w-24 inline-block">{t('org.people.devoteeGrid.address')}</span> <span>{selectedDevotee.address}</span></p>}
+                    {selectedDevotee.email && <p><span className="text-temple-500 w-24 inline-block">Email:</span> <span>{selectedDevotee.email}</span></p>}
+                    {selectedDevotee.address && <p><span className="text-temple-500 w-24 inline-block">Address:</span> <span>{selectedDevotee.address}</span></p>}
                   </div>
                 </div>
 
@@ -1177,7 +1185,7 @@ export const DevoteeGrid: React.FC = () => {
                     {selectedDevotee.pravara && <p><span className="text-temple-500 w-24 inline-block">Pravara:</span> <span>{selectedDevotee.pravara}</span></p>}
                     {selectedDevotee.varnaKul && <p><span className="text-temple-500 w-24 inline-block">Varna/Kul:</span> <span>{selectedDevotee.varnaKul}</span></p>}
                     {selectedDevotee.culturalDistinction && <p><span className="text-saffron-600/70 w-24 inline-block">Cultural:</span> <span className="text-saffron-600 font-medium">{selectedDevotee.culturalDistinction}</span></p>}
-                    {selectedDevotee.bloodGroup && <p><span className="text-rose-500/80 w-24 inline-block">{t('org.people.devoteeGrid.bloodGroup')}</span> <span className="font-semibold text-rose-400">{selectedDevotee.bloodGroup}</span></p>}
+                    {selectedDevotee.bloodGroup && <p><span className="text-rose-500/80 w-24 inline-block">Blood Group:</span> <span className="font-semibold text-rose-400">{selectedDevotee.bloodGroup}</span></p>}
                     {selectedDevotee.medicalNotes && <p><span className="text-saffron-600/80 w-24 inline-block">Medical:</span> <span className="text-saffron-600">{selectedDevotee.medicalNotes}</span></p>}
                   </div>
                 </div>
@@ -1203,13 +1211,13 @@ export const DevoteeGrid: React.FC = () => {
                            showToast(`Role updated to ${e.target.value}`, 'success');
                         }}
                       >
-                        <option value="DEVOTEE">{t('org.people.devoteeGrid.devoteeStandard')}</option>
+                        <option value="DEVOTEE">Devotee (Standard)</option>
                         <option value="VOLUNTEER">Volunteer (Sevadar)</option>
                         <option value="PUROHIT">Purohit / Priest</option>
-                        <option value="ACCOUNTANT">{t('org.people.devoteeGrid.accountant')}</option>
-                        <option value="MANAGER">{t('org.people.devoteeGrid.manager')}</option>
+                        <option value="ACCOUNTANT">Accountant</option>
+                        <option value="MANAGER">Manager</option>
                         {(currentRole as string) === 'SUPER_ADMIN' || currentRole === 'SuperAdmin' ? (
-                           <option value="TRUSTEE">{t('org.people.devoteeGrid.trustee')}</option>
+                           <option value="TRUSTEE">Trustee</option>
                         ) : null}
                       </select>
                       <p className="text-[10px] text-temple-500 mt-1.5">Roles grant distinct applet permissions.</p>
@@ -1223,7 +1231,8 @@ export const DevoteeGrid: React.FC = () => {
                           }}
                           className="w-full p-2 rounded-xl bg-temple-50 hover:bg-temple-100 text-temple-700 transition-colors flex items-center justify-center gap-2 text-[11px] uppercase font-semibold tracking-wider border border-temple-200"
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />{t('org.people.devoteeGrid.sendResetLinkViaSmsemail')}</button>
+                          <MessageCircle className="w-3.5 h-3.5" /> Send Reset Link via SMS/Email
+                        </button>
                         <p className="text-[10px] text-temple-500 mt-1.5">Standard password reset flow triggered remotely.</p>
                       </div>
                     </div>
@@ -1275,7 +1284,8 @@ export const DevoteeGrid: React.FC = () => {
                              className="p-1.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 transition-colors flex items-center justify-center gap-1 text-[10px] uppercase font-semibold tracking-wider border border-temple-200"
                              title="Regenerate Credentials"
                            >
-                             <RefreshCw className="w-3 h-3" />{t('org.people.devoteeGrid.renew')}</button>
+                             <RefreshCw className="w-3 h-3" /> Renew
+                           </button>
                            {selectedDevotee.pinRevoked !== true && (
                              <button
                                type="button"
@@ -1301,7 +1311,8 @@ export const DevoteeGrid: React.FC = () => {
                                className="p-1.5 rounded-lg bg-rose-900/20 hover:bg-rose-900/40 text-rose-400 transition-colors flex items-center justify-center gap-1 text-[10px] uppercase font-semibold tracking-wider border border-rose-900/30 disabled:opacity-30 disabled:cursor-not-allowed"
                                title={selectedDevotee.id === currentDevotee?.id ? "You cannot revoke your own access" : "Revoke Credentials"}
                              >
-                               <Ban className="w-3 h-3" />{t('org.people.devoteeGrid.revoke')}</button>
+                               <Ban className="w-3 h-3" /> Revoke
+                             </button>
                            )}
                         </div>
                       </div>
@@ -1326,12 +1337,14 @@ export const DevoteeGrid: React.FC = () => {
                         onClick={() => setIsQuickChandaOpen(true)}
                         className="mt-3 px-3 py-1.5 bg-saffron-500/20 hover:bg-saffron-500/30 text-saffron-600 text-xs font-semibold rounded-lg border border-saffron-200 flex items-center gap-1.5 transition-colors"
                       >
-                        <CreditCard className="w-3.5 h-3.5" />{t('org.people.devoteeGrid.quickChanda')}</button>
+                        <CreditCard className="w-3.5 h-3.5" />
+                        Quick Chanda
+                      </button>
                     )}
                   </div>
                 )}
                 <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center">
-                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">{t('org.people.devoteeGrid.status')}</p>
+                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Status</p>
                   <p className="text-lg font-semibold text-emerald-400 mt-1">{selectedDevotee.activeStatus || 'Active'}</p>
                 </div>
               </div>
@@ -1341,7 +1354,7 @@ export const DevoteeGrid: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-white shadow-sm p-4 rounded-xl border border-temple-200">
                     <div>
-                      <h3 className="text-temple-900 font-semibold">{t('org.people.devoteeGrid.donationHistory')}</h3>
+                      <h3 className="text-temple-900 font-semibold">Donation History</h3>
                       <p className="text-xs text-temple-500">{selectedDevoteeDonations.length} records found</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1349,23 +1362,25 @@ export const DevoteeGrid: React.FC = () => {
                         onClick={() => generateAnnualDonationSummaryPDF(selectedDevotee, selectedDevoteeDonations, activeWorkspace)}
                         className="px-3 py-1.5 bg-temple-50 hover:bg-temple-100 text-temple-700 text-xs font-semibold rounded-lg border border-temple-200 flex items-center gap-1.5 transition-colors"
                       >
-                        <Printer className="w-4 h-4" />{t('org.people.devoteeGrid.printSummary')}</button>
+                        <Printer className="w-4 h-4" /> Print Summary
+                      </button>
                       <button
                         onClick={() => generateDonationHistoryPDF(selectedDevotee, selectedDevoteeDonations, activeWorkspace)}
                         className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg border border-indigo-500/30 flex items-center gap-1.5 transition-colors"
                       >
-                        <FileText className="w-4 h-4" />{t('org.people.devoteeGrid.exportPdf')}</button>
+                        <FileText className="w-4 h-4" /> Export PDF
+                      </button>
                     </div>
                   </div>
                   <div className="bg-white border border-temple-200 rounded-xl overflow-hidden">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-temple-50 text-temple-700 border-b border-temple-200 uppercase tracking-wider text-[10px]">
                         <tr>
-                          <th className="px-4 py-3 font-semibold">{t('org.people.devoteeGrid.date')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('org.people.devoteeGrid.receiptNo')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('org.people.devoteeGrid.category')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('org.people.devoteeGrid.mode')}</th>
-                          <th className="px-4 py-3 font-semibold text-right">{t('org.people.devoteeGrid.amount')}</th>
+                          <th className="px-4 py-3 font-semibold">Date</th>
+                          <th className="px-4 py-3 font-semibold">Receipt No.</th>
+                          <th className="px-4 py-3 font-semibold">Category</th>
+                          <th className="px-4 py-3 font-semibold">Mode</th>
+                          <th className="px-4 py-3 font-semibold text-right">Amount (₹)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-temple-800/60 text-temple-700">
@@ -1451,7 +1466,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.spiritualDikshaName')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Spiritual / Diksha Name</label>
                     <input
                       type="text"
                     value={spiritualName}
@@ -1476,7 +1491,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.emailAddress')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Email Address</label>
                     <input
                     type="email"
                     value={email}
@@ -1545,7 +1560,7 @@ export const DevoteeGrid: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.residenceAddress')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Residence Address</label>
                   <input
                     type="text"
                     value={address}
@@ -1557,7 +1572,7 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.birthDate')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Birth Date</label>
                     <input
                     type="date"
                     value={birthDate}
@@ -1566,7 +1581,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Blood Group</label>
                     <input
                       type="text"
                     value={bloodGroup}
@@ -1579,7 +1594,7 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.medicalAlertNotes')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Medical / Alert Notes</label>
                     <input
                       type="text"
                     value={medicalNotes}
@@ -1591,7 +1606,7 @@ export const DevoteeGrid: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.emergencyPhone')}</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">Emergency Phone</label>
                     <input
                     type="tel"
                     value={emergencyPhone}
@@ -1628,7 +1643,9 @@ export const DevoteeGrid: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-temple-50 hover:bg-temple-100 text-temple-700 text-xs font-semibold"
-                >{t('org.people.devoteeGrid.cancel')}</button>
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white font-semibold text-xs shadow-sm shadow-saffron-600/20 transition-all cursor-pointer"
@@ -1673,7 +1690,9 @@ export const DevoteeGrid: React.FC = () => {
                 className={`flex-1 py-3 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${qrTab === 'gate' ? 'bg-white text-saffron-600 border-b-2 border-saffron-500' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
                 onClick={() => setQrTab('gate')}
               >
-                <MapPin className="w-4 h-4" />{t('org.people.devoteeGrid.gatePassStandardB')}</button>
+                <MapPin className="w-4 h-4" />
+                Gate Pass (Standard B)
+              </button>
             </div>
 
             <div className="p-6 flex flex-col items-center text-center">
