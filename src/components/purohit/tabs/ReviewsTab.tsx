@@ -3,8 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { GigReview } from '../../../types/purohit';
 import { Card, SectionTitle, EmptyState, Stars } from '../ui';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export const ReviewsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { myReceivedReviews, profile } = usePurohit();
 
   const [list, setList] = useState<GigReview[]>(myReceivedReviews);
@@ -12,8 +14,8 @@ export const ReviewsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <SectionTitle sub="Only devotees you performed rituals for can review you — that is what makes the ratings trustworthy.">
-        Reviews
+      <SectionTitle sub={t('purohit.reviews.titleSub')}>
+        {t('purohit.reviews.title')}
       </SectionTitle>
 
       <Card>
@@ -23,12 +25,11 @@ export const ReviewsTab: React.FC = () => {
               {profile?.ratingAggregate.toFixed(1) || '—'}
             </p>
             <Stars value={profile?.ratingAggregate || 0} />
-            <p className="text-[11px] text-stone-500 mt-1">{profile?.ratingCount || 0} reviews</p>
+            <p className="text-[11px] text-stone-500 mt-1">{profile?.ratingCount || 0} {t('purohit.reviews.title').toLowerCase()}</p>
           </div>
           <div className="flex-1">
             <p className="text-xs text-stone-600">
-              {profile?.completedGigs || 0} rituals completed. Ratings come only from completed
-              marketplace gigs — never self-awarded, never purchasable.
+              {profile?.completedGigs || 0} {t('purohit.overview.ritualsCompleted')}. {t('purohit.reviews.trustNote')}
             </p>
           </div>
         </div>
@@ -37,8 +38,8 @@ export const ReviewsTab: React.FC = () => {
       {list.length === 0 ? (
         <Card>
           <EmptyState
-            title="No reviews yet"
-            sub="Complete your first ritual through the marketplace and your devotee's rating will appear here."
+            title={t('purohit.reviews.noReviews')}
+            sub={t('purohit.reviews.completeFirst')}
           />
         </Card>
       ) : (
