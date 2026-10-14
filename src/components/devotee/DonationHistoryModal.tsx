@@ -3,6 +3,7 @@ import { X, Calendar, Download, Heart, Receipt } from 'lucide-react';
 import { TreasuryTransaction, WorkspaceConfig } from '../../types';
 import { generateTaxReceiptPDF } from '../../utils/pdfGenerator';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DonationHistoryModalProps {
   isOpen: boolean;
@@ -20,21 +21,22 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
   devoteeName
 }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
   const handleDownloadReceipt = async (tx: TreasuryTransaction) => {
     if (!workspace) {
-      showToast('Workspace data not available', 'error');
+      showToast(t('devotee.donations.toastWorkspaceUnavailable'), 'error');
       return;
     }
     
     try {
-      showToast('Generating Receipt...', 'info');
+      showToast(t('devotee.donations.toastGenerating'), 'info');
       await generateTaxReceiptPDF(tx, workspace);
     } catch (e) {
       console.error(e);
-      showToast('Failed to generate receipt', 'error');
+      showToast(t('devotee.donations.toastFailed'), 'error');
     }
   };
 
@@ -49,8 +51,8 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
               <Heart className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-temple-900 leading-tight">My Donation History</h3>
-              <p className="text-xs text-temple-500 font-medium">Track your past contributions and download receipts</p>
+              <h3 className="text-lg font-semibold text-temple-900 leading-tight">{t('devotee.donations.title')}</h3>
+              <p className="text-xs text-temple-500 font-medium">{t('devotee.donations.subtitle')}</p>
             </div>
           </div>
           <button 
@@ -66,8 +68,8 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
           {donations.length === 0 ? (
             <div className="text-center py-10">
               <Receipt className="w-12 h-12 text-temple-300 mx-auto mb-3" />
-              <p className="text-base font-bold text-temple-700">No Donations Yet</p>
-              <p className="text-sm text-temple-500 mt-1">Your contributions will appear here.</p>
+              <p className="text-base font-bold text-temple-700">{t('devotee.donations.noDonations')}</p>
+              <p className="text-sm text-temple-500 mt-1">{t('devotee.donations.noDonationsDesc')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -98,14 +100,14 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
                   
                   <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-t-0 border-temple-100 pt-3 sm:pt-0">
                     <div className="text-left sm:text-right">
-                      <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-0.5">Amount</p>
+                      <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-0.5">{t('devotee.donations.amount')}</p>
                       <p className="text-lg font-semibold text-emerald-600">₹{tx.amount.toLocaleString()}</p>
                     </div>
                     
                     <button 
                       onClick={() => handleDownloadReceipt(tx)}
                       className="flex items-center justify-center w-10 h-10 bg-temple-50 hover:bg-temple-50 text-temple-600 rounded-xl transition-colors border border-temple-200"
-                      title="Download Receipt"
+                      title={t('devotee.donations.downloadReceipt')}
                     >
                       <Download className="w-4 h-4" />
                     </button>
@@ -120,7 +122,7 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
         {donations.length > 0 && (
            <div className="px-6 py-4 border-t border-temple-100 bg-temple-50 shrink-0 text-right">
              <p className="text-xs text-temple-500 font-medium">
-               Showing {donations.length} total contributions.
+               {t('devotee.donations.showingTotal').replace('{count}', String(donations.length))}
              </p>
            </div>
         )}
