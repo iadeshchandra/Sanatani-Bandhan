@@ -5,8 +5,9 @@
  * Subtabs: My Services (gig CRUD) · Orders (accept/complete) · Earnings (payout).
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package } from 'lucide-react';
+import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { ProviderPaymentSettings } from './ProviderPaymentSettings';
 import {
   listGigs, myGigs, saveGig, setGigActive,
   myOrdersAsProvider, orderTransition,
@@ -250,11 +251,11 @@ const ProviderEarnings: React.FC = () => {
 /* ------------------------------ Main ------------------------------ */
 
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
-  const [tab, setTab] = useState<'services' | 'orders' | 'earnings'>('services');
+  const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'payments'>('services');
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5">
-        {([['services', 'My Services', Package], ['orders', 'Orders', Star], ['earnings', 'Earnings', Wallet]] as const).map(([id, label, Icon]) => (
+        {([['services', 'My Services', Package], ['orders', 'Orders', Star], ['earnings', 'Earnings', Wallet], ['payments', 'Payments', CreditCard]] as const).map(([id, label, Icon]) => (
           <button key={id} type="button" onClick={() => setTab(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 ${tab === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>
             <Icon className="w-3.5 h-3.5" />{label}
@@ -264,6 +265,7 @@ export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi
       {tab === 'services' && <MyServices providerType={providerType} providerName={providerName || ''} />}
       {tab === 'orders' && <ProviderOrders />}
       {tab === 'earnings' && <ProviderEarnings />}
+      {tab === 'payments' && <ProviderPaymentSettings providerType={providerType} providerName={providerName} />}
     </div>
   );
 };
