@@ -109,6 +109,8 @@ const AshramGoshalaGurukulDesk = lazy(() => import('./components/domain4/AshramG
 const UtsavDesk = lazy(() => import('./utsav/UtsavDesk').then(m => ({ default: m.UtsavDesk })));
 // Nyas One — Trust/NGO compliance & governance suite (Trust + DharmadaTrust only).
 const NyasDesk = lazy(() => import('./nyas/NyasDesk').then(m => ({ default: m.NyasDesk })));
+// Tirth One — darshan queue & token management suite (Tirth + Mandir + KashiKshetra).
+const TirthDesk = lazy(() => import('./tirth/TirthDesk').then(m => ({ default: m.TirthDesk })));
 // Annakshetra One — complete kitchen & bhandara management suite (Mandir + Ashram + Tirth + Trust/NGO + Akshaya Patra).
 const AnnakshetraDesk = lazy(() => import('./annakshetra/AnnakshetraDesk').then(m => ({ default: m.AnnakshetraDesk })));
 // Pathshala One — complete school-management suite (Gurukul + Vidyalaya only).
@@ -487,6 +489,8 @@ const AppContent: React.FC = () => {
         return <UtsavDesk />;
       case 'nyas-one':
         return <NyasDesk />;
+      case 'tirth-one':
+        return <TirthDesk />;
       case 'annakshetra-one':
       case 'smartBhandar':
       case 'smart-bhandar':
