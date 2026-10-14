@@ -2,10 +2,8 @@ import React from 'react';
 import { Sparkles, Award, TrendingUp, Heart, Clock, ShieldCheck } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
-import { useLanguage } from '../../context/LanguageContext';
 
 export const KarmaLedgerDesk: React.FC = () => {
-  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { devotees } = useData();
 
@@ -24,7 +22,9 @@ export const KarmaLedgerDesk: React.FC = () => {
               Formula: (Chanda ÷ 100) + (Volunteer Hours × 2.5)
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.finance.karmaLedger.karmaMeritVolunteerSevaLedger')}</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
+            Karma Merit & Volunteer Seva Ledger
+          </h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Transparent Dharmic recognition ranking devotees across Ratna, Vishesh, Karmi, and Sadharan tiers
           </p>
@@ -34,27 +34,43 @@ export const KarmaLedgerDesk: React.FC = () => {
       {/* Tier Explanation Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
         <div className="bg-temple-900/90 border border-purple-500/40 rounded-2xl p-4 space-y-1">
-          <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] uppercase">{t('org.finance.karmaLedger.ratnaTier850Pts')}</span>
+          <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] uppercase">
+            Ratna Tier (850+ pts)
+          </span>
           <h4 className="font-bold text-temple-100 text-sm">Diamond Patron</h4>
-          <p className="text-temple-400 text-[11px]">{t('org.finance.karmaLedger.vipSanctumDarshanAnnualTrusteeSabhaInvit')}</p>
+          <p className="text-temple-400 text-[11px]">
+            VIP Sanctum Darshan, Annual Trustee Sabha invite, Special Garbhagriha Archanam
+          </p>
         </div>
 
         <div className="bg-temple-900/90 border border-saffron-500/40 rounded-2xl p-4 space-y-1">
-          <span className="px-2 py-0.5 rounded-full bg-saffron-500/20 text-saffron-300 font-bold text-[10px] uppercase">{t('org.finance.karmaLedger.visheshTier600849Pts')}</span>
+          <span className="px-2 py-0.5 rounded-full bg-saffron-500/20 text-saffron-300 font-bold text-[10px] uppercase">
+            Vishesh Tier (600 - 849 pts)
+          </span>
           <h4 className="font-bold text-temple-100 text-sm">Special Sevadar</h4>
-          <p className="text-temple-400 text-[11px]">{t('org.finance.karmaLedger.priorityFestivalSeatingMonthlyPrasadCour')}</p>
+          <p className="text-temple-400 text-[11px]">
+            Priority festival seating, monthly Prasad courier, personalized Panchang alerts
+          </p>
         </div>
 
         <div className="bg-temple-900/90 border border-blue-500/40 rounded-2xl p-4 space-y-1">
-          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] uppercase">{t('org.finance.karmaLedger.karmiTier300599Pts')}</span>
+          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] uppercase">
+            Karmi Tier (300 - 599 pts)
+          </span>
           <h4 className="font-bold text-temple-100 text-sm">Active Volunteer</h4>
-          <p className="text-temple-400 text-[11px]">{t('org.finance.karmaLedger.sevaShiftCoordinatorBhandaraManagementPa')}</p>
+          <p className="text-temple-400 text-[11px]">
+            Seva shift coordinator, Bhandara management pass, Vedic library borrowing
+          </p>
         </div>
 
         <div className="bg-temple-900/90 border border-temple-700 rounded-2xl p-4 space-y-1">
-          <span className="px-2 py-0.5 rounded-full bg-temple-800 text-temple-300 font-bold text-[10px] uppercase">{t('org.finance.karmaLedger.sadharanTier0299Pts')}</span>
-          <h4 className="font-bold text-temple-100 text-sm">{t('org.finance.karmaLedger.generalDevotee')}</h4>
-          <p className="text-temple-400 text-[11px]">{t('org.finance.karmaLedger.smartPassIdStandardDarshanAccessCommunit')}</p>
+          <span className="px-2 py-0.5 rounded-full bg-temple-800 text-temple-300 font-bold text-[10px] uppercase">
+            Sadharan Tier (0 - 299 pts)
+          </span>
+          <h4 className="font-bold text-temple-100 text-sm">General Devotee</h4>
+          <p className="text-temple-400 text-[11px]">
+            Smart Pass ID, standard Darshan access, community Sandesh broadcasts
+          </p>
         </div>
       </div>
 
@@ -65,11 +81,11 @@ export const KarmaLedgerDesk: React.FC = () => {
             <thead className="text-[10px] text-temple-400 uppercase bg-temple-950/60 font-semibold border-b border-temple-800">
               <tr>
                 <th className="p-3">Rank</th>
-                <th className="p-3">{t('org.finance.karmaLedger.devoteeMember')}</th>
-                <th className="p-3">{t('org.finance.karmaLedger.gotra')}</th>
-                <th className="p-3">{t('org.finance.karmaLedger.sevaTier')}</th>
+                <th className="p-3">Devotee / Member</th>
+                <th className="p-3">Gotra</th>
+                <th className="p-3">Seva Tier</th>
                 <th className="p-3">Volunteer Hours</th>
-                <th className="p-3">{t('org.finance.karmaLedger.totalChanda')}</th>
+                <th className="p-3">Total Chanda</th>
                 <th className="p-3 text-right">Karma Index Score</th>
               </tr>
             </thead>
