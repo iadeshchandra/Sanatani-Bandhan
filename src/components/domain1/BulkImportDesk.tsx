@@ -5,8 +5,10 @@ import { useData } from '../../context/DataContext';
 import { generateSampleDevoteeCSV, parseDevoteeCSV, IngestedDevoteeRow } from '../../utils/csvEngine';
 import { useToast } from '../../context/ToastContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const BulkImportDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { devotees, addDevotee } = useData();
   const { showToast } = useToast();
@@ -86,9 +88,7 @@ export const BulkImportDesk: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
               Bulk Data Migration
             </span>
-            <span className="text-xs text-temple-400 font-mono">
-              Auto 4-Digit PIN Provisioning & Phone Deduplication
-            </span>
+            <span className="text-xs text-temple-400 font-mono">{t('org.people.bulkImport.auto4digitPinProvisioningPhoneDeduplicat')}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
             Universal CSV Ingestion Engine
@@ -104,19 +104,17 @@ export const BulkImportDesk: React.FC = () => {
           className="px-4 py-2 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-200 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
         >
           <Download className="w-4 h-4 text-emerald-400" />
-          <span>Download Sample CSV Template</span>
+          <span>{t('org.people.bulkImport.downloadSampleCsvTemplate')}</span>
         </button>
       </div>
 
       {/* Upload Dropzone */}
       <div className="bg-temple-900/90 border-2 border-dashed border-temple-700 hover:border-saffron-500/50 rounded-3xl p-8 text-center transition-all">
         <Upload className="w-12 h-12 text-temple-500 mx-auto mb-3" />
-        <h3 className="font-extrabold text-base text-temple-200">
-          Upload Devotee / Member CSV Spreadsheet
-        </h3>
+        <h3 className="font-extrabold text-base text-temple-200">{t('org.people.bulkImport.uploadDevoteeMemberCsvSpreadsheet')}</h3>
         <div className="mt-2 flex justify-center"><LocalOnlyBadge /></div>
         <p className="text-xs text-temple-400 max-w-md mx-auto mt-1 mb-4">
-          Columns supported: <code className="text-saffron-400">FullName, Phone, Gotra, SevaTier, Email, SpiritualName, Pravara, Address</code>
+          Columns supported: <code className="text-saffron-400">{t('org.people.bulkImport.fullnamePhoneGotraSevatierEmailSpiritual')}</code>
         </p>
 
         <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs cursor-pointer shadow-lg shadow-saffron-600/20 transition-all">
@@ -160,12 +158,12 @@ export const BulkImportDesk: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="text-[10px] text-temple-400 uppercase bg-temple-950/60 font-semibold border-b border-temple-800">
                 <tr>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Full Name</th>
-                  <th className="p-3">Phone</th>
-                  <th className="p-3">Gotra</th>
+                  <th className="p-3">{t('org.people.bulkImport.status')}</th>
+                  <th className="p-3">{t('org.people.bulkImport.fullName')}</th>
+                  <th className="p-3">{t('org.people.bulkImport.phone')}</th>
+                  <th className="p-3">{t('org.people.bulkImport.gotra')}</th>
                   <th className="p-3">Pravara</th>
-                  <th className="p-3">Seva Tier</th>
+                  <th className="p-3">{t('org.people.bulkImport.sevaTier')}</th>
                   <th className="p-3">Provisioned PIN</th>
                 </tr>
               </thead>
@@ -174,9 +172,7 @@ export const BulkImportDesk: React.FC = () => {
                   <tr key={idx} className={row.isDuplicate ? 'bg-rose-950/20 text-rose-300' : 'hover:bg-temple-800/40'}>
                     <td className="p-3">
                       {row.isDuplicate ? (
-                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
-                          Duplicate Phone
-                        </span>
+                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">{t('org.people.bulkImport.duplicatePhone')}</span>
                       ) : (
                         <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
                           Valid
