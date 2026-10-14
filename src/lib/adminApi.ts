@@ -374,6 +374,19 @@ export const adminApi = {
       () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
       () => firestoreAdmin.commissionOverrideDelete(id)
     ),
+  commissionConfig: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      async () => {
+        const cfg = await firestoreAdmin.getCommissionConfig();
+        return { ok: true, data: cfg } as any;
+      }
+    ),
+  commissionConfigSave: (cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number }) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.saveCommissionConfig(cfg)
+    ),
   marketplaceProviders: () =>
     withFallback(
       () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
