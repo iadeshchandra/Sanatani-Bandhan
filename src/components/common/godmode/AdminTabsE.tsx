@@ -9,7 +9,52 @@ import {
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { useToast } from '../../../context/ToastContext';
+import { optimizeQrImage, type QrOptimizeResult } from '../../../lib/qrOptimizer';
 import { CCard as Card, CEmpty as Empty, CLoading as Loading, CSubTabs as SubTabs, cInputCls as inputCls } from './AdminTabsD';
+
+/** QR upload with client-side auto-optimization (crop → 512×512 PNG). */
+const QrUploadOptimizer: React.FC<{ onOptimized: (dataUrl: string, blob: Blob) => void }> = ({ onOptimized }) => {
+  const { showToast } = useToast();
+  const [working, setWorking] = React.useState(false);
+  const [result, setResult] = React.useState<QrOptimizeResult | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+
+  const handleFile = async (f: File | undefined) => {
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { showToast('Please choose an image file.', 'error'); return; }
+    setWorking(true); setResult(null);
+    setPreviewUrl(URL.createObjectURL(f));
+    const r = await optimizeQrImage(f);
+    setWorking(false); setResult(r);
+    if (r.ok && r.blob && r.dataUrl) {
+      onOptimized(r.dataUrl, r.blob);
+      showToast(`QR optimized: ${r.width}×${r.height}, ${r.reduction}% smaller.`, 'success');
+    } else {
+      showToast(r.error || 'Optimization failed.', 'error');
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-dashed border-slate-600 p-3 bg-slate-950/50">
+      <p className="text-[11px] font-bold text-slate-300 mb-1">📷 Upload new QR (auto-optimized)</p>
+      <p className="text-[10px] text-slate-500 mb-2">We auto-crop to the QR, add a quiet zone, resize to 512×512 PNG. Or paste an image URL in the field above.</p>
+      <input type="file" accept="image/*" disabled={working}
+        onChange={(e) => handleFile(e.target.files?.[0])}
+        className="block w-full text-xs text-slate-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-saffron-500 file:text-slate-950 min-h-[44px]" />
+      {working && <p className="text-xs text-slate-400 mt-2">Optimizing…</p>}
+      {previewUrl && result?.ok && (
+        <div className="flex gap-3 mt-3 items-start">
+          <div><p className="text-[10px] text-slate-500 mb-1">Original ({(result.originalSize / 1024).toFixed(0)} KB)</p>
+            <img src={previewUrl} alt="original" className="w-24 h-24 object-contain bg-white rounded-lg" /></div>
+          <div><p className="text-[10px] text-slate-500 mb-1">Optimized ({(result.optimizedSize / 1024).toFixed(0)} KB · −{result.reduction}%)</p>
+            <img src={result.dataUrl} alt="optimized" className="w-24 h-24 object-contain bg-white rounded-lg border-2 border-emerald-500/50" /></div>
+        </div>
+      )}
+      {result && !result.ok && <p className="text-xs text-red-400 mt-2">{result.error}</p>}
+      <p className="text-[10px] text-slate-600 mt-2">Note: to make it live in the app, save this method, then upload the optimized PNG to <span className="font-mono">public/bangla-qr.png</span> via GitHub web UI (or set the QR image URL above to a hosted link).</p>
+    </div>
+  );
+};
 
 /* ---------------------------- Platform Settings --------------------------- */
 
@@ -429,6 +474,11 @@ const PaymentsView: React.FC = () => {
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">{f.label}</label>
                   <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                     placeholder={f.hint} className={inputCls} />
+                  {f.key === 'qrImageUrl' && (
+                    <div className="mt-2">
+                      <QrUploadOptimizer onOptimized={(dataUrl) => setForm({ ...form, qrImageUrl: dataUrl })} />
+                    </div>
+                  )}
                 </div>
               ))}
               <div>
