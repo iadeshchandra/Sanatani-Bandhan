@@ -369,8 +369,8 @@ const PaymentsView: React.FC = () => {
     <div className="space-y-3">
       <p className="text-xs text-slate-400">
         These are what users see on the billing page, per region. Toggle a method off to hide it instantly.
-        The Bangla QR image lives at <span className="font-mono text-saffron-300">/bangla-qr.png</span> — replace the file in
-        <span className="font-mono text-saffron-300"> public/ </span> or paste a full URL below to change it.
+        QR image: upload your merchant QR via the GitHub web UI to <span className="font-mono text-saffron-300">public/bangla-qr.png</span> (drag &amp; drop),
+        or paste any full image URL in the QR field below. Until then the billing page shows a placeholder.
       </p>
       {methods.length === 0 && (
         <Card className="border-dashed">

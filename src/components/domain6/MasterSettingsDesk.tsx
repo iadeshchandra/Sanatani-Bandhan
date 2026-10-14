@@ -71,6 +71,30 @@ const CopyValue: React.FC<{ label: string; value: string; onCopy: (v: string) =>
   </div>
 );
 
+/** QR image with graceful fallback — if the owner hasn't uploaded the real
+ * merchant QR yet (public/bangla-qr.png via GitHub web UI), show a helpful
+ * placeholder instead of a broken image. */
+const QrImage: React.FC<{ src: string; onZoom: (url: string) => void }> = ({ src, onZoom }) => {
+  const [ok, setOk] = useState(true);
+  if (!ok) {
+    return (
+      <div className="w-52 h-52 bg-gray-50 rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 p-4">
+        <QrCode size={40} className="text-gray-300" />
+        <p className="text-[10px] font-bold text-gray-400 text-center leading-relaxed">
+          QR image not uploaded yet.<br />Add it in GodMode → Settings → Payment Methods.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <button type="button" onClick={() => onZoom(src)} aria-label="Zoom QR code"
+      className="rounded-xl overflow-hidden shadow-md border border-gray-200 hover:scale-[1.02] transition-transform bg-white min-w-[44px] min-h-[44px]">
+      <img src={src} alt="Bangla QR payment code" className="w-52 h-52 object-contain" loading="lazy"
+        onError={() => setOk(false)} />
+    </button>
+  );
+};
+
 /** One payment method card, rendered by type. */
 const MethodCard: React.FC<{
   method: PaymentMethodDoc;
@@ -83,13 +107,10 @@ const MethodCard: React.FC<{
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
         <div className="flex flex-col items-center">
           {method.qrImageUrl ? (
-            <button type="button" onClick={() => onZoom(method.qrImageUrl!)} aria-label="Zoom QR code"
-              className="rounded-xl overflow-hidden shadow-md border border-gray-200 hover:scale-[1.02] transition-transform bg-white">
-              <img src={method.qrImageUrl} alt="Bangla QR payment code" className="w-52 h-52 object-contain" loading="lazy" />
-            </button>
+            <QrImage src={method.qrImageUrl} onZoom={onZoom} />
           ) : (
-            <div className="w-52 h-52 bg-gray-50 rounded-xl border border-dashed border-gray-300 flex items-center justify-center">
-              <QrCode size={40} className="text-gray-300" />
+            <div className="w-52 h-52 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
+              <QrCode size={36} className="text-gray-400" />
             </div>
           )}
           <p className="text-xs font-black text-gray-800 uppercase tracking-widest mt-3">{method.label}</p>
