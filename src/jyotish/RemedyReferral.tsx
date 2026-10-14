@@ -14,6 +14,7 @@ import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useJyotish } from '../context/JyotishContext';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { PurohitIdentity, PurohitVerificationTier } from '../types/purohit';
 
@@ -28,6 +29,7 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
   consultationId,
   compact,
 }) => {
+  const { t } = useLanguage();
   const { referProfessional } = useJyotish();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
@@ -64,7 +66,7 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
       return;
     }
     if (!reason.trim()) {
-      showToast('Add a short reason for the referral.', 'error');
+      showToast(t('jyotish.referral.addReason'), 'error');
       return;
     }
     setSending(true);
@@ -97,7 +99,7 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
             ? 'px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-stone-700 border border-stone-300 hover:bg-stone-50 min-h-[44px]'
             : 'px-4 py-2.5 rounded-xl text-sm font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 min-h-[44px]'
         }
-        title="Recommend a verified purohit for remedies"
+        title={t('jyotish.referral.recommendTitle')}
       >
         🤝 Refer purohit
       </button>
@@ -111,10 +113,10 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
               verification-badge holders appear below.
             </p>
             {loading ? (
-              <p className="text-sm text-stone-400">Loading verified purohits…</p>
+              <p className="text-sm text-stone-400">{t('jyotish.referral.loading')}</p>
             ) : pros.length === 0 ? (
               <p className="text-sm text-stone-400">
-                No verified purohits found yet. Referrals unlock as purohits earn badges.
+                {t('jyotish.referral.noneFound')}
               </p>
             ) : (
               <div className="max-h-48 overflow-y-auto space-y-2">
@@ -135,13 +137,13 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
             )}
             <div>
               <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">
-                Reason for referral
+                {t('jyotish.referral.reasonLabel')}
               </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
-                placeholder="e.g. Shani-related upaya after the kundli reading — needs an experienced purohit for Shanti homa."
+                placeholder={t('jyotish.referral.reasonExample')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -152,14 +154,14 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
                 disabled={sending || !selected}
                 className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-black disabled:opacity-50 min-h-[44px]"
               >
-                {sending ? 'Sending…' : 'Send referral'}
+                {sending ? t('jyotish.referral.sending') : t('jyotish.referral.sendReferral')}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 className="px-4 py-3 rounded-xl border border-stone-300 text-sm font-bold text-stone-600 min-h-[44px]"
               >
-                Cancel
+                {t('jyotish.referral.cancel')}
               </button>
             </div>
           </div>
