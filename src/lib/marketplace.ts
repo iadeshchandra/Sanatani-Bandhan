@@ -143,10 +143,24 @@ export async function setGigActive(id: string, active: boolean): Promise<void> {
 export async function createOrder(input: {
   gigId: string; paymentMethodId: string; paymentRef?: string;
   clientNotes?: string; scheduledAt?: string;
+  /** Pay the full amount from the platform wallet at booking (escrow). */
+  payWithWallet?: boolean;
+  /** Pay the provider directly AFTER the task; commission to platform later. */
+  payAfterTask?: boolean;
 }): Promise<string> {
   const uid = requireUser();
   const gig = await getGig(input.gigId);
   if (!gig || gig.active === false) throw new Error('This service is no longer available.');
+  // Gentle lock (Path B): don't let a client stack new bookings with a
+  // provider while a previous order awaits its commission. Fail-open.
+  try {
+    const { awaitingCommissionWith } = await import('./wallet');
+    const stuck = await awaitingCommissionWith(gig.providerUid);
+    if (stuck > 0) throw new Error('Please complete the commission payment on your previous order with this provider first.');
+  } catch (e: any) {
+    if (e?.message?.includes('commission payment')) throw e;
+    // query errors fail open — never block booking on infra hiccups
+  }
   const { ratePercent, source } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType);
   const { commission, net } = computeCommission(Number(gig.priceAmount), ratePercent);
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
@@ -157,6 +171,8 @@ export async function createOrder(input: {
     commissionPercent: ratePercent, commissionAmount: commission, providerNet: net,
     commissionSource: source,
     paymentMethodId: input.paymentMethodId, paymentRef: input.paymentRef || '',
+    payWithWallet: input.payWithWallet === true,
+    payAfterTask: input.payAfterTask === true,
     status: 'pending_payment',
     clientNotes: (input.clientNotes || '').slice(0, 500),
     scheduledAt: input.scheduledAt || '',
@@ -195,6 +211,23 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
     (isProvider && ['accepted', 'cancelled', 'in_progress', 'completed'].includes(to)) ||
     (isClient && ['completed', 'cancelled'].includes(to) && (o.status === 'pending_payment' || o.status === 'paid'));
   if (!allowed) throw new Error('You cannot move this order to that status.');
+  // Wallet-escrow orders: completion releases escrow (provider wallet credit
+  // + platform revenue), all in one batched write. Rules validate every leg.
+  if (to === 'completed' && o.walletPaid === true && o.payWithWallet === true) {
+    const { releaseEscrow } = await import('./wallet');
+    await releaseEscrow(id);
+    return;
+  }
+  // Pay-after-task orders: provider marking complete moves to
+  // awaiting_commission (Path B gate) — NOT completed.
+  if (to === 'completed' && o.payAfterTask === true && isProvider) {
+    await updateDoc(doc(db, 'marketplaceOrders', id), {
+      status: 'awaiting_commission',
+      taskCompletedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return;
+  }
   await updateDoc(doc(db, 'marketplaceOrders', id), {
     status: to,
     ...(to === 'completed' ? { completedAt: serverTimestamp() } : {}),
