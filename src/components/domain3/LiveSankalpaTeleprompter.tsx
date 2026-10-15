@@ -15,6 +15,7 @@ import {
   Send,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DevoteeSankalp {
   id: string;
@@ -82,6 +83,7 @@ const MOCK_DEVOTEES: DevoteeSankalp[] = [
 
 export const LiveSankalpaTeleprompter: React.FC = () => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [devotees, setDevotees] = useState<DevoteeSankalp[]>(MOCK_DEVOTEES);
   const [activeDevoteeIndex, setActiveDevoteeIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -120,9 +122,9 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
     setRecitedPings((prev) => prev + 1);
 
     showToast(
-      `Sankalpa invoked for ${currentDevotee.name}. WhatsApp confirmation dispatched to devotee!`,
+      t('ritual.sankalp.toastInvoked').replace('{name}', currentDevotee.name),
       'success',
-      'Sanctum Audio Invocation'
+      t('ritual.sankalp.toastAudioTitle')
     );
 
     // Advance to next devotee if available
@@ -147,7 +149,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
     setActiveDevoteeIndex(0);
     setIsPlaying(false);
     setDevotees(MOCK_DEVOTEES.map((d) => ({ ...d, recited: false })));
-    showToast('Sankalpa Teleprompter reset to Devotee 1.', 'info', 'Teleprompter');
+    showToast(t('ritual.sankalp.toastReset'), 'info', t('ritual.sankalp.title'));
   };
 
   return (
@@ -163,7 +165,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="px-3 py-0.5 rounded-full text-[11px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 flex items-center gap-1.5 shadow-sm">
               <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400 animate-pulse" />
-              <span>Sanctum High-Contrast HUD</span>
+              <span>{t('ritual.sankalp.hudTitle')}</span>
             </span>
             <span className="text-xs text-amber-400/80 font-mono">
               Garbhagriha Terminal: ARCHAKA-SCREEN-01
@@ -172,7 +174,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
 
           <h1 className="text-2xl sm:text-3xl font-black text-amber-200 tracking-tight flex items-center gap-2.5">
             <MonitorPlay className="w-7 h-7 text-amber-400" />
-            <span>Maha Sankalpa Sanctum Teleprompter</span>
+            <span>{t('ritual.sankalp.title')}</span>
           </h1>
         </div>
 
@@ -191,7 +193,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
             type="button"
             onClick={handleReset}
             className="p-2.5 rounded-xl border border-amber-700/60 bg-amber-950/40 hover:bg-amber-900/40 text-amber-300 transition-colors cursor-pointer"
-            title="Reset to Devotee 1"
+            title={t('ritual.sankalp.resetToDevotee1')}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -233,7 +235,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
                 <CheckCircle2 className="w-3.5 h-3.5" /> उच्चारित (Recited)
               </span>
             ) : (
-              <span>Awaiting Chanting</span>
+              <span>{t('ritual.sankalp.awaitingChanting')}</span>
             )}
           </span>
         </div>
@@ -303,7 +305,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
             className="flex-1 py-3.5 px-3 rounded-2xl border border-amber-700/60 bg-amber-950/40 hover:bg-amber-900/40 disabled:opacity-30 disabled:cursor-not-allowed text-amber-300 font-bold text-xs font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Prev Yajaman</span>
+            <span>{t('ritual.sankalp.prevYajaman')}</span>
           </button>
 
           <button
@@ -325,7 +327,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
             disabled={activeDevoteeIndex === devotees.length - 1}
             className="flex-1 py-3.5 px-3 rounded-2xl border border-amber-700/60 bg-amber-950/40 hover:bg-amber-900/40 disabled:opacity-30 disabled:cursor-not-allowed text-amber-300 font-bold text-xs font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <span>Next</span>
+            <span>{t('ritual.sankalp.next')}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -338,7 +340,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
             className="w-full py-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-98 text-slate-950 font-black text-lg sm:text-xl shadow-2xl shadow-amber-500/30 transition-all cursor-pointer flex items-center justify-center gap-3 tracking-wide"
           >
             <BellRing className="w-6 h-6 text-slate-950 animate-bounce" />
-            <span>MARK RECITED (उच्चारित)</span>
+            <span>{t('ritual.sankalp.markRecited')}</span>
             <Send className="w-5 h-5 text-slate-950" />
           </button>
         </div>
