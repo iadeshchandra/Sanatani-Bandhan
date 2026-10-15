@@ -38,16 +38,19 @@ interface TourStep {
  * prefers-reduced-motion kill-switch in motion.css).
  */
 export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOpenQuickPay }) => {
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, currentRole } = useAuthWorkspace();
   const [visible, setVisible] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
 
   const demoId = activeWorkspace?.id || '';
   const isDemo = demoId.startsWith('DEMO_');
+  // Tour copy is written for trustees (command center, treasury, 80G) — suppress
+  // in devotee view where it describes the wrong screen (2026-10-15 audit P1-3).
+  const isDevoteeView = currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE';
   const seenKey = `sb_demo_tour_done_${demoId}`;
 
   useEffect(() => {
-    if (!isDemo) return;
+    if (!isDemo || isDevoteeView) return;
     try {
       if (sessionStorage.getItem(seenKey)) return;
     } catch {
@@ -56,9 +59,9 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     // Let the demo paint first — the tour is a welcome, not a wall.
     const timer = setTimeout(() => setVisible(true), 1200);
     return () => clearTimeout(timer);
-  }, [isDemo, seenKey]);
+  }, [isDemo, isDevoteeView, seenKey]);
 
-  if (!isDemo || !visible) return null;
+  if (!isDemo || !visible || isDevoteeView) return null;
 
   const dismiss = () => {
     try {
