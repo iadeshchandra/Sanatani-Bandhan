@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Landmark,
-  Globe,
   Menu,
   X,
   Play,
@@ -79,7 +78,6 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
 import { useDemoStarter } from '../hooks/useDemoStarter';
 import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
@@ -483,7 +481,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever, and it includes every feature: pooja booking, Panchang & muhurat, Quick Chanda, WhatsApp broadcasts, kitchens, dharamshala, gau seva, 80G receipts and more — for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. Only the usage caps differ: Standard (₹499/month) raises you to 1,000 devotees with unlimited transactions, and Premium (₹1,999/month) is unlimited everything. For context, AstroTalk takes 50% of astrologer earnings — we take 12%.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -550,7 +548,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onDemoStart,
 }) => {
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
   const startDemo = useDemoStarter();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -572,16 +569,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   }, []);
 
-  const tithiLine = panchang ? `Today · ${getPanchangTodayLine(panchang)}` : null;
+  const tithiLine = panchang ? `Today • ${getPanchangTodayLine(panchang)}` : null;
 
-  const handleStartDemo = (type: WorkspaceType = 'Mandir') => {
+  const handleStartDemo = (type: WorkspaceType = 'Mandir', view: 'trustee' | 'devotee' = 'trustee') => {
     if (onDemoStart) {
       onDemoStart(type);
       return;
     }
     // Self-sufficient: the router renders this page without demo props,
     // so bootstrap a real org-typed demo workspace via the shared hook.
-    startDemo(type);
+    startDemo(type, view);
   };
 
   const handleGoToLogin = () => {
@@ -721,35 +718,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-600 transition-colors cursor-pointer">
               Features
             </button>
-            <button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               Why Dharma
             </button>
-            <button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               Pricing
             </button>
-            <button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               FAQ
             </button>
-            <button type="button" onClick={handleContact} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={handleContact} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               Contact
             </button>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 text-xs">
-              <Globe className="w-3.5 h-3.5 text-orange-600" />
-              <select
-                aria-label="Select language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as any)}
-                className="bg-transparent font-bold text-xs text-stone-700 focus:outline-none cursor-pointer"
-              >
-                <option value="en">English</option>
-                <option value="hi">हिंदी</option>
-                <option value="bn">বাংলা</option>
-                <option value="sa">संस्कृतम्</option>
-              </select>
-            </div>
+            {/* Language switcher hidden on landing until hero/nav/CTAs are translated
+                (2026-10-15 audit: selector was decorative — content stayed English).
+                Re-enable when landing i18n lands. */}
             <button
               type="button"
               onClick={handleGoToLogin}
@@ -1336,20 +1322,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {/* SEVA FREE — from PLAN_PRICING.SEVA */}
+            {/* SEVA FREE — from PLAN_PRICING.LITE */}
             <Reveal className="h-full">
               <div className="h-full rounded-[2rem] bg-white border border-orange-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-orange-100 transition-all">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.SEVA.badge}
+                  {PLAN_PRICING.LITE.badge}
                 </span>
                 <h3 className="mt-4 text-2xl font-black text-stone-900">Seva Free</h3>
-                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.SEVA.tagline}</p>
+                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.LITE.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}0</span>
+                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.LITE.price.currencySymbol}0</span>
                   <span className="text-stone-500 font-bold">forever</span>
                 </p>
                 <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
-                  Up to {PLAN_PRICING.SEVA.limits.devotees} devotees · {PLAN_PRICING.SEVA.limits.transactions} transactions · {PLAN_PRICING.SEVA.limits.adminSeats} admin seats
+                  Up to {PLAN_PRICING.LITE.limits.devotees} devotees · {PLAN_PRICING.LITE.limits.transactions} transactions · {PLAN_PRICING.LITE.limits.adminSeats} admin seats
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
                   {['Pooja Booking', 'Panchang & Muhurat', 'Quick Chanda', 'WhatsApp Broadcaster'].map((f) => (
@@ -1412,26 +1398,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </Reveal>
 
-            {/* ENTERPRISE — from PLAN_PRICING.PREMIUM */}
+            {/* ENTERPRISE — from PLAN_PRICING.ENTERPRISE */}
             <Reveal delay={160} className="h-full">
               <div className="h-full rounded-[2rem] bg-stone-900 p-8 text-stone-200 flex flex-col shadow-xl">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-stone-800 text-amber-400 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.PREMIUM.badge}
+                  {PLAN_PRICING.ENTERPRISE.badge}
                 </span>
-                <h3 className="mt-4 text-2xl font-black text-white">Premium</h3>
-                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.PREMIUM.tagline}</p>
+                <h3 className="mt-4 text-2xl font-black text-white">Enterprise</h3>
+                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.ENTERPRISE.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black text-white">
-                    {PLAN_PRICING.PREMIUM.price.currencySymbol}
+                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}
                     {billingAnnual
-                      ? Math.round(PLAN_PRICING.PREMIUM.price.annual / 12).toLocaleString('en-IN')
-                      : PLAN_PRICING.PREMIUM.price.monthly.toLocaleString('en-IN')}
+                      ? Math.round(PLAN_PRICING.ENTERPRISE.price.annual / 12).toLocaleString('en-IN')
+                      : PLAN_PRICING.ENTERPRISE.price.monthly.toLocaleString('en-IN')}
                   </span>
                   <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-stone-400">
-                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{PLAN_PRICING.PREMIUM.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}{PLAN_PRICING.ENTERPRISE.price.annual.toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
                 <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">
@@ -1619,29 +1605,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">All 66 desks</button></li>
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">Treasury &amp; 80G</button></li>
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer">Goshala &amp; Bhandar</button></li>
-                <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer">Why Dharma</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">All 66 desks</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Treasury &amp; 80G</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Goshala &amp; Bhandar</button></li>
+                <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Why Dharma</button></li>
               </ul>
             </nav>
             <nav aria-label="Compare">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Compare</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-400 transition-colors cursor-pointer">Pricing</button></li>
-                <li><button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-400 transition-colors cursor-pointer">FAQ</button></li>
-                <li><button type="button" onClick={() => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Live demo</button></li>
-                <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button></li>
-                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer">Contact us</button></li>
+                <li><button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Pricing</button></li>
+                <li><button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">FAQ</button></li>
+                <li><button type="button" onClick={() => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Live demo</button></li>
+                <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Login</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Contact us</button></li>
               </ul>
             </nav>
             <nav aria-label="Legal">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Legal</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Privacy Policy</button></li>
-                <li><button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Terms of Service</button></li>
-                <li><button type="button" onClick={() => setSecurityOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Security</button></li>
-                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer">Contact Support</button></li>
+                <li><button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Privacy Policy</button></li>
+                <li><button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Terms of Service</button></li>
+                <li><button type="button" onClick={() => setSecurityOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Security</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Contact Support</button></li>
               </ul>
             </nav>
           </div>
@@ -1659,9 +1645,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <DemoSelectionModal
         isOpen={demoModalOpen}
         onClose={() => setDemoModalOpen(false)}
-        onSelect={(type) => {
+        onSelect={(type, view) => {
           setDemoModalOpen(false);
-          handleStartDemo(type);
+          handleStartDemo(type, view);
         }}
       />
       {privacyOpen && <PrivacyPolicy onClose={() => setPrivacyOpen(false)} />}
