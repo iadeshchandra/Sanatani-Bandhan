@@ -16,6 +16,7 @@ import { detectRail } from '../lib/rail2';
 import { Rail2PaymentScreen } from './Rail2PaymentScreen';
 import { CommissionPayScreen } from './CommissionPayScreen';
 import { detectPayRegion } from '../lib/geoDetect';
+import { useUpiQrAvailable } from '../lib/upiQr';
 import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
@@ -67,6 +68,10 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [region, setRegion] = useState<'BD' | 'IN' | 'INTL'>('BD');
+  const upiQrOk = useUpiQrAvailable();
+  // India tab only exists while the owner has uploaded public/upi-qr.png;
+  // without it, Indian users transparently get the INTL methods.
+  const viewRegion = region === 'IN' && upiQrOk === false ? 'INTL' : region;
   const [payRef, setPayRef] = useState('');
   const [notes, setNotes] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -77,7 +82,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   useEffect(() => { detectPayRegion().then(setRegion).catch(() => {}); }, []);
   useEffect(() => { getWallet().then((w) => setWalletBalance(w.balance)).catch(() => setWalletBalance(0)); }, []);
 
-  const methodId = region === 'BD' ? 'bd_banglaqr' : region === 'IN' ? 'in_upi' : 'intl_wise';
+  const methodId = viewRegion === 'BD' ? 'bd_banglaqr' : viewRegion === 'IN' ? 'in_upi' : 'intl_wise';
 
   const submit = async () => {
     setWorking(true);
@@ -108,9 +113,9 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
     setWorking(false);
   };
 
-  const payHint = region === 'BD'
+  const payHint = viewRegion === 'BD'
     ? 'Pay with bKash / Nagad / Rocket or scan the Bangla QR in the Billing section, then paste the Transaction ID below.'
-    : region === 'IN'
+    : viewRegion === 'IN'
     ? 'Pay via UPI (see the Billing section for the UPI ID), then paste the UPI reference below.'
     : 'Pay via Wise / Payoneer (see the Billing section), then paste the transfer reference below.';
 
@@ -147,9 +152,9 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         {payPath === 'now' && (<>
         <p className="text-[11px] text-amber-800 mt-2">{payHint}</p>
         <div className="flex gap-1.5 mt-2">
-          {(['BD', 'IN', 'INTL'] as const).map((r) => (
+          {(['BD', 'IN', 'INTL'] as const).filter((r) => r !== 'IN' || upiQrOk !== false).map((r) => (
             <button key={r} type="button" onClick={() => setRegion(r)}
-              className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
+              className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${viewRegion === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
               {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
             </button>
           ))}
