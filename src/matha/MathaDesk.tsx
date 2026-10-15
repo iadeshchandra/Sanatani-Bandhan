@@ -24,7 +24,7 @@ import './print.css';
 /* Ashram — the App.tsx org-type guard blocks it everywhere else.     */
 /*                                                                     */
 /* RESPECT RULE: this is a sacred institution's internal record. The   */
-/* UI tone is respectful; nothing here is gamified — no badges, no    */
+/* UI tone is respectful; nothing here is gamified — no badges, no     */
 /* points, no streaks.                                                 */
 /*                                                                     */
 /* HONESTY RULE: donations post to treasury as income; 80G eligibility */
@@ -32,23 +32,23 @@ import './print.css';
 /* ------------------------------------------------------------------ */
 
 const TABS = [
-  'dashboard',
-  'sannyasi',
-  'parampara',
-  'branches',
-  'dinacharya',
-  'gurukul',
-  'seva',
-  'utsav',
-  'dakshina',
-  'reports',
+  { id: 'dashboard', bn: 'ড্যাশবোর্ড', en: 'Dashboard', hi: 'डैशबोर्ड' },
+  { id: 'sannyasi', bn: 'সন্ন্যাসী', en: 'Sannyasi', hi: 'संन्यासी' },
+  { id: 'parampara', bn: 'পরম্পরা', en: 'Parampara', hi: 'परंपरा' },
+  { id: 'branches', bn: 'শাখা', en: 'Branches', hi: 'शाखाएं' },
+  { id: 'dinacharya', bn: 'দিনচর্যা', en: 'Dinacharya', hi: 'दिनचर्या' },
+  { id: 'gurukul', bn: 'গুরুকুল', en: 'Gurukul', hi: 'गुरुकुल' },
+  { id: 'seva', bn: 'সেবা', en: 'Seva', hi: 'सेवा' },
+  { id: 'utsav', bn: 'উৎসব', en: 'Utsav', hi: 'उत्सव' },
+  { id: 'dakshina', bn: 'দক্ষিণা', en: 'Dakshina', hi: 'दक्षिणा' },
+  { id: 'reports', bn: 'প্রতিবেদন', en: 'Reports', hi: 'रिपोर्ट' },
 ];
 
 const MathaInner: React.FC = () => {
   const [tab, setTab] = useState('dashboard');
   const { ensureSeeded } = useMatha();
   const { activeWorkspace } = useAuthWorkspace();
-  const { t } = useLanguage();
+  const { safeTranslate } = useLanguage();
   const seededFor = useRef('');
 
   useEffect(() => {
@@ -66,11 +66,12 @@ const MathaInner: React.FC = () => {
           <div className="w-11 h-11 rounded-2xl bg-orange-400/20 border border-orange-300/40 flex items-center justify-center text-2xl">🕉️</div>
           <div>
             <h1 className="text-xl font-extrabold leading-tight">
-              {t('suites.matha.common.title')}{' '}
-              <span className="font-normal text-orange-200/90 text-sm">{t('suites.matha.common.management')}</span>
+              {safeTranslate('matha.title', 'Matha One', 'মঠ ওয়ান', 'मठ वन')}{' '}
+              <span className="font-normal text-orange-200/90 text-sm">(Monastic Management)</span>
             </h1>
             <p className="text-xs text-orange-200/80">
-              ॥ गुरुर्ब्रह्मा गुरुर्विष्णुः ॥ — {t('suites.matha.common.subtitle')}
+              ॥ गुरुर्ब्रह्मा गुरुर्विष्णुः ॥ —{' '}
+              {safeTranslate('matha.subtitle', 'Parampara, sannyasis & daily life — respectfully kept', 'পরম্পরা, সন্ন্যাসী ও দৈনন্দিন জীবন — শ্রদ্ধার সঙ্গে রক্ষিত', 'परंपरा, संन्यासी व दैनिक जीवन — श्रद्धा से संरक्षित')}
             </p>
           </div>
         </div>
@@ -78,11 +79,16 @@ const MathaInner: React.FC = () => {
 
       <div className="px-3 sm:px-6 py-4 max-w-7xl mx-auto">
         <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-xs text-orange-900 no-print">
-          <span className="font-bold">⚖️ {t('suites.matha.common.honestyTitle')}: </span>
-          {t('suites.matha.common.honestyBody')}
+          <span className="font-bold">⚖️ {safeTranslate('matha.honesty.title', 'Honest scope', 'সৎ পরিধি', 'ईमानदार दायरा')}: </span>
+          {safeTranslate(
+            'matha.honesty.body',
+            'This is the matha’s own internal record, kept on this device. Donations post to treasury as income — confirm 80G eligibility with your CA. Nothing here leaves this device except treasury postings.',
+            'এটি মঠের নিজস্ব অভ্যন্তরীণ রেকর্ড, এই ডিভাইসে রক্ষিত। অনুদান কোষাগারে আয় হিসেবে পোস্ট হয় — 80G যোগ্যতা সিএ-এর সঙ্গে নিশ্চিত করুন। কোষাগার পোস্টিং ছাড়া কিছুই এই ডিভাইস ছাড়ে না।',
+            'यह मठ का अपना आंतरिक रिकॉर्ड है, इसी डिवाइस पर रखा जाता है। दान कोषागार में आय के रूप में दर्ज होते हैं — 80G पात्रता अपने CA से पुष्टि करें। कोषागार प्रविष्टियों के अलावा कुछ भी इस डिवाइस से बाहर नहीं जाता।'
+          )}
         </div>
 
-        <Tabs tabs={TABS.map((id) => ({ id }))} active={tab} onChange={setTab} />
+        <Tabs tabs={TABS} active={tab} onChange={setTab} />
         <div className="mt-4">
           {tab === 'dashboard' && <DashboardTab />}
           {tab === 'sannyasi' && <SannyasiTab />}
