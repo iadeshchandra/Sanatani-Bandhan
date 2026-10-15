@@ -108,30 +108,32 @@ export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; chil
   onClose,
   children,
   wide = false,
-}) => (
+}) => {
+  const { t: tr } = useLanguage();
+  return (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center no-print">
     <div className="absolute inset-0 bg-black/50" onClick={onClose} />
     <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-stone-800">{title}</h3>
-        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label="Close">✕</button>
+        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label={tr('ritual.common.close')}>✕</button>
       </div>
       {children}
     </div>
   </div>
-);
+  );
+};
 
-export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; hi?: string }>; active: string; onChange: (id: string) => void }> = ({
+export const Tabs: React.FC<{ tabs: Array<{ id: string }>; active: string; onChange: (id: string) => void }> = ({
   tabs,
   active,
   onChange,
 }) => {
-  const { safeTranslate, currentLang } = useLanguage();
+  const { t: tr } = useLanguage();
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-print">
       {tabs.map((t) => {
-        const primary = safeTranslate(`utsav.tab.${t.id}`, t.en, t.bn, t.hi);
-        const showGloss = currentLang !== 'en' && primary !== t.en;
+        const primary = tr(`ritual.utsav.tabs.${t.id}`);
         return (
           <button
             key={t.id}
@@ -143,7 +145,6 @@ export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; 
             }`}
           >
             <span className="font-bold">{primary}</span>
-            {showGloss && <span className={`block text-[10px] font-normal ${active === t.id ? 'text-orange-200' : 'text-stone-400'}`}>{t.en}</span>}
           </button>
         );
       })}
@@ -153,6 +154,19 @@ export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; 
 
 /** Status pill for festivals / tasks / vendors. */
 export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const { t: tr } = useLanguage();
+  const statusLabels: Record<string, string> = {
+    planned: tr('ritual.utsav.festivals.statusPlanned'),
+    ongoing: tr('ritual.utsav.festivals.statusOngoing'),
+    completed: tr('ritual.utsav.festivals.statusCompleted'),
+    cancelled: tr('ritual.utsav.festivals.statusCancelled'),
+    todo: tr('ritual.utsav.committee.statusTodo'),
+    doing: tr('ritual.utsav.committee.statusDoing'),
+    done: tr('ritual.utsav.committee.done'),
+    quoted: tr('ritual.utsav.vendors.statusQuoted'),
+    booked: tr('ritual.utsav.vendors.statusBooked'),
+    paid: tr('ritual.utsav.vendors.statusPaid'),
+  };
   const tones: Record<string, string> = {
     planned: 'bg-sky-100 text-sky-800',
     ongoing: 'bg-orange-100 text-orange-800',
@@ -165,7 +179,7 @@ export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
     booked: 'bg-amber-100 text-amber-800',
     paid: 'bg-emerald-100 text-emerald-800',
   };
-  const label = status.replace(/-/g, ' ');
+  const label = statusLabels[status] || status.replace(/-/g, ' ');
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide ${tones[status] || 'bg-stone-100 text-stone-600'}`}>
       {label}
