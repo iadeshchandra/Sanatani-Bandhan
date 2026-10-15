@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { Card, Btn, Field, inputCls } from '../solo/ui';
 import { fileCommissionPayment, fmtWallet, type WalletCurrency } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
+import { useUpiQrAvailable } from '../lib/upiQr';
 import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../lib/paymentMethods';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). */
@@ -30,6 +31,7 @@ const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 t
 export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commissionAmount, currency, onDone, onBack }) => {
   const { showToast } = useToast();
   const [region, setRegion] = useState<PayRegion>('BD');
+  const upiQrOk = useUpiQrAvailable();
   const [methods, setMethods] = useState<PaymentMethodDoc[]>([]);
   const [methodId, setMethodId] = useState('');
   const [trxId, setTrxId] = useState('');
@@ -47,6 +49,8 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
   }, []);
 
   const switchRegion = (r: PayRegion) => {
+    const eff = (r === 'IN' && upiQrOk === false ? 'INTL' : r) as PayRegion;
+    r = eff;
     setRegion(r);
     getPaymentMethods().then((all) => {
       const list = orderMethods(methodsForRegion(all, r));
@@ -99,7 +103,7 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
 
       <Card>
         <div className="flex gap-1.5 mb-3">
-          {(['BD', 'IN', 'INTL'] as const).map((r) => (
+          {(['BD', 'IN', 'INTL'] as const).filter((r) => r !== 'IN' || upiQrOk !== false).map((r) => (
             <button key={r} type="button" onClick={() => switchRegion(r)}
               className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-600'}`}>
               {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
