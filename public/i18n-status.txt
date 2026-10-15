@@ -1,0 +1,1 @@
+i18n Phase 2d3 complete: 38660 translations across 10 languages. PDF engine rebuilt with pdfmake + Sanatani design system.
