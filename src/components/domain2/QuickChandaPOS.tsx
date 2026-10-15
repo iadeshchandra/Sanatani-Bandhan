@@ -38,6 +38,7 @@ import { printThermalReceipt } from '../../utils/printUtils';
 import { formatINR } from '../../utils/format';
 import { isValidPAN, isValidPhoneIN, sanitizeName } from '../../utils/validation';
 import { TreasuryTransaction, DevoteeMember } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Duplicate-receipt detection window: same devotee + same amount within 5 minutes
 const DUPLICATE_WINDOW_MS = 5 * 60 * 1000;
@@ -244,6 +245,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
 ];
 
 export const QuickChandaPOS: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
   const { devotees, addTreasuryTransaction, treasury, getNextReceiptNumber } = useData();
   const { openGuide } = useQuickGuide();
@@ -642,12 +644,8 @@ export const QuickChandaPOS: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-                Quick Chanda & Seva POS
-              </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                Tablet High-Speed Counter
-              </span>
+              <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-1.5">{t('org.finance.quickChanda.quickChandaSevaPos')}</h1>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">{t('org.finance.quickChanda.tabletHighspeedCounter')}</span>
             </div>
             <p className="text-xs text-stone-400 font-medium">
               {activeWorkspace.name} • Counter Cashier:{' '}
@@ -685,9 +683,7 @@ export const QuickChandaPOS: React.FC = () => {
           <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 shadow-md">
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Quick Amount Presets
-              </span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />{t('org.finance.quickChanda.quickAmountPresets')}</span>
               <span className="text-[11px] text-stone-400">Instantly appends to cart</span>
             </div>
             <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -699,9 +695,7 @@ export const QuickChandaPOS: React.FC = () => {
                   className="min-h-[48px] py-2.5 px-2 rounded-xl bg-stone-800/90 hover:bg-amber-500 hover:text-stone-950 border border-stone-700 hover:border-amber-400 text-stone-100 font-black text-sm sm:text-base transition-all flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer group"
                 >
                   <span className="group-hover:text-stone-950 font-mono">₹{amt}</span>
-                  <span className="text-[10px] text-stone-400 group-hover:text-stone-900 font-normal">
-                    Quick Add
-                  </span>
+                  <span className="text-[10px] text-stone-400 group-hover:text-stone-900 font-normal">{t('org.finance.quickChanda.quickAdd')}</span>
                 </button>
               ))}
             </div>
@@ -788,14 +782,10 @@ export const QuickChandaPOS: React.FC = () => {
           <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4 shadow-md">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                Devotee Identification
-              </span>
+                <User className="w-3.5 h-3.5 text-amber-400" />{t('org.finance.quickChanda.devoteeIdentification')}</span>
               {matchedDevotee ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  <UserCheck className="w-3 h-3" />
-                  Existing Devotee
-                </span>
+                  <UserCheck className="w-3 h-3" />{t('org.finance.quickChanda.existingDevotee')}</span>
               ) : (
                 <span className="text-[11px] text-stone-400">10-Digit Mobile Search</span>
               )}
@@ -854,9 +844,7 @@ export const QuickChandaPOS: React.FC = () => {
                         is80GRequested ? 'text-amber-400' : 'text-stone-400'
                       }`}
                     />
-                    <span className="text-xs font-bold text-stone-200">
-                      Issue 80G Tax Exemption Receipt
-                    </span>
+                    <span className="text-xs font-bold text-stone-200">{t('org.finance.quickChanda.issue80gTaxExemptionReceipt')}</span>
                   </div>
                   <input
                     type="checkbox"
@@ -898,9 +886,7 @@ export const QuickChandaPOS: React.FC = () => {
                     type="button"
                     onClick={handleClearCart}
                     className="text-[11px] font-bold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                  >
-                    Clear All
-                  </button>
+                  >{t('org.finance.quickChanda.clearAll')}</button>
                 )}
               </div>
 
@@ -1013,9 +999,7 @@ export const QuickChandaPOS: React.FC = () => {
 
               {/* Grand Total Bar */}
               <div className="flex items-center justify-between bg-stone-950 p-3 rounded-xl border border-stone-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
-                  Total Donation
-                </span>
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">{t('org.finance.quickChanda.totalDonation')}</span>
                 <span className="font-mono text-xl sm:text-2xl font-black text-amber-400">
                   {formatINR(grandTotal)}
                 </span>
@@ -1023,9 +1007,7 @@ export const QuickChandaPOS: React.FC = () => {
 
               {/* Payment Mode Selector */}
               <div>
-                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">
-                  Select Tender Mode
-                </span>
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">{t('org.finance.quickChanda.selectTenderMode')}</span>
                 <div className="grid grid-cols-3 gap-2">
                   {(['CASH', 'UPI', 'CARD'] as PosPaymentMode[]).map((mode) => {
                     const isSelected = paymentMode === mode;
@@ -1060,7 +1042,7 @@ export const QuickChandaPOS: React.FC = () => {
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Processing Treasury Post...</span>
+                    <span>{t('org.finance.quickChanda.processingTreasuryPost')}</span>
                   </>
                 ) : (
                   <>
@@ -1146,7 +1128,7 @@ export const QuickChandaPOS: React.FC = () => {
                 {/* Metadata */}
                 <div className="space-y-1 text-[11px]">
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Receipt No:</span>
+                    <span className="text-stone-500">{t('org.finance.quickChanda.receiptNo')}</span>
                     <span className="font-bold">{completedTransaction.receiptNo}</span>
                   </div>
                   <div className="flex justify-between">
@@ -1154,15 +1136,15 @@ export const QuickChandaPOS: React.FC = () => {
                     <span className="font-mono">{completedTransaction.txId}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Date/Time:</span>
+                    <span className="text-stone-500">{t('org.finance.quickChanda.datetime')}</span>
                     <span>{completedTransaction.date}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Payment:</span>
+                    <span className="text-stone-500">{t('org.finance.quickChanda.payment')}</span>
                     <span className="font-bold">{completedTransaction.paymentMode}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-stone-500">Devotee:</span>
+                    <span className="text-stone-500">{t('org.finance.quickChanda.devotee')}</span>
                     <span className="font-bold">{completedTransaction.devoteeName}</span>
                   </div>
                   {completedTransaction.pan !== 'N/A' && (
@@ -1226,9 +1208,7 @@ export const QuickChandaPOS: React.FC = () => {
                     fgColor="#1c1917"
                     level="M"
                   />
-                  <span className="text-[9px] text-stone-500 font-mono mt-1">
-                    Scan for Digital e-Receipt
-                  </span>
+                  <span className="text-[9px] text-stone-500 font-mono mt-1">{t('org.finance.quickChanda.scanForDigitalEreceipt')}</span>
                 </div>
               </div>
             </div>
@@ -1239,16 +1219,14 @@ export const QuickChandaPOS: React.FC = () => {
                 type="button"
                 onClick={handleResetForNewDevotee}
                 className="flex-1 py-3 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
-              >
-                Next Devotee
-              </button>
+              >{t('org.finance.quickChanda.nextDevotee')}</button>
               <button
                 type="button"
                 onClick={handlePrintThermal}
                 className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print (Thermal)</span>
+                <span>{t('org.finance.quickChanda.printThermal')}</span>
               </button>
             </div>
           </div>
