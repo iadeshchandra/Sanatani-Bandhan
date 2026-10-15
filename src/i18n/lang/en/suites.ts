@@ -1,4 +1,414 @@
 export const suites = {
+/**
+ * seva — Seva Suggestions i18n dictionary (English).
+ *
+ * Namespace: suites.seva → { cards, catalog, recommend, appstore }.
+ * Module catalog: 79 modules, each with a transliterated name and a
+ * one-line outcome description. English is the mandatory fallback —
+ * every key in this file must exist in all 10 language files.
+ */
+  seva: {
+  cards: {
+    suggestedForYou: "Suggested for you",
+    enable: "Enable",
+    notNow: "Not now",
+    dismissSuggestion: "Dismiss suggestion",
+    enableModule: "Enable {name}",
+    availableModule: "Available module",
+    suggestionLabel: "Suggestion: {name}",
+  },
+  catalog: {
+    "devotee-portal": {
+      name: "My Devotee Portal",
+      desc: "Give every devotee their own app — bookings, receipts, and announcements in one place.",
+    },
+    "dashboard": {
+      name: "Command Center",
+      desc: "Your morning command view — collections, footfall, and pending work at a glance.",
+    },
+    "checkin": {
+      name: "Gate Command & Check-In",
+      desc: "Know exactly who entered and when — no more paper registers at the gate.",
+    },
+    "devotees": {
+      name: "Devotee & Member Directory",
+      desc: "One searchable directory of every devotee, donor, and volunteer — never lose touch.",
+    },
+    "membership": {
+      name: "Membership: Invites & Requests",
+      desc: "Approve join requests and send invites in one queue — no WhatsApp chaos.",
+    },
+    "family": {
+      name: "Household & Kul Parivar",
+      desc: "Map households and kul-parivars so seva reaches the whole family, not just individuals.",
+    },
+    "vanshavali": {
+      name: "Ancestral Lineage (Vanshavali)",
+      desc: "Preserve ancestral lineages as living family trees the next generation can explore.",
+    },
+    "guests": {
+      name: "Guest & Visitor CRM",
+      desc: "Turn first-time visitors into returning devotees with a proper guest pipeline.",
+    },
+    "donorCare": {
+      name: "Donor Care & Win-Back",
+      desc: "Win back lapsed donors automatically — thank them, remind them, keep them close.",
+    },
+    "bulkImport": {
+      name: "Bulk CSV Ingestion",
+      desc: "Bring years of paper registers and Excel sheets into the app in minutes with CSV import.",
+    },
+    "federation": {
+      name: "Federation & Multi-Branch HQ",
+      desc: "Run many branches as one — consolidated reports and HQ-level rollups.",
+    },
+    "sevadar-roster": {
+      name: "Sevadar HR & Volunteer Roster",
+      desc: "End volunteer scheduling chaos — shifts, check-ins, and SOPs in one roster.",
+    },
+    "quick-chanda-pos": {
+      name: "Quick Chanda Counter POS",
+      desc: "Collect donations at the counter in seconds — with instant printed receipts.",
+    },
+    "treasury": {
+      name: "Treasury & Expense Ledger",
+      desc: "Every rupee accounted for — audited double-entry ledger the trustees can defend.",
+    },
+    "treasury-audit": {
+      name: "Treasury & Audit Ledger",
+      desc: "A second pair of eyes on the treasury — independent audit trail for every entry.",
+    },
+    "hundi-audit": {
+      name: "Hundi & Golak Dual Audit",
+      desc: "Open the hundi with two custodians and a tamper-proof count — trust, documented.",
+    },
+    "ratna-bhandar": {
+      name: "Ratna Bhandar & Bullion Vault",
+      desc: "Guard deity ornaments and bullion with dual-PIN vault discipline.",
+    },
+    "taxReceipts": {
+      name: "Tax Certificates (80G/12A)",
+      desc: "Generate 80G/12A tax certificates in one click — save hundreds of admin hours.",
+    },
+    "form10bd": {
+      name: "Form 10BD & CBDT Filing",
+      desc: "File Form 10BD donation statements correctly and on time, every year.",
+    },
+    "tally-export": {
+      name: "Tally Prime XML Export",
+      desc: "Hand your CA clean Tally Prime XML — no re-typing the year's books.",
+    },
+    "campaigns": {
+      name: "Crowdfunding & Mandir Nirman",
+      desc: "Raise funds for nirman and sevas with transparent, trackable campaigns.",
+    },
+    "karmaLedger": {
+      name: "Karma Merit & Volunteer Ledger",
+      desc: "Recognize every volunteer hour as punya — a merit ledger that honors seva.",
+    },
+    "assets": {
+      name: "Fixed Assets & Deity Ornaments",
+      desc: "Track every asset from sound systems to silver — know what you own and where it is.",
+    },
+    "inventory": {
+      name: "Store & Consumables (Bhandara)",
+      desc: "Never run out of प्रसाद ingredients mid-festival — smart stock for the bhandara.",
+    },
+    "bhoomi": {
+      name: "Bhoomi & Property Leases",
+      desc: "Manage temple lands and leases with rent rolls — no more forgotten plots.",
+    },
+    "vahan": {
+      name: "Vahan Fleet & Transport",
+      desc: "Keep every vehicle road-ready with service and RTO alerts before they expire.",
+    },
+    "recurring-seva": {
+      name: "Recurring Seva Mandates",
+      desc: "Turn one-time donors into monthly supporters with automatic seva mandates.",
+    },
+    "sanctum-hud": {
+      name: "Sanctum HUD & Daily Roster",
+      desc: "A live heads-up view of the sanctum — rituals, rosters, and readiness.",
+    },
+    "poojaBooking": {
+      name: "Rituals & संकल्प Hub",
+      desc: "Let devotees book pujas and संकल्प online — synced with your purohits.",
+    },
+    "mandirPuja": {
+      name: "Daily आरती & Pujas",
+      desc: "Never miss an आरती — daily puja schedules with automatic reminders.",
+    },
+    "purohitDesk": {
+      name: "Purohit Diary & Dakshina",
+      desc: "A digital diary for purohits — bookings, dakshina, and daily discipline.",
+    },
+    "purohitMarket": {
+      name: "Global Scholar Marketplace",
+      desc: "Find KYC-verified scholars and purohits for any ritual, anywhere.",
+    },
+    "pitruShradh": {
+      name: "Pitru Paksha & Shradh Alerts",
+      desc: "Remind families of shradh तिथि before they pass — seva that never forgets.",
+    },
+    "panchang": {
+      name: "Vedic पंचांग & Muhurat",
+      desc: "तिथि, नक्षत्र, and muhurat for every day — the calendar your purohit trusts.",
+    },
+    "yatranet-gis": {
+      name: "YatraNet GIS Crowd & SOS",
+      desc: "Watch crowd density live on a map and respond to SOS before it becomes a crisis.",
+    },
+    "rakthaSeva": {
+      name: "Raktha Seva (Blood Registry)",
+      desc: "Connect blood donors to critical patients in minutes when every second counts.",
+    },
+    "goshala": {
+      name: "Goshala Sanctuary & गौमाता Records",
+      desc: "Complete records for every गौमाता — health, milk, and fodder in one place.",
+    },
+    "annadanam": {
+      name: "Annadanam & Prasad Seva",
+      desc: "Serve thousands without waste — plan, track, and account every annadanam.",
+    },
+    "annakshetra-one": {
+      name: "Annakshetra One — Kitchen & Bhandara Management",
+      desc: "Recipes that auto-calculate ingredients for 10 or 10,000 plates — and reorder in time.",
+    },
+    "nyas-one": {
+      name: "Nyas One — Compliance & Governance",
+      desc: "Never miss a filing again — 12A/80G/FCRA renewals, ITR-7, 10BE and the 85% rule, tracked.",
+    },
+    "utsav-one": {
+      name: "Utsav One — Festival & Mahotsav Management",
+      desc: "Run the whole mahotsav from one desk — budgets, committees, vendors, program and crowd safety.",
+    },
+    "tirth-one": {
+      name: "Tirth One — Darshan Queue & Tokens",
+      desc: "End the paper-token chaos — darshan slots, live queue board, seva passes and crowd counts.",
+    },
+    "yoga-one": {
+      name: "Yoga One — Shala Management",
+      desc: "Run the whole shala from one desk — batches, students, attendance, fees and the class diary.",
+    },
+    "matha-one": {
+      name: "Matha One — Monastic Management",
+      desc: "Keep the matha’s sacred record — sannyasi registry, parampara lineage, dinacharya and gurukul.",
+    },
+    "samskara-one": {
+      name: "Samskara One — Family Lifecycle",
+      desc: "Keep your family’s sacred chronicle — the 16 samskaras, gentle reminders, pitra records and shraddha.",
+    },
+    "satsang-one": {
+      name: "Satsang One — Mandali Management",
+      desc: "Run the mandali without WhatsApp chaos — members, gatherings, भजन list, प्रसाद rotation and the fund.",
+    },
+    "sabha-one": {
+      name: "Sabha One — Purohit Sabha Management",
+      desc: "Run the purohit sabha properly — member directory, dues, welfare fund, training and festival duty rosters.",
+    },
+    "ashramKutir": {
+      name: "Ashram Kutir & Sadhana Stays",
+      desc: "Manage kutir stays and sadhana retreats — bookings, rooms, and silence, organized.",
+    },
+    "dharamshala": {
+      name: "Dharamshala Yatri Bhavan",
+      desc: "Fill every yatri room without double-booking — simple stays, honestly managed.",
+    },
+    "gurukul": {
+      name: "Gurukul Residential Monitoring",
+      desc: "Watch over every shishya — attendance, health, and daily discipline in one view.",
+    },
+    "gurukulAcademy": {
+      name: "Shastric Academy & Grading",
+      desc: "Grade shastric learning properly — pariksha, marks, and progress per student.",
+    },
+    "vidyalaya": {
+      name: "Weekend Heritage School",
+      desc: "Run your weekend heritage school — classes, students, and fees without paperwork.",
+    },
+    "pathshala": {
+      name: "Pathshala — Complete School Management",
+      desc: "A complete school in your pocket — admissions, attendance, exams, and report cards.",
+    },
+    "goshala-one": {
+      name: "Goshala One — Complete Goshala Operations",
+      desc: "The complete goshala OS — cattle, milk, fodder, vet care, and sponsorships.",
+    },
+    "ashram-one": {
+      name: "Ashram One — Complete Yatri Stay Management",
+      desc: "The complete yatri-stay OS — rooms, bookings, check-in/out, guest register, and bhandara planning.",
+    },
+    "cash-custody": {
+      name: "Cash Custody — Hundi Chain of Custody",
+      desc: "Hundi-to-bank chain of custody — dual-custody openings, maker-checker counting, tamper-evident log.",
+    },
+    "satsang": {
+      name: "Satsang, कीर्तन & Discourse",
+      desc: "Organize कीर्तन and discourses — schedules, venues, and reminders handled.",
+    },
+    "sanghaDrills": {
+      name: "Sangha & Shakha Mobilization",
+      desc: "Mobilize shakhas with drills, attendance, and readiness tracking.",
+    },
+    "sevaTrust": {
+      name: "Humanitarian Seva Trust",
+      desc: "Run relief and humanitarian programs with transparent fund tracking.",
+    },
+    "granthLibrary": {
+      name: "Sacred Granth & Manuscript Library",
+      desc: "A living library of sacred granths and manuscripts — catalogued and searchable.",
+    },
+    "matrimony": {
+      name: "Vivah Bandhan (Dharmic Match)",
+      desc: "Dharmic matchmaking with gotra verification — families meet with confidence.",
+    },
+    "utsavPanjika": {
+      name: "Festival Calendar & Gate Passes",
+      desc: "Every festival planned — dates, gate passes, and checklists in one calendar.",
+    },
+    "panchayatPolls": {
+      name: "Panchayat Voting & Quorum",
+      desc: "Decisions the community trusts — transparent voting with proper quorum.",
+    },
+    "sandeshBroadcast": {
+      name: "Sandesh WhatsApp/SMS Broadcast",
+      desc: "Reach every devotee instantly on WhatsApp and SMS — announcements that land.",
+    },
+    "socialWall": {
+      name: "Temple Darshan Wall & Notices",
+      desc: "A beautiful darshan wall — share utsav photos and notices with your community.",
+    },
+    "shlokaFeed": {
+      name: "श्लोक Wisdom Stream",
+      desc: "Daily श्लोक wisdom for your community — one verse, every morning.",
+    },
+    "dharmicAssistant": {
+      name: "Dharmic AI Query Desk",
+      desc: "Ask anything about dharma, rituals, or your records — an AI that knows your institution.",
+    },
+    "dharmaMarketing": {
+      name: "Dharma Marketing AI",
+      desc: "Festival posters and outreach copy written for you — in your sampradaya's voice.",
+    },
+    "trusteeGovernance": {
+      name: "Trustee Board & Governance",
+      desc: "Board meetings with minutes, resolutions, and accountability — governance you can show.",
+    },
+    "legalVault": {
+      name: "Encrypted Legal Vault (80G/Deeds)",
+      desc: "Deeds, 80G certificates, and legal papers — encrypted and retrievable in seconds.",
+    },
+    "qrScanner": {
+      name: "QR Gate Scanner",
+      desc: "Scan devotee QR passes at the gate — instant, offline-capable verification.",
+    },
+    "appStore": {
+      name: "App Store & Add-ons",
+      desc: "Browse every module and switch on what your institution needs next.",
+    },
+    "masterSettings": {
+      name: "Organization Settings & Logos",
+      desc: "Your institution's identity — name, logo, and preferences in one place.",
+    },
+    "spiritualSettings": {
+      name: "Sampradaya & Kuladevata Config",
+      desc: "Configure your sampradaya, kuladevata, and traditions — the app speaks your parampara.",
+    },
+    "crisis-command": {
+      name: "Crisis Command Center",
+      desc: "When a child goes missing or a fire breaks out — broadcast and coordinate in seconds.",
+    },
+    "tactical-radar": {
+      name: "Tactical Perimeter Radar",
+      desc: "A live perimeter view for high-security utsavs — see movement before it matters.",
+    },
+    "sadhana-karma": {
+      name: "Sadhana & Japa Counters",
+      desc: "Your personal sadhana companion — japa counters, vratas, and daily discipline.",
+    },
+    "sanatani-vivah": {
+      name: "Sanatani Vivah Portal",
+      desc: "A trusted vivah portal for the community — profiles families can verify.",
+    },
+    "yatraNet": {
+      name: "YatraNet Offline Mesh (P2P)",
+      desc: "Stay connected with zero internet — an offline mesh for yatras and melas.",
+    },
+  },
+  recommend: {
+    reasons: {
+      orgAffinity: "A natural fit for {orgType} workspaces — many enable this first.",
+      festivalCrowd: "{festival} is {when} — crowd-safety modules are often enabled before big utsavs.",
+      bulkTools: "With {count}+ devotees, bulk tools save real admin hours.",
+      membership: "At this size, join requests deserve their own queue.",
+      donorCare: "{count}+ donations recorded — win-back keeps first-time donors returning.",
+      taxReceipts: "Donation volume like this usually means 80G receipts are due.",
+      adjacent: "Pairs well with a desk you already use.",
+    },
+    countdown: {
+      tomorrow: "tomorrow",
+      days: "in {days} days",
+      weeks: "in about {weeks} weeks",
+      aboutWeek: "in about a week",
+    },
+    festivals: {
+      mahaShivratri: "Maha Shivratri",
+      holi: "Holi",
+      ramNavami: "Ram Navami",
+      janmashtami: "Janmashtami",
+      ganeshChaturthi: "Ganesh Chaturthi",
+      navratriBegins: "Navratri begins",
+      durgaPujaDussehra: "Durga Puja / Dussehra",
+      diwali: "Diwali",
+    },
+  },
+  appstore: {
+    header: {
+      badge: "Enterprise Integrations",
+      title: "App Store & Add-ons",
+      subtitle: "Your workspace already starts with what your institution type needs. Browse everything below — or start with what we recommend for you.",
+    },
+    filters: {
+      all: "All",
+      native: "Native",
+      installed: "Installed",
+      available: "Available",
+    },
+    search: {
+      placeholder: "Search modules...",
+    },
+    recommended: {
+      title: "Recommended for you",
+      subtitle: "Ranked for your institution type, size, and the season — not an alphabetical wall.",
+      enableModule: "Enable module",
+      dismissLabel: "Dismiss recommendation: {name}",
+    },
+    catalog: {
+      title: "Browse all modules",
+      emptyTitle: "No Modules Found",
+      emptyDesc: "Adjust your search filters or browse the complete catalog.",
+      nativeBadge: "Base Archetype",
+      includedIn: "Included in {orgType}",
+      uninstall: "Uninstall Add-on",
+      install: "Install Module",
+    },
+    toasts: {
+      enabled: "“{name}” is now on — find it in your sidebar.",
+      enabledTitle: "Module Enabled",
+      uninstalled: "Module uninstalled.",
+    },
+    domains: {
+      personal: "Personal",
+      core: "Core Command & CRM",
+      finance: "Financials & Assets",
+      vedic: "Vedic Rituals & Ephemeris",
+      specialized: "Specialized Desks",
+      outreach: "Matrimony & Outreach",
+      governance: "Governance & Security",
+      life: "Sanatani Life & Connect",
+    },
+  },
+},
   samskara: {
   desk: {
     title: "Samskara One",
