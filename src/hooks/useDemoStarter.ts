@@ -9,10 +9,10 @@ import { WorkspaceConfig, WorkspaceType } from '../types';
  * useDemoStarter — self-sufficient demo workspace bootstrap.
  *
  * Creates a real, org-typed demo workspace (DEMO_<TYPE>_<ts>), seeds it with
- * sample records, logs in as Trustee, and routes into the app shell.
- * Used by the public landing + contact pages, which are rendered by the
- * router WITHOUT the MainAppView demo props — so they cannot rely on a
- * parent-provided onDemoStart.
+ * sample records, logs in as Trustee (or Devotee for devotee preview), and
+ * routes into the app shell. Used by the public landing + contact pages,
+ * which are rendered by the router WITHOUT the MainAppView demo props — so
+ * they cannot rely on a parent-provided onDemoStart.
  */
 export const useDemoStarter = () => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export const useDemoStarter = () => {
   const { showToast } = useToast();
 
   return useCallback(
-    (type: WorkspaceType = 'Mandir') => {
+    (type: WorkspaceType = 'Mandir', view: 'trustee' | 'devotee' = 'trustee') => {
       const demoId = `DEMO_${type.toUpperCase()}_${Date.now()}`;
       const demoWorkspace: WorkspaceConfig = {
         id: demoId,
@@ -49,7 +49,13 @@ export const useDemoStarter = () => {
       addWorkspace(demoWorkspace);
       // switchWorkspace is async; the login below does not depend on its result.
       void switchWorkspace(demoId);
-      loginAsRole('Trustee', 'Demo User');
+      // Explicit view choice (2026-10-15 audit P1-4): devotee preview logs in
+      // as Devotee so the app shell renders the devotee experience.
+      if (view === 'devotee') {
+        loginAsRole('Devotee', 'Demo Devotee');
+      } else {
+        loginAsRole('Trustee', 'Demo User');
+      }
       seedDemoData(demoId, type);
       showToast(
         `${type} sandbox ready — explore freely, sample records loaded.`,

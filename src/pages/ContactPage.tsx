@@ -440,9 +440,9 @@ export const ContactPage: React.FC = () => {
       <DemoSelectionModal
         isOpen={demoModalOpen}
         onClose={() => setDemoModalOpen(false)}
-        onSelect={(type) => {
+        onSelect={(type, view) => {
           setDemoModalOpen(false);
-          startDemo(type);
+          startDemo(type, view);
         }}
       />
       {privacyOpen && <PrivacyPolicy onClose={() => setPrivacyOpen(false)} />}

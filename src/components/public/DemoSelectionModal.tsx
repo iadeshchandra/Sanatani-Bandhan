@@ -7,7 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 interface DemoSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (type: WorkspaceType) => void;
+  onSelect: (type: WorkspaceType, view: 'trustee' | 'devotee') => void;
 }
 
 const ORG_TYPES: WorkspaceType[] = [
@@ -29,6 +29,7 @@ const ORG_LABELS: Record<string, string> = {
 export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, onClose, onSelect }) => {
   const { safeTranslate } = useLanguage();
   const [selected, setSelected] = useState<WorkspaceType | null>(null);
+  const [view, setView] = useState<'trustee' | 'devotee'>('trustee');
 
   if (!isOpen) return null;
 
@@ -68,26 +69,61 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white">
-          {!selected && (
-            <p className="text-[12px] font-semibold text-slate-500 text-center mb-3">
-              Select an institution type above to continue.
-            </p>
-          )}
-          <div className="flex justify-end">
+        {/* View selector: explicit Trustee vs Devotee choice (2026-10-15 audit P1-4:
+            demo entry was non-deterministic — buyers got random views) */}
+        <div className="px-6 pt-4">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            {safeTranslate('demo_view_label', 'Preview as', 'হিসেবে দেখুন', 'के रूप में देखें')}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
             <button
-              disabled={!selected}
-              onClick={() => selected && onSelect(selected)}
-              className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${
-                selected 
-                  ? 'bg-saffron-500 hover:bg-saffron-600 text-white shadow-saffron-500/25' 
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              type="button"
+              onClick={() => setView('trustee')}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                view === 'trustee'
+                  ? 'border-saffron-500 bg-saffron-50 ring-2 ring-saffron-500/20'
+                  : 'border-slate-200 bg-white hover:border-saffron-500/30'
               }`}
             >
-              {safeTranslate('enter_demo_btn', 'Enter Demo Workspace', 'ডেমো ওয়ার্কস্পেসে প্রবেশ করুন', 'डेमो कार्यक्षेत्र दर्ज करें')}
-              <ArrowRight className="w-4 h-4" />
+              <p className={`text-sm font-bold ${view === 'trustee' ? 'text-saffron-900' : 'text-slate-700'}`}>
+                🏛️ {safeTranslate('demo_view_trustee', 'Trustee Console', 'ট্রাস্টি কনসোল', 'ट्रस्टी कंसोल')}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {safeTranslate('demo_view_trustee_desc', 'Manage donations, treasury & devotees', 'দান, কোষাগার ও ভক্তদের পরিচালনা করুন', 'दान, कोषागार और भक्तों का प्रबंधन करें')}
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('devotee')}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                view === 'devotee'
+                  ? 'border-saffron-500 bg-saffron-50 ring-2 ring-saffron-500/20'
+                  : 'border-slate-200 bg-white hover:border-saffron-500/30'
+              }`}
+            >
+              <p className={`text-sm font-bold ${view === 'devotee' ? 'text-saffron-900' : 'text-slate-700'}`}>
+                🙏 {safeTranslate('demo_view_devotee', 'Devotee App', 'ভক্ত অ্যাপ', 'भक्त ऐप')}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {safeTranslate('demo_view_devotee_desc', 'See what your community members see', 'আপনার সম্প্রদায়ের সদস্যরা যা দেখেন তা দেখুন', 'देखें कि आपके समुदाय के सदस्य क्या देखते हैं')}
+              </p>
             </button>
           </div>
+        </div>
+
+        <div className="p-6 border-t border-slate-100 bg-white flex justify-end">
+          <button
+            disabled={!selected}
+            onClick={() => selected && onSelect(selected, view)}
+            className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 min-h-[44px] ${
+              selected 
+                ? 'bg-saffron-500 hover:bg-saffron-600 text-white shadow-saffron-500/25' 
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            {safeTranslate('enter_demo_btn', 'Enter Demo Workspace', 'ডেমো ওয়ার্কস্পেসে প্রবেশ করুন', 'डेमो कार्यक्षेत्र दर्ज करें')}
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>,
