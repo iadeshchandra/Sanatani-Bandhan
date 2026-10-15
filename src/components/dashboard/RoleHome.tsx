@@ -128,6 +128,13 @@ export const RoleSectionTitle: React.FC<{ icon: React.ElementType; title: string
 /* ShlokaCard — the sacred soul. Rendered for EVERY role, identical.   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Clean up IAST transliteration for UI display. The avagraha (') before
+ * "stv" in "saṅgo'stv" renders as a garbled apostrophe in most UI fonts;
+ * joining it reads cleanly. (Source data in DataContext is untouched.)
+ */
+const cleanTransliteration = (s: string): string => s.replace(/'stv/g, 'stv');
+
 export const ShlokaCard: React.FC = () => {
   const { shlokas } = useData();
   const { language } = useLanguage();
@@ -208,7 +215,7 @@ export const ShlokaCard: React.FC = () => {
           {currentShloka.sanskrit}
         </p>
         <p className="text-[11px] font-mono text-slate-500 italic text-center sm:text-left">
-          {currentShloka.transliteration}
+          {cleanTransliteration(currentShloka.transliteration)}
         </p>
         <div className="pt-3 mt-1 border-t border-slate-100 text-xs text-slate-600 leading-relaxed">
           <span className="font-bold text-indigo-600 uppercase tracking-wider mr-2">Meaning:</span>
