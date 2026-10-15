@@ -1,11 +1,13 @@
 import React from 'react';
 import { useMatha, livingSannyasis, todaysDinacharya, upcomingObservances, dakshinaTotal, displayName } from './mathaStore';
-import { T, Card, Stat, fmtTime, fmtMonthDay, inr } from './ui';
+import { Card, Stat, fmtTime, fmtMonthDay, inr } from './ui';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Dashboard — residents, today's dinacharya, upcoming observances, branches. */
 
 export const DashboardTab: React.FC = () => {
   const { state } = useMatha();
+  const { t } = useLanguage();
   const residents = livingSannyasis(state);
   const today = todaysDinacharya(state);
   const upcoming = upcomingObservances(state).slice(0, 5);
@@ -14,20 +16,20 @@ export const DashboardTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label={<T en="Residents" bn="বাসিন্দা" hi="निवासी" />} value={residents.length} sub={<T en="sannyasis & sadhaks" bn="সন্ন্যাসী ও সাধক" hi="संन्यासी व साधक" />} />
-        <Stat label={<T en="Gurukul students" bn="গুরুকুল শিক্ষার্থী" hi="गुरुकुल छात्र" />} value={students.length} sub={<T en="under training" bn="প্রশিক্ষণরত" hi="प्रशिक्षणरत" />} tone="amber" />
-        <Stat label={<T en="Branch mathas" bn="শাখা মঠ" hi="शाखा मठ" />} value={state.branches.length} sub={<T en="sub-centres" bn="উপকেন্দ্র" hi="उपकेंद्र" />} tone="sky" />
-        <Stat label={<T en="Dakshina received" bn="প্রাপ্ত দক্ষিণা" hi="प्राप्त दक्षिणा" />} value={inr(dakshinaTotal(state))} sub={<T en="all time, this device" bn="সর্বমোট, এই ডিভাইস" hi="कुल, यह डिवाइस" />} tone="stone" />
+        <Stat label={t('suites.matha.dashboard.statResidents')} value={residents.length} sub={t('suites.matha.dashboard.statResidentsSub')} />
+        <Stat label={t('suites.matha.dashboard.statStudents')} value={students.length} sub={t('suites.matha.dashboard.statStudentsSub')} tone="amber" />
+        <Stat label={t('suites.matha.dashboard.statBranches')} value={state.branches.length} sub={t('suites.matha.dashboard.statBranchesSub')} tone="sky" />
+        <Stat label={t('suites.matha.dashboard.statDakshina')} value={inr(dakshinaTotal(state))} sub={t('suites.matha.dashboard.statDakshinaSub')} tone="stone" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <h3 className="font-extrabold text-stone-800 mb-3">
-            <T en="Today's dinacharya" bn="আজকের দিনচর্যা" hi="आज की दिनचर्या" />
+            {t('suites.matha.dashboard.todaysDinacharya')}
           </h3>
           {today.length === 0 && (
             <p className="text-sm text-stone-400">
-              <T en="No routine set yet — add the daily schedule in the Dinacharya tab." bn="এখনও রুটিন নেই — দিনচর্যা ট্যাবে দৈনিক সূচি যোগ করুন।" hi="अभी कोई दिनचर्या नहीं — दिनचर्या टैब में दैनिक कार्यक्रम जोड़ें।" />
+              {t('suites.matha.dashboard.noRoutine')}
             </p>
           )}
           <div className="space-y-2">
@@ -42,11 +44,11 @@ export const DashboardTab: React.FC = () => {
 
         <Card>
           <h3 className="font-extrabold text-stone-800 mb-3">
-            <T en="Upcoming observances" bn="আসন্ন পালনীয়" hi="आगामी अनुष्ठान" />
+            {t('suites.matha.dashboard.upcomingObservances')}
           </h3>
           {upcoming.length === 0 && (
             <p className="text-sm text-stone-400">
-              <T en="No observances recorded — add Guru Purnima, diksha anniversaries and festivals in the Utsav tab." bn="কোনো পালনীয় নথিভুক্ত নেই — উৎসব ট্যাবে গুরু পূর্ণিমা, দীক্ষা বার্ষিকী যোগ করুন।" hi="कोई अनुष्ठान दर्ज नहीं — उत्सव टैब में गुरु पूर्णिमा, दीक्षा वर्षगांठ जोड़ें।" />
+              {t('suites.matha.dashboard.noObservances')}
             </p>
           )}
           <div className="space-y-2">
@@ -57,7 +59,7 @@ export const DashboardTab: React.FC = () => {
                   <div className="text-xs text-stone-500">{fmtMonthDay(o.monthDay)}</div>
                 </div>
                 <span className="text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2.5 py-1">
-                  {inDays === 0 ? <T en="today" bn="আজ" hi="आज" /> : <T en={`${inDays} days`} bn={`${inDays} দিন`} hi={`${inDays} दिन`} />}
+                  {inDays === 0 ? t('suites.matha.common.today') : t('suites.matha.common.days').replace('{days}', String(inDays))}
                 </span>
               </div>
             ))}
@@ -68,7 +70,7 @@ export const DashboardTab: React.FC = () => {
       {residents.length > 0 && (
         <Card>
           <h3 className="font-extrabold text-stone-800 mb-3">
-            <T en="Resident sannyasis" bn="বাসিন্দা সন্ন্যাসী" hi="निवासी संन्यासी" />
+            {t('suites.matha.dashboard.residentSannyasis')}
           </h3>
           <div className="flex flex-wrap gap-2">
             {residents.map((s) => (
