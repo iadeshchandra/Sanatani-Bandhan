@@ -5,8 +5,10 @@ import { useData } from '../../context/DataContext';
 import { GuestRecord } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const GuestManagerDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { guests, addGuest, promoteGuestToMember } = useData();
   const { showToast, confirm } = useToast();
@@ -75,9 +77,7 @@ export const GuestManagerDesk: React.FC = () => {
               {guests.length} Logged Inquiries
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
-            Guest & Visitor CRM Desk
-          </h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.people.guestManager.guestVisitorCrmDesk')}</h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Capture pilgrim footfall, track puja inquiries, and promote visitors to enrolled members
           </p>
@@ -135,7 +135,7 @@ export const GuestManagerDesk: React.FC = () => {
 
               <div className="py-3 space-y-1.5 text-xs text-temple-300">
                 <p>
-                  <span className="text-temple-400">Phone:</span>{' '}
+                  <span className="text-temple-400">{t('org.people.guestManager.phone')}</span>{' '}
                   <span className="font-mono text-saffron-400">{guest.phone}</span>
                 </p>
                 <p>
@@ -143,7 +143,7 @@ export const GuestManagerDesk: React.FC = () => {
                   <span className="font-semibold text-temple-100">{guest.purpose}</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">Visit Date:</span>{' '}
+                  <span className="text-temple-400">{t('org.people.guestManager.visitDate')}</span>{' '}
                   <span className="font-mono text-temple-300">{guest.visitDate}</span>
                 </p>
                 <p>
@@ -168,7 +168,7 @@ export const GuestManagerDesk: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
-                  <span>Promote to Member</span>
+                  <span>{t('org.people.guestManager.promoteToMember')}</span>
                 </button>
               )}
             </div>
@@ -232,10 +232,10 @@ export const GuestManagerDesk: React.FC = () => {
                   onChange={(e) => setPurpose(e.target.value)}
                   className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-temple-200"
                 >
-                  <option>Darshan & Puja</option>
+                  <option>{t('org.people.guestManager.darshanPuja')}</option>
                   <option>Pooja Inquiry</option>
                   <option>Annadanam Sponsorship</option>
-                  <option>Gau Seva Adoption</option>
+                  <option>{t('org.people.guestManager.gauSevaAdoption')}</option>
                   <option>Ashram Kutir Stay</option>
                   <option>Gurukul Admission</option>
                 </select>
@@ -266,15 +266,11 @@ export const GuestManagerDesk: React.FC = () => {
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
-                >
-                  Cancel
-                </button>
+                >{t('org.people.guestManager.cancel')}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
-                >
-                  Save Visitor Record
-                </button>
+                >{t('org.people.guestManager.saveVisitorRecord')}</button>
               </div>
             </form>
           </div>
