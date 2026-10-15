@@ -936,10 +936,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {ORG_PROFILES.map((o, i) => (
               <Reveal key={o.type} delay={(i % 3) * 90}>
                 <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-1 transition-all flex flex-col">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center mb-5 shadow-lg shadow-orange-500/25">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center mb-5 shadow-lg shadow-orange-500/25 mx-auto">
                     <o.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-xl font-black text-stone-900">{o.label}</h3>
+                  <h3 className="text-xl font-black text-stone-900 text-center">{o.label}</h3>
                   <p className="text-xs font-bold uppercase tracking-widest text-orange-600 mt-1 mb-4">
                     {o.tagline}
                   </p>
@@ -1166,11 +1166,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     i === 4 ? 'sm:col-span-2 lg:col-span-1' : ''
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-5 mx-auto">
                     <f.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-stone-900 mb-2">{f.title}</h3>
-                  <p className="text-sm text-stone-500 leading-relaxed">{f.desc}</p>
+                  <h3 className="text-lg font-extrabold text-stone-900 mb-2 text-center">{f.title}</h3>
+                  <p className="text-sm text-stone-500 leading-relaxed text-center">{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -1228,11 +1228,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             ].map((c, i) => (
               <Reveal key={c.title} delay={(i % 4) * 70}>
                 <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-1 transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-5 mx-auto">
                     <c.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-stone-900 mb-2">{c.title}</h3>
-                  <p className="text-sm text-stone-500 leading-relaxed">{c.desc}</p>
+                  <h3 className="text-lg font-extrabold text-stone-900 mb-2 text-center">{c.title}</h3>
+                  <p className="text-sm text-stone-500 leading-relaxed text-center">{c.desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -1272,11 +1272,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               ].map((v, i) => (
                 <Reveal key={v.title} delay={i * 90}>
                   <div className="h-full rounded-3xl bg-white/5 border border-white/10 p-7 backdrop-blur">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4 mx-auto">
                       <v.icon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-lg font-extrabold text-white mb-2">{v.title}</h3>
-                    <p className="text-sm text-orange-200/80 leading-relaxed">{v.desc}</p>
+                    <h3 className="text-lg font-extrabold text-white mb-2 text-center">{v.title}</h3>
+                    <p className="text-sm text-orange-200/80 leading-relaxed text-center">{v.desc}</p>
                   </div>
                 </Reveal>
               ))}
