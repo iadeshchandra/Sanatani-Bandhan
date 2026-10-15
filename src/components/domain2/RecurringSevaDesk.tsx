@@ -23,6 +23,7 @@ import { useToast } from '../../context/ToastContext';
 import { SevaSubscription } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 const PLANS = ['Nitya Annadanam', 'Gau Seva Monthly', 'Deep Seva', 'Nitya Pushpanjali', 'Custom'] as const;
 const FREQUENCIES: SevaSubscription['frequency'][] = ['Monthly', 'Quarterly', 'Annually'];
@@ -59,6 +60,7 @@ const planBadge: Record<string, string> = {
 };
 
 export const RecurringSevaDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const workspaceId = activeWorkspace?.id || 'DEMO_ws-mandir';
   const { sevaSubscriptions, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment } = useData();
@@ -266,9 +268,7 @@ export const RecurringSevaDesk: React.FC = () => {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100 flex items-center gap-2">
-            <Repeat className="w-6 h-6 text-saffron-400" />
-            Recurring Seva Subscriptions
-          </h2>
+            <Repeat className="w-6 h-6 text-saffron-400" />{t('org.finance.recurringSeva.recurringSevaSubscriptions')}</h2>
           <p className="text-xs text-temple-400 mt-0.5">
             Monthly annadanam, gau seva & deep seva mandates — predictable temple income, collected on schedule
           </p>
@@ -280,7 +280,7 @@ export const RecurringSevaDesk: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-700 border border-temple-700 text-temple-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
           >
             <Download className="w-4 h-4" />
-            <span>Export CSV</span>
+            <span>{t('org.finance.recurringSeva.exportCsv')}</span>
           </button>
           <button
             type="button"
@@ -361,7 +361,7 @@ export const RecurringSevaDesk: React.FC = () => {
           className="bg-temple-800 border border-temple-700 rounded-xl px-3 py-2.5 text-xs text-temple-200 min-h-[44px]"
           aria-label="Filter by plan"
         >
-          <option value="all">All Plans</option>
+          <option value="all">{t('org.finance.recurringSeva.allPlans')}</option>
           {Array.from(new Set(sevaSubscriptions.map((s) => s.planName))).map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
@@ -393,9 +393,7 @@ export const RecurringSevaDesk: React.FC = () => {
               type="button"
               onClick={() => { setSearchTerm(''); setStatusFilter('all'); setPlanFilter('all'); }}
               className="px-5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-700 border border-temple-700 text-temple-200 font-bold text-xs cursor-pointer min-h-[44px]"
-            >
-              Clear filters
-            </button>
+            >{t('org.finance.recurringSeva.clearFilters')}</button>
           )}
         </div>
       ) : (
@@ -436,8 +434,7 @@ export const RecurringSevaDesk: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-temple-400 flex items-center gap-1.5">
-                        <CalendarClock className="w-3.5 h-3.5" /> Next due
-                      </span>
+                        <CalendarClock className="w-3.5 h-3.5" />{t('org.finance.recurringSeva.nextDue')}</span>
                       <span className={`font-bold ${isOverdue ? 'text-red-400' : dueSoon ? 'text-amber-300' : 'text-temple-100'}`}>
                         {s.nextDueDate}
                         {s.status === 'Active' && (
@@ -456,7 +453,7 @@ export const RecurringSevaDesk: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-temple-400">Status</span>
+                      <span className="text-temple-400">{t('org.finance.recurringSeva.status')}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                         s.status === 'Active' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                         : s.status === 'Paused' ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
@@ -475,8 +472,7 @@ export const RecurringSevaDesk: React.FC = () => {
                       onClick={() => openPayModal(s)}
                       className="flex-1 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
                     >
-                      <CheckCircle2 className="w-4 h-4" /> Record Payment
-                    </button>
+                      <CheckCircle2 className="w-4 h-4" />{t('org.finance.recurringSeva.recordPayment')}</button>
                   )}
                   {(s.status === 'Active' || s.status === 'Paused') && (
                     <button
@@ -517,9 +513,9 @@ export const RecurringSevaDesk: React.FC = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-extrabold text-temple-100 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-saffron-400" /> New Seva Subscription <LocalOnlyBadge />
+                <Sparkles className="w-5 h-5 text-saffron-400" />{t('org.finance.recurringSeva.newSevaSubscription')}<LocalOnlyBadge />
               </h3>
-              <button type="button" onClick={() => setShowAddModal(false)} className="p-2 rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Close">
+              <button type="button" onClick={() => setShowAddModal(false)} className="p-2 rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label={t('org.finance.recurringSeva.close')}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -529,7 +525,7 @@ export const RecurringSevaDesk: React.FC = () => {
                 <input id="seva-name" className={inputCls} value={fName} onChange={(e) => setFName(e.target.value)} placeholder="e.g. Sri Mohan Sharma" required />
               </div>
               <div>
-                <label className={labelCls} htmlFor="seva-phone">Phone</label>
+                <label className={labelCls} htmlFor="seva-phone">{t('org.finance.recurringSeva.phone')}</label>
                 <input id="seva-phone" className={inputCls} value={fPhone} onChange={(e) => setFPhone(e.target.value)} placeholder="+91 ..." inputMode="tel" />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -563,13 +559,13 @@ export const RecurringSevaDesk: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className={labelCls} htmlFor="seva-mode">Payment Mode</label>
+                <label className={labelCls} htmlFor="seva-mode">{t('org.finance.recurringSeva.paymentMode')}</label>
                 <select id="seva-mode" className={inputCls} value={fMode} onChange={(e) => setFMode(e.target.value)}>
                   {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelCls} htmlFor="seva-notes">Notes</label>
+                <label className={labelCls} htmlFor="seva-notes">{t('org.finance.recurringSeva.notes')}</label>
                 <textarea id="seva-notes" className={inputCls} rows={2} value={fNotes} onChange={(e) => setFNotes(e.target.value)} placeholder="Sankalp details, gotra, occasion..." />
               </div>
               <button type="submit" className="w-full py-3 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-extrabold text-sm transition-all cursor-pointer min-h-[48px]">
@@ -617,9 +613,7 @@ export const RecurringSevaDesk: React.FC = () => {
                   </select>
                 </div>
               </div>
-              <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all cursor-pointer min-h-[48px]">
-                Collect & Post to Treasury
-              </button>
+              <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all cursor-pointer min-h-[48px]">{t('org.finance.recurringSeva.collectPostToTreasury')}</button>
             </form>
           </div>
         </div>
