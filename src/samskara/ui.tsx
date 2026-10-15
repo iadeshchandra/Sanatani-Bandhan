@@ -1,21 +1,53 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import type { SamskaraMeta } from './types';
 
 /* Samskara One — shared UI primitives (locale-aware, maroon/gold palette).
  *
- * LOCALE CONTRACT: English default, Bengali/Hindi via LanguageContext.
- * Domain terms stay Sanatani (Samskara / Parivar / Pitra) with English
- * subtitles; never hardcoded to one language.
+ * LOCALE CONTRACT: t('suites.samskara.…') via LanguageContext, 10 languages.
+ * Domain terms stay Sanatani (Samskara / Parivar / Pitra / Shraddha) in local
+ * script per the termbase; the 16 samskara names stay Devanagari (Tier A)
+ * in every language. English subtitles render as a gloss in non-English UI.
  *
  * RESPECT RULE: sacred family data. Warm, quiet, reverent tone.
  * Nothing here is gamified — no badges, no points, no streaks.
  */
 
-export const T: React.FC<{ en: string; bn: string; hi?: string; className?: string }> = ({
-  en, bn, hi, className = '',
+/** Translate a dot-key with {var} interpolation. Falls back through t()'s
+ *  English chain, so a missing key never renders blank. */
+export const useTr = () => {
+  const { t } = useLanguage();
+  return React.useCallback(
+    (key: string, vars?: Record<string, string | number>): string => {
+      let s = t(key);
+      if (vars) {
+        for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
+      }
+      return s;
+    },
+    [t]
+  );
+};
+
+/** Samskara meta with localised timing/description. The Sanskrit name stays
+ *  Devanagari in every language (Tier A — sacred, never translated). */
+export const useLocalMeta = () => {
+  const tr = useTr();
+  return React.useCallback(
+    (meta: SamskaraMeta) => ({
+      ...meta,
+      timing: tr(`suites.samskara.list.${meta.id}.timing`),
+      description: tr(`suites.samskara.list.${meta.id}.description`),
+    }),
+    [tr]
+  );
+};
+
+export const T: React.FC<{ en: string; bn: string; hi?: string; k?: string; className?: string }> = ({
+  en, bn, hi, k, className = '',
 }) => {
-  const { safeTranslate, currentLang } = useLanguage();
-  const primary = safeTranslate('samskara.label', en, bn, hi);
+  const { safeTranslate, currentLang, t } = useLanguage();
+  const primary = k ? t(k) : safeTranslate('samskara.label', en, bn, hi);
   const showGloss = currentLang !== 'en' && primary !== en;
   return (
     <span className={className}>
@@ -85,40 +117,43 @@ export const Empty: React.FC<{ text: string }> = ({ text }) => (
 
 export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; children: React.ReactNode; wide?: boolean }> = ({
   title, onClose, children, wide = false,
-}) => (
-  <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-    <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-    <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-stone-800">{title}</h3>
-        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold min-w-[36px] min-h-[36px]" aria-label="Close">✕</button>
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-stone-800">{title}</h3>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold min-w-[36px] min-h-[36px]" aria-label={t('suites.samskara.common.close')}>✕</button>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
-  </div>
-);
+  );
+};
 
-export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; hi?: string }>; active: string; onChange: (id: string) => void }> = ({
+export const Tabs: React.FC<{ tabs: Array<{ id: string; en: string }>; active: string; onChange: (id: string) => void }> = ({
   tabs, active, onChange,
 }) => {
-  const { safeTranslate, currentLang } = useLanguage();
+  const { t, currentLang } = useLanguage();
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-      {tabs.map((t) => {
-        const primary = safeTranslate(`samskara.tab.${t.id}`, t.en, t.bn, t.hi);
-        const showGloss = currentLang !== 'en' && primary !== t.en;
+      {tabs.map((tab) => {
+        const primary = t(`suites.samskara.tabs.${tab.id}`);
+        const showGloss = currentLang !== 'en' && primary !== tab.en;
         return (
           <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
             className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold border transition min-h-[44px] ${
-              active === t.id
+              active === tab.id
                 ? 'bg-gradient-to-r from-rose-800 to-amber-800 text-rose-50 border-rose-900 shadow'
                 : 'bg-white text-stone-600 border-stone-200 hover:border-rose-300'
             }`}
           >
             <span className="font-bold">{primary}</span>
-            {showGloss && <span className={`block text-[10px] font-normal ${active === t.id ? 'text-rose-200' : 'text-stone-400'}`}>{t.en}</span>}
+            {showGloss && <span className={`block text-[10px] font-normal ${active === tab.id ? 'text-rose-200' : 'text-stone-400'}`}>{tab.en}</span>}
           </button>
         );
       })}
@@ -128,6 +163,7 @@ export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; 
 
 /** Quiet status pill — descriptive, never celebratory. */
 export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const { t } = useLanguage();
   const tones: Record<string, string> = {
     completed: 'bg-emerald-100 text-emerald-800',
     planned: 'bg-amber-100 text-amber-800',
@@ -135,7 +171,7 @@ export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
     posted: 'bg-emerald-100 text-emerald-800',
     pending: 'bg-amber-100 text-amber-800',
   };
-  const label = status.replace(/-/g, ' ');
+  const label = t(`suites.samskara.statuses.${status}`);
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide ${tones[status] || 'bg-stone-100 text-stone-600'}`}>
       {label}

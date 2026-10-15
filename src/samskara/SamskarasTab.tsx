@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSamskara, uid, memberChronicle, ageYears } from './samskaraStore';
 import { SamskaraId, SamskaraMeta, SamskaraRecord, SamskaraStatus, FamilyMember } from './types';
-import { Card, Btn, Field, inputCls, Modal, Empty, StatusPill, fmtDate, T } from './ui';
+import { Card, Btn, Field, inputCls, Modal, Empty, StatusPill, fmtDate, T, useLocalMeta } from './ui';
 import { useLanguage } from '../context/LanguageContext';
 
 /* Samskara One — Samskaras. For each family member, the sixteen
@@ -12,7 +12,9 @@ const RecordForm: React.FC<{ member: FamilyMember; meta: SamskaraMeta; existing?
   member, meta, existing, onClose,
 }) => {
   const { add, update } = useSamskara();
-  const { safeTranslate } = useLanguage();
+  const { t } = useLanguage();
+  const loc = useLocalMeta();
+  const lm = loc(meta);
   const [status, setStatus] = useState<SamskaraStatus>(existing?.status || 'completed');
   const [dateCompleted, setDateCompleted] = useState(existing?.dateCompleted || '');
   const [purohitName, setPurohitName] = useState(existing?.purohitName || '');
@@ -37,10 +39,10 @@ const RecordForm: React.FC<{ member: FamilyMember; meta: SamskaraMeta; existing?
 
   return (
     <Modal title={`${meta.name} · ${meta.transliteration}`} onClose={onClose}>
-      <p className="text-xs text-stone-500 mb-1">{member.name} · {meta.timing}</p>
-      <p className="text-sm text-stone-600 mb-4 italic">{meta.description}</p>
+      <p className="text-xs text-stone-500 mb-1">{member.name} · {lm.timing}</p>
+      <p className="text-sm text-stone-600 mb-4 italic">{lm.description}</p>
       <div className="space-y-3">
-        <Field label={<T en="Status" bn="অবস্থা" hi="स्थिति" />}>
+        <Field label={<T k="suites.samskara.samskaras.statusLabel" en="Status" />}>
           <div className="grid grid-cols-3 gap-2">
             {(['completed', 'planned', 'not-applicable'] as SamskaraStatus[]).map((s) => (
               <button
@@ -51,38 +53,38 @@ const RecordForm: React.FC<{ member: FamilyMember; meta: SamskaraMeta; existing?
                 }`}
               >
                 {s === 'completed'
-                  ? safeTranslate('samskara.record.completed', 'Observed', 'পালিত', 'संपन्न')
+                  ? t('suites.samskara.record.completed')
                   : s === 'planned'
-                    ? safeTranslate('samskara.record.planned', 'Planned', 'পরিকল্পিত', 'योजित')
-                    : safeTranslate('samskara.record.na', 'Not applicable', 'প্রযোজ্য নয়', 'लागू नहीं')}
+                    ? t('suites.samskara.record.planned')
+                    : t('suites.samskara.record.notApplicable')}
               </button>
             ))}
           </div>
         </Field>
         {status === 'completed' && (
-          <Field label={<T en="Date observed" bn="পালনের তারিখ" hi="संपन्न तिथि" />}>
+          <Field label={<T k="suites.samskara.record.dateObserved" en="Date observed" />}>
             <input type="date" className={inputCls} value={dateCompleted} onChange={(e) => setDateCompleted(e.target.value)} />
           </Field>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <Field label={<T en="Purohit" bn="পুরোহিত" hi="पुरोहित" />}>
+          <Field label={<T k="suites.samskara.record.purohit" en="Purohit" />}>
             <input className={inputCls} value={purohitName} onChange={(e) => setPurohitName(e.target.value)}
-              placeholder={safeTranslate('samskara.record.purohitPh', 'Who performed it', 'কে সম্পাদন করেছেন', 'किसने संपन्न कराया')} />
+              placeholder={t('suites.samskara.record.purohitPh')} />
           </Field>
-          <Field label={<T en="Place" bn="স্থান" hi="स्थान" />}>
+          <Field label={<T k="suites.samskara.record.place" en="Place" />}>
             <input className={inputCls} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="—" />
           </Field>
         </div>
-        <Field label={<T en="Notes & memories" bn="নোট ও স্মৃতি" hi="टिप्पणी व स्मृतियां" />}>
+        <Field label={<T k="suites.samskara.record.notes" en="Notes & memories" />}>
           <textarea className={inputCls} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder={safeTranslate('samskara.record.notesPh', 'A line to remember this day by…', 'এই দিনটি মনে রাখার মতো একটি লাইন…', 'इस दिन को याद रखने के लिए एक पंक्ति…')} />
+            placeholder={t('suites.samskara.record.notesPh')} />
         </Field>
         <div className="flex gap-2 pt-1">
           <Btn onClick={save} className="flex-1">
-            {safeTranslate('samskara.common.save', 'Save', 'সংরক্ষণ', 'सहेजें')}
+            {t('suites.samskara.common.save')}
           </Btn>
           <Btn variant="ghost" onClick={onClose}>
-            {safeTranslate('samskara.common.cancel', 'Cancel', 'বাতিল', 'रद्द करें')}
+            {t('suites.samskara.common.cancel')}
           </Btn>
         </div>
       </div>
@@ -92,7 +94,8 @@ const RecordForm: React.FC<{ member: FamilyMember; meta: SamskaraMeta; existing?
 
 export const SamskarasTab: React.FC = () => {
   const { state, remove } = useSamskara();
-  const { safeTranslate } = useLanguage();
+  const { t } = useLanguage();
+  const loc = useLocalMeta();
   const [memberId, setMemberId] = useState<string>('');
   const [editing, setEditing] = useState<{ meta: SamskaraMeta; existing?: SamskaraRecord } | null>(null);
 
@@ -103,19 +106,14 @@ export const SamskarasTab: React.FC = () => {
 
   if (living.length === 0) {
     return (
-      <Empty text={safeTranslate(
-        'samskara.samskaras.noMembers',
-        'Add family members first — then their samskara chronicle will live here.',
-        'প্রথমে পরিবারের সদস্য যোগ করুন — তারপর তাদের সংস্কার ইতিহাস এখানে থাকবে।',
-        'पहले परिवार के सदस्य जोड़ें — फिर उनका संस्कार वृत्तांत यहाँ रहेगा।'
-      )} />
+      <Empty text={t('suites.samskara.samskaras.noMembers')} />
     );
   }
 
   return (
     <div className="space-y-4">
       <Card>
-        <Field label={<T en="Family member" bn="পরিবারের সদস্য" hi="परिवार का सदस्य" />}>
+        <Field label={<T k="suites.samskara.samskaras.familyMember" en="Family member" />}>
           <select className={inputCls} value={selected?.id || ''} onChange={(e) => setMemberId(e.target.value)}>
             {living.map((m) => {
               const age = ageYears(m.birthDate);
@@ -125,56 +123,54 @@ export const SamskarasTab: React.FC = () => {
         </Field>
         {selected && (
           <p className="text-xs text-stone-500 mt-2">
-            {safeTranslate('samskara.samskaras.chronicleFor', 'Sacred chronicle of', 'পবিত্র ইতিহাস', 'पवित्र वृत्तांत')}{' '}
+            {t('suites.samskara.samskaras.chronicleFor')}{' '}
             <span className="font-bold text-stone-700">{selected.name}</span>
-            {' · '}{doneCount} {safeTranslate('samskara.samskaras.observed', 'observed', 'পালিত', 'संपन्न')}
+            {' · '}{doneCount} {t('suites.samskara.samskaras.observed')}
           </p>
         )}
       </Card>
 
       <div className="space-y-2">
-        {chronicle.map(({ meta, record }, idx) => (
-          <button
-            key={meta.id}
-            onClick={() => selected && setEditing({ meta, existing: record })}
-            className="w-full text-left rounded-2xl border border-stone-200 hover:border-rose-300 bg-white p-4 transition min-h-[44px]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-stone-400 w-6 shrink-0">{idx + 1}</span>
-                  <span className="text-base font-bold text-stone-800">{meta.name}</span>
-                  <span className="text-xs text-stone-500">{meta.transliteration}</span>
-                </div>
-                <div className="text-xs text-stone-500 mt-1 ml-8">{meta.timing}</div>
-                {record?.status === 'completed' && (
-                  <div className="text-xs text-stone-600 mt-1 ml-8">
-                    {record.dateCompleted && <span className="mr-2">🪔 {fmtDate(record.dateCompleted)}</span>}
-                    {record.purohitName && <span className="mr-2">· {record.purohitName}</span>}
-                    {record.location && <span>· {record.location}</span>}
-                    {record.notes && <div className="italic text-stone-500 mt-0.5">“{record.notes}”</div>}
+        {chronicle.map(({ meta, record }, idx) => {
+          const lm = loc(meta);
+          return (
+            <button
+              key={meta.id}
+              onClick={() => selected && setEditing({ meta, existing: record })}
+              className="w-full text-left rounded-2xl border border-stone-200 hover:border-rose-300 bg-white p-4 transition min-h-[44px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-stone-400 w-6 shrink-0">{idx + 1}</span>
+                    <span className="text-base font-bold text-stone-800">{meta.name}</span>
+                    <span className="text-xs text-stone-500">{meta.transliteration}</span>
                   </div>
-                )}
+                  <div className="text-xs text-stone-500 mt-1 ml-8">{lm.timing}</div>
+                  {record?.status === 'completed' && (
+                    <div className="text-xs text-stone-600 mt-1 ml-8">
+                      {record.dateCompleted && <span className="mr-2">🪔 {fmtDate(record.dateCompleted)}</span>}
+                      {record.purohitName && <span className="mr-2">· {record.purohitName}</span>}
+                      {record.location && <span>· {record.location}</span>}
+                      {record.notes && <div className="italic text-stone-500 mt-0.5">“{record.notes}”</div>}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  {record ? <StatusPill status={record.status} /> : (
+                    <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-stone-50 text-stone-400 border border-stone-200">
+                      —
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="shrink-0">
-                {record ? <StatusPill status={record.status} /> : (
-                  <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-stone-50 text-stone-400 border border-stone-200">
-                    —
-                  </span>
-                )}
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       <p className="text-[11px] text-stone-400 italic text-center px-4">
-        {safeTranslate(
-          'samskara.samskaras.footnote',
-          'Timings follow widely observed custom. Your family and regional traditions take precedence.',
-          'সময় বহুল প্রচলিত রীতি অনুসরণ করে। আপনার পারিবারিক ও আঞ্চলিক ঐতিহ্যই চূড়ান্ত।',
-          'समय व्यापक प्रचलित परंपरा का पालन करता है। आपकी पारिवारिक व क्षेत्रीय परंपरा ही सर्वोपरि है।'
-        )}
+        {t('suites.samskara.samskaras.footnote')}
       </p>
 
       {editing && selected && (

@@ -17,6 +17,11 @@ import {
 
 type EntityKey = 'families' | 'members' | 'records' | 'ancestors' | 'plans';
 
+/** String translator carried in from the UI (useLanguage's t with
+ *  {var} interpolation, via useTr in ./ui). Lets reminder texts and
+ *  seed checklists render in the family's language. */
+export type Translator = (key: string, vars?: Record<string, string | number>) => string;
+
 const EMPTY: SamskaraState = {
   families: [], members: [], records: [], ancestors: [], plans: [],
 };
@@ -68,7 +73,7 @@ export interface Reminder {
 /** Gentle, age-based samskara reminders for living members.
  *  Only surfaces samskaras with a typicalAge >= 0 that are not yet
  *  recorded as completed/planned, within a 2-year approach window. */
-export function samskaraReminders(state: SamskaraState): Reminder[] {
+export function samskaraReminders(state: SamskaraState, tr: Translator): Reminder[] {
   const out: Reminder[] = [];
   const recKey = new Set(state.records.map((r) => `${r.memberId}:${r.samskaraId}`));
   for (const m of state.members) {
@@ -81,13 +86,16 @@ export function samskaraReminders(state: SamskaraState): Reminder[] {
       if (recKey.has(`${m.id}:${s.id}`)) continue;
       const diff = s.typicalAge - age;
       if (diff >= 0 && diff <= 2) {
+        const sName = s.transliteration;
         out.push({
           id: `sa_${m.id}_${s.id}`,
           kind: 'samskara-age',
           title: diff === 0
-            ? `${m.name} is ${age} — the traditional age for ${s.transliteration}`
-            : `${m.name} turns ${s.typicalAge} ${diff === 1 ? 'this year' : `in ${diff} years`} — ${s.transliteration} approaches`,
-          detail: `${s.timing}. Family and regional customs take precedence — this is a gentle nudge, not a rule.`,
+            ? tr('suites.samskara.reminders.ageNow', { name: m.name, age, samskara: sName })
+            : diff === 1
+              ? tr('suites.samskara.reminders.ageSoonThisYear', { name: m.name, typicalAge: s.typicalAge, samskara: sName })
+              : tr('suites.samskara.reminders.ageSoonYears', { name: m.name, typicalAge: s.typicalAge, diff, samskara: sName }),
+          detail: tr('suites.samskara.reminders.ageDetail', { timing: tr(`suites.samskara.list.${s.id}.timing`) }),
           memberId: m.id,
           gentle: false,
         });
@@ -98,20 +106,21 @@ export function samskaraReminders(state: SamskaraState): Reminder[] {
 }
 
 /** Annual shraddha reminders for ancestors, within a 30-day window. */
-export function shraddhaReminders(state: SamskaraState): Reminder[] {
+export function shraddhaReminders(state: SamskaraState, tr: Translator): Reminder[] {
   const out: Reminder[] = [];
   for (const a of state.ancestors) {
     if (!a.shraddhaMonthDay) continue;
     const next = nextMonthDay(a.shraddhaMonthDay);
     const inDays = daysUntil(next);
     if (inDays <= 30) {
+      const dayWord = tr(`suites.samskara.reminders.${inDays === 1 ? 'day' : 'days'}`);
       out.push({
         id: `sh_${a.id}`,
         kind: 'shraddha',
         title: inDays === 0
-          ? `Today — shraddha smaran for ${a.name}`
-          : `Shraddha smaran for ${a.name} in ${inDays} ${inDays === 1 ? 'day' : 'days'}`,
-        detail: `Remembered with love${a.relation ? ` — ${a.relation}` : ''}. Please confirm the tithi with your family purohit each year.`,
+          ? tr('suites.samskara.reminders.shraddhaToday', { name: a.name })
+          : tr('suites.samskara.reminders.shraddhaUpcoming', { name: a.name, days: inDays, dayWord }),
+        detail: tr('suites.samskara.reminders.shraddhaDetail', { relation: a.relation ? ` — ${a.relation}` : '' }),
         ancestorId: a.id,
         date: next,
         inDays,
@@ -123,7 +132,7 @@ export function shraddhaReminders(state: SamskaraState): Reminder[] {
 }
 
 /** Upcoming ceremony plans within 60 days. */
-export function ceremonyReminders(state: SamskaraState): Reminder[] {
+export function ceremonyReminders(state: SamskaraState, tr: Translator): Reminder[] {
   const out: Reminder[] = [];
   const memberName = (id: string) => state.members.find((m) => m.id === id)?.name ?? '—';
   for (const p of state.plans) {
@@ -131,12 +140,15 @@ export function ceremonyReminders(state: SamskaraState): Reminder[] {
     const inDays = daysUntil(p.targetDate);
     if (inDays <= 60) {
       const meta = SAMSKARAS.find((s) => s.id === p.samskaraId);
+      const sName = meta?.transliteration ?? tr('suites.samskara.tabs.ceremony');
+      const name = memberName(p.memberId);
+      const dayWord = tr(`suites.samskara.reminders.${inDays === 1 ? 'day' : 'days'}`);
       out.push({
         id: `ce_${p.id}`,
         kind: 'ceremony',
         title: inDays === 0
-          ? `Today — ${meta?.transliteration ?? 'ceremony'} for ${memberName(p.memberId)}`
-          : `${meta?.transliteration ?? 'Ceremony'} for ${memberName(p.memberId)} in ${inDays} ${inDays === 1 ? 'day' : 'days'}`,
+          ? tr('suites.samskara.reminders.ceremonyToday', { samskara: sName, name })
+          : tr('suites.samskara.reminders.ceremonyUpcoming', { samskara: sName, name, days: inDays, dayWord }),
         detail: p.targetDate,
         memberId: p.memberId,
         planId: p.id,
@@ -149,8 +161,8 @@ export function ceremonyReminders(state: SamskaraState): Reminder[] {
   return out.sort((x, y) => (x.inDays ?? 999) - (y.inDays ?? 999));
 }
 
-export function allReminders(state: SamskaraState): Reminder[] {
-  return [...shraddhaReminders(state), ...ceremonyReminders(state), ...samskaraReminders(state)];
+export function allReminders(state: SamskaraState, tr: Translator): Reminder[] {
+  return [...shraddhaReminders(state, tr), ...ceremonyReminders(state, tr), ...samskaraReminders(state, tr)];
 }
 
 /** Members of a family, eldest first (birth date order, unknowns last). */
@@ -184,8 +196,9 @@ interface SamskaraCtx {
   add: <K extends EntityKey>(key: K, item: SamskaraState[K] extends Array<infer T> ? T : never) => void;
   update: <K extends EntityKey>(key: K, id: string, patch: Partial<SamskaraState[K] extends Array<infer T> ? T : never>) => void;
   remove: (key: EntityKey, id: string) => void;
-  /** Build a ceremony plan pre-filled with the traditional checklist. */
-  newPlan: (memberId: string, samskaraId: SamskaraId) => CeremonyPlan;
+  /** Build a ceremony plan pre-filled with the traditional checklist.
+   *  Pass the UI translator so seed items render in the family's language. */
+  newPlan: (memberId: string, samskaraId: SamskaraId, tr?: Translator) => CeremonyPlan;
   toggleChecklist: (planId: string, itemId: string) => void;
   exportJSON: () => string;
   importJSON: (json: string) => boolean;
@@ -216,9 +229,12 @@ export const SamskaraProvider: React.FC<{ scopeId: string; children: React.React
       ...s,
       [key]: (s[key] as Array<{ id: string }>).filter((r) => r.id !== id),
     })),
-    newPlan: (memberId, samskaraId) => {
-      const checklist: ChecklistItem[] = (SAMSARA_DEFAULT_CHECKLIST[samskaraId] || []).map((text) => ({
-        id: uid('ci'), text, done: false,
+    newPlan: (memberId, samskaraId, tr?) => {
+      const src = SAMSARA_DEFAULT_CHECKLIST[samskaraId] || [];
+      const checklist: ChecklistItem[] = src.map((text, i) => ({
+        id: uid('ci'),
+        text: tr ? tr(`suites.samskara.checklist.${samskaraId}.item${i}`) : text,
+        done: false,
       }));
       const plan: CeremonyPlan = {
         id: uid('plan'), memberId, samskaraId, checklist, createdAt: Date.now(),
