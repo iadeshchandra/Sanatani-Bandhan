@@ -631,6 +631,13 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
+    // Owner-uploaded payment QR codes (GodMode → Geo Payments → QR Codes).
+    // Public read so payers can scan them on billing pages; only the owner
+    // writes. Stored as base64 PNG data URLs (see src/lib/qrCodes.ts).
+    match /qrCodes/{regionId} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
     // ---- Marketplace (Fiverr-like gigs for Purohit / Jyotishi) ----
     // Gigs: public read (the marketplace browse); the provider owns their
     // gigs (providerUid must match on create); owner can moderate anything.
