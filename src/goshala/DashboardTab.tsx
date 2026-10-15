@@ -1,14 +1,16 @@
 import React, { useMemo } from 'react';
 import { useGoshala, todayISO } from './goshalaStore';
-import { Card, Stat, T, StatusPill } from './ui';
+import { Card, Stat, StatusPill } from './ui';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { inr, fmtDateEn } from '../pathshala/bn';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Goshala One — dashboard: headcount, sick list, today's milk, fodder
    days-remaining, grant-vs-cost gap, upcoming vaccinations. */
 
 export const DashboardTab: React.FC = () => {
   const { state } = useGoshala();
+  const { t } = useLanguage();
   const today = todayISO();
 
   const m = useMemo(() => {
@@ -44,28 +46,28 @@ export const DashboardTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-bold text-stone-800">
-          <T en="Goshala dashboard" bn="গোশালা ড্যাশবোর্ড" hi="गोशाला डैशबोर्ड" sa="गोशाला प्रबन्धनम्" />
+          {t('suites.goshala.dashboard.title')}
         </h2>
         <LocalOnlyBadge />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label={<T en="Headcount" bn="মোট গো-সংখ্যা" hi="कुल पशु" />} value={m.headcount} sub={<T en="Gau Mata under care" bn="সেবায় গো-মাতা" hi="सेवा में गौ माता" />} tone="amber" />
-        <Stat label={<T en="Milking now" bn="দুগ্ধবতী" hi="दुधारू" />} value={m.milking} sub={<T en="in milk" bn="দুধ দিচ্ছে" hi="दूध दे रही" />} tone="emerald" />
-        <Stat label={<T en="Today's milk" bn="আজকের দুধ" hi="आज का दूध" />} value={`${m.todayMilk.toFixed(1)} L`} sub={<T en="recorded yield" bn="রেকর্ডকৃত" hi="दर्ज उत्पादन" />} tone="sky" />
+        <Stat label={t('suites.goshala.dashboard.headcount')} value={m.headcount} sub={t('suites.goshala.dashboard.headcountSub')} tone="amber" />
+        <Stat label={t('suites.goshala.dashboard.milkingNow')} value={m.milking} sub={t('suites.goshala.dashboard.milkingSub')} tone="emerald" />
+        <Stat label={t('suites.goshala.dashboard.todayMilk')} value={`${m.todayMilk.toFixed(1)} L`} sub={t('suites.goshala.dashboard.todayMilkSub')} tone="sky" />
         <Stat
-          label={<T en="Daily grant gap" bn="দৈনিক অনুদান ঘাটতি" hi="दैनिक अनुदान अंतर" />}
+          label={t('suites.goshala.dashboard.dailyGrantGap')}
           value={inr(m.gapPerDay * m.headcount)}
-          sub={<T en={`₹${state.settings.estCostPerDay} cost vs ₹${state.settings.grantPerDay} grant / animal`} bn={`প্রতি পশু খরচ ₹${state.settings.estCostPerDay}, অনুদান ₹${state.settings.grantPerDay}`} hi={`प्रति पशु लागत ₹${state.settings.estCostPerDay}, अनुदान ₹${state.settings.grantPerDay}`} />}
+          sub={t('suites.goshala.dashboard.grantGapSub').replace('{cost}', String(state.settings.estCostPerDay)).replace('{grant}', String(state.settings.grantPerDay))}
           tone="red"
         />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <h3 className="font-bold text-stone-800 mb-2"><T en="Needs attention" bn="যত্ন প্রয়োজন" hi="ध्यान आवश्यक" /></h3>
+          <h3 className="font-bold text-stone-800 mb-2">{t('suites.goshala.dashboard.needsAttention')}</h3>
           {m.sick.length === 0 && m.overdueVax.length === 0 && m.expiring.length === 0 ? (
-            <p className="text-sm text-emerald-700"><T en="All Gau Mata healthy — no pending alerts. ॥ शुभम् ॥" bn="সব গো-মাতা সুস্থ — কোনো সতর্কতা নেই।" hi="सभी गौ माता स्वस्थ — कोई चेतावनी नहीं।" /></p>
+            <p className="text-sm text-emerald-700">{t('suites.goshala.dashboard.allHealthy')}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {m.sick.map((n) => (
@@ -76,13 +78,13 @@ export const DashboardTab: React.FC = () => {
               ))}
               {m.overdueVax.map((h) => (
                 <li key={h.id} className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                  <span className="text-amber-900"><T en="Overdue" bn="বিলম্বিত" hi="अतिदेय" />: {h.title} — {nandiName(h.nandiId)}</span>
+                  <span className="text-amber-900">{t('suites.goshala.dashboard.overdue')}: {h.title} — {nandiName(h.nandiId)}</span>
                   <span className="text-xs text-amber-700">{fmtDateEn(h.nextDue!)}</span>
                 </li>
               ))}
               {m.expiring.map((s) => (
                 <li key={s.id} className="flex items-center justify-between bg-sky-50 border border-sky-200 rounded-xl px-3 py-2">
-                  <span className="text-sky-900"><T en="Sponsorship expiring" bn="পৃষ্ঠপোষকতা শেষ হচ্ছে" hi="प्रायोजन समाप्त हो रहा" />: {s.sponsorName}</span>
+                  <span className="text-sky-900">{t('suites.goshala.dashboard.sponsorshipExpiring')}: {s.sponsorName}</span>
                   <span className="text-xs text-sky-700">{fmtDateEn(s.endDate)}</span>
                 </li>
               ))}
@@ -91,9 +93,9 @@ export const DashboardTab: React.FC = () => {
         </Card>
 
         <Card>
-          <h3 className="font-bold text-stone-800 mb-2"><T en="Upcoming vaccinations & follow-ups" bn="আসন্ন টিকা ও ফলো-আপ" hi="आगामी टीकाकरण" /></h3>
+          <h3 className="font-bold text-stone-800 mb-2">{t('suites.goshala.dashboard.upcomingVax')}</h3>
           {m.upcomingVax.length === 0 ? (
-            <p className="text-sm text-stone-500"><T en="Nothing scheduled." bn="কিছু নির্ধারিত নেই।" hi="कुछ निर्धारित नहीं।" /></p>
+            <p className="text-sm text-stone-500">{t('suites.goshala.dashboard.nothingScheduled')}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {m.upcomingVax.map((h) => (
@@ -105,14 +107,14 @@ export const DashboardTab: React.FC = () => {
             </ul>
           )}
           <div className="mt-4 pt-3 border-t border-stone-100 grid grid-cols-2 gap-2 text-sm">
-            <div><span className="text-stone-500"><T en="Fodder stock" bn="খাদ্য মজুদ" hi="चारा भंडार" />:</span><br />
+            <div><span className="text-stone-500">{t('suites.goshala.dashboard.charaStock')}:</span><br />
               <b className={m.lowest && m.lowest.days < 7 ? 'text-red-700' : 'text-stone-800'}>
-                {m.lowest ? `${m.lowest.item.name} — ${m.lowest.days} ${m.lowest.days === 1 ? 'day' : 'days'}` : '—'}
+                {m.lowest ? `${m.lowest.item.name} — ${t(m.lowest.days === 1 ? 'suites.goshala.dashboard.daysOne' : 'suites.goshala.dashboard.daysMany').replace('{n}', String(m.lowest.days))}` : '—'}
               </b>
             </div>
-            <div><span className="text-stone-500"><T en="Active sponsors" bn="সক্রিয় পৃষ্ঠপোষক" hi="सक्रिय प्रायोजक" />:</span><br /><b className="text-stone-800">{m.activeSponsors}</b></div>
-            <div><span className="text-stone-500"><T en="Grants pending" bn="বিচারাধীন অনুদান" hi="लंबित अनुदान" />:</span><br /><b className="text-stone-800">{m.pendingGrants.length} · {inr(m.pendingGrants.reduce((s, g) => s + g.amountApplied, 0))}</b></div>
-            <div><span className="text-stone-500"><T en="Monthly gap" bn="মাসিক ঘাটতি" hi="मासिक अंतर" />:</span><br /><b className="text-red-700">{inr(m.gapPerDay * m.headcount * 30)}</b></div>
+            <div><span className="text-stone-500">{t('suites.goshala.dashboard.activeSponsors')}:</span><br /><b className="text-stone-800">{m.activeSponsors}</b></div>
+            <div><span className="text-stone-500">{t('suites.goshala.dashboard.grantsPending')}:</span><br /><b className="text-stone-800">{m.pendingGrants.length} · {inr(m.pendingGrants.reduce((s, g) => s + g.amountApplied, 0))}</b></div>
+            <div><span className="text-stone-500">{t('suites.goshala.dashboard.monthlyGap')}:</span><br /><b className="text-red-700">{inr(m.gapPerDay * m.headcount * 30)}</b></div>
           </div>
         </Card>
       </div>
