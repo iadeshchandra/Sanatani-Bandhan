@@ -13,7 +13,7 @@ import { AuthArt, type AuthLang } from './AuthArt';
 import { AuthField } from './AuthField';
 import { AuthDoors, type AuthDoorId } from './AuthDoors';
 import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
-import { LanguageContext, useLanguage } from '../../context/LanguageContext';
+import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
@@ -94,7 +94,7 @@ const translations = {
     cred_password_min: 'Password must be at least 6 characters.',
     cred_email_in_use: 'This email is already registered. Try signing in instead.',
     cred_failed: 'Account creation failed. Please try again.',
-    cred_google_expired: "Google session expired — please tap “Sign up with Google” again.",
+    cred_google_expired: 'Google session expired — please tap the Google button again.',
     /* Unified signup — Step 2: role question after auth */
     reg_unified_note: 'Signed in as {name} — just add your contact number below.',
     view_register_title: 'Create workspace',
@@ -282,7 +282,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     const c = langCtx?.currentLang;
     return c === 'hi' || c === 'bn' ? c : 'en';
   });
-  const { t } = useLanguage();
+  const t = (key: string) => (translations as any)[language][key] || key;
   const changeLanguage = (l: 'en'|'hi'|'bn') => {
     setLanguage(l);
     try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
@@ -321,7 +321,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   const [signupMinting, setSignupMinting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ identity?: string; credential?: string }>({});
   const [isOnline, setIsOnline] = useState(navigator.onLine); 
 
   // ENTERPRISE TOAST ENGINE
@@ -362,7 +361,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     };
   }, []);
 
-  const clearErrors = () => { setError(''); setFieldErrors({}); };
+  const clearErrors = () => setError('');
 
   // H-11: is this Firebase user the recorded creator of the workspace being
   // entered? Checked against the local workspace registry (populated at
@@ -390,7 +389,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   // a privileged session from signed-out state.
   const handleBiometricLogin = async () => {
     if (!auth.currentUser) {
-      setError(t('auth.biometricNote'));
+      setError('Sign in first — biometrics only re-confirm your existing session.');
       return;
     }
     try {
@@ -398,13 +397,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       if (verified) {
         // Session re-confirmed on this device. The existing Firebase session
         // (and its role) is unchanged — no privilege is granted here.
-        showToast(t('auth.identityReconfirmed'), 'success');
+        showToast('Identity re-confirmed on this device.', 'success');
         onSuccess();
       } else {
-        setError(t('auth.biometricFailed'));
+        setError('Biometric authentication failed or was cancelled.');
       }
     } catch (err: any) {
-      setError(t('auth.biometricFailed'));
+      setError('Biometric authentication failed or was cancelled.');
     }
   };
 
@@ -421,7 +420,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       }
     } catch (err) {
       setIsScanning(false);
-      setError(t('auth.cameraDenied'));
+      setError("Camera access denied or unavailable.");
     }
   };
 
@@ -463,11 +462,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     const ident = identityOverride || loginIdentity;
     const cred = credentialOverride || loginCredential;
     if (!ident || (!cred && !bypassAuthCheck)) {
-       const fe: { identity?: string; credential?: string } = {};
-       if (!ident) fe.identity = 'Please enter your email or phone number.';
-       if (!cred && !bypassAuthCheck) fe.credential = 'Please enter your password.';
-       setFieldErrors(fe);
-       return;
+       return setError("Please provide Identity and Credential.");
     }
 
     setLoading(true);
@@ -498,7 +493,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       try {
         const pinSuccess = await loginWithPin(cred, []);
         if (pinSuccess) {
-          showToast(t('auth.masterPinVerified'), 'success');
+          showToast("Master PIN Verified (Sandbox Access)", "success");
           onSuccess();
           return;
         }
@@ -652,7 +647,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       case 'admin':
         ensureOrgSessionKind();
         loginAsRole('SuperAdmin', displayName);
-        showToast(t('auth.loginSuccess'), 'success');
+        showToast('Secure Login Successful', 'success');
         onSuccess();
         return;
       case 'org': {
@@ -661,7 +656,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         // current workspace — the workspace switcher remains available.
         try { await switchWorkspace(dest.workspaceId); } catch { /* keep current */ }
         loginAsRole(dest.role, displayName);
-        showToast(t('auth.loginSuccess'), 'success');
+        showToast('Secure Login Successful', 'success');
         onSuccess();
         return;
       }
@@ -699,7 +694,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     try {
       const fbUser = auth.currentUser;
       if (!fbUser || fbUser.uid !== result.uid) {
-        setError(t('auth.googleMismatch'));
+        setError('Google session mismatch — please try again.');
         return;
       }
       if (result.isNewUser) {
@@ -758,7 +753,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     try {
       const current = auth.currentUser;
       if (!current || current.uid !== creds.uid) {
-        setError(t('auth.sessionExpired'));
+        setError('Session expired — please start again from the Sign Up tab.');
         setSignupCreds(null);
         return;
       }
@@ -849,7 +844,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
   const handleRegister = async (e: React.FormEvent) => {    e.preventDefault();
     clearErrors();
-    if (!navigator.onLine) return setError(t('auth.internetRequired'));
+    if (!navigator.onLine) return setError("Internet connection required to create a new workspace.");
 
     const { commName, type, adminName, email, phone, password, country, state, city, street, currency } = regData;
     // Progressive upgrade (orgRegisterOnly): the user is already signed in —
@@ -867,8 +862,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     const effAdminName = unifiedCreds?.displayName || adminName;
     const effEmail = unifiedCreds?.email || email;
     // Google-linked signup skips the password (the Google account is the credential).
-    if (!commName || !effAdminName || !effEmail || !phone || (!password && !googleUser && !unifiedCreds)) return setError(t('auth.fillRequired'));
-    if (!country || !state || !city) return setError(t('auth.completeLocation'));
+    if (!commName || !effAdminName || !effEmail || !phone || (!password && !googleUser && !unifiedCreds)) return setError("Please fill all core required fields.");
+    if (!country || !state || !city) return setError("Please complete the Location / Address Picker section.");
 
     setLoading(true);
     try {
@@ -885,7 +880,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       } else if (googleUser) {
         const current = auth.currentUser;
         if (!current || current.uid !== googleUser.uid) {
-          return setError(t('auth.googleExpired'));
+          return setError("Google session expired — please tap “Sign up with Google” again.");
         }
         user = current;
       } else {
@@ -964,7 +959,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         /* storage unavailable — wizard simply won't trigger */
       }
 
-      showToast(t('auth.workspaceProvisioned'), 'success');
+      showToast("Workspace Provisioned Successfully", "success");
       // Membership sprint: publish the public organisation page so the
       // org appears in discovery, follows and join requests.
       await syncOrgPage(newWorkspace);
@@ -977,15 +972,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   };
 
   const handleForgotPassword = async () => {
-    if (!navigator.onLine) return showToast(t('auth.resetPasswordInternet'), 'error');
+    if (!navigator.onLine) return showToast("Internet required to reset password.", "error");
     if (!loginIdentity.includes('@')) {
-      return setError(t('auth.enterAdminEmail'));
+      return setError("Please enter your Admin Email Address in the Identity field first.");
     }
     
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, loginIdentity);
-      showToast(t('auth.resetLinkSent'), 'success');
+      showToast("Reset link sent to your email inbox!", "success");
     } catch (err: any) {
       handleError(err);
     } finally {
@@ -997,16 +992,16 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   // Per-door card titles (locale-driven). In org-upgrade mode the card
   // always shows the workspace-creation title.
   const viewMeta: Record<AuthDoorId, { title: string; sub: string }> = {
-    SIGNIN: { title: t('auth.signinTitle'), sub: t('auth.signinSub') },
+    SIGNIN: { title: t('view_signin_title'), sub: t('view_signin_sub') },
     SIGNUP: orgRegisterOnly
-      ? { title: t('auth.registerTitle'), sub: t('auth.registerSub') }
-      : { title: t('auth.signupTitle'), sub: t('auth.signupSub') },
+      ? { title: t('view_register_title'), sub: t('view_register_sub') }
+      : { title: t('view_signup_title'), sub: t('view_signup_sub') },
   };
 
   const trustBadges = [
-    { icon: <WifiOff size={12} />, text: t('auth.trustOffline') },
-    { icon: <ShieldCheck size={12} />, text: t('auth.trustData') },
-    { icon: <Ban size={12} />, text: t('auth.trustNoAds') },
+    { icon: <WifiOff size={12} />, text: t('trust_offline') },
+    { icon: <ShieldCheck size={12} />, text: t('trust_data') },
+    { icon: <Ban size={12} />, text: t('trust_noads') },
   ];
 
   const darkError = error && (
@@ -1066,7 +1061,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             className="fixed top-0 inset-x-0 z-[110] bg-red-600/95 backdrop-blur text-white p-2 text-center flex items-center justify-center gap-2 shadow-lg"
           >
             <WifiOff size={14} />
-            <span className="text-[13px] font-bold">{t('auth.offlineMode')}</span>
+            <span className="text-[13px] font-bold">Offline Mode: Cached Login Active</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1079,7 +1074,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-4 py-2 text-[13px] font-bold text-white/80 hover:text-white hover:border-white/30 hover:bg-white/[0.10] transition-all min-h-[40px]"
           >
             <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
-            {t('common.back')}
+            {t('back')}
           </button>
           <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md pl-3 pr-2 py-1.5">
             <Languages size={14} className="text-saffron-300" />
@@ -1142,12 +1137,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                 active={activeView}
                 onChange={(d) => { setActiveView(d); clearErrors(); if (d === 'SIGNUP') { setSignupCreds(null); setSignupMinting(false); } }}
                 labels={{
-                  SIGNIN: t('auth.signinDoor'),
-                  SIGNUP: t('auth.signupDoor'),
+                  SIGNIN: t('door_signin'),
+                  SIGNUP: t('door_signup'),
                 }}
                 hints={{
-                  SIGNIN: t('auth.signinHint'),
-                  SIGNUP: t('auth.signupHint'),
+                  SIGNIN: t('hint_signin'),
+                  SIGNUP: t('hint_signup'),
                 }}
               />
               )}
@@ -1201,7 +1196,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
                         <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_#f59e0b] animate-pulse"></div>
                      </div>
-                     <p className="text-white/50 text-xs mt-6 font-bold text-center">{t('auth.alignQr')}</p>
+                     <p className="text-white/50 text-xs mt-6 font-bold text-center">Align QR code within the frame</p>
                   </motion.div>
                 )}
                 </AnimatePresence>
@@ -1215,27 +1210,26 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       exit={{ opacity: 0, x: -24 }}
                       transition={{ duration: 0.32, ease: 'easeOut' }}
                       onSubmit={handleSmartLogin as any}
-                      noValidate
                       className={`space-y-4 ${isScanning ? 'opacity-0' : 'opacity-100'}`}
                     >
                       <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
                         <ShieldCheck size={16} className="text-emerald-300 shrink-0" />
-                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">{t('auth.portalSubtitle')}</p>
+                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">Secure login for Admins, Members &amp; Purohits</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                          <button type="button" onClick={startScanner} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
                            <span className="p-2.5 rounded-xl bg-saffron-500/20 text-saffron-300 group-hover:scale-110 transition-transform shrink-0"><QrCode size={19}/></span>
                            <span className="min-w-0">
-                             <span className="block text-[13px] font-bold text-white leading-tight">{t('auth.scanPass')}</span>
-                             <span className="block text-[10.5px] text-white/45 font-medium">{t('auth.qrLogin')}</span>
+                             <span className="block text-[13px] font-bold text-white leading-tight">Scan Pass</span>
+                             <span className="block text-[10.5px] text-white/45 font-medium">QR login</span>
                            </span>
                          </button>
                          <button type="button" onClick={handleBiometricLogin} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
                            <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 group-hover:scale-110 transition-transform shrink-0"><Fingerprint size={19}/></span>
                            <span className="min-w-0">
-                             <span className="block text-[13px] font-bold text-white leading-tight">{t('auth.reconfirm')}</span>
-                             <span className="block text-[10.5px] text-white/45 font-medium">{t('auth.biometricTitle')}</span>
+                             <span className="block text-[13px] font-bold text-white leading-tight">Re-confirm</span>
+                             <span className="block text-[10.5px] text-white/45 font-medium">Biometric</span>
                            </span>
                          </button>
                       </div>
@@ -1245,39 +1239,61 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                       <div className="flex items-center gap-4 py-1 opacity-70">
                          <div className="h-px bg-white/15 flex-1"></div>
-                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">{t('auth.orUseCredentials')}</span>
+                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">OR USE CREDENTIALS</span>
                          <div className="h-px bg-white/15 flex-1"></div>
                       </div>
 
                       <AuthField
-                        label={t('auth.identity')}
+                        label={t('login_identity')}
                         icon={<User size={17} />}
-                        type="text"
+                        type="text" required
                         value={loginIdentity}
-                        onChange={e => { setLoginIdentity(e.target.value); setFieldErrors(f => ({ ...f, identity: undefined })); }}
+                        onChange={e => setLoginIdentity(e.target.value)}
                         autoComplete="username"
-                        error={fieldErrors.identity}
                       />
                       <div>
                         <AuthField
-                          label={t('auth.password')}
+                          label={t('login_pass')}
                           icon={<Key size={17} />}
-                          type={showLoginPassword ? 'text' : 'password'}
+                          type={showLoginPassword ? 'text' : 'password'} required
                           value={loginCredential}
-                          onChange={e => { setLoginCredential(e.target.value); setFieldErrors(f => ({ ...f, credential: undefined })); }}
-                          error={fieldErrors.credential}
+                          onChange={e => setLoginCredential(e.target.value)}
                           autoComplete="current-password"
                           rightSlot={
-                            <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label="Toggle password visibility" className="p-1">
+                            <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label="Toggle password visibility" className="min-w-[44px] min-h-[44px] flex items-center justify-center">
                               {showLoginPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                             </button>
                           }
                         />
                         <div className="flex justify-end mt-2">
                           <button type="button" onClick={handleForgotPassword} className="text-[12.5px] font-bold text-saffron-300/90 hover:text-saffron-200 transition-colors">
-                            {t('auth.forgotPassword')}
+                            {t('login_forgot')}
                           </button>
                         </div>
+                      </div>
+
+                      {/* PROMINENT BIOMETRIC AUTHENTICATION BUTTON */}
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={handleBiometricLogin}
+                          onMouseMove={magneticGlow}
+                          className="auth-cta group relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-[13.5px] tracking-wide transition-all shadow-[0_10px_30px_rgba(16,185,129,0.35)] hover:shadow-[0_14px_40px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2.5 border border-emerald-300/30 min-h-[52px]"
+                        >
+                          <span className="auth-cta-shimmer" />
+                          <span className="relative flex items-center justify-center">
+                            <Fingerprint className="w-5 h-5 text-emerald-100 group-hover:scale-110 transition-transform" />
+                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
+                            </span>
+                          </span>
+                          <span className="relative">Re-confirm Session with FaceID / TouchID</span>
+                        </button>
+                        <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
+                          Device-unlock grade: re-confirms your existing signed-in session on this device.
+                          It cannot sign you in or grant access by itself — sign in with your credentials first.
+                        </p>
                       </div>
 
                       {darkError}
@@ -1291,31 +1307,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       >
                         <span className="auth-cta-shimmer" />
                         <span className="relative flex items-center gap-2">
-                          {loading ? (
-                            <>
-                              <Loader2 size={19} className="animate-spin" />
-                              <span>{activeView === 'SIGNUP' ? t('auth.creatingAccount') : t('auth.signingIn')}</span>
-                            </>
-                          ) : t('auth.accessPortal')}
+                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('btn_access_portal')}
                         </span>
                       </button>
-
-                      {/* Biometric re-confirmation — demoted to a subtle link below the
-                          primary action. It cannot sign you in; it only re-confirms
-                          an existing session on this device. */}
-                      <div className="pt-1 text-center">
-                        <button
-                          type="button"
-                          onClick={handleBiometricLogin}
-                          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/40 hover:text-emerald-300 transition-colors min-h-[44px] px-2"
-                        >
-                          <Fingerprint className="w-4 h-4" />
-                          <span className="underline underline-offset-2">{t('auth.biometricButton')}</span>
-                        </button>
-                        <p className="text-[10.5px] text-white/30 mt-1 font-medium leading-relaxed px-2">
-                          Only works if you're already signed in on this device.
-                        </p>
-                      </div>
                     </motion.form>
                   ) : orgRegisterOnly ? (
                     /* Progressive upgrade: an already-authenticated Solo user
@@ -1335,7 +1329,6 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       exit={{ opacity: 0, x: 24 }}
                       transition={{ duration: 0.32, ease: 'easeOut' }}
                       onSubmit={handleRegister}
-                      noValidate
                       className="space-y-4 max-h-[62vh] overflow-y-auto pr-1.5 custom-scrollbar"
                     >
                       {/* Google-linked signup: link first, then complete the form — no password needed.
@@ -1354,18 +1347,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       <div className="bg-amber-500/10 border border-amber-400/25 p-4 rounded-2xl flex items-start gap-3">
                         <AlertTriangle className="text-amber-300 shrink-0 mt-0.5" size={20} />
                         <div>
-                          <h4 className="text-white font-bold text-[13.5px] mb-1">{t('reg.warningTitle')}</h4>
+                          <h4 className="text-white font-bold text-[13.5px] mb-1">{t('reg_warning_title')}</h4>
                           <p className="text-[12.5px] text-white/60">
-                            {t('reg.warningDesc1')}<strong className="font-bold text-amber-200">{regData.type}</strong>{t('reg.warningDesc2')}
+                            {t('reg_warning_desc_1')}<strong className="font-bold text-amber-200">{regData.type}</strong>{t('reg_warning_desc_2')}
                           </p>
                         </div>
                       </div>
 
                       <div className="space-y-4 pt-4 border-t border-white/10">
-                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><Building2 size={14}/> {t('reg.step1')}</h4>
+                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
 
                         <div>
-                          <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('reg.orgType')}</label>
+                          <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('reg_org_type')}</label>
                           <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full px-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
                             <option value="Mandir">Mandir / Temple (मंदिर)</option>
                             <option value="Ashram">Ashram (आश्रम)</option>
@@ -1385,7 +1378,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </div>
 
                         <AuthField
-                          label={`${t('reg.orgName')} *`}
+                          label={`${t('reg_org_name')} *`}
                           type="text" required
                           value={regData.commName}
                           onChange={e=>setRegData({...regData, commName: e.target.value})}
@@ -1394,14 +1387,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                         <div className="space-y-4 pt-4 border-t border-white/10">
                            <div className="flex items-center gap-2 text-[11px] font-black text-white/45 uppercase tracking-[0.18em]">
-                             <MapPin size={14}/> {t('auth.locationDetails')}
+                             <MapPin size={14}/> Location Details
                            </div>
                            <div>
-                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('auth.country')}</label>
+                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">Country *</label>
                              <div className="relative">
                                <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
                                <select required value={regData.country} onChange={handleCountryChange} className="w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
-                                 <option value="" disabled>{t('auth.selectCountry')}</option>
+                                 <option value="" disabled>Select Country...</option>
                                  <option value="India">India (भारत)</option>
                                  <option value="Bangladesh">Bangladesh (বাংলাদেশ)</option>
                                  <option value="Nepal">Nepal (नेपाल)</option>
@@ -1419,7 +1412,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </div>
 
                         <AuthField
-                          label={t('reg.desc')}
+                          label={t('reg_desc')}
                           icon={<AlignLeft size={16} />}
                           multiline rows={2}
                           value={regData.description}
@@ -1428,28 +1421,28 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       </div>
 
                       <div className="space-y-4 pt-4 border-t border-white/10">
-                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg.step2')}</h4>
+                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
 
                         {(signupCreds || orgRegisterOnly) ? (
                           /* Identity already established — just the phone. */
                           <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
                             <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
                             <p className="text-[12px] font-bold text-emerald-200">
-                              {t('reg.unifiedNote').replace('{name}', signupCreds?.displayName || (firebaseUser as any)?.displayName || (firebaseUser as any)?.email || '')}
+                              {t('reg_unified_note').replace('{name}', signupCreds?.displayName || (firebaseUser as any)?.displayName || (firebaseUser as any)?.email || '')}
                             </p>
                           </div>
                         ) : null}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {!(signupCreds || orgRegisterOnly) && (
-                            <AuthField label={t('reg.yourName')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
+                            <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
                           )}
-                          <AuthField label={t('reg.yourPhone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} autoComplete="tel" />
+                          <AuthField label={t('reg_your_phone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} autoComplete="tel" />
                         </div>
 
                         {!(signupCreds || orgRegisterOnly) && (
                           <AuthField
-                            label={t('reg.officialEmail')}
+                            label={t('reg_official_email')}
                             icon={<Mail size={17} />}
                             type="email" required
                             value={regData.email}
@@ -1460,14 +1453,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                         {!googleUser && !signupCreds && !orgRegisterOnly && (
                           <AuthField
-                            label={`${t('auth.password')} *`}
+                            label={`${t('login_pass')} *`}
                             icon={<Lock size={17} />}
                             type={showRegPassword ? 'text' : 'password'} required
                             value={regData.password}
                             onChange={e=>setRegData({...regData, password: e.target.value})}
                             autoComplete="new-password"
                             rightSlot={
-                              <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label="Toggle password visibility" className="p-1">
+                              <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label="Toggle password visibility" className="min-w-[44px] min-h-[44px] flex items-center justify-center">
                                 {showRegPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                               </button>
                             }
@@ -1486,7 +1479,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       >
                         <span className="auth-cta-shimmer" />
                         <span className="relative flex items-center gap-2">
-                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('actions.createDynamic').replace('{X}', regData.type.toUpperCase())}
+                          {loading ? <Loader2 size={19} className="animate-spin" /> : t('btn_create_dynamic').replace('{X}', regData.type.toUpperCase())}
                         </span>
                       </button>
                     </motion.form>
@@ -1506,8 +1499,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         <Loader2 size={28} className="animate-spin text-white" />
                       </div>
                       <div>
-                        <p className="text-white font-black text-[15px]">{t('solo.minting')}</p>
-                        <p className="text-white/50 text-[12.5px] font-medium mt-1">{t('auth.secureNote')}</p>
+                        <p className="text-white font-black text-[15px]">{t('solo_minting')}</p>
+                        <p className="text-white/50 text-[12.5px] font-medium mt-1">{t('cred_secure_note')}</p>
                       </div>
                       {darkError}
                     </motion.div>
