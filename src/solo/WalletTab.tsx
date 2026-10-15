@@ -13,6 +13,7 @@ import {
   type Wallet, type WalletTransaction, type TopupClaim, type WalletCurrency,
 } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
+import { useUpiQrAvailable } from '../lib/upiQr';
 import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../lib/paymentMethods';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
@@ -39,6 +40,7 @@ const TXN_LABEL: Record<string, string> = {
 const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack: () => void }> = ({ currency, onDone, onBack }) => {
   const { showToast } = useToast();
   const [region, setRegion] = useState<PayRegion>('BD');
+  const upiQrOk = useUpiQrAvailable();
   const [methods, setMethods] = useState<PaymentMethodDoc[]>([]);
   const [methodId, setMethodId] = useState('');
   const [amount, setAmount] = useState('');
@@ -62,9 +64,10 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
   }, []);
 
   const switchRegion = (r: PayRegion) => {
-    setRegion(r);
+    const eff = (r === 'IN' && upiQrOk === false ? 'INTL' : r) as PayRegion;
+    setRegion(eff);
     getPaymentMethods().then((all) => {
-      const list = orderMethods(methodsForRegion(all, r));
+      const list = orderMethods(methodsForRegion(all, eff));
       setMethods(list);
       if (list[0]) setMethodId(list[0].id);
     });
@@ -112,7 +115,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
           Min {fmtWallet(limits.min, currency)} · Max {fmtWallet(limits.max, currency)}
         </p>
         <div className="flex gap-1.5 mb-3">
-          {(['BD', 'IN', 'INTL'] as const).map((r) => (
+          {(['BD', 'IN', 'INTL'] as const).filter((r) => r !== 'IN' || upiQrOk !== false).map((r) => (
             <button key={r} type="button" onClick={() => switchRegion(r)}
               className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-600'}`}>
               {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
