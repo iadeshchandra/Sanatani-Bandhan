@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useUtsav, budgetTotals, tasksDonePct, vendorPending, safetyDonePct, totalCheckins, nextUCNo } from './utsavStore';
 import { T, Card, Btn, Field, Empty, fmtDate, inr } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Utsav One — reports: utilisation certificate (printable), festival
  * summary, CSV exports, backup/restore.
@@ -21,6 +22,7 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { state, exportJSON, importJSON, resetAll } = useUtsav();
   const { showToast } = useToast();
   const [festivalId, setFestivalId] = useState(state.festivals[0]?.id || '');
@@ -28,7 +30,7 @@ export const ReportsTab: React.FC = () => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fest = state.festivals.find((f) => f.id === festivalId) || state.festivals[0];
-  if (!fest) return <Card><Empty text="Add a festival first, then generate its reports." /></Card>;
+  if (!fest) return <Card><Empty text={t('ritual.utsav.reports.empty_add_a_festival_first_then_genera')} /></Card>;
 
   const t = budgetTotals(state, fest.id);
   const vendors = state.vendors.filter((v) => v.festivalId === fest.id);
@@ -49,7 +51,7 @@ export const ReportsTab: React.FC = () => {
       rows.push([l.kind, l.head, String(l.planned), String(l.actual), l.treasuryTxId ? 'yes' : 'no', l.notes || '']);
     }
     download(`utsav-budget-${fest.name.replace(/\W+/g, '-').slice(0, 30)}.csv`, csv(rows));
-    showToast('Budget CSV downloaded.', 'success');
+    showToast(t('ritual.utsav.reports.toastBudgetCsv'), 'success');
   };
 
   const exportVendorsCSV = () => {
@@ -58,7 +60,7 @@ export const ReportsTab: React.FC = () => {
       rows.push([v.category, v.name, v.phone || '', String(v.quote), String(v.paid), String(Math.max(0, v.quote - v.paid)), v.status]);
     }
     download(`utsav-vendors-${fest.name.replace(/\W+/g, '-').slice(0, 30)}.csv`, csv(rows));
-    showToast('Vendors CSV downloaded.', 'success');
+    showToast(t('ritual.utsav.reports.toastVendorsCsv'), 'success');
   };
 
   const doImport = (file: File) => {
@@ -72,7 +74,7 @@ export const ReportsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Field label={<T en="Festival" bn="উৎসব" hi="उत्सव" />}>
+      <Field label={t('ritual.common.festival')}>
         <select className="w-full sm:w-80 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm min-h-[44px]"
           value={fest.id} onChange={(e) => setFestivalId(e.target.value)}>
           {state.festivals.map((f) => <option key={f.id} value={f.id}>{f.name} · {fmtDate(f.startDate)}</option>)}
@@ -80,10 +82,10 @@ export const ReportsTab: React.FC = () => {
       </Field>
 
       <div className="flex flex-wrap gap-2 no-print">
-        <Btn onClick={() => print('uc')}>🖨️ <T en="Print utilisation certificate" bn="ব্যবহার-শংসাপত্র প্রিন্ট" hi="उपयोग-प्रमाणपत्र प्रिंट करें" /></Btn>
-        <Btn variant="ghost" onClick={() => print('summary')}>🖨️ <T en="Print festival summary" bn="উৎসব সারসংক্ষেপ প্রিন্ট" hi="उत्सव सारांश प्रिंट करें" /></Btn>
-        <Btn variant="ghost" onClick={exportBudgetCSV}>📥 <T en="Budget CSV" bn="বাজেট CSV" hi="बजट CSV" /></Btn>
-        <Btn variant="ghost" onClick={exportVendorsCSV}>📥 <T en="Vendors CSV" bn="বিক্রেতা CSV" hi="विक्रेता CSV" /></Btn>
+        <Btn onClick={() => print('uc')}>🖨️ {t('ritual.utsav.reports.print_utilisation_certificate')}</Btn>
+        <Btn variant="ghost" onClick={() => print('summary')}>🖨️ {t('ritual.utsav.reports.print_festival_summary')}</Btn>
+        <Btn variant="ghost" onClick={exportBudgetCSV}>📥 {t('ritual.utsav.reports.budget_csv')}</Btn>
+        <Btn variant="ghost" onClick={exportVendorsCSV}>📥 {t('ritual.utsav.reports.vendors_csv')}</Btn>
       </div>
 
       {/* Utilisation certificate — printable */}
@@ -93,10 +95,10 @@ export const ReportsTab: React.FC = () => {
         </div>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="font-extrabold text-stone-800 text-lg">📜 <T en="Utilisation Certificate" bn="ব্যবহার-শংসাপত্র" hi="उपयोग-प्रमाणपत्र" /></div>
+            <div className="font-extrabold text-stone-800 text-lg">📜 {t('ritual.utsav.reports.utilisation_certificate')}</div>
             <div className="text-sm text-stone-500 font-mono">{ucNo} · {fest.name}</div>
           </div>
-          <span className="text-[11px] font-bold text-stone-400 uppercase no-print"><T en="Preview" bn="প্রিভিউ" hi="पूर्वावलोकन" /></span>
+          <span className="text-[11px] font-bold text-stone-400 uppercase no-print">{t('ritual.utsav.reports.preview')}</span>
         </div>
         <p className="text-sm text-stone-700 mt-3">
           <T
@@ -106,44 +108,44 @@ export const ReportsTab: React.FC = () => {
           />
         </p>
         <div className="mt-3 text-sm space-y-1">
-          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500"><T en="Total income received" bn="মোট প্রাপ্ত আয়" hi="कुल प्राप्त आय" /></span><span className="font-extrabold text-emerald-700">{inr(t.actualIncome)}</span></div>
-          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500"><T en="Total utilised" bn="মোট ব্যবহৃত" hi="कुल उपयोग" /></span><span className="font-extrabold text-red-700">{inr(t.actualExpense)}</span></div>
-          <div className="flex justify-between py-1"><span className="text-stone-500"><T en="Balance" bn="উদ্বৃত্ত" hi="शेष" /></span><span className="font-extrabold">{inr(t.actualIncome - t.actualExpense)}</span></div>
+          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_income_received')}</span><span className="font-extrabold text-emerald-700">{inr(t.actualIncome)}</span></div>
+          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_utilised')}</span><span className="font-extrabold text-red-700">{inr(t.actualExpense)}</span></div>
+          <div className="flex justify-between py-1"><span className="text-stone-500">{t('ritual.utsav.reports.balance')}</span><span className="font-extrabold">{inr(t.actualIncome - t.actualExpense)}</span></div>
         </div>
         <div className="grid grid-cols-2 gap-8 mt-8 text-sm">
-          <div><div className="border-t border-stone-300 pt-1 text-stone-500"><T en="Koshadhyaksh (Treasurer)" bn="কোষাধ্যক্ষ" hi="कोषाध्यक्ष" /></div></div>
-          <div><div className="border-t border-stone-300 pt-1 text-stone-500"><T en="Adhyaksh (President)" bn="সভাপতি" hi="अध्यक्ष" /></div></div>
+          <div><div className="border-t border-stone-300 pt-1 text-stone-500">{t('ritual.utsav.reports.koshadhyaksh_treasurer')}</div></div>
+          <div><div className="border-t border-stone-300 pt-1 text-stone-500">{t('ritual.utsav.reports.adhyaksh_president')}</div></div>
         </div>
         <p className="text-[11px] text-stone-400 mt-4">
-          <T en="The samiti's own summary for donors/sponsors — confirm final figures with the koshadhyaksh / CA." bn="দাতাদের জন্য সমিতির নিজস্ব সারসংক্ষেপ — চূড়ান্ত অঙ্ক কোষাধ্যক্ষ/সিএ-এর সঙ্গে নিশ্চিত করুন।" hi="दाताओं हेतु समिति का अपना सारांश — अंतिम आंकड़े कोषाध्यक्ष/CA से पुष्टि करें।" />
+          {t('ritual.utsav.reports.samitiSummaryNote')}
         </p>
       </Card>
 
       {/* Festival summary — printable */}
       <Card className={printing === 'summary' ? 'print-summary' : ''}>
-        <div className="font-extrabold text-stone-800 text-lg">📊 <T en="Festival summary" bn="উৎসব সারসংক্ষেপ" hi="उत्सव सारांश" /> — {fest.name}</div>
+        <div className="font-extrabold text-stone-800 text-lg">📊 {t('ritual.utsav.reports.festival_summary')} — {fest.name}</div>
         <div className="mt-3 text-sm space-y-1">
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Dates" bn="তারিখ" hi="तिथियां" /></span><span className="font-semibold">{fmtDate(fest.startDate)} → {fmtDate(fest.endDate)}</span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Venue" bn="স্থান" hi="स्थान" /></span><span className="font-semibold">{fest.venue || '—'}</span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Footfall" bn="ভিড়" hi="भीड़" /></span><span className="font-semibold">{checkins.toLocaleString('en-IN')} / {fest.expectedFootfall.toLocaleString('en-IN')} <T en="expected" bn="প্রত্যাশিত" hi="अपेक्षित" /></span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Budget" bn="বাজেট" hi="बजट" /></span><span className="font-semibold"><T en={`Income ${inr(t.actualIncome)} · Expense ${inr(t.actualExpense)}`} bn={`আয় ${inr(t.actualIncome)} · ব্যয় ${inr(t.actualExpense)}`} hi={`आय ${inr(t.actualIncome)} · व्यय ${inr(t.actualExpense)}`} /></span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Tasks done" bn="কাজ সম্পন্ন" hi="कार्य पूर्ण" /></span><span className="font-semibold">{tasksPct}%</span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Vendor payments pending" bn="বিক্রেতা পাওনা" hi="विक्रेता बकाया" /></span><span className="font-semibold">{inr(pending)}</span></div>
-          <div className="flex justify-between"><span className="text-stone-500"><T en="Safety checklist" bn="নিরাপত্তা তালিকা" hi="सुरक्षा सूची" /></span><span className="font-semibold">{safetyPct}%</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.festivals.dates')}</span><span className="font-semibold">{fmtDate(fest.startDate)} → {fmtDate(fest.endDate)}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.common.venue')}</span><span className="font-semibold">{fest.venue || '—'}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.reports.footfall')}</span><span className="font-semibold">{checkins.toLocaleString('en-IN')} / {fest.expectedFootfall.toLocaleString('en-IN')} {t('ritual.utsav.dashboard.expected')}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.reports.budget')}</span><span className="font-semibold">{t('ritual.utsav.reports.income_expense_line').replace('{income}', inr(t.actualIncome)).replace('{expense}', inr(t.actualExpense))}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.tasks_done')}</span><span className="font-semibold">{tasksPct}%</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.vendor_payments_pending')}</span><span className="font-semibold">{inr(pending)}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.safety_checklist')}</span><span className="font-semibold">{safetyPct}%</span></div>
         </div>
       </Card>
 
       {/* Backup / restore */}
       <Card>
-        <h3 className="font-extrabold text-stone-800 mb-3"><T en="Backup & restore" bn="ব্যাকআপ ও পুনরুদ্ধার" hi="बैकअप व पुनर्स्थापना" /></h3>
+        <h3 className="font-extrabold text-stone-800 mb-3">{t('ritual.utsav.reports.backup_restore')}</h3>
         <div className="flex flex-wrap gap-2 no-print">
-          <Btn variant="ghost" onClick={() => { download('utsav-backup.json', exportJSON(), 'application/json'); showToast('Backup downloaded.', 'success'); }}>💾 <T en="Download backup" bn="ব্যাকআপ ডাউনলোড" hi="बैकअप डाउनलोड करें" /></Btn>
-          <Btn variant="ghost" onClick={() => fileRef.current?.click()}>📂 <T en="Restore backup" bn="ব্যাকআপ পুনরুদ্ধার" hi="बैकअप पुनर्स्थापित करें" /></Btn>
-          <Btn variant="danger" onClick={() => { if (window.confirm('Reset all Utsav One data on this device?')) { resetAll(); showToast('Data reset.', 'success'); } }}>↺ <T en="Reset data" bn="ডেটা রিসেট" hi="डेटा रीसेट करें" /></Btn>
+          <Btn variant="ghost" onClick={() => { download('utsav-backup.json', exportJSON(), 'application/json'); showToast(t('ritual.utsav.reports.toastBackup'), 'success'); }}>💾 {t('ritual.utsav.reports.download_backup')}</Btn>
+          <Btn variant="ghost" onClick={() => fileRef.current?.click()}>📂 {t('ritual.utsav.reports.restore_backup')}</Btn>
+          <Btn variant="danger" onClick={() => { if (window.confirm(t('ritual.utsav.reports.confirmReset'))) { resetAll(); showToast(t('ritual.utsav.reports.toastReset'), 'success'); } }}>↺ {t('ritual.utsav.reports.reset_data')}</Btn>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) doImport(f); e.target.value = ''; }} />
         </div>
         <p className="text-[11px] text-stone-400 mt-2">
-          <T en="Records live on this device. Back up before switching devices — a restore replaces everything here." bn="রেকর্ড এই ডিভাইসে থাকে। ডিভাইস বদলের আগে ব্যাকআপ নিন।" hi="रिकॉर्ड इस डिवाइस पर रहते हैं। डिवाइस बदलने से पहले बैकअप लें।" />
+          {t('ritual.utsav.reports.records_live_on_this_device_back')}
         </p>
       </Card>
     </div>
