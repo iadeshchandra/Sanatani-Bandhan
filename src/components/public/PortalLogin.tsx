@@ -13,7 +13,7 @@ import { AuthArt, type AuthLang } from './AuthArt';
 import { AuthField } from './AuthField';
 import { AuthDoors, type AuthDoorId } from './AuthDoors';
 import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
-import { LanguageContext } from '../../context/LanguageContext';
+import { LanguageContext, useLanguage } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
@@ -282,7 +282,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     const c = langCtx?.currentLang;
     return c === 'hi' || c === 'bn' ? c : 'en';
   });
-  const t = (key: string) => (translations as any)[language][key] || key;
+  const { t } = useLanguage();
   const changeLanguage = (l: 'en'|'hi'|'bn') => {
     setLanguage(l);
     try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
