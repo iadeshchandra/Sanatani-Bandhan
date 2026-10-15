@@ -2,25 +2,23 @@ import React, { useMemo, useState } from 'react';
 import { Check, X, CalendarOff, Printer } from 'lucide-react';
 import { usePathshala } from './pathshalaStore';
 import { useData } from '../context/DataContext';
-import { Card, T, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
+import { useLanguage } from '../context/LanguageContext';
+import { Card, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
 import { todayISO, uid, fmtDateEn } from './bn';
 import { UpasthitiStatus, LeaveType } from './types';
 
-/* Checklist #3 — উপস্থিতি: shishya daily/monthly/term/annual reports;
+/* Checklist #3 — upasthiti: shishya daily/monthly/term/annual reports;
    guru/staff daily/monthly/annual with leave types (chhuti/noimittik/chikitsa). */
 
-const LEAVE_LABEL: Record<LeaveType, { en: string; bn: string }> = {
-  chhuti: { en: 'Chhuti (earned)', bn: 'ছুটি (earned)' },
-  noimittik: { en: 'Noimittik (casual)', bn: 'নৈমিত্তিক (casual)' },
-  chikitsa: { en: 'Chikitsa (medical)', bn: 'চিকিৎসা (medical)' },
-};
-const leaveLabel = (lt: LeaveType, lang: string): string => {
-  const e = LEAVE_LABEL[lt]; if (!e) return lt;
-  return lang === 'bn' ? e.bn : e.en;
+const LEAVE_KEYS: Record<LeaveType, string> = {
+  chhuti: 'leaveChhuti',
+  noimittik: 'leaveNoimittik',
+  chikitsa: 'leaveChikitsa',
 };
 
 export const UpasthitiTab: React.FC = () => {
-  const { digits, lang, tr } = useLocaleText();
+  const { t } = useLanguage();
+  const { digits } = useLocaleText();
   const { state, add, update } = usePathshala();
   const { gurukulStudents } = useData();
   const [mode, setMode] = useState<'shishya' | 'staff'>('shishya');
@@ -29,6 +27,8 @@ export const UpasthitiTab: React.FC = () => {
   const [report, setReport] = useState<'daily' | 'monthly' | 'term' | 'annual'>('daily');
   const [repMonth, setRepMonth] = useState(() => todayISO().slice(0, 7));
   const [printMonthly, setPrintMonthly] = useState(false);
+
+  const leaveLabel = (lt: LeaveType): string => t(`suites.pathshala.upasthiti.${LEAVE_KEYS[lt] || 'leaveNoimittik'}`);
 
   const vargaOf = (sid: string) => state.shishyaMeta.find((m) => m.studentId === sid)?.vargaId || '';
   const activeVarga = vargaId || state.vargas[0]?.id || '';
@@ -75,10 +75,10 @@ export const UpasthitiTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-bold text-stone-800"><T bn="উপস্থিতি" en="Upasthiti — attendance" /></h2>
+        <h2 className="text-lg font-bold text-stone-800">{t('suites.pathshala.upasthiti.heading')}</h2>
         <div className="flex gap-2 no-print">
-          <Btn variant="ghost" onClick={() => setMode('shishya')} className={mode === 'shishya' ? '!bg-amber-100' : ''}>{tr('pathshala.upasthiti.tab_shishya', 'Shishya', 'শিষ্য', 'शिष्य')}</Btn>
-          <Btn variant="ghost" onClick={() => setMode('staff')} className={mode === 'staff' ? '!bg-amber-100' : ''}>{tr('pathshala.upasthiti.tab_staff', 'Gurus & staff', 'গুরু ও কর্মচারী', 'गुरु व कर्मचारी')}</Btn>
+          <Btn variant="ghost" onClick={() => setMode('shishya')} className={mode === 'shishya' ? '!bg-amber-100' : ''}>{t('suites.pathshala.upasthiti.tabShishya')}</Btn>
+          <Btn variant="ghost" onClick={() => setMode('staff')} className={mode === 'staff' ? '!bg-amber-100' : ''}>{t('suites.pathshala.upasthiti.tabStaff')}</Btn>
         </div>
       </div>
 
@@ -86,18 +86,18 @@ export const UpasthitiTab: React.FC = () => {
         <>
           <Card className="no-print">
             <div className="flex flex-wrap gap-2 items-end">
-              <Field label={<T bn="তারিখ" en="Date" />}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} /></Field>
-              <Field label={<T bn="বর্গ" en="Varga" />}>
+              <Field label={t('suites.pathshala.upasthiti.fDate')}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} /></Field>
+              <Field label={t('suites.pathshala.upasthiti.fVarga')}>
                 <select value={vargaId} onChange={(e) => setVargaId(e.target.value)} className={inputCls}>
-                  <option value="">{tr('pathshala.upasthiti.all_vargas', 'All vargas', 'সব বর্গ', 'सभी वर्ग')}</option>
+                  <option value="">{t('suites.pathshala.upasthiti.allVargas')}</option>
                   {state.vargas.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.sanskrit})</option>)}
                 </select>
               </Field>
-              <Btn variant="ghost" onClick={() => markAll('present')}><Check className="w-4 h-4" /> {tr('pathshala.upasthiti.all_present', 'Everyone present', 'সবাই উপস্থিত', 'सभी उपस्थित')}</Btn>
+              <Btn variant="ghost" onClick={() => markAll('present')}><Check className="w-4 h-4" /> {t('suites.pathshala.upasthiti.allPresent')}</Btn>
               <div className="flex gap-1 ml-auto">
                 {(['daily', 'monthly', 'term', 'annual'] as const).map((r) => (
                   <button key={r} onClick={() => setReport(r)} className={`px-3 py-2 rounded-xl text-xs font-bold border min-h-[40px] ${report === r ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-600 border-stone-200'}`}>
-                    {r === 'daily' ? tr('pathshala.upasthiti.daily', 'Daily', 'দৈনিক', 'दैनिक') : r === 'monthly' ? tr('pathshala.upasthiti.monthly', 'Monthly', 'মাসিক', 'मासिक') : r === 'term' ? tr('pathshala.upasthiti.term', 'Term', 'প্রান্তিক', 'सत्र') : tr('pathshala.upasthiti.annual', 'Annual', 'বাৎসরিক', 'वार्षिक')}
+                    {r === 'daily' ? t('suites.pathshala.upasthiti.repDaily') : r === 'monthly' ? t('suites.pathshala.upasthiti.repMonthly') : r === 'term' ? t('suites.pathshala.upasthiti.repTerm') : t('suites.pathshala.upasthiti.repAnnual')}
                   </button>
                 ))}
               </div>
@@ -122,7 +122,7 @@ export const UpasthitiTab: React.FC = () => {
                     </div>
                   );
                 })}
-                {!vargaShishya.length && <Empty text={tr('pathshala.upasthiti.no_shishya_varga', 'No shishya in this varga', 'এই বর্গে কোনো শিষ্য নেই', 'इस वर्ग में कोई शिष्य नहीं')} />}
+                {!vargaShishya.length && <Empty text={t('suites.pathshala.upasthiti.noShishyaVarga')} />}
               </div>
             </Card>
           )}
@@ -130,12 +130,12 @@ export const UpasthitiTab: React.FC = () => {
           {report === 'monthly' && (
             <Card>
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                <Field label={<T bn="মাস" en="Month" />}><input type="month" value={repMonth} onChange={(e) => setRepMonth(e.target.value)} className={inputCls} /></Field>
-                <Btn variant="ghost" onClick={() => setPrintMonthly(true)}><Printer className="w-4 h-4" /> {tr('pathshala.upasthiti.print', 'Print', 'প্রিন্ট', 'प्रिंट')}</Btn>
+                <Field label={t('suites.pathshala.upasthiti.fMonth')}><input type="month" value={repMonth} onChange={(e) => setRepMonth(e.target.value)} className={inputCls} /></Field>
+                <Btn variant="ghost" onClick={() => setPrintMonthly(true)}><Printer className="w-4 h-4" /> {t('suites.pathshala.upasthiti.print')}</Btn>
               </div>
               <div className="overflow-x-auto">
                 <table className="text-xs border-collapse">
-                  <thead><tr><th className="sticky left-0 bg-white border p-1 text-left min-w-[120px]">{tr('pathshala.upasthiti.shishya', 'Shishya', 'শিষ্য', 'शिष्य')}</th>
+                  <thead><tr><th className="sticky left-0 bg-white border p-1 text-left min-w-[120px]">{t('suites.pathshala.upasthiti.colShishya')}</th>
                     {monthDays.map((d) => <th key={d} className="border p-1 w-7">{digits(Number(d.slice(8)))}</th>)}
                     <th className="border p-1">%</th></tr></thead>
                   <tbody>
@@ -159,10 +159,10 @@ export const UpasthitiTab: React.FC = () => {
 
           {(report === 'term' || report === 'annual') && (
             <Card>
-              <h3 className="font-bold text-stone-800 mb-3">{report === 'term' ? <T bn="প্রান্তিক সারসংক্ষেপ" en="Term summary" /> : <T bn="বাৎসরিক সারসংক্ষেপ" en="Annual summary" />}</h3>
+              <h3 className="font-bold text-stone-800 mb-3">{report === 'term' ? t('suites.pathshala.upasthiti.termSummary') : t('suites.pathshala.upasthiti.annualSummary')}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left text-xs text-stone-500 border-b">{[tr('pathshala.upasthiti.shishya', 'Shishya', 'শিষ্য', 'शिष्य'), tr('pathshala.upasthiti.total_days', 'Total days', 'মোট দিন', 'कुल दिन'), tr('pathshala.upasthiti.present', 'Present', 'উপস্থিত', 'उपस्थित'), tr('pathshala.upasthiti.absent', 'Absent', 'অনুপস্থিত', 'अनुपस्थित'), tr('pathshala.upasthiti.leave', 'Leave', 'ছুটি', 'छुट्टी'), '%'].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr></thead>
+                  <thead><tr className="text-left text-xs text-stone-500 border-b">{[t('suites.pathshala.upasthiti.colShishya'), t('suites.pathshala.upasthiti.colTotalDays'), t('suites.pathshala.upasthiti.colPresent'), t('suites.pathshala.upasthiti.colAbsent'), t('suites.pathshala.upasthiti.colLeave'), '%'].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr></thead>
                   <tbody>
                     {vargaShishya.map((s) => {
                       const recs = state.upasthiti.filter((u) => u.studentId === s.id && u.status !== 'holiday' && (report === 'annual' || u.date.startsWith(repMonth.slice(0, 4))));
@@ -191,7 +191,7 @@ export const UpasthitiTab: React.FC = () => {
       {mode === 'staff' && (
         <Card>
           <div className="flex flex-wrap gap-2 items-end mb-4 no-print">
-            <Field label={<T bn="তারিখ" en="Date" />}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} /></Field>
+            <Field label={t('suites.pathshala.upasthiti.fDate')}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} /></Field>
           </div>
           <div className="space-y-2">
             {people.map((p) => {
@@ -199,29 +199,29 @@ export const UpasthitiTab: React.FC = () => {
               const st = r?.status || 'present';
               return (
                 <div key={p.id} className="flex items-center justify-between gap-2 border-b border-stone-100 py-2 flex-wrap">
-                  <div><div className="font-semibold text-sm">{p.name}</div><div className="text-xs text-stone-500">{p.kind === 'guru' ? tr('pathshala.upasthiti.guru', 'Guru', 'গুরু', 'गुरु') : tr('pathshala.upasthiti.staff', 'Staff', 'কর্মচারী', 'कर्मचारी')} • {p.sub}</div></div>
+                  <div><div className="font-semibold text-sm">{p.name}</div><div className="text-xs text-stone-500">{p.kind === 'guru' ? t('suites.pathshala.upasthiti.guruKind') : t('suites.pathshala.upasthiti.staffKind')} • {p.sub}</div></div>
                   <div className="flex gap-1 items-center">
                     {(['present', 'absent', 'leave'] as const).map((k) => (
                       <button key={k} onClick={() => setStaff(p.id, p.kind, k, k === 'leave' ? (r?.leaveType || 'noimittik') : undefined)}
                         className={`px-3 h-10 rounded-xl text-xs font-bold border ${st === k ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-500 border-stone-200'}`}>
-                        {k === 'present' ? tr('pathshala.upasthiti.present', 'Present', 'উপস্থিত', 'उपस्थित') : k === 'absent' ? tr('pathshala.upasthiti.absent', 'Absent', tr('pathshala.upasthiti.absent', 'Absent', 'অনুপস্থিত', 'अनुपस्थित'), 'अनुपस्थित') : tr('pathshala.upasthiti.leave', 'Leave', 'ছুটি', 'छुट्टी')}
+                        {k === 'present' ? t('suites.pathshala.upasthiti.colPresent') : k === 'absent' ? t('suites.pathshala.upasthiti.colAbsent') : t('suites.pathshala.upasthiti.colLeave')}
                       </button>
                     ))}
                     {st === 'leave' && (
                       <select value={r?.leaveType || 'noimittik'} onChange={(e) => setStaff(p.id, p.kind, 'leave', e.target.value as LeaveType)} className={`${inputCls} !w-40`}>
-                        {(Object.keys(LEAVE_LABEL) as LeaveType[]).map((lt) => <option key={lt} value={lt}>{leaveLabel(lt, lang)}</option>)}
+                        {(Object.keys(LEAVE_KEYS) as LeaveType[]).map((lt) => <option key={lt} value={lt}>{leaveLabel(lt)}</option>)}
                       </select>
                     )}
                   </div>
                 </div>
               );
             })}
-            {!people.length && <Empty text={tr('pathshala.upasthiti.no_staff', 'No gurus/staff — add them in the Varga tab', 'কোনো গুরু/কর্মচারী নেই — বর্গ ট্যাবে যোগ করুন', 'कोई गुरु/कर्मचारी नहीं — वर्ग टैब में जोड़ें')} />}
+            {!people.length && <Empty text={t('suites.pathshala.upasthiti.noStaffHint')} />}
           </div>
-          <h4 className="font-bold text-stone-700 mt-6 mb-2"><T bn="মাসিক সারসংক্ষেপ" en="Monthly summary" /></h4>
+          <h4 className="font-bold text-stone-700 mt-6 mb-2">{t('suites.pathshala.upasthiti.monthlySummary')}</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left text-xs text-stone-500 border-b">{[tr('pathshala.upasthiti.name', 'Name', 'নাম', 'नाम'), tr('pathshala.upasthiti.present', 'Present', 'উপস্থিত', 'उपस्थित'), tr('pathshala.upasthiti.absent', 'Absent', 'অনুপস্থিত', 'अनुपस्थित'), tr('pathshala.upasthiti.leave', 'Leave', 'ছুটি', 'छुट्टी'), tr('pathshala.upasthiti.leave_type', 'Leave type', 'ছুটির ধরন', 'छुट्टी का प्रकार')].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr></thead>
+              <thead><tr className="text-left text-xs text-stone-500 border-b">{[t('suites.pathshala.upasthiti.colName'), t('suites.pathshala.upasthiti.colPresent'), t('suites.pathshala.upasthiti.colAbsent'), t('suites.pathshala.upasthiti.colLeave'), t('suites.pathshala.upasthiti.colLeaveType')].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr></thead>
               <tbody>
                 {people.map((p) => {
                   const recs = state.staffUpasthiti.filter((r) => r.personId === p.id && r.date.startsWith(repMonth));
@@ -232,7 +232,7 @@ export const UpasthitiTab: React.FC = () => {
                       <td className="py-2 pr-3 text-emerald-700 font-bold">{digits(recs.filter((r) => r.status === 'present').length)}</td>
                       <td className="py-2 pr-3 text-red-600">{digits(recs.filter((r) => r.status === 'absent').length)}</td>
                       <td className="py-2 pr-3 text-amber-600">{digits(leaves.length)}</td>
-                      <td className="py-2 pr-3 text-xs">{[...new Set(leaves.map((l) => l.leaveType).filter(Boolean))].map((lt) => leaveLabel(lt as LeaveType, lang)).join(', ') || '—'}</td>
+                      <td className="py-2 pr-3 text-xs">{[...new Set(leaves.map((l) => l.leaveType).filter(Boolean))].map((lt) => leaveLabel(lt as LeaveType)).join(', ') || '—'}</td>
                     </tr>
                   );
                 })}
@@ -243,11 +243,11 @@ export const UpasthitiTab: React.FC = () => {
       )}
 
       {printMonthly && (
-        <Modal title={<T bn="মাসিক হাজিরা" en="Monthly attendance" />} onClose={() => setPrintMonthly(false)} wide>
+        <Modal title={t('suites.pathshala.upasthiti.monthlyAtt')} onClose={() => setPrintMonthly(false)} wide>
           <div className="print-area rounded-xl border p-4 overflow-x-auto">
-            <h2 className="text-center font-extrabold text-lg">॥ {tr('pathshala.upasthiti.monthly_att', 'Monthly attendance', 'মাসিক উপস্থিতি', 'मासिक उपस्थिति')} — {repMonth} ॥</h2>
+            <h2 className="text-center font-extrabold text-lg">॥ {t('suites.pathshala.upasthiti.monthlyAtt')} — {repMonth} ॥</h2>
             <table className="mt-2 text-xs">
-              <thead><tr><th>{tr('pathshala.upasthiti.shishya', 'Shishya', 'শিষ্য', 'शिष्य')}</th>{monthDays.map((d) => <th key={d}>{d.slice(8)}</th>)}<th>%</th></tr></thead>
+              <thead><tr><th>{t('suites.pathshala.upasthiti.colShishya')}</th>{monthDays.map((d) => <th key={d}>{d.slice(8)}</th>)}<th>%</th></tr></thead>
               <tbody>
                 {vargaShishya.map((s) => {
                   const recs = monthDays.map((d) => state.upasthiti.find((u) => u.studentId === s.id && u.date === d)?.status);
@@ -259,8 +259,8 @@ export const UpasthitiTab: React.FC = () => {
             </table>
           </div>
           <div className="flex gap-2 mt-3 no-print">
-            <Btn onClick={() => window.print()}><Printer className="w-4 h-4" /> {tr('pathshala.upasthiti.print', 'Print', 'প্রিন্ট', 'प्रिंट')}</Btn>
-            <Btn variant="ghost" onClick={() => setPrintMonthly(false)}>{tr('pathshala.upasthiti.close', 'Close', 'বন্ধ', 'बंद करें')}</Btn>
+            <Btn onClick={() => window.print()}><Printer className="w-4 h-4" /> {t('suites.pathshala.upasthiti.print')}</Btn>
+            <Btn variant="ghost" onClick={() => setPrintMonthly(false)}>{t('suites.pathshala.upasthiti.close')}</Btn>
           </div>
         </Modal>
       )}

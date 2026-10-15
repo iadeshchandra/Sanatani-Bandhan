@@ -19,23 +19,26 @@ import './print.css';
 /* ------------------------------------------------------------------ */
 /* Pathshala One — complete school-management suite for Gurukul +       */
 /* Vidyalaya (Pathshala) workspaces. Locale-aware like every other     */
-/* desk: English default, Bengali/Hindi/Sanskrit via LanguageContext.  */
-/* Domain terms stay Sanatani: Shishya / Guru / Varga / Pathyakram.    */
+/* desk: all UI strings resolve through t('suites.pathshala.…') with   */
+/* English fallback. Domain terms stay Sanatani: Shishya / Guru /       */
+/* Varga / Pathyakram (Tier B transliterations, never translated).     */
 /* Registered in workspaceRegistry for Gurukul + Vidyalaya ONLY — the  */
 /* App.tsx org-type guard blocks it everywhere else.                   */
 /* ------------------------------------------------------------------ */
 
+/* Tab ids are stable routing keys; display labels come from
+   suites.pathshala.tabs.<id> so every language renders correctly. */
 const TABS = [
-  { id: 'dashboard', bn: 'ড্যাশবোর্ড', en: 'Dashboard', hi: 'डैशबोर्ड' },
-  { id: 'shishya', bn: 'শিষ্য', en: 'Shishya', hi: 'शिष्य' },
-  { id: 'upasthiti', bn: 'উপস্থিতি', en: 'Attendance', hi: 'उपस्थिति' },
-  { id: 'pariksha', bn: 'পরীক্ষা', en: 'Results', hi: 'परीक्षा' },
-  { id: 'routine', bn: 'রুটিন', en: 'Routines', hi: 'समय-सारणी' },
-  { id: 'fee', bn: 'ফি', en: 'Fees', hi: 'शुल्क' },
-  { id: 'certificate', bn: 'সনদপত্র', en: 'Certificates', hi: 'प्रमाण-पत्र' },
-  { id: 'suchana', bn: 'নোটিশ', en: 'Notice & HW', hi: 'सूचना' },
-  { id: 'tracking', bn: 'অগ্রগতি', en: 'Tracking', hi: 'प्रगति' },
-  { id: 'varga', bn: 'বর্গ', en: 'Varga & Subjects', hi: 'वर्ग' },
+  { id: 'dashboard', en: 'Dashboard' },
+  { id: 'shishya', en: 'Shishya' },
+  { id: 'upasthiti', en: 'Attendance' },
+  { id: 'pariksha', en: 'Results' },
+  { id: 'routine', en: 'Routines' },
+  { id: 'fee', en: 'Fees' },
+  { id: 'certificate', en: 'Certificates' },
+  { id: 'suchana', en: 'Notice & HW' },
+  { id: 'tracking', en: 'Tracking' },
+  { id: 'varga', en: 'Varga & Subjects' },
 ];
 
 const PathshalaInner: React.FC = () => {
@@ -43,7 +46,7 @@ const PathshalaInner: React.FC = () => {
   const { ensureSeeded } = usePathshala();
   const { gurukulStudents } = useData();
   const { activeWorkspace } = useAuthWorkspace();
-  const { safeTranslate } = useLanguage();
+  const { t } = useLanguage();
   const seededFor = useRef('');
 
   // Seed demo school data once per workspace (shishya ids come from DataContext).
@@ -63,12 +66,12 @@ const PathshalaInner: React.FC = () => {
           <div className="w-11 h-11 rounded-2xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-2xl">ॐ</div>
           <div>
             <h1 className="text-xl font-extrabold leading-tight">
-              {safeTranslate('pathshala.title', 'Pathshala', 'পাঠশালা', 'पाठशाला')}{' '}
-              <span className="font-normal text-amber-200/90 text-sm">(Pathshala One)</span>
+              {t('suites.pathshala.common.deskTitle')}{' '}
+              <span className="font-normal text-amber-200/90 text-sm">{t('suites.pathshala.common.suiteTag')}</span>
             </h1>
             <p className="text-xs text-amber-200/80">
-              ॥ विद्या ददाति विनयम् ॥ —{' '}
-              {safeTranslate('pathshala.subtitle', 'Complete school management', 'সম্পূর্ণ স্কুল ব্যবস্থাপনা', 'पूर्ण विद्यालय प्रबंधन')}
+              {t('suites.pathshala.common.shloka')} —{' '}
+              {t('suites.pathshala.common.subtitle')}
             </p>
           </div>
         </div>

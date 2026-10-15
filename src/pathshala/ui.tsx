@@ -4,14 +4,12 @@ import { toBnDigits } from './bn';
 
 /* Pathshala One — shared UI primitives (locale-aware, Sanatani palette).
  *
- * LOCALE CONTRACT (user-directed): this desk follows the app locale like
- * every other desk — English default, Bengali/Hindi/Sanskrit via
- * LanguageContext. The old Bengali-first <T> is now <T>: same call sites,
- * locale-correct rendering. Number formatting follows the locale too
+ * All user-facing strings resolve through t('suites.pathshala.…') with
+ * English fallback. Number formatting follows the locale too
  * (Bengali digits only when the app language is Bengali).
  */
 
-/** Locale-aware label. English default; Bengali/Hindi when the app locale switches. */
+/** Locale-aware label. Kept for compatibility; new code calls t() directly. */
 export const T: React.FC<{ en: string; bn: string; hi?: string; className?: string }> = ({
   en,
   bn,
@@ -77,40 +75,43 @@ export const Empty: React.FC<{ text: string }> = ({ text }) => (
 
 export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; children: React.ReactNode; wide?: boolean }> = ({
   title, onClose, children, wide,
-}) => (
+}) => {
+  const { t } = useLanguage();
+  return (
   <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true">
     <div className="absolute inset-0 bg-black/50" onClick={onClose} />
     <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-stone-800">{title}</h3>
-        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label="Close">✕</button>
+        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label={t('suites.pathshala.common.close')}>✕</button>
       </div>
       {children}
     </div>
   </div>
-);
+  );
+};
 
-export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; hi?: string }>; active: string; onChange: (id: string) => void }> = ({
+export const Tabs: React.FC<{ tabs: Array<{ id: string; en: string }>; active: string; onChange: (id: string) => void }> = ({
   tabs, active, onChange,
 }) => {
-  const { safeTranslate, currentLang } = useLanguage();
+  const { t, currentLang } = useLanguage();
   return (
   <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-print">
-    {tabs.map((t) => {
-      const primary = safeTranslate(`pathshala.tab.${t.id}`, t.en, t.bn, t.hi);
-      const showGloss = currentLang !== 'en' && primary !== t.en;
+    {tabs.map((tab) => {
+      const primary = t(`suites.pathshala.tabs.${tab.id}`);
+      const showGloss = currentLang !== 'en' && primary !== tab.en;
       return (
       <button
-        key={t.id}
-        onClick={() => onChange(t.id)}
+        key={tab.id}
+        onClick={() => onChange(tab.id)}
         className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold border transition min-h-[44px] ${
-          active === t.id
+          active === tab.id
             ? 'bg-gradient-to-r from-amber-700 to-orange-800 text-amber-50 border-amber-800 shadow'
             : 'bg-white text-stone-600 border-stone-200 hover:border-amber-300'
         }`}
       >
         <span className="font-bold">{primary}</span>
-        {showGloss && <span className={`block text-[10px] font-normal ${active === t.id ? 'text-amber-200' : 'text-stone-400'}`}>{t.en}</span>}
+        {showGloss && <span className={`block text-[10px] font-normal ${active === tab.id ? 'text-amber-200' : 'text-stone-400'}`}>{tab.en}</span>}
       </button>
       );
     })}
