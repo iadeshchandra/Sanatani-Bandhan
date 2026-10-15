@@ -94,7 +94,7 @@ const translations = {
     cred_password_min: 'Password must be at least 6 characters.',
     cred_email_in_use: 'This email is already registered. Try signing in instead.',
     cred_failed: 'Account creation failed. Please try again.',
-    cred_google_expired: t('auth.googleExpired'),
+    cred_google_expired: "Google session expired — please tap “Sign up with Google” again.",
     /* Unified signup — Step 2: role question after auth */
     reg_unified_note: 'Signed in as {name} — just add your contact number below.',
     view_register_title: 'Create workspace',
