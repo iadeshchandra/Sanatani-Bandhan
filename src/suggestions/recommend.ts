@@ -5,12 +5,20 @@
  * list with a one-line, honest reason each. No fabricated statistics —
  * reasons use soft phrasing ("many", "often") and real signals only.
  *
+ * i18n: reason copy resolves through the suites.seva dictionary
+ * (suites.seva.recommend.reasons.*) with the t() fallback chain
+ * (language → English → key). This module is hook-free on purpose, so it
+ * reads the synchronously-cached dictionary via getDict(). The public API
+ * (LocalizedText, RecContext, Recommendation, localizeText,
+ * getRecommendations) is unchanged.
+ *
  * Signals:
  *  - org-type affinity (curated per archetype, beyond registry natives)
  *  - festival proximity (crowd-safety modules before big utsavs)
  *  - workspace size (devotee count, donation volume)
  *  - recent desk usage (adjacent modules)
  */
+import { getDict } from '../i18n/translations';
 
 export interface LocalizedText {
   en: string;
@@ -84,6 +92,42 @@ const ADJACENT: Record<string, string[]> = {
   'quick-chanda-pos': ['donorCare', 'taxReceipts'],
 };
 
+/**
+ * Hook-free dictionary lookup with the t() fallback chain:
+ * requested language → English → undefined.
+ */
+function dictText(key: string, lang?: string): string | undefined {
+  const l = (lang || 'en').toLowerCase();
+  const segs = key.split('.');
+  const read = (dict: any): string | undefined => {
+    let cur: any = dict;
+    for (const s of segs) {
+      if (cur && typeof cur === 'object' && s in cur) cur = cur[s];
+      else return undefined;
+    }
+    return typeof cur === 'string' ? cur : undefined;
+  };
+  return read(getDict(l)) || (l === 'en' ? undefined : read(getDict('en')));
+}
+
+/** Fill {placeholders} in a template string. */
+function fill(template: string, params: Record<string, string | number>): string {
+  let s = template;
+  for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(String(v));
+  return s;
+}
+
+/**
+ * Build a LocalizedText reason from the suites.seva.recommend dictionary.
+ * Kept as LocalizedText (en/hi/bn) for backward compatibility with
+ * persisted PendingSuggestion objects and existing call sites.
+ */
+function reason(key: string, params: Record<string, string | number> = {}, lang?: string): LocalizedText {
+  const build = (l: string) =>
+    fill(dictText(`suites.seva.recommend.reasons.${key}`, l) || key, params);
+  return { en: build('en'), hi: build('hi'), bn: build('bn') };
+}
+
 function tr(t: LocalizedText, lang?: string): string {
   const l = (lang || 'en').toLowerCase();
   if (l.startsWith('bn')) return t.bn;
@@ -119,71 +163,36 @@ export function getRecommendations(ctx: RecContext): Recommendation[] {
   // 1. Org-type affinity (+30)
   const affinity = ORG_AFFINITY[ctx.orgType] || [];
   for (const m of affinity) {
-    push(m, 30, {
-      en: `A natural fit for ${ctx.orgType} workspaces — many enable this first.`,
-      hi: `${ctx.orgType} कार्यक्षेत्रों के लिए उपयुक्त — कई इसे सबसे पहले चालू करते हैं।`,
-      bn: `${ctx.orgType} কর্মক্ষেত্রের জন্য উপযুক্ত — অনেকেই এটি প্রথমে চালু করেন।`,
-    });
+    push(m, 30, reason('orgAffinity', { orgType: ctx.orgType }, lang));
   }
 
   // 2. Festival proximity (+25, crowd-safety only)
   if (ctx.daysToFestival !== null && ctx.daysToFestival <= 45 && ctx.festivalName) {
     const fname = tr(ctx.festivalName, lang);
-    const when =
-      ctx.daysToFestival <= 1
-        ? lang?.startsWith('bn')
-          ? 'আগামীকাল'
-          : lang?.startsWith('hi')
-            ? 'कल'
-            : 'tomorrow'
-        : lang?.startsWith('bn')
-          ? `${ctx.daysToFestival} দিন পর`
-          : lang?.startsWith('hi')
-            ? `${ctx.daysToFestival} दिन बाद`
-            : `in ${ctx.daysToFestival} days`;
+    const whenKey = ctx.daysToFestival <= 1 ? 'tomorrow' : 'days';
+    const when = fill(
+      dictText(`suites.seva.recommend.countdown.${whenKey}`, lang) || whenKey,
+      { days: ctx.daysToFestival }
+    );
     for (const m of CROWD_SAFETY_MODULES) {
-      push(m, 25, {
-        en: `${fname} is ${when} — crowd-safety modules are often enabled before big utsavs.`,
-        hi: `${fname} ${when} है — बड़े उत्सवों से पहले भीड़-सुरक्षा मॉड्यूल अक्सर चालू किए जाते हैं।`,
-        bn: `${fname} ${when} — বড় উৎসবের আগে ভিড়-নিরাপত্তা মডিউল প্রায়শই চালু করা হয়।`,
-      });
+      push(m, 25, reason('festivalCrowd', { festival: fname, when }, lang));
     }
   }
 
   // 3. Size signals
   if (ctx.devoteeCount >= 200) {
-    push('bulkImport', 15, {
-      en: `With ${ctx.devoteeCount}+ devotees, bulk tools save real admin hours.`,
-      hi: `${ctx.devoteeCount}+ भक्तों के साथ, बल्क टूल वास्तविक प्रशासनिक घंटे बचाते हैं।`,
-      bn: `${ctx.devoteeCount}+ ভক্তের সঙ্গে, বাল্ক টুল প্রকৃত প্রশাসনিক ঘণ্টা বাঁচায়।`,
-    });
-    push('membership', 12, {
-      en: 'At this size, join requests deserve their own queue.',
-      hi: 'इस आकार पर, जुड़ने के अनुरोधों को अपनी कतार मिलनी चाहिए।',
-      bn: 'এই আকারে, যোগদানের অনুরোধগুলোর নিজস্ব সারি প্রাপ্য।',
-    });
+    push('bulkImport', 15, reason('bulkTools', { count: ctx.devoteeCount }, lang));
+    push('membership', 12, reason('membership', {}, lang));
   }
   if (ctx.donationCount >= 25) {
-    push('donorCare', 18, {
-      en: `${ctx.donationCount}+ donations recorded — win-back keeps first-time donors returning.`,
-      hi: `${ctx.donationCount}+ दान दर्ज — विन-बैक पहली बार के दाताओं को वापस लाता है।`,
-      bn: `${ctx.donationCount}+ অনুদান নথিভুক্ত — উইন-ব্যাক প্রথমবারের দাতাদের ফিরিয়ে আনে।`,
-    });
-    push('taxReceipts', 14, {
-      en: 'Donation volume like this usually means 80G receipts are due.',
-      hi: 'इतने दान का मतलब आमतौर पर 80G रसीदें देय हैं।',
-      bn: 'এত অনুদান মানে সাধারণত 80G রসিদ প্রাপ্য।',
-    });
+    push('donorCare', 18, reason('donorCare', { count: ctx.donationCount }, lang));
+    push('taxReceipts', 14, reason('taxReceipts', {}, lang));
   }
 
   // 4. Adjacent to recently used desks (+8)
   for (const deskId of ctx.recentDeskIds.slice(0, 5)) {
     for (const m of ADJACENT[deskId] || []) {
-      push(m, 8, {
-        en: 'Pairs well with a desk you already use.',
-        hi: 'आपके पहले से इस्तेमाल किए डेस्क के साथ अच्छा जोड़ा है।',
-        bn: 'আপনি ইতিমধ্যে যে ডেস্ক ব্যবহার করেন তার সঙ্গে ভালো মানায়।',
-      });
+      push(m, 8, reason('adjacent', {}, lang));
     }
   }
 

@@ -1,28 +1,20 @@
 /**
  * Seva Suggestions — suggestion & upsell cards.
  * ============================================================================
- * Dismissible, never modals. One-tap enable. Locale-driven (English default).
+ * Dismissible, never modals. One-tap enable. Locale-driven via the
+ * suites.seva dictionary (t('suites.seva.cards.*')); module names and
+ * one-line copy resolve through getModuleName()/getModuleCopy().
  */
 import React from 'react';
 import { X, Download, Sparkles, ArrowRight } from 'lucide-react';
 import { MODULE_CATALOG } from '../components/common/Sidebar';
 import { useLanguage } from '../context/LanguageContext';
-import { getModuleCopy } from './moduleCopy';
-import { localizeText, type LocalizedText } from './recommend';
+import { getModuleCopy, getModuleName } from './moduleCopy';
+import { localizeText } from './recommend';
 import type { PendingSuggestion } from './store';
 
-function useTr() {
-  const { currentLang } = useLanguage();
-  const lang = (currentLang || 'en').toLowerCase();
-  return (t: LocalizedText): string => localizeText(t, lang);
-}
-
-function moduleMeta(moduleId: string) {
-  const found = MODULE_CATALOG.find((m) => m.id === moduleId);
-  return {
-    name: found?.name || moduleId,
-    Icon: found?.icon || Sparkles,
-  };
+function moduleIcon(moduleId: string) {
+  return MODULE_CATALOG.find((m) => m.id === moduleId)?.icon || Sparkles;
 }
 
 /** Localised one-line outcome copy for a module. */
@@ -39,14 +31,14 @@ interface SuggestionCardProps {
 
 /** Contextual suggestion card — fired by triggers, rendered in-desk. Never a modal. */
 export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEnable, onDismiss }) => {
-  const tr = useTr();
-  const { name, Icon } = moduleMeta(suggestion.moduleId);
-  const { currentLang } = useLanguage();
+  const { t, currentLang } = useLanguage();
+  const name = getModuleName(suggestion.moduleId, currentLang);
+  const Icon = moduleIcon(suggestion.moduleId);
 
   return (
     <div
       role="note"
-      aria-label={`Suggestion: ${name}`}
+      aria-label={t('suites.seva.cards.suggestionLabel').replace('{name}', name)}
       className="relative overflow-hidden rounded-2xl border border-saffron-500/30 bg-gradient-to-r from-saffron-500/10 via-temple-900 to-temple-900 p-4 sm:p-5 shadow-lg"
     >
       <div className="flex items-start gap-3.5">
@@ -56,10 +48,10 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEn
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-saffron-400 mb-1">
             <Sparkles className="w-3 h-3" aria-hidden="true" />
-            {tr({ en: 'Suggested for you', hi: 'आपके लिए सुझाव', bn: 'আপনার জন্য পরামর্শ' })}
+            {t('suites.seva.cards.suggestedForYou')}
           </p>
           <h4 className="font-bold text-temple-100 text-sm leading-snug">{name}</h4>
-          <p className="text-xs text-temple-400 leading-relaxed mt-1">{tr(suggestion.reason)}</p>
+          <p className="text-xs text-temple-400 leading-relaxed mt-1">{localizeText(suggestion.reason, currentLang)}</p>
           <p className="text-[11px] text-temple-500 leading-relaxed mt-1.5 italic">
             {getModuleCopy(suggestion.moduleId, currentLang)}
           </p>
@@ -70,21 +62,21 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEn
               className="px-4 py-2 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow min-h-[36px]"
             >
               <Download className="w-3.5 h-3.5" aria-hidden="true" />
-              {tr({ en: 'Enable', hi: 'चालू करें', bn: 'চালু করুন' })}
+              {t('suites.seva.cards.enable')}
             </button>
             <button
               type="button"
               onClick={() => onDismiss(suggestion.key)}
               className="px-3 py-2 rounded-xl text-[11px] font-semibold text-temple-500 hover:text-temple-300 hover:bg-temple-800/60 transition-all min-h-[36px]"
             >
-              {tr({ en: 'Not now', hi: 'अभी नहीं', bn: 'এখন নয়' })}
+              {t('suites.seva.cards.notNow')}
             </button>
           </div>
         </div>
         <button
           type="button"
           onClick={() => onDismiss(suggestion.key)}
-          aria-label={tr({ en: 'Dismiss suggestion', hi: 'सुझाव हटाएं', bn: 'পরামর্শ বাতিল করুন' })}
+          aria-label={t('suites.seva.cards.dismissSuggestion')}
           className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-temple-500 hover:text-temple-200 hover:bg-temple-800/70 transition-all"
         >
           <X className="w-4 h-4" aria-hidden="true" />
@@ -106,9 +98,9 @@ interface ModuleUpsellCardProps {
  * this instead of dead UI or a redirect to the store. One-tap enable.
  */
 export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, onEnable, compact = false }) => {
-  const tr = useTr();
-  const { name, Icon } = moduleMeta(moduleId);
-  const { currentLang } = useLanguage();
+  const { t, currentLang } = useLanguage();
+  const name = getModuleName(moduleId, currentLang);
+  const Icon = moduleIcon(moduleId);
 
   if (compact) {
     return (
@@ -120,7 +112,7 @@ export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, on
       >
         <Icon className="w-4 h-4" aria-hidden="true" />
         <span>
-          {tr({ en: `Enable ${name}`, hi: `${name} चालू करें`, bn: `${name} চালু করুন` })}
+          {t('suites.seva.cards.enableModule').replace('{name}', name)}
         </span>
         <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
@@ -133,7 +125,7 @@ export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, on
         <Icon className="w-7 h-7 text-saffron-400" aria-hidden="true" />
       </div>
       <p className="text-[10px] font-black uppercase tracking-widest text-saffron-400 mb-2">
-        {tr({ en: 'Available module', hi: 'उपलब्ध मॉड्यूल', bn: 'উপলব্ধ মডিউল' })}
+        {t('suites.seva.cards.availableModule')}
       </p>
       <h3 className="text-lg font-black text-temple-100">{name}</h3>
       <p className="text-sm text-temple-400 leading-relaxed mt-2 max-w-md mx-auto">
@@ -145,7 +137,7 @@ export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, on
         className="mt-5 px-6 py-3 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 text-xs font-black uppercase tracking-widest inline-flex items-center gap-2 transition-all shadow min-h-[44px]"
       >
         <Download className="w-4 h-4" aria-hidden="true" />
-        {tr({ en: `Enable ${name}`, hi: `${name} चालू करें`, bn: `${name} চালু করুন` })}
+        {t('suites.seva.cards.enableModule').replace('{name}', name)}
       </button>
     </div>
   );

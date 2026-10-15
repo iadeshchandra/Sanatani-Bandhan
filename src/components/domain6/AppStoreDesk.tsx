@@ -7,6 +7,10 @@
  * and adjacent usage — each with a one-line honest reason and one-tap
  * enable. Every module card now carries real outcome-focused copy
  * (src/suggestions/moduleCopy.ts) instead of the old generic sentence.
+ *
+ * i18n: all chrome via t('suites.seva.appstore.*'); module names and
+ * one-line copy via getModuleName()/getModuleCopy(); festival names via
+ * getFestivalName().
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { Layers as Blocks, CheckCircle2, Download, Trash2, Search, ShieldAlert, Sparkles, Filter, Settings, Layers, X } from 'lucide-react';
@@ -17,9 +21,9 @@ import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getRecentDesks } from '../common/ui/deskHistory';
-import { getModuleCopy } from '../../suggestions/moduleCopy';
+import { getModuleCopy, getModuleName } from '../../suggestions/moduleCopy';
 import { getRecommendations, localizeText, type Recommendation } from '../../suggestions/recommend';
-import { getUpcomingFestival } from '../../suggestions/festivals';
+import { getUpcomingFestival, getFestivalName } from '../../suggestions/festivals';
 import {
   usePendingSuggestions,
   enableModule,
@@ -28,10 +32,22 @@ import {
 } from '../../suggestions/store';
 import { SuggestionCard } from '../../suggestions/cards';
 
+/** Sidebar domainTitle → suites.seva.appstore.domains.* dictionary key. */
+const DOMAIN_TITLE_KEYS: Record<string, string> = {
+  'Personal': 'suites.seva.appstore.domains.personal',
+  'Core Command & CRM': 'suites.seva.appstore.domains.core',
+  'Financials & Assets': 'suites.seva.appstore.domains.finance',
+  'Vedic Rituals & Ephemeris': 'suites.seva.appstore.domains.vedic',
+  'Specialized Desks': 'suites.seva.appstore.domains.specialized',
+  'Matrimony & Outreach': 'suites.seva.appstore.domains.outreach',
+  'Governance & Security': 'suites.seva.appstore.domains.governance',
+  'Sanatani Life & Connect': 'suites.seva.appstore.domains.life',
+};
+
 export const AppStoreDesk: React.FC = () => {
   const { activeWorkspace, updateWorkspaceDetails } = useAuthWorkspace();
   const { showToast } = useToast();
-  const { currentLang } = useLanguage();
+  const { t, currentLang } = useLanguage();
   const { devotees, donations } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'All' | 'Native' | 'Installed' | 'Available'>('All');
@@ -49,6 +65,12 @@ export const AppStoreDesk: React.FC = () => {
   const baseModules = activeWorkspace ? workspaceRegistry[activeWorkspace.type] || [] : [];
   const enabledModules = activeWorkspace?.enabledModules || [];
 
+  /** Localised domain (category) title, with fallback to the registry title. */
+  const domainTitle = (dt: string): string => {
+    const k = DOMAIN_TITLE_KEYS[dt];
+    return k ? t(k) : dt;
+  };
+
   // ---- Ranked recommendations -------------------------------------------
   const recommendations: Recommendation[] = useMemo(() => {
     if (!activeWorkspace) return [];
@@ -60,7 +82,13 @@ export const AppStoreDesk: React.FC = () => {
       devoteeCount: (devotees || []).length,
       donationCount: (donations || []).length,
       daysToFestival: festival ? festival.daysAway : null,
-      festivalName: festival ? { en: festival.name, hi: festival.hi, bn: festival.bn } : null,
+      festivalName: festival
+        ? {
+            en: getFestivalName(festival, 'en'),
+            hi: getFestivalName(festival, 'hi'),
+            bn: getFestivalName(festival, 'bn'),
+          }
+        : null,
       recentDeskIds,
       lang: currentLang,
     });
@@ -90,10 +118,14 @@ export const AppStoreDesk: React.FC = () => {
   const isAvailable = (id: string) => baseModules.includes(id) || enabledModules.includes(id);
 
   const handleEnable = (moduleId: string) => {
-    const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
     enableModule(enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
     // A dismissed recommendation for this module should not haunt the user.
-    showToast(`“${mod?.name || moduleId}” is now on — find it in your sidebar.`, 'success', 'Module Enabled');
+    const modName = getModuleName(moduleId, currentLang);
+    showToast(
+      t('suites.seva.appstore.toasts.enabled').replace('{name}', modName),
+      'success',
+      t('suites.seva.appstore.toasts.enabledTitle')
+    );
   };
 
   const handleToggleModule = (moduleId: string, isInstalling: boolean) => {
@@ -103,7 +135,7 @@ export const AppStoreDesk: React.FC = () => {
     }
     const newEnabled = enabledModules.filter((id) => id !== moduleId);
     updateWorkspaceDetails({ enabledModules: newEnabled });
-    showToast('Module uninstalled.', 'success');
+    showToast(t('suites.seva.appstore.toasts.uninstalled'), 'success');
   };
 
   const handleDismissRec = (moduleId: string) => {
@@ -113,6 +145,14 @@ export const AppStoreDesk: React.FC = () => {
   };
 
   const showRecommendations = recommendations.length > 0 || pendingSuggestions.length > 0;
+
+  const filterKeys = ['all', 'native', 'installed', 'available'] as const;
+  const filterValues: Record<(typeof filterKeys)[number], 'All' | 'Native' | 'Installed' | 'Available'> = {
+    all: 'All',
+    native: 'Native',
+    installed: 'Installed',
+    available: 'Available',
+  };
 
   const processedModules = MODULE_CATALOG.filter(m =>
     !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id)
@@ -128,8 +168,9 @@ export const AppStoreDesk: React.FC = () => {
   });
 
   const filteredModules = processedModules.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          m.domainTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = getModuleName(m.id, currentLang);
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          domainTitle(m.domainTitle).toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;
     if (activeFilter === 'All') return true;
@@ -145,13 +186,6 @@ export const AppStoreDesk: React.FC = () => {
     return acc;
   }, {} as Record<string, typeof processedModules>);
 
-  const tr = (en: string, hi: string, bn: string) => {
-    const l = (currentLang || 'en').toLowerCase();
-    if (l.startsWith('bn')) return bn;
-    if (l.startsWith('hi')) return hi;
-    return en;
-  };
-
   return (
     <div className="flex flex-col h-full bg-temple-950 text-temple-200">
       {/* Header */}
@@ -160,34 +194,30 @@ export const AppStoreDesk: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-4">
-                <Sparkles size={12} /> Enterprise Integrations
+                <Sparkles size={12} /> {t('suites.seva.appstore.header.badge')}
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
                 <Blocks className="w-8 h-8 text-indigo-500" />
-                App Store & Add-ons
+                {t('suites.seva.appstore.header.title')}
               </h1>
               <p className="text-sm text-temple-400 mt-2 font-medium max-w-2xl leading-relaxed">
-                {tr(
-                  'Your workspace already starts with what your institution type needs. Browse everything below — or start with what we recommend for you.',
-                  'आपका कार्यक्षेत्र आपकी संस्था के प्रकार की ज़रूरतों के साथ शुरू होता है। नीचे सब कुछ देखें — या हमारी अनुशंसाओं से शुरू करें।',
-                  'আপনার কর্মক্ষেত্র আপনার প্রতিষ্ঠানের ধরনের প্রয়োজন দিয়ে শুরু হয়। নিচে সব দেখুন — বা আমাদের সুপারিশ দিয়ে শুরু করুন।'
-                )}
+                {t('suites.seva.appstore.header.subtitle')}
               </p>
             </div>
 
             <div className="flex flex-col gap-2 w-full md:w-auto">
               <div className="flex gap-2">
-                {['All', 'Native', 'Installed', 'Available'].map(f => (
+                {filterKeys.map(f => (
                   <button
                     key={f}
-                    onClick={() => setActiveFilter(f as any)}
+                    onClick={() => setActiveFilter(filterValues[f])}
                     className={`px-4 py-2 text-xs font-bold rounded-lg transition-all border ${
-                      activeFilter === f
+                      activeFilter === filterValues[f]
                         ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
                         : 'bg-temple-900 text-temple-400 border-temple-800 hover:text-temple-200 hover:bg-temple-800'
                     }`}
                   >
-                    {f}
+                    {t(`suites.seva.appstore.filters.${f}`)}
                   </button>
                 ))}
               </div>
@@ -195,7 +225,7 @@ export const AppStoreDesk: React.FC = () => {
                 <Search className="w-4 h-4 text-temple-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search modules..."
+                  placeholder={t('suites.seva.appstore.search.placeholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 bg-temple-900 border border-temple-800 rounded-lg text-sm text-temple-200 placeholder-temple-600 focus:outline-none focus:border-indigo-500 transition-all"
@@ -211,20 +241,16 @@ export const AppStoreDesk: React.FC = () => {
 
         {/* ---- Recommended for you ---- */}
         {showRecommendations && (
-          <section aria-label="Recommended for you" className="mb-12">
+          <section aria-label={t('suites.seva.appstore.recommended.title')} className="mb-12">
             <div className="flex items-center gap-3 mb-2">
               <Sparkles className="w-5 h-5 text-saffron-400" aria-hidden="true" />
               <h2 className="text-lg font-black text-white">
-                {tr('Recommended for you', 'आपके लिए अनुशंसित', 'আপনার জন্য সুপারিশকৃত')}
+                {t('suites.seva.appstore.recommended.title')}
               </h2>
               <div className="h-px bg-temple-800 flex-1"></div>
             </div>
             <p className="text-xs text-temple-500 mb-5 max-w-2xl">
-              {tr(
-                'Ranked for your institution type, size, and the season — not an alphabetical wall.',
-                'आपकी संस्था के प्रकार, आकार और मौसम के अनुसार क्रमबद्ध — वर्णमाला की दीवार नहीं।',
-                'আপনার প্রতিষ্ঠানের ধরন, আকার ও মরসুম অনুযায়ী সাজানো — বর্ণানুক্রমিক প্রাচীর নয়।'
-              )}
+              {t('suites.seva.appstore.recommended.subtitle')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               {pendingSuggestions.map((s) => (
@@ -238,6 +264,7 @@ export const AppStoreDesk: React.FC = () => {
               {recommendations.map((rec) => {
                 const mod = MODULE_CATALOG.find((m) => m.id === rec.moduleId);
                 const Icon = mod?.icon || Sparkles;
+                const modName = getModuleName(rec.moduleId, currentLang);
                 return (
                   <div
                     key={rec.moduleId}
@@ -246,7 +273,7 @@ export const AppStoreDesk: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleDismissRec(rec.moduleId)}
-                      aria-label={`Dismiss recommendation: ${mod?.name}`}
+                      aria-label={t('suites.seva.appstore.recommended.dismissLabel').replace('{name}', modName)}
                       className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-temple-600 hover:text-temple-300 hover:bg-temple-800 transition-all"
                     >
                       <X className="w-3.5 h-3.5" aria-hidden="true" />
@@ -256,7 +283,7 @@ export const AppStoreDesk: React.FC = () => {
                         <Icon className="w-5 h-5 text-indigo-400" aria-hidden="true" />
                       </div>
                       <div className="pr-6">
-                        <h3 className="font-bold text-temple-100 leading-tight">{mod?.name || rec.moduleId}</h3>
+                        <h3 className="font-bold text-temple-100 leading-tight">{modName}</h3>
                         <p className="text-[11px] text-saffron-400/90 font-semibold mt-1 leading-snug">
                           {localizeText(rec.reason, currentLang)}
                         </p>
@@ -271,7 +298,7 @@ export const AppStoreDesk: React.FC = () => {
                       className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-md text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                     >
                       <Download size={16} aria-hidden="true" />
-                      {tr('Enable module', 'मॉड्यूल चालू करें', 'মডিউল চালু করুন')}
+                      {t('suites.seva.appstore.recommended.enableModule')}
                     </button>
                   </div>
                 );
@@ -283,7 +310,7 @@ export const AppStoreDesk: React.FC = () => {
         {/* ---- Full catalog ---- */}
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-lg font-black text-white">
-            {tr('Browse all modules', 'सभी मॉड्यूल देखें', 'সব মডিউল দেখুন')}
+            {t('suites.seva.appstore.catalog.title')}
           </h2>
           <div className="h-px bg-temple-800 flex-1"></div>
         </div>
@@ -293,9 +320,9 @@ export const AppStoreDesk: React.FC = () => {
             <div className="w-20 h-20 bg-temple-900 rounded-full flex items-center justify-center mb-4 border border-temple-800">
               <Layers className="w-8 h-8 text-temple-600" />
             </div>
-            <h3 className="text-xl font-black text-temple-300">No Modules Found</h3>
+            <h3 className="text-xl font-black text-temple-300">{t('suites.seva.appstore.catalog.emptyTitle')}</h3>
             <p className="text-temple-500 text-sm mt-2 max-w-sm">
-              Adjust your search filters or browse the complete catalog.
+              {t('suites.seva.appstore.catalog.emptyDesc')}
             </p>
           </div>
         ) : (
@@ -303,7 +330,7 @@ export const AppStoreDesk: React.FC = () => {
             {Object.entries(groupedModules).map(([domain, mods]) => (
               <div key={domain}>
                 <div className="flex items-center gap-3 mb-6">
-                  <h2 className="text-lg font-black text-white">{domain}</h2>
+                  <h2 className="text-lg font-black text-white">{domainTitle(domain)}</h2>
                   <div className="h-px bg-temple-800 flex-1"></div>
                 </div>
 
@@ -317,7 +344,7 @@ export const AppStoreDesk: React.FC = () => {
                         {mod.status === 'Native' && (
                           <div className="absolute top-0 right-0">
                              <div className="bg-temple-800 text-[9px] font-black uppercase tracking-widest text-temple-400 px-3 py-1 rounded-bl-xl border-l border-b border-temple-700/50 flex items-center gap-1">
-                               <Settings size={10} /> Base Archetype
+                               <Settings size={10} /> {t('suites.seva.appstore.catalog.nativeBadge')}
                              </div>
                           </div>
                         )}
@@ -331,7 +358,7 @@ export const AppStoreDesk: React.FC = () => {
                             <Icon className="w-6 h-6" />
                           </div>
                           <div className="pr-4">
-                            <h3 className="font-bold text-temple-100 leading-tight mb-1">{mod.name}</h3>
+                            <h3 className="font-bold text-temple-100 leading-tight mb-1">{getModuleName(mod.id, currentLang)}</h3>
                             {mod.badge && (
                               <span className="inline-block px-1.5 py-0.5 rounded border border-indigo-500/30 bg-indigo-500/10 text-[9px] font-black uppercase tracking-widest text-indigo-400">
                                 {mod.badge}
@@ -348,21 +375,21 @@ export const AppStoreDesk: React.FC = () => {
                         <div className="pt-4 border-t border-temple-800/50 mt-auto">
                           {mod.status === 'Native' ? (
                             <button disabled className="w-full py-2.5 rounded-xl bg-temple-950 border border-temple-800 text-temple-500 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 opacity-70 cursor-not-allowed">
-                              <CheckCircle2 size={16} /> Included in {activeWorkspace.type}
+                              <CheckCircle2 size={16} /> {t('suites.seva.appstore.catalog.includedIn').replace('{orgType}', activeWorkspace.type)}
                             </button>
                           ) : mod.status === 'Installed' ? (
                             <button
                               onClick={() => handleToggleModule(mod.id, false)}
                               className="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                             >
-                              <Trash2 size={16} /> Uninstall Add-on
+                              <Trash2 size={16} /> {t('suites.seva.appstore.catalog.uninstall')}
                             </button>
                           ) : (
                             <button
                               onClick={() => handleToggleModule(mod.id, true)}
                               className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-md text-white text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                             >
-                              <Download size={16} /> Install Module
+                              <Download size={16} /> {t('suites.seva.appstore.catalog.install')}
                             </button>
                           )}
                         </div>
