@@ -182,6 +182,11 @@
   border: 2px solid transparent;
 }
 
+/* Prevent 1px horizontal overflow on tablet viewports */
+body {
+  overflow-x: clip;
+}
+
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -192,79 +197,4 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-/* ============================================================
-   i18n PHASE 1 — [lang]-driven font stacks (offline-safe)
-   Append to the end of src/index.css. Theme tokens above untouched.
-
-   Strategy: system fonts first (zero download, works offline), with
-   Noto Sans webfonts as progressive enhancement when self-hosted
-   under /public/fonts/. font-display: swap keeps text visible.
-   ============================================================ */
-
-/* Base: Latin + shared fallback chain */
-:root {
-  --font-ui: "Noto Sans", system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-}
-
-/* Devanagari (Hindi, Marathi, Sanskrit) */
-:root[lang="hi"], :root[lang="mr"], :root[lang="sa"] {
-  --font-ui: "Noto Sans Devanagari", "Mangal", "Kokila", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Bengali */
-:root[lang="bn"] {
-  --font-ui: "Noto Sans Bengali", "Vrinda", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Tamil */
-:root[lang="ta"] {
-  --font-ui: "Noto Sans Tamil", "Latha", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Telugu */
-:root[lang="te"] {
-  --font-ui: "Noto Sans Telugu", "Gautami", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Gujarati */
-:root[lang="gu"] {
-  --font-ui: "Noto Sans Gujarati", "Shruti", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Kannada */
-:root[lang="kn"] {
-  --font-ui: "Noto Sans Kannada", "Tunga", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Malayalam */
-:root[lang="ml"] {
-  --font-ui: "Noto Sans Malayalam", "Kartika", "Nirmala UI",
-    system-ui, sans-serif;
-}
-
-/* Apply the active stack to the whole app */
-body {
-  font-family: var(--font-ui);
-}
-
-/* Sacred display hook — mantras, ॐ headers, aarti titles.
-   Tiro Devanagari family gives the sacred feel; falls back gracefully. */
-.font-sacred {
-  font-family: "Tiro Devanagari Hindi", "Tiro Devanagari Sanskrit",
-    "Noto Serif Devanagari", "Kokila", serif;
-  letter-spacing: 0.01em;
-}
-
-/* Vernacular numerals stay Latin for money/IDs (fraud-safe), but allow
-   native digits for decorative counters when explicitly requested. */
-.font-native-digits {
-  font-variant-numeric: normal;
 }
