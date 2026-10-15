@@ -32,7 +32,7 @@ export const ReportsTab: React.FC = () => {
   const fest = state.festivals.find((f) => f.id === festivalId) || state.festivals[0];
   if (!fest) return <Card><Empty text={t('ritual.utsav.reports.empty_add_a_festival_first_then_genera')} /></Card>;
 
-  const t = budgetTotals(state, fest.id);
+  const totals = budgetTotals(state, fest.id);
   const vendors = state.vendors.filter((v) => v.festivalId === fest.id);
   const tasksPct = tasksDonePct(state, fest.id);
   const pending = vendorPending(state, fest.id);
@@ -102,15 +102,15 @@ export const ReportsTab: React.FC = () => {
         </div>
         <p className="text-sm text-stone-700 mt-3">
           <T
-            en={`This is to certify that the ${state.settings.samitiName || 'samiti'} received ${inr(t.actualIncome)} and utilised ${inr(t.actualExpense)} for ${fest.name} (${fmtDate(fest.startDate)} → ${fmtDate(fest.endDate)}), as per the samiti's own records.`}
-            bn={`এতদ্বারা প্রত্যয়ন করা হল যে ${fest.name}-এর জন্য সমিতি ${inr(t.actualIncome)} পেয়েছে ও ${inr(t.actualExpense)} ব্যবহার করেছে (সমিতির নিজস্ব রেকর্ড অনুযায়ী)।`}
-            hi={`प्रमाणित किया जाता है कि ${fest.name} हेतु समिति ने ${inr(t.actualIncome)} प्राप्त किए व ${inr(t.actualExpense)} उपयोग किए (समिति के अपने रिकॉर्ड अनुसार)।`}
+            en={`This is to certify that the ${state.settings.samitiName || 'samiti'} received ${inr(totals.actualIncome)} and utilised ${inr(totals.actualExpense)} for ${fest.name} (${fmtDate(fest.startDate)} → ${fmtDate(fest.endDate)}), as per the samiti's own records.`}
+            bn={`এতদ্বারা প্রত্যয়ন করা হল যে ${fest.name}-এর জন্য সমিতি ${inr(totals.actualIncome)} পেয়েছে ও ${inr(totals.actualExpense)} ব্যবহার করেছে (সমিতির নিজস্ব রেকর্ড অনুযায়ী)।`}
+            hi={`प्रमाणित किया जाता है कि ${fest.name} हेतु समिति ने ${inr(totals.actualIncome)} प्राप्त किए व ${inr(totals.actualExpense)} उपयोग किए (समिति के अपने रिकॉर्ड अनुसार)।`}
           />
         </p>
         <div className="mt-3 text-sm space-y-1">
-          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_income_received')}</span><span className="font-extrabold text-emerald-700">{inr(t.actualIncome)}</span></div>
-          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_utilised')}</span><span className="font-extrabold text-red-700">{inr(t.actualExpense)}</span></div>
-          <div className="flex justify-between py-1"><span className="text-stone-500">{t('ritual.utsav.reports.balance')}</span><span className="font-extrabold">{inr(t.actualIncome - t.actualExpense)}</span></div>
+          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_income_received')}</span><span className="font-extrabold text-emerald-700">{inr(totals.actualIncome)}</span></div>
+          <div className="flex justify-between border-b border-stone-100 py-1"><span className="text-stone-500">{t('ritual.utsav.reports.total_utilised')}</span><span className="font-extrabold text-red-700">{inr(totals.actualExpense)}</span></div>
+          <div className="flex justify-between py-1"><span className="text-stone-500">{t('ritual.utsav.reports.balance')}</span><span className="font-extrabold">{inr(totals.actualIncome - totals.actualExpense)}</span></div>
         </div>
         <div className="grid grid-cols-2 gap-8 mt-8 text-sm">
           <div><div className="border-t border-stone-300 pt-1 text-stone-500">{t('ritual.utsav.reports.koshadhyaksh_treasurer')}</div></div>
@@ -128,7 +128,7 @@ export const ReportsTab: React.FC = () => {
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.festivals.dates')}</span><span className="font-semibold">{fmtDate(fest.startDate)} → {fmtDate(fest.endDate)}</span></div>
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.common.venue')}</span><span className="font-semibold">{fest.venue || '—'}</span></div>
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.reports.footfall')}</span><span className="font-semibold">{checkins.toLocaleString('en-IN')} / {fest.expectedFootfall.toLocaleString('en-IN')} {t('ritual.utsav.dashboard.expected')}</span></div>
-          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.reports.budget')}</span><span className="font-semibold">{t('ritual.utsav.reports.income_expense_line').replace('{income}', inr(t.actualIncome)).replace('{expense}', inr(t.actualExpense))}</span></div>
+          <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.reports.budget')}</span><span className="font-semibold">{t('ritual.utsav.reports.income_expense_line').replace('{income}', inr(totals.actualIncome)).replace('{expense}', inr(totals.actualExpense))}</span></div>
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.tasks_done')}</span><span className="font-semibold">{tasksPct}%</span></div>
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.vendor_payments_pending')}</span><span className="font-semibold">{inr(pending)}</span></div>
           <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.safety_checklist')}</span><span className="font-semibold">{safetyPct}%</span></div>
