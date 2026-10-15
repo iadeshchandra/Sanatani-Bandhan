@@ -25,6 +25,7 @@ import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { TreasuryTransaction } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ============================================================================
 // TYPES & CBDT CODES SPECIFICATION
@@ -80,6 +81,7 @@ const CBDT_NATURE_CODES: Record<CBDTDonationNature, string> = {
 // ============================================================================
 
 export const Form10BDComplianceDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { treasury, donations, devotees, updateTreasuryTransaction } = useData();
   const { showToast } = useToast();
@@ -526,7 +528,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight flex items-center gap-3">
-              <span>Income Tax Form 10BD Audit & E-Filing Desk</span>
+              <span>{t('org.finance.form10BD.incomeTaxForm10bdAuditEfilingDesk')}</span>
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
@@ -547,7 +549,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
                 <option value="FY 2025-2026">FY 2025-2026 (Assessment Year 2026-27)</option>
                 <option value="FY 2024-2025">FY 2024-2025 (Assessment Year 2025-26)</option>
                 <option value="FY 2026-2027">FY 2026-2027 (Assessment Year 2027-28)</option>
-                <option value="ALL">All Financial Years</option>
+                <option value="ALL">{t('org.finance.form10BD.allFinancialYears')}</option>
               </select>
             </div>
 
@@ -557,7 +559,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg flex items-center gap-2 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <Download className="w-4 h-4" />
-              <span>Export Form 10BD CSV</span>
+              <span>{t('org.finance.form10BD.exportForm10bdCsv')}</span>
             </button>
           </div>
         </div>
@@ -570,9 +572,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
         {/* Metric 1: Total 80G Donations */}
         <div className="bg-stone-900/90 rounded-2xl border border-stone-800 p-4 shadow-xl flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
-              Total 80G Donations
-            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.form10BD.total80gDonations')}</span>
             <div className="text-xl sm:text-2xl font-black text-white">
               ₹{auditMetrics.totalDonationsAmount.toLocaleString('en-IN')}
             </div>
@@ -610,9 +610,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
             : 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
         }`}>
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider opacity-80 block mb-1">
-              CBDT Audit Warnings
-            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider opacity-80 block mb-1">{t('org.finance.form10BD.cbdtAuditWarnings')}</span>
             <div className="text-xl sm:text-2xl font-black flex items-center gap-2">
               <span>{auditMetrics.nonCompliantRowsCount} Records</span>
               {auditMetrics.nonCompliantRowsCount > 0 && (
@@ -684,9 +682,9 @@ export const Form10BDComplianceDesk: React.FC = () => {
             CBDT Income Tax Rule 18AB & Section 80G(5)(d) Compliance Mandate:
           </span>
           <p className="text-stone-400 leading-relaxed">
-            1. <strong className="text-stone-200">Cash Donations Limit:</strong> Under Section 80G(5)(d), no deduction is allowed for cash donations exceeding ₹2,000. Such transactions must either be amended or excluded from 80G claims.<br />
+            1. <strong className="text-stone-200">{t('org.finance.form10BD.cashDonationsLimit')}</strong> Under Section 80G(5)(d), no deduction is allowed for cash donations exceeding ₹2,000. Such transactions must either be amended or excluded from 80G claims.<br />
             2. <strong className="text-stone-200">Mandatory Unique Identity:</strong> Form 10BD strictly rejects entries without a valid PAN or Aadhaar. Form 10BE tax certificates will only generate for verified tax IDs.<br />
-            3. <strong className="text-stone-200">Annual Due Date:</strong> Statement in Form 10BD must be furnished on or before May 31 immediately following the financial year in which donation is received.
+            3. <strong className="text-stone-200">{t('org.finance.form10BD.annualDueDate')}</strong> Statement in Form 10BD must be furnished on or before May 31 immediately following the financial year in which donation is received.
           </p>
         </div>
       </section>
@@ -754,10 +752,10 @@ export const Form10BDComplianceDesk: React.FC = () => {
             aria-label="Filter by Donation Nature"
             className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500 cursor-pointer"
           >
-            <option value="ALL">All Donation Natures</option>
+            <option value="ALL">{t('org.finance.form10BD.allDonationNatures')}</option>
             <option value="Corpus">Corpus (Sec 11(1)(d))</option>
-            <option value="Specific Grant">Specific Grant / Seva</option>
-            <option value="Others">Others / General Chanda</option>
+            <option value="Specific Grant">{t('org.finance.form10BD.specificGrantSeva')}</option>
+            <option value="Others">{t('org.finance.form10BD.othersGeneralChanda')}</option>
           </select>
         </div>
 
@@ -775,14 +773,14 @@ export const Form10BDComplianceDesk: React.FC = () => {
             <thead>
               <tr className="bg-stone-950 border-b border-stone-800 text-stone-400 uppercase font-black tracking-wider text-[10px]">
                 <th className="py-3.5 px-4 w-12 text-center">S.No</th>
-                <th className="py-3.5 px-4">Donor Name & Devotee Tag</th>
+                <th className="py-3.5 px-4">{t('org.finance.form10BD.donorNameDevoteeTag')}</th>
                 <th className="py-3.5 px-4">ID Type</th>
                 <th className="py-3.5 px-4">ID Number</th>
-                <th className="py-3.5 px-4">Address</th>
+                <th className="py-3.5 px-4">{t('org.finance.form10BD.address')}</th>
                 <th className="py-3.5 px-4">Donation Nature</th>
-                <th className="py-3.5 px-4">Mode</th>
-                <th className="py-3.5 px-4 text-right">Amount (₹)</th>
-                <th className="py-3.5 px-4">Compliance Audit</th>
+                <th className="py-3.5 px-4">{t('org.finance.form10BD.mode')}</th>
+                <th className="py-3.5 px-4 text-right">{t('org.finance.form10BD.amount')}</th>
+                <th className="py-3.5 px-4">{t('org.finance.form10BD.complianceAudit')}</th>
                 <th className="py-3.5 px-4 text-center">Action</th>
               </tr>
             </thead>
@@ -842,7 +840,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
 
                     {/* Address */}
                     <td className="py-3 px-4 max-w-[160px] truncate text-stone-300" title={row.address}>
-                      {row.address || <span className="text-rose-400 italic">No Address on record</span>}
+                      {row.address || <span className="text-rose-400 italic">{t('org.finance.form10BD.noAddressOnRecord')}</span>}
                     </td>
 
                     {/* Donation Nature */}
@@ -933,11 +931,8 @@ export const Form10BDComplianceDesk: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Income Tax Form 10BD Rectification
               </span>
-              <h3 className="text-lg font-black text-white mt-1">
-                Rectify Donor Tax Credentials
-              </h3>
-              <p className="text-stone-400">
-                Amount: <strong className="text-amber-300">₹{editingRow.amount.toLocaleString()}</strong> • Date: {editingRow.date}
+              <h3 className="text-lg font-black text-white mt-1">{t('org.finance.form10BD.rectifyDonorTaxCredentials')}</h3>
+              <p className="text-stone-400">{t('org.finance.form10BD.amount2')}<strong className="text-amber-300">₹{editingRow.amount.toLocaleString()}</strong> • Date: {editingRow.date}
               </p>
             </div>
 
@@ -1010,7 +1005,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Mode of Receipt</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.finance.form10BD.modeOfReceipt')}</label>
                   <select
                     value={editForm.paymentMode}
                     onChange={(e) => setEditForm({ ...editForm, paymentMode: e.target.value as CBDTReceiptMode })}
@@ -1037,15 +1032,11 @@ export const Form10BDComplianceDesk: React.FC = () => {
                   type="button"
                   onClick={() => setEditingRow(null)}
                   className="px-4 py-2 rounded-xl bg-stone-800 text-stone-300 font-bold cursor-pointer"
-                >
-                  Cancel
-                </button>
+                >{t('org.finance.form10BD.cancel')}</button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black shadow-lg cursor-pointer"
-                >
-                  Save & Re-Audit Row
-                </button>
+                >{t('org.finance.form10BD.saveReauditRow')}</button>
               </div>
             </form>
           </div>
@@ -1090,16 +1081,14 @@ export const Form10BDComplianceDesk: React.FC = () => {
                 className="w-full py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Export All Records (Include Warnings)</span>
+                <span>{t('org.finance.form10BD.exportAllRecordsIncludeWarnings')}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsExportConfirmOpen(false)}
                 className="w-full py-2 px-4 rounded-xl text-stone-400 hover:text-white text-center font-bold cursor-pointer"
-              >
-                Cancel & Rectify Remaining Rows
-              </button>
+              >{t('org.finance.form10BD.cancelRectifyRemainingRows')}</button>
             </div>
           </div>
         </div>
