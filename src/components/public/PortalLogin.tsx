@@ -1124,7 +1124,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       transition={{ duration: 0.25 }}
                     >
                       <h2 className="text-[22px] sm:text-2xl font-black text-white tracking-tight leading-tight">{viewMeta[activeView].title}</h2>
-                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 truncate">{viewMeta[activeView].sub}</p>
+                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 leading-snug">{viewMeta[activeView].sub}</p>
                     </motion.div>
                   </AnimatePresence>
                 </div>
