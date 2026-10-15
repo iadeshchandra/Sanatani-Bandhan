@@ -3,6 +3,7 @@ import { Sun, Moon, Clock, Flame, Users, Sparkles, Video, BellRing, Music, Check
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AartiSchedule {
   id: string;
@@ -25,6 +26,7 @@ interface LongFormRitual {
 export const MandirPujaDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const { residentPujas } = useData();
   const schedules = residentPujas.map((p, idx) => ({
@@ -55,7 +57,7 @@ export const MandirPujaDesk: React.FC = () => {
   ]);
 
   const handleNotifyMe = (aartiName: string) => {
-    showToast(`Temple bell notification set for ${aartiName}`, 'info', 'Aarti Reminder Activated');
+    showToast(t('ritual.aarti.toastBellSet').replace('{name}', aartiName), 'info', t('ritual.aarti.toastTitle'));
   };
 
   return (
@@ -65,17 +67,17 @@ export const MandirPujaDesk: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">
-              Nitya Seva & Garbhagriha
+              {t('ritual.aarti.badge')}
             </span>
             <span className="text-xs text-temple-400 font-mono">
-              4 Nitya Daily Aartis Scheduled
+              {t('ritual.aarti.scheduledCount')}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
-            Daily Temple Aarti & Priest Roster Desk
+            {t('ritual.aarti.title')}
           </h2>
           <p className="text-xs text-temple-400 mt-0.5">
-            Real-time daily worship schedule, Chappan Bhog allocations, and live darshan telemetry
+            {t('ritual.aarti.subtitle')}
           </p>
         </div>
       </div>
@@ -103,7 +105,7 @@ export const MandirPujaDesk: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-saffron-600/20 transition-all"
           >
             <Video className="w-4 h-4" />
-            <span>Open HD Sanctum Player</span>
+            <span>{t('ritual.aarti.openHdPlayer')}</span>
           </a>
         </div>
       </div>
@@ -113,10 +115,10 @@ export const MandirPujaDesk: React.FC = () => {
         <div className="flex items-center justify-between mb-6 border-b border-temple-800 pb-4">
           <h3 className="text-lg font-extrabold text-temple-100 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-saffron-500" />
-            Devotee Long-Form Ritual Services
+            {t('ritual.aarti.longFormTitle')}
           </h3>
           <span className="text-xs font-bold text-temple-400 bg-temple-800 px-3 py-1 rounded-full">
-            Live Telemetry Tracker
+            {t('ritual.aarti.liveTracker')}
           </span>
         </div>
 
@@ -126,7 +128,7 @@ export const MandirPujaDesk: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
                   <h4 className="text-base font-bold text-temple-100">{ritual.service}</h4>
-                  <p className="text-sm text-temple-400">Yajamana: <span className="text-saffron-200">{ritual.devoteeName}</span></p>
+                  <p className="text-sm text-temple-400">{t('ritual.aarti.yajamana')} <span className="text-saffron-200">{ritual.devoteeName}</span></p>
                 </div>
                 <div className="text-xs font-bold px-3 py-1.5 bg-saffron-500/10 text-saffron-400 rounded-lg border border-saffron-500/20 w-fit">
                   Stage {ritual.currentStage + 1} of {ritual.stages.length} In Progress
@@ -222,17 +224,17 @@ export const MandirPujaDesk: React.FC = () => {
 
               <div className="py-2 space-y-2 text-xs text-temple-300">
                 <div>
-                  <span className="text-temple-400">Acharya on Duty:</span>
+                  <span className="text-temple-400">{t('ritual.aarti.acharyaOnDuty')}</span>
                   <p className="font-semibold text-temple-100">{aarti.priestInCharge}</p>
                 </div>
 
                 <div>
-                  <span className="text-temple-400">Chanting & Stotram:</span>
+                  <span className="text-temple-400">{t('ritual.aarti.chantingStotram')}</span>
                   <p className="text-saffron-200/90 italic text-[11px]">{aarti.mantra}</p>
                 </div>
 
                 <div>
-                  <span className="text-temple-400">Sacred Naivedyam (Bhog):</span>
+                  <span className="text-temple-400">{t('ritual.aarti.naivedyam')}</span>
                   <p className="text-temple-300 text-[11px]">{aarti.bhogDescription}</p>
                 </div>
               </div>
@@ -244,7 +246,7 @@ export const MandirPujaDesk: React.FC = () => {
               className="w-full py-2 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <BellRing className="w-3.5 h-3.5 text-saffron-400" />
-              <span>Subscribe to Aarti Alert</span>
+              <span>{t('ritual.aarti.subscribeAlert')}</span>
             </button>
           </div>
         ))}
