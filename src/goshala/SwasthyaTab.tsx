@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { HealthKind } from './types';
-import { Card, T, Btn, Field, inputCls, Empty, StatusPill, useLocaleText } from './ui';
+import { Card, Btn, Field, inputCls, Empty, StatusPill, HEALTH_KIND_KEY, labelFor } from './ui';
 import { fmtDateEn, inr } from '../pathshala/bn';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Goshala One — Swasthya (health & veterinary): vaccination schedule +
    reminders, treatment log, vet visit records, deworming calendar. */
@@ -12,7 +13,7 @@ const KINDS: HealthKind[] = ['vaccination', 'deworming', 'treatment', 'checkup']
 
 export const SwasthyaTab: React.FC = () => {
   const { state, add, remove } = useGoshala();
-  const { tr } = useLocaleText();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [f, setF] = useState({ nandiId: '', date: todayISO(), kind: 'vaccination' as HealthKind, title: '', details: '', vetName: '', cost: 0, nextDue: '' });
   const [filter, setFilter] = useState('');
@@ -22,9 +23,9 @@ export const SwasthyaTab: React.FC = () => {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.nandiId || !f.title.trim()) { showToast(tr('goshala.health.need', 'Select animal and enter a title', 'পশু ও শিরোনাম দিন', 'पशु और शीर्षक दें'), 'warning'); return; }
+    if (!f.nandiId || !f.title.trim()) { showToast(t('suites.goshala.swasthya.need'), 'warning'); return; }
     add('health', { id: uid('h'), nandiId: f.nandiId, date: f.date, kind: f.kind, title: f.title.trim(), details: f.details || undefined, vetName: f.vetName || undefined, cost: Number(f.cost) || 0, nextDue: f.nextDue || undefined });
-    showToast(tr('goshala.health.added', 'Health record saved', 'স্বাস্থ্য রেকর্ড সংরক্ষিত', 'स्वास्थ्य रिकॉर्ड सहेजा गया'), 'success');
+    showToast(t('suites.goshala.swasthya.added'), 'success');
     setF({ nandiId: '', date: todayISO(), kind: 'vaccination', title: '', details: '', vetName: '', cost: 0, nextDue: '' });
   };
 
@@ -43,13 +44,13 @@ export const SwasthyaTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-bold text-stone-800"><T en="Swasthya — health & veterinary" bn="স্বাস্থ্য ও পশু-চিকিৎসা" hi="स्वास्थ्य एवं पशु-चिकित्सा" sa="गवां स्वास्थ्यम्" /></h2>
-        <div className="text-sm bg-stone-100 rounded-xl px-3 py-1.5">{tr('goshala.health.month_cost', "This month's vet cost", 'এই মাসের চিকিৎসা খরচ', 'इस माह की चिकित्सा लागत')}: <b>{inr(monthCost)}</b></div>
+        <h2 className="text-lg font-bold text-stone-800">{t('suites.goshala.swasthya.title')}</h2>
+        <div className="text-sm bg-stone-100 rounded-xl px-3 py-1.5">{t('suites.goshala.swasthya.monthCost')}: <b>{inr(monthCost)}</b></div>
       </div>
 
       {dueSoon.length > 0 && (
         <Card className="border-amber-300 bg-amber-50/60">
-          <h3 className="font-bold text-amber-900 mb-2">🔔 <T en="Due in next 14 days" bn="আগামী ১৪ দিনে নির্ধারিত" hi="अगले 14 दिनों में नियत" /></h3>
+          <h3 className="font-bold text-amber-900 mb-2">🔔 {t('suites.goshala.swasthya.due14')}</h3>
           <ul className="space-y-1.5 text-sm">
             {dueSoon.map((h) => (
               <li key={h.id} className="flex justify-between"><span><b>{h.title}</b> — {nameOf(h.nandiId)?.name}</span><b className="text-amber-800">{fmtDateEn(h.nextDue!)}</b></li>
@@ -59,51 +60,51 @@ export const SwasthyaTab: React.FC = () => {
       )}
 
       <Card>
-        <h3 className="font-bold text-stone-800 mb-3"><T en="Log health event" bn="স্বাস্থ্য ঘটনা লিখুন" hi="स्वास्थ्य घटना दर्ज करें" /></h3>
+        <h3 className="font-bold text-stone-800 mb-3">{t('suites.goshala.swasthya.logEvent')}</h3>
         <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3">
-          <Field label={<T en="Animal" bn="পশু" hi="पशु" />}>
+          <Field label={t('suites.goshala.swasthya.animal')}>
             <select className={inputCls} value={f.nandiId} onChange={(e) => setF({ ...f, nandiId: e.target.value })}>
               <option value="">—</option>
               {state.nandis.map((n) => <option key={n.id} value={n.id}>{n.name} ({n.tagId})</option>)}
             </select>
           </Field>
-          <Field label={<T en="Date" bn="তারিখ" hi="तिथि" />}><input type="date" className={inputCls} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-          <Field label={<T en="Kind" bn="ধরন" hi="प्रकार" />}>
+          <Field label={t('suites.goshala.swasthya.date')}><input type="date" className={inputCls} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
+          <Field label={t('suites.goshala.swasthya.kind')}>
             <select className={inputCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as HealthKind })}>
-              {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+              {KINDS.map((k) => <option key={k} value={k}>{t(HEALTH_KIND_KEY[k])}</option>)}
             </select>
           </Field>
-          <Field label={<T en="Title" bn="শিরোনাম" hi="शीर्षक" />}><input className={inputCls} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="FMD vaccination" /></Field>
-          <Field label={<T en="Vet / attendant" bn="পশু-চিকিৎসক" hi="पशु-चिकित्सक" />}><input className={inputCls} value={f.vetName} onChange={(e) => setF({ ...f, vetName: e.target.value })} /></Field>
-          <Field label={<T en="Cost (₹)" bn="খরচ (₹)" hi="लागत (₹)" />}><input type="number" min={0} className={inputCls} value={f.cost} onChange={(e) => setF({ ...f, cost: Number(e.target.value) })} /></Field>
-          <Field label={<T en="Next due (reminder)" bn="পরবর্তী নির্ধারিত তারিখ" hi="अगली नियत तिथि" />}><input type="date" className={inputCls} value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} /></Field>
-          <Field label={<T en="Details" bn="বিবরণ" hi="विवरण" />} className="sm:col-span-2"><input className={inputCls} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} /></Field>
-          <div className="sm:col-span-3"><Btn type="submit">{tr('goshala.save', 'Save', 'সংরক্ষণ', 'सहेजें')}</Btn></div>
+          <Field label={t('suites.goshala.swasthya.titleLabel')}><input className={inputCls} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder={t('suites.goshala.swasthya.phTitle')} /></Field>
+          <Field label={t('suites.goshala.swasthya.vet')}><input className={inputCls} value={f.vetName} onChange={(e) => setF({ ...f, vetName: e.target.value })} /></Field>
+          <Field label={t('suites.goshala.swasthya.cost')}><input type="number" min={0} className={inputCls} value={f.cost} onChange={(e) => setF({ ...f, cost: Number(e.target.value) })} /></Field>
+          <Field label={t('suites.goshala.swasthya.nextDue')}><input type="date" className={inputCls} value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} /></Field>
+          <Field label={t('suites.goshala.swasthya.details')} className="sm:col-span-2"><input className={inputCls} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} /></Field>
+          <div className="sm:col-span-3"><Btn type="submit">{t('suites.goshala.common.save')}</Btn></div>
         </form>
       </Card>
 
       <Card>
         <div className="flex gap-2 mb-3 items-center">
-          <h3 className="font-bold text-stone-800 mr-auto"><T en="Health log" bn="স্বাস্থ্য লগ" hi="स्वास्थ्य लॉग" /></h3>
+          <h3 className="font-bold text-stone-800 mr-auto">{t('suites.goshala.swasthya.healthLog')}</h3>
           <select className={`${inputCls} !w-44`} value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">{tr('goshala.all', 'All', 'সব', 'सभी')}</option>
-            {KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+            <option value="">{t('suites.goshala.common.all')}</option>
+            {KINDS.map((k) => <option key={k} value={k}>{t(HEALTH_KIND_KEY[k])}</option>)}
           </select>
         </div>
-        {sorted.length === 0 ? <Empty text={tr('goshala.health.empty', 'No health records yet.', 'কোনো স্বাস্থ্য রেকর্ড নেই।', 'कोई स्वास्थ्य रिकॉर्ड नहीं।')} /> : (
+        {sorted.length === 0 ? <Empty text={t('suites.goshala.swasthya.empty')} /> : (
           <ul className="space-y-2">
             {sorted.map((h) => {
               const n = nameOf(h.nandiId);
               return (
                 <li key={h.id} className="border border-stone-200 rounded-xl px-3 py-2.5 flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-mono text-xs bg-stone-100 rounded px-1.5 py-0.5">{h.kind}</span>
+                  <span className="font-mono text-xs bg-stone-100 rounded px-1.5 py-0.5">{labelFor(t, HEALTH_KIND_KEY, h.kind)}</span>
                   <span className="font-bold">{h.title}</span>
                   <span className="text-stone-600">— {n?.name} ({n?.tagId})</span>
                   {n && <StatusPill status={n.status} />}
                   <span className="text-stone-500 ml-auto">{fmtDateEn(h.date)}</span>
                   {h.cost > 0 && <span className="font-semibold">{inr(h.cost)}</span>}
                   {h.nextDue && <span className="text-xs text-amber-700">↻ {fmtDateEn(h.nextDue)}</span>}
-                  <button className="text-xs font-bold text-red-600 hover:underline" onClick={() => { if (confirm(tr('goshala.confirm_del', 'Delete this record?', 'মুছবেন?', 'हटाएँ?'))) remove('health', h.id); }}>{tr('goshala.del', 'Delete', 'মুছুন', 'हटाएँ')}</button>
+                  <button className="text-xs font-bold text-red-600 hover:underline" onClick={() => { if (confirm(t('suites.goshala.common.confirmDelete'))) remove('health', h.id); }}>{t('suites.goshala.common.delete')}</button>
                 </li>
               );
             })}
