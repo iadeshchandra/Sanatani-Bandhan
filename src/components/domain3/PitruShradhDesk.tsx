@@ -3,6 +3,7 @@ import { Flame, Plus, Search, Calendar, BellRing, Sparkles, X } from 'lucide-rea
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 interface ShradhRecord {
@@ -23,6 +24,7 @@ interface ShradhRecord {
 export const PitruShradhDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const { pitruRecords, addPitruRecord } = useData();
   const records = pitruRecords.map((r, idx) => ({
@@ -71,7 +73,7 @@ export const PitruShradhDesk: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [ancestorName, setAncestorName] = useState('');
-  const [relationship, setRelationship] = useState('Pitamaha (Grandfather)');
+  const [relationship, setRelationship] = useState(t('ritual.shradh.relPitamaha'));
   const [kartaName, setKartaName] = useState('');
   const [kartaPhone, setKartaPhone] = useState('');
   const [gotra, setGotra] = useState('Kashyapa');
@@ -110,11 +112,11 @@ export const PitruShradhDesk: React.FC = () => {
       shradhLocation: preferredTirtha
     });
     setIsAddModalOpen(false);
-    showToast(`Shradh Tithi recorded for ${ancestorName}`, 'success');
+    showToast(t('ritual.shradh.toastRecorded').replace('{name}', ancestorName), 'success');
   };
 
   const handleTriggerAlert = (record: ShradhRecord) => {
-    showToast(`WhatsApp & SMS Tithi Reminder dispatched to Karta: ${record.kartaName} (${record.kartaPhone})`, 'info', 'Pitru Paksha Alert Dispatched');
+    showToast(t('ritual.shradh.toastReminderSent').replace('{name}', record.kartaName).replace('{phone}', record.kartaPhone), 'info', t('ritual.shradh.toastAlertTitle'));
   };
 
   return (
@@ -144,7 +146,7 @@ export const PitruShradhDesk: React.FC = () => {
           className="px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Record Ancestral Tithi</span>
+          <span>{t('ritual.shradh.recordTithi')}</span>
         </button>
       </div>
 
@@ -170,20 +172,20 @@ export const PitruShradhDesk: React.FC = () => {
 
               <div className="py-2 space-y-1.5 text-xs text-temple-300">
                 <p>
-                  <span className="text-temple-400">Lunar Tithi:</span>{' '}
+                  <span className="text-temple-400">{t('ritual.shradh.lunarTithiLabel')}</span>{' '}
                   <span className="font-bold text-saffron-300">{r.tithiLunar}</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">Masa & Paksha:</span>{' '}
+                  <span className="text-temple-400">{t('ritual.shradh.masaPaksha')}</span>{' '}
                   <span className="text-temple-200">{r.hinduMonth}, {r.paksha}</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">Karta (Officiator):</span>{' '}
+                  <span className="text-temple-400">{t('ritual.shradh.kartaLabel')}</span>{' '}
                   <span className="font-semibold text-temple-100">{r.kartaName}</span>{' '}
                   <span className="text-temple-400 font-mono text-[11px]">({r.kartaPhone})</span>
                 </p>
                 <p>
-                  <span className="text-temple-400">Designated Tirtha:</span>{' '}
+                  <span className="text-temple-400">{t('ritual.shradh.tirthaLabel')}</span>{' '}
                   <span className="text-temple-200">{r.preferredTirtha}</span>
                 </p>
               </div>
@@ -195,7 +197,7 @@ export const PitruShradhDesk: React.FC = () => {
               className="w-full py-2 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-saffron-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <BellRing className="w-3.5 h-3.5" />
-              <span>Send WhatsApp Shradh Reminder</span>
+              <span>{t('ritual.shradh.sendReminder')}</span>
             </button>
           </div>
         ))}
@@ -206,7 +208,7 @@ export const PitruShradhDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
           <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Record Ancestral Shradh Tithi</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">{t('ritual.shradh.formTitle')}</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
@@ -218,7 +220,7 @@ export const PitruShradhDesk: React.FC = () => {
 
             <form onSubmit={handleAdd} className="space-y-3 text-xs">
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Ancestor Name *</label>
+                <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.ancestorName')}</label>
                 <input
                   type="text"
                   required
@@ -231,22 +233,22 @@ export const PitruShradhDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Relationship</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.relationship')}</label>
                   <select
                     value={relationship}
                     onChange={(e) => setRelationship(e.target.value)}
                     className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-temple-200"
                   >
-                    <option>Pita (Father)</option>
-                    <option>Mata (Mother)</option>
-                    <option>Pitamaha (Grandfather)</option>
-                    <option>Pitamahi (Grandmother)</option>
-                    <option>Prapitamaha (Great Grandfather)</option>
+                    <option>{t('ritual.shradh.relPita')}</option>
+                    <option>{t('ritual.shradh.relMata')}</option>
+                    <option>{t('ritual.shradh.relPitamaha')}</option>
+                    <option>{t('ritual.shradh.relPitamahi')}</option>
+                    <option>{t('ritual.shradh.relPrapitamaha')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Gotra</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.gotra')}</label>
                   <input
                     type="text"
                     value={gotra}
@@ -258,7 +260,7 @@ export const PitruShradhDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Karta Full Name *</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.kartaName')}</label>
                   <input
                     type="text"
                     required
@@ -269,7 +271,7 @@ export const PitruShradhDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Karta Phone *</label>
+                  <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.kartaPhone')}</label>
                   <input
                     type="tel"
                     required
@@ -281,7 +283,7 @@ export const PitruShradhDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Lunar Tithi</label>
+                <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.lunarTithi')}</label>
                 <input
                   type="text"
                   value={tithiLunar}
@@ -291,7 +293,7 @@ export const PitruShradhDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-temple-300 font-semibold mb-1">Designated Tirtha</label>
+                <label className="block text-temple-300 font-semibold mb-1">{t('ritual.shradh.tirtha')}</label>
                 <input
                   type="text"
                   value={preferredTirtha}
