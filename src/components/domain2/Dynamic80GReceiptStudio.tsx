@@ -16,8 +16,10 @@ import {
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const Dynamic80GReceiptStudio: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const { activeWorkspace } = useAuthWorkspace();
   // H-1: no fabricated URN — real receipts need a registered workspace.
@@ -79,7 +81,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-8 h-8 text-amber-600" />
-            <span>Dynamic 80G Tax Receipt Studio</span>
+            <span>{t('org.finance.taxReceipts.dynamic80gTaxReceiptStudio')}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Split-screen interactive certificate studio with real-time PAN validation, watermark rendering, and multi-channel dispatch.
@@ -94,9 +96,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Landmark className="w-4 h-4 text-amber-600" />
-                Donor & Contribution Parameters
-              </span>
+                <Landmark className="w-4 h-4 text-amber-600" />{t('org.finance.taxReceipts.donorContributionParameters')}</span>
               <span className="text-xs font-mono font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                 Live Sync Active
               </span>
@@ -104,9 +104,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
 
             {/* Donor Name */}
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                Donor Full Name / Entity
-              </label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.donorFullNameEntity')}</label>
               <input
                 type="text"
                 value={donorName}
@@ -157,9 +155,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
             {/* Donation Amount & Purpose */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Donation Amount (INR)
-                </label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.donationAmountInr')}</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
                   <input
@@ -173,27 +169,23 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Payment Mode
-                </label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.paymentMode')}</label>
                 <select
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 >
                   <option value="UPI / NetBanking">UPI / NetBanking</option>
-                  <option value="NEFT / RTGS Transfer">NEFT / RTGS Transfer</option>
+                  <option value="NEFT / RTGS Transfer">{t('org.finance.taxReceipts.neftRtgsTransfer')}</option>
                   <option value="Account Payee Cheque">Account Payee Cheque</option>
-                  <option value="Physical Cash Receipt">Physical Cash Receipt</option>
+                  <option value="Physical Cash Receipt">{t('org.finance.taxReceipts.physicalCashReceipt')}</option>
                 </select>
               </div>
             </div>
 
             {/* Seva Purpose */}
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                Earmarked Seva / Fund Designation
-              </label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.earmarkedSevaFundDesignation')}</label>
               <input
                 type="text"
                 value={sevaPurpose}
@@ -205,9 +197,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
 
             {/* Donor Address */}
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                Donor Address for Form 10BD
-              </label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.donorAddressForForm10bd')}</label>
               <textarea
                 rows={2}
                 value={donorAddress}
@@ -295,8 +285,8 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
 
               {/* Receipt Metadata Row */}
               <div className="flex items-center justify-between text-[11px] font-mono border-b border-dashed border-slate-200 pb-2">
-                <span>Receipt No: <strong>{receiptNo}</strong></span>
-                <span>Date: <strong>{receiptDate}</strong></span>
+                <span>{t('org.finance.taxReceipts.receiptNo3')}<strong>{receiptNo}</strong></span>
+                <span>{t('org.finance.taxReceipts.date2')}<strong>{receiptDate}</strong></span>
               </div>
 
               {/* Donor Lineage Body */}
@@ -323,7 +313,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
                   </p>
                   <p className="text-[10px] font-bold text-emerald-700 flex items-center gap-1 font-mono">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Authorized Trustee Digital Seal</span>
+                    <span>{t('org.finance.taxReceipts.authorizedTrusteeDigitalSeal')}</span>
                   </p>
                 </div>
 
@@ -342,7 +332,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               className="py-3 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Send via WhatsApp</span>
+              <span>{t('org.finance.taxReceipts.sendViaWhatsapp')}</span>
             </button>
 
             <button
@@ -351,7 +341,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               className="py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-900 active:scale-98 text-slate-100 font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Printer className="w-3.5 h-3.5 text-amber-400" />
-              <span>Thermal Print 80mm</span>
+              <span>{t('org.finance.taxReceipts.thermalPrint80mm')}</span>
             </button>
 
             <button
@@ -360,7 +350,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               className="py-3 px-3 rounded-2xl bg-amber-600 hover:bg-amber-700 active:scale-98 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download Signed PDF</span>
+              <span>{t('org.finance.taxReceipts.downloadSignedPdf')}</span>
             </button>
           </div>
         </div>
