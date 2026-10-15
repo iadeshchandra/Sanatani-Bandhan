@@ -395,16 +395,16 @@ export const calculateDailyPanchang = (
   const nakshatraIndex = Math.floor(normalizedSidereal * 27);
   const nakshatraMeta = NAKSHATRAS_DATA[nakshatraIndex];
 
-  // Day of year for calendar calculations
-  const startOfYear = new Date(year, 0, 1);
-  const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / 86400000);
+  // Lunar month from Gregorian month: lunar masa run ~mid-month to mid-month,
+  // so Jan≈Pausha … Oct≈Ashwin … Dec≈Margashirsha. (Verified: 2026-10-15 is
+  // Ashwina Shukla Panchami in both Amanta & Purnimanta traditions.)
+  const lunarMonthIndex = (date.getMonth() + 9) % 12;
 
   const yogaIndex = (tithiIndexTotal + nakshatraIndex) % 27;
   const yogaName = YOGAS_LIST[yogaIndex];
   const karanaName = KARANAS_LIST[(tithiIndexTotal * 2) % KARANAS_LIST.length];
 
   const vaaraInfo = VAARA_NAMES[dayOfWeek];
-  const lunarMonthIndex = (Math.floor(dayOfYear / 30) + 11) % 12;
 
   const hours = Math.floor(dayLengthMinutes / 60);
   const mins = dayLengthMinutes % 60;
