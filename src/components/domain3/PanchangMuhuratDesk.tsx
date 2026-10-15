@@ -22,8 +22,10 @@ import {
   StandardCity,
   PanchangData,
 } from '../../utils/panchang';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PanchangMuhuratDesk: React.FC = () => {
+  const { t } = useLanguage();
   // Location and Date state
   const [selectedCityId, setSelectedCityId] = useState<string>('varanasi');
   const [selectedDateStr, setSelectedDateStr] = useState<string>(() => {
@@ -99,7 +101,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             </p>
             {/* H-4: honest approximation disclaimer — no ayanamsa correction; verify muhurats with a purohit */}
             <p className="text-[11px] text-amber-300/80 max-w-2xl leading-relaxed border-l-2 border-amber-500/50 pl-3 mt-1">
-              <strong>Approximate:</strong> tithi/nakshatra are computed from mean lunar motion without
+              <strong>{t('ritual.muhurat.approximate')}</strong> tithi/nakshatra are computed from mean lunar motion without
               Lahiri ayanamsa correction. Please verify important muhurats with your purohit.
             </p>
           </div>
@@ -117,10 +119,10 @@ export const PanchangMuhuratDesk: React.FC = () => {
               type="button"
               onClick={handleResetToday}
               className="p-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-all text-[11px] font-bold flex items-center gap-1 px-2.5 cursor-pointer"
-              title="Reset to Today"
+              title={t('ritual.muhurat.resetToToday')}
             >
               <RotateCcw className="w-3 h-3" />
-              <span>Today</span>
+              <span>{t('ritual.muhurat.today')}</span>
             </button>
           </div>
         </div>
@@ -217,7 +219,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             <div className="flex items-end">
               <div className="p-2.5 rounded-xl bg-temple-950 border border-amber-500/20 text-[11px] text-amber-200/70 w-full flex items-center gap-2">
                 <Info className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>IST timezone (+05:30) applied to coordinates.</span>
+                <span>{t('ritual.muhurat.istNote')}</span>
               </div>
             </div>
           </div>
@@ -259,7 +261,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
               </div>
             </div>
             <p className="text-2xl font-black font-mono text-amber-100">{panchang.sunrise}</p>
-            <p className="text-[11px] text-temple-400 mt-1">Start of Vedic Day & Pahar 1</p>
+            <p className="text-[11px] text-temple-400 mt-1">{t('ritual.muhurat.vedicDayStart')}</p>
           </div>
 
           {/* Sunset Card */}
@@ -312,15 +314,15 @@ export const PanchangMuhuratDesk: React.FC = () => {
         {/* Extended Panchanga Row (Vaara, Yoga, Karana) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-temple-800 text-xs">
           <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-temple-950/60 border border-temple-800">
-            <span className="text-temple-400 font-bold">Vaara (Day):</span>
+            <span className="text-temple-400 font-bold">{t('ritual.muhurat.vaara')}</span>
             <span className="font-bold text-amber-200 font-mono">{panchang.vaara} ({panchang.vaaraLord})</span>
           </div>
           <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-temple-950/60 border border-temple-800">
-            <span className="text-temple-400 font-bold">Yoga:</span>
+            <span className="text-temple-400 font-bold">{t('ritual.muhurat.yoga')}</span>
             <span className="font-bold text-amber-200 font-mono">{panchang.yoga}</span>
           </div>
           <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-temple-950/60 border border-temple-800">
-            <span className="text-temple-400 font-bold">Karana:</span>
+            <span className="text-temple-400 font-bold">{t('ritual.muhurat.karana')}</span>
             <span className="font-bold text-amber-200 font-mono">{panchang.karana}</span>
           </div>
         </div>
@@ -344,11 +346,11 @@ export const PanchangMuhuratDesk: React.FC = () => {
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-rose-600/80 border border-rose-400" />
-              <span className="text-rose-300 font-bold">Inauspicious (Avoid)</span>
+              <span className="text-rose-300 font-bold">{t('ritual.muhurat.inauspicious')}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-emerald-600/80 border border-emerald-400" />
-              <span className="text-emerald-300 font-bold">Auspicious (Shubh)</span>
+              <span className="text-emerald-300 font-bold">{t('ritual.muhurat.auspicious')}</span>
             </div>
           </div>
         </div>
@@ -449,7 +451,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <p className="font-bold text-amber-200">Abhijit Muhurat (Highest Merit)</p>
+                  <p className="font-bold text-amber-200">{t('ritual.muhurat.abhijit')}</p>
                 </div>
                 <p className="text-[11px] text-temple-400">
                   Solar midday conjunction; removes doshas for deals, travels & vows
@@ -463,7 +465,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             {/* Brahma Muhurat */}
             <div className="p-3.5 rounded-2xl bg-temple-950/80 border border-emerald-500/30 flex items-center justify-between shadow-inner">
               <div className="space-y-0.5">
-                <p className="font-bold text-temple-100">Brahma Muhurat (Meditation & Sadhana)</p>
+                <p className="font-bold text-temple-100">{t('ritual.muhurat.brahma')}</p>
                 <p className="text-[11px] text-temple-400">
                   96 to 48 mins prior to Sunrise; optimal for Sandhyavandanam
                 </p>
@@ -473,10 +475,10 @@ export const PanchangMuhuratDesk: React.FC = () => {
               </p>
             </div>
 
-            {/* Amrit Kaal */}
+            {/* {t('ritual.muhurat.amritKaal')} */}
             <div className="p-3.5 rounded-2xl bg-temple-950/80 border border-emerald-500/30 flex items-center justify-between shadow-inner">
               <div className="space-y-0.5">
-                <p className="font-bold text-temple-100">Amrit Kaal</p>
+                <p className="font-bold text-temple-100">{t('ritual.muhurat.amritKaal')}</p>
                 <p className="text-[11px] text-temple-400">
                   Auspicious timing for puja, medical treatment & purchase
                 </p>
@@ -508,7 +510,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <p className="font-black text-rose-200">Rahu Kaal (Rahu's Period)</p>
+                  <p className="font-black text-rose-200">{t('ritual.muhurat.rahuKaal')}</p>
                 </div>
                 <p className="text-[11px] text-rose-300/80">
                   Strictly prohibited for new ventures, signing agreements, or travel
@@ -522,7 +524,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             {/* Yamagandam */}
             <div className="p-3.5 rounded-2xl bg-temple-950/80 border border-rose-500/30 flex items-center justify-between shadow-inner">
               <div className="space-y-0.5">
-                <p className="font-bold text-temple-100">Yamagandam (Yama's Hour)</p>
+                <p className="font-bold text-temple-100">{t('ritual.muhurat.yamagandam')}</p>
                 <p className="text-[11px] text-temple-400">
                   Avoid starting long journeys or major investments
                 </p>
@@ -535,7 +537,7 @@ export const PanchangMuhuratDesk: React.FC = () => {
             {/* Gulika Kaal */}
             <div className="p-3.5 rounded-2xl bg-temple-950/80 border border-rose-500/30 flex items-center justify-between shadow-inner">
               <div className="space-y-0.5">
-                <p className="font-bold text-temple-100">Gulika Kaal (Saturn Sub-Planet)</p>
+                <p className="font-bold text-temple-100">{t('ritual.muhurat.gulikaKaal')}</p>
                 <p className="text-[11px] text-temple-400">
                   Actions started tend to repeat; avoid borrowing or concluding
                 </p>
