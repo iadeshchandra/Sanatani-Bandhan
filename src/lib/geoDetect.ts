@@ -14,6 +14,8 @@
  * when unreachable, the hardcoded DEFAULT_REGIONS apply.
  */
 
+import { checkUpiQrAvailable } from './upiQr';
+
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -183,6 +185,22 @@ export function clearCachedRegion(): void {
 }
 
 /**
+ * India fallback: the IN region only exists while the owner has uploaded
+ * public/upi-qr.png. Without it, Indian users get INTL methods (Payoneer /
+ * Wise) instead of a dead UPI tab. Uploading the QR re-enables IN on next
+ * visit (probe is per page load). Never throws — fails closed to INTL.
+ */
+async function applyUpiQrFallback(region: PayRegion): Promise<PayRegion> {
+  if (region !== 'IN') return region;
+  try {
+    const ok = await checkUpiQrAvailable();
+    return ok ? 'IN' : 'INTL';
+  } catch {
+    return 'INTL';
+  }
+}
+
+/**
  * Resolve the payment region. Phone first, then IP, then the configured
  * default (INTL). Never throws — worst case returns the default region.
  */
@@ -193,13 +211,15 @@ export async function detectPayRegion(phone?: string | null): Promise<PayRegion>
     const config = await getGeoPaymentConfig();
     const byPhone = fromPhone(phone, config.regions);
     if (byPhone) {
-      setCachedRegion(byPhone);
-      return byPhone;
+      const eff = await applyUpiQrFallback(byPhone);
+      setCachedRegion(eff);
+      return eff;
     }
     const byIp = await fromIp(config.regions);
     const region: PayRegion = byIp || config.defaultRegion;
-    setCachedRegion(region);
-    return region;
+    const eff = await applyUpiQrFallback(region);
+    setCachedRegion(eff);
+    return eff;
   } catch {
     return 'INTL';
   }
