@@ -3472,6 +3472,408 @@ export interface TranslationSchema {
       };
     };
   };
+  seva: {
+    cards: {
+      suggestedForYou: string;
+      enable: string;
+      notNow: string;
+      dismissSuggestion: string;
+      enableModule: string;
+      availableModule: string;
+      suggestionLabel: string;
+    };
+    catalog: {
+      "devotee-portal": {
+        name: string;
+        desc: string;
+      };
+      dashboard: {
+        name: string;
+        desc: string;
+      };
+      checkin: {
+        name: string;
+        desc: string;
+      };
+      devotees: {
+        name: string;
+        desc: string;
+      };
+      membership: {
+        name: string;
+        desc: string;
+      };
+      family: {
+        name: string;
+        desc: string;
+      };
+      vanshavali: {
+        name: string;
+        desc: string;
+      };
+      guests: {
+        name: string;
+        desc: string;
+      };
+      donorCare: {
+        name: string;
+        desc: string;
+      };
+      bulkImport: {
+        name: string;
+        desc: string;
+      };
+      federation: {
+        name: string;
+        desc: string;
+      };
+      "sevadar-roster": {
+        name: string;
+        desc: string;
+      };
+      "quick-chanda-pos": {
+        name: string;
+        desc: string;
+      };
+      treasury: {
+        name: string;
+        desc: string;
+      };
+      "treasury-audit": {
+        name: string;
+        desc: string;
+      };
+      "hundi-audit": {
+        name: string;
+        desc: string;
+      };
+      "ratna-bhandar": {
+        name: string;
+        desc: string;
+      };
+      taxReceipts: {
+        name: string;
+        desc: string;
+      };
+      form10bd: {
+        name: string;
+        desc: string;
+      };
+      "tally-export": {
+        name: string;
+        desc: string;
+      };
+      campaigns: {
+        name: string;
+        desc: string;
+      };
+      karmaLedger: {
+        name: string;
+        desc: string;
+      };
+      assets: {
+        name: string;
+        desc: string;
+      };
+      inventory: {
+        name: string;
+        desc: string;
+      };
+      bhoomi: {
+        name: string;
+        desc: string;
+      };
+      vahan: {
+        name: string;
+        desc: string;
+      };
+      "recurring-seva": {
+        name: string;
+        desc: string;
+      };
+      "sanctum-hud": {
+        name: string;
+        desc: string;
+      };
+      poojaBooking: {
+        name: string;
+        desc: string;
+      };
+      mandirPuja: {
+        name: string;
+        desc: string;
+      };
+      purohitDesk: {
+        name: string;
+        desc: string;
+      };
+      purohitMarket: {
+        name: string;
+        desc: string;
+      };
+      pitruShradh: {
+        name: string;
+        desc: string;
+      };
+      panchang: {
+        name: string;
+        desc: string;
+      };
+      "yatranet-gis": {
+        name: string;
+        desc: string;
+      };
+      rakthaSeva: {
+        name: string;
+        desc: string;
+      };
+      goshala: {
+        name: string;
+        desc: string;
+      };
+      annadanam: {
+        name: string;
+        desc: string;
+      };
+      "annakshetra-one": {
+        name: string;
+        desc: string;
+      };
+      "nyas-one": {
+        name: string;
+        desc: string;
+      };
+      "utsav-one": {
+        name: string;
+        desc: string;
+      };
+      "tirth-one": {
+        name: string;
+        desc: string;
+      };
+      "yoga-one": {
+        name: string;
+        desc: string;
+      };
+      "matha-one": {
+        name: string;
+        desc: string;
+      };
+      "samskara-one": {
+        name: string;
+        desc: string;
+      };
+      "satsang-one": {
+        name: string;
+        desc: string;
+      };
+      "sabha-one": {
+        name: string;
+        desc: string;
+      };
+      ashramKutir: {
+        name: string;
+        desc: string;
+      };
+      dharamshala: {
+        name: string;
+        desc: string;
+      };
+      gurukul: {
+        name: string;
+        desc: string;
+      };
+      gurukulAcademy: {
+        name: string;
+        desc: string;
+      };
+      vidyalaya: {
+        name: string;
+        desc: string;
+      };
+      pathshala: {
+        name: string;
+        desc: string;
+      };
+      "goshala-one": {
+        name: string;
+        desc: string;
+      };
+      "ashram-one": {
+        name: string;
+        desc: string;
+      };
+      "cash-custody": {
+        name: string;
+        desc: string;
+      };
+      satsang: {
+        name: string;
+        desc: string;
+      };
+      sanghaDrills: {
+        name: string;
+        desc: string;
+      };
+      sevaTrust: {
+        name: string;
+        desc: string;
+      };
+      granthLibrary: {
+        name: string;
+        desc: string;
+      };
+      matrimony: {
+        name: string;
+        desc: string;
+      };
+      utsavPanjika: {
+        name: string;
+        desc: string;
+      };
+      panchayatPolls: {
+        name: string;
+        desc: string;
+      };
+      sandeshBroadcast: {
+        name: string;
+        desc: string;
+      };
+      socialWall: {
+        name: string;
+        desc: string;
+      };
+      shlokaFeed: {
+        name: string;
+        desc: string;
+      };
+      dharmicAssistant: {
+        name: string;
+        desc: string;
+      };
+      dharmaMarketing: {
+        name: string;
+        desc: string;
+      };
+      trusteeGovernance: {
+        name: string;
+        desc: string;
+      };
+      legalVault: {
+        name: string;
+        desc: string;
+      };
+      qrScanner: {
+        name: string;
+        desc: string;
+      };
+      appStore: {
+        name: string;
+        desc: string;
+      };
+      masterSettings: {
+        name: string;
+        desc: string;
+      };
+      spiritualSettings: {
+        name: string;
+        desc: string;
+      };
+      "crisis-command": {
+        name: string;
+        desc: string;
+      };
+      "tactical-radar": {
+        name: string;
+        desc: string;
+      };
+      "sadhana-karma": {
+        name: string;
+        desc: string;
+      };
+      "sanatani-vivah": {
+        name: string;
+        desc: string;
+      };
+      yatraNet: {
+        name: string;
+        desc: string;
+      };
+    };
+    recommend: {
+      reasons: {
+        orgAffinity: string;
+        festivalCrowd: string;
+        bulkTools: string;
+        membership: string;
+        donorCare: string;
+        taxReceipts: string;
+        adjacent: string;
+      };
+      countdown: {
+        tomorrow: string;
+        days: string;
+        weeks: string;
+        aboutWeek: string;
+      };
+      festivals: {
+        mahaShivratri: string;
+        holi: string;
+        ramNavami: string;
+        janmashtami: string;
+        ganeshChaturthi: string;
+        navratriBegins: string;
+        durgaPujaDussehra: string;
+        diwali: string;
+      };
+    };
+    appstore: {
+      header: {
+        badge: string;
+        title: string;
+        subtitle: string;
+      };
+      filters: {
+        all: string;
+        native: string;
+        installed: string;
+        available: string;
+      };
+      search: {
+        placeholder: string;
+      };
+      recommended: {
+        title: string;
+        subtitle: string;
+        enableModule: string;
+        dismissLabel: string;
+      };
+      catalog: {
+        title: string;
+        emptyTitle: string;
+        emptyDesc: string;
+        nativeBadge: string;
+        includedIn: string;
+        uninstall: string;
+        install: string;
+      };
+      toasts: {
+        enabled: string;
+        enabledTitle: string;
+        uninstalled: string;
+      };
+      domains: {
+        personal: string;
+        core: string;
+        finance: string;
+        vedic: string;
+        specialized: string;
+        outreach: string;
+        governance: string;
+        life: string;
+      };
+    };
+  };
   };
 }
 
