@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSatsang, uid, activeMembers, suggestedPrasadBearer } from './satsangStore';
-import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, fmtTime, Empty } from './ui';
+import { Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, fmtTime, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Prasad rotation — who brings prasad for which gathering, with an    */
@@ -9,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 /* ------------------------------------------------------------------ */
 
 export const PrasadTab: React.FC = () => {
+  const { t } = useLanguage();
   const { state, add, update, remove } = useSatsang();
   const { showToast } = useToast();
   const [forming, setForming] = useState(false);
@@ -23,12 +25,12 @@ export const PrasadTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.gatheringId || !form.memberId) { showToast('Pick a gathering and a bearer.', 'warning'); return; }
+    if (!form.gatheringId || !form.memberId) { showToast(t('ritual.prasad.toastPickBoth'), 'warning'); return; }
     add('prasad', {
       id: uid('p'), gatheringId: form.gatheringId, memberId: form.memberId,
       item: form.item.trim() || undefined, status: 'assigned', createdAt: Date.now(),
     });
-    showToast('Prasad duty assigned.', 'success');
+    showToast(t('ritual.prasad.toastAssigned'), 'success');
     setForming(false);
     setForm({ gatheringId: '', memberId: '', item: '' });
   };
@@ -48,22 +50,22 @@ export const PrasadTab: React.FC = () => {
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-stone-700">
-              🍲 <T en="Fairest next bearer" bn="ন্যায্য পরবর্তী বাহক" hi="उचित अगला वाहक" />:{' '}
+              🍲 {t('ritual.prasad.fairest_next_bearer')}:{' '}
               <span className="font-extrabold text-rose-800">{suggestion.name}</span>
-              <span className="text-xs text-stone-500"> <T en="(longest since last prasad duty)" bn="(শেষ প্রসাদ দায়িত্বের পর সবচেয়ে বেশি সময়)" hi="(पिछली प्रसाद ड्यूटी के बाद सबसे लंबा समय)" /></span>
+              <span className="text-xs text-stone-500"> {t('ritual.prasad.longest_since_last_prasad_duty')}</span>
             </div>
             <Btn variant="ghost" onClick={() => {
               const upcoming = gatherings.find((g) => g.status === 'scheduled');
-              if (!upcoming) { showToast('Schedule a gathering first.', 'warning'); return; }
+              if (!upcoming) { showToast(t('ritual.prasad.toastNeedGathering'), 'warning'); return; }
               openFor(upcoming.id, suggestion.id);
             }} className="no-print">
-              <T en="Assign" bn="বরাদ্দ করুন" hi="सौंपें" />
+              {t('ritual.common.assign')}
             </Btn>
           </div>
         </Card>
       )}
 
-      {list.length === 0 && <Empty text="No prasad duties assigned yet." />}
+      {list.length === 0 && <Empty text={t('ritual.prasad.empty_no_prasad_duties_assigned_yet')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((p) => {
@@ -82,12 +84,12 @@ export const PrasadTab: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 mt-3 no-print">
                 {p.status === 'assigned' && (
-                  <Btn variant="emerald" onClick={() => { update('prasad', p.id, { status: 'done' }); showToast('Marked done. Dhanyavaad!', 'success'); }}>
-                    ✓ <T en="Done" bn="সম্পন্ন" hi="पूर्ण" />
+                  <Btn variant="emerald" onClick={() => { update('prasad', p.id, { status: 'done' }); showToast(t('ritual.prasad.toastDone'), 'success'); }}>
+                    ✓ {t('ritual.common.done')}
                   </Btn>
                 )}
-                <Btn variant="danger" onClick={() => { remove('prasad', p.id); showToast('Assignment removed.', 'info'); }}>
-                  <T en="Remove" bn="মুছুন" hi="हटाएं" />
+                <Btn variant="danger" onClick={() => { remove('prasad', p.id); showToast(t('ritual.prasad.toastRemoved'), 'info'); }}>
+                  {t('ritual.common.remove')}
                 </Btn>
               </div>
             </Card>
@@ -96,27 +98,27 @@ export const PrasadTab: React.FC = () => {
       </div>
 
       {forming && (
-        <Modal title={<T en="Assign prasad duty" bn="প্রসাদ দায়িত্ব বরাদ্দ" hi="प्रसाद ड्यूटी सौंपें" />} onClose={() => setForming(false)}>
+        <Modal title={t('ritual.prasad.assign_prasad_duty')} onClose={() => setForming(false)}>
           <div className="grid grid-cols-1 gap-3">
-            <Field label={<T en="Gathering" bn="সমাবেশ" hi="सभा" />}>
+            <Field label={t('ritual.prasad.gathering')}>
               <select className={inputCls} value={form.gatheringId} onChange={(e) => setForm({ ...form, gatheringId: e.target.value })}>
                 <option value="">—</option>
                 {gatherings.map((g) => <option key={g.id} value={g.id}>{fmtDate(g.date)} · {fmtTime(g.time)}</option>)}
               </select>
             </Field>
-            <Field label={<T en="Bearer" bn="বাহক" hi="वाहक" />}>
+            <Field label={t('ritual.prasad.bearer')}>
               <select className={inputCls} value={form.memberId} onChange={(e) => setForm({ ...form, memberId: e.target.value })}>
                 <option value="">—</option>
                 {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </Field>
-            <Field label={<T en="Item (optional)" bn="আইটেম (ঐচ্ছিক)" hi="वस्तु (वैकल्पिक)" />}>
-              <input className={inputCls} value={form.item} onChange={(e) => setForm({ ...form, item: e.target.value })} placeholder="e.g. Kheer, Puri-sabzi" />
+            <Field label={t('ritual.prasad.item_optional')}>
+              <input className={inputCls} value={form.item} onChange={(e) => setForm({ ...form, item: e.target.value })} placeholder={t('ritual.prasad.itemPh')} />
             </Field>
           </div>
           <div className="flex gap-2 mt-4">
-            <Btn onClick={save}><T en="Save" bn="সংরক্ষণ" hi="सहेजें" /></Btn>
-            <Btn variant="ghost" onClick={() => setForming(false)}><T en="Cancel" bn="বাতিল" hi="रद्द करें" /></Btn>
+            <Btn onClick={save}>{t('ritual.common.save')}</Btn>
+            <Btn variant="ghost" onClick={() => setForming(false)}>{t('ritual.common.cancel')}</Btn>
           </div>
         </Modal>
       )}
