@@ -15,7 +15,7 @@ export const DashboardTab: React.FC = () => {
     return <Card><Empty text={t('ritual.utsav.dashboard.empty_no_festivals_yet_add_your_first')} /></Card>;
   }
 
-  const t = budgetTotals(state, fest.id);
+  const totals = budgetTotals(state, fest.id);
   const tasksPct = tasksDonePct(state, fest.id);
   const pending = vendorPending(state, fest.id);
   const safetyPct = safetyDonePct(state, fest.id);
@@ -24,7 +24,7 @@ export const DashboardTab: React.FC = () => {
   const dEnd = daysUntil(fest.endDate);
   const ongoing = dStart <= 0 && dEnd >= 0;
 
-  const burn = t.plannedExpense > 0 ? Math.round((t.actualExpense / t.plannedExpense) * 100) : 0;
+  const burn = totals.plannedExpense > 0 ? Math.round((totals.actualExpense / totals.plannedExpense) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -48,7 +48,7 @@ export const DashboardTab: React.FC = () => {
           tone="emerald"
           value={`${burn}%`}
           label={t('ritual.utsav.dashboard.budget_burn')}
-          sub={t('ritual.utsav.dashboard.expenseOfPlanned').replace('{actual}', inr(t.actualExpense)).replace('{planned}', inr(t.plannedExpense))}
+          sub={t('ritual.utsav.dashboard.expenseOfPlanned').replace('{actual}', inr(totals.actualExpense)).replace('{planned}', inr(totals.plannedExpense))}
         />
         <Stat
           tone="amber"
@@ -71,13 +71,13 @@ export const DashboardTab: React.FC = () => {
           <h3 className="font-extrabold text-stone-800 mb-3">{t('ritual.utsav.dashboard.budget_at_a_glance')}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.planned_income')}</span><span className="font-bold text-emerald-700">{inr(t.plannedIncome)}</span></div>
-            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.actual_income')}</span><span className="font-bold">{inr(t.actualIncome)}</span></div>
-            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.planned_expense')}</span><span className="font-bold text-red-700">{inr(t.plannedExpense)}</span></div>
-            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.actual_expense')}</span><span className="font-bold">{inr(t.actualExpense)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.actual_income')}</span><span className="font-bold">{inr(totals.actualIncome)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.planned_expense')}</span><span className="font-bold text-red-700">{inr(totals.plannedExpense)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-500">{t('ritual.utsav.dashboard.actual_expense')}</span><span className="font-bold">{inr(totals.actualExpense)}</span></div>
             <div className="flex justify-between border-t border-stone-100 pt-2">
               <span className="text-stone-500">{t('ritual.utsav.dashboard.surplus_deficit_actual')}</span>
-              <span className={`font-extrabold ${t.actualIncome - t.actualExpense >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                {inr(t.actualIncome - t.actualExpense)}
+              <span className={`font-extrabold ${totals.actualIncome - totals.actualExpense >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                {inr(totals.actualIncome - totals.actualExpense)}
               </span>
             </div>
           </div>
