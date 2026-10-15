@@ -188,6 +188,23 @@ export async function getPaymentMethods(): Promise<PaymentMethodDoc[]> {
   } catch (e) {
     console.warn('[paymentMethods] Firestore read failed, using defaults:', e);
   }
+  // Owner-uploaded QR codes (GodMode → Geo Payments → QR Codes) take
+  // precedence over the static /bangla-qr.png and /upi-qr.png files.
+  // Lazy import avoids a hard dependency cycle with qrCodes.ts.
+  try {
+    const { getQrCodeUrl } = await import('./qrCodes');
+    const [bdQr, inQr] = await Promise.all([getQrCodeUrl('BD'), getQrCodeUrl('IN')]);
+    if (bdQr) {
+      const m = merged.get('bd_banglaqr');
+      if (m) merged.set('bd_banglaqr', { ...m, qrImageUrl: bdQr });
+    }
+    if (inQr) {
+      const m = merged.get('in_upi');
+      if (m) merged.set('in_upi', { ...m, qrImageUrl: inQr });
+    }
+  } catch {
+    /* QR override is best-effort — static files remain as fallback */
+  }
   const methods = [...merged.values()];
   cache = { at: Date.now(), methods };
   return methods;

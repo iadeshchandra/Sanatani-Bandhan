@@ -25,6 +25,7 @@ import {
   type RegionConfig, type GeoPaymentConfig,
 } from '../../lib/geoDetect';
 import { getPaymentMethods, clearPaymentMethodsCache, type PaymentMethodDoc, type PaymentMethodType } from '../../lib/paymentMethods';
+import { QrCodeManager } from '../godmode/QrCodeManager';
 
 const METHOD_TYPES: { id: PaymentMethodType; label: string }[] = [
   { id: 'bangla_qr', label: 'Bangla QR' },
@@ -263,7 +264,7 @@ export const GeoPaymentsManager: React.FC = () => {
   const [config, setConfig] = useState<GeoPaymentConfig>(DEFAULT_GEO_CONFIG);
   const [methods, setMethods] = useState<PaymentMethodDoc[]>([]);
   const [activeRegion, setActiveRegion] = useState<string>('BD');
-  const [subTab, setSubTab] = useState<'methods' | 'detection'>('methods');
+  const [subTab, setSubTab] = useState<'methods' | 'detection' | 'qr'>('methods');
 
   // Method modal
   const [methodModal, setMethodModal] = useState<{ form: MethodForm; isNew: boolean } | null>(null);
@@ -554,6 +555,12 @@ export const GeoPaymentsManager: React.FC = () => {
         >
           Detection Rules
         </button>
+        <button
+          onClick={() => setSubTab('qr')}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${subTab === 'qr' ? 'bg-sanatani-orange text-white' : 'bg-white border border-gray-200 text-gray-500'}`}
+        >
+          QR Codes
+        </button>
       </div>
 
       {/* ------------------------- Methods tab ------------------------- */}
@@ -671,6 +678,9 @@ export const GeoPaymentsManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ------------------------- QR Codes tab ------------------------- */}
+      {subTab === 'qr' && <QrCodeManager />}
 
       {/* Modals */}
       {methodModal && (
