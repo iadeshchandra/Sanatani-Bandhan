@@ -3,31 +3,13 @@ import { useLanguage } from '../context/LanguageContext';
 
 /* Matha One — shared UI primitives (locale-aware, saffron palette).
  *
- * LOCALE CONTRACT: English default, Bengali/Hindi via LanguageContext.
- * Domain terms stay Sanatani (Matha / Parampara / Dinacharya) with
- * English subtitles; never hardcoded to one language.
+ * LOCALE CONTRACT: all strings live under suites.matha.* and resolve via
+ * t() with English fallback. Domain terms stay Sanatani (Matha / Parampara
+ * / Dinacharya) per the 3-tier termbase; never hardcoded to one language.
  *
  * RESPECT RULE: a sacred institution's internal record. Tone is
  * respectful; nothing here is gamified.
  */
-
-/** Locale-aware label. English default; Bengali/Hindi when the app locale switches. */
-export const T: React.FC<{ en: string; bn: string; hi?: string; className?: string }> = ({
-  en,
-  bn,
-  hi,
-  className = '',
-}) => {
-  const { safeTranslate, currentLang } = useLanguage();
-  const primary = safeTranslate('matha.label', en, bn, hi);
-  const showGloss = currentLang !== 'en' && primary !== en;
-  return (
-    <span className={className}>
-      <span className="font-bold">{primary}</span>
-      {showGloss && <span className="text-stone-500 font-normal text-[0.85em]"> ({en})</span>}
-    </span>
-  );
-};
 
 /** Locale text helpers for Matha tabs. */
 export const useLocaleText = () => {
@@ -111,51 +93,50 @@ export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; chil
   onClose,
   children,
   wide = false,
-}) => (
-  <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center no-print">
-    <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-    <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-stone-800">{title}</h3>
-        <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label="Close">✕</button>
+}) => {
+  const { t } = useLanguage();
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center no-print">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className={`relative bg-white w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-stone-800">{title}</h3>
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold" aria-label={t('suites.matha.common.close')}>✕</button>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
-  </div>
-);
+  );
+};
 
-export const Tabs: React.FC<{ tabs: Array<{ id: string; bn: string; en: string; hi?: string }>; active: string; onChange: (id: string) => void }> = ({
+export const Tabs: React.FC<{ tabs: Array<{ id: string }>; active: string; onChange: (id: string) => void }> = ({
   tabs,
   active,
   onChange,
 }) => {
-  const { safeTranslate, currentLang } = useLanguage();
+  const { t } = useLanguage();
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-print">
-      {tabs.map((t) => {
-        const primary = safeTranslate(`matha.tab.${t.id}`, t.en, t.bn, t.hi);
-        const showGloss = currentLang !== 'en' && primary !== t.en;
-        return (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold border transition min-h-[44px] ${
-              active === t.id
-                ? 'bg-gradient-to-r from-orange-700 to-amber-800 text-orange-50 border-orange-800 shadow'
-                : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
-            }`}
-          >
-            <span className="font-bold">{primary}</span>
-            {showGloss && <span className={`block text-[10px] font-normal ${active === t.id ? 'text-orange-200' : 'text-stone-400'}`}>{t.en}</span>}
-          </button>
-        );
-      })}
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold border transition min-h-[44px] ${
+            active === tab.id
+              ? 'bg-gradient-to-r from-orange-700 to-amber-800 text-orange-50 border-orange-800 shadow'
+              : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
+          }`}
+        >
+          {t(`suites.matha.tabs.${tab.id}`)}
+        </button>
+      ))}
     </div>
   );
 };
 
 /** Status pill for sannyasis / students / records. */
 export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const { t } = useLanguage();
   const tones: Record<string, string> = {
     resident: 'bg-orange-100 text-orange-800',
     itinerant: 'bg-sky-100 text-sky-800',
@@ -166,7 +147,9 @@ export const StatusPill: React.FC<{ status: string }> = ({ status }) => {
     posted: 'bg-emerald-100 text-emerald-800',
     pending: 'bg-amber-100 text-amber-800',
   };
-  const label = status.replace(/-/g, ' ');
+  const key = `suites.matha.common.status.${status}`;
+  const hit = t(key);
+  const label = hit === key ? status.replace(/-/g, ' ') : hit;
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide ${tones[status] || 'bg-stone-100 text-stone-600'}`}>
       {label}
