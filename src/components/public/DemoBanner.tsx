@@ -36,25 +36,25 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
       role="status"
       aria-label="Demo sandbox status"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-base leading-none" aria-hidden="true">🎪</span>
-        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide whitespace-nowrap">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="text-base leading-none shrink-0" aria-hidden="true">🎪</span>
+        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide truncate">
           Demo Sandbox
         </span>
-        <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate">
+        <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate shrink-0">
           {totalCreates} record{totalCreates === 1 ? '' : 's'} created
           <span className="text-stone-400"> · auto-deletes in 24h</span>
         </span>
-        <span className="sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap">
+        <span className="sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap shrink-0">
           {totalCreates} created
         </span>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <button
           type="button"
           onClick={handleReset}
-          className="min-h-[36px] inline-flex items-center gap-1.5 px-3 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800 hover:bg-orange-100 transition-colors cursor-pointer"
+          className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800 hover:bg-orange-100 transition-colors cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">Reset demo</span>
@@ -63,10 +63,11 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         <button
           type="button"
           onClick={onRegister}
-          className="min-h-[36px] inline-flex items-center gap-1.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-extrabold tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.97] cursor-pointer pressable"
+          className="min-h-[44px] inline-flex items-center gap-1.5 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-extrabold tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.97] cursor-pointer pressable whitespace-nowrap"
         >
-          <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-          Create Free Account
+          <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span className="hidden min-[400px]:inline">Create Free Account</span>
+          <span className="min-[400px]:hidden">Join Free</span>
         </button>
       </div>
     </div>
