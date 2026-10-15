@@ -180,7 +180,8 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 });
 
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
-  const { t } = useLanguage(); onOpenQuickPay, onNavigate }) => {
+  onOpenQuickPay, onNavigate }) => {
+  const { t } = useLanguage();
   const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
