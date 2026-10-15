@@ -53,7 +53,7 @@ export default function MemberAppShell() {
   // Safe Switch Handler to safely transition back to Organisation View
   const handleSwitchToOrganisation = () => {
     setViewMode('MANAGER');
-    showToast(t('devotee.shell.toastSwitchedBack').replace('{workspace}', activeWorkspace?.name || 'Organisation'), 'success', t('devotee.shell.toastModeChanged'));
+    showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
   };
 
   const handleNavigateFromAccount = (deskId: string) => {
@@ -92,13 +92,13 @@ export default function MemberAppShell() {
   };
 
   const navItems = [
-    { id: 'HOME', label: t('devotee.shell.navFeed'), icon: Home, badge: 'Live' },
-    { id: 'SADHANA', label: t('devotee.shell.navSadhana'), icon: Flame, badge: 'Japa' },
-    { id: 'PUROHIT', label: t('devotee.shell.navPurohit'), icon: BookOpen, badge: 'Vedic' },
-    { id: 'PORTAL', label: t('devotee.shell.navPortal'), icon: Receipt, badge: 'Tax 80G' },
-    { id: 'YATRA_NET', label: t('devotee.shell.navMesh'), icon: Radio, badge: 'P2P' },
-    { id: 'VIVAH', label: t('devotee.shell.navVivah'), icon: Heart, badge: 'Gotra' },
-    { id: 'PROFILE', label: t('devotee.shell.navProfile'), icon: UserCircle, badge: undefined },
+    { id: 'HOME', label: safeTranslate('nav_feed', 'Darshan & Feed', 'দর্শন ও ফিড', 'दर्शन व फीड'), icon: Home, badge: 'Live' },
+    { id: 'SADHANA', label: safeTranslate('nav_sadhana', 'Daily Sadhana', 'সাধনা কেন্দ্র', 'दैनिक साधना'), icon: Flame, badge: 'Japa' },
+    { id: 'PUROHIT', label: safeTranslate('nav_purohit', 'Purohits & Pujas', 'পুরোহিত ও পূজা', 'पुरोहित व पूजा'), icon: BookOpen, badge: 'Vedic' },
+    { id: 'PORTAL', label: safeTranslate('nav_portal', 'Pass & 80G Receipts', 'স্মার্ট পাস ও রশিদ', 'स्मार्ट पास व रसीदें'), icon: Receipt, badge: 'Tax 80G' },
+    { id: 'YATRA_NET', label: safeTranslate('nav_mesh', 'YatraNet Mesh', 'অফলাইন জাল', 'यात्रा-नेट मेश'), icon: Radio, badge: 'P2P' },
+    { id: 'VIVAH', label: safeTranslate('nav_vivah', 'Sanatani Vivah', 'বিবাহ বন্ধন', 'सनातन विवाह'), icon: Heart, badge: 'Gotra' },
+    { id: 'PROFILE', label: safeTranslate('nav_profile', 'My Account & ID', 'আমার প্রোফাইল', 'मेरी प्रोफ़ाइल'), icon: UserCircle, badge: undefined },
   ];
 
   return (
@@ -115,7 +115,7 @@ export default function MemberAppShell() {
           </span>
           <span className="font-bold text-saffron-300 flex items-center gap-1.5 truncate">
             <UserCircle className="w-3.5 h-3.5 text-saffron-400 shrink-0" />
-            <span className="truncate">{t('devotee.shell.devoteeAppPreview')}</span>
+            <span className="truncate">Devotee App Preview</span>
           </span>
           <span className="text-temple-400 hidden md:inline">•</span>
           <span className="text-temple-300 font-medium truncate hidden md:inline">
@@ -127,10 +127,10 @@ export default function MemberAppShell() {
           id="btn-safe-switch-org"
           onClick={handleSwitchToOrganisation}
           className="flex items-center gap-2 px-3.5 py-1 bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] rounded-lg shadow-sm transition-all border border-white/10 backdrop-blur-sm shrink-0 cursor-pointer"
-          title={t('devotee.shell.returnToErp')}
+          title="Return to the Institution ERP (staff workspace)"
         >
           <Building2 className="w-3.5 h-3.5 text-temple-950" />
-          <span>{t('devotee.shell.institutionErp')}</span>
+          <span>Institution ERP</span>
           <ArrowLeftRight className="w-3 h-3 text-temple-950" />
         </button>
       </aside>
@@ -153,7 +153,7 @@ export default function MemberAppShell() {
                 <h2 className="text-sm font-bold text-temple-900 truncate">{currentUser?.name || 'Acharya Devotee'}</h2>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-saffron-100 text-saffron-800 border border-saffron-200">
-                    {currentDevotee?.sevaTier || t('devotee.shell.navProfile')}
+                    {currentDevotee?.sevaTier || 'Vishesh Sevak'}
                   </span>
                   <span className="text-[10px] font-semibold text-temple-500 truncate">
                     {currentDevotee?.gotra ? `Gotra: ${currentDevotee.gotra}` : 'Kashyapa'}
@@ -165,14 +165,14 @@ export default function MemberAppShell() {
             {/* Quick Karma & Panchang Summary */}
             <div className="mt-3 grid grid-cols-2 gap-2 text-center">
               <div className="bg-white p-2 rounded-xl border border-temple-200/80 shadow-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">{t('devotee.shell.karmaPoints')}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">Karma Points</p>
                 <p className="text-xs font-semibold text-saffron-600 flex items-center justify-center gap-1 mt-0.5">
                   <Sparkles className="w-3 h-3 text-saffron-500" />
-                  {currentDevotee?.sevaIndex || 780} {t('devotee.shell.pts')}
+                  {currentDevotee?.sevaIndex || 780} pts
                 </p>
               </div>
               <div className="bg-white p-2 rounded-xl border border-temple-200/80 shadow-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">{t('devotee.shell.todaysTithi')}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">Today's Tithi</p>
                 <p className="text-[11px] font-bold text-temple-800 truncate mt-0.5" title={panchang ? getPanchangTodayLine(panchang) : ''}>
                   {panchang?.tithi ? panchang.tithi : '—'}
                 </p>
@@ -183,7 +183,7 @@ export default function MemberAppShell() {
           {/* Desktop Navigation Links */}
           <div className="p-3 flex-1 space-y-1">
             <span className="text-[10px] font-bold text-temple-400 uppercase tracking-widest px-3 block mb-2">
-              {t('devotee.shell.personalDesks')}
+              Personal Desks
             </span>
             {navItems.map((item, idx) => {
               const Icon = item.icon;
@@ -220,17 +220,17 @@ export default function MemberAppShell() {
             <div className="bg-white p-3 rounded-xl border border-temple-200 shadow-xs">
               <div className="flex items-center gap-2 mb-2">
                 <Building2 className="w-4 h-4 text-saffron-600" />
-                <span className="text-xs font-bold text-temple-800">{t('devotee.shell.institutionErp')}</span>
+                <span className="text-xs font-bold text-temple-800">Institution ERP</span>
               </div>
               <p className="text-[11px] text-temple-500 leading-snug mb-2.5">
-                {t('devotee.shell.previewDesc')}
+                You're previewing the devotee app. Switch back to administer treasury, pujas, CRM and all desks.
               </p>
               <button
                 onClick={handleSwitchToOrganisation}
                 className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-temple-900 hover:bg-black text-saffron-400 text-xs font-bold rounded-lg transition-all shadow-xs"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>{t('devotee.shell.returnToErp')}</span>
+                <span>Return to Institution ERP</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -266,11 +266,11 @@ export default function MemberAppShell() {
               <button
                 onClick={handleSwitchToOrganisation}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-temple-900 hover:bg-black text-saffron-400 rounded-xl text-xs font-semibold transition-all shadow-xs border border-temple-700"
-                title={t('devotee.shell.returnToErp')}
+                title="Return to Organisation Console"
               >
                 <Building2 className="w-3.5 h-3.5 text-saffron-400" />
-                <span className="hidden sm:inline">{t('devotee.shell.orgConsole')}</span>
-                <span className="sm:hidden">{t('devotee.shell.org')}</span>
+                <span className="hidden sm:inline">Org Console</span>
+                <span className="sm:hidden">Org</span>
               </button>
 
               {/* Language Selector */}
@@ -279,7 +279,7 @@ export default function MemberAppShell() {
                   type="button"
                   onClick={() => setShowLangDropdown(!showLangDropdown)}
                   className="p-2 rounded-xl text-temple-600 hover:bg-temple-50 border border-temple-200 transition-colors"
-                  title={t('devotee.shell.changeLanguage')}
+                  title="Change Language"
                 >
                   <Globe2 className="w-4 h-4 text-temple-700" />
                 </button>
@@ -305,7 +305,7 @@ export default function MemberAppShell() {
                 <button
                   onClick={() => setShowNotifications(true)}
                   className="p-2 rounded-xl text-temple-600 hover:bg-temple-50 border border-temple-200 transition-colors relative"
-                  title={t('devotee.shell.notifications')}
+                  title="Notifications"
                 >
                   <Bell className="w-4 h-4 text-temple-700" />
                   {unreadCount > 0 && (
@@ -321,9 +321,10 @@ export default function MemberAppShell() {
 
               {/* Avatar Click for Profile */}
               <button 
-                className="w-8 h-8 rounded-full bg-saffron-500 text-white font-semibold flex items-center justify-center text-xs cursor-pointer shadow-xs hover:scale-105 active:scale-95 transition-all" 
+                className="min-w-[44px] min-h-[44px] rounded-full bg-saffron-500 text-white font-semibold flex items-center justify-center text-xs cursor-pointer shadow-xs hover:scale-105 active:scale-95 transition-all" 
                 onClick={() => setActiveTab('PROFILE')}
-                title={t('devotee.shell.openProfile')}
+                title="Open Profile & Settings"
+                aria-label="Open Profile & Settings"
               >
                 {currentUser?.name?.charAt(0) || 'D'}
               </button>
@@ -332,7 +333,7 @@ export default function MemberAppShell() {
 
           {/* Tab Subheader for Desktop (horizontal fast switcher) */}
           <div className="hidden lg:flex items-center gap-2 px-6 py-2 bg-white border-b border-temple-200 overflow-x-auto scrollbar-hide">
-            <span className="text-[11px] font-bold text-temple-400 uppercase tracking-widest mr-2 shrink-0">{t('devotee.shell.currentView')}</span>
+            <span className="text-[11px] font-bold text-temple-400 uppercase tracking-widest mr-2 shrink-0">Current View:</span>
             {navItems.map((item, idx) => (
               <button
                 key={`${item.id}-${idx}`}
@@ -376,7 +377,7 @@ export default function MemberAppShell() {
                   )}
                 </div>
                 <span className="text-[9px] uppercase tracking-wider mt-0.5 truncate max-w-[54px]">
-                  {item.id === 'HOME' ? t('devotee.shell.tabFeed') : item.id === 'SADHANA' ? t('devotee.shell.tabSadhana') : item.id === 'PUROHIT' ? t('devotee.shell.tabPurohit') : item.id === 'PORTAL' ? t('devotee.shell.tabPass') : item.id === 'YATRA_NET' ? t('devotee.shell.tabMesh') : item.id === 'VIVAH' ? t('devotee.shell.tabVivah') : t('devotee.shell.tabAccount')}
+                  {item.id === 'HOME' ? 'Feed' : item.id === 'SADHANA' ? 'Sadhana' : item.id === 'PUROHIT' ? 'Purohit' : item.id === 'PORTAL' ? 'Pass' : item.id === 'YATRA_NET' ? 'Mesh' : item.id === 'VIVAH' ? 'Vivah' : 'Account'}
                 </span>
               </button>
             );

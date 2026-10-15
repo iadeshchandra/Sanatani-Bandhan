@@ -161,7 +161,7 @@ export const CUSTOM_EMOJIS = ['🪷', '🚩', '🪔', '🕉️', '📚', '🔔',
 
 export const SanataniSocialFeed: React.FC = () => {
   const { activeWorkspace, currentUser } = useAuthWorkspace();
-  const { safeTranslate, t } = useLanguage();
+  const { safeTranslate } = useLanguage();
   const { showToast } = useToast();
 
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
@@ -217,7 +217,7 @@ export const SanataniSocialFeed: React.FC = () => {
 
   const handleOnlineSOS = async () => {
     if (!activeWorkspace?.id) {
-      showToast(t('devotee.feed.toastSelectWorkspace'), 'error');
+      showToast('Please select a workspace before broadcasting.', 'error');
       return;
     }
 
@@ -259,7 +259,7 @@ export const SanataniSocialFeed: React.FC = () => {
     OfflineSyncManager.addToQueue('RICH_SOS', payload);
     setShowSOSModal(false);
     setSosDetails('');
-    showToast(t('devotee.feed.toastEmergencyBroadcast'), 'success');
+    showToast('EMERGENCY BROADCASTED TO ALL NETWORKS', 'success');
   };
 
   // Storage Key
@@ -438,7 +438,7 @@ export const SanataniSocialFeed: React.FC = () => {
       }
       return p;
     }));
-    showToast(t('devotee.feed.toastFlowerOffered'), 'success');
+    showToast('Offered Pushpam with devotion 🌺', 'success');
   };
 
   // Handle Diya Offering Animation
@@ -452,7 +452,7 @@ export const SanataniSocialFeed: React.FC = () => {
       }
       return p;
     }));
-    showToast(t('devotee.feed.toastDiyaLit'), 'success');
+    showToast('Lit a sacred Deepam 🪔', 'success');
   };
 
   // Recite Shloka TTS
@@ -471,7 +471,7 @@ export const SanataniSocialFeed: React.FC = () => {
       setIsSpeakingShloka(true);
       window.speechSynthesis.speak(utterance);
     } else {
-      showToast(t('devotee.feed.toastAudioUnsupported'), 'info');
+      showToast('Audio recitation not supported on this browser', 'info');
     }
   };
 
@@ -502,7 +502,7 @@ export const SanataniSocialFeed: React.FC = () => {
     }));
 
     setCommentInput(prev => ({ ...prev, [postId]: '' }));
-    showToast(t('devotee.feed.toastCommentPosted'), 'success');
+    showToast('Comment posted 🙏', 'success');
   };
 
   // Share Post
@@ -515,7 +515,7 @@ export const SanataniSocialFeed: React.FC = () => {
       }).catch(() => {});
     } else {
       navigator.clipboard?.writeText(window.location.href);
-      showToast(t('devotee.feed.toastLinkCopied'), 'success');
+      showToast('Link copied to clipboard!', 'success');
     }
   };
 
@@ -523,7 +523,7 @@ export const SanataniSocialFeed: React.FC = () => {
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPostContent.trim() && !newPostImageUrl.trim()) {
-      showToast(t('devotee.feed.toastWriteContent'), 'error');
+      showToast('Please write some content or attach a photo', 'error');
       return;
     }
 
@@ -573,7 +573,7 @@ export const SanataniSocialFeed: React.FC = () => {
     setNewPostImageUrl('');
     setNewPostTag('');
     setShowCreateModal(false);
-    showToast(t('devotee.feed.toastPostPublished'), 'success');
+    showToast('Post published to Sanatani Feed! ✨', 'success');
   };
 
   // Get unique dynamic category filters from posts
@@ -1060,7 +1060,8 @@ export const SanataniSocialFeed: React.FC = () => {
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 rounded-full bg-temple-200/70 hover:bg-temple-300 flex items-center justify-center text-temple-600 transition-colors"
+                aria-label="Close"
+                className="min-w-[44px] min-h-[44px] rounded-full bg-temple-200/70 hover:bg-temple-300 flex items-center justify-center text-temple-600 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
