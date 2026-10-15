@@ -3125,6 +3125,353 @@ export interface TranslationSchema {
       toastReset: string;
     };
   };
+  samskara: {
+    desk: {
+      title: string;
+      tagline: string;
+      subtitle: string;
+      honestyTitle: string;
+      honestyBody: string;
+    };
+    tabs: {
+      dashboard: string;
+      family: string;
+      samskaras: string;
+      reminders: string;
+      pitra: string;
+      ceremony: string;
+      reports: string;
+    };
+    common: {
+      save: string;
+      cancel: string;
+      delete: string;
+      edit: string;
+      close: string;
+      choose: string;
+      notes: string;
+      family: string;
+      gotra: string;
+      confirmDelete: string;
+      confirmDeleteBody: string;
+    };
+    statuses: {
+      completed: string;
+      planned: string;
+      notApplicable: string;
+      posted: string;
+      pending: string;
+    };
+    relations: {
+      self: string;
+      spouse: string;
+      father: string;
+      mother: string;
+      son: string;
+      daughter: string;
+      brother: string;
+      sister: string;
+      grandfather: string;
+      grandmother: string;
+      grandson: string;
+      granddaughter: string;
+      "father-in-law": string;
+      "mother-in-law": string;
+      uncle: string;
+      aunt: string;
+      nephew: string;
+      niece: string;
+      other: string;
+    };
+    dashboard: {
+      statFamilies: string;
+      statMembers: string;
+      statChronicled: string;
+      statPlanned: string;
+      upcoming: string;
+      noReminders: string;
+      viewAll: string;
+      begin: string;
+      beginBody: string;
+      beginCta: string;
+      families: string;
+      memberCount: string;
+    };
+    samskaras: {
+      noMembers: string;
+      familyMember: string;
+      chronicleFor: string;
+      observed: string;
+      footnote: string;
+      statusLabel: string;
+    };
+    record: {
+      completed: string;
+      planned: string;
+      notApplicable: string;
+      dateObserved: string;
+      purohit: string;
+      purohitPh: string;
+      place: string;
+      notes: string;
+      notesPh: string;
+    };
+    family: {
+      edit: string;
+      new: string;
+      name: string;
+      namePh: string;
+      kuladevata: string;
+      ancestralPlace: string;
+      empty: string;
+      noMembers: string;
+    };
+    member: {
+      edit: string;
+      new: string;
+      name: string;
+      relationship: string;
+      gender: string;
+      male: string;
+      female: string;
+      other: string;
+      birthDate: string;
+      living: string;
+      yrs: string;
+    };
+    ceremony: {
+      new: string;
+      noMembers: string;
+      forWhom: string;
+      samskara: string;
+      begin: string;
+      philosophy: string;
+      empty: string;
+      ready: string;
+      targetDate: string;
+      muhuratNote: string;
+      muhuratPh: string;
+      checklist: string;
+      addItem: string;
+      purohit: string;
+      purohitContact: string;
+      dakshina: string;
+      postedNote: string;
+      post: string;
+      dakshinaNote: string;
+      deleteBody: string;
+    };
+    pitra: {
+      blessing: string;
+      edit: string;
+      new: string;
+      name: string;
+      namePh: string;
+      relationship: string;
+      relationPh: string;
+      departedLabel: string;
+      shraddhaLabel: string;
+      tithiNoteLabel: string;
+      tithiPh: string;
+      memories: string;
+      notesPh: string;
+      tithiNote: string;
+      noFamily: string;
+      empty: string;
+      departed: string;
+      shraddha: string;
+      today: string;
+      inOneDay: string;
+      inDays: string;
+      deleteBody: string;
+    };
+    reminders: {
+      shraddha: string;
+      ceremony: string;
+      age: string;
+      empty: string;
+      footnote: string;
+      ageNow: string;
+      ageSoonThisYear: string;
+      ageSoonYears: string;
+      ageDetail: string;
+      shraddhaToday: string;
+      shraddhaUpcoming: string;
+      day: string;
+      days: string;
+      shraddhaDetail: string;
+      ceremonyToday: string;
+      ceremonyUpcoming: string;
+    };
+    reports: {
+      safekeep: string;
+      safekeepBody: string;
+      export: string;
+      import: string;
+      exported: string;
+      imported: string;
+      importFail: string;
+      print: string;
+      noFamily: string;
+      remembered: string;
+      printBtn: string;
+      danger: string;
+      reset: string;
+    };
+    list: {
+      garbhadhana: {
+        timing: string;
+        description: string;
+      };
+      pumsavana: {
+        timing: string;
+        description: string;
+      };
+      simantonnayana: {
+        timing: string;
+        description: string;
+      };
+      jatakarma: {
+        timing: string;
+        description: string;
+      };
+      namakarana: {
+        timing: string;
+        description: string;
+      };
+      nishkramana: {
+        timing: string;
+        description: string;
+      };
+      annaprashana: {
+        timing: string;
+        description: string;
+      };
+      chudakarana: {
+        timing: string;
+        description: string;
+      };
+      karnavedha: {
+        timing: string;
+        description: string;
+      };
+      vidyarambha: {
+        timing: string;
+        description: string;
+      };
+      upanayana: {
+        timing: string;
+        description: string;
+      };
+      vedarambha: {
+        timing: string;
+        description: string;
+      };
+      keshanta: {
+        timing: string;
+        description: string;
+      };
+      samavartana: {
+        timing: string;
+        description: string;
+      };
+      vivaha: {
+        timing: string;
+        description: string;
+      };
+      antyeshti: {
+        timing: string;
+        description: string;
+      };
+    };
+    checklist: {
+      garbhadhana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      pumsavana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      simantonnayana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      jatakarma: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      namakarana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      nishkramana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      annaprashana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      chudakarana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      karnavedha: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      vidyarambha: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      upanayana: {
+        item0: string;
+        item1: string;
+        item2: string;
+        item3: string;
+      };
+      vedarambha: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      keshanta: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      samavartana: {
+        item0: string;
+        item1: string;
+        item2: string;
+      };
+      vivaha: {
+        item0: string;
+        item1: string;
+        item2: string;
+        item3: string;
+        item4: string;
+      };
+      antyeshti: {
+        item0: string;
+        item1: string;
+        item2: string;
+        item3: string;
+        item4: string;
+      };
+    };
+  };
   };
 }
 
