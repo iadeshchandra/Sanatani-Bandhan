@@ -625,19 +625,6 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Geo payment region config: public read so billing pages can resolve
-    // regions; only the owner writes.
-    match /geoPaymentConfig/{docId} {
-      allow read: if true;
-      allow create, update, delete: if isOwner();
-    }
-    // Owner-uploaded payment QR codes (GodMode → Geo Payments → QR Codes).
-    // Public read so payers can scan them on billing pages; only the owner
-    // writes. Stored as base64 PNG data URLs (see src/lib/qrCodes.ts).
-    match /qrCodes/{regionId} {
-      allow read: if true;
-      allow create, update, delete: if isOwner();
-    }
     // ---- Marketplace (Fiverr-like gigs for Purohit / Jyotishi) ----
     // Gigs: public read (the marketplace browse); the provider owns their
     // gigs (providerUid must match on create); owner can moderate anything.
@@ -899,8 +886,6 @@ service cloud.firestore {
     }
     // Top-up claims: user files (pending only); owner approves → credits
     // the wallet. Mirrors the paymentClaims pattern.
-    // Users may edit their OWN pending claims (self-serve resubmit) but can
-    // never change status or uid — enforced here and in updateTopupClaim().
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -909,12 +894,7 @@ service cloud.firestore {
         && request.resource.data.get('status', '') == 'pending'
         && request.resource.data.get('amount', 0) > 0
         && request.resource.data.get('currency', '') in ['BDT', 'INR', 'USD'];
-      allow update: if isOwner()
-        || (isLoggedIn()
-          && resource.data.get('uid', '') == request.auth.uid
-          && resource.data.get('status', '') == 'pending'
-          && request.resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.get('status', '') == 'pending');
+      allow update: if isOwner();
       allow delete: if false;
     }
     // Commission payments (Path B: post-task direct pay, commission to
@@ -1627,6 +1607,21 @@ service cloud.firestore {
     // ------------------------------------------------------------------
     // Global (non-workspace-scoped) collections. Deny-by-default posture is
     // preserved: every match below states its exact allow conditions.
+
+    // --- orgGlance/{workspaceId}: per-org glance summaries for the Solo
+    // "what needs me" feed. Read: any authenticated member of the org
+    // (checked via workspaceMembers edge) or platform admin. Write: any
+    // authenticated member — writers can only summarize what they can
+    // read, and readers re-filter by role client-side (glanceForRole),
+    // so a summary can at worst be stale, never a privilege leak.
+    match /orgGlance/{workspaceId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && isTenantMember(workspaceId));
+      allow create, update: if isSuperAdmin()
+        || (isLoggedIn() && isTenantMember(workspaceId)
+          && request.resource.data.get('workspaceId', '') == workspaceId);
+      allow delete: if false;
+    }
 
     // --- orgPages/{orgId}: public read (discovery + public org page).
     // Write: org Trustee/SuperAdmin or platform admin, public fields only.

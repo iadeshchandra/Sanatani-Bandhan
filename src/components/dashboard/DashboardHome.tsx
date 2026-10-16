@@ -5,6 +5,7 @@ import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { ShlokaCard, RoleHomeSwitch } from './RoleHome';
 import { GurukulHome } from './GurukulHome';
+import { useOrgGlanceRefresh } from '../../lib/orgGlanceSync';
 
 interface DashboardHomeProps {
   onSelectModule?: (id: string) => void;
@@ -35,6 +36,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   const { activeWorkspace, currentDevotee } = useAuthWorkspace();
   const taxonomy = useWorkspaceTaxonomy();
   const panchang = calculatePanchang();
+  // Keep the Solo "what needs me" feed fresh: refresh this org's glance
+  // summary (debounced, fail-open) whenever its dashboard loads.
+  useOrgGlanceRefresh();
 
   // R-1 (Gurukul vibe): Gurukul / Vidyalaya workspaces get the dedicated
   // gurukul home — dinacharya, pathyakram, kanthastha, parampara — instead of
