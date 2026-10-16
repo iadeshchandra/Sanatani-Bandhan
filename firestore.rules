@@ -1223,15 +1223,36 @@ service cloud.firestore {
       allow read, write: if isLoggedIn() && uid == request.auth.uid;
     }
 
+// ------------------------- Section A: program config ----------------------
+    // --- prathamSevaConfig: the single global Pratham Seva config doc
+    // (id "global"). Owner writes; any signed-in user may read the public
+    // defaults (the welcome blessing is shown to professionals).
+    match /prathamSevaConfig/{configId} {
+      allow read: if isLoggedIn();
+      allow create, update: if isSuperAdmin()
+        && request.resource.data.get('defaultFreeSevas', -1) >= 0
+        && request.resource.data.get('defaultFreeSevas', 51) <= 50;
+      allow delete: if false;
+    }
+
+// ----------------- Section B: purohitApplications (REPLACES) --------------
     // --- purohitApplications: applicant + admin read; applicant creates as
     // PENDING; only the platform admin decides (approve/reject).
+    // Phase 2: applicants may NOT self-set review-only fields on create
+    // (tier, freeSevasRemaining, boostUntil, reviewedBy, reviewNote) —
+    // the welcome blessing is granted by the owner on approval only.
     match /purohitApplications/{appId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
       allow create: if isLoggedIn()
         && request.resource.data.get('uid', '') == request.auth.uid
         && request.resource.data.get('purohitId', '') != ''
-        && request.resource.data.get('status', '') == 'PENDING';
+        && request.resource.data.get('status', '') == 'PENDING'
+        && request.resource.data.get('tier', '') == ''
+        && request.resource.data.get('freeSevasRemaining', 0) == 0
+        && request.resource.data.get('boostUntil', '') == ''
+        && request.resource.data.get('reviewedBy', '') == ''
+        && request.resource.data.get('reviewNote', '') == '';
       allow update: if isSuperAdmin();
       allow delete: if false;
     }
@@ -1379,17 +1400,24 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/jyotishProfiles/$(jyotishId)).data.get('uid', '') == request.auth.uid);
     }
 
+// ----------------- Section C: jyotishApplications (REPLACES) --------------
     // --- jyotishApplications: applicant + admin read; applicant creates as
     // PENDING; only the platform admin decides (approve/reject).
+    // Phase 2: same review-field hardening as purohitApplications above.
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
       allow create: if isLoggedIn()
         && request.resource.data.get('uid', '') == request.auth.uid
         && request.resource.data.get('jyotishId', '') != ''
-        && request.resource.data.get('status', '') == 'PENDING';
-      allow update: if isSuperAdmin();
+        && request.resource.data.get('status', '') == 'PENDING'
+        && request.resource.data.get('tier', '') == ''
+        && request.resource.data.get('freeSevasRemaining', 0) == 0
+        && request.resource.data.get('boostUntil', '') == ''
+        && request.resource.data.get('reviewedBy', '') == ''
+        && request.resource.data.get('reviewNote', '') == '';
       allow delete: if false;
+      allow update: if isSuperAdmin();
     }
 
     // --- jyotishConsultations: public read (marketplace); signed-in
