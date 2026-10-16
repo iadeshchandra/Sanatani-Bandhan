@@ -44,7 +44,7 @@ import {
   type PrathamSevaConfig, type CommissionScheduleBracket,
 } from '../../../lib/sevaPro/prathamSeva';
 import { tierBadge, TIER_ORDER, type SevaProTier } from '../../../lib/sevaPro/tiers';
-import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../lib/sevaPro/copy';
+import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../lib/sevaPro/sevaProCopy';
 
 
 /* ---------- local shared primitives (match AdminTabsC/G pattern) ---------- */
