@@ -222,6 +222,34 @@ export function methodsForRegion(methods: PaymentMethodDoc[], region: PayRegion)
     .sort((a, b) => rank(a) - rank(b));
 }
 
+
+/**
+ * True when the owner has configured the Indian payment rail — i.e. an
+ * enabled IN method with a real UPI QR image set (GodMode → Settings →
+ * Geo Payments → IN → QR image URL; the PNG itself is uploaded to
+ * `public/upi-qr.png` via the GitHub web UI). The QR is the owner's
+ * explicit "India is live" switch.
+ */
+export function indianPaymentsReady(methods: PaymentMethodDoc[]): boolean {
+  return methods.some((m) => m.region === 'IN' && m.enabled && !!m.qrImageUrl?.trim());
+}
+
+/**
+ * Customer-facing region list. Until the Indian QR is configured, IN users
+ * see the international rail (Payoneer primary, Wise fallback) so they are
+ * never shown a dead UPI placeholder. Once the QR is set, the Indian method
+ * shows first with the international rail alongside it.
+ * GodMode previews keep using methodsForRegion (raw per-region config).
+ */
+export function methodsForRegionWithFallback(methods: PaymentMethodDoc[], region: PayRegion): PaymentMethodDoc[] {
+  const local = methodsForRegion(methods, region);
+  if (region !== 'IN') return local;
+  const intl = methodsForRegion(methods, 'INTL');
+  if (!indianPaymentsReady(methods)) return intl;
+  const seen = new Set(local.map((m) => m.id));
+  return [...local, ...intl.filter((m) => !seen.has(m.id))];
+}
+
 export function clearPaymentMethodsCache(): void {
   cache = null;
 }
