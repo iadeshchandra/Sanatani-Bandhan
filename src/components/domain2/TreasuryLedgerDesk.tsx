@@ -52,6 +52,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useMembership } from '../../context/MembershipContext';
+import { OrgRequestLedger, canViewOrgLedger } from '../../chat/OrgRequestLedger';
 import { useData, INITIAL_TREASURY } from '../../context/DataContext';
 import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF, generateTreasuryLedgerPDF } from '../../utils/pdfGenerator';
@@ -183,6 +185,11 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
   const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
+
+  // P2P request ledger (trustee/accountant only) — role from the membership edge.
+  const { myMemberships } = useMembership();
+  const myOrgRole = myMemberships.find((m) => m.workspaceId === workspaceId)?.role || '';
+  const [p2pLedgerOpen, setP2pLedgerOpen] = useState(false);
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
   const { showToast } = useToast();
   const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
@@ -823,6 +830,19 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               >
                 <Sparkles className="w-4 h-4" />
                 <span>POS Chanda</span>
+              </button>
+            )}
+
+            {/* P2P Request Ledger — trustee/accountant only */}
+            {canViewOrgLedger(myOrgRole) && (
+              <button
+                type="button"
+                onClick={() => setP2pLedgerOpen(true)}
+                className="px-3.5 py-2.5 rounded-xl bg-teal-950 hover:bg-teal-900 border border-teal-500/50 text-teal-200 hover:text-white text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                title="Open the organisation's P2P money-request ledger"
+              >
+                <Receipt className="w-4 h-4 text-teal-400" />
+                <span>P2P Requests</span>
               </button>
             )}
           </div>
@@ -1717,6 +1737,15 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
         )}
       </div>
+
+      {/* Org P2P request ledger (trustee/accountant only) */}
+      <OrgRequestLedger
+        orgId={workspaceId}
+        orgName={activeWorkspace?.name || 'Organisation'}
+        role={myOrgRole}
+        isOpen={p2pLedgerOpen}
+        onClose={() => setP2pLedgerOpen(false)}
+      />
     </ErrorBoundary>
   );
 };
