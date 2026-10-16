@@ -16,6 +16,7 @@ import {
   type ChatThreadLive,
 } from './chatService';
 import { useArchivedSplit } from './useChat';
+import { ThreadListSkeleton } from './ChatSkeletons';
 import type { ChatParticipant } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -75,6 +76,21 @@ export const VerifiedBadge: React.FC<{ person: ChatParticipant; compact?: boolea
   );
 };
 
+/**
+ * VerifiedPill — the one shared "verified identity" mark, used across the
+ * chat list, thread header, money request cards and wallet entries so the
+ * trust signal never changes shape between surfaces.
+ */
+export const VerifiedPill: React.FC<{ compact?: boolean }> = ({ compact = false }) => (
+  <span
+    className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[11px] px-2 py-0.5 whitespace-nowrap"
+    title="Verified identity"
+  >
+    <span aria-hidden>✓</span>
+    {!compact && <T en="Verified" bn="যাচাইকৃত" hi="सत्यापित" />}
+  </span>
+);
+
 /* ------------------------------------------------------------------ */
 /* Time formatting                                                     */
 /* ------------------------------------------------------------------ */
@@ -103,7 +119,12 @@ const ThreadRow: React.FC<{
   thread: ChatThreadLive;
   uid: string;
   onOpen: (chatId: string) => void;
-}> = ({ thread, uid, onOpen }) => {
+  /**
+   * Trailing action (archive / unarchive). Rendered inline on touch
+   * layouts where hover doesn't exist; desktop keeps the hover overlay.
+   */
+  action?: React.ReactNode;
+}> = ({ thread, uid, onOpen, action }) => {
   const { lang } = useLocaleText();
   // The "other" side: for direct threads the other uid; for org threads the org.
   const otherKey = thread.participants.find((p) => p !== uid) ?? thread.participants[0];
@@ -115,43 +136,46 @@ const ThreadRow: React.FC<{
   const isTyping = thread.typing?.[otherKey];
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(thread.id)}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-amber-50/60 active:bg-amber-50 transition-colors min-h-[72px]"
-    >
-      <ChatAvatar person={person} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-stone-900 truncate">{person.displayName}</span>
-          <VerifiedBadge person={person} compact />
+    <div className="w-full flex items-center gap-2 pl-4 pr-2 py-1 hover:bg-amber-50/60 active:bg-amber-50 transition-colors min-h-[72px]">
+      <button
+        type="button"
+        onClick={() => onOpen(thread.id)}
+        className="flex-1 min-w-0 flex items-center gap-3 py-2 text-left min-h-[64px]"
+      >
+        <ChatAvatar person={person} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-stone-900 truncate">{person.displayName}</span>
+            <VerifiedBadge person={person} compact />
+          </div>
+          <div className="text-sm text-stone-500 truncate mt-0.5">
+            {isTyping ? (
+              <span className="text-amber-700 italic">
+                <T en="typing…" bn="লিখছেন…" hi="लिख रहे हैं…" />
+              </span>
+            ) : (
+              thread.lastMessage || (
+                <T en="Say namaste 👋" bn="নমস্কার বলুন 👋" hi="नमस्ते कहें 👋" />
+              )
+            )}
+          </div>
         </div>
-        <div className="text-sm text-stone-500 truncate mt-0.5">
-          {isTyping ? (
-            <span className="text-amber-700 italic">
-              <T en="typing…" bn="লিখছেন…" hi="लिख रहे हैं…" />
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className="text-[11px] text-stone-400 font-medium">
+            {formatChatTime(thread.lastMessageAt ?? thread.updatedAt, lang)}
+          </span>
+          {unread > 0 && (
+            <span
+              className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-amber-600 text-amber-50 text-[11px] font-extrabold flex items-center justify-center"
+              aria-label={`${unread} unread`}
+            >
+              {unread > 99 ? '99+' : unread}
             </span>
-          ) : (
-            thread.lastMessage || (
-              <T en="Say namaste 👋" bn="নমস্কার বলুন 👋" hi="नमस्ते कहें 👋" />
-            )
           )}
         </div>
-      </div>
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className="text-[11px] text-stone-400 font-medium">
-          {formatChatTime(thread.lastMessageAt ?? thread.updatedAt, lang)}
-        </span>
-        {unread > 0 && (
-          <span
-            className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-amber-600 text-amber-50 text-[11px] font-extrabold flex items-center justify-center"
-            aria-label={`${unread} unread`}
-          >
-            {unread > 99 ? '99+' : unread}
-          </span>
-        )}
-      </div>
-    </button>
+      </button>
+      {action && <div className="shrink-0 md:hidden">{action}</div>}
+    </div>
   );
 };
 
@@ -201,8 +225,7 @@ const NewChatModal: React.FC<{
       };
       const chatId = await getOrCreateDirectChat(uid, otherUid, selfInfo, other);
       onOpen(chatId);
-    } catch (e) {
-      console.warn('[chat] new chat lookup failed:', e);
+    } catch {
       setError(tr('chat.new.failed', 'Could not start the conversation — check your connection', 'কথোপকথন শুরু করা যায়নি — সংযোগ পরীক্ষা করুন', 'बातचीत शुरू नहीं हो सकी — कनेक्शन जांचें'));
     } finally {
       setBusy(false);
@@ -279,8 +302,8 @@ export const ChatList: React.FC<{
   const archiveThread = async (chatId: string, archivedNow: boolean) => {
     try {
       await setArchived(chatId, uid, !archivedNow);
-    } catch (e) {
-      console.warn('[chat] archive failed:', e);
+    } catch {
+      /* archiving is a quiet convenience — the list simply stays put */
     }
   };
 
@@ -305,8 +328,8 @@ export const ChatList: React.FC<{
       {/* Threads */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="py-12 text-center text-sm text-stone-400">
-            <T en="Loading conversations…" bn="কথোপকথন লোড হচ্ছে…" hi="बातचीत लोड हो रही…" />
+          <div className="pt-2">
+            <ThreadListSkeleton rows={5} />
           </div>
         ) : filtered.length === 0 && !search ? (
           <div className="px-8 py-14 text-center">
@@ -332,19 +355,47 @@ export const ChatList: React.FC<{
             </button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-12 text-center text-sm text-stone-400">
-            <T en="No matches found" bn="কোনো মিল পাওয়া যায়নি" hi="कोई मिलान नहीं मिला" />
+          <div className="py-12 px-8 text-center">
+            <div className="text-4xl mb-3" aria-hidden>
+              🔍
+            </div>
+            <p className="text-sm font-bold text-stone-600">
+              <T en="No matches found" bn="কোনো মিল পাওয়া যায়নি" hi="कोई मिलान नहीं मिला" />
+            </p>
+            <p className="text-xs text-stone-400 mt-1">
+              <T
+                en="Try a name, a Sanatani ID, or a word from the conversation."
+                bn="নাম, সনাতনী আইডি বা কথোপকথনের কোনো শব্দ দিয়ে খুঁজুন।"
+                hi="नाम, सनातनी ID या बातचीत के किसी शब्द से खोजें।"
+              />
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-stone-100">
             {filtered.map((t) => (
               <li key={t.id} className="relative group">
-                <ThreadRow thread={t} uid={uid} onOpen={onOpen} />
+                <ThreadRow
+                  thread={t}
+                  uid={uid}
+                  onOpen={onOpen}
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => archiveThread(t.id, false)}
+                      aria-label="Archive conversation"
+                      title="Archive"
+                      className="w-11 h-11 flex items-center justify-center rounded-full text-stone-400 active:bg-stone-200 active:text-stone-600"
+                    >
+                      📦
+                    </button>
+                  }
+                />
+                {/* Desktop hover overlay — hover doesn't exist on touch, see `action` above. */}
                 <button
                   type="button"
                   onClick={() => archiveThread(t.id, false)}
                   aria-label="Archive conversation"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 hidden group-hover:flex items-center justify-center rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 hidden md:group-hover:flex items-center justify-center rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200"
                   title="Archive"
                 >
                   📦
@@ -371,12 +422,27 @@ export const ChatList: React.FC<{
               <ul className="divide-y divide-stone-100 opacity-80">
                 {archived.map((t) => (
                   <li key={t.id} className="relative group">
-                    <ThreadRow thread={t} uid={uid} onOpen={onOpen} />
+                    <ThreadRow
+                      thread={t}
+                      uid={uid}
+                      onOpen={onOpen}
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => archiveThread(t.id, true)}
+                          aria-label="Unarchive conversation"
+                          className="px-3 h-11 flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-bold active:bg-amber-200"
+                        >
+                          <T en="Unarchive" bn="আনআর্কাইভ" hi="अनआर्काइव" />
+                        </button>
+                      }
+                    />
+                    {/* Desktop hover overlay — hover doesn't exist on touch, see `action` above. */}
                     <button
                       type="button"
                       onClick={() => archiveThread(t.id, true)}
                       aria-label="Unarchive conversation"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-11 hidden group-hover:flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-bold"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 h-11 hidden md:group-hover:flex items-center rounded-full bg-amber-100 text-amber-800 text-xs font-bold"
                     >
                       <T en="Unarchive" bn="আনআর্কাইভ" hi="अनआर्काइव" />
                     </button>

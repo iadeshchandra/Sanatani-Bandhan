@@ -160,5 +160,7 @@ export function requestStatusLabel(status: RequestStatus, lang: 'en' | 'bn' | 'h
 export function formatMoney(amount: number, currency: string = 'BDT'): string {
   const symbols: Record<string, string> = { BDT: '৳', INR: '₹', USD: '$' };
   const sym = symbols[currency] || currency + ' ';
+  // Negative amounts (e.g. net position) read as −₹500, never ₹-500.
+  if (amount < 0) return `−${sym}${Math.abs(amount).toLocaleString('en-IN')}`;
   return `${sym}${amount.toLocaleString('en-IN')}`;
 }

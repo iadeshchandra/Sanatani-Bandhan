@@ -18,6 +18,7 @@ import {
   type ChatThreadLive,
 } from "./chatService";
 import { useChatMessages } from "./useChat";
+import { MessageListSkeleton } from "./ChatSkeletons";
 import { BlessingCard, BLESSING_OCCASIONS } from "./BlessingCard";
 import { ChatAvatar, VerifiedBadge, formatChatTime } from "./ChatList";
 import RequestModal, { type RequestRecipient } from "./RequestModal";
@@ -267,8 +268,8 @@ export const ChatThread: React.FC<{
     setTyping(chatId, uid, false);
     try {
       await sendMessage(chatId, uid, "text", text);
-    } catch (e) {
-      console.warn("[chat] send failed:", e);
+    } catch {
+      // Send failed — restore the draft so no word is lost.
       setDraft(text);
     } finally {
       setSending(false);
@@ -290,8 +291,8 @@ export const ChatThread: React.FC<{
           occasionHi: b.labelHi,
         },
       });
-    } catch (e) {
-      console.warn("[chat] blessing send failed:", e);
+    } catch {
+      /* blessing failed to send — the picker simply closes, nothing lost */
     } finally {
       setSending(false);
     }
@@ -350,13 +351,7 @@ export const ChatThread: React.FC<{
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {loading ? (
-          <div className="text-center text-sm text-stone-400 py-10">
-            <T
-              en="Loading messages…"
-              bn="বার্তা লোড হচ্ছে…"
-              hi="संदेश लोड हो रहे…"
-            />
-          </div>
+          <MessageListSkeleton />
         ) : messages.length === 0 ? (
           <div className="text-center py-14 px-6">
             <div className="text-4xl mb-3" aria-hidden>

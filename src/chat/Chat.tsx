@@ -29,6 +29,9 @@ export const Chat: React.FC<{
       className="fixed inset-0 z-[110] bg-stone-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
       role="dialog"
       aria-label="Messages"
+      // Chat is deliberately a warm-paper light surface everywhere —
+      // never let the OS dark theme invert its inputs or scrollbars.
+      style={{ colorScheme: 'light' }}
     >
       <div className="bg-[#faf7f2] w-full sm:max-w-xl h-[100dvh] sm:h-[88vh] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
