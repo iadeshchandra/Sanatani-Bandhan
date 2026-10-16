@@ -4,12 +4,13 @@
  * marketplace: rules are live-editable, transactions/payouts are admin-
  * managed. The booking→payment→split flow itself is NOT built yet.
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Percent, Receipt, HandCoins, RefreshCw, Plus, Pencil, CheckCircle2,
   XCircle, Search, Megaphone, FileText, Globe, Save, Trash2, Calculator,
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
+import { DEFAULT_MATRIX } from '../../../lib/panjikaIntelligence';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 
@@ -687,14 +688,122 @@ const SiteContentView: React.FC = () => {
   );
 };
 
+/* ------------------------- Panjika Intelligence ------------------------- */
+
+const PanjikaIntelView: React.FC = () => {
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [disabled, setDisabled] = useState<string[]>([]);
+  const [leads, setLeads] = useState<Record<string, number>>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await firestoreAdmin.getIntelConfig();
+      if (r) {
+        setDisabled(r.disabledKeys || []);
+        setLeads(r.leadOverrides || {});
+      }
+    } catch { /* fail open — built-in defaults */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = (key: string) =>
+    setDisabled((d) => (d.includes(key) ? d.filter((k) => k !== key) : [...d, key]));
+  const setLead = (key: string, v: number) =>
+    setLeads((l) => ({ ...l, [key]: Math.min(90, Math.max(0, Math.round(v) || 0)) }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const r = await firestoreAdmin.saveIntelConfig({ disabledKeys: disabled, leadOverrides: leads });
+      if (r.ok) showToast('Panjika Intelligence config saved 🪔', 'success');
+      else showToast('Save failed', 'error');
+    } catch (e: any) {
+      showToast(e?.message || 'Save failed', 'error');
+    }
+    setSaving(false);
+  };
+
+  const roles = useMemo(() => {
+    const map = new Map<string, typeof DEFAULT_MATRIX>();
+    for (const d of DEFAULT_MATRIX) {
+      const arr = map.get(d.role) || [];
+      arr.push(d);
+      map.set(d.role, arr);
+    }
+    return [...map.entries()];
+  }, []);
+
+  if (loading) return <Loading text="Loading intelligence matrix…" />;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-extrabold text-slate-100">🪔 Panjika Intelligence matrix</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-xl">
+              Role-aware suchana before each tithi. Disable any reminder or adjust its lead
+              days. Empty = built-in defaults. Changes apply to all users within minutes
+              (local cache refresh).
+            </p>
+          </div>
+          <button type="button" onClick={save} disabled={saving}
+            className="px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500/20 text-saffron-300 border border-saffron-500/40 text-xs font-bold hover:bg-saffron-500/30 disabled:opacity-50">
+            <span className="inline-flex items-center gap-1.5"><Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save matrix'}</span>
+          </button>
+        </div>
+      </Card>
+
+      {roles.map(([role, defs]) => (
+        <Card key={role}>
+          <h4 className="text-xs font-black uppercase tracking-widest text-saffron-400 mb-3">{role}</h4>
+          <div className="space-y-2">
+            {defs.map((d) => {
+              const key = `${d.eventType}:${d.role}`;
+              const off = disabled.includes(key);
+              return (
+                <div key={key} className={`rounded-xl border p-3 ${off ? 'border-slate-800 opacity-50' : 'border-slate-700/60'}`}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[200px]">
+                      <div className="text-sm font-bold text-slate-200">{d.title.en}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">{key}</div>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                      lead
+                      <input type="number" min={0} max={90} value={leads[key] ?? d.leadDays}
+                        onChange={(e) => setLead(key, Number(e.target.value))}
+                        className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200" />
+                      d
+                    </label>
+                    <button type="button" onClick={() => toggle(key)}
+                      className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold ${off ? 'bg-slate-800 text-slate-400' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40'}`}>
+                      {off ? 'Disabled' : 'Enabled'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
 export const ContentTab: React.FC = () => {
   const [sub, setSub] = useState('Announcements');
   return (
     <div className="space-y-4">
-      <SubTabs tabs={['Announcements', 'Templates', 'Site Content']} active={sub} onChange={setSub} />
+      <SubTabs tabs={['Announcements', 'Templates', 'Site Content', 'Panjika Intel']} active={sub} onChange={setSub} />
       {sub === 'Announcements' && <AnnouncementsView />}
       {sub === 'Templates' && <TemplatesView />}
       {sub === 'Site Content' && <SiteContentView />}
+      {sub === 'Panjika Intel' && <PanjikaIntelView />}
     </div>
   );
 };

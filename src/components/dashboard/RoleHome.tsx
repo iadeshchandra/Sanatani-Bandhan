@@ -36,6 +36,7 @@ import { getRecommendations, localizeText } from '../../suggestions/recommend';
 import { getUpcomingFestival } from '../../suggestions/festivals';
 import { getModuleCopy } from '../../suggestions/moduleCopy';
 import { enableModule, isSuggestionDismissed, dismissSuggestion } from '../../suggestions/store';
+import { UtsavReadinessCard, LunarClosingCard } from '../panjika/IntelligenceCards';
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                      */
@@ -912,6 +913,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
           onClick={() => onNavigate('treasury-ledger')}
         />
       </div>
+      <LunarClosingCard onOpenTreasury={() => onNavigate('treasury-ledger')} />
     </div>
   );
 };
@@ -962,6 +964,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
   return (
     <div className="flex flex-col gap-4">
       <KpiGrid onNavigate={onNavigate} />
+      <UtsavReadinessCard onPlan={() => onNavigate('utsav-one')} />
       <BranchComparisonPanel />
 
       <RoleSectionTitle icon={Bell} title="Needs your attention" hint={attentionCount > 0 ? `${attentionCount} open` : 'All clear'} />
