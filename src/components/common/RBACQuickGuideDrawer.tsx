@@ -35,6 +35,7 @@ import {
 import { useQuickGuide, GuideLanguage } from '../../context/QuickGuideContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
+import { MODULE_GUIDES, getGuide, type ModuleGuide } from '../../lib/moduleGuides';
 import {
   SHASTRIC_TERMINOLOGY,
   ShastricTerm,
@@ -155,8 +156,7 @@ const UI_LABELS: Record<GuideLanguage, {
 };
 
 // Module metadata mappings for quick visual icons
-const MODULE_ICONS: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  SMART_BHANDAR: { icon: Boxes, color: 'text-amber-400', label: 'Smart Bhandar & BOM' },
+const MODULE_ICONS: Record<string, { icon: React.ElementType; color: string; label: string }> = {  SMART_BHANDAR: { icon: Boxes, color: 'text-amber-400', label: 'Smart Bhandar & BOM' },
   FORM_10BD: { icon: Receipt, color: 'text-emerald-400', label: 'Form 10BD & 80G Filing' },
   FEDERATION_SWEEP: { icon: Building, color: 'text-blue-400', label: 'Federation Cash Sweeps' },
   FAMILY_MATRIMONY: { icon: Heart, color: 'text-rose-400', label: 'Vanshavali & Matrimony' },
@@ -167,13 +167,52 @@ const MODULE_ICONS: Record<string, { icon: React.ElementType; color: string; lab
   SEVADAR_ROSTER: { icon: UserCheck, color: 'text-amber-400', label: 'Sevadar HR Desk & Volunteer Roster' },
 };
 
+/**
+ * Role → module-guide priority. Guides relevant to the current role
+ * surface first; everything else follows alphabetically.
+ */
+const ROLE_GUIDE_PRIORITY: Record<string, string[]> = {
+  owner: ['godmode', 'treasury', 'marketplace', 'devotees', 'events'],
+  trustee: ['treasury', 'devotees', 'events', 'hr', 'inventory', 'samskara'],
+  accountant: ['treasury', 'inventory'],
+  priest: ['samskara', 'panjika', 'marketplace', 'devotees'],
+  purohit: ['marketplace', 'samskara', 'panjika', 'wallet'],
+  jyotishi: ['jyotish', 'panjika', 'marketplace'],
+  sevadar: ['hr', 'events', 'sangam', 'panjika'],
+  devotee: ['panjika', 'samskara', 'marketplace', 'wallet', 'sangam'],
+  solo: ['panjika', 'samskara', 'marketplace', 'wallet', 'sangam'],
+};
+
+function pickGuideText(
+  g: ModuleGuide,
+  field: 'name' | 'tagline' | 'whatItIs' | 'whyItMatters',
+  lang: GuideLanguage
+): string {
+  const v = g[field];
+  const l = lang === 'sa' ? 'hi' : lang; // Sanskrit falls back to Hindi
+  if (l === 'bn') return v.bn || v.en;
+  if (l === 'hi') return v.hi || v.en;
+  return v.en;
+}
+
+function pickGuideStep(g: ModuleGuide, idx: number, lang: GuideLanguage): string {
+  const arr = g.firstSteps[idx];
+  if (!arr) return '';
+  const l = lang === 'sa' ? 'hi' : lang;
+  if (l === 'bn') return arr.bn || arr.en;
+  if (l === 'hi') return arr.hi || arr.en;
+  return arr.en;
+}
+
 export const RBACQuickGuideDrawer: React.FC = () => {
   const { isOpen, closeGuide, activeModuleId, openGuide, activeLanguage, setLanguage } = useQuickGuide();
   const { currentRole, activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'SOP' | 'LEXICON'>('SOP');
+  const [activeTab, setActiveTab] = useState<'SOP' | 'LEXICON' | 'GUIDES'>('SOP');
   const [lexiconQuery, setLexiconQuery] = useState('');
+  const [guideQuery, setGuideQuery] = useState('');
+  const [expandedGuideId, setExpandedGuideId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TermCategory | 'ALL'>('ALL');
   const [hoveredTerm, setHoveredTerm] = useState<ShastricTerm | null>(null);
   const [selectedTermInLexicon, setSelectedTermInLexicon] = useState<string | null>(null);
@@ -199,6 +238,25 @@ export const RBACQuickGuideDrawer: React.FC = () => {
   const currentSOP: ModuleRoleSOP = useMemo(() => {
     return getModuleRoleSOP(activeModuleId, currentRole || 'SEVADAR');
   }, [activeModuleId, currentRole]);
+
+  // Role-aware module guides: relevant to this role first, then the rest.
+  const roleSortedGuides: ModuleGuide[] = useMemo(() => {
+    const roleKey = (currentRole || 'sevadar').toLowerCase();
+    const priority = ROLE_GUIDE_PRIORITY[roleKey] || ROLE_GUIDE_PRIORITY['sevadar'];
+    const rank = new Map(priority.map((id, i) => [id, i]));
+    const q = guideQuery.trim().toLowerCase();
+    const list = MODULE_GUIDES.filter((g) => {
+      if (!q) return true;
+      const hay = `${g.id} ${g.name.en} ${g.name.bn} ${g.name.hi} ${g.tagline.en}`.toLowerCase();
+      return hay.includes(q);
+    });
+    return [...list].sort((a, b) => {
+      const ra = rank.has(a.id) ? rank.get(a.id)! : 1000;
+      const rb = rank.has(b.id) ? rank.get(b.id)! : 1000;
+      if (ra !== rb) return ra - rb;
+      return a.name.en.localeCompare(b.name.en);
+    });
+  }, [currentRole, guideQuery]);
 
   // Filtered Lexicon terms
   const filteredTerms = useMemo(() => {
@@ -408,6 +466,22 @@ export const RBACQuickGuideDrawer: React.FC = () => {
                 <span>{labels.lexiconTab}</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-900 text-amber-300 ml-1">
                   {SHASTRIC_TERMINOLOGY.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('GUIDES')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 ${
+                  activeTab === 'GUIDES'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 font-black shadow'
+                    : 'text-stone-400 hover:text-white'
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>📖 Guides</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-stone-900 text-amber-300 ml-1">
+                  {MODULE_GUIDES.length}
                 </span>
               </button>
             </div>
@@ -751,6 +825,84 @@ export const RBACQuickGuideDrawer: React.FC = () => {
                       );
                     })
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: ROLE-AWARE MODULE GUIDES */}
+            {activeTab === 'GUIDES' && (
+              <div className="space-y-4 animate-fadeIn">
+                <p className="text-xs text-stone-400 leading-relaxed">
+                  <span className="text-amber-300 font-bold">📖</span> Guides most relevant to your role{' '}
+                  <strong className="text-amber-200 uppercase">{currentRole || 'SEVADAR'}</strong>{' '}
+                  appear first — every module explained in 30 seconds.
+                </p>
+                {/* Search */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    value={guideQuery}
+                    onChange={(e) => setGuideQuery(e.target.value)}
+                    placeholder="Search module guides…"
+                    className="w-full bg-stone-900 border border-stone-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div className="space-y-3">
+                  {roleSortedGuides.length === 0 && (
+                    <p className="text-xs text-stone-400 text-center py-6">
+                      No guides match your search.
+                    </p>
+                  )}
+                  {roleSortedGuides.map((g) => {
+                    const expanded = expandedGuideId === g.id;
+                    return (
+                      <div
+                        key={g.id}
+                        className="rounded-2xl bg-stone-900/90 border border-stone-800 hover:border-amber-500/40 transition-colors overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setExpandedGuideId(expanded ? null : g.id)}
+                          className="w-full text-left p-4 flex items-center justify-between gap-3 min-h-[44px]"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm font-black text-white">
+                              {pickGuideText(g, 'name', activeLanguage)}
+                            </div>
+                            <div className="text-[11px] text-stone-400 truncate mt-0.5">
+                              {pickGuideText(g, 'tagline', activeLanguage)}
+                            </div>
+                          </div>
+                          <ChevronRight
+                            className={`w-4 h-4 text-amber-400 shrink-0 transition-transform ${
+                              expanded ? 'rotate-90' : ''
+                            }`}
+                          />
+                        </button>
+                        {expanded && (
+                          <div className="px-4 pb-4 space-y-3 border-t border-stone-800/60 pt-3">
+                            <p className="text-xs text-stone-300 leading-relaxed">
+                              {pickGuideText(g, 'whatItIs', activeLanguage)}
+                            </p>
+                            <p className="text-xs text-stone-400 leading-relaxed italic">
+                              {pickGuideText(g, 'whyItMatters', activeLanguage)}
+                            </p>
+                            <div className="space-y-1.5">
+                              {g.firstSteps.map((_, idx) => (
+                                <div key={idx} className="flex gap-2 items-start text-xs text-stone-300">
+                                  <span className="w-5 h-5 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center shrink-0 text-[10px] font-black">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="pt-0.5">{pickGuideStep(g, idx, activeLanguage)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
