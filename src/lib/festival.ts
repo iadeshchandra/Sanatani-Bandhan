@@ -27,7 +27,7 @@ export const L = (en: string, bn: string, hi: string): Lang3 => ({ en, bn, hi })
 /** Festival families the war-room plans around, in pick priority. */
 export const WAR_FESTIVAL_MATCHERS: Array<{ key: string; patterns: string[]; days: number }> = [
   { key: 'diwali', patterns: ['diwali', 'deepavali', 'kali puja'], days: 5 },
-  { key: 'durga_puja', patterns: ['durga puja', 'mahalaya', 'vijayadashami', 'dussehra', 'bijoya'], days: 5 },
+  { key: 'durga_puja', patterns: ['durga puja', 'mahalaya', 'vijayadashami', 'dussehra', 'bijoya'], days: 2 },
   { key: 'navratri', patterns: ['navratri', 'navaratri'], days: 9 },
   { key: 'janmashtami', patterns: ['janmashtami', 'krishna janmashtami'], days: 2 },
   { key: 'rath_yatra', patterns: ['rath yatra'], days: 9 },
@@ -87,35 +87,24 @@ export function tithiLineFor(dateISO: string): string {
 }
 
 /**
- * Pick the next major festival on/after `fromISO`. Pure function — the
- * war-room header, countdown and checklist wiring all derive from this.
+ * Pick the primary war festival: the live one if any, else the next
+ * upcoming major festival. A festival whose start has passed but whose
+ * planning span still covers `fromISO` counts as current (phase 'live') —
+ * the war-room must not abandon a festival mid-celebration.
  */
 export function pickWarFestival(fromISO: string = todayISO()): WarFestival | null {
-  const candidates: Array<{ m: (typeof WAR_FESTIVAL_MATCHERS)[number]; f: PanjikaFestival }> = [];
-  for (const m of WAR_FESTIVAL_MATCHERS) {
-    for (const f of PANJIKA_FESTIVALS) {
-      if (f.date < fromISO) continue;
-      const name = f.nameEn.toLowerCase();
-      if (m.patterns.some((p) => name.includes(p)) && (f.category === 'festival' || f.category === 'puja')) {
-        candidates.push({ m, f });
-      }
-    }
-  }
-  if (!candidates.length) return null;
-  candidates.sort((a, b) => a.f.date.localeCompare(b.f.date));
-  // Earliest date wins; ties broken by matcher priority (diwali > durga_puja > …).
-  const bestDate = candidates[0].f.date;
-  const tied = candidates.filter((c) => c.f.date === bestDate);
-  tied.sort(
-    (a, b) =>
-      WAR_FESTIVAL_MATCHERS.findIndex((m) => m.key === a.m.key) -
-      WAR_FESTIVAL_MATCHERS.findIndex((m) => m.key === b.m.key)
-  );
-  const { m, f } = tied[0];
-  const endDateISO = addDaysISO(f.date, m.days - 1);
-  const daysUntil = diffDays(fromISO, f.date);
-  const phase: WarFestival['phase'] =
-    daysUntil > 0 ? 'countdown' : fromISO <= endDateISO ? 'live' : 'ended';
+  return pickWarFestivals(fromISO, 1)[0] || null;
+}
+
+/** Build the WarFestival view-model for one candidate. */
+function toWarFestival(
+  m: (typeof WAR_FESTIVAL_MATCHERS)[number],
+  f: PanjikaFestival,
+  endDateISO: string,
+  fromISO: string,
+  daysUntil: number,
+  phase: WarFestival['phase']
+): WarFestival {
   return {
     key: `${m.key}_${f.date}`,
     matcherKey: m.key,
@@ -133,6 +122,62 @@ export function pickWarFestival(fromISO: string = todayISO()): WarFestival | nul
     phase,
     tithiLine: tithiLineFor(f.date),
   };
+}
+
+/** One deduped candidate per festival family (earliest date wins; on a date
+ *  tie, the entry matching the family's most canonical name pattern wins —
+ *  e.g. "Diwali / Deepavali" over "Kali Puja" for the diwali family). */
+function dedupeCandidates(
+  candidates: Array<{ m: (typeof WAR_FESTIVAL_MATCHERS)[number]; f: PanjikaFestival; endDateISO: string }>
+): Array<{ m: (typeof WAR_FESTIVAL_MATCHERS)[number]; f: PanjikaFestival; endDateISO: string }> {
+  const patternRank = (c: (typeof candidates)[number]): number => {
+    const name = c.f.nameEn.toLowerCase();
+    const i = c.m.patterns.findIndex((p) => name.includes(p));
+    return i === -1 ? 999 : i;
+  };
+  const seen = new Set<string>();
+  const out: typeof candidates = [];
+  const sorted = [...candidates].sort(
+    (a, b) => a.f.date.localeCompare(b.f.date) || patternRank(a) - patternRank(b)
+  );
+  for (const c of sorted) {
+    if (seen.has(c.m.key)) continue;
+    seen.add(c.m.key);
+    out.push(c);
+  }
+  return out;
+}
+
+/**
+ * Mission-control festival list: live festivals first (their span covers
+ * `fromISO`), then upcoming — each family once. The trustee plans the
+ * live festival AND the next ones (e.g. during Navratri, Dussehra and
+ * Diwali planning both stay one tap away).
+ */
+export function pickWarFestivals(fromISO: string = todayISO(), limit = 3): WarFestival[] {
+  const candidates: Array<{ m: (typeof WAR_FESTIVAL_MATCHERS)[number]; f: PanjikaFestival; endDateISO: string }> = [];
+  for (const m of WAR_FESTIVAL_MATCHERS) {
+    for (const f of PANJIKA_FESTIVALS) {
+      const endDateISO = addDaysISO(f.date, m.days - 1);
+      if (endDateISO < fromISO) continue; // span fully in the past
+      const name = f.nameEn.toLowerCase();
+      if (m.patterns.some((p) => name.includes(p)) && (f.category === 'festival' || f.category === 'puja')) {
+        candidates.push({ m, f, endDateISO });
+      }
+    }
+  }
+  const live: typeof candidates = [];
+  const upcoming: typeof candidates = [];
+  for (const c of dedupeCandidates(candidates)) {
+    (c.f.date <= fromISO ? live : upcoming).push(c);
+  }
+  const ordered = [...live, ...upcoming].slice(0, limit);
+  return ordered.map((c) => {
+    const daysUntil = diffDays(fromISO, c.f.date);
+    const phase: WarFestival['phase'] =
+      daysUntil > 0 ? 'countdown' : fromISO <= c.endDateISO ? 'live' : 'ended';
+    return toWarFestival(c.m, c.f, c.endDateISO, fromISO, daysUntil, phase);
+  });
 }
 
 /** Checklist template for the war festival (trustee items become operations). */

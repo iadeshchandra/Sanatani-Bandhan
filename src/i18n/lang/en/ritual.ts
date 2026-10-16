@@ -255,6 +255,7 @@ export const ritual: RitualFragment = {
         body: "Planned-vs-actual is a management view, not audited accounts. The utilisation certificate is the samiti\\\\u2019s own summary for donors — confirm final figures with your koshadhyaksh / CA."
       },
       tabs: {
+        warroom: "War Room",
         dashboard: "Dashboard",
         festivals: "Festivals",
         budget: "Budget",
