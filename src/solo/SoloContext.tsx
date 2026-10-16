@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SanataniProfile } from './types';
-import { mintOrFetchSanataniProfile, MintDetails } from './soloSession';
+import { mintOrFetchSanataniProfile, provisionalSoloProfile, MintDetails } from './soloSession';
 
 /* SoloContext — the Universal Sanatani ID spine.
  * =====================================================================
@@ -50,8 +50,11 @@ export const SoloProvider: React.FC<{ uid: string | null; children: React.ReactN
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!uid) {
-      setProfile(null);
+    // P0 FIX: Never mint a SAN ID for anonymous sessions. The 'anon' fallback
+    // uid would fail Firestore rules on every write, causing a fresh ID on
+    // every render. Anonymous users get a provisional profile with no SAN ID.
+    if (!uid || uid === 'anon') {
+      setProfile(provisionalSoloProfile());
       setLoading(false);
       return;
     }
