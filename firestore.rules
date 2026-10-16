@@ -1705,13 +1705,20 @@ service cloud.firestore {
 
     // --- orgPages/{orgId}: public read (discovery + public org page).
     // Write: org Trustee/SuperAdmin or platform admin, public fields only.
+    // Pillar 3: the whitelist below is the PUBLIC/PRIVATE BOUNDARY — it must
+    // match ORG_PUBLIC_FIELDS in src/lib/orgPublic.ts. Fields not listed here
+    // (treasury, members, bank details, pins) can never be published, even
+    // by a trustee's client code.
     match /orgPages/{orgId} {
       allow read: if true;
       allow create, update: if isSuperAdmin() || (
         isOrgTrustee(orgId)
         && request.resource.data.keys().hasOnly(
           ['orgId', 'name', 'type', 'city', 'state', 'country', 'about',
-           'logoUrl', 'coverUrl', 'verified', 'updatedAt'])
+           'tagline', 'logoUrl', 'coverUrl', 'publicSlug', 'addressLine',
+           'pincode', 'phone', 'website', 'darshanTimings', 'galleryUrls',
+           'upcomingEvents', 'registrationNo', 'eightyGRegistered',
+           'eightyGURN', 'twelveARegistered', 'verified', 'updatedAt'])
         && request.resource.data.get('orgId', '') == orgId
       );
       allow delete: if isSuperAdmin();

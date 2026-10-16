@@ -9,6 +9,8 @@
  * What it does:
  *   - `orgLogos/{orgId}/logo.{ext}` is PUBLICLY READABLE — org branding is
  *     shown on public org pages, shared receipts and the devotee portal.
+ *   - `orgGallery/{orgId}/{imageId}.{ext}` (Pillar 3) is PUBLICLY READABLE —
+ *     the public org page's photo gallery.
  *   - WRITES are restricted to that org's Trustees/SuperAdmins (checked via
  *     the `workspaceMembers/{orgId}_{uid}` edge doc, same source the
  *     Firestore rules use) plus the platform owner.
@@ -49,6 +51,12 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(png|jpeg|webp)');
     }
 
+    // Pillar 3: public gallery photos — same trust model as logos.
+    function isGalleryUpload() {
+      return request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+
     // --- Pillar 1: org logos ---------------------------------------------
     match /orgLogos/{orgId}/logo.{ext} {
       // Public branding: readable by everyone (org pages, receipts).
@@ -56,6 +64,18 @@ service firebase.storage {
       // Only the org's trustees may (re)write its logo.
       allow write: if isOrgTrustee(orgId)
         && isLogoUpload()
+        && ext in ['png', 'jpg', 'jpeg', 'webp'];
+      allow delete: if isOrgTrustee(orgId);
+    }
+
+    // --- Pillar 3: public gallery ----------------------------------------
+    match /orgGallery/{orgId}/{imageId}.{ext} {
+      // Public gallery: readable by everyone (public org pages).
+      allow read: if true;
+      // Only the org's trustees may add photos (3 MB cap; the client
+      // downscales to 1600px before upload to keep pages fast).
+      allow write: if isOrgTrustee(orgId)
+        && isGalleryUpload()
         && ext in ['png', 'jpg', 'jpeg', 'webp'];
       allow delete: if isOrgTrustee(orgId);
     }
