@@ -20,6 +20,7 @@ import { findEkadashis, VRATA_DISCLAIMER } from '../lib/vrataSchedule';
 import { getRashifal, rashiName, RASHIFAL_DISCLAIMER, RASHIFAL_LABEL } from '../lib/rashifal';
 import { getCachedRegion } from '../lib/geoDetect';
 import type { ReminderKind } from './types';
+import { GuideButton } from '../components/suchana/GuideButton';
 
 /* PanjikaTab — the Sanatani Panjika: one almanac, every tradition.
  * Regional calendar framework (10 traditions), daily panjika, festivals,
@@ -287,7 +288,10 @@ export const PanjikaTab: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Header: today's regional date */}
-      <Card className="bg-gradient-to-br from-amber-900 via-amber-800 to-orange-900 !border-0 text-center">
+      <Card className="bg-gradient-to-br from-amber-900 via-amber-800 to-orange-900 !border-0 text-center relative">
+        <div className="absolute top-2 right-2">
+          <GuideButton moduleId="panjika" className="!text-amber-200 hover:!text-white hover:!bg-white/10" />
+        </div>
         <div className="text-amber-200/80 text-xs font-bold uppercase tracking-widest mb-1">
           {cal.nameNative} <span className="opacity-60">· {cal.nameEn}</span>
         </div>
