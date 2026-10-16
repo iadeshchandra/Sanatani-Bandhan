@@ -28,7 +28,57 @@ const GUIDE_ICONS: Record<string, string> = {
   jyotish: '🔮',
   purohit: '🕉️',
   godmode: '⚙️',
+  // Money & Chat guides
+  chat: '💬',
+  'chat-blessings': '✨',
+  'p2p-requests': '💸',
+  'p2p-lifecycle': '🔄',
+  'p2p-wallet': '🪙',
+  'org-requests': '🏛️',
+  'p2p-qr': '📷',
+  'p2p-safety': '🛡️',
 };
+
+/** Guide ids that belong to the "Money & Chat" section (rendered first). */
+const MONEY_CHAT_IDS = [
+  'chat',
+  'chat-blessings',
+  'p2p-requests',
+  'p2p-lifecycle',
+  'p2p-wallet',
+  'org-requests',
+  'p2p-qr',
+  'p2p-safety',
+];
+
+function GuideCard({
+  g,
+  lang,
+  onOpen,
+}: {
+  g: ModuleGuide;
+  lang: string;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <button
+      key={g.id}
+      type="button"
+      onClick={() => onOpen(g.id)}
+      className="text-left rounded-2xl bg-white border border-amber-100 p-4 hover:border-amber-300 hover:shadow-md transition-all min-h-[44px]"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="text-2xl" aria-hidden>
+          {GUIDE_ICONS[g.id] || '📖'}
+        </span>
+        <div className="font-extrabold text-stone-800 text-sm">{pick(g, lang, 'name')}</div>
+      </div>
+      <p className="text-xs text-stone-500 mt-1.5 leading-relaxed line-clamp-2">
+        {pick(g, lang, 'tagline')}
+      </p>
+    </button>
+  );
+}
 
 function pick(g: ModuleGuide, lang: string, field: 'name' | 'tagline'): string {
   const v = g[field];
@@ -55,6 +105,19 @@ export const GuideCenter: React.FC<{
       return hay.includes(q);
     });
   }, [query]);
+
+  const isSearching = query.trim().length > 0;
+  const moneyChatGuides = useMemo(
+    () =>
+      MONEY_CHAT_IDS.map((id) => filtered.find((g) => g.id === id)).filter(
+        (g): g is ModuleGuide => !!g
+      ),
+    [filtered]
+  );
+  const otherGuides = useMemo(
+    () => filtered.filter((g) => !MONEY_CHAT_IDS.includes(g.id)),
+    [filtered]
+  );
 
   if (!isOpen) return null;
 
@@ -114,26 +177,40 @@ export const GuideCenter: React.FC<{
                 <T en="No guides match your search." bn="কোনো নির্দেশিকা মেলেনি।" hi="कोई मार्गदर्शिका नहीं मिली।" />
               </p>
             </div>
-          ) : (
+          ) : isSearching ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {filtered.map((g) => (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => setActiveGuideId(g.id)}
-                  className="text-left rounded-2xl bg-white border border-amber-100 p-4 hover:border-amber-300 hover:shadow-md transition-all min-h-[44px]"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl" aria-hidden>
-                      {GUIDE_ICONS[g.id] || '📖'}
-                    </span>
-                    <div className="font-extrabold text-stone-800 text-sm">{pick(g, lang, 'name')}</div>
-                  </div>
-                  <p className="text-xs text-stone-500 mt-1.5 leading-relaxed line-clamp-2">
-                    {pick(g, lang, 'tagline')}
-                  </p>
-                </button>
+                <GuideCard key={g.id} g={g} lang={lang} onOpen={setActiveGuideId} />
               ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Money & Chat section */}
+              {moneyChatGuides.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-extrabold text-stone-700 mb-2.5 flex items-center gap-2">
+                    <span aria-hidden>💬</span>
+                    <T en="Money & Chat" bn="টাকা ও চ্যাট" hi="धन व चैट" />
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {moneyChatGuides.map((g) => (
+                      <GuideCard key={g.id} g={g} lang={lang} onOpen={setActiveGuideId} />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {/* All other modules */}
+              <section>
+                <h3 className="text-sm font-extrabold text-stone-700 mb-2.5 flex items-center gap-2">
+                  <span aria-hidden>📚</span>
+                  <T en="All modules" bn="সব মডিউল" hi="सभी मॉड्यूल" />
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {otherGuides.map((g) => (
+                    <GuideCard key={g.id} g={g} lang={lang} onOpen={setActiveGuideId} />
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </div>

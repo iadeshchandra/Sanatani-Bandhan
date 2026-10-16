@@ -15,6 +15,7 @@ import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { useSuchana } from './useSuchana';
+import { useChatSuchana } from './useChatSuchana';
 import {
   glanceForRole,
   fromGlanceDoc,
@@ -60,6 +61,10 @@ export function useGlanceFeed(): GlanceFeedData {
 
   // Personal stream — existing engine, role 'solo', 30-day horizon.
   const personal = useSuchana('solo', 30);
+
+  // Chat & P2P money intelligence — pending requests, settlement
+  // reminders, netting nudges, blessing suggestions (fail-open).
+  const chatItems = useChatSuchana(uid);
 
   const [intent, setIntent] = useState<IntentKey>('unknown');
   const [orgCards, setOrgCards] = useState<GlanceItem[]>([]);
@@ -151,7 +156,7 @@ export function useGlanceFeed(): GlanceFeedData {
 
   const items = useMemo(() => {
     try {
-      const personalItems = (personal.items || []).map((it) =>
+      const personalItems = [...(personal.items || []), ...chatItems].map((it) =>
         personalToGlance(it, intent)
       );
       const merged = mergeGlanceFeed(personalItems, orgCards);
@@ -163,7 +168,7 @@ export function useGlanceFeed(): GlanceFeedData {
     } catch {
       return [];
     }
-  }, [personal.items, orgCards, intent, uid]);
+  }, [personal.items, chatItems, orgCards, intent, uid]);
 
   // Offline fallback: serve the cache when the live feed is empty.
   const effective = useMemo(() => {
