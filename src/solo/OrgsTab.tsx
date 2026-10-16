@@ -120,19 +120,24 @@ export const OrgsTab: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           <div>
             <div className="font-extrabold text-stone-900 text-sm">
-              <T en="Starting a new institution?" bn="নতুন প্রতিষ্ঠান শুরু করছেন?" hi="नई संस्था आरंभ कर रहे हैं?" />
+              <T en="Looking for another organisation?" bn="আরেকটি সংগঠন খুঁজছেন?" hi="कोई और संगठन खोज रहे हैं?" />
             </div>
             <div className="text-xs text-stone-500 mt-0.5">
               <T
-                en="Register your organisation and grow with Sanatani Bandhan."
-                bn="আপনার সংগঠন নিবন্ধন করুন এবং সনাতনী বন্ধনের সাথে এগিয়ে যান।"
-                hi="अपना संगठन पंजीकृत करें और सनातनी बंधन के साथ आगे बढ़ें।"
+                en="Search the directory and request membership — or register your own institution."
+                bn="নির্দেশিকা থেকে খুঁজে সদস্যতার অনুরোধ করুন — অথবা নিজের প্রতিষ্ঠান নিবন্ধন করুন।"
+                hi="निर्देशिका में खोजकर सदस्यता अनुरोध भेजें — या अपना संस्थान पंजीकृत करें।"
               />
             </div>
           </div>
-          <Btn onClick={() => navigate('/register-org')}>
-            <T en="Register an organisation" bn="সংগঠন নিবন্ধন" hi="संगठन पंजीकृत करें" />
-          </Btn>
+          <div className="flex flex-wrap gap-2">
+            <Btn variant="ghost" onClick={() => navigate('/app/orgs/join')}>
+              <T en="Find an organisation" bn="সংগঠন খুঁজুন" hi="संगठन खोजें" />
+            </Btn>
+            <Btn onClick={() => navigate('/register-org')}>
+              <T en="Register an organisation" bn="সংগঠন নিবন্ধন" hi="संगठन पंजीकृत करें" />
+            </Btn>
+          </div>
         </div>
       </Card>
     </div>

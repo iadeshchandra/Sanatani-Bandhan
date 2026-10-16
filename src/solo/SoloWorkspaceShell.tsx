@@ -8,6 +8,7 @@ import { AppShell, AppTabId } from '../components/shell/AppShell';
 import { HomeTab, HomeSubTabBar, soloSubTabFromPath, SOLO_TAB_IDS, SoloTabId } from './HomeTab';
 import { OrgsTab } from './OrgsTab';
 import { OrgSwitchRoute } from './OrgSwitchRoute';
+import { JoinOrgScreen } from './JoinOrgScreen';
 import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
@@ -101,6 +102,9 @@ const SoloRouter: React.FC = () => {
         <Route path="/app/home" element={<HomeTab />} />
         <Route path="/app/home/:subTab" element={<HomeTab />} />
         <Route path="/app/orgs" element={<OrgsTab />} />
+        {/* Phase 2: join flow — static route first so "join" never falls
+            into the :orgId param. */}
+        <Route path="/app/orgs/join" element={<JoinOrgScreen />} />
         <Route path="/app/org/:orgId" element={<OrgSwitchRoute />} />
         <Route path="/app/suchana" element={<SuchanaPage />} />
         <Route path="/app/profile" element={<ProfileTab />} />
