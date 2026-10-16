@@ -60,7 +60,7 @@ import { useToast } from '../../context/ToastContext';
 import { compressExpenseMemo } from '../../utils/imageCompression';
 import { MemberSearchSelect } from '../common/MemberSearchSelect';
 import { getTransactions } from '../../services/treasuryService';
-import { useLanguage } from '../../context/LanguageContext';
+import { GuideButton } from '../suchana/GuideButton';
 
 interface TreasuryLedgerDeskProps {
   onOpenQuickPay?: () => void;
@@ -179,9 +179,7 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
   );
 });
 
-export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
-  onOpenQuickPay, onNavigate }) => {
-  const { t } = useLanguage();
+export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
   const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
@@ -715,12 +713,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                <Landmark className="w-3.5 h-3.5 text-emerald-400" />{t('org.finance.treasury.doubleentryTreasuryLedger')}</span>
+                <Landmark className="w-3.5 h-3.5 text-emerald-400" />
+                Double-Entry Treasury Ledger
+              </span>
               <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-0.5 rounded-lg border border-temple-800">
                 Charitable Trust Accounting Standard
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">{t('org.finance.treasury.treasuryFundBalanceSheet')}</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">
+              Treasury & Fund Balance Sheet
+            </h2>
             <p className="text-xs sm:text-sm text-temple-400 mt-1 max-w-2xl">
               Audited double-entry ledger with Restricted vs. Unrestricted fund segregation, instant Section 80G receipts, and direct Tally Prime CSV ingestion for CAs.
             </p>
@@ -728,6 +730,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
 
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <GuideButton moduleId="treasury" className="!text-amber-300 hover:!text-amber-200 hover:!bg-white/10" />
             {/* Hundi & Golak Dual Audit Desk — upsell in-context when not enabled,
                 instead of a dead navigation to a blocked desk. */}
             {onNavigate &&
@@ -739,7 +742,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                   title="Open Hundi & Golak Dual-Custody Vault & Counting Desk"
                 >
                   <Lock className="w-4 h-4 text-amber-400" />
-                  <span>{t('org.finance.treasury.hundiVaultDesk')}</span>
+                  <span>Hundi Vault Desk</span>
                 </button>
               ) : (
                 <ModuleUpsellCard moduleId="hundi-audit" compact onEnable={handleEnableSuggestion} />
@@ -753,7 +756,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
               title="Download formatted columnar CSV for Tally Prime import"
             >
               <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-              <span>{t('org.finance.treasury.exportToTallyCsv')}</span>
+              <span>Export to Tally (CSV)</span>
             </button>
 
             {/* Statement PDF */}
@@ -764,7 +767,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
               title="Print Audited Statement PDF"
             >
               <Printer className="w-4 h-4 text-amber-400" />
-              <span>{t('org.finance.treasury.printStatementPdf')}</span>
+              <span>Print Statement (PDF)</span>
             </button>
 
             {/* Standard CSV */}
@@ -789,7 +792,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4 text-temple-950" />
-              <span>{t('org.finance.treasury.newVoucherEntry')}</span>
+              <span>New Voucher Entry</span>
             </button>
 
             {/* Quick Chanda Button (If parent passed callback) */}
@@ -800,7 +803,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                 className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{t('org.finance.treasury.posChanda')}</span>
+                <span>POS Chanda</span>
               </button>
             )}
           </div>
@@ -825,19 +828,19 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
           {/* Total Inflow */}
           <div className="bg-temple-900/90 border border-emerald-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-emerald-950/15">
             <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span className="font-bold uppercase tracking-wider">{t('org.finance.treasury.totalIncomeInflow')}</span>
+              <span className="font-bold uppercase tracking-wider">Total Income (Inflow)</span>
               <ArrowDownLeft className="w-5 h-5 text-emerald-400" />
             </div>
             <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2">
               + {formatINR(financialKPIs.totalIncome)}
             </p>
-            <p className="text-[11px] text-temple-400 mt-1">{t('org.finance.treasury.pranamiSevaAnnadanamHundiCollections')}</p>
+            <p className="text-[11px] text-temple-400 mt-1">Pranami, Seva, Annadanam & Hundi Collections</p>
           </div>
 
           {/* Total Outflow */}
           <div className="bg-temple-900/90 border border-rose-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-rose-950/15">
             <div className="flex items-center justify-between text-xs text-rose-400">
-              <span className="font-bold uppercase tracking-wider">{t('org.finance.treasury.totalExpensesOutflow')}</span>
+              <span className="font-bold uppercase tracking-wider">Total Expenses (Outflow)</span>
               <ArrowUpRight className="w-5 h-5 text-rose-400" />
             </div>
             <p className="text-2xl sm:text-3xl font-black text-rose-400 mt-2">
@@ -849,13 +852,15 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
           {/* Net Treasury Balance */}
           <div className="bg-temple-900/90 border border-amber-500/40 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-amber-950/15">
             <div className="flex items-center justify-between text-xs text-amber-400">
-              <span className="font-bold uppercase tracking-wider">{t('org.finance.treasury.netAvailableTreasury')}</span>
+              <span className="font-bold uppercase tracking-wider">Net Available Treasury</span>
               <ShieldCheck className="w-5 h-5 text-amber-400" />
             </div>
             <p className="text-2xl sm:text-3xl font-black text-amber-300 mt-2">
               {formatINR(financialKPIs.netBalance)}
             </p>
-            <p className="text-[11px] text-amber-400/90 mt-1 font-mono font-semibold">{t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}</p>
+            <p className="text-[11px] text-amber-400/90 mt-1 font-mono font-semibold">
+              Reconciled across Bank, Cash & UPI Ledgers
+            </p>
           </div>
         </div>
 
@@ -923,7 +928,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="w-5 h-5 text-amber-400" />
                   <div>
-                    <h3 className="text-sm font-bold text-temple-100">{t('org.finance.treasury.treasuryFlowAnalytics')}</h3>
+                    <h3 className="text-sm font-bold text-temple-100">Treasury Flow Analytics</h3>
                     <p className="text-[11px] text-temple-400">
                       Monthly Income vs Expense · Last 8 months
                     </p>
@@ -961,7 +966,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                   <Layers className="w-5 h-5 text-amber-400" />
                   <div>
                     <h3 className="text-sm font-bold text-temple-100">Income by Trust Fund</h3>
-                    <p className="text-[11px] text-temple-400">{t('org.finance.treasury.donormandateSegmentation')}</p>
+                    <p className="text-[11px] text-temple-400">Donor-mandate segmentation</p>
                   </div>
                 </div>
                 {fundDonutData.length > 0 ? (
@@ -1005,7 +1010,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                       ))}
                     </ul>
                     <p className="mt-2 pt-2 border-t border-temple-800 text-[11px] text-temple-400 flex justify-between">
-                      <span>{t('org.finance.treasury.totalInflow')}</span>
+                      <span>Total inflow:</span>
                       <span className="font-mono font-bold text-amber-300">{formatINR(fundDonutTotal)}</span>
                     </p>
                   </>
@@ -1078,7 +1083,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                     setEndDate('');
                   }}
                   className="px-2.5 py-1.5 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold"
-                >{t('org.finance.treasury.clearDates')}</button>
+                >
+                  Clear Dates
+                </button>
               )}
 
               {dateRangeInvalid && (
@@ -1137,7 +1144,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                   type="button"
                   onClick={resetFilters}
                   className="text-xs text-amber-400 hover:underline font-bold px-2"
-                >{t('org.finance.treasury.resetAllFilters')}</button>
+                >
+                  Reset All Filters
+                </button>
               )}
             </div>
 
@@ -1211,14 +1220,14 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
               <table className="w-full text-left text-xs text-temple-200">
               <thead className="bg-temple-950/90 text-temple-400 border-b border-temple-800 text-[11px] uppercase tracking-wider font-extrabold">
                 <tr>
-                  <th className="py-3.5 px-4">{t('org.finance.treasury.date')}</th>
-                  <th className="py-3.5 px-3">{t('org.finance.treasury.voucherRefId')}</th>
+                  <th className="py-3.5 px-4">Date</th>
+                  <th className="py-3.5 px-3">Voucher / Ref ID</th>
                   <th className="py-3.5 px-3">Type</th>
-                  <th className="py-3.5 px-3">{t('org.finance.treasury.ledgerHeadFund')}</th>
-                  <th className="py-3.5 px-3">{t('org.finance.treasury.paymentMode')}</th>
-                  <th className="py-3.5 px-3">{t('org.finance.treasury.entityDonorPayee')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('org.finance.treasury.amount')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('org.finance.treasury.actions')}</th>
+                  <th className="py-3.5 px-3">Ledger Head & Fund</th>
+                  <th className="py-3.5 px-3">Payment Mode</th>
+                  <th className="py-3.5 px-3">Entity (Donor / Payee)</th>
+                  <th className="py-3.5 px-4 text-right">Amount (₹)</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-temple-800/60 font-medium">
@@ -1381,7 +1390,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/85 backdrop-blur-md">
             <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl">
               <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
-                <h4 className="font-bold text-xs">{t('org.finance.treasury.attachedPaymentMemoVoucherPhoto')}</h4>
+                <h4 className="font-bold text-xs">Attached Payment Memo / Voucher Photo</h4>
                 <button
                   type="button"
                   onClick={() => setSelectedMemoUrl(null)}
@@ -1408,7 +1417,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
                 <div>
                   <h3 className="text-xl font-extrabold text-amber-300 flex items-center gap-2">
-                    <Landmark className="w-5 h-5 text-amber-400" />{t('org.finance.treasury.newGeneralLedgerVoucherEntry')}</h3>
+                    <Landmark className="w-5 h-5 text-amber-400" />
+                    New General Ledger Voucher Entry
+                  </h3>
                   <p className="text-xs text-temple-400 mt-0.5">
                     Log double-entry disbursements, priest honorariums, vendor bills, or manual receipts.
                   </p>
@@ -1440,7 +1451,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                           ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/25'
                           : 'bg-temple-950 text-temple-400 border-temple-800 hover:border-temple-700'
                       }`}
-                    >{t('org.finance.treasury.paymentVoucherExpenseOutflow')}</button>
+                    >
+                      Payment Voucher (Expense Outflow)
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -1452,7 +1465,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                           ? 'bg-emerald-500 text-temple-950 border-emerald-400 shadow-md shadow-emerald-500/25'
                           : 'bg-temple-950 text-temple-400 border-temple-800 hover:border-temple-700'
                       }`}
-                    >{t('org.finance.treasury.receiptVoucherIncomeInflow')}</button>
+                    >
+                      Receipt Voucher (Income Inflow)
+                    </button>
                   </div>
                 </div>
 
@@ -1507,18 +1522,18 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                           <option value="Flower & Decoration Seva">Flower Garland & Sanctum Decor</option>
                           <option value="Prasadam & Annadanam Kitchen">Prasadam & Annadanam Kitchen Expenses</option>
                           <option value="Gaushala Maintenance">Gaushala & Fodder Purchases</option>
-                          <option value="Mandir Construction & Civil Work">{t('org.finance.treasury.mandirConstructionCivilWork')}</option>
-                          <option value="Legal & Audit Professional Fees">{t('org.finance.treasury.legalTrustAuditProfessionalFees')}</option>
+                          <option value="Mandir Construction & Civil Work">Mandir Construction & Civil Work</option>
+                          <option value="Legal & Audit Professional Fees">Legal, Trust & Audit Professional Fees</option>
                           <option value="Miscellaneous Temple Expense">Miscellaneous Temple Expense</option>
                         </>
                       ) : (
                         <>
-                          <option value="Chanda / General Donation">{t('org.finance.treasury.chandaGeneralDonation')}</option>
+                          <option value="Chanda / General Donation">Chanda / General Donation</option>
                           <option value="Annadanam Sponsorship">Annadanam Sponsorship</option>
-                          <option value="Mandir Nirman Fund">{t('org.finance.treasury.mandirNirmanFund')}</option>
-                          <option value="Gau Seva Nidhi">{t('org.finance.treasury.gauSevaNidhi')}</option>
-                          <option value="Pooja Dakshina">{t('org.finance.treasury.poojaDakshina')}</option>
-                          <option value="Hundi Collection">{t('org.finance.treasury.hundiGolakCollection')}</option>
+                          <option value="Mandir Nirman Fund">Mandir Nirman Fund</option>
+                          <option value="Gau Seva Nidhi">Gau Seva Nidhi</option>
+                          <option value="Pooja Dakshina">Pooja Dakshina</option>
+                          <option value="Hundi Collection">Hundi (Golak) Collection</option>
                         </>
                       )}
                     </select>
@@ -1569,16 +1584,18 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                       onChange={(e) => setVoucherPaymentMode(e.target.value)}
                       className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
                     >
-                      <option value="Bank Transfer (NEFT/RTGS)">{t('org.finance.treasury.bankTransferNeftrtgs')}</option>
+                      <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT/RTGS)</option>
                       <option value="UPI">UPI</option>
-                      <option value="Cash">{t('org.finance.treasury.cash')}</option>
+                      <option value="Cash">Cash</option>
                       <option value="Cheque">Cheque</option>
                       <option value="Demand Draft">Demand Draft</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">{t('org.finance.treasury.chequeUtrVoucherRefNo')}</label>
+                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                      Cheque / UTR / Voucher Ref No
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. UTR123456 / CHQ-00123"
@@ -1637,7 +1654,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
 
                 {/* Voucher Memo Photo Attachment */}
                 <div className="pt-2 border-t border-temple-800">
-                  <label className="block text-xs font-bold text-temple-400 mb-1">{t('org.finance.treasury.attachBillInvoiceVoucherPhotoCompressedL')}</label>
+                  <label className="block text-xs font-bold text-temple-400 mb-1">
+                    Attach Bill / Invoice / Voucher Photo (Compressed locally)
+                  </label>
                   <input
                     type="file"
                     accept="image/*"
@@ -1646,7 +1665,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                   />
                   {voucherMemoUrl && (
                     <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5" />{t('org.finance.treasury.voucherPhotoCompressedAndAttached')}</p>
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Voucher photo compressed and attached
+                    </p>
                   )}
                 </div>
 
@@ -1656,11 +1676,15 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({
                     type="button"
                     onClick={() => setShowVoucherModal(false)}
                     className="px-4 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold transition-colors"
-                  >{t('org.finance.treasury.cancel')}</button>
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs shadow-lg shadow-amber-600/30 transition-all cursor-pointer"
-                  >{t('org.finance.treasury.postVoucherToGeneralLedger')}</button>
+                  >
+                    Post Voucher to General Ledger
+                  </button>
                 </div>
               </form>
             </div>
