@@ -61,6 +61,7 @@ import { compressExpenseMemo } from '../../utils/imageCompression';
 import { MemberSearchSelect } from '../common/MemberSearchSelect';
 import { getTransactions } from '../../services/treasuryService';
 import { GuideButton } from '../suchana/GuideButton';
+import { AuditTrailView } from '../treasury/AuditTrailDesk';
 
 interface TreasuryLedgerDeskProps {
   onOpenQuickPay?: () => void;
@@ -313,6 +314,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const [voucherIs80G, setVoucherIs80G] = useState(false);
   const [voucherMemoUrl, setVoucherMemoUrl] = useState('');
   const [isUploadingMemo, setIsUploadingMemo] = useState(false);
+  // Pillar 4 — Audit Trail view toggle (trustee/accountant-only trail)
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
 
   // Categorize a transaction into a Fund
   const getTransactionFund = (tx: TreasuryTransaction): FundDefinition => {
@@ -781,6 +784,22 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <span>Full CSV</span>
             </button>
 
+            {/* Pillar 4 — Audit Trail: the 10-second "where did my money go?" view */}
+            <button
+              type="button"
+              onClick={() => setShowAuditTrail((v) => !v)}
+              aria-expanded={showAuditTrail}
+              className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px] ${
+                showAuditTrail
+                  ? 'bg-emerald-600/25 border-emerald-500/60 text-emerald-200'
+                  : 'bg-emerald-950 hover:bg-emerald-900 border-emerald-500/50 text-emerald-200 hover:text-white'
+              }`}
+              title="Open the tamper-evident audit trail — every rupee's journey"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>{showAuditTrail ? 'Close Audit Trail' : 'Audit Trail'}</span>
+            </button>
+
             {/* New Voucher Entry */}
             <button
               type="button"
@@ -808,6 +827,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             )}
           </div>
         </div>
+
+        {/* Pillar 4 — Audit Trail (trustee/accountant-only; devotees see the Transparency tab inside) */}
+        {showAuditTrail && (
+          <div className="space-y-3">
+            <AuditTrailView />
+          </div>
+        )}
 
         {/* Seva Suggestions — contextual cards fired by treasury triggers */}
         {sevaSuggestions.length > 0 && (
