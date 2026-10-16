@@ -20,6 +20,7 @@ import {
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
   X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
   Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store,
+  Wallet,
 } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider, sendPasswordResetEmail } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
@@ -32,6 +33,7 @@ import { InsightsTab, DatabaseExplorerTab } from './godmode/AdminTabsC';
 import { CommissionTab, ContentTab } from './godmode/AdminTabsD';
 import { SettingsTab, SupportTab } from './godmode/AdminTabsE';
 import { MarketplaceTab } from './godmode/AdminTabsF';
+import { FinanceTab } from './godmode/AdminTabsJ';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -39,7 +41,7 @@ interface GodModeConsole2Props {
 }
 
 type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
-  | 'billing' | 'commission' | 'messages' | 'audit'
+  | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace' | 'system';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
@@ -50,6 +52,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'moderation', label: 'Moderation', icon: <ShieldAlert className="w-4 h-4" /> },
   { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'commission', label: 'Commission', icon: <HandCoins className="w-4 h-4" /> },
+  { id: 'finance', label: 'Finance', icon: <Wallet className="w-4 h-4" /> },
   { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
@@ -333,6 +336,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'moderation': return <ModerationTab />;
       case 'billing': return <BillingTab />;
       case 'commission': return <CommissionTab />;
+      case 'finance': return <FinanceTab goToTab={(t: string) => setTab(t as TabId)} />;
       case 'marketplace': return <MarketplaceTab />;
       case 'messages': return <MessagesTab />;
       case 'database': return <DatabaseExplorerTab />;
