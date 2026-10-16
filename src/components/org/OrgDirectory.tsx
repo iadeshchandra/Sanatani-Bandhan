@@ -91,7 +91,7 @@ export const OrgDirectory: React.FC = () => {
             {pages.map((p) => (
               <button
                 key={p.orgId}
-                onClick={() => navigate(`/org/${p.orgId}`)}
+                onClick={() => navigate(`/org/${p.publicSlug || p.orgId}`)}
                 className="w-full bg-white rounded-2xl border border-stone-200 p-4 flex items-center gap-4 hover:shadow-md hover:border-amber-300 transition-all text-left min-h-[44px]"
               >
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white font-black text-xl shrink-0 overflow-hidden">

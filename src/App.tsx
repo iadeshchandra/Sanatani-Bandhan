@@ -85,7 +85,9 @@ const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome').
 const DevoteeGrid = lazy(() => import('./components/domain1/DevoteeGrid').then(m => ({ default: m.DevoteeGrid })));
 const MembershipDesk = lazy(() => import('./components/org/MembershipDesk').then(m => ({ default: m.MembershipDesk })));
 const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m => ({ default: m.OrgDirectory })));
-const OrgPage = lazy(() => import('./components/org/OrgPage').then(m => ({ default: m.OrgPage })));
+// Pillar 3: public org page — the temple's web presence + inbound funnel.
+// Supersedes the social-only OrgPage (follow/join actions live here now).
+const OrgPublicPage = lazy(() => import('./pages/OrgPublicPage').then(m => ({ default: m.OrgPublicPage })));
 const FestivalEventPage = lazy(() => import('./components/festival/FestivalEventPage').then(m => ({ default: m.FestivalEventPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
@@ -1063,7 +1065,8 @@ const AppRouter: React.FC = () => {
           <Route path="/portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
-          <Route path="/org/:orgId" element={<OrgPage />} />
+          {/* Pillar 3: canonical public org page — accepts orgId or publicSlug. */}
+          <Route path="/org/:orgId" element={<OrgPublicPage />} />
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
           {/* Phase 2 dev preview: profile org hub with mock data.

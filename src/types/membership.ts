@@ -12,7 +12,14 @@
  * goshalas, trusts and more.
  */
 
-/** Public organisation page (global collection `orgPages/{orgId}`). */
+/** Public organisation page (global collection `orgPages/{orgId}`).
+ *
+ * Pillar 3 — this doc is the PUBLIC PROJECTION of an org. Firestore rules
+ * grant public read and trustee-only write gated by a server-side
+ * `hasOnly([...])` field whitelist (see ORG_PUBLIC_FIELDS in
+ * src/lib/orgPublic.ts). Fields not listed there can never be published —
+ * treasury, members, bank details and pins live only on `workspaces/{id}`.
+ */
 export interface OrgPage {
   orgId: string;
   name: string;
@@ -30,6 +37,28 @@ export interface OrgPage {
   /** All real (non-demo) workspaces are platform-listed. */
   verified: boolean;
   updatedAt: number;
+
+  /* ---- Pillar 3: public profile fields (all optional, trustee-curated) ---- */
+  /** Short motto shown under the name, e.g. "सर्वे भवन्तु सुखिनः". */
+  tagline?: string;
+  /** URL-safe public slug, e.g. "dakshineswar-kali-mandir". */
+  publicSlug?: string;
+  /** Street address (structured parts stay in city/state/country). */
+  addressLine?: string;
+  pincode?: string;
+  phone?: string;
+  website?: string;
+  /** Darshan/aarti timings as written by the trustee. */
+  darshanTimings?: { label: string; time: string }[];
+  /** Public gallery image URLs (Storage `orgGallery/{orgId}/…`). */
+  galleryUrls?: string[];
+  /** Trustee-published upcoming events (max 10). */
+  upcomingEvents?: { title: string; date: string; time?: string; description?: string }[];
+  /** Trust registration number (public). */
+  registrationNo?: string;
+  eightyGRegistered?: boolean;
+  eightyGURN?: string;
+  twelveARegistered?: boolean;
 }
 
 /** A follower edge: `followers/{orgId}/users/{uid}`. */

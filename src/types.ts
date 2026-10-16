@@ -103,6 +103,17 @@ export interface Workspace extends TenantScoped {
   kuladevata: string;
   logoUrl?: string;
   bannerUrl?: string;
+  // Pillar 3: public profile fields (trustee-curated; synced to the public
+  // `orgPages/{id}` projection by syncOrgPage — see src/lib/orgPublic.ts).
+  /** Public-facing website URL. */
+  website?: string;
+  /** URL-safe slug for the public org page (`/org/<slug>`). */
+  publicSlug?: string;
+  pincode?: string;
+  /** Darshan/aarti timings, e.g. [{label:'Morning Aarti', time:'6:00 AM'}]. */
+  darshanTimings?: { label: string; time: string }[];
+  /** Public gallery image URLs (Storage `orgGallery/{orgId}/…`). */
+  galleryUrls?: string[];
   taxExemptionNumber?: string;
   enabledModules?: string[];
   trustRegNumber?: string;
@@ -186,6 +197,17 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
   kuladevata: string;
   logoUrl?: string;
   bannerUrl?: string;
+  // Pillar 3: public profile fields (trustee-curated; synced to the public
+  // `orgPages/{id}` projection by syncOrgPage — see src/lib/orgPublic.ts).
+  /** Public-facing website URL. */
+  website?: string;
+  /** URL-safe slug for the public org page (`/org/<slug>`). */
+  publicSlug?: string;
+  pincode?: string;
+  /** Darshan/aarti timings, e.g. [{label:'Morning Aarti', time:'6:00 AM'}]. */
+  darshanTimings?: { label: string; time: string }[];
+  /** Public gallery image URLs (Storage `orgGallery/{orgId}/…`). */
+  galleryUrls?: string[];
   taxExemptionNumber?: string;
   enabledModules?: string[];
   trustRegNumber?: string;
