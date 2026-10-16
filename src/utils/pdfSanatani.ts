@@ -35,6 +35,8 @@ import {
   OM,
 } from './sanataniTheme';
 
+import { letterheadForWorkspace } from '../lib/orgBranding';
+
 /* ================================================================== */
 /*  FONT LOADING GUIDE                                                 */
 /* ================================================================== *
@@ -241,7 +243,7 @@ export function structuredReceiptNo(centerCode: string, typeCode: string, serial
   return `${c}-${t}-${s}`;
 }
 
-type ReturnOpt = { download?: boolean; returnType?: 'save' | 'blob' | 'bloburl'; isCopy?: boolean };
+type ReturnOpt = { download?: boolean; returnType?: 'save' | 'blob' | 'bloburl'; isCopy?: boolean; isSamplePreview?: boolean };
 
 /**
  * Resolve the pdfmake engine handles. createPdf() reads fonts/vfs from the
@@ -453,7 +455,20 @@ export const generateDonationAcknowledgment = async (
   const sevaName = transaction?.sevaName || transaction?.purpose || transaction?.category || 'Seva';
   const dateStr = transaction?.date || new Date().toISOString().split('T')[0];
 
+  // Pillar 1 — letterhead on the acknowledgment too (logo, name, address).
+  const lh = await letterheadForWorkspace(workspace);
+
   const content: any[] = [
+    sacredHeader({
+      trustName,
+      trustAddress: lh.addressLine,
+      metaLine: lh.metaLine,
+      invocation: invocationFor(workspace),
+      logoDataUrl: lh.logoDataUrl,
+      monogramLetter: lh.logoDataUrl ? undefined : lh.monogramLetter,
+      tagline: lh.tagline,
+      phone: lh.phone ? `Ph: ${lh.phone}` : undefined,
+    }),
     {
       text: OM,
       font: SANATANI_FONTS.devanagari, fontSize: 28, color: SANATANI_COLORS.gold,
@@ -580,8 +595,20 @@ export async function build80GDocDef(transaction: any, workspace: any, options?:
     (exemption80GValidTo ? ` (valid until ${exemption80GValidTo})` : '');
   const qrUrl = await qrDataUrl(JSON.stringify({ receiptNo, amount, donor: donorName, docRef }));
 
+  // Pillar 1 — proper letterhead: logo (offline-cached), tagline, phone, reg.
+  const lh = await letterheadForWorkspace(workspace);
+
   const content: any[] = [
-    sacredHeader({ trustName, trustAddress, metaLine, invocation: invocationFor(workspace) }),
+    sacredHeader({
+      trustName,
+      trustAddress,
+      metaLine,
+      invocation: invocationFor(workspace),
+      logoDataUrl: lh.logoDataUrl,
+      monogramLetter: lh.logoDataUrl ? undefined : lh.monogramLetter,
+      tagline: lh.tagline,
+      phone: lh.phone ? `Ph: ${lh.phone}` : undefined,
+    }),
     sectionTitle('STATUTORY DONATION RECEIPT & 80G TAX EXEMPTION CERTIFICATE', 'वैधानिक दान रसीद एवं 80G कर छूट प्रमाणपत्र'),
     detailGrid([
       [bilingual('Receipt No.', 'रसीद संख्या'), { text: receiptNo, bold: true }],
@@ -600,6 +627,11 @@ export async function build80GDocDef(transaction: any, workspace: any, options?:
   }
   if (options?.isCopy) {
     background.push({ text: 'DUPLICATE COPY', fontSize: 60, bold: true, color: SANATANI_COLORS.stone, opacity: 0.12, alignment: 'center', margin: [0, 300, 0, 0] });
+  }
+  // Pillar 1: the settings "live preview" stamps its sample receipts so a
+  // preview can never be mistaken for a real statutory document.
+  if (options?.isSamplePreview) {
+    background.push({ text: 'SAMPLE PREVIEW', fontSize: 54, bold: true, color: SANATANI_COLORS.gold, opacity: 0.16, alignment: 'center', margin: [0, 300, 0, 0] });
   }
 
   return { pageSize: 'A4', pageMargins: [28, 28, 28, 28], background, content: [tripleBorder(content)] };

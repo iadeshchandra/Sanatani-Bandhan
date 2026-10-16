@@ -4,6 +4,12 @@ import { get } from 'idb-keyval';
 import QRCode from 'qrcode';
 import { generateSecureQRToken } from './qrUtils';
 import { DevoteeMember, TreasuryTransaction, WorkspaceConfig, PoojaBooking } from '../types';
+import {
+  resolveOrgLogoDataUrl,
+  monogramLetter,
+  brandingFromWorkspace,
+  letterheadAddressLine,
+} from '../lib/orgBranding';
 
 /**
  * Generate cryptographic doc ref: DOC REF: SB-XXXX-XXXX-XXXX
@@ -128,6 +134,129 @@ export const numberToWords = (num: number): string => {
   }
 
   return `${words.trim()} Rupees${paiseStr} Only`;
+};
+
+/* ================================================================== */
+/*  PILLAR 1 — Shared letterhead for every receipt                      */
+/* ================================================================== */
+
+/**
+ * Draw a proper institutional letterhead: org logo (offline-cached data
+ * URL) at the left — or a dignified monogram (initial in a maroon/gold
+ * frame) when no logo exists — then org name, tagline, address, phone and
+ * registration meta, finished with a gold divider rule.
+ *
+ * Returns the Y coordinate just below the divider so callers can continue.
+ * Never throws: a missing logo degrades to the monogram, never a blank.
+ */
+export const drawLetterhead = async (
+  doc: jsPDF,
+  workspace: any,
+  opts: { x?: number; y?: number; width?: number; metaLine?: string } = {}
+): Promise<number> => {
+  const x = opts.x ?? 12;
+  const y = opts.y ?? 12;
+  const width = opts.width ?? 186;
+  const cx = x + width / 2;
+
+  const branding = brandingFromWorkspace(workspace);
+  const logoDataUrl = await resolveOrgLogoDataUrl(branding.orgId, branding.logoUrl);
+
+  // --- Mark: logo left, monogram fallback ---
+  const markSize = 26;
+  const markX = x + 2;
+  const markY = y + 2;
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), markX, markY, markSize, markSize);
+    } catch {
+      drawMonogramMark(doc, branding.name, markX, markY, markSize);
+    }
+  } else {
+    drawMonogramMark(doc, branding.name, markX, markY, markSize);
+  }
+
+  // --- Identity block ---
+  let ty = y + 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(146, 64, 14); // Amber 800
+  const nameLines = doc.splitTextToSize(branding.name.toUpperCase(), width - markSize - 12);
+  doc.text(nameLines.slice(0, 2), cx + 15, ty, { align: 'center' });
+  ty += nameLines.slice(0, 2).length * 6;
+
+  if (branding.tagline) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(62, 39, 35);
+    doc.text(doc.splitTextToSize(branding.tagline, width - markSize - 12).slice(0, 1), cx + 15, ty, { align: 'center' });
+    ty += 4.5;
+  }
+
+  const addressLine = letterheadAddressLine(branding);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(87, 83, 78);
+  if (addressLine) {
+    doc.text(doc.splitTextToSize(addressLine, width - markSize - 12).slice(0, 2), cx + 15, ty, { align: 'center' });
+    ty += 4;
+  }
+  if (branding.phone) {
+    doc.text(`Ph: ${branding.phone}`, cx + 15, ty, { align: 'center' });
+    ty += 4;
+  }
+
+  const metaLine =
+    opts.metaLine ??
+    [
+      branding.trustRegNumber ? `Trust Reg. No: ${branding.trustRegNumber}` : '',
+      branding.trust80GRegistered && branding.trust80GURN ? `80G: ${branding.trust80GURN}` : '',
+    ]
+      .filter(Boolean)
+      .join('   |   ');
+  if (metaLine) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(62, 39, 35);
+    doc.text(doc.splitTextToSize(metaLine, width - markSize - 12).slice(0, 1), cx + 15, ty, { align: 'center' });
+    ty += 4.5;
+  }
+
+  const endY = Math.max(ty + 2, y + markSize + 6);
+
+  // Gold divider rule
+  doc.setDrawColor(245, 158, 11);
+  doc.setLineWidth(0.6);
+  doc.line(x, endY, x + width, endY);
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.25);
+  doc.line(x, endY + 1.2, x + width, endY + 1.2);
+
+  return endY + 4;
+};
+
+/**
+ * Monogram fallback mark for the letterhead: initial letter centred in a
+ * deep-maroon rounded square with a gold double frame. Dignified, never
+ * a placeholder look.
+ */
+export const drawMonogramMark = (
+  doc: jsPDF,
+  orgName: string,
+  x: number,
+  y: number,
+  size: number
+): void => {
+  const letter = monogramLetter(orgName);
+  doc.setFillColor(124, 45, 18); // deep maroon
+  doc.roundedRect(x, y, size, size, 2, 2, 'F');
+  doc.setDrawColor(245, 158, 11); // gold
+  doc.setLineWidth(0.7);
+  doc.roundedRect(x + 1.2, y + 1.2, size - 2.4, size - 2.4, 1.5, 1.5, 'D');
+  doc.setTextColor(255, 251, 235);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(size * 0.48);
+  doc.text(letter, x + size / 2, y + size / 2 + size * 0.17, { align: 'center' });
 };
 
 /**
@@ -292,6 +421,8 @@ export const generate80GTaxReceipt = async (
     download?: boolean;
     returnType?: 'save' | 'blob' | 'bloburl' | 'doc';
     isCopy?: boolean;
+    /** Pillar 1: settings "live preview" stamps sample receipts. */
+    isSamplePreview?: boolean;
   }
 ): Promise<jsPDF | string | Blob> => {
   const doc = new jsPDF({
@@ -330,17 +461,7 @@ export const generate80GTaxReceipt = async (
     : 'NOT REGISTERED — SAMPLE';
   const trustPan = workspace?.panNumber || workspace?.trustPan || workspace?.taxPan || (is80GRegistered ? '—' : 'NOT REGISTERED');
 
-  const addressComponents = [
-    workspace?.address,
-    workspace?.city,
-    workspace?.state,
-    workspace?.pincode,
-    workspace?.country,
-  ].filter(Boolean);
-  const trustAddress = addressComponents.length > 0
-    ? addressComponents.join(', ')
-    : (is80GRegistered ? '—' : 'Sample address — update in Settings');
-
+  // NOTE: address/tagline/phone render inside drawLetterhead (Pillar 1).
   // Transaction & Donor Details Extraction
   const donorName = transaction?.devoteeName || transaction?.donorName || 'Sanatani Devotee';
   const donorPan = transaction?.devoteePan || transaction?.donorPan || transaction?.pan || 'N/A (Required for Form 10BE)';
@@ -379,6 +500,18 @@ export const generate80GTaxReceipt = async (
     doc.text('DUPLICATE COPY', 105, 150, { align: 'center', angle: -45 });
   }
 
+  // Pillar 1: the settings live-preview stamps its sample so it can never
+  // be mistaken for a real statutory receipt.
+  if (options?.isSamplePreview) {
+    doc.saveGraphicsState();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(54);
+    doc.setTextColor(245, 158, 11);
+    (doc as any).setGState?.((doc as any).GState?.({ opacity: 0.16 }));
+    doc.text('SAMPLE PREVIEW', 105, 150, { align: 'center', angle: -30 });
+    doc.restoreGraphicsState();
+  }
+
   // Outer Decorative Double Border
   doc.setDrawColor(180, 83, 9); // Amber 700
   doc.setLineWidth(0.8);
@@ -388,44 +521,23 @@ export const generate80GTaxReceipt = async (
   doc.setLineWidth(0.3);
   doc.rect(11.5, 11.5, 187, 274);
 
-  // Header Banner Background
-  doc.setFillColor(254, 243, 199); // Amber 100
-  doc.rect(12, 12, 186, 36, 'F');
-
-  // Trust Logo (if available)
-  if (workspace?.logoUrl) {
-    try {
-      doc.addImage(workspace.logoUrl, 'PNG', 16, 16, 26, 26);
-    } catch {
-      // Fallback cleanly
-    }
-  }
-
-  // Header Titles
-  doc.setTextColor(146, 64, 14); // Amber 800
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(17);
-  doc.text(trustName.toUpperCase(), 105, 22, { align: 'center' });
-
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(75, 85, 99);
-  doc.text(doc.splitTextToSize(trustAddress, 150), 105, 28, { align: 'center' });
-
-  // Statutory Trust Identifiers Subheader
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(31, 41, 55);
+  // Pillar 1 — proper letterhead: logo (offline-cached) or dignified
+  // monogram, org name, tagline, address, phone, statutory identifiers.
   const trustMetadataLine = `PAN: ${trustPan}   |   Trust Reg. No: ${trustRegNumber}   |   80G Exemption No: ${exemption80GNumber}`;
-  doc.text(trustMetadataLine, 105, 42, { align: 'center' });
+  const headerEndY = await drawLetterhead(doc, workspace, {
+    x: 12,
+    y: 12,
+    width: 186,
+    metaLine: trustMetadataLine,
+  });
 
   // Certificate Title Bar
   doc.setFillColor(180, 83, 9); // Primary Amber 700
-  doc.rect(12, 49, 186, 10, 'F');
+  doc.rect(12, headerEndY, 186, 10, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('STATUTORY DONATION RECEIPT & 80G TAX EXEMPTION CERTIFICATE', 105, 55.5, { align: 'center' });
+  doc.text('STATUTORY DONATION RECEIPT & 80G TAX EXEMPTION CERTIFICATE', 105, headerEndY + 6.5, { align: 'center' });
 
   // Receipt Meta Grid
   doc.setFillColor(249, 250, 251);
@@ -650,6 +762,20 @@ export const generateCounterSlip = async (
   // Top Saffron Banner
   doc.setFillColor(180, 83, 9);
   doc.rect(8, 8, 132, 22, 'F');
+
+  // Pillar 1 — letterhead mark inside the banner (logo, else monogram).
+  {
+    const logoDataUrl = await resolveOrgLogoDataUrl(workspace?.id, workspace?.logoUrl);
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), 11, 11, 16, 16);
+      } catch {
+        drawMonogramMark(doc, trustName, 11, 11, 16);
+      }
+    } else {
+      drawMonogramMark(doc, trustName, 11, 11, 16);
+    }
+  }
 
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
@@ -934,11 +1060,17 @@ export const generatePoojaSankalpPDF = async (
   doc.setFillColor(180, 83, 9);
   doc.rect(0, 0, 148, 22, 'F');
 
-  if (workspace.logoUrl) {
-    try {
-      doc.addImage(workspace.logoUrl, 'PNG', 5, 4, 14, 14);
-    } catch {
-      // Fallback
+  // Pillar 1 — letterhead mark: offline-cached logo, else dignified monogram.
+  {
+    const logoDataUrl = await resolveOrgLogoDataUrl(workspace?.id, workspace?.logoUrl);
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), 5, 4, 14, 14);
+      } catch {
+        drawMonogramMark(doc, workspace?.name || 'Sanatani Bandhan', 5, 4, 14);
+      }
+    } else {
+      drawMonogramMark(doc, workspace?.name || 'Sanatani Bandhan', 5, 4, 14);
     }
   }
 

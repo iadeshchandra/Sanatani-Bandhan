@@ -50,6 +50,8 @@ import {
   generate80GTaxReceipt,
 } from './pdfSanatani';
 
+import { letterheadForWorkspace } from '../lib/orgBranding';
+
 import { get } from 'idb-keyval';
 import { generateSecureQRToken } from './qrUtils';
 import type {
@@ -58,6 +60,25 @@ import type {
   WorkspaceConfig,
   PoojaBooking,
 } from '../types';
+
+/**
+ * Pillar 1 — shared letterhead options for every generator in this file.
+ * Logo resolves from the offline cache, so receipt taps never stall on
+ * network; without a logo the dignified monogram is used instead.
+ */
+async function letterheadOpts(workspace: any): Promise<Record<string, any>> {
+  try {
+    const lh = await letterheadForWorkspace(workspace);
+    return {
+      logoDataUrl: lh.logoDataUrl ?? undefined,
+      monogramLetter: lh.logoDataUrl ? undefined : lh.monogramLetter,
+      tagline: lh.tagline,
+      phone: lh.phone ? `Ph: ${lh.phone}` : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
 
 /* ================================================================== */
 /*  Local helpers                                                      */
@@ -453,6 +474,14 @@ export const generateCounterSlip = async (
     160
   );
 
+  // Pillar 1 — letterhead mark on the counter banner (logo, else monogram).
+  const lh = await letterheadOpts(workspace);
+  const bannerMark = lh.logoDataUrl
+    ? { image: lh.logoDataUrl, width: 26, height: 26, alignment: 'center' as const, margin: [0, 0, 0, 4] }
+    : lh.monogramLetter
+      ? { text: `॥ ${lh.monogramLetter} ॥`, font: SANATANI_FONTS.body, fontSize: 12, bold: true, color: SANATANI_COLORS.white, alignment: 'center' as const, margin: [0, 0, 0, 2] }
+      : null;
+
   const content: any[] = [
     // Saffron banner
     {
@@ -460,6 +489,7 @@ export const generateCounterSlip = async (
         widths: ['*'],
         body: [[{
           stack: [
+            ...(bannerMark ? [bannerMark] : []),
             {
               text: trustName.toUpperCase().substring(0, 36),
               font: SANATANI_FONTS.body, fontSize: 13, bold: true,
@@ -606,6 +636,14 @@ export const generatePoojaSankalpPDF = async (
   );
   const currency = workspace.currencySymbol || '₹';
 
+  // Pillar 1 — letterhead mark on the booking header (logo, else monogram).
+  const lh = await letterheadOpts(workspace);
+  const bookingMark = lh.logoDataUrl
+    ? { image: lh.logoDataUrl, width: 26, height: 26, alignment: 'center' as const, margin: [0, 0, 0, 4] }
+    : lh.monogramLetter
+      ? { text: `॥ ${lh.monogramLetter} ॥`, font: SANATANI_FONTS.body, fontSize: 12, bold: true, color: SANATANI_COLORS.white, alignment: 'center' as const, margin: [0, 0, 0, 2] }
+      : null;
+
   const content: any[] = [
     // Saffron header — invocation now in a REAL Devanagari sacred font
     {
@@ -613,6 +651,7 @@ export const generatePoojaSankalpPDF = async (
         widths: ['*'],
         body: [[{
           stack: [
+            ...(bookingMark ? [bookingMark] : []),
             {
               text: '॥ श्री शुभ संकल्प पत्रम् ॥',
               font: SANATANI_FONTS.sacred, fontSize: 13,
@@ -730,19 +769,17 @@ export const generateDonationHistoryPDF = async (
   workspace: WorkspaceConfig
 ): Promise<void> => {
   const name = devotee.fullName || (devotee as any).name || 'Sanatani Devotee';
-  const logo = await getActiveWorkspaceLogo(workspace.id);
+  const lh = await letterheadOpts(workspace);
   const total = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
-  const headerStack: any[] = [];
-  if (logo) {
-    headerStack.push({ image: logo, width: 44, alignment: 'center' as const, margin: [0, 0, 0, 4] });
-  }
-  headerStack.push(
+  // Pillar 1 — letterhead (logo left / monogram fallback) via sacredHeader.
+  const headerStack: any[] = [
     sacredHeader({
       trustName: workspace.name || 'Sanatani Bandhan',
       invocation: invocationFor(workspace),
-    })
-  );
+      ...lh,
+    }),
+  ];
 
   const content: any[] = [
     ...headerStack,
@@ -797,7 +834,7 @@ export const generateAnnualDonationSummaryPDF = async (
   workspace: WorkspaceConfig
 ): Promise<void> => {
   const name = devotee.fullName || (devotee as any).name || 'Sanatani Devotee';
-  const logo = await getActiveWorkspaceLogo(workspace.id);
+  const lh = await letterheadOpts(workspace);
 
   const byYear: Record<string, { count: number; total: number }> = {};
   donations.forEach((d) => {
@@ -810,10 +847,10 @@ export const generateAnnualDonationSummaryPDF = async (
   const lifetime = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
   const content: any[] = [
-    ...(logo ? [{ image: logo, width: 44, alignment: 'center' as const, margin: [0, 0, 0, 4] }] : []),
     sacredHeader({
       trustName: workspace.name || 'Sanatani Bandhan',
       invocation: invocationFor(workspace),
+      ...lh,
     }),
     sectionTitle('ANNUAL DONATION SUMMARY', 'वार्षिक दान सारांश'),
     {
@@ -877,7 +914,7 @@ export const generateTreasuryLedgerPDF = async (
   workspace: WorkspaceConfig,
   reportTitle: string = 'Treasury & Expense Ledger Statement'
 ): Promise<void> => {
-  const logo = await getActiveWorkspaceLogo(workspace.id);
+  const lh = await letterheadOpts(workspace);
   const totalIncome = transactions
     .filter((t: any) => t.type === 'Income')
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -906,10 +943,10 @@ export const generateTreasuryLedgerPDF = async (
   });
 
   const content: any[] = [
-    ...(logo ? [{ image: logo, width: 40, alignment: 'center' as const, margin: [0, 0, 0, 4] }] : []),
     sacredHeader({
       trustName: workspace.name || 'Sanatani Bandhan',
       invocation: invocationFor(workspace),
+      ...lh,
     }),
     sectionTitle(reportTitle.toUpperCase(), 'कोष एवं व्यय बही'),
     {
