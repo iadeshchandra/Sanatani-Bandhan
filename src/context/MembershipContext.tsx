@@ -51,6 +51,13 @@ const INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
  * Syncs the public organisation page from a workspace config.
  * Called on workspace create/update (trustee-gated by rules) and lazily
  * from the directory/page views. Idempotent — safe to call repeatedly.
+ *
+ * Pillar 3 — PUBLIC/PRIVATE BOUNDARY: this is the ONLY path that copies
+ * data from the private `workspaces/{id}` doc to the public `orgPages/{id}`
+ * projection. Only the whitelisted public fields below are copied; treasury,
+ * member lists, bank details, pins and admin fields are NEVER synced.
+ * (Trustee-published `upcomingEvents` are written to orgPages directly and
+ * preserved via merge.)
  */
 export async function syncOrgPage(ws: WorkspaceConfig): Promise<void> {
   if (!ws?.id || ws.id.startsWith('DEMO_')) return; // demo sandboxes stay private
@@ -65,8 +72,20 @@ export async function syncOrgPage(ws: WorkspaceConfig): Promise<void> {
         state: ws.state || '',
         country: ws.country || '',
         about: (ws as any).tagline || (ws as any).description || '',
+        tagline: (ws as any).tagline || '',
+        publicSlug: (ws as any).publicSlug || '',
         logoUrl: (ws as any).logoUrl || '',
         coverUrl: (ws as any).coverUrl || '',
+        addressLine: ws.address || '',
+        pincode: (ws as any).pincode || '',
+        phone: ws.phone || '',
+        website: (ws as any).website || '',
+        darshanTimings: (ws as any).darshanTimings || [],
+        galleryUrls: (ws as any).galleryUrls || [],
+        registrationNo: (ws as any).trustRegNumber || '',
+        eightyGRegistered: !!(ws as any).trust80GRegistered,
+        eightyGURN: (ws as any).trust80GURN || '',
+        twelveARegistered: !!(ws as any).trust12ARegistered,
         verified: true,
         updatedAt: now(),
       },
