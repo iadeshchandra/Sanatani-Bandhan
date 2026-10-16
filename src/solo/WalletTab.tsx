@@ -13,14 +13,18 @@ import {
   type Wallet, type WalletTransaction, type TopupClaim, type WalletCurrency,
 } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
-import { useUpiQrAvailable } from '../lib/upiQr';
-import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../lib/paymentMethods';
+import { getPaymentMethods, methodsForRegionWithFallback, type PaymentMethodDoc } from '../lib/paymentMethods';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 
-/** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). */
-const orderMethods = (list: PaymentMethodDoc[]): PaymentMethodDoc[] =>
-  [...list].sort((a, b) => (a.id === 'intl_payoneer' ? -1 : b.id === 'intl_payoneer' ? 1 : 0));
+/** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). Local-region methods always first. */
+const orderMethods = (list: PaymentMethodDoc[], region: PayRegion): PaymentMethodDoc[] =>
+  [...list].sort((a, b) => {
+    const al = a.region === region ? 0 : 1;
+    const bl = b.region === region ? 0 : 1;
+    if (al !== bl) return al - bl;
+    return a.id === 'intl_payoneer' ? -1 : b.id === 'intl_payoneer' ? 1 : 0;
+  });
 
 const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 text-stone-700';
 
@@ -39,8 +43,8 @@ const TXN_LABEL: Record<string, string> = {
 
 const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack: () => void }> = ({ currency, onDone, onBack }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [region, setRegion] = useState<PayRegion>('BD');
-  const upiQrOk = useUpiQrAvailable();
   const [methods, setMethods] = useState<PaymentMethodDoc[]>([]);
   const [methodId, setMethodId] = useState('');
   const [amount, setAmount] = useState('');
@@ -56,7 +60,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
       setRegion(r);
       setMethods([]);
       getPaymentMethods().then((all) => {
-        const list = orderMethods(methodsForRegion(all, r));
+        const list = orderMethods(methodsForRegionWithFallback(all, r), r);
         setMethods(list);
         if (list[0]) setMethodId(list[0].id);
       });
@@ -64,10 +68,9 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
   }, []);
 
   const switchRegion = (r: PayRegion) => {
-    const eff = (r === 'IN' && upiQrOk === false ? 'INTL' : r) as PayRegion;
-    setRegion(eff);
+    setRegion(r);
     getPaymentMethods().then((all) => {
-      const list = orderMethods(methodsForRegion(all, eff));
+      const list = orderMethods(methodsForRegionWithFallback(all, r), r);
       setMethods(list);
       if (list[0]) setMethodId(list[0].id);
     });
@@ -115,7 +118,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
           Min {fmtWallet(limits.min, currency)} · Max {fmtWallet(limits.max, currency)}
         </p>
         <div className="flex gap-1.5 mb-3">
-          {(['BD', 'IN', 'INTL'] as const).filter((r) => r !== 'IN' || upiQrOk !== false).map((r) => (
+          {(['BD', 'IN', 'INTL'] as const).map((r) => (
             <button key={r} type="button" onClick={() => switchRegion(r)}
               className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-600'}`}>
               {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
@@ -224,6 +227,7 @@ const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack
 /** Self-serve edit & resubmit for a pending top-up claim. */
 const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved: () => void }> = ({ claim, onClose, onSaved }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [trxId, setTrxId] = useState(claim.trxId);
   const [amount, setAmount] = useState(String(claim.amount));
   const [screenshotUrl, setScreenshotUrl] = useState(claim.screenshotUrl || '');
@@ -246,7 +250,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
   };
 
   return (
-    <Modal onClose={onClose}>
+    <Modal title={t('solo.wallet.topupHistory')} onClose={onClose}>
       <p className="text-sm font-black text-stone-900 mb-1">{t('solo.wallet.editTopUp')}</p>
       <p className="text-[11px] text-stone-500 mb-3 font-mono">{claim.reference || ''} · {fmtWallet(claim.amount, claim.currency)}</p>
       <div className="space-y-3">
@@ -266,7 +270,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
             placeholder="https://…" />
         </Field>
         <div className="flex gap-2">
-          <Btn variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Btn>
+          <Btn variant="ghost" className="flex-1" onClick={onClose}>{t('common.cancel')}</Btn>
           <Btn variant="primary" className="flex-1" disabled={working} onClick={save}>
             {working ? 'Saving…' : 'Resubmit'}
           </Btn>
