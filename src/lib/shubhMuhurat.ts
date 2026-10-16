@@ -1,1 +1,348 @@
-LyoqCiAqIHNodWJoTXVodXJhdC50cyDigJQgVHJhZGl0aW9uYWwgc2h1YmgtbXVodXJhdCBmaW5kZXIgZm9yIHNhbXNrYXJhcy4KICogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAqIFJ1bGUtYmFzZWQgc2Nhbm5lciBvdmVyIHRoZSBWZWRpYyBwYW5jaGFuZyBlbmdpbmUKICogKHNyYy91dGlscy9wYW5jaGFuZy50cyksIHVzaW5nIEJlbmdhbGkgbW9udGhzIChzcmMvbGliL2JlbmdhbGlDYWxlbmRhci50cykuCiAqCiAqIEVuY29kZXMgd2lkZWx5LWZvbGxvd2VkIEJlbmdhbGkgcGFuamlrYSB0cmFkaXRpb25zIGZvciBzYW1za2FyYSB0aW1pbmcuCiAqIFNjb3JlcyBhcmUgVXR0YW0gLyBNYWRoeWFtIGd1aWRhbmNlIOKAlCBORVZFUiBkZXRlcm1pbmlzdGljIHByZWRpY3Rpb24uCiAqIFRoZSB1bmRlcmx5aW5nIHRpdGhpIGVuZ2luZSBpcyBhIG1lYW4tbG9uZ2l0dWRlIGFwcHJveGltYXRpb24gKMKxMSBkYXkKICogcG9zc2libGUpOyB0aGUgVUkgbXVzdCBjYXJyeSB0aGUgImNvbnN1bHQgeW91ciBwdXJvaGl0IiBkaXNjbGFpbWVyLgogKi8KCmltcG9ydCB7IGNhbGN1bGF0ZURhaWx5UGFuY2hhbmcsIGNhbGN1bGF0ZVN1bnJpc2VTdW5zZXQgfSBmcm9tICcuLi91dGlscy9wYW5jaGFuZyc7CmltcG9ydCB7IGdyZWdvcmlhblRvQmVuZ2FsaSwgQkVOR0FMSV9NT05USFMsIHR5cGUgQmVuZ2FsaVZhcmlhbnQgfSBmcm9tICcuL2JlbmdhbGlDYWxlbmRhcic7CmltcG9ydCB7IGRyaWtUaXRoaUF0LCBkcmlrTmFrc2hhdHJhQXQgfSBmcm9tICcuL2RyaWtQYW5jaGFuZyc7CgpleHBvcnQgdHlwZSBTYW1za2FyYUtpbmQgPQogIHwgJ2JpYmFoYScKICB8ICdhbm5hcHJhc29uJwogIHwgJ25hbWthcmFuJwogIHwgJ2dyaWhhUHJhdmVzaCcKICB8ICdncmloYUFyYW1iaGEnCiAgfCAndXBhbmF5YW4nOwoKLyoqICdiZW5nYWxpJyA9IEJlbmdhbGkgcGFuamlrYSBydWxlczsgJ25vcnRoX2luZGlhbicgPSBOb3J0aCBJbmRpYW4gKFZpa3JhbSkgcnVsZXMuCiAqICBPdGhlciB0cmFkaXRpb25zIGZhbGwgYmFjayB0byBub3J0aF9pbmRpYW4gd2l0aCBhIG5vdGUuICovCmV4cG9ydCB0eXBlIE11aHVyYXRUcmFkaXRpb24gPSAnYmVuZ2FsaScgfCAnbm9ydGhfaW5kaWFuJzsKCmV4cG9ydCBpbnRlcmZhY2UgU2Ftc2thcmFEZWYgewogIGlkOiBTYW1za2FyYUtpbmQ7CiAgZW46IHN0cmluZzsKICBibjogc3RyaW5nOwogIGhpOiBzdHJpbmc7CiAgbm90ZTogeyBlbjogc3RyaW5nOyBibjogc3RyaW5nIH07Cn0KCmV4cG9ydCBjb25zdCBTQU1TS0FSQV9LSU5EUzogU2Ftc2thcmFEZWZbXSA9IFsKICB7CiAgICBpZDogJ2JpYmFoYScsIGVuOiAnQmliYWhhIChNYXJyaWFnZSknLCBibjogJ+CmrOCmv+CmrOCmvuCmuScsIGhpOiAn4KS14KS/4KS14KS+4KS5JywKICAgIG5vdGU6IHsgZW46ICdUcmFkaXRpb25hbGx5IGluIE1hZ2gsIEZhbGd1biwgQm9pc2hha2gsIEpvaXNodGhvLiBBdm9pZCBDaGF0dXJtYXN5YSBtb250aHMuJywgYm46ICfgppDgpqTgpr/gprngp43gpq/gppfgpqTgpq3gpr7gpqzgp4cg4Kau4Ka+4KaYLCDgpqvgpr7gprLgp43gppfgp4HgpqgsIOCmrOCniOCmtuCmvuCmliwg4Kac4KeN4Kav4KeI4Ka34KeN4Kag4KeH4KWkIOCmmuCmvuCmpOCngeCmsOCnjeCmruCmvuCmuOCnjeCmryDgpo/gpqHgprzgpr/gpq/gprzgp4cg4Kaa4Kay4KeB4Kao4KWkJyB9LAogIH0sCiAgewogICAgaWQ6ICdhbm5hcHJhc29uJywgZW46ICdBbm5hcHJhc29uIChGaXJzdCBSaWNlKScsIGJuOiAn4KaF4Kao4KeN4Kao4Kaq4KeN4Kaw4Ka+4Ka24KaoJywgaGk6ICfgpIXgpKjgpY3gpKjgpKrgpY3gpLDgpL7gpLbgpKgnLAogICAgbm90ZTogeyBlbjogJ1RyYWRpdGlvbmFsbHkgZXZlbiBtb250aHMgZm9yIGJveXMsIG9kZCBtb250aHMgZm9yIGdpcmxzLicsIGJuOiAn4KaQ4Kak4Ka/4Ka54KeN4Kav4KaX4Kak4Kat4Ka+4Kas4KeHIOCmm+Cnh+CmsuCnh+CmpuCnh+CmsCDgppzgp4vgpqHgprwg4Kau4Ka+4Ka44KeHLCDgpq7gp4fgpq/gprzgp4fgpqbgp4fgprAg4Kas4Ka/4Kac4KeL4Kah4Ka8IOCmruCmvuCmuOCnh+ClpCcgfSwKICB9LAogIHsKICAgIGlkOiAnbmFta2FyYW4nLCBlbjogJ05hbWthcmFuIChOYW1pbmcpJywgYm46ICfgpqjgpr7gpq7gppXgprDgpqMnLCBoaTogJ+CkqOCkvuCkruCkleCksOCkoycsCiAgICBub3RlOiB7IGVuOiAnVHJhZGl0aW9uYWxseSBvbiB0aGUgMTJ0aCBkYXkgYWZ0ZXIgYmlydGgsIHVuZGVyIGEgZmF2b3JhYmxlIG5ha3NoYXRyYS4nLCBibjogJ+CmkOCmpOCmv+CmueCnjeCmr+Cml+CmpOCmreCmvuCmrOCnhyDgppzgpqjgp43gpq7gp4fgprAg4Ken4Keo4Kak4KauIOCmpuCmv+CmqOCnhywg4Ka24KeB4KatIOCmqOCmleCnjeCmt+CmpOCnjeCmsOCnh+ClpCcgfSwKICB9LAogIHsKICAgIGlkOiAnZ3JpaGFQcmF2ZXNoJywgZW46ICdHcmloYSBQcmF2ZXNoIChIb3VzZXdhcm1pbmcpJywgYm46ICfgppfgp4Pgprkg4Kaq4KeN4Kaw4Kas4KeH4Ka2JywgaGk6ICfgpJfgpYPgpLkg4KSq4KWN4KSw4KS14KWH4KS2JywKICAgIG5vdGU6IHsgZW46ICdBdm9pZCBEYWtzaGluYXlhbmEvQ2hhdHVybWFzeWEgcGVyaW9kLiBOZXcgaG9tZSwgbmV3IGxpZ2h0LicsIGJuOiAn4Kam4KaV4KeN4Ka34Ka/4Kaj4Ka+4Kav4Ka84KaoL+CmmuCmvuCmpOCngeCmsOCnjeCmruCmvuCmuOCnjeCmryDgpo/gpqHgprzgpr/gpq/gprzgp4cg4Kaa4Kay4KeB4Kao4KWkIOCmqOCmpOCngeCmqCDgppjgprAsIOCmqOCmpOCngeCmqCDgpobgprLgp4vgpaQnIH0sCiAgfSwKICB7CiAgICBpZDogJ2dyaWhhQXJhbWJoYScsIGVuOiAnR3JpaGEgQXJhbWJoYSAoQ29uc3RydWN0aW9uIFN0YXJ0KScsIGJuOiAn4KaX4KeD4Ka5IOCmhuCmsOCmruCnjeCmrScsIGhpOiAn4KSX4KWD4KS5IOCkhuCksOCkruCljeCkrScsCiAgICBub3RlOiB7IGVuOiAnRm91bmRhdGlvbiBsYWlkIG9uIE1vbi9XZWQvVGh1L0ZyaSB1bmRlciBhIGZpeGVkIChzdGhpcmEpIG5ha3NoYXRyYS4nLCBibjogJ+CmuOCni+Cmri/gpqzgp4Hgpqcv4Kas4KeD4Ka54Ka44KeN4Kaq4Kak4Ka/L+CmtuCngeCmleCnjeCmsOCmrOCmvuCmsOCnhyDgprjgp43gpqXgpr/gprAg4Kao4KaV4KeN4Ka34Kak4KeN4Kaw4KeHIOCmreCmv+CmpOCnjeCmpOCmv+CmquCnjeCmsOCmuOCnjeCmpOCmsOClpCcgfSwKICB9LAogIHsKICAgIGlkOiAndXBhbmF5YW4nLCBlbjogJ1VwYW5heWFuIChTYWNyZWQgVGhyZWFkKScsIGJuOiAn4KaJ4Kaq4Kao4Kav4Ka84KaoJywgaGk6ICfgpIngpKrgpKjgpK/gpKgnLAogICAgbm90ZTogeyBlbjogJ1Zhc2FudCByaXR1IChGYWxndW7igJNDaG9pdHJvKSBwcmVmZXJyZWQ7IG5vcnRoZXJuIGNvdXJzZSBvZiB0aGUgc3VuLicsIGJuOiAn4Kas4Ka44Kao4KeN4KakIOCmi+CmpOCngSAo4Kar4Ka+4Kay4KeN4KaX4KeB4Kao4oCT4Kaa4KeI4Kak4KeN4KawKSDgprbgp43gprDgp4fgpq/gprw7IOCmuOCnguCmsOCnjeCmr+Cnh+CmsCDgpongpqTgp43gpqTgprDgpr7gpq/gprzgpqPgpaQnIH0sCiAgfSwKXTsKCmludGVyZmFjZSBSdWxlU2V0IHsKICBnb29kTW9udGhzOiBudW1iZXJbXTsgLy8gQmVuZ2FsaSBtb250aCBudW1iZXJzIDEuLjEyCiAgYXZvaWRNb250aHM6IG51bWJlcltdOwogIGdvb2RUaXRoaXM6IG51bWJlcltdOyAvLyB0aXRoaU51bWJlciAxLi4xNSB3aXRoaW4gcGFrc2hhCiAgYXZvaWRUaXRoaXM6IG51bWJlcltdOwogIGdvb2ROYWtzaGF0cmFzOiBzdHJpbmdbXTsgLy8gZW5naW5lIHNwZWxsaW5ncwogIGF2b2lkV2Vla2RheXM6IG51bWJlcltdOyAvLyAwPVN1bi4uNj1TYXQKICBnb29kV2Vla2RheXM/OiBudW1iZXJbXTsKfQoKY29uc3QgTkFLID0gewogIHJvaGluaTogJ1JvaGluaScsIG1yaWdhc2hpcnNoYTogJ01yaWdhc2hpcnNoYScsIG1hZ2hhOiAnTWFnaGEnLAogIHV0dGFyYVBoYWxndW5pOiAnVXR0YXJhIFBoYWxndW5pJywgaGFzdGE6ICdIYXN0YScsIHN3YXRpOiAnU3dhdGknLAogIGFudXJhZGhhOiAnQW51cmFkaGEnLCBtdWxhOiAnTXVsYScsIHV0dGFyYUFzaGFkaGE6ICdVdHRhcmEgQXNoYWRoYScsCiAgdXR0YXJhQmhhZHJhcGFkYTogJ1V0dGFyYSBCaGFkcmFwYWRhJywgcmV2YXRpOiAnUmV2YXRpJywKICBhc2h3aW5pOiAnQXNod2luaScsIHB1bmFydmFzdTogJ1B1bmFydmFzdScsIHB1c2h5YTogJ1B1c2h5YScsCiAgY2hpdHJhOiAnQ2hpdHJhJywgc2hyYXZhbmE6ICdTaHJhdmFuYScsIGRoYW5pc2h0YTogJ0RoYW5pc2h0YScsCiAgc2hhdGFiaGlzaGE6ICdTaGF0YWJoaXNoYScsCn07Cgpjb25zdCBSVUxFUzogUmVjb3JkPFNhbXNrYXJhS2luZCwgUnVsZVNldD4gPSB7CiAgYmliYWhhOiB7CiAgICBnb29kTW9udGhzOiBbMTAsIDExLCAxLCAyXSwKICAgIGF2b2lkTW9udGhzOiBbMywgNCwgNSwgNiwgNywgOV0sCiAgICBnb29kVGl0aGlzOiBbMiwgMywgNSwgNywgMTAsIDExLCAxMiwgMTNdLAogICAgYXZvaWRUaXRoaXM6IFs0LCA4LCA5LCAxNF0sCiAgICBnb29kTmFrc2hhdHJhczogW05BSy5yb2hpbmksIE5BSy5tcmlnYXNoaXJzaGEsIE5BSy5tYWdoYSwgTkFLLnV0dGFyYVBoYWxndW5pLCBOQUsuaGFzdGEsIE5BSy5zd2F0aSwgTkFLLmFudXJhZGhhLCBOQUsubXVsYSwgTkFLLnV0dGFyYUFzaGFkaGEsIE5BSy51dHRhcmFCaGFkcmFwYWRhLCBOQUsucmV2YXRpXSwKICAgIGF2b2lkV2Vla2RheXM6IFsyLCA2XSwKICB9LAogIGFubmFwcmFzb246IHsKICAgIGdvb2RNb250aHM6IFsxLCAyLCAxMCwgMTEsIDEyXSwKICAgIGF2b2lkTW9udGhzOiBbNCwgNV0sCiAgICBnb29kVGl0aGlzOiBbMiwgMywgNSwgNywgMTAsIDEzXSwKICAgIGF2b2lkVGl0aGlzOiBbNCwgOCwgOSwgMTRdLAogICAgZ29vZE5ha3NoYXRyYXM6IFtOQUsuYXNod2luaSwgTkFLLnJvaGluaSwgTkFLLm1yaWdhc2hpcnNoYSwgTkFLLnB1bmFydmFzdSwgTkFLLnB1c2h5YSwgTkFLLmhhc3RhLCBOQUsuY2hpdHJhLCBOQUsuc3dhdGksIE5BSy5hbnVyYWRoYSwgTkFLLnNocmF2YW5hLCBOQUsuZGhhbmlzaHRhLCBOQUsuc2hhdGFiaGlzaGEsIE5BSy5yZXZhdGldLAogICAgYXZvaWRXZWVrZGF5czogWzIsIDZdLAogIH0sCiAgbmFta2FyYW46IHsKICAgIGdvb2RNb250aHM6IFsxLCAyLCAxMCwgMTEsIDEyLCAzXSwKICAgIGF2b2lkTW9udGhzOiBbNF0sCiAgICBnb29kVGl0aGlzOiBbMiwgMywgNSwgNywgMTAsIDExLCAxM10sCiAgICBhdm9pZFRpdGhpczogWzQsIDksIDE0XSwKICAgIGdvb2ROYWtzaGF0cmFzOiBbTkFLLmFzaHdpbmksIE5BSy5yb2hpbmksIE5BSy5tcmlnYXNoaXJzaGEsIE5BSy5wdW5hcnZhc3UsIE5BSy5wdXNoeWEsIE5BSy5oYXN0YSwgTkFLLmFudXJhZGhhLCBOQUsuc2hyYXZhbmEsIE5BSy5yZXZhdGldLAogICAgYXZvaWRXZWVrZGF5czogWzZdLAogIH0sCiAgZ3JpaGFQcmF2ZXNoOiB7CiAgICBnb29kTW9udGhzOiBbMSwgMiwgMTAsIDExXSwKICAgIGF2b2lkTW9udGhzOiBbMywgNCwgNSwgNiwgNywgOV0sCiAgICBnb29kVGl0aGlzOiBbMiwgMywgNSwgNywgMTAsIDExLCAxM10sCiAgICBhdm9pZFRpdGhpczogWzQsIDgsIDksIDE0XSwKICAgIGdvb2ROYWtzaGF0cmFzOiBbTkFLLnJvaGluaSwgTkFLLm1yaWdhc2hpcnNoYSwgTkFLLmNoaXRyYSwgTkFLLmFudXJhZGhhLCBOQUsucmV2YXRpLCBOQUsudXR0YXJhUGhhbGd1bmksIE5BSy51dHRhcmFBc2hhZGhhLCBOQUsudXR0YXJhQmhhZHJhcGFkYV0sCiAgICBhdm9pZFdlZWtkYXlzOiBbMiwgNl0sCiAgfSwKICBncmloYUFyYW1iaGE6IHsKICAgIGdvb2RNb250aHM6IFsxLCAyLCAxMCwgMTEsIDEyXSwKICAgIGF2b2lkTW9udGhzOiBbMywgNCwgNSwgNiwgN10sCiAgICBnb29kVGl0aGlzOiBbMiwgMywgNSwgNywgMTAsIDExLCAxM10sCiAgICBhdm9pZFRpdGhpczogWzQsIDgsIDksIDE0XSwKICAgIGdvb2ROYWtzaGF0cmFzOiBbTkFLLnJvaGluaSwgTkFLLm1yaWdhc2hpcnNoYSwgTkFLLnV0dGFyYVBoYWxndW5pLCBOQUsuaGFzdGEsIE5BSy5jaGl0cmEsIE5BSy5hbnVyYWRoYSwgTkFLLnV0dGFyYUFzaGFkaGEsIE5BSy51dHRhcmFCaGFkcmFwYWRhLCBOQUsucmV2YXRpXSwKICAgIGF2b2lkV2Vla2RheXM6IFsyLCA2XSwKICAgIGdvb2RXZWVrZGF5czogWzEsIDMsIDQsIDVdLAogIH0sCiAgdXBhbmF5YW46IHsKICAgIGdvb2RNb250aHM6IFsxMSwgMTIsIDEsIDJdLAogICAgYXZvaWRNb250aHM6IFs0LCA1LCA2XSwKICAgIGdvb2RUaXRoaXM6IFsyLCAzLCA1LCA3LCAxMCwgMTEsIDEyLCAxM10sCiAgICBhdm9pZFRpdGhpczogWzQsIDgsIDksIDE0XSwKICAgIGdvb2ROYWtzaGF0cmFzOiBbTkFLLmFzaHdpbmksIE5BSy5yb2hpbmksIE5BSy5tcmlnYXNoaXJzaGEsIE5BSy5wdW5hcnZhc3UsIE5BSy5wdXNoeWEsIE5BSy5oYXN0YSwgTkFLLnNocmF2YW5hLCBOQUsucmV2YXRpLCBOQUsuYW51cmFkaGFdLAogICAgYXZvaWRXZWVrZGF5czogWzZdLAogIH0sCn07CgovKiBOb3J0aCBJbmRpYW4gcnVsZSBzZXQg4oCUIHNhbWUgTWVzaGEtc3RhcnQgc29sYXIgbW9udGggbnVtYmVyaW5nICgxPVZhaXNoYWtoYSkuCiAqIEtleSBkaWZmZXJlbmNlcyBmcm9tIEJlbmdhbGk6IENoYWl0cmEgKDEyKSBhdm9pZGVkIGZvciBiaWJhaGEvZ3JpaGEtcHJhdmVzaDsKICogQ2hhdHVybWFzeWEgKDTigJM3KSBhdm9pZGVkOyBWYXNhbnQvU2hpc2hpcmEgZW1waGFzaXMgZm9yIHVwYW5heWFuLiAqLwpjb25zdCBOT1JUSF9JTkRJQU5fUlVMRVM6IFJlY29yZDxTYW1za2FyYUtpbmQsIFJ1bGVTZXQ+ID0gewogIGJpYmFoYTogewogICAgZ29vZE1vbnRoczogWzEsIDIsIDEwLCAxMV0sCiAgICBhdm9pZE1vbnRoczogWzQsIDUsIDYsIDcsIDksIDEyXSwKICAgIGdvb2RUaXRoaXM6IFsyLCAzLCA1LCA3LCAxMCwgMTEsIDEyLCAxM10sCiAgICBhdm9pZFRpdGhpczogWzQsIDgsIDksIDE0XSwKICAgIGdvb2ROYWtzaGF0cmFzOiBbTkFLLnJvaGluaSwgTkFLLm1yaWdhc2hpcnNoYSwgTkFLLm1hZ2hhLCBOQUsudXR0YXJhUGhhbGd1bmksIE5BSy5oYXN0YSwgTkFLLnN3YXRpLCBOQUsuYW51cmFkaGEsIE5BSy5tdWxhLCBOQUsudXR0YXJhQXNoYWRoYSwgTkFLLnV0dGFyYUJoYWRyYXBhZGEsIE5BSy5yZXZhdGldLAogICAgYXZvaWRXZWVrZGF5czogWzIsIDZdLAogIH0sCiAgYW5uYXByYXNvbjogewogICAgZ29vZE1vbnRoczogWzEsIDIsIDEwLCAxMSwgMTJdLAogICAgYXZvaWRNb250aHM6IFs2XSwKICAgIGdvb2RUaXRoaXM6IFsyLCAzLCA1LCA3LCAxMCwgMTNdLAogICAgYXZvaWRUaXRoaXM6IFs0LCA4LCA5LCAxNF0sCiAgICBnb29kTmFrc2hhdHJhczogW05BSy5hc2h3aW5pLCBOQUsucm9oaW5pLCBOQUsubXJpZ2FzaGlyc2hhLCBOQUsucHVuYXJ2YXN1LCBOQUsucHVzaHlhLCBOQUsuaGFzdGEsIE5BSy5jaGl0cmEsIE5BSy5zd2F0aSwgTkFLLmFudXJhZGhhLCBOQUsuc2hyYXZhbmEsIE5BSy5kaGFuaXNodGEsIE5BSy5zaGF0YWJoaXNoYSwgTkFLLnJldmF0aV0sCiAgICBhdm9pZFdlZWtkYXlzOiBbMiwgNl0sCiAgfSwKICBuYW1rYXJhbjogewogICAgZ29vZE1vbnRoczogWzEsIDIsIDMsIDEwLCAxMV0sCiAgICBhdm9pZE1vbnRoczogWzZdLAogICAgZ29vZFRpdGhpczogWzIsIDMsIDUsIDcsIDEwLCAxMSwgMTNdLAogICAgYXZvaWRUaXRoaXM6IFs0LCA5LCAxNF0sCiAgICBnb29kTmFrc2hhdHJhczogW05BSy5hc2h3aW5pLCBOQUsucm9oaW5pLCBOQUsubXJpZ2FzaGlyc2hhLCBOQUsucHVuYXJ2YXN1LCBOQUsucHVzaHlhLCBOQUsuaGFzdGEsIE5BSy5hbnVyYWRoYSwgTkFLLnNocmF2YW5hLCBOQUsucmV2YXRpXSwKICAgIGF2b2lkV2Vla2RheXM6IFs2XSwKICB9LAogIGdyaWhhUHJhdmVzaDogewogICAgZ29vZE1vbnRoczogWzEsIDIsIDEwLCAxMV0sCiAgICBhdm9pZE1vbnRoczogWzQsIDUsIDYsIDcsIDksIDEyXSwKICAgIGdvb2RUaXRoaXM6IFsyLCAzLCA1LCA3LCAxMCwgMTEsIDEzXSwKICAgIGF2b2lkVGl0aGlzOiBbNCwgOCwgOSwgMTRdLAogICAgZ29vZE5ha3NoYXRyYXM6IFtOQUsucm9oaW5pLCBOQUsubXJpZ2FzaGlyc2hhLCBOQUsuY2hpdHJhLCBOQUsuYW51cmFkaGEsIE5BSy5yZXZhdGksIE5BSy51dHRhcmFQaGFsZ3VuaSwgTkFLLnV0dGFyYUFzaGFkaGEsIE5BSy51dHRhcmFCaGFkcmFwYWRhXSwKICAgIGF2b2lkV2Vla2RheXM6IFsyLCA2XSwKICB9LAogIGdyaWhhQXJhbWJoYTogewogICAgZ29vZE1vbnRoczogWzEsIDIsIDEwLCAxMSwgMTJdLAogICAgYXZvaWRNb250aHM6IFs0LCA1LCA2LCA3XSwKICAgIGdvb2RUaXRoaXM6IFsyLCAzLCA1LCA3LCAxMCwgMTEsIDEzXSwKICAgIGF2b2lkVGl0aGlzOiBbNCwgOCwgOSwgMTRdLAogICAgZ29vZE5ha3NoYXRyYXM6IFtOQUsucm9oaW5pLCBOQUsubXJpZ2FzaGlyc2hhLCBOQUsudXR0YXJhUGhhbGd1bmksIE5BSy5oYXN0YSwgTkFLLmNoaXRyYSwgTkFLLmFudXJhZGhhLCBOQUsudXR0YXJhQXNoYWRoYSwgTkFLLnV0dGFyYUJoYWRyYXBhZGEsIE5BSy5yZXZhdGldLAogICAgYXZvaWRXZWVrZGF5czogWzIsIDZdLAogICAgZ29vZFdlZWtkYXlzOiBbMSwgMywgNCwgNV0sCiAgfSwKICB1cGFuYXlhbjogewogICAgZ29vZE1vbnRoczogWzExLCAxMiwgMSwgMl0sCiAgICBhdm9pZE1vbnRoczogWzQsIDUsIDZdLAogICAgZ29vZFRpdGhpczogWzIsIDMsIDUsIDcsIDEwLCAxMSwgMTIsIDEzXSwKICAgIGF2b2lkVGl0aGlzOiBbNCwgOCwgOSwgMTRdLAogICAgZ29vZE5ha3NoYXRyYXM6IFtOQUsuYXNod2luaSwgTkFLLnJvaGluaSwgTkFLLm1yaWdhc2hpcnNoYSwgTkFLLnB1bmFydmFzdSwgTkFLLnB1c2h5YSwgTkFLLmhhc3RhLCBOQUsuc2hyYXZhbmEsIE5BSy5yZXZhdGksIE5BSy5hbnVyYWRoYV0sCiAgICBhdm9pZFdlZWtkYXlzOiBbNl0sCiAgfSwKfTsKCmV4cG9ydCB0eXBlIE11aHVyYXRHcmFkZSA9ICd1dHRhbScgfCAnbWFkaHlhbScgfCAnYXZvaWQnOwoKZXhwb3J0IGludGVyZmFjZSBNdWh1cmF0RGF5IHsKICBkYXRlOiBEYXRlOwogIGlzbzogc3RyaW5nOwogIGdyYWRlOiBNdWh1cmF0R3JhZGU7CiAgc2NvcmU6IG51bWJlcjsKICBiZW5nYWxpTW9udGg6IHN0cmluZzsKICBiZW5nYWxpTW9udGhCbjogc3RyaW5nOwogIHRpdGhpOiBzdHJpbmc7CiAgdGl0aGlOdW1iZXI6IG51bWJlcjsKICBwYWtzaGE6ICdTaHVrbGEnIHwgJ0tyaXNobmEnOwogIG5ha3NoYXRyYTogc3RyaW5nOwogIHdlZWtkYXk6IHN0cmluZzsKICByZWFzb25zOiBBcnJheTx7IGVuOiBzdHJpbmc7IGJuOiBzdHJpbmcgfT47Cn0KCmNvbnN0IERIQUtBID0geyBsYXQ6IDIzLjgxMDMsIGxvbjogOTAuNDEyNSB9Owpjb25zdCBLT0xLQVRBID0geyBsYXQ6IDIyLjU3MjYsIGxvbjogODguMzYzOSB9OwoKZXhwb3J0IGludGVyZmFjZSBNdWh1cmF0T3B0aW9ucyB7CiAgdHJhZGl0aW9uPzogTXVodXJhdFRyYWRpdGlvbjsKICBjb29yZHM/OiB7IGxhdDogbnVtYmVyOyBsb246IG51bWJlciB9OwogIC8qKiBzb2xhciBtb250aCBuYW1lIHJlc29sdmVyIGZvciByZWFzb25zIChkZWZhdWx0cyB0byBCZW5nYWxpKSAqLwogIG1vbnRoTmFtZT86IChtZXNoYVN0YXJ0TW9udGg6IG51bWJlcikgPT4gc3RyaW5nOwp9CgpleHBvcnQgZnVuY3Rpb24gZmluZFNodWJoTXVodXJhdCgKICBraW5kOiBTYW1za2FyYUtpbmQsCiAgZnJvbURhdGU6IERhdGUsCiAgdG9EYXRlOiBEYXRlLAogIHZhcmlhbnQ6IEJlbmdhbGlWYXJpYW50LAogIGNvb3Jkc09yT3B0cz86IHsgbGF0OiBudW1iZXI7IGxvbjogbnVtYmVyIH0gfCBNdWh1cmF0T3B0aW9ucwopOiBNdWh1cmF0RGF5W10gewogIGNvbnN0IG9wdHM6IE11aHVyYXRPcHRpb25zID0KICAgIGNvb3Jkc09yT3B0cyAmJiAoJ3RyYWRpdGlvbicgaW4gY29vcmRzT3JPcHRzIHx8ICdtb250aE5hbWUnIGluIGNvb3Jkc09yT3B0cykKICAgICAgPyAoY29vcmRzT3JPcHRzIGFzIE11aHVyYXRPcHRpb25zKQogICAgICA6IHsgY29vcmRzOiBjb29yZHNPck9wdHMgYXMgeyBsYXQ6IG51bWJlcjsgbG9uOiBudW1iZXIgfSB8IHVuZGVmaW5lZCB9OwogIGNvbnN0IHRyYWRpdGlvbjogTXVodXJhdFRyYWRpdGlvbiA9IG9wdHMudHJhZGl0aW9uIHx8ICdiZW5nYWxpJzsKICBjb25zdCBydWxlcyA9ICh0cmFkaXRpb24gPT09ICdub3J0aF9pbmRpYW4nID8gTk9SVEhfSU5ESUFOX1JVTEVTIDogUlVMRVMpW2tpbmRdOwogIGNvbnN0IG1vbnRoTmFtZSA9IG9wdHMubW9udGhOYW1lIHx8ICgobTogbnVtYmVyKSA9PiBCRU5HQUxJX01PTlRIU1ttIC0gMV0uZW4pOwogIGNvbnN0IHsgbGF0LCBsb24gfSA9IG9wdHMuY29vcmRzIHx8ICh2YXJpYW50ID09PSAnYmQnID8gREhBS0EgOiBLT0xLQVRBKTsKICBjb25zdCBvdXQ6IE11aHVyYXREYXlbXSA9IFtdOwogIGNvbnN0IGRheU1zID0gODY0MDAwMDA7CiAgY29uc3Qgc3RhcnQgPSBuZXcgRGF0ZShmcm9tRGF0ZS5nZXRGdWxsWWVhcigpLCBmcm9tRGF0ZS5nZXRNb250aCgpLCBmcm9tRGF0ZS5nZXREYXRlKCkpOwogIGNvbnN0IGVuZCA9IG5ldyBEYXRlKHRvRGF0ZS5nZXRGdWxsWWVhcigpLCB0b0RhdGUuZ2V0TW9udGgoKSwgdG9EYXRlLmdldERhdGUoKSk7CgogIGNvbnN0IHR6ID0gdmFyaWFudCA9PT0gJ2JkJyA/IDYgOiA1LjU7CiAgZm9yIChsZXQgdCA9IHN0YXJ0LmdldFRpbWUoKTsgdCA8PSBlbmQuZ2V0VGltZSgpOyB0ICs9IGRheU1zKSB7CiAgICBjb25zdCBkYXRlID0gbmV3IERhdGUodCk7CiAgICBsZXQgcDogUmV0dXJuVHlwZTx0eXBlb2YgY2FsY3VsYXRlRGFpbHlQYW5jaGFuZz47CiAgICBsZXQgdGl0aGlOdW1iZXI6IG51bWJlcjsKICAgIGxldCBwYWtzaGE6ICdTaHVrbGEnIHwgJ0tyaXNobmEnOwogICAgbGV0IHRpdGhpRnVsbDogc3RyaW5nOwogICAgbGV0IG5ha3NoYXRyYTogc3RyaW5nOwogICAgdHJ5IHsKICAgICAgcCA9IGNhbGN1bGF0ZURhaWx5UGFuY2hhbmcoZGF0ZSwgbGF0LCBsb24pOwogICAgICAvLyBEcmlrIHRpdGhpL25ha3NoYXRyYSBwcmV2YWlsaW5nIEFUIFNVTlJJU0UgKEJlbmdhbGkgZGF5IGJlZ2lucyBhdCBzdW5yaXNlKQogICAgICBjb25zdCB7IHN1bnJpc2VEYXRlIH0gPSBjYWxjdWxhdGVTdW5yaXNlU3Vuc2V0KGRhdGUsIGxhdCwgbG9uLCB0eik7CiAgICAgIGNvbnN0IGR0ID0gZHJpa1RpdGhpQXQoc3VucmlzZURhdGUpOwogICAgICBjb25zdCBkbiA9IGRyaWtOYWtzaGF0cmFBdChzdW5yaXNlRGF0ZSk7CiAgICAgIHRpdGhpTnVtYmVyID0gZHQudGl0aGlOdW1iZXI7CiAgICAgIHBha3NoYSA9IGR0LnBha3NoYTsKICAgICAgdGl0aGlGdWxsID0gYCR7ZHQucGFrc2hhfSAke2R0Lm5hbWV9YDsKICAgICAgbmFrc2hhdHJhID0gZG4ubmFtZTsKICAgIH0gY2F0Y2ggewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IGIgPSBncmVnb3JpYW5Ub0JlbmdhbGkoZGF0ZSwgdmFyaWFudCk7CiAgICBjb25zdCB3ZCA9IGRhdGUuZ2V0RGF5KCk7CiAgICBjb25zdCByZWFzb25zOiBBcnJheTx7IGVuOiBzdHJpbmc7IGJuOiBzdHJpbmcgfT4gPSBbXTsKICAgIGxldCBzY29yZSA9IDA7CiAgICBsZXQgaGFyZEF2b2lkID0gZmFsc2U7CgogICAgLy8gTW9udGggKEJlbmdhbGkgbW9udGggbnVtYmVyIGFsaWducyB3aXRoIE1lc2hhLXN0YXJ0IHNvbGFyIGluZGV4IGZvciBydWxlIHB1cnBvc2VzKQogICAgY29uc3QgbUxhYmVsID0gbW9udGhOYW1lKGIubW9udGgpOwogICAgaWYgKHJ1bGVzLmF2b2lkTW9udGhzLmluY2x1ZGVzKGIubW9udGgpKSB7CiAgICAgIHNjb3JlIC09IDM7CiAgICAgIGhhcmRBdm9pZCA9IHRydWU7CiAgICAgIHJlYXNvbnMucHVzaCh7IGVuOiBgJHttTGFiZWx9IGlzIHRyYWRpdGlvbmFsbHkgYXZvaWRlZGAsIGJuOiBgJHttTGFiZWx9IOCmkOCmpOCmv+CmueCnjeCmr+Cml+CmpOCmreCmvuCmrOCnhyDgpqrgprDgpr/gprngpr7gprDgp43gpq9gIH0pOwogICAgfSBlbHNlIGlmIChydWxlcy5nb29kTW9udGhzLmluY2x1ZGVzKGIubW9udGgpKSB7CiAgICAgIHNjb3JlICs9IDI7CiAgICAgIHJlYXNvbnMucHVzaCh7IGVuOiBgJHttTGFiZWx9IOKAlCBmYXZvcmFibGUgbW9udGhgLCBibjogYCR7bUxhYmVsfSDigJQg4Ka24KeB4KatIOCmruCmvuCmuGAgfSk7CiAgICB9CgogICAgLy8gVGl0aGkgKERyaWssIGF0IHN1bnJpc2UpCiAgICBjb25zdCBpc0FtYXZhc3lhID0gdGl0aGlOdW1iZXIgPT09IDE1ICYmIHBha3NoYSA9PT0gJ0tyaXNobmEnOwogICAgaWYgKHJ1bGVzLmF2b2lkVGl0aGlzLmluY2x1ZGVzKHRpdGhpTnVtYmVyKSB8fCBpc0FtYXZhc3lhKSB7CiAgICAgIHNjb3JlIC09IDM7CiAgICAgIGhhcmRBdm9pZCA9IHRydWU7CiAgICAgIHJlYXNvbnMucHVzaCh7IGVuOiBgJHt0aXRoaUZ1bGx9IOKAlCB0cmFkaXRpb25hbGx5IGF2b2lkZWRgLCBibjogYCR7dGl0aGlGdWxsfSDigJQg4KaQ4Kak4Ka/4Ka54KeN4Kav4KaX4Kak4Kat4Ka+4Kas4KeHIOCmquCmsOCmv+CmueCmvuCmsOCnjeCmr2AgfSk7CiAgICB9IGVsc2UgaWYgKHJ1bGVzLmdvb2RUaXRoaXMuaW5jbHVkZXModGl0aGlOdW1iZXIpKSB7CiAgICAgIHNjb3JlICs9IDI7CiAgICAgIHJlYXNvbnMucHVzaCh7IGVuOiBgJHt0aXRoaUZ1bGx9IOKAlCBzaHViaCB0aXRoaWAsIGJuOiBgJHt0aXRoaUZ1bGx9IOKAlCDgprbgp4Hgpq0g4Kak4Ka/4Kal4Ka/YCB9KTsKICAgIH0KCiAgICAvLyBOYWtzaGF0cmEgKERyaWssIGF0IHN1bnJpc2UpCiAgICBpZiAocnVsZXMuZ29vZE5ha3NoYXRyYXMuaW5jbHVkZXMobmFrc2hhdHJhKSkgewogICAgICBzY29yZSArPSAyOwogICAgICByZWFzb25zLnB1c2goeyBlbjogYCR7bmFrc2hhdHJhfSBuYWtzaGF0cmEg4oCUIGZhdm9yYWJsZWAsIGJuOiBgJHtuYWtzaGF0cmF9IOCmqOCmleCnjeCmt+CmpOCnjeCmsCDigJQg4Ka24KeB4KatYCB9KTsKICAgIH0KCiAgICAvLyBXZWVrZGF5CiAgICBpZiAocnVsZXMuYXZvaWRXZWVrZGF5cy5pbmNsdWRlcyh3ZCkpIHsKICAgICAgc2NvcmUgLT0gMjsKICAgICAgcmVhc29ucy5wdXNoKHsgZW46IGAke3AudmFhcmF9IOKAlCB0cmFkaXRpb25hbGx5IGF2b2lkZWQgZm9yIHRoaXMgc2Ftc2thcmFgLCBibjogYCR7cC52YWFyYX0g4oCUIOCmj+CmhyDgprjgpoLgprjgp43gppXgpr7gprDgp4fgprAg4Kac4Kao4KeN4KavIOCmkOCmpOCmv+CmueCnjeCmr+Cml+CmpOCmreCmvuCmrOCnhyDgpqrgprDgpr/gprngpr7gprDgp43gpq9gIH0pOwogICAgfSBlbHNlIGlmIChydWxlcy5nb29kV2Vla2RheXM/LmluY2x1ZGVzKHdkKSkgewogICAgICBzY29yZSArPSAxOwogICAgfQoKICAgIC8vIFNodWtsYSBwYWtzaGEgZ2VudGxlIGJvbnVzIGZvciBtb3N0IHNhbXNrYXJhcwogICAgaWYgKHBha3NoYSA9PT0gJ1NodWtsYScgJiYgIWlzQW1hdmFzeWEpIHNjb3JlICs9IDAuNTsKCiAgICBjb25zdCBncmFkZTogTXVodXJhdEdyYWRlID0gaGFyZEF2b2lkID8gJ2F2b2lkJyA6IHNjb3JlID49IDUgPyAndXR0YW0nIDogc2NvcmUgPj0gMyA/ICdtYWRoeWFtJyA6ICdhdm9pZCc7CiAgICBpZiAoZ3JhZGUgPT09ICdhdm9pZCcpIGNvbnRpbnVlOwoKICAgIG91dC5wdXNoKHsKICAgICAgZGF0ZSwKICAgICAgaXNvOiBgJHtkYXRlLmdldEZ1bGxZZWFyKCl9LSR7U3RyaW5nKGRhdGUuZ2V0TW9udGgoKSArIDEpLnBhZFN0YXJ0KDIsICcwJyl9LSR7U3RyaW5nKGRhdGUuZ2V0RGF0ZSgpKS5wYWRTdGFydCgyLCAnMCcpfWAsCiAgICAgIGdyYWRlLAogICAgICBzY29yZSwKICAgICAgYmVuZ2FsaU1vbnRoOiBiLm1vbnRoRW4sCiAgICAgIGJlbmdhbGlNb250aEJuOiBiLm1vbnRoQm4sCiAgICAgIHRpdGhpOiB0aXRoaUZ1bGwsCiAgICAgIHRpdGhpTnVtYmVyLAogICAgICBwYWtzaGEsCiAgICAgIG5ha3NoYXRyYSwKICAgICAgd2Vla2RheTogcC52YWFyYSwKICAgICAgcmVhc29ucywKICAgIH0pOwogIH0KCiAgLy8gVXR0YW0gZmlyc3QsIHRoZW4gYnkgZGF0ZQogIHJldHVybiBvdXQuc29ydCgoYSwgYikgPT4KICAgIGEuZ3JhZGUgPT09IGIuZ3JhZGUgPyBhLmRhdGUuZ2V0VGltZSgpIC0gYi5kYXRlLmdldFRpbWUoKSA6IGEuZ3JhZGUgPT09ICd1dHRhbScgPyAtMSA6IDEKICApOwp9CgpleHBvcnQgY29uc3QgTVVIVVJBVF9ESVNDTEFJTUVSID0gewogIGVuOiAnVHJhZGl0aW9uYWwgZ3VpZGFuY2UgcGVyIEJlbmdhbGkgcGFuamlrYSDigJQgY29uc3VsdCB5b3VyIHB1cm9oaXQgZm9yIGZpbmFsIHNlbGVjdGlvbi4nLAogIGJuOiAn4Kas4Ka+4KaC4Kay4Ka+IOCmquCmnuCnjeCmnOCmv+CmleCmviDgpoXgpqjgp4Hgpq/gpr7gpq/gprzgp4Ag4KaQ4Kak4Ka/4Ka54KeN4Kav4KaX4KakIOCmqOCmv+CmsOCnjeCmpuCnh+CmtuCmqOCmviDigJQg4Kaa4KeC4Kah4Ka84Ka+4Kao4KeN4KakIOCmqOCmv+CmsOCnjeCmrOCmvuCmmuCmqOCnh+CmsCDgppzgpqjgp43gpq8g4KaG4Kaq4Kao4Ka+4KawIOCmquCngeCmsOCni+CmueCmv+CmpOCnh+CmsCDgpqrgprDgpr7gpq7gprDgp43gprYg4Kao4Ka/4Kao4KWkJywKICBoaTogJ+CkrOCkguCkl+CkvuCksuClgCDgpKrgpILgpJzgpL/gpJXgpL4g4KSV4KWHIOCkheCkqOClgeCkuOCkvuCksCDgpKrgpL7gpLDgpILgpKrgpLDgpL/gpJUg4KSu4KS+4KSw4KWN4KSX4KSm4KSw4KWN4KS24KSoIOKAlCDgpIXgpILgpKTgpL/gpK4g4KSa4KSv4KSoIOCkueClh+CkpOClgSDgpIXgpKrgpKjgpYcg4KSq4KWB4KSw4KWL4KS54KS/4KSkIOCkuOClhyDgpKrgpLDgpL7gpK7gpLDgpY3gpLYg4KSV4KSw4KWH4KSC4KWkJywKfTsKCmV4cG9ydCBmdW5jdGlvbiBiZW5nYWxpTW9udGhOYW1lKG1vbnRoOiBudW1iZXIsIHNjcmlwdDogJ2VuJyB8ICdibicgPSAnZW4nKTogc3RyaW5nIHsKICBjb25zdCBtID0gQkVOR0FMSV9NT05USFNbbW9udGggLSAxXTsKICByZXR1cm4gc2NyaXB0ID09PSAnYm4nID8gbS5ibiA6IG0uZW47Cn0K
+/**
+ * shubhMuhurat.ts — Traditional shubh-muhurat finder for samskaras.
+ * =====================================================================
+ * Rule-based scanner over the Vedic panchang engine
+ * (src/utils/panchang.ts), using Bengali months (src/lib/bengaliCalendar.ts).
+ *
+ * Encodes widely-followed Bengali panjika traditions for samskara timing.
+ * Scores are Uttam / Madhyam guidance — NEVER deterministic prediction.
+ * The underlying tithi engine is a mean-longitude approximation (±1 day
+ * possible); the UI must carry the "consult your purohit" disclaimer.
+ */
+
+import { calculateDailyPanchang, calculateSunriseSunset } from '../utils/panchang';
+import { gregorianToBengali, BENGALI_MONTHS, type BengaliVariant } from './bengaliCalendar';
+import { drikTithiAt, drikNakshatraAt } from './drikPanchang';
+
+export type SamskaraKind =
+  | 'bibaha'
+  | 'annaprason'
+  | 'namkaran'
+  | 'grihaPravesh'
+  | 'grihaArambha'
+  | 'upanayan';
+
+/** 'bengali' = Bengali panjika rules; 'north_indian' = North Indian (Vikram) rules.
+ *  Other traditions fall back to north_indian with a note. */
+export type MuhuratTradition = 'bengali' | 'north_indian';
+
+export interface SamskaraDef {
+  id: SamskaraKind;
+  en: string;
+  bn: string;
+  hi: string;
+  note: { en: string; bn: string };
+}
+
+export const SAMSKARA_KINDS: SamskaraDef[] = [
+  {
+    id: 'bibaha', en: 'Bibaha (Marriage)', bn: 'বিবাহ', hi: 'विवाह',
+    note: { en: 'Traditionally in Magh, Falgun, Boishakh, Joishtho. Avoid Chaturmasya months.', bn: 'ঐতিহ্যগতভাবে মাঘ, ফাল্গুন, বৈশাখ, জ্যৈষ্ঠে। চাতুর্মাস্য এড়িয়ে চলুন।' },
+  },
+  {
+    id: 'annaprason', en: 'Annaprason (First Rice)', bn: 'অন্নপ্রাশন', hi: 'अन्नप्राशन',
+    note: { en: 'Traditionally even months for boys, odd months for girls.', bn: 'ঐতিহ্যগতভাবে ছেলেদের জোড় মাসে, মেয়েদের বিজোড় মাসে।' },
+  },
+  {
+    id: 'namkaran', en: 'Namkaran (Naming)', bn: 'নামকরণ', hi: 'नामकरण',
+    note: { en: 'Traditionally on the 12th day after birth, under a favorable nakshatra.', bn: 'ঐতিহ্যগতভাবে জন্মের ১২তম দিনে, শুভ নক্ষত্রে।' },
+  },
+  {
+    id: 'grihaPravesh', en: 'Griha Pravesh (Housewarming)', bn: 'গৃহ প্রবেশ', hi: 'गृह प्रवेश',
+    note: { en: 'Avoid Dakshinayana/Chaturmasya period. New home, new light.', bn: 'দক্ষিণায়ন/চাতুর্মাস্য এড়িয়ে চলুন। নতুন ঘর, নতুন আলো।' },
+  },
+  {
+    id: 'grihaArambha', en: 'Griha Arambha (Construction Start)', bn: 'গৃহ আরম্ভ', hi: 'गृह आरम्भ',
+    note: { en: 'Foundation laid on Mon/Wed/Thu/Fri under a fixed (sthira) nakshatra.', bn: 'সোম/বুধ/বৃহস্পতি/শুক্রবারে স্থির নক্ষত্রে ভিত্তিপ্রস্তর।' },
+  },
+  {
+    id: 'upanayan', en: 'Upanayan (Sacred Thread)', bn: 'উপনয়ন', hi: 'उपनयन',
+    note: { en: 'Vasant ritu (Falgun–Choitro) preferred; northern course of the sun.', bn: 'বসন্ত ঋতু (ফাল্গুন–চৈত্র) শ্রেয়; সূর্যের উত্তরায়ণ।' },
+  },
+];
+
+interface RuleSet {
+  goodMonths: number[]; // Bengali month numbers 1..12
+  avoidMonths: number[];
+  goodTithis: number[]; // tithiNumber 1..15 within paksha
+  avoidTithis: number[];
+  goodNakshatras: string[]; // engine spellings
+  avoidWeekdays: number[]; // 0=Sun..6=Sat
+  goodWeekdays?: number[];
+}
+
+const NAK = {
+  rohini: 'Rohini', mrigashirsha: 'Mrigashirsha', magha: 'Magha',
+  uttaraPhalguni: 'Uttara Phalguni', hasta: 'Hasta', swati: 'Swati',
+  anuradha: 'Anuradha', mula: 'Mula', uttaraAshadha: 'Uttara Ashadha',
+  uttaraBhadrapada: 'Uttara Bhadrapada', revati: 'Revati',
+  ashwini: 'Ashwini', punarvasu: 'Punarvasu', pushya: 'Pushya',
+  chitra: 'Chitra', shravana: 'Shravana', dhanishta: 'Dhanishta',
+  shatabhisha: 'Shatabhisha',
+};
+
+const RULES: Record<SamskaraKind, RuleSet> = {
+  bibaha: {
+    goodMonths: [10, 11, 1, 2],
+    avoidMonths: [3, 4, 5, 6, 7, 9],
+    goodTithis: [2, 3, 5, 7, 10, 11, 12, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.magha, NAK.uttaraPhalguni, NAK.hasta, NAK.swati, NAK.anuradha, NAK.mula, NAK.uttaraAshadha, NAK.uttaraBhadrapada, NAK.revati],
+    avoidWeekdays: [2, 6],
+  },
+  annaprason: {
+    goodMonths: [1, 2, 10, 11, 12],
+    avoidMonths: [4, 5],
+    goodTithis: [2, 3, 5, 7, 10, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.chitra, NAK.swati, NAK.anuradha, NAK.shravana, NAK.dhanishta, NAK.shatabhisha, NAK.revati],
+    avoidWeekdays: [2, 6],
+  },
+  namkaran: {
+    goodMonths: [1, 2, 10, 11, 12, 3],
+    avoidMonths: [4],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.anuradha, NAK.shravana, NAK.revati],
+    avoidWeekdays: [6],
+  },
+  grihaPravesh: {
+    goodMonths: [1, 2, 10, 11],
+    avoidMonths: [3, 4, 5, 6, 7, 9],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.chitra, NAK.anuradha, NAK.revati, NAK.uttaraPhalguni, NAK.uttaraAshadha, NAK.uttaraBhadrapada],
+    avoidWeekdays: [2, 6],
+  },
+  grihaArambha: {
+    goodMonths: [1, 2, 10, 11, 12],
+    avoidMonths: [3, 4, 5, 6, 7],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.uttaraPhalguni, NAK.hasta, NAK.chitra, NAK.anuradha, NAK.uttaraAshadha, NAK.uttaraBhadrapada, NAK.revati],
+    avoidWeekdays: [2, 6],
+    goodWeekdays: [1, 3, 4, 5],
+  },
+  upanayan: {
+    goodMonths: [11, 12, 1, 2],
+    avoidMonths: [4, 5, 6],
+    goodTithis: [2, 3, 5, 7, 10, 11, 12, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.shravana, NAK.revati, NAK.anuradha],
+    avoidWeekdays: [6],
+  },
+};
+
+/* North Indian rule set — same Mesha-start solar month numbering (1=Vaishakha).
+ * Key differences from Bengali: Chaitra (12) avoided for bibaha/griha-pravesh;
+ * Chaturmasya (4–7) avoided; Vasant/Shishira emphasis for upanayan. */
+const NORTH_INDIAN_RULES: Record<SamskaraKind, RuleSet> = {
+  bibaha: {
+    goodMonths: [1, 2, 10, 11],
+    avoidMonths: [4, 5, 6, 7, 9, 12],
+    goodTithis: [2, 3, 5, 7, 10, 11, 12, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.magha, NAK.uttaraPhalguni, NAK.hasta, NAK.swati, NAK.anuradha, NAK.mula, NAK.uttaraAshadha, NAK.uttaraBhadrapada, NAK.revati],
+    avoidWeekdays: [2, 6],
+  },
+  annaprason: {
+    goodMonths: [1, 2, 10, 11, 12],
+    avoidMonths: [6],
+    goodTithis: [2, 3, 5, 7, 10, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.chitra, NAK.swati, NAK.anuradha, NAK.shravana, NAK.dhanishta, NAK.shatabhisha, NAK.revati],
+    avoidWeekdays: [2, 6],
+  },
+  namkaran: {
+    goodMonths: [1, 2, 3, 10, 11],
+    avoidMonths: [6],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.anuradha, NAK.shravana, NAK.revati],
+    avoidWeekdays: [6],
+  },
+  grihaPravesh: {
+    goodMonths: [1, 2, 10, 11],
+    avoidMonths: [4, 5, 6, 7, 9, 12],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.chitra, NAK.anuradha, NAK.revati, NAK.uttaraPhalguni, NAK.uttaraAshadha, NAK.uttaraBhadrapada],
+    avoidWeekdays: [2, 6],
+  },
+  grihaArambha: {
+    goodMonths: [1, 2, 10, 11, 12],
+    avoidMonths: [4, 5, 6, 7],
+    goodTithis: [2, 3, 5, 7, 10, 11, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.rohini, NAK.mrigashirsha, NAK.uttaraPhalguni, NAK.hasta, NAK.chitra, NAK.anuradha, NAK.uttaraAshadha, NAK.uttaraBhadrapada, NAK.revati],
+    avoidWeekdays: [2, 6],
+    goodWeekdays: [1, 3, 4, 5],
+  },
+  upanayan: {
+    goodMonths: [11, 12, 1, 2],
+    avoidMonths: [4, 5, 6],
+    goodTithis: [2, 3, 5, 7, 10, 11, 12, 13],
+    avoidTithis: [4, 8, 9, 14],
+    goodNakshatras: [NAK.ashwini, NAK.rohini, NAK.mrigashirsha, NAK.punarvasu, NAK.pushya, NAK.hasta, NAK.shravana, NAK.revati, NAK.anuradha],
+    avoidWeekdays: [6],
+  },
+};
+
+export type MuhuratGrade = 'uttam' | 'madhyam' | 'avoid';
+
+export interface MuhuratDay {
+  date: Date;
+  iso: string;
+  grade: MuhuratGrade;
+  score: number;
+  bengaliMonth: string;
+  bengaliMonthBn: string;
+  tithi: string;
+  tithiNumber: number;
+  paksha: 'Shukla' | 'Krishna';
+  nakshatra: string;
+  weekday: string;
+  reasons: Array<{ en: string; bn: string }>;
+}
+
+const DHAKA = { lat: 23.8103, lon: 90.4125 };
+const KOLKATA = { lat: 22.5726, lon: 88.3639 };
+
+export interface MuhuratOptions {
+  tradition?: MuhuratTradition;
+  coords?: { lat: number; lon: number };
+  /** solar month name resolver for reasons (defaults to Bengali) */
+  monthName?: (meshaStartMonth: number) => string;
+}
+
+export function findShubhMuhurat(
+  kind: SamskaraKind,
+  fromDate: Date,
+  toDate: Date,
+  variant: BengaliVariant,
+  coordsOrOpts?: { lat: number; lon: number } | MuhuratOptions
+): MuhuratDay[] {
+  const opts: MuhuratOptions =
+    coordsOrOpts && ('tradition' in coordsOrOpts || 'monthName' in coordsOrOpts)
+      ? (coordsOrOpts as MuhuratOptions)
+      : { coords: coordsOrOpts as { lat: number; lon: number } | undefined };
+  const tradition: MuhuratTradition = opts.tradition || 'bengali';
+  const rules = (tradition === 'north_indian' ? NORTH_INDIAN_RULES : RULES)[kind];
+  const monthName = opts.monthName || ((m: number) => BENGALI_MONTHS[m - 1].en);
+  const { lat, lon } = opts.coords || (variant === 'bd' ? DHAKA : KOLKATA);
+  const out: MuhuratDay[] = [];
+  const dayMs = 86400000;
+  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  const end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+
+  const tz = variant === 'bd' ? 6 : 5.5;
+  for (let t = start.getTime(); t <= end.getTime(); t += dayMs) {
+    const date = new Date(t);
+    let p: ReturnType<typeof calculateDailyPanchang>;
+    let tithiNumber: number;
+    let paksha: 'Shukla' | 'Krishna';
+    let tithiFull: string;
+    let nakshatra: string;
+    try {
+      p = calculateDailyPanchang(date, lat, lon);
+      // Drik tithi/nakshatra prevailing AT SUNRISE (Bengali day begins at sunrise)
+      const { sunriseDate } = calculateSunriseSunset(date, lat, lon, tz);
+      const dt = drikTithiAt(sunriseDate);
+      const dn = drikNakshatraAt(sunriseDate);
+      tithiNumber = dt.tithiNumber;
+      paksha = dt.paksha;
+      tithiFull = `${dt.paksha} ${dt.name}`;
+      nakshatra = dn.name;
+    } catch {
+      continue;
+    }
+    const b = gregorianToBengali(date, variant);
+    const wd = date.getDay();
+    const reasons: Array<{ en: string; bn: string }> = [];
+    let score = 0;
+    let hardAvoid = false;
+
+    // Month (Bengali month number aligns with Mesha-start solar index for rule purposes)
+    const mLabel = monthName(b.month);
+    if (rules.avoidMonths.includes(b.month)) {
+      score -= 3;
+      hardAvoid = true;
+      reasons.push({ en: `${mLabel} is traditionally avoided`, bn: `${mLabel} ঐতিহ্যগতভাবে পরিহার্য` });
+    } else if (rules.goodMonths.includes(b.month)) {
+      score += 2;
+      reasons.push({ en: `${mLabel} — favorable month`, bn: `${mLabel} — শুভ মাস` });
+    }
+
+    // Tithi (Drik, at sunrise)
+    const isAmavasya = tithiNumber === 15 && paksha === 'Krishna';
+    if (rules.avoidTithis.includes(tithiNumber) || isAmavasya) {
+      score -= 3;
+      hardAvoid = true;
+      reasons.push({ en: `${tithiFull} — traditionally avoided`, bn: `${tithiFull} — ঐতিহ্যগতভাবে পরিহার্য` });
+    } else if (rules.goodTithis.includes(tithiNumber)) {
+      score += 2;
+      reasons.push({ en: `${tithiFull} — shubh tithi`, bn: `${tithiFull} — শুভ তিথি` });
+    }
+
+    // Nakshatra (Drik, at sunrise)
+    if (rules.goodNakshatras.includes(nakshatra)) {
+      score += 2;
+      reasons.push({ en: `${nakshatra} nakshatra — favorable`, bn: `${nakshatra} নক্ষত্র — শুভ` });
+    }
+
+    // Weekday
+    if (rules.avoidWeekdays.includes(wd)) {
+      score -= 2;
+      reasons.push({ en: `${p.vaara} — traditionally avoided for this samskara`, bn: `${p.vaara} — এই সংস্কারের জন্য ঐতিহ্যগতভাবে পরিহার্য` });
+    } else if (rules.goodWeekdays?.includes(wd)) {
+      score += 1;
+    }
+
+    // Shukla paksha gentle bonus for most samskaras
+    if (paksha === 'Shukla' && !isAmavasya) score += 0.5;
+
+    const grade: MuhuratGrade = hardAvoid ? 'avoid' : score >= 5 ? 'uttam' : score >= 3 ? 'madhyam' : 'avoid';
+    if (grade === 'avoid') continue;
+
+    out.push({
+      date,
+      iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      grade,
+      score,
+      bengaliMonth: b.monthEn,
+      bengaliMonthBn: b.monthBn,
+      tithi: tithiFull,
+      tithiNumber,
+      paksha,
+      nakshatra,
+      weekday: p.vaara,
+      reasons,
+    });
+  }
+
+  // Uttam first, then by date
+  return out.sort((a, b) =>
+    a.grade === b.grade ? a.date.getTime() - b.date.getTime() : a.grade === 'uttam' ? -1 : 1
+  );
+}
+
+export const MUHURAT_DISCLAIMER = {
+  en: 'Traditional guidance per Bengali panjika — consult your purohit for final selection.',
+  bn: 'বাংলা পঞ্জিকা অনুযায়ী ঐতিহ্যগত নির্দেশনা — চূড়ান্ত নির্বাচনের জন্য আপনার পুরোহিতের পরামর্শ নিন।',
+  hi: 'बंगाली पंजिका के अनुसार पारंपरिक मार्गदर्शन — अंतिम चयन हेतु अपने पुरोहित से परामर्श करें।',
+};
+
+/** Tradition-aware disclaimer — the footer must match the section header. */
+export const MUHURAT_DISCLAIMER_BY_TRADITION: Record<MuhuratTradition, { en: string; bn: string; hi: string }> = {
+  bengali: MUHURAT_DISCLAIMER,
+  north_indian: {
+    en: 'Traditional guidance per North Indian (Vikram) panjika — consult your purohit for final selection.',
+    bn: 'উত্তর ভারতীয় (বিক্রম) পঞ্জিকা অনুযায়ী ঐতিহ্যগত নির্দেশনা — চূড়ান্ত নির্বাচনের জন্য আপনার পুরোহিতের পরামর্শ নিন।',
+    hi: 'उत्तर भारतीय (विक्रम) पंचांग के अनुसार पारंपरिक मार्गदर्शन — अंतिम चयन हेतु अपने पुरोहित से परामर्श करें।',
+  },
+};
+
+export function bengaliMonthName(month: number, script: 'en' | 'bn' = 'en'): string {
+  const m = BENGALI_MONTHS[month - 1];
+  return script === 'bn' ? m.bn : m.en;
+}

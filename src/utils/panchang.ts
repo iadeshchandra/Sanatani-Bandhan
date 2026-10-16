@@ -1,3 +1,11 @@
+import {
+  drikTithiAt,
+  drikNakshatraAt,
+  drikYogaAt,
+  drikKaranaAt,
+  drikLunarMonth,
+} from '../lib/drikPanchang';
+
 export interface PanchangData {
   gregorianDate: string;
   sunrise: string;
@@ -117,21 +125,35 @@ export const calculateSunriseSunset = (
   const sunriseLocalMin = (sunriseUtc + tzOffsetHours * 60 + 1440) % 1440;
   const sunsetLocalMin = (sunsetUtc + tzOffsetHours * 60 + 1440) % 1440;
 
-  const sunriseDate = new Date(date);
-  sunriseDate.setHours(Math.floor(sunriseLocalMin / 60), Math.floor(sunriseLocalMin % 60), 0, 0);
-
-  const sunsetDate = new Date(date);
-  sunsetDate.setHours(Math.floor(sunsetLocalMin / 60), Math.floor(sunsetLocalMin % 60), 0, 0);
+  // P0 accuracy: build TRUE UTC instants. `localMin` is minutes after local
+  // midnight in the target city; the instant is midnight-UTC of the civil
+  // date plus (localMin - tzOffset). NEVER use setHours() (browser tz).
+  const dayStartUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const sunriseDate = new Date(dayStartUtc + (sunriseLocalMin - tzOffsetHours * 60) * 60000);
+  const sunsetDate = new Date(dayStartUtc + (sunsetLocalMin - tzOffsetHours * 60) * 60000);
 
   const dayLengthMinutes = Math.round(sunsetLocalMin - sunriseLocalMin);
 
   return {
     sunriseDate,
     sunsetDate,
-    sunriseStr: formatTime12h(sunriseDate),
-    sunsetStr: formatTime12h(sunsetDate),
+    sunriseStr: formatTimeInTz(sunriseDate, tzOffsetHours),
+    sunsetStr: formatTimeInTz(sunsetDate, tzOffsetHours),
     dayLengthMinutes: dayLengthMinutes > 0 ? dayLengthMinutes : dayLengthMinutes + 1440,
   };
+};
+
+/**
+ * Format a true UTC instant as wall-clock time in the target timezone.
+ * (toLocaleTimeString uses the *browser* tz — wrong for any other city.)
+ */
+export const formatTimeInTz = (d: Date, tzOffsetHours: number): string => {
+  const shifted = new Date(d.getTime() + tzOffsetHours * 3600000);
+  const hh = shifted.getUTCHours();
+  const mm = shifted.getUTCMinutes();
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`;
 };
 
 export const formatTime12h = (d: Date): string => {
@@ -190,15 +212,6 @@ const NAKSHATRAS_DATA = [
   { name: 'Revati', lord: 'Mercury', symbol: 'Fish Swimming in Sea', deity: 'Pushan' },
 ];
 
-const YOGAS_LIST = [
-  'Vishkambha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti',
-  'Shula', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi',
-  'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla',
-  'Brahma', 'Indra', 'Vaidhriti'
-];
-
-const KARANAS_LIST = ['Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti (Bhadra)'];
-
 const VAARA_NAMES = [
   { name: 'Ravivaara', eng: 'Sunday', planet: 'Surya (Sun)' },
   { name: 'Somavaara', eng: 'Monday', planet: 'Chandra (Moon)' },
@@ -207,11 +220,6 @@ const VAARA_NAMES = [
   { name: 'Guruvaara', eng: 'Thursday', planet: 'Brihaspati (Jupiter)' },
   { name: 'Shukravaara', eng: 'Friday', planet: 'Shukra (Venus)' },
   { name: 'Shanivaara', eng: 'Saturday', planet: 'Shani (Saturn)' },
-];
-
-const LUNAR_MONTHS = [
-  'Chaitra', 'Vaishakha', 'Jyeshtha', 'Ashadha', 'Shravana', 'Bhadrapada',
-  'Ashwin', 'Kartika', 'Margashirsha', 'Pausha', 'Magha', 'Phalguna'
 ];
 
 /**
@@ -265,9 +273,9 @@ const GULIKA_PART_BY_WEEKDAY: Record<number, number> = {
 export const calculateDailyPanchang = (
   date: Date = new Date(),
   lat: number = 25.3176, // Default: Varanasi
-  lon: number = 82.9739
+  lon: number = 82.9739,
+  tzOffsetHours: number = 5.5
 ): PanchangData => {
-  const year = date.getFullYear();
   const dayOfWeek = date.getDay(); // 0..6
 
   // 1. Calculate precise Sunrise and Sunset for coordinates
@@ -275,7 +283,7 @@ export const calculateDailyPanchang = (
     date,
     lat,
     lon,
-    5.5
+    tzOffsetHours
   );
 
   const sunriseMs = sunriseDate.getTime();
@@ -284,9 +292,9 @@ export const calculateDailyPanchang = (
   const segmentDurationMs = totalDaylightMs / 8;
   const segmentDurationMinutes = Math.round(segmentDurationMs / 60000);
 
-  // Helper to format a time window given startMs and endMs
+  // Helper to format a time window given startMs and endMs (target-city wall clock)
   const formatWindow = (startMs: number, endMs: number): string => {
-    return `${formatTime12h(new Date(startMs))} - ${formatTime12h(new Date(endMs))}`;
+    return `${formatTimeInTz(new Date(startMs), tzOffsetHours)} - ${formatTimeInTz(new Date(endMs), tzOffsetHours)}`;
   };
 
   // 2. Exact Rahu Kaal window
@@ -365,50 +373,41 @@ export const calculateDailyPanchang = (
       type,
       isAuspicious,
       isInauspicious,
-      startTime: formatTime12h(new Date(startMs)),
-      endTime: formatTime12h(new Date(endMs)),
+      startTime: formatTimeInTz(new Date(startMs), tzOffsetHours),
+      endTime: formatTimeInTz(new Date(endMs), tzOffsetHours),
       durationMinutes: segmentDurationMinutes,
       description: desc,
     });
   }
 
-  // 9. Astrological Approximation for Tithi, Nakshatra, Yoga, Karana based on Synodic Lunar Phases
-  // Known reference new moon epoch (e.g. Jan 11, 2024 at 11:57 UTC)
-  const knownNewMoonMs = Date.UTC(2024, 0, 11, 11, 57, 0);
-  const synodicMonthMs = 29.53058867 * 86400000; // 29.53 days
-  const siderealMonthMs = 27.321661 * 86400000; // 27.32 days
-
-  const elapsedSinceNewMoon = (date.getTime() - knownNewMoonMs) % synodicMonthMs;
-  const normalizedPhase = (elapsedSinceNewMoon < 0 ? elapsedSinceNewMoon + synodicMonthMs : elapsedSinceNewMoon) / synodicMonthMs;
-
-  // 30 Tithis in a lunar month (1..15 Shukla, 16..30 Krishna)
-  const tithiIndexTotal = Math.floor(normalizedPhase * 30);
-  const isShukla = tithiIndexTotal < 15;
-  const tithiNumberInPaksha = (tithiIndexTotal % 15) + 1;
+  // 9. Tithi, Nakshatra, Yoga, Karana, lunar month — DRIK SIDDHANTA ONLY.
+  // The legacy single-epoch mean-motion approximation drifted ~2 tithis
+  // (P0: a Panjika showing wrong dates is worse than no Panjika).
+  // Solar fields above (sunrise/sunset/rahu kaal/…) use the NOAA solar model
+  // and are correct; only the lunar fields needed the Drik engine.
+  const drikT = drikTithiAt(date);
+  const tithiNumberInPaksha = drikT.tithiNumber;
   const tithiMeta = TITHIS_DATA[tithiNumberInPaksha - 1];
-  const paksha: 'Shukla' | 'Krishna' = isShukla ? 'Shukla' : 'Krishna';
-  const tithiFullName = `${paksha} ${tithiNumberInPaksha === 15 ? (isShukla ? 'Purnima' : 'Amavasya') : tithiMeta.name}`;
+  const paksha: 'Shukla' | 'Krishna' = drikT.paksha;
+  const tithiFullName = `${paksha} ${drikT.name}`;
 
-  // Nakshatra (Moon travels through 27 Nakshatras every ~27.32 days)
-  const siderealElapsed = (date.getTime() - knownNewMoonMs) % siderealMonthMs;
-  const normalizedSidereal = (siderealElapsed < 0 ? siderealElapsed + siderealMonthMs : siderealElapsed) / siderealMonthMs;
-  const nakshatraIndex = Math.floor(normalizedSidereal * 27);
-  const nakshatraMeta = NAKSHATRAS_DATA[nakshatraIndex];
+  const drikN = drikNakshatraAt(date);
+  const nakshatraMeta = NAKSHATRAS_DATA[drikN.index];
 
-  // Lunar month from Gregorian month: lunar masa run ~mid-month to mid-month,
-  // so Jan≈Pausha … Oct≈Ashwin … Dec≈Margashirsha. (Verified: 2026-10-15 is
-  // Ashwina Shukla Panchami in both Amanta & Purnimanta traditions.)
-  const lunarMonthIndex = (date.getMonth() + 9) % 12;
+  const drikLM = drikLunarMonth(date, 'purnimanta');
 
-  const yogaIndex = (tithiIndexTotal + nakshatraIndex) % 27;
-  const yogaName = YOGAS_LIST[yogaIndex];
-  const karanaName = KARANAS_LIST[(tithiIndexTotal * 2) % KARANAS_LIST.length];
+  const yogaName = drikYogaAt(date).name;
+  const karanaName = drikKaranaAt(date).name;
 
   const vaaraInfo = VAARA_NAMES[dayOfWeek];
 
   const hours = Math.floor(dayLengthMinutes / 60);
   const mins = dayLengthMinutes % 60;
   const dayLengthStr = `${hours} hrs ${mins} mins`;
+
+  // Vikram Samvat: Chaitra Shukla Pratipada = new year.
+  const gy = date.getFullYear();
+  const vikramYear = drikLM.index >= 1 ? gy + 57 : paksha === 'Shukla' ? gy + 57 : gy + 56;
 
   return {
     gregorianDate: date.toLocaleDateString('en-IN', {
@@ -436,12 +435,10 @@ export const calculateDailyPanchang = (
     abhijitMuhurat: abhijitMuhuratStr,
     brahmaMuhurat: brahmaMuhuratStr,
     amritKaal: amritKaalStr,
-    // H-4: Vikram Samvat begins in Chaitra (Mar/Apr). Jan–Mar belong to the
-    // previous Samvat year: +56 then, +57 for Apr–Dec.
-    vikramSamvat: year + (date.getMonth() < 3 ? 56 : 57),
-    sakaSamvat: year - 78,
-    lunarMonth: LUNAR_MONTHS[lunarMonthIndex],
-    moonPhasePercent: Math.round(normalizedPhase * 100),
+    vikramSamvat: vikramYear,
+    sakaSamvat: gy - 78,
+    lunarMonth: drikLM.name,
+    moonPhasePercent: Math.round(((drikT.index % 30) / 30) * 100),
     planetaryHours,
   };
 };

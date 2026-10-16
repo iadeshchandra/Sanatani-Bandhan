@@ -1,1 +1,361 @@
-LyoqCiAqIGRyaWtQYW5jaGFuZy50cyDigJQgRHJpayBTaWRkaGFudGEgYXN0cm9ub21pY2FsIGVuZ2luZSAoTGFoaXJpIGF5YW5hbXNhKS4KICogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAqIFRoZSBwYW5qaWthIG1vZHVsZSdzIERFRkFVTFQgYXN0cm9ub21pY2FsIGVuZ2luZS4gVXNlcyBsb3ctcHJlY2lzaW9uCiAqIHBsYW5ldGFyeSB0aGVvcnkgKFNjaGx5dGVyKSB3aXRoIHRoZSBwcmluY2lwYWwgbHVuYXIgcGVydHVyYmF0aW9uIHRlcm1zOgogKiAgIC0gU3VuIGxvbmdpdHVkZSBhY2N1cmF0ZSB0byB+MC4wMcKwCiAqICAgLSBNb29uIGxvbmdpdHVkZSBhY2N1cmF0ZSB0byB+MC4xwrAgKOKJiCDCsTLigJMzIGhvdXJzIG9uIHRpdGhpIGJvdW5kYXJpZXMpCiAqIFRoaXMgaXMgdGhlIERyaWsgKm1ldGhvZCogKG9ic2VydmFibGUvc2lkZXJlYWwsIExhaGlyaSBheWFuYW1zYSksIGFzCiAqIG9wcG9zZWQgdG8gbWVhbi1sb25naXR1ZGUgYXBwcm94aW1hdGlvbnMuIFdoZXJlIHRyYWRpdGlvbmFsIHNjaG9vbHMKICogKGUuZy4gU3VyeWEgU2lkZGhhbnRhIC8gR3VwdGEgUHJlc3MpIGRpdmVyZ2UsIHRoZSBVSSBsYWJlbHMgYm90aC4KICoKICogQWxsIGxvbmdpdHVkZXMgcmV0dXJuZWQgYXJlIFNJREVSRUFMIChuaXJheWFuYSkgZGVncmVlcyBpbiBbMCwgMzYwKS4KICovCgpjb25zdCBSQUQgPSBNYXRoLlBJIC8gMTgwOwpjb25zdCBub3JtMzYwID0gKHg6IG51bWJlcik6IG51bWJlciA9PiAoKHggJSAzNjApICsgMzYwKSAlIDM2MDsKY29uc3Qgc2luRCA9ICh4OiBudW1iZXIpOiBudW1iZXIgPT4gTWF0aC5zaW4oeCAqIFJBRCk7CmNvbnN0IGNvc0QgPSAoeDogbnVtYmVyKTogbnVtYmVyID0+IE1hdGguY29zKHggKiBSQUQpOwoKZnVuY3Rpb24ganVsaWFuRGF5KGRhdGU6IERhdGUpOiBudW1iZXIgewogIHJldHVybiBkYXRlLmdldFRpbWUoKSAvIDg2NDAwMDAwICsgMjQ0MDU4Ny41Owp9CgovKiogTGFoaXJpIGF5YW5hbXNhIGluIGRlZ3JlZXMuIEoyMDAwIHZhbHVlIDIzwrA1MScxMS45IiwgcmF0ZSB+NTAuMjkiL3lyLiAqLwpleHBvcnQgZnVuY3Rpb24gbGFoaXJpQXlhbmFtc2EoZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgY29uc3QgZCA9IGp1bGlhbkRheShkYXRlKSAtIDI0NTE1NDUuMDsgLy8gZGF5cyBzaW5jZSBKMjAwMC4wCiAgY29uc3QgZnJhY1llYXIgPSAyMDAwICsgZCAvIDM2NS4yNTsKICByZXR1cm4gMjMuODUzMyArIDAuMDEzOTY5ICogKGZyYWNZZWFyIC0gMjAwMCk7Cn0KCi8qKiBTaWRlcmVhbCAobmlyYXlhbmEpIFN1biBsb25naXR1ZGUsIGRlZ3JlZXMgWzAsMzYwKS4gKi8KZXhwb3J0IGZ1bmN0aW9uIGRyaWtTdW5Mb25naXR1ZGUoZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgY29uc3QgZCA9IGp1bGlhbkRheShkYXRlKSAtIDI0NTE1NDMuNTsKICBjb25zdCB3ID0gMjgyLjk0MDQgKyA0LjcwOTM1ZS01ICogZDsKICBjb25zdCBlID0gMC4wMTY3MDkgLSAxLjE1MWUtOSAqIGQ7CiAgY29uc3QgTSA9IG5vcm0zNjAoMzU2LjA0NzAgKyAwLjk4NTYwMDI1ODUgKiBkKTsKICAvLyBTb2x2ZSBLZXBsZXIncyBlcXVhdGlvbiAodHdvIE5ld3RvbiBpdGVyYXRpb25zKQogIGxldCBFID0gTSArICgxODAgLyBNYXRoLlBJKSAqIGUgKiBzaW5EKE0pICogKDEgKyBlICogY29zRChNKSk7CiAgZm9yIChsZXQgayA9IDA7IGsgPCAyOyBrKyspIHsKICAgIEUgPSBFIC0gKEUgLSAoMTgwIC8gTWF0aC5QSSkgKiBlICogc2luRChFKSAtIE0pIC8gKDEgLSBlICogY29zRChFKSk7CiAgfQogIGNvbnN0IHggPSBjb3NEKEUpIC0gZTsKICBjb25zdCB5ID0gc2luRChFKSAqIE1hdGguc3FydCgxIC0gZSAqIGUpOwogIGNvbnN0IHYgPSBNYXRoLmF0YW4yKHksIHgpIC8gUkFEOwogIHJldHVybiBub3JtMzYwKG5vcm0zNjAodiArIHcpIC0gbGFoaXJpQXlhbmFtc2EoZGF0ZSkpOwp9CgovKiogU2lkZXJlYWwgKG5pcmF5YW5hKSBNb29uIGxvbmdpdHVkZSwgZGVncmVlcyBbMCwzNjApLiAqLwpleHBvcnQgZnVuY3Rpb24gZHJpa01vb25Mb25naXR1ZGUoZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgY29uc3QgZCA9IGp1bGlhbkRheShkYXRlKSAtIDI0NTE1NDMuNTsKICBjb25zdCBOID0gbm9ybTM2MCgxMjUuMTIyOCAtIDAuMDUyOTUzODA4MyAqIGQpOwogIGNvbnN0IGkgPSA1LjE0NTQ7CiAgY29uc3QgdyA9IG5vcm0zNjAoMzE4LjA2MzQgKyAwLjE2NDM1NzMyMjMgKiBkKTsKICBjb25zdCBhID0gNjAuMjY2NjsKICBjb25zdCBlID0gMC4wNTQ5MDA7CiAgY29uc3QgTSA9IG5vcm0zNjAoMTE1LjM2NTQgKyAxMy4wNjQ5OTI5NTA5ICogZCk7CgogIGxldCBFID0gTSArICgxODAgLyBNYXRoLlBJKSAqIGUgKiBzaW5EKE0pICogKDEgKyBlICogY29zRChNKSk7CiAgZm9yIChsZXQgayA9IDA7IGsgPCAzOyBrKyspIHsKICAgIEUgPSBFIC0gKEUgLSAoMTgwIC8gTWF0aC5QSSkgKiBlICogc2luRChFKSAtIE0pIC8gKDEgLSBlICogY29zRChFKSk7CiAgfQogIGNvbnN0IHggPSBhICogKGNvc0QoRSkgLSBlKTsKICBjb25zdCB5ID0gYSAqIE1hdGguc3FydCgxIC0gZSAqIGUpICogc2luRChFKTsKICBjb25zdCByID0gTWF0aC5zcXJ0KHggKiB4ICsgeSAqIHkpOwogIGNvbnN0IHYgPSBNYXRoLmF0YW4yKHksIHgpIC8gUkFEOwogIGNvbnN0IHZ3ID0gdiArIHc7CiAgY29uc3QgeGggPSByICogKGNvc0QoTikgKiBjb3NEKHZ3KSAtIHNpbkQoTikgKiBzaW5EKHZ3KSAqIGNvc0QoaSkpOwogIGNvbnN0IHloID0gciAqIChzaW5EKE4pICogY29zRCh2dykgKyBjb3NEKE4pICogc2luRCh2dykgKiBjb3NEKGkpKTsKICBsZXQgbG9uID0gTWF0aC5hdGFuMih5aCwgeGgpIC8gUkFEOwoKICAvLyBQcmluY2lwYWwgcGVydHVyYmF0aW9uIHRlcm1zIChTY2hseXRlcikKICBjb25zdCBNcyA9IG5vcm0zNjAoMzU2LjA0NzAgKyAwLjk4NTYwMDI1ODUgKiBkKTsKICBjb25zdCBNbSA9IE07CiAgY29uc3Qgd3MgPSAyODIuOTQwNCArIDQuNzA5MzVlLTUgKiBkOwogIGNvbnN0IExtID0gbm9ybTM2MChOICsgdyArIE1tKTsKICBjb25zdCBEbSA9IG5vcm0zNjAoTG0gLSBub3JtMzYwKHdzICsgTXMpKTsKICBjb25zdCBGID0gbm9ybTM2MChMbSAtIE4pOwogIGxvbiArPSAtMS4yNzQgKiBzaW5EKE1tIC0gMiAqIERtKTsgLy8gRXZlY3Rpb24gKHNpZ24gcGVyIE1lZXVzL0Jyb3duOiAtMS4yNzQpCiAgbG9uICs9IDAuNjU4ICogc2luRCgyICogRG0pOyAvLyBWYXJpYXRpb24KICBsb24gLT0gMC4xODYgKiBzaW5EKE1zKTsgLy8gWWVhcmx5IGVxdWF0aW9uCiAgbG9uIC09IDAuMDU5ICogc2luRCgyICogTW0gLSAyICogRG0pOwogIGxvbiAtPSAwLjA1NyAqIHNpbkQoTW0gLSAyICogRG0gKyBNcyk7CiAgbG9uICs9IDAuMDUzICogc2luRChNbSArIDIgKiBEbSk7CiAgbG9uICs9IDAuMDQ2ICogc2luRCgyICogRG0gLSBNcyk7CiAgbG9uICs9IDAuMDQxICogc2luRChNbSAtIE1zKTsKICBsb24gLT0gMC4wMzUgKiBzaW5EKERtKTsKICBsb24gLT0gMC4wMzEgKiBzaW5EKE1tICsgTXMpOwogIGxvbiAtPSAwLjAxNSAqIHNpbkQoMiAqIEYgLSAyICogRG0pOwoKICByZXR1cm4gbm9ybTM2MChsb24gLSBsYWhpcmlBeWFuYW1zYShkYXRlKSk7Cn0KCi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAqLwoKZXhwb3J0IGludGVyZmFjZSBEcmlrVGl0aGkgewogIC8qKiAw4oCTMjkgZWxvbmdhdGlvbiBpbmRleCAoMCA9IEFtYXZhc3lhIG1vbWVudCwgMTQgPSBQdXJuaW1hKSAqLwogIGluZGV4OiBudW1iZXI7CiAgLyoqIDHigJMxNSB3aXRoaW4gcGFrc2hhICovCiAgdGl0aGlOdW1iZXI6IG51bWJlcjsKICBwYWtzaGE6ICdTaHVrbGEnIHwgJ0tyaXNobmEnOwogIG5hbWU6IHN0cmluZzsKfQoKY29uc3QgVElUSElfTkFNRVMgPSBbCiAgJ1ByYXRpcGFkYScsICdEd2l0aXlhJywgJ1RyaXRpeWEnLCAnQ2hhdHVydGhpJywgJ1BhbmNoYW1pJywKICAnU2hhc2h0aGknLCAnU2FwdGFtaScsICdBc2h0YW1pJywgJ05hdmFtaScsICdEYXNoYW1pJywKICAnRWthZGFzaGknLCAnRHdhZGFzaGknLCAnVHJheW9kYXNoaScsICdDaGF0dXJkYXNoaScsICdQdXJuaW1hJywKXTsKCi8qKiBUaXRoaSBwcmV2YWlsaW5nIGF0IHRoZSBnaXZlbiBtb21lbnQgKERyaWspLiAqLwpleHBvcnQgZnVuY3Rpb24gZHJpa1RpdGhpQXQoZGF0ZTogRGF0ZSk6IERyaWtUaXRoaSB7CiAgY29uc3QgZWxvbmcgPSBub3JtMzYwKGRyaWtNb29uTG9uZ2l0dWRlKGRhdGUpIC0gZHJpa1N1bkxvbmdpdHVkZShkYXRlKSk7CiAgY29uc3QgaW5kZXggPSBNYXRoLmZsb29yKGVsb25nIC8gMTIpICUgMzA7CiAgY29uc3QgcGFrc2hhOiAnU2h1a2xhJyB8ICdLcmlzaG5hJyA9IGluZGV4IDwgMTUgPyAnU2h1a2xhJyA6ICdLcmlzaG5hJzsKICBjb25zdCB0aXRoaU51bWJlciA9IChpbmRleCAlIDE1KSArIDE7CiAgY29uc3QgbmFtZSA9CiAgICB0aXRoaU51bWJlciA9PT0gMTUgPyAocGFrc2hhID09PSAnU2h1a2xhJyA/ICdQdXJuaW1hJyA6ICdBbWF2YXN5YScpIDogVElUSElfTkFNRVNbdGl0aGlOdW1iZXIgLSAxXTsKICByZXR1cm4geyBpbmRleCwgdGl0aGlOdW1iZXIsIHBha3NoYSwgbmFtZSB9Owp9Cgpjb25zdCBOQUtTSEFUUkFfTkFNRVMgPSBbCiAgJ0FzaHdpbmknLCAnQmhhcmFuaScsICdLcml0dGlrYScsICdSb2hpbmknLCAnTXJpZ2FzaGlyc2hhJywgJ0FyZHJhJywKICAnUHVuYXJ2YXN1JywgJ1B1c2h5YScsICdBc2hsZXNoYScsICdNYWdoYScsICdQdXJ2YSBQaGFsZ3VuaScsCiAgJ1V0dGFyYSBQaGFsZ3VuaScsICdIYXN0YScsICdDaGl0cmEnLCAnU3dhdGknLCAnVmlzaGFraGEnLCAnQW51cmFkaGEnLAogICdKeWVzaHRoYScsICdNdWxhJywgJ1B1cnZhIEFzaGFkaGEnLCAnVXR0YXJhIEFzaGFkaGEnLCAnU2hyYXZhbmEnLAogICdEaGFuaXNodGEnLCAnU2hhdGFiaGlzaGEnLCAnUHVydmEgQmhhZHJhcGFkYScsICdVdHRhcmEgQmhhZHJhcGFkYScsICdSZXZhdGknLApdOwoKLyoqIE5ha3NoYXRyYSBwcmV2YWlsaW5nIGF0IHRoZSBnaXZlbiBtb21lbnQgKERyaWspLiAqLwpleHBvcnQgZnVuY3Rpb24gZHJpa05ha3NoYXRyYUF0KGRhdGU6IERhdGUpOiB7IGluZGV4OiBudW1iZXI7IG5hbWU6IHN0cmluZyB9IHsKICBjb25zdCBpbmRleCA9IE1hdGguZmxvb3IoZHJpa01vb25Mb25naXR1ZGUoZGF0ZSkgLyAoMzYwIC8gMjcpKSAlIDI3OwogIHJldHVybiB7IGluZGV4LCBuYW1lOiBOQUtTSEFUUkFfTkFNRVNbaW5kZXhdIH07Cn0KCi8qKiBTdW4ncyBzaWRlcmVhbCByYXNoaSBpbmRleCBhdCB0aGUgbW9tZW50ICgwID0gTWVzaGEpLiAqLwpleHBvcnQgZnVuY3Rpb24gZHJpa1N1blJhc2hpQXQoZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgcmV0dXJuIE1hdGguZmxvb3IoZHJpa1N1bkxvbmdpdHVkZShkYXRlKSAvIDMwKSAlIDEyOwp9CgovKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi8KLyogTHVuYXIgbW9udGgg4oCUIEFtYW50YSBBTkQgUHVybmltYW50YSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICovCi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAqLwoKZXhwb3J0IHR5cGUgTHVuYXJTY2hvb2wgPSAnYW1hbnRhJyB8ICdwdXJuaW1hbnRhJzsKCmZ1bmN0aW9uIGVsb25nYXRpb24oZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgcmV0dXJuIG5vcm0zNjAoZHJpa01vb25Mb25naXR1ZGUoZGF0ZSkgLSBkcmlrU3VuTG9uZ2l0dWRlKGRhdGUpKTsKfQoKLyoqCiAqIE5ldy1tb29uIChBbWF2YXN5YSkgKm1vbWVudCogbmVhcmVzdCBgZnJvbWAgaW4gYGRpcmVjdGlvbmAuCiAqIENvYXJzZSAyNGggc2NhbiArIGJpc2VjdGlvbi4gKH41MCBkcmlrIGV2YWx1YXRpb25zLikKICovCmZ1bmN0aW9uIGZpbmROZXdNb29uTW9tZW50KGZyb206IERhdGUsIGRpcmVjdGlvbjogMSB8IC0xKTogRGF0ZSB7CiAgY29uc3Qgc3RlcCA9IDI0ICogMzYwMDAwMDsKICBsZXQgdCA9IGZyb20uZ2V0VGltZSgpOwogIGxldCBlUHJldiA9IGVsb25nYXRpb24obmV3IERhdGUodCkpOwogIGZvciAobGV0IGsgPSAwOyBrIDwgMzI7IGsrKykgewogICAgY29uc3QgdE5leHQgPSB0ICsgZGlyZWN0aW9uICogc3RlcDsKICAgIGNvbnN0IGVOZXh0ID0gZWxvbmdhdGlvbihuZXcgRGF0ZSh0TmV4dCkpOwogICAgY29uc3QgY3Jvc3NlZCA9CiAgICAgIGRpcmVjdGlvbiA9PT0gMSA/IGVQcmV2ID4gMzAwICYmIGVOZXh0IDwgNjAgOiBlUHJldiA8IDYwICYmIGVOZXh0ID4gMzAwOwogICAgaWYgKGNyb3NzZWQpIHsKICAgICAgbGV0IGEgPSB0OwogICAgICBsZXQgYiA9IHROZXh0OwogICAgICBmb3IgKGxldCBpID0gMDsgaSA8IDI0OyBpKyspIHsKICAgICAgICBjb25zdCBtID0gKGEgKyBiKSAvIDI7CiAgICAgICAgY29uc3QgZU0gPSBlbG9uZ2F0aW9uKG5ldyBEYXRlKG0pKTsKICAgICAgICBpZiAoZGlyZWN0aW9uID09PSAxKSB7CiAgICAgICAgICBpZiAoZU0gPiAzMDApIGEgPSBtOyBlbHNlIGIgPSBtOwogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICBpZiAoZU0gPCA2MCkgYSA9IG07IGVsc2UgYiA9IG07CiAgICAgICAgfQogICAgICB9CiAgICAgIHJldHVybiBuZXcgRGF0ZSgoYSArIGIpIC8gMik7CiAgICB9CiAgICB0ID0gdE5leHQ7CiAgICBlUHJldiA9IGVOZXh0OwogIH0KICByZXR1cm4gZnJvbTsKfQoKLyoqIFJhc2hpIGluZGljZXMgKDA9TWVzaGEpIHRoZSBTdW4gZW50ZXJzIGluIChzdGFydCwgZW5kXS4gKi8KZnVuY3Rpb24gc2Fua3JhbnRpc0JldHdlZW4oc3RhcnQ6IERhdGUsIGVuZDogRGF0ZSk6IG51bWJlcltdIHsKICBjb25zdCBvdXQ6IG51bWJlcltdID0gW107CiAgY29uc3Qgc3RlcCA9IDEyICogMzYwMDAwMDsKICBsZXQgdCA9IHN0YXJ0LmdldFRpbWUoKTsKICBjb25zdCBlbmRUID0gZW5kLmdldFRpbWUoKTsKICBsZXQgcHJldlJhc2hpID0gTWF0aC5mbG9vcihkcmlrU3VuTG9uZ2l0dWRlKG5ldyBEYXRlKHQpKSAvIDMwKSAlIDEyOwogIHdoaWxlICh0IDwgZW5kVCkgewogICAgY29uc3QgdE5leHQgPSBNYXRoLm1pbih0ICsgc3RlcCwgZW5kVCk7CiAgICBjb25zdCByID0gTWF0aC5mbG9vcihkcmlrU3VuTG9uZ2l0dWRlKG5ldyBEYXRlKHROZXh0KSkgLyAzMCkgJSAxMjsKICAgIGlmIChyICE9PSBwcmV2UmFzaGkpIHsKICAgICAgb3V0LnB1c2gocik7CiAgICAgIHByZXZSYXNoaSA9IHI7CiAgICB9CiAgICB0ID0gdE5leHQ7CiAgfQogIHJldHVybiBvdXQ7Cn0KCmNvbnN0IGx1bmFyTW9udGhDYWNoZSA9IG5ldyBNYXA8c3RyaW5nLCB7IGluZGV4OiBudW1iZXI7IG5hbWU6IHN0cmluZzsgYWRoaWthOiBib29sZWFuIH0+KCk7CmNvbnN0IGNhY2hlS2V5ID0gKGQ6IERhdGUsIHNjaG9vbDogTHVuYXJTY2hvb2wpID0+CiAgYCR7ZC5nZXRGdWxsWWVhcigpfS0ke2QuZ2V0TW9udGgoKX0tJHtkLmdldERhdGUoKX0tJHtzY2hvb2x9YDsKCmV4cG9ydCBjb25zdCBMVU5BUl9NT05USFNfRU4gPSBbCiAgJ0NoYWl0cmEnLCAnVmFpc2hha2hhJywgJ0p5ZXNodGhhJywgJ0FzaGFkaGEnLCAnU2hyYXZhbmEnLCAnQmhhZHJhcGFkYScsCiAgJ0FzaHdpbicsICdLYXJ0aWthJywgJ01hcmdhc2hpcnNoYScsICdQYXVzaGEnLCAnTWFnaGEnLCAnUGhhbGd1bmEnLApdOwoKLyoqCiAqIEx1bmFyIG1vbnRoIGZvciB0aGUgZ2l2ZW4gbW9tZW50IGFuZCBzY2hvb2wg4oCUIERyaWssIHNhbmtyYW50aS1iYXNlZC4KICoKICogUnVsZSAobXVraHlhLW1hbmEpOiBhbiAqYW1hbnRhKiBsdW5hciBtb250aCBydW5zIEFtYXZhc3lh4oaSQW1hdmFzeWEgYW5kIGlzCiAqIG5hbWVkIGJ5IHRoZSBzYW5rcmFudGkgKFN1bidzIHJhc2hpLWluZ3Jlc3MpIGZhbGxpbmcgd2l0aGluIGl0OyB3aXRoIG5vCiAqIHRyYW5zaXQgaXQgdGFrZXMgdGhlIGZpcnN0ICp1cGNvbWluZyogdHJhbnNpdCdzIG5hbWUgYXMgQWRoaWthLiBUaGUKICogcmFzaGnihpJtb250aCBjb3JyZXNwb25kZW5jZSBpcyB0aGUgaWRlbnRpdHkgKE1lc2hh4oaSQ2hhaXRyYSDigKYgTWVlbmHihpJQaGFsZ3VuYSkuCiAqCiAqIFB1cm5pbWFudGE6IFNodWtsYSBwYWtzaGEga2VlcHMgdGhlIGFtYW50YSBuYW1lOyBLcmlzaG5hIHBha3NoYSB0YWtlcyB0aGUKICogTkVYVCBtb250aCdzIG5hbWUuIEUuZy4gU2hpdmFyYXRyaSA9IE1hZ2hhLUtyaXNobmEgKGFtYW50YSkgPQogKiBQaGFsZ3VuYS1LcmlzaG5hIChwdXJuaW1hbnRhKS4KICovCmV4cG9ydCBmdW5jdGlvbiBkcmlrTHVuYXJNb250aCgKICBkYXRlOiBEYXRlLAogIHNjaG9vbDogTHVuYXJTY2hvb2wKKTogeyBpbmRleDogbnVtYmVyOyBuYW1lOiBzdHJpbmc7IGFkaGlrYTogYm9vbGVhbiB9IHsKICBjb25zdCBrZXkgPSBjYWNoZUtleShkYXRlLCBzY2hvb2wpOwogIGNvbnN0IGhpdCA9IGx1bmFyTW9udGhDYWNoZS5nZXQoa2V5KTsKICBpZiAoaGl0KSByZXR1cm4gaGl0OwoKICBjb25zdCBhMSA9IGZpbmROZXdNb29uTW9tZW50KGRhdGUsIC0xKTsgLy8gYW1hbnRhIG1vbnRoIHN0YXJ0IChBbWF2YXN5YSkKICBjb25zdCBhMiA9IGZpbmROZXdNb29uTW9tZW50KGRhdGUsIDEpOyAvLyBhbWFudGEgbW9udGggZW5kIChBbWF2YXN5YSkKICBjb25zdCB0cmFuc2l0cyA9IHNhbmtyYW50aXNCZXR3ZWVuKGExLCBhMik7CgogIGxldCByYXNoaTogbnVtYmVyOwogIGxldCBhZGhpa2EgPSBmYWxzZTsKICBpZiAodHJhbnNpdHMubGVuZ3RoID09PSAxKSB7CiAgICByYXNoaSA9IHRyYW5zaXRzWzBdOwogIH0gZWxzZSBpZiAodHJhbnNpdHMubGVuZ3RoID09PSAwKSB7CiAgICAvLyBBZGhpa2EgbWFzYTogbmFtZWQgYnkgdGhlIGZpcnN0IHVwY29taW5nIHRyYW5zaXQKICAgIGNvbnN0IGFmdGVyID0gc2Fua3JhbnRpc0JldHdlZW4oYTIsIG5ldyBEYXRlKGEyLmdldFRpbWUoKSArIDMyICogODY0MDAwMDApKTsKICAgIHJhc2hpID0gYWZ0ZXIubGVuZ3RoID4gMCA/IGFmdGVyWzBdIDogTWF0aC5mbG9vcihkcmlrU3VuTG9uZ2l0dWRlKGEyKSAvIDMwKSAlIDEyOwogICAgYWRoaWthID0gdHJ1ZTsKICB9IGVsc2UgewogICAgLy8gS3NoYXlhICh0d28gdHJhbnNpdHMgaW4gb25lIGx1bmFyIG1vbnRoIOKAlCB2ZXJ5IHJhcmUpOiB0YWtlIHRoZSBmaXJzdAogICAgcmFzaGkgPSB0cmFuc2l0c1swXTsKICB9CgogIGNvbnN0IHQgPSBkcmlrVGl0aGlBdChkYXRlKTsKICBsZXQgaWR4ID0gcmFzaGk7IC8vIGlkZW50aXR5OiBNZXNoYeKGkkNoYWl0cmEg4oCmIE1lZW5h4oaSUGhhbGd1bmEKICBpZiAoc2Nob29sID09PSAncHVybmltYW50YScgJiYgdC5wYWtzaGEgPT09ICdLcmlzaG5hJykgewogICAgaWR4ID0gKGlkeCArIDEpICUgMTI7CiAgfQogIGNvbnN0IHJlcyA9IHsgaW5kZXg6IGlkeCwgbmFtZTogTFVOQVJfTU9OVEhTX0VOW2lkeF0sIGFkaGlrYSB9OwogIGlmIChsdW5hck1vbnRoQ2FjaGUuc2l6ZSA8IDUwMDApIGx1bmFyTW9udGhDYWNoZS5zZXQoa2V5LCByZXMpOwogIHJldHVybiByZXM7Cn0KCi8qKiBDb252ZW5pZW5jZTogZnVsbCBEcmlrIHNuYXBzaG90IGZvciBhIG1vbWVudC4gKi8KZXhwb3J0IGZ1bmN0aW9uIGRyaWtTbmFwc2hvdChkYXRlOiBEYXRlLCBzY2hvb2w6IEx1bmFyU2Nob29sID0gJ3B1cm5pbWFudGEnKSB7CiAgY29uc3QgdGl0aGkgPSBkcmlrVGl0aGlBdChkYXRlKTsKICBjb25zdCBuYWsgPSBkcmlrTmFrc2hhdHJhQXQoZGF0ZSk7CiAgY29uc3QgbG0gPSBkcmlrTHVuYXJNb250aChkYXRlLCBzY2hvb2wpOwogIHJldHVybiB7CiAgICB0aXRoaSwKICAgIG5ha3NoYXRyYTogbmFrLm5hbWUsCiAgICBsdW5hck1vbnRoOiBsbS5uYW1lLAogICAgbHVuYXJNb250aEluZGV4OiBsbS5pbmRleCwKICAgIHRpdGhpRnVsbE5hbWU6IGAke3RpdGhpLnBha3NoYX0gJHt0aXRoaS5uYW1lfWAsCiAgfTsKfQo=
+/**
+ * drikPanchang.ts — Drik Siddhanta astronomical engine (Lahiri ayanamsa).
+ * =====================================================================
+ * The panjika module's DEFAULT astronomical engine. Uses low-precision
+ * planetary theory (Schlyter) with the principal lunar perturbation terms:
+ *   - Sun longitude accurate to ~0.01°
+ *   - Moon longitude accurate to ~0.1° (≈ ±2–3 hours on tithi boundaries)
+ * This is the Drik *method* (observable/sidereal, Lahiri ayanamsa), as
+ * opposed to mean-longitude approximations. Where traditional schools
+ * (e.g. Surya Siddhanta / Gupta Press) diverge, the UI labels both.
+ *
+ * All longitudes returned are SIDEREAL (nirayana) degrees in [0, 360).
+ */
+
+const RAD = Math.PI / 180;
+const norm360 = (x: number): number => ((x % 360) + 360) % 360;
+const sinD = (x: number): number => Math.sin(x * RAD);
+const cosD = (x: number): number => Math.cos(x * RAD);
+
+function julianDay(date: Date): number {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+/** Lahiri ayanamsa in degrees. J2000 value 23°51'11.9", rate ~50.29"/yr. */
+export function lahiriAyanamsa(date: Date): number {
+  const d = julianDay(date) - 2451545.0; // days since J2000.0
+  const fracYear = 2000 + d / 365.25;
+  return 23.8533 + 0.013969 * (fracYear - 2000);
+}
+
+/** Sidereal (nirayana) Sun longitude, degrees [0,360). */
+export function drikSunLongitude(date: Date): number {
+  const d = julianDay(date) - 2451543.5;
+  const w = 282.9404 + 4.70935e-5 * d;
+  const e = 0.016709 - 1.151e-9 * d;
+  const M = norm360(356.0470 + 0.9856002585 * d);
+  // Solve Kepler's equation (two Newton iterations)
+  let E = M + (180 / Math.PI) * e * sinD(M) * (1 + e * cosD(M));
+  for (let k = 0; k < 2; k++) {
+    E = E - (E - (180 / Math.PI) * e * sinD(E) - M) / (1 - e * cosD(E));
+  }
+  const x = cosD(E) - e;
+  const y = sinD(E) * Math.sqrt(1 - e * e);
+  const v = Math.atan2(y, x) / RAD;
+  return norm360(norm360(v + w) - lahiriAyanamsa(date));
+}
+
+/** Sidereal (nirayana) Moon longitude, degrees [0,360). */
+export function drikMoonLongitude(date: Date): number {
+  const d = julianDay(date) - 2451543.5;
+  const N = norm360(125.1228 - 0.0529538083 * d);
+  const i = 5.1454;
+  const w = norm360(318.0634 + 0.1643573223 * d);
+  const a = 60.2666;
+  const e = 0.054900;
+  const M = norm360(115.3654 + 13.0649929509 * d);
+
+  let E = M + (180 / Math.PI) * e * sinD(M) * (1 + e * cosD(M));
+  for (let k = 0; k < 3; k++) {
+    E = E - (E - (180 / Math.PI) * e * sinD(E) - M) / (1 - e * cosD(E));
+  }
+  const x = a * (cosD(E) - e);
+  const y = a * Math.sqrt(1 - e * e) * sinD(E);
+  const r = Math.sqrt(x * x + y * y);
+  const v = Math.atan2(y, x) / RAD;
+  const vw = v + w;
+  const xh = r * (cosD(N) * cosD(vw) - sinD(N) * sinD(vw) * cosD(i));
+  const yh = r * (sinD(N) * cosD(vw) + cosD(N) * sinD(vw) * cosD(i));
+  let lon = Math.atan2(yh, xh) / RAD;
+
+  // Principal perturbation terms (Schlyter)
+  const Ms = norm360(356.0470 + 0.9856002585 * d);
+  const Mm = M;
+  const ws = 282.9404 + 4.70935e-5 * d;
+  const Lm = norm360(N + w + Mm);
+  const Dm = norm360(Lm - norm360(ws + Ms));
+  const F = norm360(Lm - N);
+  lon += -1.274 * sinD(Mm - 2 * Dm); // Evection (sign per Meeus/Brown: -1.274)
+  lon += 0.658 * sinD(2 * Dm); // Variation
+  lon -= 0.186 * sinD(Ms); // Yearly equation
+  lon -= 0.059 * sinD(2 * Mm - 2 * Dm);
+  lon -= 0.057 * sinD(Mm - 2 * Dm + Ms);
+  lon += 0.053 * sinD(Mm + 2 * Dm);
+  lon += 0.046 * sinD(2 * Dm - Ms);
+  lon += 0.041 * sinD(Mm - Ms);
+  lon -= 0.035 * sinD(Dm);
+  lon -= 0.031 * sinD(Mm + Ms);
+  lon -= 0.015 * sinD(2 * F - 2 * Dm);
+
+  return norm360(lon - lahiriAyanamsa(date));
+}
+
+/* ------------------------------------------------------------------ */
+
+export interface DrikTithi {
+  /** 0–29 elongation index (0 = Amavasya moment, 14 = Purnima) */
+  index: number;
+  /** 1–15 within paksha */
+  tithiNumber: number;
+  paksha: 'Shukla' | 'Krishna';
+  name: string;
+}
+
+const TITHI_NAMES = [
+  'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami',
+  'Shashthi', 'Saptami', 'Ashtami', 'Navami', 'Dashami',
+  'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Purnima',
+];
+
+/** Tithi prevailing at the given moment (Drik). */
+export function drikTithiAt(date: Date): DrikTithi {
+  const elong = norm360(drikMoonLongitude(date) - drikSunLongitude(date));
+  const index = Math.floor(elong / 12) % 30;
+  const paksha: 'Shukla' | 'Krishna' = index < 15 ? 'Shukla' : 'Krishna';
+  const tithiNumber = (index % 15) + 1;
+  const name =
+    tithiNumber === 15 ? (paksha === 'Shukla' ? 'Purnima' : 'Amavasya') : TITHI_NAMES[tithiNumber - 1];
+  return { index, tithiNumber, paksha, name };
+}
+
+const NAKSHATRA_NAMES = [
+  'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',
+  'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni',
+  'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha',
+  'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana',
+  'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati',
+];
+
+/** Nakshatra prevailing at the given moment (Drik). */
+export function drikNakshatraAt(date: Date): { index: number; name: string } {
+  const index = Math.floor(drikMoonLongitude(date) / (360 / 27)) % 27;
+  return { index, name: NAKSHATRA_NAMES[index] };
+}
+
+/**
+ * The day's headline nakshatra: the one prevailing for the MAJORITY of the
+ * daylight span (sunrise→sunset), with transition times.
+ *
+ * Why not sunrise-only: the Moon changes nakshatra roughly daily, and the
+ * transition often falls mid-morning (e.g. Jyeshtha→Mula at 07:00 IST on
+ * 2026-10-16). Consumer panjikas headline the dominant nakshatra of the
+ * working day; moment-exact values remain available via drikNakshatraAt.
+ */
+export function drikDayNakshatra(
+  sunrise: Date,
+  sunset: Date
+): { name: string; index: number; transitions: Array<{ name: string; at: Date }> } {
+  const stepMs = 15 * 60000;
+  const startMs = sunrise.getTime();
+  const endMs = Math.max(sunset.getTime(), startMs + stepMs);
+  const counts = new Map<number, number>();
+  const transitions: Array<{ name: string; at: Date }> = [];
+  let prevIdx = -1;
+  for (let t = startMs; t <= endMs; t += stepMs) {
+    const { index, name } = drikNakshatraAt(new Date(t));
+    counts.set(index, (counts.get(index) || 0) + 1);
+    if (index !== prevIdx) {
+      transitions.push({ name, at: new Date(t) });
+      prevIdx = index;
+    }
+  }
+  let best = transitions[0];
+  let bestCount = -1;
+  for (const tr of transitions) {
+    const idx = NAKSHATRA_NAMES.indexOf(tr.name);
+    const c = counts.get(idx) || 0;
+    if (c > bestCount) { bestCount = c; best = tr; }
+  }
+  return { name: best.name, index: NAKSHATRA_NAMES.indexOf(best.name), transitions };
+}
+
+/** Sun's sidereal rashi index at the moment (0 = Mesha). */
+export function drikSunRashiAt(date: Date): number {
+  return Math.floor(drikSunLongitude(date) / 30) % 12;
+}
+
+/* ------------------------------------------------------------------ */
+/* Yoga & Karana — Drik                                               */
+/* ------------------------------------------------------------------ */
+
+const YOGA_NAMES = [
+  'Vishkambha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda',
+  'Sukarma', 'Dhriti', 'Shula', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata',
+  'Harshana', 'Vajra', 'Siddhi', 'Vyatipata', 'Variyana', 'Parigha', 'Shiva',
+  'Siddha', 'Sadhya', 'Shubha', 'Shukla', 'Brahma', 'Indra', 'Vaidhriti',
+];
+
+/** Yoga prevailing at the given moment (Drik): (sun + moon) longitude / 13°20′. */
+export function drikYogaAt(date: Date): { index: number; name: string } {
+  const sum = norm360(drikSunLongitude(date) + drikMoonLongitude(date));
+  const index = Math.floor(sum / (360 / 27)) % 27;
+  return { index, name: YOGA_NAMES[index] };
+}
+
+const KARANA_REPEAT = ['Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'];
+
+/**
+ * Karana prevailing at the given moment (Drik): half-tithi = 6° elongation.
+ * Fixed karanas: Kimstughna (1st half of Shukla Pratipada), Shakuni (2nd half
+ * of Krishna Chaturdashi), Chatushpada (1st half of Amavasya), Naga (2nd half
+ * of Amavasya); the 7 repeating karanas cycle 8× in between.
+ */
+export function drikKaranaAt(date: Date): { index: number; name: string } {
+  const elong = norm360(drikMoonLongitude(date) - drikSunLongitude(date));
+  const idx = Math.floor(elong / 6) % 60;
+  let name: string;
+  if (idx === 0) name = 'Kimstughna';
+  else if (idx === 57) name = 'Shakuni';
+  else if (idx === 58) name = 'Chatushpada';
+  else if (idx === 59) name = 'Naga';
+  else name = KARANA_REPEAT[(idx - 1) % 7];
+  return { index: idx, name };
+}
+
+/* ------------------------------------------------------------------ */
+/* Lunar month — Amanta AND Purnimanta                                 */
+/* ------------------------------------------------------------------ */
+
+export type LunarSchool = 'amanta' | 'purnimanta';
+
+function elongation(date: Date): number {
+  return norm360(drikMoonLongitude(date) - drikSunLongitude(date));
+}
+
+/**
+ * New-moon (Amavasya) *moment* nearest `from` in `direction`.
+ * Coarse 24h scan + bisection. (~50 drik evaluations.)
+ */
+function findNewMoonMoment(from: Date, direction: 1 | -1): Date {
+  const step = 24 * 3600000;
+  let t = from.getTime();
+  let ePrev = elongation(new Date(t));
+  for (let k = 0; k < 32; k++) {
+    const tNext = t + direction * step;
+    const eNext = elongation(new Date(tNext));
+    const crossed =
+      direction === 1 ? ePrev > 300 && eNext < 60 : ePrev < 60 && eNext > 300;
+    if (crossed) {
+      let a = t;
+      let b = tNext;
+      for (let i = 0; i < 24; i++) {
+        const m = (a + b) / 2;
+        const eM = elongation(new Date(m));
+        if (direction === 1) {
+          if (eM > 300) a = m; else b = m;
+        } else {
+          if (eM < 60) a = m; else b = m;
+        }
+      }
+      return new Date((a + b) / 2);
+    }
+    t = tNext;
+    ePrev = eNext;
+  }
+  return from;
+}
+
+/** Rashi indices (0=Mesha) the Sun enters in (start, end]. */
+function sankrantisBetween(start: Date, end: Date): number[] {
+  const out: number[] = [];
+  const step = 12 * 3600000;
+  let t = start.getTime();
+  const endT = end.getTime();
+  let prevRashi = Math.floor(drikSunLongitude(new Date(t)) / 30) % 12;
+  while (t < endT) {
+    const tNext = Math.min(t + step, endT);
+    const r = Math.floor(drikSunLongitude(new Date(tNext)) / 30) % 12;
+    if (r !== prevRashi) {
+      out.push(r);
+      prevRashi = r;
+    }
+    t = tNext;
+  }
+  return out;
+}
+
+const lunarMonthCache = new Map<string, { index: number; name: string; adhika: boolean }>();
+const cacheKey = (d: Date, school: LunarSchool) =>
+  `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${school}`;
+
+export const LUNAR_MONTHS_EN = [
+  'Chaitra', 'Vaishakha', 'Jyeshtha', 'Ashadha', 'Shravana', 'Bhadrapada',
+  'Ashwin', 'Kartika', 'Margashirsha', 'Pausha', 'Magha', 'Phalguna',
+];
+
+/**
+ * Lunar month for the given moment and school — Drik, sankranti-based.
+ *
+ * Rule (mukhya-mana): an *amanta* lunar month runs Amavasya→Amavasya and is
+ * named by the sankranti (Sun's rashi-ingress) falling within it; with no
+ * transit it takes the first *upcoming* transit's name as Adhika. The
+ * rashi→month correspondence is the identity (Mesha→Chaitra … Meena→Phalguna).
+ *
+ * Purnimanta: Shukla paksha keeps the amanta name; Krishna paksha takes the
+ * NEXT month's name. E.g. Shivaratri = Magha-Krishna (amanta) =
+ * Phalguna-Krishna (purnimanta).
+ */
+export function drikLunarMonth(
+  date: Date,
+  school: LunarSchool
+): { index: number; name: string; adhika: boolean } {
+  const key = cacheKey(date, school);
+  const hit = lunarMonthCache.get(key);
+  if (hit) return hit;
+
+  const a1 = findNewMoonMoment(date, -1); // amanta month start (Amavasya)
+  const a2 = findNewMoonMoment(date, 1); // amanta month end (Amavasya)
+  const transits = sankrantisBetween(a1, a2);
+
+  let rashi: number;
+  let adhika = false;
+  if (transits.length === 1) {
+    rashi = transits[0];
+  } else if (transits.length === 0) {
+    // Adhika masa: named by the first upcoming transit
+    const after = sankrantisBetween(a2, new Date(a2.getTime() + 32 * 86400000));
+    rashi = after.length > 0 ? after[0] : Math.floor(drikSunLongitude(a2) / 30) % 12;
+    adhika = true;
+  } else {
+    // Kshaya (two transits in one lunar month — very rare): take the first
+    rashi = transits[0];
+  }
+
+  const t = drikTithiAt(date);
+  let idx = rashi; // identity: Mesha→Chaitra … Meena→Phalguna
+  if (school === 'purnimanta' && t.paksha === 'Krishna') {
+    idx = (idx + 1) % 12;
+  }
+  const res = { index: idx, name: LUNAR_MONTHS_EN[idx], adhika };
+  if (lunarMonthCache.size < 5000) lunarMonthCache.set(key, res);
+  return res;
+}
+
+/** Convenience: full Drik snapshot for a moment. */
+export function drikSnapshot(date: Date, school: LunarSchool = 'purnimanta') {
+  const tithi = drikTithiAt(date);
+  const nak = drikNakshatraAt(date);
+  const lm = drikLunarMonth(date, school);
+  const yoga = drikYogaAt(date);
+  const karana = drikKaranaAt(date);
+  return {
+    tithi,
+    nakshatra: nak.name,
+    lunarMonth: lm.name,
+    lunarMonthIndex: lm.index,
+    tithiFullName: `${tithi.paksha} ${tithi.name}`,
+    yoga: yoga.name,
+    karana: karana.name,
+  };
+}
+
+/**
+ * Canonical "today" line for home screens — Drik tithi + lunar month +
+ * Vikram Samvat year. The SINGLE source of truth for today's tithi;
+ * never render tithi from the legacy mean-motion engine.
+ */
+export function drikTodayLine(date: Date, vikramYear: number, school: LunarSchool = 'purnimanta'): string {
+  const t = drikTithiAt(date);
+  const lm = drikLunarMonth(date, school);
+  return `${t.paksha} ${t.name} • ${lm.name} • Vikram Samvat ${vikramYear}`;
+}

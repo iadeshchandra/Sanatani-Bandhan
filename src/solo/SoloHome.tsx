@@ -3,7 +3,8 @@ import { useSolo } from './SoloContext';
 import { useSoloStore, todayISO } from './soloStore';
 import { Card, Stat, T, useLocaleText } from './ui';
 import { JoinUpgrade } from './JoinUpgrade';
-import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
+import { drikTodayLine } from '../lib/drikPanchang';
+import { getCalendar } from '../lib/regionalCalendars';
 
 /* SoloHome — the personal "My Space" dashboard.
  * =====================================================================
@@ -21,8 +22,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'saved' | 
 
   const panchangLine = useMemo(() => {
     try {
-      const p = calculatePanchang(new Date());
-      return getPanchangTodayLine(p);
+      // Drik engine — the legacy mean-motion engine drifted ~2 tithis.
+      const vsYear = getCalendar('vikram').toRegional(new Date()).year;
+      return drikTodayLine(new Date(), vsYear);
     } catch {
       return '';
     }

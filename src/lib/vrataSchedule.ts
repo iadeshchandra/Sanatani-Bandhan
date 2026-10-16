@@ -1,1 +1,225 @@
-LyoqCiAqIHZyYXRhU2NoZWR1bGUudHMg4oCUIEVrYWRhc2hpICYgZmFzdGluZyBzY2hlZHVsZXMgKERyaWsgU2lkZGhhbnRhKS4KICogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAqIEVrYWRhc2hpID0gdGhlIDExdGggdGl0aGkgcHJldmFpbGluZyBBVCBTVU5SSVNFIChCZW5nYWxpIGRheSBiZWdpbnMgYXQKICogc3VucmlzZSkuIFRpdGhpIGNvbXB1dGVkIHdpdGggdGhlIERyaWsgZW5naW5lIChMYWhpcmkgYXlhbmFtc2EpLgogKgogKiBTbWFydGEgdnMgVmFpc2huYXZhIChHb3N3YW1pL05pbWJhcmspOiB3aGVuIHRoZSBFa2FkYXNoaSB0aXRoaSBzcGFucyB0d28KICogc3VucmlzZXMsIFZhaXNobmF2YSBvYnNlcnZhbmNlIG1vdmVzIHRvIHRoZSBuZXh0IGRheS4gQm90aCBhcmUgc2hvd24uCiAqCiAqIFBhcmFuYSByZXNwZWN0cyBIYXJpIFZhc2FyYSAoZmlyc3QgcXVhcnRlciBvZiBEd2FkYXNoaSk6IHRoZSB3aW5kb3cgb3BlbnMKICogYWZ0ZXIgSGFyaSBWYXNhcmEgZW5kcyBhbmQgY2xvc2VzIHdoZW4gRHdhZGFzaGkgZW5kcy4KICovCgppbXBvcnQgeyBjYWxjdWxhdGVTdW5yaXNlU3Vuc2V0IH0gZnJvbSAnLi4vdXRpbHMvcGFuY2hhbmcnOwppbXBvcnQgeyBkcmlrVGl0aGlBdCwgZHJpa0x1bmFyTW9udGggfSBmcm9tICcuL2RyaWtQYW5jaGFuZyc7CgpleHBvcnQgaW50ZXJmYWNlIEVrYWRhc2hpRGF5IHsKICAvKiogVGhlIHZyYXRhIChmYXN0aW5nKSBkYXRlIOKAlCBTbWFydGEgKi8KICBkYXRlOiBEYXRlOwogIGlzbzogc3RyaW5nOwogIHBha3NoYTogJ1NodWtsYScgfCAnS3Jpc2huYSc7CiAgc21hcnRhRGF0ZTogRGF0ZTsKICBzbWFydGFJc286IHN0cmluZzsKICB2YWlzaG5hdmFEYXRlOiBEYXRlOwogIHZhaXNobmF2YUlzbzogc3RyaW5nOwogIGRpZmZlcjogYm9vbGVhbjsKICAvKiogUGFyYW5hIHdpbmRvdyByZXNwZWN0aW5nIEhhcmkgVmFzYXJhICovCiAgcGFyYW5hOiBzdHJpbmc7CiAgcGFyYW5hQm46IHN0cmluZzsKICBuYW1lOiBzdHJpbmc7CiAgbmFtZUJuOiBzdHJpbmc7Cn0KCmNvbnN0IERIQUtBID0geyBsYXQ6IDIzLjgxMDMsIGxvbjogOTAuNDEyNSwgdHo6IDYgfTsKY29uc3QgS09MS0FUQSA9IHsgbGF0OiAyMi41NzI2LCBsb246IDg4LjM2MzksIHR6OiA1LjUgfTsKCmNvbnN0IHRvSVNPID0gKGQ6IERhdGUpID0+CiAgYCR7ZC5nZXRGdWxsWWVhcigpfS0ke1N0cmluZyhkLmdldE1vbnRoKCkgKyAxKS5wYWRTdGFydCgyLCAnMCcpfS0ke1N0cmluZyhkLmdldERhdGUoKSkucGFkU3RhcnQoMiwgJzAnKX1gOwoKLy8gVHJhZGl0aW9uYWwgRWthZGFzaGkgbmFtZXMgYnkgQW1hbnRhIGx1bmFyIG1vbnRoIChDaGFpdHJhLXN0YXJ0IGluZGV4KQpjb25zdCBFS0FEQVNISV9OQU1FUzogQXJyYXk8eyBlbjogc3RyaW5nOyBibjogc3RyaW5nIH0+ID0gWwogIHsgZW46ICdQYXBtb2NoYW5pIEVrYWRhc2hpJywgYm46ICfgpqrgpr7gpqrgpq7gp4vgpprgpqjgp4Ag4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdLYW1hZGEgRWthZGFzaGknLCBibjogJ+CmleCmvuCmruCmpuCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ1ZhcnV0aGluaSBFa2FkYXNoaScsIGJuOiAn4Kas4Kaw4KeC4Kal4Ka/4Kao4KeAIOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnTW9oaW5pIEVrYWRhc2hpJywgYm46ICfgpq7gp4vgprngpr/gpqjgp4Ag4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdBcGFyYSBFa2FkYXNoaScsIGJuOiAn4KaF4Kaq4Kaw4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnTmlyamFsYSBFa2FkYXNoaScsIGJuOiAn4Kao4Ka/4Kaw4KeN4Kac4Kay4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnWW9naW5pIEVrYWRhc2hpJywgYm46ICfgpq/gp4vgppfgpr/gpqjgp4Ag4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdEZXZzaGF5YW5pIEVrYWRhc2hpJywgYm46ICfgpqbgp4fgpqzgprbgpq/gprzgpqjgp4Ag4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdLYW1pa2EgRWthZGFzaGknLCBibjogJ+CmleCmvuCmruCmv+CmleCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ1B1dHJhZGEgRWthZGFzaGknLCBibjogJ+CmquCngeCmpOCnjeCmsOCmpuCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ0FqYSBFa2FkYXNoaScsIGJuOiAn4KaF4Kac4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnUGFyaXZhcnRpbmkgRWthZGFzaGknLCBibjogJ+CmquCmsOCmv+CmrOCmsOCnjeCmpOCmv+CmqOCngCDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ0luZGlyYSBFa2FkYXNoaScsIGJuOiAn4KaH4Kao4KeN4Kam4Ka/4Kaw4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnUGFwYW5rdXNoYSBFa2FkYXNoaScsIGJuOiAn4Kaq4Ka+4Kaq4Ka+4KaZ4KeN4KaV4KeB4Ka24Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnUmFtYSBFa2FkYXNoaScsIGJuOiAn4Kaw4Kau4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnRGV2dXR0aGFuYSBFa2FkYXNoaScsIGJuOiAn4Kam4KeH4Kas4KeB4Kak4KeN4Kal4Ka+4KaoIOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnVXRwYW5uYSBFa2FkYXNoaScsIGJuOiAn4KaJ4KeO4Kaq4Kao4KeN4Kao4Ka+IOCmj+CmleCmvuCmpuCmtuCngCcgfSwKICB7IGVuOiAnTW9rc2hhZGEgRWthZGFzaGknLCBibjogJ+CmruCni+CmleCnjeCmt+CmpuCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ1NhcGhhbGEgRWthZGFzaGknLCBibjogJ+CmuOCmq+CmsuCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ1B1dHJhZGEgRWthZGFzaGknLCBibjogJ+CmquCngeCmpOCnjeCmsOCmpuCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ1NoYXR0aWxhIEVrYWRhc2hpJywgYm46ICfgprfgpp/gpqTgpr/gprLgpr4g4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdKYXlhIEVrYWRhc2hpJywgYm46ICfgppzgpq/gprzgpr4g4KaP4KaV4Ka+4Kam4Ka24KeAJyB9LAogIHsgZW46ICdWaWpheWEgRWthZGFzaGknLCBibjogJ+CmrOCmv+CmnOCmr+CmvOCmviDgpo/gppXgpr7gpqbgprbgp4AnIH0sCiAgeyBlbjogJ0FtYWxha2kgRWthZGFzaGknLCBibjogJ+CmhuCmruCmsuCmleCngCDgpo/gppXgpr7gpqbgprbgp4AnIH0sCl07CgovKiogVGl0aGkgcHJldmFpbGluZyBhdCBzdW5yaXNlIG9mIGEgY2l2aWwgZGF5IChsb2NhdGlvbi1jb3JyZWN0KS4gKi8KZnVuY3Rpb24gdGl0aGlBdFN1bnJpc2UoZGF5OiBEYXRlLCBsb2M6IHsgbGF0OiBudW1iZXI7IGxvbjogbnVtYmVyOyB0ejogbnVtYmVyIH0pIHsKICBjb25zdCB7IHN1bnJpc2VEYXRlIH0gPSBjYWxjdWxhdGVTdW5yaXNlU3Vuc2V0KGRheSwgbG9jLmxhdCwgbG9jLmxvbiwgbG9jLnR6KTsKICByZXR1cm4geyB0aXRoaTogZHJpa1RpdGhpQXQoc3VucmlzZURhdGUpLCBzdW5yaXNlOiBzdW5yaXNlRGF0ZSB9Owp9CgovKioKICogRmluZCB0aGUgW3N0YXJ0LCBlbmRdIHNwYW4gb2YgdGhlIHRpdGhpIGBpbmRleGAgY29udGFpbmluZyBgbW9tZW50YCwKICogc2Nhbm5pbmcgaW4gMTAtbWludXRlIHN0ZXBzIChtYXggwrE0MGgpLiBVc2VkIGZvciBIYXJpIFZhc2FyYSBtYXRoLgogKi8KZnVuY3Rpb24gdGl0aGlTcGFuKG1vbWVudDogRGF0ZSwgaW5kZXg6IG51bWJlcik6IHsgc3RhcnQ6IERhdGU7IGVuZDogRGF0ZSB9IHwgbnVsbCB7CiAgY29uc3Qgc3RlcCA9IDEwICogNjAwMDA7CiAgbGV0IHN0YXJ0ID0gbW9tZW50LmdldFRpbWUoKTsKICBmb3IgKGxldCBrID0gMDsgayA8IDI0MDsgaysrKSB7CiAgICBjb25zdCB0ID0gbmV3IERhdGUoc3RhcnQgLSBzdGVwKTsKICAgIGlmIChkcmlrVGl0aGlBdCh0KS5pbmRleCAhPT0gaW5kZXgpIGJyZWFrOwogICAgc3RhcnQgLT0gc3RlcDsKICB9CiAgbGV0IGVuZCA9IG1vbWVudC5nZXRUaW1lKCk7CiAgZm9yIChsZXQgayA9IDA7IGsgPCAyNDA7IGsrKykgewogICAgY29uc3QgdCA9IG5ldyBEYXRlKGVuZCArIHN0ZXApOwogICAgaWYgKGRyaWtUaXRoaUF0KHQpLmluZGV4ICE9PSBpbmRleCkgYnJlYWs7CiAgICBlbmQgKz0gc3RlcDsKICB9CiAgaWYgKGVuZCA8PSBzdGFydCkgcmV0dXJuIG51bGw7CiAgcmV0dXJuIHsgc3RhcnQ6IG5ldyBEYXRlKHN0YXJ0KSwgZW5kOiBuZXcgRGF0ZShlbmQpIH07Cn0KCmNvbnN0IGZtdFRpbWUgPSAoZDogRGF0ZSk6IHN0cmluZyA9PgogIGQudG9Mb2NhbGVUaW1lU3RyaW5nKCdlbi1JTicsIHsgaG91cjogJzItZGlnaXQnLCBtaW51dGU6ICcyLWRpZ2l0JywgaG91cjEyOiB0cnVlIH0pOwoKLyoqCiAqIEZpbmQgRWthZGFzaGkgb2JzZXJ2YW5jZSBkYXlzIGluIFtmcm9tRGF0ZSwgdG9EYXRlXSAoRHJpaykuCiAqIGByZWdpb25gIHNlbGVjdHMgdGhlIGxvY2F0aW9uIGZvciBzdW5yaXNlIChhZmZlY3RzIHRpdGhpLWF0LXN1bnJpc2UpLgogKi8KZXhwb3J0IHR5cGUgVnJhdGFMb2MgPSB7IGxhdDogbnVtYmVyOyBsb246IG51bWJlcjsgdHo6IG51bWJlciB9OwoKZXhwb3J0IGZ1bmN0aW9uIGZpbmRFa2FkYXNoaXMoCiAgZnJvbURhdGU6IERhdGUsCiAgdG9EYXRlOiBEYXRlLAogIHJlZ2lvbjogJ2JkJyB8ICd3YicgfCBWcmF0YUxvYyA9ICdiZCcKKTogRWthZGFzaGlEYXlbXSB7CiAgY29uc3QgbG9jOiBWcmF0YUxvYyA9CiAgICB0eXBlb2YgcmVnaW9uID09PSAnc3RyaW5nJyA/IChyZWdpb24gPT09ICdiZCcgPyBESEFLQSA6IEtPTEtBVEEpIDogcmVnaW9uOwogIGNvbnN0IGRheU1zID0gODY0MDAwMDA7CiAgY29uc3Qgc3RhcnQgPSBuZXcgRGF0ZShmcm9tRGF0ZS5nZXRGdWxsWWVhcigpLCBmcm9tRGF0ZS5nZXRNb250aCgpLCBmcm9tRGF0ZS5nZXREYXRlKCkpOwogIGNvbnN0IGVuZCA9IG5ldyBEYXRlKHRvRGF0ZS5nZXRGdWxsWWVhcigpLCB0b0RhdGUuZ2V0TW9udGgoKSwgdG9EYXRlLmdldERhdGUoKSk7CgogIGludGVyZmFjZSBEYXlUaXRoaSB7IGRhdGU6IERhdGU7IHRpdGhpTnVtYmVyOiBudW1iZXI7IHBha3NoYTogJ1NodWtsYScgfCAnS3Jpc2huYSc7IGluZGV4OiBudW1iZXIgfQogIGNvbnN0IGRheXM6IERheVRpdGhpW10gPSBbXTsKICBmb3IgKGxldCB0ID0gc3RhcnQuZ2V0VGltZSgpOyB0IDw9IGVuZC5nZXRUaW1lKCkgKyBkYXlNczsgdCArPSBkYXlNcykgewogICAgY29uc3QgZGF0ZSA9IG5ldyBEYXRlKHQpOwogICAgdHJ5IHsKICAgICAgY29uc3QgeyB0aXRoaSB9ID0gdGl0aGlBdFN1bnJpc2UoZGF0ZSwgbG9jKTsKICAgICAgZGF5cy5wdXNoKHsgZGF0ZSwgdGl0aGlOdW1iZXI6IHRpdGhpLnRpdGhpTnVtYmVyLCBwYWtzaGE6IHRpdGhpLnBha3NoYSwgaW5kZXg6IHRpdGhpLmluZGV4IH0pOwogICAgfSBjYXRjaCB7IC8qIHNraXAgKi8gfQogIH0KCiAgY29uc3Qgb3V0OiBFa2FkYXNoaURheVtdID0gW107CiAgZm9yIChsZXQgaSA9IDA7IGkgPCBkYXlzLmxlbmd0aCAtIDE7IGkrKykgewogICAgY29uc3QgZCA9IGRheXNbaV07CiAgICBpZiAoZC50aXRoaU51bWJlciAhPT0gMTEpIGNvbnRpbnVlOwogICAgY29uc3QgcHJldiA9IGRheXNbaSAtIDFdOwogICAgaWYgKHByZXYgJiYgcHJldi50aXRoaU51bWJlciA9PT0gMTEgJiYgcHJldi5wYWtzaGEgPT09IGQucGFrc2hhKSBjb250aW51ZTsgLy8gbm90IHRoZSBmaXJzdCBzdW5yaXNlCgogICAgY29uc3QgbmV4dCA9IGRheXNbaSArIDFdOwogICAgY29uc3Qgc3BhbnNUd29EYXlzID0gISFuZXh0ICYmIG5leHQudGl0aGlOdW1iZXIgPT09IDExICYmIG5leHQucGFrc2hhID09PSBkLnBha3NoYTsKICAgIGNvbnN0IHZhaXNobmF2YURhdGUgPSBzcGFuc1R3b0RheXMgJiYgbmV4dCA/IG5leHQuZGF0ZSA6IGQuZGF0ZTsKCiAgICAvLyBQYXJhbmE6IG1vcm5pbmcgYWZ0ZXIgdGhlIChWYWlzaG5hdmEpIGZhc3RpbmcgZGF5LgogICAgLy8gSGFyaSBWYXNhcmEgPSBmaXJzdCBxdWFydGVyIG9mIER3YWRhc2hpIOKGkiBwYXJhbmEgb3BlbnMgYWZ0ZXIgaXQgZW5kcy4KICAgIGxldCBwYXJhbmEgPSAnJzsKICAgIGxldCBwYXJhbmFCbiA9ICcnOwogICAgdHJ5IHsKICAgICAgY29uc3QgcGFyYW5hRGF5ID0gbmV3IERhdGUodmFpc2huYXZhRGF0ZS5nZXRUaW1lKCkgKyBkYXlNcyk7CiAgICAgIGNvbnN0IHsgc3VucmlzZSB9ID0gdGl0aGlBdFN1bnJpc2UocGFyYW5hRGF5LCBsb2MpOwogICAgICBjb25zdCBkd2FkYXNoaUluZGV4ID0gZC5pbmRleCA9PT0gMTAgPyAxMSA6IDI2OyAvLyBTaHVrbGEgOiBLcmlzaG5hCiAgICAgIGNvbnN0IHNwYW4gPSB0aXRoaVNwYW4oc3VucmlzZSwgZHdhZGFzaGlJbmRleCk7CiAgICAgIGlmIChzcGFuKSB7CiAgICAgICAgY29uc3QgaGFyaVZhc2FyYUVuZCA9IG5ldyBEYXRlKHNwYW4uc3RhcnQuZ2V0VGltZSgpICsgKHNwYW4uZW5kLmdldFRpbWUoKSAtIHNwYW4uc3RhcnQuZ2V0VGltZSgpKSAvIDQpOwogICAgICAgIGNvbnN0IG9wZW4gPSBuZXcgRGF0ZShNYXRoLm1heChzdW5yaXNlLmdldFRpbWUoKSwgaGFyaVZhc2FyYUVuZC5nZXRUaW1lKCkpKTsKICAgICAgICBwYXJhbmEgPSBgJHtmbXRUaW1lKG9wZW4pfSDigJMgJHtmbXRUaW1lKHNwYW4uZW5kKX1gOwogICAgICAgIHBhcmFuYUJuID0gYCR7Zm10VGltZShvcGVuKX0g4oCTICR7Zm10VGltZShzcGFuLmVuZCl9YDsKICAgICAgfSBlbHNlIHsKICAgICAgICBwYXJhbmEgPSBgYWZ0ZXIgJHtmbXRUaW1lKHN1bnJpc2UpfWA7CiAgICAgICAgcGFyYW5hQm4gPSBgJHtmbXRUaW1lKHN1bnJpc2UpfS3gpo/gprAg4Kaq4KawYDsKICAgICAgfQogICAgfSBjYXRjaCB7CiAgICAgIHBhcmFuYSA9ICduZXh0IG1vcm5pbmcgYWZ0ZXIgc3VucmlzZSc7CiAgICAgIHBhcmFuYUJuID0gJ+CmquCmsOCmpuCmv+CmqCDgprjgp4LgprDgp43gpq/gp4vgpqbgpq/gprzgp4fgprAg4Kaq4KawJzsKICAgIH0KCiAgICAvLyBUcmFkaXRpb25hbCBuYW1lIGZyb20gdGhlIEFtYW50YSBsdW5hciBtb250aCBhdCB0aGUgZmFzdGluZyBzdW5yaXNlCiAgICBsZXQgbm0gPSBFS0FEQVNISV9OQU1FU1swXTsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHsgc3VucmlzZSB9ID0gdGl0aGlBdFN1bnJpc2UoZC5kYXRlLCBsb2MpOwogICAgICBjb25zdCBsbSA9IGRyaWtMdW5hck1vbnRoKHN1bnJpc2UsICdhbWFudGEnKTsKICAgICAgbm0gPSBFS0FEQVNISV9OQU1FU1sobG0uaW5kZXggKiAyICsgKGQucGFrc2hhID09PSAnS3Jpc2huYScgPyAwIDogMSkpICUgRUtBREFTSElfTkFNRVMubGVuZ3RoXTsKICAgIH0gY2F0Y2ggeyAvKiBrZWVwIGRlZmF1bHQgKi8gfQoKICAgIG91dC5wdXNoKHsKICAgICAgZGF0ZTogZC5kYXRlLAogICAgICBpc286IHRvSVNPKGQuZGF0ZSksCiAgICAgIHBha3NoYTogZC5wYWtzaGEsCiAgICAgIHNtYXJ0YURhdGU6IGQuZGF0ZSwKICAgICAgc21hcnRhSXNvOiB0b0lTTyhkLmRhdGUpLAogICAgICB2YWlzaG5hdmFEYXRlLAogICAgICB2YWlzaG5hdmFJc286IHRvSVNPKHZhaXNobmF2YURhdGUpLAogICAgICBkaWZmZXI6IHNwYW5zVHdvRGF5cywKICAgICAgcGFyYW5hLAogICAgICBwYXJhbmFCbiwKICAgICAgbmFtZTogbm0uZW4sCiAgICAgIG5hbWVCbjogbm0uYm4sCiAgICB9KTsKICB9CiAgcmV0dXJuIG91dDsKfQoKLyoqIE5leHQgRWthZGFzaGkgb24vYWZ0ZXIgYSBkYXRlLiAqLwpleHBvcnQgZnVuY3Rpb24gbmV4dEVrYWRhc2hpKGZyb206IERhdGUgPSBuZXcgRGF0ZSgpLCByZWdpb246ICdiZCcgfCAnd2InIHwgVnJhdGFMb2MgPSAnYmQnKTogRWthZGFzaGlEYXkgfCBudWxsIHsKICBjb25zdCBsaXN0ID0gZmluZEVrYWRhc2hpcyhmcm9tLCBuZXcgRGF0ZShmcm9tLmdldFRpbWUoKSArIDQwICogODY0MDAwMDApLCByZWdpb24pOwogIHJldHVybiBsaXN0WzBdIHx8IG51bGw7Cn0KCmV4cG9ydCBjb25zdCBWUkFUQV9ESVNDTEFJTUVSID0gewogIGVuOiAnRHJpayBTaWRkaGFudGEgKExhaGlyaSBheWFuYW1zYSksIHRpdGhpIGF0IGxvY2FsIHN1bnJpc2UuIFBhcmFuYSB3aW5kb3cgcmVzcGVjdHMgSGFyaSBWYXNhcmEg4oCUIGNvbmZpcm0gd2l0aCB5b3VyIGxvY2FsIHBhbmppa2Egb3IgcHVyb2hpdC4nLAogIGJuOiAn4Kam4KeD4KaVIOCmuOCmv+CmpuCnjeCmp+CmvuCmqOCnjeCmpCAo4Kay4Ka+4Ka54Ka/4Kah4Ka84KeAIOCmheCmr+CmvOCmqOCmvuCmguCmtiksIOCmuOCnjeCmpeCmvuCmqOCngOCmr+CmvCDgprjgp4LgprDgp43gpq/gp4vgpqbgpq/gprzgp4cg4Kak4Ka/4Kal4Ka/4KWkIOCmquCmvuCmsOCmo+CmviDgprngprDgpr/gpqzgpr7gprjgprAg4Kau4KeH4Kao4KeHIOKAlCDgprjgp43gpqXgpr7gpqjgp4Dgpq/gprwg4Kaq4Kae4KeN4Kac4Ka/4KaV4Ka+IOCmrOCmviDgpqrgp4HgprDgp4vgprngpr/gpqTgp4fgprAg4Ka44KaZ4KeN4KaX4KeHIOCmruCmv+CmsuCmv+Cmr+CmvOCnhyDgpqjgpr/gpqjgpaQnLAogIGhpOiAn4KSm4KWD4KSV4KWNIOCkuOCkv+CkpuCljeCkp+CkvuCkqOCljeCkpCAo4KSy4KS+4KS54KS/4KSh4KS84KWAIOCkheCkr+CkqOCkvuCkguCktiksIOCkuOCljeCkpeCkvuCkqOClgOCkryDgpLjgpYLgpLDgpY3gpK/gpYvgpKbgpK8g4KSq4KSwIOCkpOCkv+CkpeCkv+ClpCDgpLngpLDgpL/gpLXgpL7gpLjgpLAt4KS44KSu4KWN4KSu4KSkIOCkquCkvuCksOCkoyDigJQg4KS44KWN4KSl4KS+4KSo4KWA4KSvIOCkquCkguCkmuCkvuCkguCklyDgpLjgpYcg4KSq4KWB4KS34KWN4KSf4KS/IOCkleCksOClh+CkguClpCcsCn07Cg==
+/**
+ * vrataSchedule.ts — Ekadashi & fasting schedules (Drik Siddhanta).
+ * =====================================================================
+ * Ekadashi = the 11th tithi prevailing AT SUNRISE (Bengali day begins at
+ * sunrise). Tithi computed with the Drik engine (Lahiri ayanamsa).
+ *
+ * Smarta vs Vaishnava (Goswami/Nimbark): when the Ekadashi tithi spans two
+ * sunrises, Vaishnava observance moves to the next day. Both are shown.
+ *
+ * Parana respects Hari Vasara (first quarter of Dwadashi): the window opens
+ * after Hari Vasara ends and closes when Dwadashi ends.
+ */
+
+import { calculateSunriseSunset } from '../utils/panchang';
+import { drikTithiAt, drikLunarMonth } from './drikPanchang';
+
+export interface EkadashiDay {
+  /** The vrata (fasting) date — Smarta */
+  date: Date;
+  iso: string;
+  paksha: 'Shukla' | 'Krishna';
+  smartaDate: Date;
+  smartaIso: string;
+  vaishnavaDate: Date;
+  vaishnavaIso: string;
+  differ: boolean;
+  /** Parana window respecting Hari Vasara */
+  parana: string;
+  paranaBn: string;
+  name: string;
+  nameBn: string;
+}
+
+const DHAKA = { lat: 23.8103, lon: 90.4125, tz: 6 };
+const KOLKATA = { lat: 22.5726, lon: 88.3639, tz: 5.5 };
+
+// Traditional Ekadashi names by Amanta lunar month (Chaitra-start index)
+const EKADASHI_NAMES: Array<{ en: string; bn: string }> = [
+  { en: 'Papmochani Ekadashi', bn: 'পাপমোচনী একাদশী' },
+  { en: 'Kamada Ekadashi', bn: 'কামদা একাদশী' },
+  { en: 'Varuthini Ekadashi', bn: 'বরূথিনী একাদশী' },
+  { en: 'Mohini Ekadashi', bn: 'মোহিনী একাদশী' },
+  { en: 'Apara Ekadashi', bn: 'অপরা একাদশী' },
+  { en: 'Nirjala Ekadashi', bn: 'নির্জলা একাদশী' },
+  { en: 'Yogini Ekadashi', bn: 'যোগিনী একাদশী' },
+  { en: 'Devshayani Ekadashi', bn: 'দেবশয়নী একাদশী' },
+  { en: 'Kamika Ekadashi', bn: 'কামিকা একাদশী' },
+  { en: 'Putrada Ekadashi', bn: 'পুত্রদা একাদশী' },
+  { en: 'Aja Ekadashi', bn: 'অজা একাদশী' },
+  { en: 'Parivartini Ekadashi', bn: 'পরিবর্তিনী একাদশী' },
+  { en: 'Indira Ekadashi', bn: 'ইন্দিরা একাদশী' },
+  { en: 'Papankusha Ekadashi', bn: 'পাপাঙ্কুশা একাদশী' },
+  { en: 'Rama Ekadashi', bn: 'রমা একাদশী' },
+  { en: 'Devutthana Ekadashi', bn: 'দেবুত্থান একাদশী' },
+  { en: 'Utpanna Ekadashi', bn: 'উৎপন্না একাদশী' },
+  { en: 'Mokshada Ekadashi', bn: 'মোক্ষদা একাদশী' },
+  { en: 'Saphala Ekadashi', bn: 'সফলা একাদশী' },
+  { en: 'Putrada Ekadashi', bn: 'পুত্রদা একাদশী' },
+  { en: 'Shattila Ekadashi', bn: 'ষটতিলা একাদশী' },
+  { en: 'Jaya Ekadashi', bn: 'জয়া একাদশী' },
+  { en: 'Vijaya Ekadashi', bn: 'বিজয়া একাদশী' },
+  { en: 'Amalaki Ekadashi', bn: 'আমলকী একাদশী' },
+];
+
+/** Tithi prevailing at sunrise of a civil day (location-correct). */
+function tithiAtSunrise(day: Date, loc: { lat: number; lon: number; tz: number }) {
+  const { sunriseDate } = calculateSunriseSunset(day, loc.lat, loc.lon, loc.tz);
+  return { tithi: drikTithiAt(sunriseDate), sunrise: sunriseDate };
+}
+
+/**
+ * Find the [start, end] span of the tithi `index` containing `moment`,
+ * scanning in 10-minute steps (max ±40h). Used for Hari Vasara math.
+ */
+function tithiSpan(moment: Date, index: number): { start: Date; end: Date } | null {
+  const step = 10 * 60000;
+  let start = moment.getTime();
+  for (let k = 0; k < 240; k++) {
+    const t = new Date(start - step);
+    if (drikTithiAt(t).index !== index) break;
+    start -= step;
+  }
+  let end = moment.getTime();
+  for (let k = 0; k < 240; k++) {
+    const t = new Date(end + step);
+    if (drikTithiAt(t).index !== index) break;
+    end += step;
+  }
+  if (end <= start) return null;
+  return { start: new Date(start), end: new Date(end) };
+}
+
+/** Wall-clock time in the target timezone (browser tz is unreliable). */
+const fmtTz = (d: Date, tz: number): string => {
+  const s = new Date(d.getTime() + tz * 3600000);
+  const hh = s.getUTCHours();
+  const mm = s.getUTCMinutes();
+  const ap = hh >= 12 ? 'PM' : 'AM';
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ap}`;
+};
+
+/** Civil-day ISO (YYYY-MM-DD) in the target timezone. */
+const toIsoTz = (d: Date, tz: number): string => {
+  const s = new Date(d.getTime() + tz * 3600000);
+  return `${s.getUTCFullYear()}-${String(s.getUTCMonth() + 1).padStart(2, '0')}-${String(s.getUTCDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Find Ekadashi observance days in [fromDate, toDate] (Drik).
+ * `region` selects the location for sunrise (affects tithi-at-sunrise).
+ */
+export type VrataLoc = { lat: number; lon: number; tz: number };
+
+export function findEkadashis(
+  fromDate: Date,
+  toDate: Date,
+  region: 'bd' | 'wb' | VrataLoc = 'bd'
+): EkadashiDay[] {
+  const loc: VrataLoc =
+    typeof region === 'string' ? (region === 'bd' ? DHAKA : KOLKATA) : region;
+  const dayMs = 86400000;
+  const tzMs = loc.tz * 3600000;
+  // Iterate civil days in the LOCATION's timezone (not the browser's).
+  // Representative instant: local noon of each civil day.
+  const startCi = Math.floor((fromDate.getTime() + tzMs) / dayMs);
+  const endCi = Math.floor((toDate.getTime() + tzMs) / dayMs);
+
+  interface DayTithi { date: Date; tithiNumber: number; paksha: 'Shukla' | 'Krishna'; index: number }
+  const days: DayTithi[] = [];
+  for (let ci = startCi; ci <= endCi + 1; ci++) {
+    const date = new Date(ci * dayMs + 12 * 3600000 - tzMs);
+    try {
+      const { tithi } = tithiAtSunrise(date, loc);
+      days.push({ date, tithiNumber: tithi.tithiNumber, paksha: tithi.paksha, index: tithi.index });
+    } catch { /* skip */ }
+  }
+
+  const out: EkadashiDay[] = [];
+  for (let i = 0; i < days.length - 1; i++) {
+    const d = days[i];
+    if (d.tithiNumber !== 11) continue;
+    const prev = days[i - 1];
+    if (prev && prev.tithiNumber === 11 && prev.paksha === d.paksha) continue; // not the first sunrise
+
+    const next = days[i + 1];
+    const spansTwoDays = !!next && next.tithiNumber === 11 && next.paksha === d.paksha;
+    const vaishnavaDate = spansTwoDays && next ? next.date : d.date;
+
+    // Parana: morning after the (Vaishnava) fasting day.
+    // Hari Vasara = first quarter of Dwadashi → parana opens after it ends.
+    // The window is a MORNING window: opens at max(sunrise, Hari Vasara end),
+    // closes at min(Dwadashi end, solar noon) — parana is a morning act.
+    // Shown only when Dwadashi actually prevails at parana sunrise; otherwise
+    // the tithi arithmetic produces nonsense like "11:10 am – 05:03 am".
+    let parana = '';
+    let paranaBn = '';
+    try {
+      const paranaDay = new Date(vaishnavaDate.getTime() + dayMs);
+      const { sunrise, tithi: tithiAtSr } = tithiAtSunrise(paranaDay, loc);
+      const dwadashiIndex = d.index === 10 ? 11 : 26; // Shukla : Krishna
+      const sr = calculateSunriseSunset(paranaDay, loc.lat, loc.lon, loc.tz);
+      const solarNoon = new Date(sr.sunriseDate.getTime() + (sr.dayLengthMinutes * 60000) / 2);
+      let done = false;
+      if (tithiAtSr.index === dwadashiIndex) {
+        const span = tithiSpan(sunrise, dwadashiIndex);
+        if (span && span.end.getTime() > sunrise.getTime()) {
+          const hariVasaraEnd = new Date(span.start.getTime() + (span.end.getTime() - span.start.getTime()) / 4);
+          const open = new Date(Math.max(sunrise.getTime(), hariVasaraEnd.getTime()));
+          const close = new Date(Math.min(span.end.getTime(), solarNoon.getTime()));
+          if (close.getTime() > open.getTime()) {
+            parana = `${fmtTz(open, loc.tz)} – ${fmtTz(close, loc.tz)}`;
+            paranaBn = parana;
+            done = true;
+          }
+        }
+      }
+      if (!done) {
+        // Dwadashi not prevailing at parana sunrise (kshaya, or Vaishnava
+        // fast observed on Dwadashi itself) — break fast after sunrise.
+        parana = `after ${fmtTz(sunrise, loc.tz)}`;
+        paranaBn = `${fmtTz(sunrise, loc.tz)}-এর পর`;
+      }
+    } catch {
+      parana = 'next morning after sunrise';
+      paranaBn = 'পরদিন সূর্যোদয়ের পর';
+    }
+
+    // Traditional name from the Amanta lunar month at the fasting sunrise
+    let nm = EKADASHI_NAMES[0];
+    try {
+      const { sunrise } = tithiAtSunrise(d.date, loc);
+      const lm = drikLunarMonth(sunrise, 'amanta');
+      nm = EKADASHI_NAMES[(lm.index * 2 + (d.paksha === 'Krishna' ? 0 : 1)) % EKADASHI_NAMES.length];
+    } catch { /* keep default */ }
+
+    out.push({
+      date: d.date,
+      iso: toIsoTz(d.date, loc.tz),
+      paksha: d.paksha,
+      smartaDate: d.date,
+      smartaIso: toIsoTz(d.date, loc.tz),
+      vaishnavaDate,
+      vaishnavaIso: toIsoTz(vaishnavaDate, loc.tz),
+      differ: spansTwoDays,
+      parana,
+      paranaBn,
+      name: nm.en,
+      nameBn: nm.bn,
+    });
+  }
+  return out;
+}
+
+/** Next Ekadashi on/after a date. */
+export function nextEkadashi(from: Date = new Date(), region: 'bd' | 'wb' | VrataLoc = 'bd'): EkadashiDay | null {
+  const list = findEkadashis(from, new Date(from.getTime() + 40 * 86400000), region);
+  return list[0] || null;
+}
+
+export const VRATA_DISCLAIMER = {
+  en: 'Drik Siddhanta (Lahiri ayanamsa), tithi at local sunrise. Parana window respects Hari Vasara — confirm with your local panjika or purohit.',
+  bn: 'দৃক সিদ্ধান্ত (লাহিড়ী অয়নাংশ), স্থানীয় সূর্যোদয়ে তিথি। পারণা হরিবাসর মেনে — স্থানীয় পঞ্জিকা বা পুরোহিতের সঙ্গে মিলিয়ে নিন।',
+  hi: 'दृक् सिद्धान्त (लाहिड़ी अयनांश), स्थानीय सूर्योदय पर तिथि। हरिवासर-सम्मत पारण — स्थानीय पंचांग से पुष्टि करें।',
+};
