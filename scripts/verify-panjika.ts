@@ -97,3 +97,8 @@ for (const e of eks.slice(0, 3)) {
 
 console.log(`\n${failures === 0 ? 'ALL ASSERTIONS PASSED' : `${failures} ASSERTION(S) FAILED`}`);
 process.exit(failures === 0 ? 0 : 1);
+
+// Note (2026-10-16): This script guards the P0 Panjika accuracy fixes.
+// It also documents that src/lib/drikPanchang.ts, vrataSchedule.ts and
+// shubhMuhurat.ts were once pushed base64-encoded (commit aee5550) and
+// restored to real TypeScript in the P0 fix — never push encoded blobs.
