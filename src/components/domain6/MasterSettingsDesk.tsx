@@ -13,7 +13,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
 import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
-import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../../lib/paymentMethods';
+import { getPaymentMethods, methodsForRegion, methodsForRegionWithFallback, indianPaymentsReady, type PaymentMethodDoc } from '../../lib/paymentMethods';
 import { GeoPaymentsManager } from './GeoPaymentsManager';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
@@ -173,7 +173,7 @@ const MethodCard: React.FC<{
 
 /** Region payment panel — reads owner-configured methods, graceful empty state. */
 const RegionPayView: React.FC<{
-  region: 'BD' | 'IN' | 'INTL';
+  region: PayRegion;
   methods: PaymentMethodDoc[];
   language: string;
   loading: boolean;
@@ -181,7 +181,7 @@ const RegionPayView: React.FC<{
   onZoom: (url: string) => void;
 }> = ({ region, methods, language, loading, onCopy, onZoom }) => {
   const a = REGION_ACCENT[region];
-  const list = methodsForRegion(methods, region);
+  const list = methodsForRegionWithFallback(methods, region);
   return (
     <div className={`${a.bg} border ${a.border} rounded-3xl p-5 mb-6 shadow-sm relative overflow-hidden text-left`}>
       <div className={`absolute top-0 left-0 w-1.5 h-full ${a.bar}`}></div>
@@ -289,7 +289,7 @@ export const MasterSettingsDesk: React.FC = () => {
   });
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [paymentTab, setPaymentTab] = useState<'BD' | 'IN' | 'INTL'>('BD');
+  const [paymentTab, setPaymentTab] = useState<PayRegion>('BD');
   const [copied, setCopied] = useState(false);
   // Geo-based payment: auto-detect region, load owner-configured methods.
   const [payRegion, setPayRegion] = useState<PayRegion | null>(null);
@@ -521,7 +521,7 @@ export const MasterSettingsDesk: React.FC = () => {
           ? (ml.includes('bangla') || ml.includes('tallypay') || ml.includes('qr') ? 'bd_banglaqr'
             : ml.includes('nagad') ? 'bd_nagad'
             : ml.includes('rocket') ? 'bd_bkash' : 'bd_bkash')
-          : paymentTab === 'IN' ? 'in_upi'
+          : paymentTab === 'IN' ? (indianPaymentsReady(payMethods) ? 'in_upi' : 'intl_payoneer')
           : (ml.includes('payoneer') ? 'intl_payoneer' : 'intl_wise');
       await setDoc(requestRef, {
         requestId: requestRef.id,
