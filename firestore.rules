@@ -767,7 +767,38 @@ service cloud.firestore {
             && resource.data.get('rail', '') == 'rail2'
             && resource.data.get('status', '') == 'pending_payment'
             && request.resource.data.get('status', '') == 'paid'
-            && request.resource.data.get('rail2Proof', {}).get('trxId', '') != '')));
+            && request.resource.data.get('rail2Proof', {}).get('trxId', '') != '')
+          // PHASE 3 — dispute freeze: an order party moves an ACTIVE order to
+          // 'commission_held'. The wallet is untouched, completion is blocked
+          // until the owner releases the hold (owner bypass covers
+          // -> 'in_progress' / -> 'cancelled'). Money fields stay pinned by
+          // the rule head above.
+          || (isLoggedIn()
+            && (resource.data.get('providerUid', '') == request.auth.uid
+              || resource.data.get('clientUid', '') == request.auth.uid)
+            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']
+            && request.resource.data.get('status', '') == 'commission_held'
+            && request.resource.data.get('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)));
+      allow delete: if false;
+    }
+    // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
+    // where the commission was already taken. The request is idempotent
+    // (doc id = orderId); only the owner can act on it — approving sets
+    // platformRevenue.{orderId}.commissionFrozen = true via owner tooling
+    // (platformRevenue update is already owner-only).
+    match /commissionFreezeRequests/{orderId} {
+      allow read: if isOwner() || isSuperAdmin()
+        || (isLoggedIn() && (
+          get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
+          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orderId', '') == orderId
+        && request.resource.data.get('requestedBy', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'requested'
+        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('status', '') == 'completed'
+        && (get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
+          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid);
+      allow update: if isOwner();
       allow delete: if false;
     }
     // Disputes: either party on the order may open; owner resolves.
@@ -913,6 +944,57 @@ service cloud.firestore {
         && data.get('totalToppedUp', -1) == old.get('totalToppedUp', 0)
         && data.get('totalSpent', -1) == old.get('totalSpent', 0);
     }
+    // PHASE 3 — provider commission debit, order-anchored.
+    // The provider's own wallet is debited inside the atomic completion
+    // batch. Bounded: 0 < debit <= the order's snapshotted commissionAmount
+    // (never above the booking promise). Idempotent: lastCommissionOrderId
+    // must change (replay fails), and the order must still be in a
+    // completable pre-batch status (rules `get()` reads committed state, so
+    // the batch's own order->completed is invisible here — the order leg of
+    // the batch enforces the transition separately).
+    // Free sevas / zero-commission orders skip the wallet leg entirely, so
+    // this arm requires debit > 0.
+    function commissionHoldOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let orderId = data.get('lastCommissionOrderId', '');
+      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let order = get(opath).data;
+      let cap = order.get('commissionAmount', 0);
+      let debit = old.get('balance', 0) - data.get('balance', 0);
+      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastCommissionOrderId', 'currency'])
+        && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
+        && exists(opath)
+        && order.get('providerUid', '') == uid
+        && order.get('providerUid', '') == request.auth.uid
+        && order.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && cap > 0
+        && debit > 0 && debit <= cap
+        && data.get('balance', -1) >= 0
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0) + debit;
+    }
+    // PHASE 3 — Pratham Seva counter advancement, order-anchored.
+    // The provider's own profile (purohits / jyotishProfiles) may advance
+    // completedSevasSinceVerified by exactly +1 and decrement
+    // freeSevasRemaining by exactly 1 (only while one remains), inside the
+    // atomic completion batch. Nothing else may change on this write, and
+    // the order anchor makes replays fail.
+    function sevaProfileCompletionOk() {
+      let data = request.resource.data;
+      let old = resource.data;
+      let orderId = data.get('lastCommissionOrderId', '');
+      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let freeOld = old.get('freeSevasRemaining', 0);
+      let freeNew = data.get('freeSevasRemaining', -1);
+      return resource.data.get('uid', '') == request.auth.uid
+        && data.diff(old).affectedKeys().hasOnly(['freeSevasRemaining', 'completedSevasSinceVerified', 'lastCommissionOrderId', 'updatedAt'])
+        && data.get('completedSevasSinceVerified', -1) == old.get('completedSevasSinceVerified', 0) + 1
+        && (freeNew == freeOld || (freeOld > 0 && freeNew == freeOld - 1))
+        && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
+        && exists(opath)
+        && get(opath).data.get('providerUid', '') == request.auth.uid
+        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress'];
+    }
     // Create-path for provider credit: the wallet doc may not exist yet when
     // the first payout lands. Same order validation, starting from zero.
     function walletCreditCreateOk(uid) {
@@ -943,6 +1025,7 @@ service cloud.firestore {
         || (isLoggedIn() && walletCreditCreateOk(uid));
       allow update: if isOwner()
         || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
+        || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid));
       allow delete: if false;
     }
@@ -1000,9 +1083,9 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.get('orderId', '') == orderId
         && request.resource.data.get('recordedBy', '') == request.auth.uid
-        && request.resource.data.get('amount', -1) ==
-           get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -2)
-        && request.resource.data.get('amount', 0) >= 0;
+        && request.resource.data.get('amount', -1) >= 0
+        && request.resource.data.get('amount', -1) <=
+             get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -1);
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1135,7 +1218,9 @@ service cloud.firestore {
           && request.resource.data.get('ratingCount', 0) >= 0
           && request.resource.data.get('ratingCount', 0) <= 100000
           && request.resource.data.get('completedGigs', 0) >= 0
-          && request.resource.data.get('completedGigs', 0) <= 100000);
+          && request.resource.data.get('completedGigs', 0) <= 100000)
+        // PHASE 3 — Pratham Seva counter advancement (order-anchored).
+        || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
     }
 
@@ -1387,7 +1472,9 @@ service cloud.firestore {
           && request.resource.data.get('ratingCount', 0) >= 0
           && request.resource.data.get('ratingCount', 0) <= 100000
           && request.resource.data.get('completedConsultations', 0) >= 0
-          && request.resource.data.get('completedConsultations', 0) <= 100000);
+          && request.resource.data.get('completedConsultations', 0) <= 100000)
+        // PHASE 3 — Pratham Seva counter advancement (order-anchored).
+        || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
     }
 
