@@ -312,6 +312,174 @@ const STRINGS: Record<string, Dict> = {
     bn: 'কিছু একটা কাজ করেনি। আবার চেষ্টা করুন। 🙏',
     hi: 'कुछ काम नहीं किया। कृपया पुनः प्रयास करें। 🙏',
   },
+
+/* ---- Seva Pro Phase 4 — remedy → ritual pipeline ---- */
+  /* Tone: loving guidance, never upselling. The devotee is always free. */
+  remedy_card_title: {
+    en: '🪔 A sacred suggestion from your jyotish',
+    bn: '🪔 আপনার জ্যোতিষীর পবিত্র পরামর্শ',
+    hi: '🪔 आपके ज्योतिषी का पवित्र सुझाव',
+  },
+  remedy_card_body: {
+    en: 'Your jyotish lovingly suggests {ritual} — {jyotish} believes it will bring you peace. Book a verified purohit whenever your heart is ready; there is no pressure, only ashirvad.',
+    bn: 'আপনার জ্যোতিষী স্নেহে {ritual}-এর পরামর্শ দিয়েছেন — {jyotish} বিশ্বাস করেন এতে আপনি শান্তি পাবেন। মন চাইলে যাচাইকৃত পুরোহিত বুক করুন; কোনো চাপ নেই, শুধু আশীর্বাদ।',
+    hi: 'आपके ज्योतिषी ने स्नेहपूर्वक {ritual} का सुझाव दिया है — {jyotish} का विश्वास है इससे आपको शांति मिलेगी। जब मन करे सत्यापित पुरोहित बुक करें; कोई दबाव नहीं, केवल आशीर्वाद।',
+  },
+  remedy_card_cta: {
+    en: 'Book a verified purohit',
+    bn: 'যাচাইকৃত পুরোহিত বুক করুন',
+    hi: 'सत्यापित पुरोहित बुक करें',
+  },
+  remedy_card_later: {
+    en: 'Maybe later',
+    bn: 'পরে ভাবব',
+    hi: 'शायद बाद में',
+  },
+  remedy_booked_note: {
+    en: '🙏 Sankalp taken — your booking carries your jyotish’s guidance.',
+    bn: '🙏 সংকল্প গৃহীত — আপনার বুকিংয়ে আপনার জ্যোতিষীর নির্দেশনা রয়েছে।',
+    hi: '🙏 संकल्प लिया गया — आपकी बुकिंग में आपके ज्योतिषी का मार्गदर्शन है।',
+  },
+  remedy_booking: {
+    en: 'Preparing your booking…',
+    bn: 'আপনার বুকিং প্রস্তুত হচ্ছে…',
+    hi: 'आपकी बुकिंग तैयार हो रही है…',
+  },
+  suggested_muhurat: {
+    en: 'Suggested muhurat',
+    bn: 'প্রস্তাবিত মুহূর্ত',
+    hi: 'सुझाया गया मुहूर्त',
+  },
+  prescribed_by: {
+    en: 'Prescribed with care by',
+    bn: 'যত্নে পরামর্শ দিয়েছেন',
+    hi: 'स्नेहपूर्वक सुझाया',
+  },
+  no_remedies: {
+    en: 'No sacred suggestions right now. They will appear here when your jyotish prescribes one.',
+    bn: 'এই মুহূর্তে কোনো পবিত্র পরামর্শ নেই। আপনার জ্যোতিষী পরামর্শ দিলে এখানে দেখা যাবে।',
+    hi: 'अभी कोई पवित्र सुझाव नहीं है। जब आपके ज्योतिषी सुझाव देंगे तो यहाँ दिखेगा।',
+  },
+  prescribe_title: {
+    en: '🪔 Prescribe a sacred remedy',
+    bn: '🪔 পবিত্র প্রতিকার নির্ধারণ করুন',
+    hi: '🪔 पवित्र उपाय निर्धारित करें',
+  },
+  prescribe_hint: {
+    en: 'Offered as loving guidance — the devotee may accept or simply receive your ashirvad.',
+    bn: 'স্নেহপূর্ণ নির্দেশনা হিসেবে দিন — ভক্ত গ্রহণ করতেও পারেন, আবার শুধু আপনার আশীর্বাদও নিতে পারেন।',
+    hi: 'स्नेहपूर्ण मार्गदर्शन के रूप में दें — भक्त स्वीकार भी कर सकता है, या केवल आपका आशीर्वाद भी ले सकता है।',
+  },
+  ritual_name_label: {
+    en: 'Ritual name',
+    bn: 'আচারের নাম',
+    hi: 'अनुष्ठान का नाम',
+  },
+  ritual_name_ph: {
+    en: 'e.g. Navagraha Shanti Puja',
+    bn: 'যেমন নবগ্রহ শান্তি পূজা',
+    hi: 'जैसे नवग्रह शांति पूजा',
+  },
+  remedy_text_label: {
+    en: 'Your guidance (shown to the devotee)',
+    bn: 'আপনার নির্দেশনা (ভক্তকে দেখানো হবে)',
+    hi: 'आपका मार्गदर्शन (भक्त को दिखाया जाएगा)',
+  },
+  remedy_text_ph: {
+    en: 'e.g. For Shani’s grace — a Shanti homa at dawn, with til and black cloth daan…',
+    bn: 'যেমন শনির কৃপার জন্য — ভোরে শান্তি হোম, তিল ও কালো বস্ত্র দান…',
+    hi: 'जैसे शनि की कृपा हेतु — भोर में शांति होम, तिल और काले वस्त्र का दान…',
+  },
+  muhurat_ph: {
+    en: 'e.g. Next Shukla Paksha Saturday, morning',
+    bn: 'যেমন আগামী শুক্লপক্ষের শনিবার, সকাল',
+    hi: 'जैसे अगले शुक्ल पक्ष के शनिवार, प्रातः',
+  },
+  prescribe_send: {
+    en: 'Offer this guidance',
+    bn: 'এই নির্দেশনা দিন',
+    hi: 'यह मार्गदर्शन दें',
+  },
+  prescribe_sent: {
+    en: '🪔 Your guidance has been lovingly offered.',
+    bn: '🪔 আপনার নির্দেশনা স্নেহে পৌঁছে দেওয়া হয়েছে।',
+    hi: '🪔 आपका मार्गदर्शन स्नेहपूर्वक पहुँचा दिया गया है।',
+  },
+  refer_jyotish_title: {
+    en: '🔮 Refer to a jyotish',
+    bn: '🔮 জ্যোতিষীর কাছে পাঠান',
+    hi: '🔮 ज्योतिषी के पास भेजें',
+  },
+  refer_jyotish_hint: {
+    en: 'If the puja revealed something a jyotishi should see (e.g. Kaal Sarp dosha), guide the devotee with love — never pressure.',
+    bn: 'পূজায় এমন কিছু দেখা গেলে যা জ্যোতিষীর দেখা উচিত (যেমন কালসর্প দোষ), ভক্তকে স্নেহে পথ দেখান — কখনো চাপ দেবেন না।',
+    hi: 'यदि पूजा में कुछ ऐसा दिखे जो ज्योतिषी को देखना चाहिए (जैसे कालसर्प दोष), तो भक्त का स्नेह से मार्गदर्शन करें — कभी दबाव न डालें।',
+  },
+  refer_jyotish_btn: {
+    en: '🔮 Refer to a jyotish',
+    bn: '🔮 জ্যোতিষীর কাছে পাঠান',
+    hi: '🔮 ज्योतिषी के पास भेजें',
+  },
+  refer_reason_ph: {
+    en: 'e.g. During the puja I noticed signs of Kaal Sarp dosha — a kundli reading would bring clarity.',
+    bn: 'যেমন পূজার সময় কালসর্প দোষের লক্ষণ দেখেছি — কুণ্ডলী পাঠে স্পষ্টতা আসবে।',
+    hi: 'जैसे पूजा के दौरान कालसर्प दोष के लक्षण दिखे — कुंडली पाठ से स्पष्टता मिलेगी।',
+  },
+  jyotish_referral_title: {
+    en: '🔮 A loving suggestion from your purohit',
+    bn: '🔮 আপনার পুরোহিতের স্নেহপূর্ণ পরামর্শ',
+    hi: '🔮 आपके पुरोहित का स्नेहपूर्ण सुझाव',
+  },
+  jyotish_referral_body: {
+    en: 'Your purohit {purohit} lovingly suggests a jyotish consultation: “{reason}” Take this step only if it resonates — guidance, never pressure.',
+    bn: 'আপনার পুরোহিত {purohit} স্নেহে জ্যোতিষ পরামর্শের প্রস্তাব দিয়েছেন: “{reason}” মন সায় দিলেই এগোন — নির্দেশনা, চাপ নয়।',
+    hi: 'आपके पुरोहित {purohit} ने स्नेहपूर्वक ज्योतिष परामर्श का सुझाव दिया है: “{reason}” मन माने तभी आगे बढ़ें — मार्गदर्शन, दबाव नहीं।',
+  },
+  jyotish_referral_cta: {
+    en: 'Consult a verified jyotish',
+    bn: 'যাচাইকৃত জ্যোতিষীর পরামর্শ নিন',
+    hi: 'सत्यापित ज्योतिषी से परामर्श लें',
+  },
+  jyotish_referral_by: {
+    en: 'Suggested with care by',
+    bn: 'যত্নে পরামর্শ দিয়েছেন',
+    hi: 'स्नेहपूर्वक सुझाया',
+  },
+  credit_explainer: {
+    en: 'A small share of the platform’s own contribution — never from your purohit’s or jyotish’s earnings.',
+    bn: 'প্ল্যাটফর্মের নিজস্ব অবদানের একটি ছোট অংশ — আপনার পুরোহিত বা জ্যোতিষীর উপার্জন থেকে কখনো নয়।',
+    hi: 'प्लेटफ़ॉर्म के अपने योगदान का एक छोटा हिस्सा — आपके पुरोहित या ज्योतिषी की कमाई से कभी नहीं।',
+  },
+  credits_earned: {
+    en: 'Guidance credits earned',
+    bn: 'অর্জিত নির্দেশনা ক্রেডিট',
+    hi: 'अर्जित मार्गदर्शन क्रेडिट',
+  },
+  referrals_sent: {
+    en: 'Devotees guided',
+    bn: 'পথ দেখানো ভক্ত',
+    hi: 'मार्गदर्शन पाये भक्त',
+  },
+  referrals_converted: {
+    en: 'Guidance received with love',
+    bn: 'স্নেহে গৃহীত নির্দেশনা',
+    hi: 'स्नेह से स्वीकारा मार्गदर्शन',
+  },
+  conversion_rate: {
+    en: 'Hearts touched',
+    bn: 'স্পর্শ করা হৃদয়',
+    hi: 'छुए गए हृदय',
+  },
+  remedies_to_rituals: {
+    en: 'Remedies → rituals',
+    bn: 'প্রতিকার → আচার',
+    hi: 'उपाय → अनुष्ठान',
+  },
+  analytics_hint: {
+    en: 'How loving guidance becomes lived ritual — measured with reverence, never as sales.',
+    bn: 'স্নেহপূর্ণ নির্দেশনা কীভাবে জীবন্ত আচারে পরিণত হয় — শ্রদ্ধায় মাপা, কখনো বিক্রয় হিসেবে নয়।',
+    hi: 'स्नेहपूर्ण मार्गदर्शन जीवंत अनुष्ठान कैसे बनता है — श्रद्धा से मापा गया, कभी बिक्री के रूप में नहीं।',
+  },
 };
 
 /** Normalize any language string to en | bn | hi. */
