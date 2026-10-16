@@ -29,7 +29,8 @@ export default function MemberAppShell() {
     setViewMode, 
     currentDevotee,
     switchRole,
-    logout 
+    logout,
+    exitDemo
   } = useAuthWorkspace();
   const { language, setLanguage, safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
@@ -51,9 +52,16 @@ export default function MemberAppShell() {
   }, [activeTab, activeWorkspace]);
 
   // Safe Switch Handler to safely transition back to Organisation View
+  // P0-2: If trapped in the demo sandbox, exit it first — "Return to
+  // Institution ERP" must land in the real app, never the demo.
   const handleSwitchToOrganisation = () => {
+    if (activeWorkspace?.id?.startsWith('DEMO_')) {
+      exitDemo();
+      showToast('Exited demo sandbox — welcome to your Institution ERP 🙏', 'success', 'Mode Changed');
+    } else {
+      showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
+    }
     setViewMode('MANAGER');
-    showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
   };
 
   const handleNavigateFromAccount = (deskId: string) => {

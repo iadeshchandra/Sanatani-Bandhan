@@ -89,8 +89,12 @@ export async function mintOrFetchSanataniProfile(
   };
 
   // Best-effort cloud mint with uniqueness loop on the SAN id.
+  // P0 FIX: The uniqueness query and the Firestore write are now in SEPARATE
+  // try blocks. Previously, if the uniqueness query threw (e.g., missing
+  // composite index on sanataniProfiles.id), the setDoc was skipped entirely,
+  // the profile was never persisted, and every login minted a fresh ID.
+  let sanataniId = minted.id;
   try {
-    let sanataniId = '';
     for (let attempt = 0; attempt < 8; attempt++) {
       const candidate = generateSanataniId();
       const probe = await getDocs(
@@ -101,7 +105,16 @@ export async function mintOrFetchSanataniProfile(
         break;
       }
     }
-    minted.id = sanataniId || minted.id;
+  } catch {
+    /* uniqueness probe unavailable (missing index / offline) — proceed with
+       the generated ID; the doc-ID (Firebase UID) is already globally unique */
+  }
+  minted.id = sanataniId;
+
+  // The write is ESSENTIAL for identity continuity — never skip it because
+  // the uniqueness probe failed. Separate try/catch so write errors are
+  // logged, not silently swallowed.
+  try {
     // Gotra is sensitive: it NEVER goes in the public profile doc (public
     // read). It lives in the owner-only `private/self` subcollection.
     const { gotra, ...publicMint } = minted as any;
@@ -118,8 +131,9 @@ export async function mintOrFetchSanataniProfile(
       });
     }
     minted.synced = true;
-  } catch {
-    /* offline — profile lives locally, syncs later */
+  } catch (e) {
+    console.warn('[soloSession] Failed to persist Sanatani profile to Firestore:', e);
+    /* offline or denied — profile lives locally, syncs later */
   }
   return minted;
 }
