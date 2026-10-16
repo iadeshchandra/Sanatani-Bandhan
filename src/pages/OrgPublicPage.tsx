@@ -138,7 +138,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
           <div className="flex justify-center mb-5">
             <OrgLogo name={page.name} logoUrl={page.logoUrl} size={120} withRing />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-amber-50 tracking-tight leading-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-black text-amber-50 tracking-tight leading-tight">
             {page.name}
           </h1>
           {about && (

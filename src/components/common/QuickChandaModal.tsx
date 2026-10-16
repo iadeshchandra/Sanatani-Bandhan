@@ -22,11 +22,15 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
+import { useLanguage } from '../../context/LanguageContext';
 import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { generate80GTaxReceipt } from '../../utils/pdfGenerator';
 import { TreasuryTransaction } from '../../types';
 import { addTransaction } from '../../services/treasuryService';
+import { OrgLogo } from './OrgLogo';
+import { BlessingMoment } from './BlessingMoment';
+import { WARM_SUCCESS, humanizeError, pickLang } from '../../lib/microcopy';
 
 interface QuickChandaModalProps {
   isOpen: boolean;
@@ -50,6 +54,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { devotees, addTreasuryTransaction } = useData();
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const t3 = pickLang(currentLang);
   const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
 
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +77,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   const [lastRecordedTx, setLastRecordedTx] = useState<TreasuryTransaction | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  // The shareable full-screen blessing for the donor-facing screen.
+  const [blessingOpen, setBlessingOpen] = useState(false);
 
   // Reset or initialize on open
   useEffect(() => {
@@ -104,6 +112,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
     setCashTendered('');
     setIsSuccess(false);
     setLastRecordedTx(null);
+    setBlessingOpen(false);
   };
 
   // Keyboard navigation: Enter to submit, Escape to close
@@ -191,10 +200,10 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       }
       setLastRecordedTx(newTx);
       setIsSuccess(true);
-      showToast(`Donation of ₹${numericAmount.toLocaleString('en-IN')} logged successfully!`, 'success', 'POS Counter');
+      showToast(t3(WARM_SUCCESS.donationRecorded(`₹${numericAmount.toLocaleString('en-IN')}`)), 'success', 'POS Counter');
     } catch (err: any) {
       console.error('[POS Error]', err);
-      showToast('Failed to record transaction in database. Please retry.', 'error', 'Error');
+      showToast(t3(humanizeError(err)), 'error', 'POS Counter');
     }
   };
 
@@ -308,6 +317,35 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                   </p>
                 </div>
 
+                {/* Blessing banner — the org's own mark with a warm Dhanyavaad.
+                    The counter screen often faces the donor; this is their moment. */}
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-950/60 via-temple-900 to-amber-950/60">
+                  <OrgLogo
+                    name={activeWorkspace?.name || 'Temple'}
+                    logoUrl={(activeWorkspace as any)?.logoUrl}
+                    size={44}
+                  />
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="font-display text-base font-black text-amber-200">
+                      {currentLang === 'bn' ? 'ধন্যবাদ 🙏' : currentLang === 'hi' ? 'धन्यवाद 🙏' : 'Dhanyavaad 🙏'}
+                    </div>
+                    <div className="text-[11px] text-temple-300">
+                      {currentLang === 'bn'
+                        ? 'আপনার সেবা কৃতজ্ঞতার সাথে গৃহীত হয়েছে'
+                        : currentLang === 'hi'
+                          ? 'आपकी सेवा कृतज्ञता सहित स्वीकार हुई'
+                          : 'Your seva has been received with gratitude'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBlessingOpen(true)}
+                    className="pressable shrink-0 min-h-[44px] px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-temple-950 text-xs font-black shadow-md shadow-amber-600/20 transition-colors"
+                  >
+                    {currentLang === 'bn' ? '📤 শেয়ার' : currentLang === 'hi' ? '📤 साझा करें' : '📤 Share'}
+                  </button>
+                </div>
+
                 {/* Statutory 80G Notification Tag — honest sample state when unregistered */}
                 <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs ${activeWorkspace?.trust80GRegistered ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-red-500/10 border-dashed border-red-500/40 text-red-300'}`}>
                   <ShieldCheck className={`w-4 h-4 shrink-0 ${activeWorkspace?.trust80GRegistered ? 'text-amber-400' : 'text-red-400'}`} />
@@ -392,7 +430,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                       value={amount}
                       onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : '')}
                       placeholder="0"
-                      className="w-full bg-temple-900 border-2 border-amber-500/60 focus:border-amber-400 rounded-xl pl-9 pr-4 py-2.5 text-2xl font-black text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all font-mono"
+                      className="w-full bg-temple-900 border-2 border-amber-500/60 focus:border-amber-400 rounded-xl pl-9 pr-4 py-2.5 text-2xl font-black text-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all font-mono tnum"
                     />
                   </div>
 
@@ -649,6 +687,19 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       </div>
       {limitModalInfo && (
         <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
+      )}
+      {/* Full-screen shareable blessing for the donor */}
+      {lastRecordedTx && (
+        <BlessingMoment
+          open={blessingOpen}
+          onClose={() => setBlessingOpen(false)}
+          orgName={activeWorkspace?.name || 'Temple Trust'}
+          logoUrl={(activeWorkspace as any)?.logoUrl}
+          amount={lastRecordedTx.amount}
+          currencySymbol={activeWorkspace?.currencySymbol || '₹'}
+          purpose={lastRecordedTx.purpose}
+          devoteeName={lastRecordedTx.devoteeName}
+        />
       )}
     </AnimatePresence>
   );
