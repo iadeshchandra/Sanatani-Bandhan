@@ -236,55 +236,130 @@ export function tripleBorder(content: any[]): any {
 }
 
 /**
- * Sacred header block: trust name, invocation, optional logo handled by
- * the caller (pdfmake images need data URLs — see pdfSanatani.ts).
+ * Pillar 1 — Letterhead header block.
+ *
+ * Renders a proper institutional letterhead: org logo (embedded data URL)
+ * at the left, trust name + tagline + invocation + address + phone +
+ * registration meta centered. When no logo is available, a dignified
+ * monogram cell (initial letter in a double gold frame on deep maroon)
+ * stands in — never a blank space, never a broken image.
+ *
+ * All new fields are optional: existing callers keep their current look.
  */
+export function monogramCell(letter: string, size = 30): any {
+  return {
+    table: {
+      widths: [size],
+      body: [[{
+        text: letter,
+        font: SANATANI_FONTS.body,
+        fontSize: size * 0.52,
+        bold: true,
+        color: SANATANI_COLORS.white,
+        alignment: 'center' as const,
+        margin: [0, size * 0.16, 0, size * 0.16],
+      }]],
+    },
+    layout: {
+      hLineWidth: () => 1.4,
+      vLineWidth: () => 1.4,
+      hLineColor: () => SANATANI_COLORS.gold,
+      vLineColor: () => SANATANI_COLORS.gold,
+      fillColor: () => '#7c2d12',
+      paddingLeft: () => 2,
+      paddingRight: () => 2,
+      paddingTop: () => 2,
+      paddingBottom: () => 2,
+    },
+  };
+}
+
 export function sacredHeader(opts: {
   trustName: string;
   trustAddress?: string;
   metaLine?: string;
   invocation?: string;
+  /** Pillar 1 letterhead fields (all optional) */
+  logoDataUrl?: string | null;
+  monogramLetter?: string;
+  tagline?: string;
+  phone?: string;
 }): any {
-  return {
-    stack: [
-      {
-        text: opts.trustName.toUpperCase(),
-        font: SANATANI_FONTS.body,
-        fontSize: 16,
-        bold: true,
-        color: SANATANI_COLORS.saffron,
-        alignment: 'center',
-        margin: [0, 0, 0, 2],
-      },
-      {
-        text: opts.invocation || INVOCATION_DEFAULT,
-        font: SANATANI_FONTS.sacred,
-        fontSize: 11,
-        color: SANATANI_COLORS.kumkum,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      },
-      ...(opts.trustAddress ? [{
-        text: opts.trustAddress,
-        font: SANATANI_FONTS.body,
-        fontSize: 8,
-        color: SANATANI_COLORS.stone,
-        alignment: 'center',
-        margin: [0, 0, 0, 2],
-      }] : []),
-      ...(opts.metaLine ? [{
-        text: opts.metaLine,
-        font: SANATANI_FONTS.body,
-        fontSize: 7.5,
-        bold: true,
-        color: SANATANI_COLORS.umber,
-        alignment: 'center',
-        margin: [0, 0, 0, 2],
-      }] : []),
-      lotusDivider(),
-    ],
-    margin: [0, 0, 0, 8],
-  };
+  const textStack: any[] = [
+    {
+      text: opts.trustName.toUpperCase(),
+      font: SANATANI_FONTS.body,
+      fontSize: 16,
+      bold: true,
+      color: SANATANI_COLORS.saffron,
+      alignment: 'center',
+      margin: [0, 0, 0, 2],
+    },
+    ...(opts.tagline ? [{
+      text: opts.tagline,
+      font: SANATANI_FONTS.body,
+      fontSize: 8.5,
+      italics: true,
+      color: SANATANI_COLORS.umber,
+      alignment: 'center',
+      margin: [0, 0, 0, 2],
+    }] : []),
+    {
+      text: opts.invocation || INVOCATION_DEFAULT,
+      font: SANATANI_FONTS.sacred,
+      fontSize: 11,
+      color: SANATANI_COLORS.kumkum,
+      alignment: 'center',
+      margin: [0, 0, 0, 4],
+    },
+    ...(opts.trustAddress ? [{
+      text: opts.trustAddress,
+      font: SANATANI_FONTS.body,
+      fontSize: 8,
+      color: SANATANI_COLORS.stone,
+      alignment: 'center',
+      margin: [0, 0, 0, 2],
+    }] : []),
+    ...(opts.phone ? [{
+      text: opts.phone,
+      font: SANATANI_FONTS.body,
+      fontSize: 8,
+      color: SANATANI_COLORS.stone,
+      alignment: 'center',
+      margin: [0, 0, 0, 2],
+    }] : []),
+    ...(opts.metaLine ? [{
+      text: opts.metaLine,
+      font: SANATANI_FONTS.body,
+      fontSize: 7.5,
+      bold: true,
+      color: SANATANI_COLORS.umber,
+      alignment: 'center',
+      margin: [0, 0, 0, 2],
+    }] : []),
+    lotusDivider(),
+  ];
+
+  // Letterhead layout: logo (or monogram) left, identity block centered.
+  const hasMark = !!(opts.logoDataUrl || opts.monogramLetter);
+  const markNode = opts.logoDataUrl
+    ? { image: opts.logoDataUrl, width: 30, height: 30, alignment: 'center' as const }
+    : opts.monogramLetter
+      ? monogramCell(opts.monogramLetter)
+      : null;
+
+  const headerBody = hasMark && markNode
+    ? {
+        columns: [
+          { width: 38, stack: [markNode], margin: [0, 2, 0, 0] },
+          { width: '*', stack: textStack },
+          { width: 38, text: '' },
+        ],
+        columnGap: 4,
+      }
+    : { stack: textStack };
+
+  return { ...headerBody, margin: [0, 0, 0, 8] };
 }
 
 /**

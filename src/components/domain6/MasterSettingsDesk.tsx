@@ -15,6 +15,8 @@ import { executeSafeUpdate } from '../../lib/dbUtils';
 import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
 import { getPaymentMethods, methodsForRegion, methodsForRegionWithFallback, indianPaymentsReady, type PaymentMethodDoc } from '../../lib/paymentMethods';
 import { GeoPaymentsManager } from './GeoPaymentsManager';
+import { OrgBrandingSection, type BrandingSectionHandle } from './OrgBrandingSection';
+import { OrgLogo } from '../common/OrgLogo';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
@@ -305,8 +307,10 @@ export const MasterSettingsDesk: React.FC = () => {
   const [submittingTrx, setSubmittingTrx] = useState(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  // Pillar 1: the branding section owns the logo pipeline (validate → crop
+  // → upload → preview); the avatar circle below just opens its picker.
+  const brandingRef = useRef<BrandingSectionHandle>(null);
 
   // Geolocation states
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -384,7 +388,7 @@ export const MasterSettingsDesk: React.FC = () => {
   }, [activeTab, activeWorkspace?.id]);
 
   if (!activeWorkspace) return null;
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner'|'logo') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner') => {
     if (!isAdmin) return showToast(localSafeTranslate('err_unauthorized', "Unauthorized. Only Trustees can upload images."), "error");
     const file = e.target.files?.[0];
     if (!file) return;
@@ -392,17 +396,13 @@ export const MasterSettingsDesk: React.FC = () => {
 
     try {
       const { compressImageFile } = await import('../../utils/imageCompression');
-      const MAX_DIMENSION = type === 'banner' ? 1200 : 400; 
-      const quality = type === 'banner' ? 0.7 : 0.8;
-      const base64String = await compressImageFile(file, { maxWidth: MAX_DIMENSION, maxHeight: MAX_DIMENSION, quality });
-      
-      if (type === 'banner') setWorkspaceInfo(prev => ({ ...prev, bannerUrl: base64String }));
-      else setWorkspaceInfo(prev => ({ ...prev, logoUrl: base64String }));
+      const base64String = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.7 });
+      setWorkspaceInfo(prev => ({ ...prev, bannerUrl: base64String }));
     } catch (err) {
       console.error('Failed to compress workspace image:', err);
       showToast(localSafeTranslate('err_image_upload', "Failed to process image."), "error");
     }
-    e.target.value = ''; 
+    e.target.value = '';
   };
 
   const handleSaveWorkspace = async (e: React.FormEvent) => {
@@ -652,21 +652,25 @@ export const MasterSettingsDesk: React.FC = () => {
 
              <div className="px-6 sm:px-8 pb-8">
                <div className="flex justify-center sm:justify-start -mt-12 mb-6 relative z-10">
-                 <div className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden shrink-0 cursor-pointer">
-                    {workspaceInfo.logoUrl ? (
-                      <img src={workspaceInfo.logoUrl || undefined} alt="Organization Logo" className="w-full h-full object-cover bg-white" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-saffron-50 to-saffron-100 text-sanatani-orange flex items-center justify-center font-black text-4xl shadow-inner border border-saffron-200">
-                        {workspaceInfo.name ? workspaceInfo.name.charAt(0).toUpperCase() : 'ॐ'}
-                      </div>
-                    )}
+                 {/* Pillar 1: shared OrgLogo — uploaded logo or dignified monogram, never a broken image. */}
+                 <div className="relative group shrink-0 cursor-pointer">
+                    <OrgLogo
+                      name={workspaceInfo.name || activeWorkspace?.name || ''}
+                      logoUrl={workspaceInfo.logoUrl}
+                      size={112}
+                      className="border-4 border-white shadow-lg"
+                    />
                     {isAdmin && (
-                      <>
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => logoInputRef.current?.click()}>
-                          <Camera size={24} className="text-white"/>
-                        </div>
-                        <input type="file" accept="image/*" className="hidden" ref={logoInputRef} onChange={(e) => handleImageUpload(e, 'logo')} />
-                      </>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Update institution logo"
+                        onClick={() => brandingRef.current?.openPicker()}
+                        onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') brandingRef.current?.openPicker(); }}
+                        className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                      >
+                        <Camera size={24} className="text-white"/>
+                      </div>
                     )}
                  </div>
                </div>
@@ -921,6 +925,11 @@ export const MasterSettingsDesk: React.FC = () => {
 
         {/* RIGHT COLUMN: Theme & Security */}
         <div className="space-y-6">
+          {/* Pillar 1 — Institution branding: upload + live letterhead preview. */}
+          <OrgBrandingSection
+            ref={brandingRef}
+            onLogoSaved={(logoUrl) => setWorkspaceInfo((prev) => ({ ...prev, logoUrl }))}
+          />
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
             <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest"><Palette size={18} className="text-sanatani-orange" /> {localSafeTranslate('theme_appearance', 'Theme & Appearance')}</h3>
             <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase tracking-widest mb-4">

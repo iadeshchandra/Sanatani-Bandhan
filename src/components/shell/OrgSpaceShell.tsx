@@ -7,6 +7,7 @@ import { provisionalSoloProfile } from '../../solo/soloSession';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { ROLE_MIGRATION_MAP } from '../../types';
 import { T } from '../../solo/ui';
+import { OrgLogo } from '../common/OrgLogo';
 
 /* OrgSpaceShell — the Phase 2 organisation-space chrome.
  * =====================================================================
@@ -192,7 +193,13 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <span aria-hidden className="text-xl leading-none shrink-0">🏛️</span>
+              {/* Pillar 1 — the org's own mark (logo or monogram), never a generic icon. */}
+              <OrgLogo
+                name={orgName}
+                logoUrl={(activeWorkspace as any)?.logoUrl}
+                size={36}
+                withRing={false}
+              />
               <h1 className="text-white font-extrabold text-sm sm:text-base truncate">{orgName}</h1>
             </div>
             <nav aria-label="Breadcrumb" className="text-[11px] text-amber-400/70 font-medium truncate mt-0.5">
