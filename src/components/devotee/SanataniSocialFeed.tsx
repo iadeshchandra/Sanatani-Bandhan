@@ -13,6 +13,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { DirectMessageChat } from '../common/DirectMessageChat';
 import { PurohitAuthorBadge } from '../purohit/PurohitAuthorBadge';
 import { useLanguage } from '../../context/LanguageContext';
+import { EmptyState } from '../common/EmptyState';
 import { isValidLatLng } from '../../utils/geo';
 import { useToast } from '../../context/ToastContext';
 import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
@@ -757,17 +758,19 @@ export const SanataniSocialFeed: React.FC = () => {
       {/* Posts Feed List */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 max-w-xl mx-auto w-full custom-scrollbar pb-24">
         {filteredPosts.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border border-temple-200 shadow-xs">
-            <Sparkles className="w-12 h-12 text-saffron-500 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-temple-900">No posts in this category yet</h3>
-            <p className="text-xs text-temple-500 mt-1">Be the first devotee to share Darshan, reflections, or Seva updates.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="mt-4 px-4 py-2 bg-saffron-500 text-white rounded-xl text-xs font-semibold shadow-sm"
-            >
-              Create First Post 🙏
-            </button>
-          </div>
+          <EmptyState
+            tone="light"
+            illustration="🪔"
+            title={safeTranslate('sangam.feed.empty.title', 'A quiet courtyard', 'একটি শান্ত উঠোন', 'एक शांत आँगन')}
+            description={safeTranslate(
+              'sangam.feed.empty.desc',
+              'No posts in this corner yet. Be the first to share a darshan, a reflection, or a seva update — the sangat is listening.',
+              'এই কোণে এখনও কোনো পোস্ট নেই। প্রথম হোন — একটি দর্শন, ভাবনা বা সেবার খবর শেয়ার করুন।',
+              'इस कोने में अभी कोई पोस्ट नहीं। पहले बनें — एक दर्शन, चिंतन या सेवा समाचार साझा करें।'
+            )}
+            actionLabel={safeTranslate('sangam.feed.empty.cta', 'Share the first post 🙏', 'প্রথম পোস্ট শেয়ার করুন 🙏', 'पहली पोस्ट साझा करें 🙏')}
+            onAction={() => setShowCreateModal(true)}
+          />
         ) : (
           filteredPosts.map((post, idx) => {
             const audienceInfo = AUDIENCE_OPTIONS.find(a => a.key === post.audience) || AUDIENCE_OPTIONS[0];
