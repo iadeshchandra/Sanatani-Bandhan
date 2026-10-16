@@ -7,6 +7,7 @@ import { AjkerSuchana } from './AjkerSuchana';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
 import { SuggestionCards } from './SuggestionCards';
+import { PersonalWallet } from '../chat/PersonalWallet';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
@@ -28,6 +29,7 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   const { tr } = useLocaleText();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
 
   const panchangLine = useMemo(() => {
     try {
@@ -152,6 +154,30 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         }}
       />
       <GuideCenter isOpen={guidesOpen} onClose={() => setGuidesOpen(false)} />
+
+      {/* My Wallet — private P2P obligation ledger (not an AppShell tab) */}
+      {uid !== 'anon' && (
+        <button
+          type="button"
+          onClick={() => setWalletOpen(true)}
+          className="w-full rounded-2xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800 text-white p-4 text-left shadow-sm min-h-[64px] hover:shadow-md transition-shadow"
+        >
+          <div className="text-2xl" aria-hidden>
+            🪙
+          </div>
+          <div className="text-sm font-extrabold mt-1">
+            <T en="My Wallet" bn="আমার ওয়ালেট" hi="मेरा वॉलेट" />
+          </div>
+          <div className="text-[11px] text-emerald-100/80">
+            <T
+              en="Private P2P obligations — only you can see"
+              bn="ব্যক্তিগত P2P হিসাব — শুধু আপনি দেখতে পাবেন"
+              hi="निजी P2P हिसाब — केवल आप देख सकते हैं"
+            />
+          </div>
+        </button>
+      )}
+      <PersonalWallet uid={uid} isOpen={walletOpen} onClose={() => setWalletOpen(false)} />
 
       {/* Sadhana at a glance */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

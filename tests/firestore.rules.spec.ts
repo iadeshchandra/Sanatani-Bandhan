@@ -73,6 +73,23 @@ beforeEach(async () => {
       ritualCount: 12,
       createdAt: 1,
     });
+
+    // Setup P2P money requests (Phase 3 wallet) — user-1 pays user-2.
+    await db.collection('p2pRequests').doc('p2p-1').set({
+      direction: 'user_to_user',
+      senderId: 'user-1',
+      senderName: 'User One',
+      receiverId: 'user-2',
+      receiverName: 'User Two',
+      amount: 500,
+      currency: 'BDT',
+      note: 'shared lunch',
+      status: 'accepted',
+      chatId: 'chat-1',
+      expiresAt: 9999999999999,
+      createdAt: 1,
+      updatedAt: 1,
+    });
   });
 });
 
@@ -676,5 +693,61 @@ describe('Firestore Security Rules', () => {
         text: 'Fake endorsement',
       })
     );
+  });
+});
+
+describe('P2P money requests — privacy & transitions', () => {
+  const req1 = () => testEnv.authenticatedContext('user-1').firestore().collection('p2pRequests').doc('p2p-1');
+  const req2 = () => testEnv.authenticatedContext('user-2').firestore().collection('p2pRequests').doc('p2p-1');
+  const strangerDb = () => testEnv.authenticatedContext('stranger-1').firestore();
+
+  it('73. Sender and receiver can read their own request', async () => {
+    await assertSucceeds(req1().get());
+    await assertSucceeds(req2().get());
+  });
+
+  it('74. A third party (user B) CANNOT read user A\'s request', async () => {
+    await assertFails(strangerDb().collection('p2pRequests').doc('p2p-1').get());
+  });
+
+  it('75. A third party cannot list another user\'s requests by querying', async () => {
+    const q = strangerDb().collection('p2pRequests').where('senderId', '==', 'user-1');
+    await assertFails(q.get());
+  });
+
+  it('76. A user cannot create a request impersonating someone else', async () => {
+    await assertFails(
+      strangerDb().collection('p2pRequests').add({
+        direction: 'user_to_user',
+        senderId: 'user-1', // not the caller
+        senderName: 'User One',
+        receiverId: 'stranger-1',
+        receiverName: 'Stranger',
+        amount: 100,
+        currency: 'BDT',
+        note: 'impersonation',
+        status: 'pending',
+        chatId: 'chat-x',
+        expiresAt: 9999999999999,
+        createdAt: 1,
+        updatedAt: 1,
+      })
+    );
+  });
+
+  it('77. Sender marks paid (accepted→paid); receiver confirms settled (paid→settled)', async () => {
+    await assertSucceeds(
+      req1().update({ status: 'paid', paidAt: 2, paidRef: 'TrxID-1', paidVia: 'bkash', updatedAt: 2 })
+    );
+    await assertSucceeds(req2().update({ status: 'settled', settledAt: 3, updatedAt: 3 }));
+  });
+
+  it('78. Receiver cannot mark the request paid (sender-only transition)', async () => {
+    await assertFails(req2().update({ status: 'paid', paidAt: 2, updatedAt: 2 }));
+  });
+
+  it('79. Anonymous users cannot read p2pRequests', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(unauthDb.collection('p2pRequests').doc('p2p-1').get());
   });
 });
