@@ -481,7 +481,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -1322,20 +1322,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {/* SEVA FREE — from PLAN_PRICING.LITE */}
+            {/* SEVA FREE — from PLAN_PRICING.SEVA */}
             <Reveal className="h-full">
               <div className="h-full rounded-[2rem] bg-white border border-orange-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-orange-100 transition-all">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.LITE.badge}
+                  {PLAN_PRICING.SEVA.badge}
                 </span>
                 <h3 className="mt-4 text-2xl font-black text-stone-900">Seva Free</h3>
-                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.LITE.tagline}</p>
+                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.SEVA.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.LITE.price.currencySymbol}0</span>
+                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}0</span>
                   <span className="text-stone-500 font-bold">forever</span>
                 </p>
                 <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
-                  Up to {PLAN_PRICING.LITE.limits.devotees} devotees · {PLAN_PRICING.LITE.limits.transactions} transactions · {PLAN_PRICING.LITE.limits.adminSeats} admin seats
+                  Up to {PLAN_PRICING.SEVA.limits.devotees} devotees · {PLAN_PRICING.SEVA.limits.transactions} transactions · {PLAN_PRICING.SEVA.limits.adminSeats} admin seats
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
                   {['Pooja Booking', 'Panchang & Muhurat', 'Quick Chanda', 'WhatsApp Broadcaster'].map((f) => (
@@ -1398,26 +1398,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </Reveal>
 
-            {/* ENTERPRISE — from PLAN_PRICING.ENTERPRISE */}
+            {/* ENTERPRISE — from PLAN_PRICING.PREMIUM */}
             <Reveal delay={160} className="h-full">
               <div className="h-full rounded-[2rem] bg-stone-900 p-8 text-stone-200 flex flex-col shadow-xl">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-stone-800 text-amber-400 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.ENTERPRISE.badge}
+                  {PLAN_PRICING.PREMIUM.badge}
                 </span>
                 <h3 className="mt-4 text-2xl font-black text-white">Enterprise</h3>
-                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.ENTERPRISE.tagline}</p>
+                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.PREMIUM.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black text-white">
-                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}
+                    {PLAN_PRICING.PREMIUM.price.currencySymbol}
                     {billingAnnual
-                      ? Math.round(PLAN_PRICING.ENTERPRISE.price.annual / 12).toLocaleString('en-IN')
-                      : PLAN_PRICING.ENTERPRISE.price.monthly.toLocaleString('en-IN')}
+                      ? Math.round(PLAN_PRICING.PREMIUM.price.annual / 12).toLocaleString('en-IN')
+                      : PLAN_PRICING.PREMIUM.price.monthly.toLocaleString('en-IN')}
                   </span>
                   <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-stone-400">
-                    {PLAN_PRICING.ENTERPRISE.price.currencySymbol}{PLAN_PRICING.ENTERPRISE.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{PLAN_PRICING.PREMIUM.price.annual.toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
                 <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">
