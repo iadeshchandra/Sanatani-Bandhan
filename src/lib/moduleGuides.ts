@@ -437,6 +437,210 @@ export const MODULE_GUIDES: ModuleGuide[] = [
     ],
     relatedModules: ['treasury', 'marketplace', 'wallet', 'devotees'],
   },
+
+  /* ------------------------------------------------------------------ */
+  /* Money & Chat guides (chat module + P2P money requests)              */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'chat',
+    name: t3('Chat', 'চ্যাট', 'चैट'),
+    tagline: t3('Calm conversations — everyone verified by Sanatani ID.', 'শান্ত কথোপকথন — সবাই সনাতনী পরিচয়ে যাচাইকৃত।', 'शांत बातचीत — सभी सनातनी पहचान से सत्यापित।'),
+    whatItIs: t3(
+      'One-to-one and temple conversations with people you trust. No noise, no strangers — every participant carries a verified Sanatani ID, and temple threads show the sender\'s name and role.',
+      'বিশ্বস্ত মানুষের সঙ্গে একান্ত ও মন্দির-কথোপকথন। কোনো কোলাহল নেই, অপরিচিত নেই — প্রত্যেকের যাচাইকৃত সনাতনী পরিচয় আছে।',
+      'विश्वसनीय लोगों से एकांत व मंदिर-बातचीत। कोई शोर नहीं, कोई अजनबी नहीं — प्रत्येक की सत्यापित सनातनी पहचान है।'
+    ),
+    whyItMatters: t3(
+      'Families coordinate pujas without WhatsApp chaos. Temples announce to members in one trusted thread. Money requests live inside the conversation they belong to — never lost in a chat scroll.',
+      'পরিবার পূজার সমন্বয় করে বিশৃঙ্খলা ছাড়াই। মন্দির এক বিশ্বস্ত থ্রেডে ঘোষণা দেয়। টাকার অনুরোধ সেই কথোপকথনেই থাকে।',
+      'परिवार बिना अव्यवस्था पूजा का समन्वय करते हैं। मंदिर एक विश्वसनीय थ्रेड में घोषणा देता है। धन-अनुरोध उसी बातचीत में रहता है।'
+    ),
+    firstSteps: [
+      t3('Open Messages from your home — your conversations wait there.', 'হোম থেকে বার্তা খুলুন — কথোপকথন সেখানেই।', 'होम से संदेश खोलें — बातचीत वहीं है।'),
+      t3('Start a chat from any devotee, purohit or jyotishi profile.', 'যেকোনো ভক্ত, পুরোহিত বা জ্যোতিষীর প্রোফাইল থেকে চ্যাট শুরু করুন।', 'किसी भी भक्त, पुरोहित या ज्योतिषी की प्रोफ़ाइल से चैट आरंभ करें।'),
+      t3('Temple threads are marked with the organisation\'s name and logo.', 'মন্দির-থ্রেডে সংস্থার নাম ও লোগো থাকে।', 'मंदिर-थ्रेड में संस्था का नाम व लोगो रहता है।'),
+    ],
+    proTips: [
+      t3('Unread counts appear on the Messages button — your sangha is speaking.', 'বার্তা বোতামে অপঠিত সংখ্যা — আপনার সঙ্ঘ কথা বলছে।', 'संदेश बटन पर अपठित संख्या — आपका संघ बोल रहा है।'),
+      t3('Archive old threads to keep your list calm — nothing is ever deleted.', 'পুরনো থ্রেড আর্কাইভ করুন — কিছুই মোছে না।', 'पुराने थ्रेड अभिलेखित करें — कुछ मिटता नहीं।'),
+    ],
+    relatedModules: ['p2p-requests', 'chat-blessings', 'sangam', 'devotees'],
+  },
+  {
+    id: 'chat-blessings',
+    name: t3('Blessing Cards', 'আশীর্বাদ কার্ড', 'आशीर्वाद कार्ड'),
+    tagline: t3('Send warmth that a forwarded image can never carry.', 'ফরোয়ার্ড ছবি যা দিতে পারে না, সেই উষ্ণতা পাঠান।', 'अग्रेषित चित्र जो न दे सके, वह स्नेह भेजें।'),
+    whatItIs: t3(
+      'Beautiful festival greeting cards sent inside any chat — Diwali, Durga Puja, Ekadashi, birthdays. They arrive as a special card, not plain text, and the app gently reminds you before big festivals.',
+      'যেকোনো চ্যাটে পাঠানো সুন্দর উৎসব-শুভেচ্ছা কার্ড — দীপাবলি, দুর্গাপূজা, একাদশী, জন্মদিন। বড় উৎসবের আগে অ্যাপ মৃদু স্মরণ দেয়।',
+      'किसी भी चैट में भेजे जाने वाले सुंदर उत्सव-शुभकामना कार्ड — दीपावली, दुर्गापूजा, एकादशी, जन्मदिन। बड़े उत्सवों से पहले ऐप मृदु स्मरण देता है।'
+    ),
+    whyItMatters: t3(
+      'A personal blessing keeps relationships warm across distance. Elders feel remembered; friends feel seen. It is ashirvad, not a like button.',
+      'ব্যক্তিগত আশীর্বাদ দূরত্বেও সম্পর্ক উষ্ণ রাখে। এটিই আশীর্বাদ, লাইক বোতাম নয়।',
+      'व्यक्तिगत आशीर्वाद दूरी में भी संबंध उष्ण रखता है। यही आशीर्वाद है, लाइक बटन नहीं।'
+    ),
+    firstSteps: [
+      t3('Open any conversation and tap the blessing button.', 'যেকোনো কথোপকথন খুলে আশীর্বাদ বোতাম চাপুন।', 'कोई भी बातचीत खोलकर आशीर्वाद बटन दबाएँ।'),
+      t3('Choose the occasion — the card designs itself.', 'উপলক্ষ বেছে নিন — কার্ড নিজেই সাজে।', 'अवसर चुनें — कार्ड स्वयं सजता है।'),
+      t3('Watch for festival reminders in your Suchana feed.', 'সূচনা ফিডে উৎসব-স্মরণ দেখুন।', 'सूचना फ़ीड में उत्सव-स्मरण देखें।'),
+    ],
+    proTips: [
+      t3('Send blessings a day early — yours arrives before the flood of forwards.', 'এক দিন আগে পাঠান — ফরোয়ার্ডের ভিড়ের আগেই পৌঁছাবে।', 'एक दिन पहले भेजें — अग्रेषणों की भीड़ से पहले पहुँचेगा।'),
+      t3('A blessing to a recent chat means more than one to a silent thread.', 'সাম্প্রতিক চ্যাটে আশীর্বাদ বেশি অর্থবহ।', 'हाल की चैट में आशीर्वाद अधिक अर्थपूर्ण है।'),
+    ],
+    relatedModules: ['chat', 'panjika', 'sangam'],
+  },
+  {
+    id: 'p2p-requests',
+    name: t3('Money Requests', 'টাকার অনুরোধ', 'धन-अनुरोध'),
+    tagline: t3('Ask, agree and track — money with a clear record.', 'চান, সম্মত হন, হিসাব রাখুন — স্পষ্ট নথিতে টাকা।', 'माँगें, सहमत हों, हिसाब रखें — स्पष्ट अभिलेख में धन।'),
+    whatItIs: t3(
+      'A request card inside any chat: amount, note, and a 48-hour window. The other person accepts, declines, or counters — then pays on their own bKash/Nagad/UPI. The app never holds your money; it only keeps the honest record.',
+      'যেকোনো চ্যাটে রিকোয়েস্ট কার্ড — টাকা, নোট, ৪৮ ঘণ্টার সময়। অপরজন গ্রহণ, প্রত্যাখ্যান বা পাল্টা প্রস্তাব দেন — তারপর নিজের বিকাশ/নগদ/UPI-তে দেন। অ্যাপ টাকা রাখে না, শুধু সৎ হিসাব রাখে।',
+      'किसी भी चैट में अनुरोध कार्ड — राशि, नोट, 48 घंटे की अवधि। दूसरा व्यक्ति स्वीकार, अस्वीकार या प्रतिप्रस्ताव देता है — फिर अपने bKash/Nagad/UPI से देता है। ऐप धन नहीं रखता, केवल ईमानदार हिसाब रखता है।'
+    ),
+    whyItMatters: t3(
+      'No more "you forgot the 500 taka" arguments — every agreement is written, timestamped, and visible to both sides. Borrowing stays friendly because the record stays clear.',
+      '"৫০০ টাকা ভুলে গেছ" ঝগড়া আর নয় — প্রতিটি সম্মতি লিখিত ও সময়-চিহ্নিত। হিসাব স্পষ্ট থাকলে ধার বন্ধুত্বপূর্ণ থাকে।',
+      '"500 रुपये भूल गए" जैसे झगड़े नहीं — प्रत्येक सहमति लिखित व समय-अंकित। हिसाब स्पष्ट रहे तो उधार मैत्रीपूर्ण रहता है।'
+    ),
+    firstSteps: [
+      t3('Open a chat, tap "Request money", enter amount and a note.', 'চ্যাট খুলে "টাকা চান" চাপুন, পরিমাণ ও নোট দিন।', 'चैट खोलकर "धन माँगें" दबाएँ, राशि व नोट दें।'),
+      t3('The card appears in the conversation — they tap Accept or Decline.', 'কার্ড কথোপকথনে আসে — তাঁরা গ্রহণ বা প্রত্যাখ্যান করেন।', 'कार्ड बातचीत में आता है — वे स्वीकार या अस्वीकार करते हैं।'),
+      t3('Share the request as a QR code for in-person settling.', 'সামনাসামনি মেটাতে QR কোড হিসেবে শেয়ার করুন।', 'सामने निपटाने हेतु QR कोड के रूप में साझा करें।'),
+    ],
+    proTips: [
+      t3('Write a clear note — "prasad fund" beats "money" six months later.', 'স্পষ্ট নোট লিখুন — ছয় মাস পরে "প্রসাদ তহবিল" বোঝা যায়।', 'स्पष्ट नोट लिखें — छह मास बाद "प्रसाद निधि" समझ आएगा।'),
+      t3('Requests expire after 48 hours — resend rather than chase.', '৪৮ ঘণ্টায় মেয়াদ শেষ — তাড়া না করে আবার পাঠান।', '48 घंटे में अवधि समाप्त — पीछा न करें, पुनः भेजें।'),
+    ],
+    relatedModules: ['chat', 'p2p-lifecycle', 'p2p-wallet', 'p2p-safety'],
+  },
+  {
+    id: 'p2p-lifecycle',
+    name: t3('Request Lifecycle', 'অনুরোধের জীবনচক্র', 'अनुरोध जीवनचक्र'),
+    tagline: t3('Request → accept → mark paid → confirm. Four steps, zero confusion.', 'অনুরোধ → গ্রহণ → পরিশোধ চিহ্নিত → নিশ্চিত। চার ধাপ, শূন্য বিভ্রান্তি।', 'अनुरोध → स्वीकार → भुगतान चिह्नित → पुष्टि। चार चरण, शून्य भ्रम।'),
+    whatItIs: t3(
+      'Every money request walks the same four steps: someone requests, the other accepts, the payer pays on their own bKash/Nagad/UPI and marks paid, and the receiver confirms. At each step both sides see the same status — no "I thought you sent it" ever again.',
+      'প্রতিটি অনুরোধ একই চার ধাপে চলে — অনুরোধ, গ্রহণ, নিজের বিকাশ/নগদ/UPI-তে পেমেন্ট ও "পরিশোধিত" চিহ্ন, গ্রহীতার নিশ্চিতকরণ। প্রতিটি ধাপে দুই পক্ষ একই অবস্থা দেখে।',
+      'प्रत्येक अनुरोध उन्हीं चार चरणों में चलता है — अनुरोध, स्वीकार, अपने bKash/Nagad/UPI से भुगतान व "भुगतान" चिह्न, प्राप्तकर्ता की पुष्टि। प्रत्येक चरण में दोनों पक्ष एक ही स्थिति देखते हैं।'
+    ),
+    whyItMatters: t3(
+      'Money misunderstandings end friendships. A shared, step-by-step record means both sides always agree on what happened — the app is the calm witness.',
+      'টাকার ভুল বোঝাবুঝি বন্ধুত্ব শেষ করে। ধাপে ধাপে যৌথ নথি মানে দুই পক্ষই একমত — অ্যাপই শান্ত সাক্ষী।',
+      'धन की गलतफहमी मित्रता समाप्त करती है। चरणबद्ध संयुक्त अभिलेख से दोनों पक्ष सदा सहमत — ऐप ही शांत साक्षी है।'
+    ),
+    firstSteps: [
+      t3('Request: send a card with amount and note from any chat.', 'অনুরোধ: যেকোনো চ্যাট থেকে কার্ড পাঠান।', 'अनुरोध: किसी भी चैट से कार्ड भेजें।'),
+      t3('Accept: the other person agrees — a promise is now on record.', 'গ্রহণ: অপরজন সম্মত — প্রতিশ্রুতি নথিভুক্ত।', 'स्वीकार: दूसरा सहमत — वचन दर्ज।'),
+      t3('Mark paid + Confirm: payer pays on their own app and marks paid; receiver confirms receipt.', 'পরিশোধ চিহ্নিত + নিশ্চিত: প্রদানকারী দিয়ে চিহ্নিত করেন; গ্রহীতা নিশ্চিত করেন।', 'भुगतान चिह्नित + पुष्टि: भुगतानकर्ता देकर चिह्नित करता है; प्राप्तकर्ता पुष्टि करता है।'),
+    ],
+    proTips: [
+      t3('Enter the bKash TrxID or UPI ref when marking paid — proof without argument.', '"পরিশোধিত" চিহ্নিত করার সময় TrxID দিন — তর্ক ছাড়াই প্রমাণ।', '"भुगतान" चिह्नित करते समय TrxID दें — तर्क बिना प्रमाण।'),
+      t3('A counter-offer creates a fresh card — the old one is never edited silently.', 'পাল্টা প্রস্তাবে নতুন কার্ড হয় — পুরনোটি নীরবে বদলায় না।', 'प्रतिप्रस्ताव से नया कार्ड बनता है — पुराना चुपचाप नहीं बदलता।'),
+    ],
+    relatedModules: ['p2p-requests', 'p2p-wallet', 'p2p-qr', 'chat'],
+  },
+  {
+    id: 'p2p-wallet',
+    name: t3('My Wallet', 'আমার ওয়ালেট', 'मेरा वॉलेट'),
+    tagline: t3('Your private money map — owed to me, I owe, settled smartly.', 'আপনার ব্যক্তিগত টাকার মানচিত্র — পাওনা, দেনা, বুদ্ধিতে নিষ্পত্তি।', 'आपका निजी धन-मानचित्र — प्राप्य, देय, बुद्धि से निपटान।'),
+    whatItIs: t3(
+      'A private ledger of every money promise — what others owe you, what you owe others, and the full history. Only you can see it: not the temple, not the platform. When it spots a shortcut (Rahim pays Karim directly instead of through you), it gently suggests netting — it never moves money itself.',
+      'প্রতিটি টাকার প্রতিশ্রুতির ব্যক্তিগত খাতা — পাওনা, দেনা ও পূর্ণ ইতিহাস। শুধু আপনি দেখতে পাবেন। সহজ পথ দেখলে (রহিম সরাসরি করিমকে দিলে) মৃদু নেটিং পরামর্শ দেয় — নিজে টাকা নাড়ে না।',
+      'प्रत्येक धन-वचन का निजी खाता — प्राप्य, देय व पूर्ण इतिहास। केवल आप देख सकते हैं। आसान रास्ता दिखे तो (रहीम सीधे करीम को दे) मृदु नेटिंग सुझाव देता है — स्वयं धन नहीं हिलाता।'
+    ),
+    whyItMatters: t3(
+      'You always know exactly where you stand — no mental math, no forgotten loans. This is separate from the Seva Wallet (temple/marketplace money); personal promises stay personal.',
+      'আপনি সবসময় জানেন কোথায় দাঁড়িয়ে — মানসিক হিসাব নয়, ভোলা ধার নয়। এটি সেবা ওয়ালেট থেকে আলাদা; ব্যক্তিগত প্রতিশ্রুতি ব্যক্তিগতই থাকে।',
+      'आप सदा जानते हैं कहाँ खड़े हैं — मानसिक हिसाब नहीं, भूले उधार नहीं। यह सेवा वॉलेट से अलग है; व्यक्तिगत वचन व्यक्तिगत ही रहता है।'
+    ),
+    firstSteps: [
+      t3('Open My Wallet from your home — green card, coin icon.', 'হোম থেকে আমার ওয়ালেট খুলুন — সবুজ কার্ড।', 'होम से मेरा वॉलेट खोलें — हरा कार्ड।'),
+      t3('Check "Owed to me" and "I owe" — the two lists tell your whole story.', '"আমার পাওনা" ও "আমার দেনা" দেখুন।', '"मुझे मिलने वाला" व "मुझे देना है" देखें।'),
+      t3('Tap any entry to jump straight to its conversation.', 'যেকোনো এন্ট্রিতে চাপুন — সরাসরি কথোপকথনে যান।', 'किसी भी प्रविष्टि पर दबाएँ — सीधे बातचीत में जाएँ।'),
+    ],
+    proTips: [
+      t3('Settle one payment instead of two when netting suggests it — fewer transfers, same trust.', 'নেটিং পরামর্শ দিলে দুটির বদলে একটি পেমেন্ট করুন।', 'नेटिंग सुझाए तो दो के बजाय एक भुगतान करें।'),
+      t3('History keeps every settled, declined and expired request — your memory, backed up.', 'ইতিহাসে সব নিষ্পত্তি থাকে — আপনার স্মৃতি, সংরক্ষিত।', 'इतिहास में सभी निपटान रहते हैं — आपकी स्मृति, सुरक्षित।'),
+    ],
+    relatedModules: ['p2p-requests', 'p2p-lifecycle', 'wallet', 'chat'],
+  },
+  {
+    id: 'org-requests',
+    name: t3('Temple Requests', 'মন্দিরের অনুরোধ', 'मंदिर के अनुरोध'),
+    tagline: t3('When your temple asks — branded, logged, and accountable.', 'মন্দির চাইলে — ব্র্যান্ডেড, নথিভুক্ত, দায়বদ্ধ।', 'मंदिर माँगे तो — ब्रांडेड, दर्ज, उत्तरदायी।'),
+    whatItIs: t3(
+      'Temples can send money requests too — for chanda, event contributions, or seva funds. Only trustees and accountants may send them, each carries the temple\'s name and logo plus the sender\'s name, and every one is logged in the org ledger for all to audit.',
+      'মন্দিরও টাকা চাইতে পারে — চাঁদা, অনুষ্ঠান-অবদান বা সেবা-তহবিলে। শুধু ট্রাস্টি ও হিসাবরক্ষক পাঠাতে পারেন; প্রতিটিতে মন্দিরের নাম-লোগো ও প্রেরকের নাম থাকে, এবং সংস্থার খাতায় নথিভুক্ত হয়।',
+      'मंदिर भी धन माँग सकता है — चंदा, कार्यक्रम-योगदान या सेवा-निधि हेतु। केवल ट्रस्टी व लेखाकार भेज सकते हैं; प्रत्येक में मंदिर का नाम-लोगो व प्रेषक का नाम रहता है, और संस्था-खाते में दर्ज होता है।'
+    ),
+    whyItMatters: t3(
+      'You always know a temple request is genuine — branded, named, and logged. No anonymous "send money" messages; no doubt about where it went.',
+      'মন্দিরের অনুরোধ খাঁটি কিনা সবসময় বোঝা যায় — ব্র্যান্ডেড, নামসহ, নথিভুক্ত।',
+      'मंदिर का अनुरोध असली है या नहीं, सदा पता चलता है — ब्रांडेड, नाम सहित, दर्ज।'
+    ),
+    firstSteps: [
+      t3('Temple requests arrive in your temple thread — look for the logo.', 'মন্দির-থ্রেডে আসে — লোগো দেখুন।', 'मंदिर-थ्रेड में आते हैं — लोगो देखें।'),
+      t3('Check the trustee\'s name on the card before accepting.', 'গ্রহণের আগে কার্ডে ট্রাস্টির নাম দেখুন।', 'स्वीकारने से पहले कार्ड में ट्रस्टी का नाम देखें।'),
+      t3('Trustees: review all org requests together in the Org Request Ledger.', 'ট্রাস্টিরা: সংস্থার খাতায় সব অনুরোধ একসঙ্গে দেখুন।', 'ट्रस्टी: संस्था-खाते में सभी अनुरोध एक साथ देखें।'),
+    ],
+    proTips: [
+      t3('A real temple request always shows a logo and a trustee name — both.', 'আসল অনুরোধে লোগো ও ট্রাস্টির নাম — দুটোই থাকে।', 'असली अनुरोध में लोगो व ट्रस्टी का नाम — दोनों रहते हैं।'),
+      t3('Your Suchana feed notes when your temple sent several requests this month.', 'মন্দির এক মাসে कई অনুরোধ পাঠালে সূচনা জানায়।', 'मंदिर एक मास में कई अनुरोध भेजे तो सूचना बताती है।'),
+    ],
+    relatedModules: ['chat', 'p2p-requests', 'p2p-lifecycle', 'treasury'],
+  },
+  {
+    id: 'p2p-qr',
+    name: t3('Request QR Codes', 'অনুরোধের QR কোড', 'अनुरोध QR कोड'),
+    tagline: t3('Show a code, settle face-to-face — no typing, no mistakes.', 'কোড দেখান, সামনাসামনি মেটান — টাইপ নয়, ভুল নয়।', 'कोड दिखाएँ, सामने निपटाएँ — टाइपिंग नहीं, भूल नहीं।'),
+    whatItIs: t3(
+      'Every money request can become a QR code. Show it to the other person — they scan it and the exact request (amount, note, who) opens on their phone. Perfect for prasad counters, event desks, and splitting a rickshaw fare.',
+      'প্রতিটি অনুরোধ QR কোড হতে পারে। অপরজনকে দেখান — স্ক্যান করলেই সঠিক অনুরোধ তাঁর ফোনে খুলবে। প্রসাদ কাউন্টার, অনুষ্ঠান ও ভাড়া ভাগে উপযোগী।',
+      'प्रत्येक अनुरोध QR कोड बन सकता है। दूसरे को दिखाएँ — स्कैन करते ही सही अनुरोध उनके फ़ोन में खुलेगा। प्रसाद काउंटर, कार्यक्रम व किराया बाँटने हेतु उत्तम।'
+    ),
+    whyItMatters: t3(
+      'No misheard amounts, no wrong numbers typed — the code carries the exact truth. Settling in person takes seconds.',
+      'ভুল শোনা টাকা নয়, ভুল টাইপ নয় — কোডে সঠিক তথ্য। সামনাসামনি নিষ্পত্তি সেকেন্ডে।',
+      'गलत सुनी राशि नहीं, गलत टाइपिंग नहीं — कोड में सही तथ्य। सामने निपटान सेकंडों में।'
+    ),
+    firstSteps: [
+      t3('Open any request card and tap "Share as QR".', 'যেকোনো রিকোয়েস্ট কার্ড খুলে "QR হিসেবে শেয়ার" চাপুন।', 'कोई भी अनुरोध कार्ड खोलकर "QR के रूप में साझा करें" दबाएँ।'),
+      t3('Let them scan — the request opens ready to accept.', 'তাঁদের স্ক্যান করতে দিন — অনুরোধ প্রস্তুত খুলবে।', 'उन्हें स्कैन करने दें — अनुरोध तैयार खुलेगा।'),
+      t3('They pay on their own bKash/Nagad/UPI as usual.', 'তাঁরা নিজের বিকাশ/নগদ/UPI-তে দেন।', 'वे अपने bKash/Nagad/UPI से देते हैं।'),
+    ],
+    proTips: [
+      t3('One QR = one request. A new request needs a new code — amounts can\'t be edited mid-scan.', 'এক QR = এক অনুরোধ। নতুন অনুরোধে নতুন কোড।', 'एक QR = एक अनुरोध। नए अनुरोध हेतु नया कोड।'),
+      t3('Screenshot the QR for the event desk — it works from the gallery too.', 'অনুষ্ঠানের ডেস্কে QR-এর স্ক্রিনশট রাখুন।', 'कार्यक्रम डेस्क हेतु QR का स्क्रीनशॉट रखें।'),
+    ],
+    relatedModules: ['p2p-requests', 'p2p-lifecycle', 'chat'],
+  },
+  {
+    id: 'p2p-safety',
+    name: t3('Chat & Money Safety', 'চ্যাট ও টাকার নিরাপত্তা', 'चैट व धन सुरक्षा'),
+    tagline: t3('Trust, with its eyes open.', 'চোখ খোলা রেখে বিশ্বাস।', 'आँखें खोलकर विश्वास।'),
+    whatItIs: t3(
+      'Simple habits that keep money friendships safe: verify before you pay, keep agreements inside the app\'s record, and know the difference between a real temple request (logo + trustee name + ledger entry) and a stranger\'s message. The app never asks for your bKash PIN — anyone who does is not us.',
+      'টাকার বন্ধুত্ব নিরাপদ রাখার সহজ অভ্যাস — দেওয়ার আগে যাচাই, সম্মতি অ্যাপের নথিতে, আসল মন্দির-অনুরোধ (লোগো + ট্রাস্টির নাম) চেনা। অ্যাপ কখনো বিকাশ PIN চায় না — যে চায়, সে আমরা নই।',
+      'धन-मित्रता सुरक्षित रखने की सरल आदतें — भुगतान से पहले सत्यापन, सहमति ऐप के अभिलेख में, असली मंदिर-अनुरोध (लोगो + ट्रस्टी नाम) की पहचान। ऐप कभी bKash PIN नहीं माँगता — जो माँगे, वह हम नहीं।'
+    ),
+    whyItMatters: t3(
+      'Most money fraud is not hacking — it is rushing. A calm record, a verified identity, and thirty seconds of checking stop nearly all of it.',
+      'বেশিরভাগ টাকার প্রতারণা হ্যাকিং নয় — তাড়াহুড়ো। শান্ত নথি, যাচাইকৃত পরিচয় ও ত্রিশ সেকেন্ড যাচাই প্রায় সব থামায়।',
+      'अधिकांश धन-धोखाधड़ी हैकिंग नहीं — जल्दबाजी है। शांत अभिलेख, सत्यापित पहचान व तीस सेकंड की जाँच लगभग सब रोक देती है।'
+    ),
+    firstSteps: [
+      t3('Before paying, match the request card to your chat — same person, same amount.', 'দেওয়ার আগে কার্ড চ্যাটের সঙ্গে মিলান — একই ব্যক্তি, একই টাকা।', 'भुगतान से पहले कार्ड चैट से मिलाएँ — वही व्यक्ति, वही राशि।'),
+      t3('Never share bKash/Nagad/UPI PINs or OTPs — not even with "support".', 'PIN বা OTP কাউকে দেবেন না — "সাপোর্ট"কেও নয়।', 'PIN या OTP किसी को न दें — "सपोर्ट" को भी नहीं।'),
+      t3('Keep the agreement in the app — a screenshot of a promise is weaker than the record.', 'সম্মতি অ্যাপেই রাখুন — স্ক্রিনশট নথির চেয়ে দুর্বল।', 'सहमति ऐप में ही रखें — स्क्रीनशॉट अभिलेख से कमज़ोर है।'),
+    ],
+    proTips: [
+      t3('If a "temple" message lacks a logo and trustee name, treat it as a stranger\'s.', '"মন্দির" বার্তায় লোগো ও ট্রাস্টির নাম না থাকলে অপরিচিত ধরুন।', '"मंदिर" संदेश में लोगो व ट्रस्टी नाम न हो तो अजनबी समझें।'),
+      t3('Decline kindly and quickly — a fast "not now" is kinder than silence.', 'স্নেহে দ্রুত প্রত্যাখ্যান করুন — নীরবতার চেয়ে "এখন নয়" ভালো।', 'स्नेह से शीघ्र अस्वीकार करें — मौन से "अभी नहीं" बेहतर है।'),
+    ],
+    relatedModules: ['p2p-requests', 'org-requests', 'chat', 'p2p-wallet'],
+  },
 ];
 
 export function getGuide(id: string): ModuleGuide | undefined {
