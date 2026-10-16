@@ -11,6 +11,7 @@ import { VendorsTab } from './VendorsTab';
 import { ProgramTab } from './ProgramTab';
 import { SafetyTab } from './SafetyTab';
 import { ReportsTab } from './ReportsTab';
+import { WarRoomTab } from '../components/festival/WarRoomTab';
 import './print.css';
 
 /* ------------------------------------------------------------------ */
@@ -30,6 +31,7 @@ import './print.css';
 /* ------------------------------------------------------------------ */
 
 const TABS = [
+  { id: 'warroom' },
   { id: 'dashboard' },
   { id: 'festivals' },
   { id: 'budget' },
@@ -41,7 +43,7 @@ const TABS = [
 ];
 
 const UtsavInner: React.FC = () => {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState('warroom');
   const { ensureSeeded } = useUtsav();
   const { activeWorkspace } = useAuthWorkspace();
   const { t } = useLanguage();
@@ -81,6 +83,7 @@ const UtsavInner: React.FC = () => {
 
         <Tabs tabs={TABS} active={tab} onChange={setTab} />
         <div className="mt-4">
+          {tab === 'warroom' && <WarRoomTab />}
           {tab === 'dashboard' && <DashboardTab />}
           {tab === 'festivals' && <FestivalsTab />}
           {tab === 'budget' && <BudgetTab />}

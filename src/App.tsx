@@ -15,7 +15,7 @@ import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { OrgSpaceShell } from './components/shell/OrgSpaceShell';
-import { ProfileOrgHubPreview, JoinOrgScreenPreview } from './dev-preview/PreviewHub';
+import { ProfileOrgHubPreview, JoinOrgScreenPreview, FestivalEventPreview } from './dev-preview/PreviewHub';
 import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
@@ -86,6 +86,7 @@ const DevoteeGrid = lazy(() => import('./components/domain1/DevoteeGrid').then(m
 const MembershipDesk = lazy(() => import('./components/org/MembershipDesk').then(m => ({ default: m.MembershipDesk })));
 const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m => ({ default: m.OrgDirectory })));
 const OrgPage = lazy(() => import('./components/org/OrgPage').then(m => ({ default: m.OrgPage })));
+const FestivalEventPage = lazy(() => import('./components/festival/FestivalEventPage').then(m => ({ default: m.FestivalEventPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
 const VanshavaliDesk = lazy(() => import('./components/domain1/VanshavaliDesk').then(m => ({ default: m.VanshavaliDesk })));
@@ -859,8 +860,10 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
     p === '/' ? currentPath === '/' : currentPath === p || currentPath.startsWith(p + '/')
   );
   // Allow /orgs and /org/:orgId as public (directory pages)
+  // Allow /festival/:orgId/:eventId as public (shareable devotee event pages)
   const isOrgPublic = currentPath === '/orgs' || currentPath.startsWith('/org/');
-  if (!isPublicPath && !isOrgPublic && !currentPath.startsWith('/devotee')) {
+  const isFestivalPublic = currentPath.startsWith('/festival/');
+  if (!isPublicPath && !isOrgPublic && !isFestivalPublic && !currentPath.startsWith('/devotee')) {
     const next = encodeURIComponent(currentPath + window.location.search);
     window.location.href = `/login?next=${next}`;
     return null;
@@ -1061,6 +1064,8 @@ const AppRouter: React.FC = () => {
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           <Route path="/org/:orgId" element={<OrgPage />} />
+          {/* Pillar 2 (festival war-room): shareable public festival event pages */}
+          <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
           {/* Phase 2 dev preview: profile org hub with mock data.
               Dev-only, never renders in production builds. */}
           {import.meta.env.DEV && (
@@ -1068,6 +1073,9 @@ const AppRouter: React.FC = () => {
           )}
           {import.meta.env.DEV && (
             <Route path="/dev-preview/join-org" element={<JoinOrgScreenPreview />} />
+          )}
+          {import.meta.env.DEV && (
+            <Route path="/dev-preview/festival" element={<FestivalEventPreview />} />
           )}
           {/* Solo-first progressive flow: an already-authenticated Solo user
               registers their organisation here (the "Grow with Sanatani
