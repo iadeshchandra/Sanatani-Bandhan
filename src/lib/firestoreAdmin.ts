@@ -48,7 +48,6 @@ import {
   addDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -1243,85 +1242,6 @@ async function seedPaymentMethods(): Promise<NativeResult> {
   return { ok: true, data: { ok: true, seeded } };
 }
 
-/** Delete a payment method (owner only, with confirmation in UI). */
-async function paymentMethodDelete(id: string): Promise<NativeResult> {
-  const uid = requireOwner();
-  if (!/^[a-z0-9_]{1,40}$/.test(id)) {
-    return { ok: false, error: 'Invalid method id.', code: 'BAD_KEY' };
-  }
-  await deleteDoc(doc(db, 'paymentMethods', id));
-  await writeAudit('settings.paymentMethod.delete', { id, by: uid }, 'warn');
-  return { ok: true, data: { ok: true } };
-}
-
-/* ------------------------- Geo payment regions ------------------------- */
-
-const GEO_CONFIG_DOC = 'config';
-const GEO_CONFIG_COLLECTION = 'geoPaymentConfig';
-
-/** Read the owner-configured geo regions (falls back to defaults client-side). */
-async function geoConfigGet(): Promise<NativeResult> {
-  requireOwner();
-  const snap = await getDoc(doc(db, GEO_CONFIG_COLLECTION, GEO_CONFIG_DOC));
-  const data = snap.exists() ? snap.data() : null;
-  return { ok: true, data: { ok: true, config: data } };
-}
-
-const GEO_REGION_ID_RE = /^[A-Z0-9]{2,10}$/;
-
-/** Save the geo region configuration (owner only). */
-async function geoConfigSave(config: {
-  regions: Array<{
-    id: string; name: string; currency: string; currencySymbol: string;
-    countryCodes: string[]; ipCountries: string[]; enabled: boolean; flag?: string;
-  }>;
-  defaultRegion: string;
-}): Promise<NativeResult> {
-  const uid = requireOwner();
-  if (!config || !Array.isArray(config.regions) || config.regions.length === 0) {
-    return { ok: false, error: 'At least one region is required.', code: 'BAD_INPUT' };
-  }
-  if (config.regions.length > 20) {
-    return { ok: false, error: 'Too many regions (max 20).', code: 'BAD_INPUT' };
-  }
-  const seen = new Set<string>();
-  const cleanRegions = [];
-  for (const r of config.regions) {
-    if (!r || typeof r.id !== 'string' || !GEO_REGION_ID_RE.test(r.id.trim().toUpperCase())) {
-      return { ok: false, error: `Invalid region id: ${String(r && r.id)}`, code: 'BAD_INPUT' };
-    }
-    const id = r.id.trim().toUpperCase();
-    if (seen.has(id)) return { ok: false, error: `Duplicate region id: ${id}`, code: 'BAD_INPUT' };
-    seen.add(id);
-    cleanRegions.push({
-      id,
-      name: String(r.name || id).slice(0, 60),
-      currency: String(r.currency || 'USD').slice(0, 10).toUpperCase(),
-      currencySymbol: String(r.currencySymbol || '$').slice(0, 8),
-      countryCodes: Array.isArray(r.countryCodes)
-        ? r.countryCodes.map((x) => String(x).replace(/\D/g, '')).filter(Boolean).slice(0, 10)
-        : [],
-      ipCountries: Array.isArray(r.ipCountries)
-        ? r.ipCountries.map((x) => String(x).toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean).slice(0, 10)
-        : [],
-      enabled: r.enabled !== false,
-      flag: typeof r.flag === 'string' ? r.flag.slice(0, 12) : '',
-    });
-  }
-  const defaultRegion = String(config.defaultRegion || '').toUpperCase();
-  if (!seen.has(defaultRegion)) {
-    return { ok: false, error: 'Default region must be one of the configured regions.', code: 'BAD_INPUT' };
-  }
-  await setDoc(doc(db, GEO_CONFIG_COLLECTION, GEO_CONFIG_DOC), {
-    regions: cleanRegions,
-    defaultRegion,
-    updatedAt: serverTimestamp(),
-    updatedBy: uid,
-  });
-  await writeAudit('settings.geoConfig.save', { regions: cleanRegions.length, defaultRegion }, 'warn');
-  return { ok: true, data: { ok: true } };
-}
-
 /* ------------------------------ Plan seeding ---------------------------- */
 
 /** Final locked pricing — workspace tiers + professional plan. */
@@ -1587,6 +1507,43 @@ export async function saveCommissionConfig(cfg: { freeRate: number; proRail1Rate
   };
   await setDoc(doc(db, 'platformConfig', 'commission'), clean, { merge: true });
   await writeAudit('marketplace.commission.config', clean, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Panjika Intelligence config: owner-editable role-event matrix overrides.
+ * Stored at platformConfig/panjikaIntelligence. Fail-open: missing doc → null. */
+export interface IntelConfigDoc {
+  disabledKeys: string[];
+  leadOverrides: Record<string, number>;
+}
+
+export async function getIntelConfig(): Promise<IntelConfigDoc | null> {
+  try {
+    const snap = await getDoc(doc(db, 'platformConfig', 'panjikaIntelligence'));
+    if (!snap.exists()) return null;
+    const c: any = snap.data();
+    return {
+      disabledKeys: Array.isArray(c.disabledKeys) ? c.disabledKeys.filter((k: any) => typeof k === 'string') : [],
+      leadOverrides: c.leadOverrides && typeof c.leadOverrides === 'object' ? c.leadOverrides : {},
+    };
+  } catch { return null; }
+}
+
+export async function saveIntelConfig(cfg: IntelConfigDoc): Promise<NativeResult> {
+  const ownerUid = requireOwner();
+  const clean = {
+    disabledKeys: (cfg.disabledKeys || []).filter((k) => typeof k === 'string').slice(0, 500),
+    leadOverrides: Object.fromEntries(
+      Object.entries(cfg.leadOverrides || {})
+        .filter(([, v]) => Number.isFinite(Number(v)))
+        .map(([k, v]) => [k, Math.min(90, Math.max(0, Math.round(Number(v))))])
+        .slice(0, 500)
+    ),
+    updatedAt: serverTimestamp(),
+    updatedBy: ownerUid,
+  };
+  await setDoc(doc(db, 'platformConfig', 'panjikaIntelligence'), clean, { merge: true });
+  await writeAudit('panjika.intelligence.config', { disabled: clean.disabledKeys.length, overrides: Object.keys(clean.leadOverrides).length }, 'info');
   return { ok: true, data: { ok: true } };
 }
 
@@ -2297,7 +2254,6 @@ async function topupQueue(status = 'pending'): Promise<NativeResult> {
       return {
         id: d.id, uid: v.uid, amount: v.amount, currency: v.currency,
         paymentMethodId: v.paymentMethodId, trxId: v.trxId, screenshotUrl: v.screenshotUrl,
-        reference: v.reference || '', expiresAt: tsToIso(v.expiresAt),
         status: v.status, rejectionReason: v.rejectionReason,
         createdAt: tsToIso(v.createdAt),
       };
@@ -2326,43 +2282,16 @@ async function topupApprove(id: string): Promise<NativeResult> {
     return { ok: false, error: `Currency mismatch: wallet is ${w.currency}, claim is ${currency}. Adjust manually.`, code: 'CURRENCY_MISMATCH' };
   }
 
-  // Pratham Seva bonus: first-ever approved top-up gets a flat thank-you credit.
-  // Constants mirror src/lib/wallet.ts (FIRST_TOPUP_BONUS / TOPUP_LIMITS).
-  const PRATHAM_BONUS: Record<string, number> = { BDT: 50, INR: 50, USD: 1 };
-  const PRATHAM_MIN: Record<string, number> = { BDT: 500, INR: 500, USD: 10 };
-  let bonusAmount = 0;
-  const alreadyBonused = Boolean(w?.hasReceivedFirstTopupBonus);
-  if (!alreadyBonused) {
-    try {
-      const priorSnap = await getDocs(query(
-        collection(db, 'topupClaims'),
-        where('uid', '==', claim.uid),
-        where('status', '==', 'approved'),
-        limit(2)
-      ));
-      // The current claim is still 'pending' at this point, so any approved
-      // docs found are PRIOR top-ups. Zero prior = this is the first.
-      const isFirstEver = priorSnap.size === 0;
-      if (isFirstEver && amount >= (PRATHAM_MIN[currency] || 0)) {
-        bonusAmount = PRATHAM_BONUS[currency] || 0;
-      }
-    } catch {
-      // Fail-closed on bonus: skip if the check errors.
-      bonusAmount = 0;
-    }
-  }
-
   await updateDoc(ref, { status: 'approved', reviewedByUid: uid, reviewedAt: serverTimestamp() });
   await setDoc(
     walletRef,
     {
       uid: claim.uid,
-      balance: before + amount + bonusAmount,
+      balance: before + amount,
       currency,
       totalToppedUp: Number(w?.totalToppedUp || 0) + amount,
       totalSpent: Number(w?.totalSpent || 0),
       totalReceived: Number(w?.totalReceived || 0),
-      hasReceivedFirstTopupBonus: true,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
@@ -2376,23 +2305,12 @@ async function topupApprove(id: string): Promise<NativeResult> {
     note: `Top-up approved (${claim.paymentMethodId}, TrxID ${claim.trxId})`,
     createdAt: serverTimestamp(),
   });
-  if (bonusAmount > 0) {
-    await addDoc(collection(db, 'walletTransactions'), {
-      uid: claim.uid,
-      type: 'topup',
-      amount: bonusAmount,
-      currency,
-      topupClaimId: id,
-      note: 'Pratham Seva bonus — thank you for your first top-up! 🙏',
-      createdAt: serverTimestamp(),
-    });
-  }
   await writeAudit(
     'wallet.topup.approve',
-    { claimId: id, uid: claim.uid, amount, currency, bonusAmount, balanceBefore: before, balanceAfter: before + amount + bonusAmount },
+    { claimId: id, uid: claim.uid, amount, currency, balanceBefore: before, balanceAfter: before + amount },
     'warn'
   );
-  return { ok: true, data: { ok: true, balanceAfter: before + amount + bonusAmount, bonusAmount } };
+  return { ok: true, data: { ok: true, balanceAfter: before + amount } };
 }
 
 async function topupReject(id: string, reason: string): Promise<NativeResult> {
@@ -2576,6 +2494,8 @@ export const firestoreAdmin = {
   commissionRuleSave,
   getCommissionConfig,
   saveCommissionConfig,
+  getIntelConfig,
+  saveIntelConfig,
   getProviderTier,
   marketplaceTransactions,
   transactionSetStatus,
@@ -2603,9 +2523,6 @@ export const firestoreAdmin = {
   paymentMethodsList,
   paymentMethodSave,
   seedPaymentMethods,
-  paymentMethodDelete,
-  geoConfigGet,
-  geoConfigSave,
   seedPlans,
   // Marketplace (Fiverr-like gigs)
   marketplaceDashboard,
