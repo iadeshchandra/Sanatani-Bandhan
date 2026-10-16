@@ -181,6 +181,13 @@ export interface AuthWorkspaceContextType {
   role: UserRole | null;
   isLoading: boolean;
   switchWorkspace: (newWorkspaceId: string) => Promise<boolean>;
+  /**
+   * P0-2: Exit the demo sandbox. Removes demo workspaces from state, clears
+   * the demo workspace ID from storage, and switches to the user's first
+   * real workspace (or empty, triggering onboarding). The demo is for
+   * anonymous sessions only — authenticated users must never be trapped in it.
+   */
+  exitDemo: () => void;
 
   // Backward-compatible and platform RBAC properties
   firebaseUser: User | null;
@@ -606,8 +613,13 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             setUserDocData(data);
 
             // Extract default workspace ID first (needed for creator check)
+            // P0-2 FIX: Never inherit a demo workspace on sign-in. If the user
+            // doc doesn't specify a workspace and the current workspace is a
+            // demo sandbox, clear it — authenticated users must see org
+            // onboarding, not the demo. The demo is for anonymous sessions only.
+            const currentIsDemo = activeWorkspaceId?.startsWith('DEMO_');
             const targetWorkspaceId: string =
-              data.defaultWorkspaceId || data.workspaceId || activeWorkspaceId || 'DEMO_ws-mandir';
+              data.defaultWorkspaceId || data.workspaceId || (!currentIsDemo ? activeWorkspaceId : '') || '';
 
             // Extract role and cast to UserRole with legacy normalizer.
             // H-11: no valid stored role → the recorded workspace creator is
@@ -633,6 +645,21 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             setRole(resolvedRole);
             setCurrentRole(resolvedRole);
+
+            // P0-2: If the resolved workspace is empty (user has no workspace
+            // and was in demo), purge demo workspaces so the user sees org
+            // onboarding instead of being trapped in the demo sandbox.
+            if (!targetWorkspaceId) {
+              setWorkspaces((prev) => {
+                const real = prev.filter((w) => !w.id.startsWith('DEMO_'));
+                try {
+                  set('sanatani_workspaces', real);
+                  localStorage.removeItem('sanatani_active_workspace_id');
+                  localStorage.removeItem('sb_pending_demo_conversion');
+                } catch { /* storage unavailable */ }
+                return real;
+              });
+            }
 
             setWorkspaceId(targetWorkspaceId);
             setActiveWorkspaceId(targetWorkspaceId);
@@ -777,6 +804,37 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     [user, role, currentRole, userDocData]
   );
 
+  /**
+   * P0-2: Exit the demo sandbox. Removes demo workspaces from the list,
+   * clears the persisted demo workspace ID, and switches to the first real
+   * workspace. If no real workspace exists, the ID is cleared (empty string)
+   * which triggers the org onboarding flow — the user is never trapped in demo.
+   */
+  const exitDemo = useCallback(() => {
+    setWorkspaces((prev) => {
+      const real = prev.filter((w) => !w.id.startsWith('DEMO_'));
+      // Persist the filtered list (demo workspaces are ephemeral)
+      try {
+        set('sanatani_workspaces', real);
+      } catch { /* storage unavailable */ }
+      return real;
+    });
+    // Find the first real workspace, or empty (triggers onboarding)
+    const realWorkspaces = workspaces.filter((w) => !w.id.startsWith('DEMO_'));
+    const targetId = realWorkspaces[0]?.id || '';
+    setWorkspaceId(targetId);
+    setActiveWorkspaceId(targetId);
+    try {
+      if (targetId) {
+        set('sanatani_active_workspace_id', targetId);
+      } else {
+        localStorage.removeItem('sanatani_active_workspace_id');
+      }
+      // Clear demo-specific flags
+      localStorage.removeItem('sb_pending_demo_conversion');
+    } catch { /* storage unavailable */ }
+  }, [workspaces]);
+
   const activeWorkspace = useMemo(() => {
     return (
       workspaces.find((w) => w.id === activeWorkspaceId) ||
@@ -817,10 +875,6 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       return allowedRoles.some((allowed) => {
         const normalizedAllowed = ROLE_MIGRATION_MAP[allowed] || allowed;
         if (normalizedAllowed === effectiveRole || allowed === effectiveRole) return true;
-        // Case-insensitive fallback: handles 'PRIEST' vs 'Priest' etc.
-        // even if ROLE_MIGRATION_MAP is missing a variant.
-        if (typeof normalizedAllowed === 'string' && typeof effectiveRole === 'string' &&
-            normalizedAllowed.toLowerCase() === effectiveRole.toLowerCase()) return true;
         // Trustee hierarchy grants operational leadership clearance
         if (effectiveRole === 'Trustee' && ['Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'].includes(normalizedAllowed)) {
           return true;
@@ -1211,6 +1265,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         role,
         isLoading,
         switchWorkspace,
+        exitDemo,
         firebaseUser: user,
         activeWorkspaceId,
         activeWorkspace,
