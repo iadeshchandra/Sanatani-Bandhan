@@ -892,8 +892,29 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     if (found) return found;
     // FIX (2026-10-17): Never fall back to a DEMO workspace for authenticated
     // users — that's the exit-demo trap. Authenticated users with no workspace
-    // get undefined (triggers org onboarding); anonymous users get the demo.
-    if (isAuthenticated) return undefined as unknown as WorkspaceConfig;
+    // get a SAFE EMPTY workspace (triggers org onboarding); anonymous users
+    // get the demo.
+    // HOTFIX (2026-10-17): returning undefined crashed dozens of components
+    // that read activeWorkspace.id on boot. The empty workspace has id: ''
+    // so every "no workspace" check still works, and no DEMO id is present.
+    if (isAuthenticated) {
+      return {
+        id: '',
+        name: '',
+        type: 'Mandir',
+        tagline: '',
+        address: '',
+        city: '',
+        state: '',
+        country: '',
+        currency: 'INR',
+        currencySymbol: '₹',
+        sampradaya: '',
+        kuladevata: '',
+        pinRequired: false,
+        planId: 'LITE',
+      } as WorkspaceConfig;
+    }
     return INITIAL_WORKSPACES[0];
   }, [workspaces, activeWorkspaceId, isAuthenticated]);
 
