@@ -11,10 +11,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { T, useLocaleText } from '../solo/ui';
 import {
   MoneyRequest,
-  RequestStatus,
   requestStatusLabel,
   formatMoney,
 } from './types';
+import { REQUEST_STATUS_PILL } from './MoneyRequestCard';
+import { VerifiedPill } from './ChatList';
+import { WalletEntriesSkeleton } from './ChatSkeletons';
 import {
   LedgerEntry,
   NettingSuggestion,
@@ -46,16 +48,7 @@ const RAILS: Array<{ id: NonNullable<MoneyRequest['paidVia']>; en: string; bn: s
   { id: 'other', en: 'Other', bn: 'অন্যান্য', hi: 'अन्य', icon: '🧾' },
 ];
 
-const STATUS_PILL: Record<RequestStatus, string> = {
-  pending: 'bg-amber-100 text-amber-800',
-  accepted: 'bg-sky-100 text-sky-800',
-  declined: 'bg-stone-200 text-stone-600',
-  countered: 'bg-purple-100 text-purple-800',
-  paid: 'bg-indigo-100 text-indigo-800',
-  settled: 'bg-emerald-100 text-emerald-800',
-  cancelled: 'bg-stone-200 text-stone-500',
-  expired: 'bg-stone-200 text-stone-500',
-};
+const STATUS_PILL = REQUEST_STATUS_PILL;
 
 export interface PersonalWalletProps {
   uid: string;
@@ -366,9 +359,7 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
 
           {/* Entries */}
           {loading ? (
-            <div className="text-center py-10 text-stone-400 text-sm">
-              <T en="Loading your ledger…" bn="আপনার হিসাব লোড হচ্ছে…" hi="आपका हिसाब लोड हो रहा है…" />
-            </div>
+            <WalletEntriesSkeleton rows={4} />
           ) : visible.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-5xl mb-3" aria-hidden>
@@ -467,13 +458,9 @@ const EntryRow: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-wrap">
             <span className="font-bold text-stone-900 text-sm truncate">{e.counterpartyName}</span>
-            {e.orgCounterparty && (
-              <span className="text-emerald-700 text-xs" title="Verified organisation" aria-label="Verified organisation">
-                🛡️
-              </span>
-            )}
+            {e.orgCounterparty && <VerifiedPill compact />}
             <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_PILL[e.status]}`}
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${STATUS_PILL[e.status]}`}
             >
               {requestStatusLabel(e.status, L)}
             </span>
@@ -489,8 +476,8 @@ const EntryRow: React.FC<{
             )}
           </p>
         </div>
-        <div className="text-right shrink-0">
-          <div className={`font-extrabold ${e.direction === 'owed_to_me' ? 'text-emerald-700' : 'text-amber-700'}`}>
+        <div className="text-right shrink-0 max-w-[45%]">
+          <div className={`font-extrabold break-words ${e.direction === 'owed_to_me' ? 'text-emerald-700' : 'text-amber-700'}`}>
             {e.direction === 'owed_to_me' ? '+' : '−'}
             {formatMoney(e.amount, e.currency)}
           </div>

@@ -152,17 +152,17 @@ export default function RequestQR({ request, open, onClose }: RequestQRProps) {
           </div>
 
           <div>
-            <div className="text-3xl font-extrabold text-stone-900 tabular-nums">
+            <div className="text-3xl font-extrabold text-stone-900 tabular-nums break-words">
               {formatMoney(request.amount, request.currency)}
             </div>
-            <div className="text-sm text-stone-600 mt-1">
+            <div className="text-sm text-stone-600 mt-1 break-words">
               <T en="to" bn="প্রাপক" hi="को" />{" "}
               <span className="font-semibold text-stone-800">
                 {request.receiverName}
               </span>
             </div>
             {request.note && (
-              <p className="text-sm text-stone-500 mt-1">“{request.note}”</p>
+              <p className="text-sm text-stone-500 mt-1 break-words">“{request.note}”</p>
             )}
           </div>
 

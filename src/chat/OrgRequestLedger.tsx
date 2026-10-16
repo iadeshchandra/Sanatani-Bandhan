@@ -17,6 +17,8 @@ import {
   requestStatusLabel,
   formatMoney,
 } from './types';
+import { REQUEST_STATUS_PILL } from './MoneyRequestCard';
+import { LedgerRowsSkeleton } from './ChatSkeletons';
 import {
   fetchOrgMoneyRequests,
   isActiveStatus,
@@ -212,8 +214,8 @@ export const OrgRequestLedger: React.FC<OrgRequestLedgerProps> = ({
               </p>
             </div>
           ) : loading ? (
-            <div className="text-center py-10 text-stone-400 text-sm">
-              <T en="Loading…" bn="লোড হচ্ছে…" hi="लोड हो रहा है…" />
+            <div className="pt-1">
+              <LedgerRowsSkeleton rows={5} />
             </div>
           ) : (
             <>
@@ -312,7 +314,7 @@ export const OrgRequestLedger: React.FC<OrgRequestLedgerProps> = ({
                                   <T en="Member → org" bn="সদস্য → সংস্থা" hi="सदस्य → संस्था" />
                                 )}
                               </span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${REQUEST_STATUS_PILL[r.status]}`}>
                                 {requestStatusLabel(r.status, L)}
                               </span>
                             </div>

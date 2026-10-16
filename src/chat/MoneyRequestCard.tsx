@@ -16,7 +16,6 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeftRight,
-  BadgeCheck,
   Building2,
   Check,
   Clock,
@@ -50,6 +49,7 @@ import {
 } from "./p2pService";
 import { T } from "../solo/ui";
 import { useLanguage } from "../context/LanguageContext";
+import { VerifiedPill } from "./ChatList";
 import RequestQR from "./RequestQR";
 
 export interface MoneyRequestCardProps {
@@ -62,7 +62,12 @@ export interface MoneyRequestCardProps {
   className?: string;
 }
 
-const PILL: Record<RequestStatus, string> = {
+/**
+ * REQUEST_STATUS_PILL — the single source of truth for request status
+ * pills across the request card, personal wallet and org ledger, so the
+ * same status never wears two colours on two screens.
+ */
+export const REQUEST_STATUS_PILL: Record<RequestStatus, string> = {
   pending: "bg-amber-100 text-amber-900 border-amber-300",
   accepted: "bg-emerald-100 text-emerald-900 border-emerald-300",
   declined: "bg-stone-200 text-stone-600 border-stone-300",
@@ -72,6 +77,8 @@ const PILL: Record<RequestStatus, string> = {
   cancelled: "bg-stone-200 text-stone-500 border-stone-300",
   expired: "bg-stone-200 text-stone-500 border-stone-300",
 };
+
+const PILL = REQUEST_STATUS_PILL;
 
 const BTN =
   "min-h-[44px] px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition active:scale-[0.98] disabled:opacity-50";
@@ -220,16 +227,15 @@ export default function MoneyRequestCard({
             <span className="font-bold text-stone-900 truncate">
               {live.senderName}
             </span>
-            {(isOrgSent || senderVerified) && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                {isOrgSent ? (
-                  <Building2 className="w-3 h-3" />
-                ) : (
-                  <BadgeCheck className="w-3 h-3" />
-                )}
-                <T en="Verified" bn="যাচাইকৃত" hi="सत्यापित" />
-              </span>
-            )}
+            {(isOrgSent || senderVerified) &&
+              (isOrgSent ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 whitespace-nowrap">
+                  <Building2 className="w-3 h-3" aria-hidden />
+                  <T en="Verified org" bn="যাচাইকৃত সংস্থা" hi="सत्यापित संस्था" />
+                </span>
+              ) : (
+                <VerifiedPill />
+              ))}
           </div>
           <div className="text-xs text-stone-500 flex items-center gap-1 flex-wrap">
             {isOrgSent ? (
@@ -268,17 +274,17 @@ export default function MoneyRequestCard({
 
       {/* Amount */}
       <div className="px-3 sm:px-4 pb-1">
-        <div className="text-3xl font-extrabold text-stone-900 tabular-nums tracking-tight">
+        <div className="text-3xl font-extrabold text-stone-900 tabular-nums tracking-tight break-words">
           {formatMoney(live.amount, live.currency)}
         </div>
-        <div className="text-sm text-stone-600 mt-0.5">
+        <div className="text-sm text-stone-600 mt-0.5 break-words">
           <T en="to" bn="প্রাপক" hi="को" />{" "}
           <span className="font-semibold text-stone-800">
             {live.receiverName}
           </span>
         </div>
         {live.note && (
-          <p className="text-sm text-stone-600 mt-1.5 leading-relaxed">
+          <p className="text-sm text-stone-600 mt-1.5 leading-relaxed break-words">
             “{live.note}”
           </p>
         )}
@@ -642,10 +648,12 @@ export function RequestCardLoader({
   if (!req) {
     return (
       <div
-        className={`rounded-2xl border border-amber-200 bg-amber-50 p-4 animate-pulse ${className ?? ""}`}
+        className={`rounded-2xl border border-amber-200 bg-amber-50 p-4 ${className ?? ""}`}
+        aria-hidden="true"
+        aria-label="Loading"
       >
-        <div className="h-6 w-2/3 bg-amber-100 rounded mb-2" />
-        <div className="h-4 w-1/3 bg-amber-100 rounded" />
+        <div className="anim-skeleton h-6 w-2/3 bg-amber-100 rounded-full mb-2" />
+        <div className="anim-skeleton h-4 w-1/3 bg-amber-100 rounded-full" />
       </div>
     );
   }
