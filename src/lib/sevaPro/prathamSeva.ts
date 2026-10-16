@@ -23,7 +23,7 @@
  * professional sees. Both are kept: the counter for display, the completed
  * count for the schedule bracket.
  */
-import { sevaProCopy, type SevaProLang } from './copy';
+import { sevaProCopy, type SevaProLang } from './sevaProCopy';
 
 export interface CommissionScheduleBracket {
   /** How many completed sevas this bracket covers. Omit = unlimited. */

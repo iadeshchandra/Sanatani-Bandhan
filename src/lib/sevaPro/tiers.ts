@@ -14,7 +14,7 @@
  * (`verificationTier`). These helpers are the single source of truth for
  * reading and reasoning about it.
  */
-import { sevaProCopy, type SevaProLang } from './copy';
+import { sevaProCopy, type SevaProLang } from './sevaProCopy';
 
 export type SevaProTier = 'REGISTERED' | 'VERIFIED' | 'TRUSTED';
 
