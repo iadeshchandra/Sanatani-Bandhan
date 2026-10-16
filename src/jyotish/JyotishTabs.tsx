@@ -7,7 +7,6 @@ import React, { useMemo, useState } from 'react';
 import { useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
-import { useLanguage } from '../context/LanguageContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import {
   CONSULTATION_STATUS_META,
@@ -23,23 +22,25 @@ import {
 import { Card, StatusPill, Btn, Empty, SectionTitle, Field, inputCls } from './ui';
 import { ConsultationChat } from './ConsultationChat';
 import { ReferProfessional } from './RemedyReferral';
+import { calculateDailyPanchang } from '../utils/panchang';
+import { REGIONAL_CALENDARS, formatRegionalDate } from '../lib/regionalCalendars';
+import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
 
 /* ------------------------------------------------------------------ */
 /* Overview                                                            */
 /* ------------------------------------------------------------------ */
 
 export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
-  const { t } = useLanguage();
   const { profile, myConsultations, openConsultations, effectiveTier, myInvites, myReferrals } = useJyotish();
   const active = myConsultations.filter((c) => ['ASSIGNED', 'IN_PROGRESS'].includes(c.status)).length;
   const earned = myConsultations
     .filter((c) => c.status === 'DAKSHINA_RELEASED')
     .reduce((s, c) => s + (c.dakshinaAgreed || 0), 0);
   const stats = [
-    { label: t('jyotish.activeConsultations'), value: String(active), go: 'consultations' },
-    { label: t('jyotish.openRequirements'), value: String(openConsultations.length), go: 'find' },
-    { label: t('jyotish.dakshinaReleased'), value: `₹${earned.toLocaleString('en-IN')}`, go: 'earnings' },
-    { label: t('jyotish.referralsMade'), value: String(myReferrals.length), go: 'referrals' },
+    { label: 'Active consultations', value: String(active), go: 'consultations' },
+    { label: 'Open requirements', value: String(openConsultations.length), go: 'find' },
+    { label: 'Dakshina released', value: `₹${earned.toLocaleString('en-IN')}`, go: 'earnings' },
+    { label: 'Referrals made', value: String(myReferrals.length), go: 'referrals' },
   ];
   return (
     <div className="space-y-4">
@@ -47,7 +48,7 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
         <div className="flex items-center gap-3 flex-wrap">
           <div>
             <SectionTitle>
-              <span className="text-xl">{t('jyotish.namaste')}, {profile?.displayName?.split(' ')[0] || t('jyotish.shell.fallbackName')} 🙏</span>
+              <span className="text-xl">Namaste, {profile?.displayName?.split(' ')[0] || 'Jyotishi'} 🙏</span>
             </SectionTitle>
             <div className="flex items-center gap-2 flex-wrap">
               {effectiveTier && <VerificationBadge tier={effectiveTier} subject="Jyotishi" size="md" />}
@@ -57,10 +58,12 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
         </div>
         {myInvites.filter((i) => i.status === 'PENDING').length > 0 && (
           <p className="mt-3 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2">
-            🏛️ {t('jyotish.orgInvites').replace('{n}', String(myInvites.filter((i) => i.status === 'PENDING').length))}
+            🏛️ You have {myInvites.filter((i) => i.status === 'PENDING').length} organisation invitation(s) — see Referrals tab to respond.
           </p>
         )}
       </Card>
+      <PanjikaMiniCard />
+      <AgamiSevaCard role="jyotishi" onAction={(tab) => goTo(tab)} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map((s) => (
           <button key={s.label} onClick={() => goTo(s.go)} className="text-left">
@@ -72,7 +75,7 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
         ))}
       </div>
       <Card>
-        <SectionTitle>{t('jyotish.consultationTypes')}</SectionTitle>
+        <SectionTitle>Consultation types you offer</SectionTitle>
         <div className="grid sm:grid-cols-2 gap-2">
           {CONSULTATION_TYPES.map((t) => (
             <div key={t} className="flex items-start gap-2 rounded-xl border border-stone-100 p-2.5">
@@ -89,12 +92,58 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
   );
 };
 
+/** Compact daily almanac for the jyotishi — "Consult Panjika". */
+const PanjikaMiniCard: React.FC = () => {
+  const info = useMemo(() => {
+    try {
+      const p = calculateDailyPanchang(new Date(), 25.3176, 82.9739);
+      const lines = REGIONAL_CALENDARS.slice(0, 4).map((c) => {
+        try {
+          const r = c.toRegional(new Date());
+          return `${c.nameNative}: ${formatRegionalDate(r, c, 'native')}`;
+        } catch { return null; }
+      }).filter(Boolean) as string[];
+      return { tithi: p.tithi, nakshatra: p.nakshatra, yoga: p.yoga, lines };
+    } catch {
+      return null;
+    }
+  }, []);
+  if (!info) return null;
+  return (
+    <Card className="bg-gradient-to-br from-indigo-950 to-purple-900 !border-0">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-white font-extrabold">🗓️ Ajker Panjika</div>
+        <div className="text-indigo-200/70 text-[11px] font-semibold">for consultations</div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          ['Tithi', info.tithi],
+          ['Nakshatra', info.nakshatra],
+          ['Yoga', info.yoga],
+        ].map(([k, v]) => (
+          <div key={k} className="rounded-xl bg-white/10 px-2 py-2">
+            <div className="text-[10px] text-indigo-200/70 font-bold uppercase">{k}</div>
+            <div className="text-white text-xs font-bold mt-0.5">{v}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 space-y-0.5">
+        {info.lines.map((l, i) => (
+          <div key={i} className="text-indigo-100/90 text-xs font-semibold">{l}</div>
+        ))}
+      </div>
+      <p className="text-indigo-200/50 text-[10px] italic mt-2">
+        Full almanac — all 10 traditions, muhurat finder, rashifal — lives in the Solo → Panjika tab.
+      </p>
+    </Card>
+  );
+};
+
 /* ------------------------------------------------------------------ */
 /* Find work (open requirements)                                       */
 /* ------------------------------------------------------------------ */
 
 export const FindConsultationsTab: React.FC = () => {
-  const { t } = useLanguage();
   const { openConsultations, acceptConsultation } = useJyotish();
   const [typeFilter, setTypeFilter] = useState<string>('');
   const list = useMemo(
@@ -105,21 +154,21 @@ export const FindConsultationsTab: React.FC = () => {
     <div className="space-y-4">
       <Card>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <SectionTitle>{t('jyotish.openRequirements')}</SectionTitle>
+          <SectionTitle>Open requirements</SectionTitle>
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={`${inputCls} !w-auto`}>
-            <option value="">{t('jyotish.allTypes')}</option>
+            <option value="">All types</option>
             {CONSULTATION_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
         </div>
         {list.length === 0 ? (
-          <Empty text={t('jyotish.noOpen')} />
+          <Empty text="No open requirements right now. Check back soon." />
         ) : (
           <div className="space-y-3">
             {list.map((c) => (
               <ConsultationCard key={c.id} c={c}>
-                <Btn onClick={() => acceptConsultation(c).catch((e) => alert(e.message))}>{t('jyotish.accept')}</Btn>
+                <Btn onClick={() => acceptConsultation(c).catch((e) => alert(e.message))}>Accept</Btn>
               </ConsultationCard>
             ))}
           </div>
@@ -167,21 +216,19 @@ const NEXT_ACTIONS: Record<ConsultationStatus, ConsultationStatus[]> = {
   CANCELLED: [],
 };
 
-const getActionLabel = (t: (k: string) => string): Record<string, string> => ({
-  IN_PROGRESS: t('jyotish.startConsultation'),
-  COMPLETED: t('jyotish.markComplete'),
-  DAKSHINA_RELEASED: t('jyotish.confirmRelease'),
-  CANCELLED: t('jyotish.cancel'),
-});
+const ACTION_LABEL: Record<string, string> = {
+  IN_PROGRESS: 'Start consultation',
+  COMPLETED: 'Mark complete',
+  DAKSHINA_RELEASED: 'Confirm dakshina received',
+  CANCELLED: 'Cancel',
+};
 
 export const MyConsultationsTab: React.FC = () => {
-  const { t } = useLanguage();
   const { myConsultations, advanceConsultation, setSessionLink } = useJyotish();
   const { showToast } = useToast();
   const [openChatId, setOpenChatId] = useState<string | null>(null);
   const [linkFor, setLinkFor] = useState<string | null>(null);
   const [linkVal, setLinkVal] = useState('');
-  const ACTION_LABEL = getActionLabel(t);
 
   const sorted = useMemo(
     () => [...myConsultations].sort((a, b) => b.updatedAt - a.updatedAt),
@@ -198,12 +245,13 @@ export const MyConsultationsTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <Card>
-        <SectionTitle>{t('jyotish.myConsultations')}</SectionTitle>
+        <SectionTitle>My consultations</SectionTitle>
         <p className="text-[11px] text-stone-400 mb-3">
-          {t('jyotish.dakshinaNote')}
+          Dakshina release is a workflow confirmation — no real money moves here. Actual fund
+          custody needs a licensed payment partner.
         </p>
         {sorted.length === 0 ? (
-          <Empty text={t('jyotish.noConsultations')} />
+          <Empty text="No consultations yet. Accept open requirements from Find work." />
         ) : (
           <div className="space-y-3">
             {sorted.map((c) => (
@@ -216,8 +264,8 @@ export const MyConsultationsTab: React.FC = () => {
                         variant={next === 'CANCELLED' ? 'danger' : next === 'DAKSHINA_RELEASED' ? 'primary' : 'ghost'}
                         onClick={() => {
                           const label = ACTION_LABEL[next] || next;
-                          if (next === 'CANCELLED' && !confirm(t('jyotish.confirmCancel'))) return;
-                          if (next === 'DAKSHINA_RELEASED' && !confirm(t('jyotish.confirmDakshinaPrompt'))) return;
+                          if (next === 'CANCELLED' && !confirm('Cancel this consultation?')) return;
+                          if (next === 'DAKSHINA_RELEASED' && !confirm('Confirm the devotee has paid the agreed dakshina? (Workflow record only — no money moves.)')) return;
                           advanceConsultation(c, next).catch((e) => showToast(e.message, 'error'));
                         }}
                       >
@@ -225,11 +273,11 @@ export const MyConsultationsTab: React.FC = () => {
                       </Btn>
                     ))}
                     <Btn variant="ghost" onClick={() => setOpenChatId(openChatId === c.id ? null : c.id)}>
-                      💬 {t('jyotish.chat')}
+                      💬 Chat
                     </Btn>
                     {c.mode !== 'chat' && (
                       <Btn variant="ghost" onClick={() => { setLinkFor(c.id); setLinkVal(c.sessionLink || ''); }}>
-                        🔗 {t('jyotish.sessionLink')}
+                        🔗 Session link
                       </Btn>
                     )}
                     {c.status === 'ASSIGNED' && (
@@ -239,14 +287,14 @@ export const MyConsultationsTab: React.FC = () => {
                 </ConsultationCard>
                 {c.mode !== 'chat' && c.sessionLink && (
                   <p className="text-[11px] text-stone-500 mt-1 ml-1">
-                    🔗 {t('jyotish.scheduledSession')}: <a href={c.sessionLink} target="_blank" rel="noreferrer" className="text-indigo-600 underline break-all">{c.sessionLink}</a>
-                    <span className="text-stone-400"> {t('jyotish.noTelephony')}</span>
+                    🔗 Scheduled session: <a href={c.sessionLink} target="_blank" rel="noreferrer" className="text-indigo-600 underline break-all">{c.sessionLink}</a>
+                    <span className="text-stone-400"> (arranged by the parties — no telephony built in)</span>
                   </p>
                 )}
                 {linkFor === c.id && (
                   <div className="flex gap-2 mt-2 ml-1">
-                    <input value={linkVal} onChange={(e) => setLinkVal(e.target.value)} placeholder={t('jyotish.pasteLink')} className={inputCls} />
-                    <Btn onClick={() => saveLink(c)}>{t('jyotish.save')}</Btn>
+                    <input value={linkVal} onChange={(e) => setLinkVal(e.target.value)} placeholder="Paste meeting link (Meet/Zoom/Jitsi…)" className={inputCls} />
+                    <Btn onClick={() => saveLink(c)}>Save</Btn>
                   </div>
                 )}
                 {openChatId === c.id && (
@@ -268,7 +316,6 @@ export const MyConsultationsTab: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const EarningsTab: React.FC = () => {
-  const { t } = useLanguage();
   const { myConsultations } = useJyotish();
   const released = myConsultations.filter((c) => c.status === 'DAKSHINA_RELEASED');
   const total = released.reduce((s, c) => s + (c.dakshinaAgreed || 0), 0);
@@ -285,19 +332,20 @@ export const EarningsTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <Card>
-        <SectionTitle>{t('jyotish.earnings')}</SectionTitle>
+        <SectionTitle>Earnings</SectionTitle>
         <div className="text-3xl font-black text-stone-900">₹{total.toLocaleString('en-IN')}</div>
         <p className="text-xs text-stone-500 mt-1">
-          {t('jyotish.sumAcross').replace('{n}', String(released.length))}
+          Sum of dakshina marked released across {released.length} consultation(s).
         </p>
         <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">
-          ⚠️ {t('jyotish.workflowNote')}
+          ⚠️ Workflow record only — devotees pay you directly. No money moves through this app;
+          real escrow needs a licensed payment partner.
         </p>
       </Card>
       <Card>
-        <SectionTitle>{t('jyotish.byType')}</SectionTitle>
+        <SectionTitle>By consultation type</SectionTitle>
         {byType.length === 0 ? (
-          <Empty text={t('jyotish.nothingYet')} />
+          <Empty text="Nothing released yet." />
         ) : (
           <div className="space-y-2">
             {byType.map(([t, e]) => (
@@ -321,7 +369,6 @@ const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const SHIFTS = ['morning', 'evening'];
 
 export const AvailabilityTab: React.FC = () => {
-  const { t } = useLanguage();
   const { availability, saveAvailability } = useJyotish();
   const [slots, setSlots] = useState<Record<string, boolean>>(availability?.slots || {});
   const [saving, setSaving] = useState(false);
@@ -339,8 +386,8 @@ export const AvailabilityTab: React.FC = () => {
 
   return (
     <Card>
-      <SectionTitle>{t('jyotish.weeklyAvailability')}</SectionTitle>
-      <p className="text-xs text-stone-500 mb-4">{t('jyotish.tickSlots')}</p>
+      <SectionTitle>Weekly availability</SectionTitle>
+      <p className="text-xs text-stone-500 mb-4">Tick the slots when devotees may book you.</p>
       <div className="space-y-2">
         {DAYS.map((d) => (
           <div key={d} className="flex items-center gap-3">
@@ -357,7 +404,7 @@ export const AvailabilityTab: React.FC = () => {
                     on ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-stone-500 border-stone-200'
                   }`}
                 >
-                  {s === 'morning' ? `🌅 ${t('jyotish.parts_morning')}` : `🌙 ${t('jyotish.parts_evening')}`}
+                  {s === 'morning' ? '🌅 Morning' : '🌙 Evening'}
                 </button>
               );
             })}
@@ -365,7 +412,7 @@ export const AvailabilityTab: React.FC = () => {
         ))}
       </div>
       <Btn onClick={save} disabled={saving} className="mt-4 w-full">
-        {saving ? t('jyotish.saving') : t('jyotish.saveAvailability')}
+        {saving ? 'Saving…' : 'Save availability'}
       </Btn>
     </Card>
   );
@@ -378,7 +425,6 @@ export const AvailabilityTab: React.FC = () => {
 const ID_PROOFS = ['Aadhaar', 'Voter ID', 'PAN Card', 'Parishad ID Card', 'Passport'];
 
 export const VerificationTab: React.FC = () => {
-  const { t } = useLanguage();
   const {
     profile,
     effectiveTier,
@@ -401,7 +447,7 @@ export const VerificationTab: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  if (!profile) return <Empty text={t('jyotish.loading')} />;
+  if (!profile) return <Empty text="Loading…" />;
 
   const current = effectiveTier || profile.verificationTier;
   const currentIdx = JYOTISH_TIERS.indexOf(current);
@@ -410,7 +456,7 @@ export const VerificationTab: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (myApplication?.status === 'PENDING') {
-      alert(t('jyotish.alreadyUnderReview'));
+      alert('Your application is already under review.');
       return;
     }
     setSubmitting(true);
@@ -427,7 +473,7 @@ export const VerificationTab: React.FC = () => {
         phone: form.phone.trim(),
       });
     } catch (err: any) {
-      alert(err.message || t('jyotish.submissionFailed'));
+      alert(err.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
@@ -436,7 +482,7 @@ export const VerificationTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <Card>
-        <SectionTitle>{t('jyotish.verificationPipeline')}</SectionTitle>
+        <SectionTitle>Verification pipeline</SectionTitle>
         <div className="flex items-center gap-2 flex-wrap mb-4">
           {JYOTISH_TIERS.map((t, i) => (
             <React.Fragment key={t}>
@@ -450,68 +496,69 @@ export const VerificationTab: React.FC = () => {
         </div>
         {canClaim && (
           <Btn onClick={() => claimTierAdvancement()}>
-            ⬆️ {t('jyotish.claimTier').replace('{tier}', effectiveTier.replace(/_/g, ' '))}
+            ⬆️ Claim {effectiveTier.replace(/_/g, ' ')} — your public record qualifies
           </Btn>
         )}
         <p className="text-[11px] text-stone-400 mt-3">
-          {t('jyotish.pipelineSub')}
+          Tier advancement follows the public audit trail (credentials → endorsements →
+          completed consultations). The ✓ check appears only at Platform Verified.
         </p>
       </Card>
 
       <Card>
-        <SectionTitle>{t('jyotish.credentialApplication')}</SectionTitle>
+        <SectionTitle>Credential application</SectionTitle>
         {myApplication ? (
           <div className="text-sm">
             <p>
-              {t('jyotish.status')}:{' '}
+              Status:{' '}
               <span className={`font-black ${myApplication.status === 'APPROVED' ? 'text-emerald-700' : myApplication.status === 'REJECTED' ? 'text-red-600' : 'text-amber-700'}`}>
                 {myApplication.status}
               </span>
             </p>
             {myApplication.rejectionReason && (
-              <p className="text-xs text-red-600 mt-1">{t('jyotish.rejectionReason')}: {myApplication.rejectionReason}</p>
+              <p className="text-xs text-red-600 mt-1">Reason: {myApplication.rejectionReason}</p>
             )}
             <p className="text-xs text-stone-400 mt-2">
-              {t('jyotish.adminReview')}
+              A platform admin reviews credentials manually. You can re-apply after a rejection.
             </p>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-3">
-            <Field label={t('jyotish.vedicCerts')}>
+            <Field label="Certificates / degrees (one per line)">
               <textarea value={form.certificates} onChange={(e) => setForm({ ...form, certificates: e.target.value })} rows={3} className={inputCls} placeholder={'Jyotish Acharya — Sampurnanand Sanskrit Vishwavidyalaya\n…'} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label={t('jyotish.parampara')}>
+              <Field label="Parampara">
                 <input value={form.parampara} onChange={(e) => setForm({ ...form, parampara: e.target.value })} className={inputCls} />
               </Field>
-              <Field label={t('jyotish.guruName')}>
+              <Field label="Guru name">
                 <input value={form.guruName} onChange={(e) => setForm({ ...form, guruName: e.target.value })} className={inputCls} />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label={t('jyotish.idProofType')}>
+              <Field label="ID proof type">
                 <select value={form.idProofType} onChange={(e) => setForm({ ...form, idProofType: e.target.value })} className={inputCls}>
                   {ID_PROOFS.map((p) => (
                     <option key={p}>{p}</option>
                   ))}
                 </select>
               </Field>
-              <Field label={t('jyotish.yearsExp')}>
+              <Field label="Experience (years)">
                 <input type="number" min={0} value={form.experienceYears} onChange={(e) => setForm({ ...form, experienceYears: e.target.value })} className={inputCls} />
               </Field>
             </div>
-            <Field label={t('jyotish.specializations')}>
+            <Field label="Specializations (comma-separated)">
               <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} className={inputCls} placeholder={[...JYOTISH_SPECIALIZATIONS].slice(0, 4).join(', ')} />
             </Field>
             <Btn type="submit" disabled={submitting} className="w-full">
-              {submitting ? t('jyotish.submitting') : `📜 ${t('jyotish.submitApp')}`}
+              {submitting ? 'Submitting…' : '📜 Submit for credential review'}
             </Btn>
           </form>
         )}
       </Card>
 
       <Card>
-        <SectionTitle>{t('jyotish.endorsementsTitle')} ({endorsements.length})</SectionTitle>
+        <SectionTitle>Organisation endorsements ({endorsements.length})</SectionTitle>
         {endorsements.length === 0 ? (
           <p className="text-xs text-stone-500">
             Any real organisation's Trustee can endorse you from your public profile in the
@@ -523,7 +570,7 @@ export const VerificationTab: React.FC = () => {
               <div key={e.id} className="rounded-xl border border-stone-200 p-3">
                 <div className="text-sm font-bold text-stone-800">🏛️ {e.orgName}</div>
                 <p className="text-xs text-stone-600 mt-1">{e.text}</p>
-                <p className="text-[11px] text-stone-400 mt-1">{e.consultationCount} {t('jyotish.consultationsTogether')}</p>
+                <p className="text-[11px] text-stone-400 mt-1">{e.consultationCount} consultations together</p>
               </div>
             ))}
           </div>
@@ -538,18 +585,17 @@ export const VerificationTab: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const ReviewsTab: React.FC = () => {
-  const { t } = useLanguage();
   const { myReceivedReviews, profile } = useJyotish();
   return (
     <Card>
-      <SectionTitle>{t('jyotish.reviews')}</SectionTitle>
+      <SectionTitle>Reviews</SectionTitle>
       {profile && profile.ratingCount > 0 && (
         <p className="text-sm text-stone-600 mb-3">
-          ★ <b>{profile.ratingAggregate.toFixed(1)}</b> {t('jyotish.averageAcross').replace('{n}', String(profile.ratingCount))}
+          ★ <b>{profile.ratingAggregate.toFixed(1)}</b> average across {profile.ratingCount} rating(s)
         </p>
       )}
       {myReceivedReviews.length === 0 ? (
-        <Empty text={t('jyotish.noReviews')} />
+        <Empty text="No reviews yet. Reviews appear after devotees rate completed consultations." />
       ) : (
         <div className="space-y-2">
           {myReceivedReviews.map((r) => (
@@ -572,18 +618,18 @@ export const ReviewsTab: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const ReferralsTab: React.FC = () => {
-  const { t } = useLanguage();
   const { myReferrals, myInvites, respondToInvite, profile } = useJyotish();
   const pending = myInvites.filter((i) => i.status === 'PENDING');
   return (
     <div className="space-y-4">
       <Card>
-        <SectionTitle>{t('jyotish.referralsMade')}</SectionTitle>
+        <SectionTitle>Remedy referrals you made</SectionTitle>
         <p className="text-xs text-stone-500 mb-3">
-          {t('jyotish.referralNote')}
+          Recommend a <b>verified</b> Purohit for remedies (upaya / parihara) from any
+          consultation. The badge travels with the referral — unverified names can't be sent.
         </p>
         {myReferrals.length === 0 ? (
-          <Empty text={t('jyotish.noReferrals')} />
+          <Empty text="No referrals yet. Use the 🤝 Refer button on an assigned consultation." />
         ) : (
           <div className="space-y-2">
             {myReferrals.map((r) => (
@@ -599,9 +645,9 @@ export const ReferralsTab: React.FC = () => {
         )}
       </Card>
       <Card>
-        <SectionTitle>{t('jyotish.orgInvites').replace('{n}', String(pending.length))}</SectionTitle>
+        <SectionTitle>Organisation invitations ({pending.length} pending)</SectionTitle>
         {pending.length === 0 ? (
-          <Empty text={t('jyotish.noInvites')} />
+          <Empty text="No pending invitations." />
         ) : (
           <div className="space-y-2">
             {pending.map((inv) => (
@@ -609,8 +655,8 @@ export const ReferralsTab: React.FC = () => {
                 <div className="text-sm font-bold text-stone-800">🏛️ {inv.orgName}</div>
                 {inv.message && <p className="text-xs text-stone-600 mt-1">{inv.message}</p>}
                 <div className="flex gap-2 mt-2">
-                  <Btn onClick={() => respondToInvite(inv, true)}>{t('jyotish.accept')}</Btn>
-                  <Btn variant="ghost" onClick={() => respondToInvite(inv, false)}>{t('jyotish.decline')}</Btn>
+                  <Btn onClick={() => respondToInvite(inv, true)}>Accept</Btn>
+                  <Btn variant="ghost" onClick={() => respondToInvite(inv, false)}>Decline</Btn>
                 </div>
               </div>
             ))}
@@ -626,7 +672,6 @@ export const ReferralsTab: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const ProfileTab: React.FC = () => {
-  const { t } = useLanguage();
   const { profile, updateProfile, effectiveTier } = useJyotish();
   const [form, setForm] = useState({
     displayName: profile?.displayName || '',
@@ -643,7 +688,7 @@ export const ProfileTab: React.FC = () => {
   });
   const [_saving, _setSaving] = useState(false);
 
-  if (!profile) return <Empty text={t('jyotish.loading')} />;
+  if (!profile) return <Empty text="Loading…" />;
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -670,36 +715,36 @@ export const ProfileTab: React.FC = () => {
   return (
     <Card>
       <div className="flex items-center gap-2 flex-wrap mb-4">
-        <SectionTitle>{t('jyotish.publicProfile')}</SectionTitle>
+        <SectionTitle>Public profile</SectionTitle>
         {effectiveTier && <VerificationBadge tier={effectiveTier} subject="Jyotishi" />}
       </div>
       <form onSubmit={save} className="space-y-3">
-        <Field label={t('jyotish.displayName')}>
+        <Field label="Display name">
           <input required value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t('jyotish.phone')}>
+          <Field label="Phone">
             <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputCls} />
           </Field>
-          <Field label={t('jyotish.city')}>
+          <Field label="City">
             <input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className={inputCls} />
           </Field>
         </div>
-        <Field label={t('jyotish.bioLabel')}>
-          <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className={inputCls} placeholder={t('jyotish.bioPlaceholder')} />
+        <Field label="Bio">
+          <textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} className={inputCls} placeholder="Your practice, approach, languages of consultation…" />
         </Field>
-        <Field label={t('jyotish.paramparaLabel')}>
+        <Field label="Parampara / lineage">
           <input value={form.parampara} onChange={(e) => setForm({ ...form, parampara: e.target.value })} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t('jyotish.yearsExp')}>
+          <Field label="Experience (years)">
             <input type="number" min={0} value={form.experienceYears} onChange={(e) => setForm({ ...form, experienceYears: e.target.value })} className={inputCls} />
           </Field>
-          <Field label={t('jyotish.languagesLabel')}>
+          <Field label="Languages (comma-separated)">
             <input value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} className={inputCls} />
           </Field>
         </div>
-        <Field label={t('jyotish.specializationsLabel')}>
+        <Field label="Specializations (comma-separated)">
           <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
