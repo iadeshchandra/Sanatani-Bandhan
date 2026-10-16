@@ -481,7 +481,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
