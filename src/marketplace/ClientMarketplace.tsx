@@ -16,10 +16,11 @@ import { detectRail } from '../lib/rail2';
 import { Rail2PaymentScreen } from './Rail2PaymentScreen';
 import { CommissionPayScreen } from './CommissionPayScreen';
 import { detectPayRegion } from '../lib/geoDetect';
-import { useUpiQrAvailable } from '../lib/upiQr';
+import { getPaymentMethods, indianPaymentsReady } from '../lib/paymentMethods';
 import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
+import { GuideButton } from '../components/suchana/GuideButton';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -37,13 +38,13 @@ const statusColor: Record<string, string> = {
 /* ------------------------------ Browse ------------------------------ */
 
 const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => {
-  const { currentLang, t } = useLanguage();
+  const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   return (
   <button type="button" onClick={onOpen} className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-amber-300 transition-colors min-h-[44px]">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
-        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">{t('marketplace.client.featured')}</span>}
+        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">FEATURED</span>}
         {(gig as any).providerVerified && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 mb-1 inline-block ml-1">✓ {L === 'en' ? 'VERIFIED' : L === 'bn' ? 'যাচাইকৃত' : 'सत्यापित'}</span>}
         <p className="text-sm font-black text-stone-900 truncate">{gig.title}</p>
         <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
@@ -68,10 +69,8 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [region, setRegion] = useState<'BD' | 'IN' | 'INTL'>('BD');
-  const upiQrOk = useUpiQrAvailable();
-  // India tab only exists while the owner has uploaded public/upi-qr.png;
-  // without it, Indian users transparently get the INTL methods.
-  const viewRegion = region === 'IN' && upiQrOk === false ? 'INTL' : region;
+  /** IN fallback: until the owner configures the UPI QR, Indian users pay via the international rail. */
+  const [inReady, setInReady] = useState(false);
   const [payRef, setPayRef] = useState('');
   const [notes, setNotes] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -80,9 +79,10 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   useEffect(() => { detectPayRegion().then(setRegion).catch(() => {}); }, []);
+  useEffect(() => { getPaymentMethods().then((all) => setInReady(indianPaymentsReady(all))).catch(() => {}); }, []);
   useEffect(() => { getWallet().then((w) => setWalletBalance(w.balance)).catch(() => setWalletBalance(0)); }, []);
 
-  const methodId = viewRegion === 'BD' ? 'bd_banglaqr' : viewRegion === 'IN' ? 'in_upi' : 'intl_wise';
+  const methodId = region === 'BD' ? 'bd_banglaqr' : region === 'IN' ? (inReady ? 'in_upi' : 'intl_payoneer') : 'intl_wise';
 
   const submit = async () => {
     setWorking(true);
@@ -113,10 +113,12 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
     setWorking(false);
   };
 
-  const payHint = viewRegion === 'BD'
+  const payHint = region === 'BD'
     ? 'Pay with bKash / Nagad / Rocket or scan the Bangla QR in the Billing section, then paste the Transaction ID below.'
-    : viewRegion === 'IN'
-    ? 'Pay via UPI (see the Billing section for the UPI ID), then paste the UPI reference below.'
+    : region === 'IN'
+    ? (inReady
+      ? 'Pay via UPI (see the Billing section for the UPI ID / QR), then paste the UPI reference below.'
+      : 'Pay via Payoneer / Wise (see the Billing section), then paste the transfer reference below.')
     : 'Pay via Wise / Payoneer (see the Billing section), then paste the transfer reference below.';
 
   return (
@@ -152,9 +154,9 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         {payPath === 'now' && (<>
         <p className="text-[11px] text-amber-800 mt-2">{payHint}</p>
         <div className="flex gap-1.5 mt-2">
-          {(['BD', 'IN', 'INTL'] as const).filter((r) => r !== 'IN' || upiQrOk !== false).map((r) => (
+          {(['BD', 'IN', 'INTL'] as const).map((r) => (
             <button key={r} type="button" onClick={() => setRegion(r)}
-              className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${viewRegion === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
+              className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
               {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
             </button>
           ))}
@@ -251,10 +253,10 @@ const MyBookings: React.FC = () => {
           )}
           <div className="flex gap-2 mt-2">
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>{t('marketplace.client.confirmCompletion')}</button>
+              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>Confirm completion</button>
             )}
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{t('marketplace.client.dispute')}</button>
+              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Dispute</button>
             )}
           </div>
         </div>
@@ -262,13 +264,13 @@ const MyBookings: React.FC = () => {
       {disputeFor && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setDisputeFor(null)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black mb-3">{t('marketplace.client.raiseDispute')}</h3>
+            <h3 className="font-black mb-3">Raise a dispute</h3>
             <div className="space-y-3">
               <label className="text-[11px] font-bold text-stone-500">Reason*<input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={120} placeholder="e.g. Provider never showed up" /></label>
-              <label className="text-[11px] font-bold text-stone-500">{t('marketplace.client.details')}<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
+              <label className="text-[11px] font-bold text-stone-500">Details<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
               <div className="flex gap-2">
-                <button type="button" onClick={raise} className={`${btnP} flex-1`}>{t('marketplace.client.submitDispute')}</button>
-                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>{t('marketplace.client.cancel')}</button>
+                <button type="button" onClick={raise} className={`${btnP} flex-1`}>Submit dispute</button>
+                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>Cancel</button>
               </div>
             </div>
           </div>
@@ -331,11 +333,12 @@ export const ClientMarketplace: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 items-center">
         {([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`]] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setView(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black ${view === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>{label}</button>
         ))}
+        <GuideButton moduleId="marketplace" />
       </div>
       {view === 'bookings' ? <MyBookings /> : (
         <>
@@ -345,11 +348,11 @@ export const ClientMarketplace: React.FC = () => {
           </div>
           <div className="flex gap-2">
             <select value={cat} onChange={(e) => setCat(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">{t('marketplace.client.allCategories')}</option>
+              <option value="all">All categories</option>
               {['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'].map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={ptype} onChange={(e) => setPtype(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">{t('marketplace.client.purohitJyotishi')}</option><option value="purohit">{t('marketplace.client.purohit')}</option><option value="jyotishi">{t('marketplace.client.jyotishi')}</option>
+              <option value="all">Purohit + Jyotishi</option><option value="purohit">Purohit</option><option value="jyotishi">Jyotishi</option>
             </select>
           </div>
           {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p> : (
