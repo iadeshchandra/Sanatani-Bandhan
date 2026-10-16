@@ -115,17 +115,42 @@ export async function ensurePdfFonts(): Promise<void> {
   if (fontsPromise) return fontsPromise;
   fontsPromise = (async () => {
     try {
-      const pdfMake = (await import('pdfmake/build/pdfmake')).default;
-      const pdfFonts = await import('pdfmake/build/vfs_fonts');
-      (pdfMake as any).vfs = { ...(pdfMake as any).vfs, ...(pdfFonts as any).pdfMake.vfs };
+      const mod: any = (await import('pdfmake/build/pdfmake')).default;
+      // pdfmake's createPdf() reads fonts/vfs from the GLOBAL pdfMake
+      // (__webpack_require__.g.pdfMake), not from the module namespace —
+      // under bundlers the two are different objects. Everything must be
+      // registered on the global for createPdf to see it.
+      const g: any = globalThis as any;
+      g.pdfMake = g.pdfMake || {};
+      const pdfMake: any = g.pdfMake;
+      if (typeof mod?.createPdf === 'function' && !pdfMake.createPdf) pdfMake.createPdf = mod.createPdf;
+      const pdfFonts: any = await import('pdfmake/build/vfs_fonts');
+      // vfs_fonts.js assigns via `this.pdfMake = ...`, which bundlers
+      // (Vite/Rollup ESM output) silently drop — the Roboto base64 then
+      // only survives as named exports on the module namespace. Collect
+      // from every known shape so the built-in fonts always register.
+      const builtinVfs: Record<string, string> = {};
+      for (const k of Object.keys(pdfFonts)) {
+        if (k.endsWith('.ttf') && typeof pdfFonts[k] === 'string') builtinVfs[k] = pdfFonts[k];
+      }
+      const legacyVfs = pdfFonts.pdfMake?.vfs || g.pdfMake?.vfs || {};
+      pdfMake.vfs = { ...(mod || {}).vfs, ...legacyVfs, ...builtinVfs };
 
       let loaded = 0;
+      const loadedNames = new Set<string>();
       for (const { vfsName, url } of FONT_FILES) {
         try {
           const res = await fetch(url);
           if (!res.ok) continue;
           const buf = await res.arrayBuffer();
           const bytes = new Uint8Array(buf);
+          // Reject non-font payloads (e.g. the SPA fallback HTML served
+          // for missing files). TTF: 00 01 00 00; OTF: 'OTTO'.
+          const magic = bytes.length >= 4
+            ? (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]
+            : 0;
+          const tag = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+          if (magic !== 0x00010000 && tag !== 'OTTO' && tag !== 'true') continue;
           let binary = '';
           const CHUNK = 0x8000;
           for (let i = 0; i < bytes.length; i += CHUNK) {
@@ -133,20 +158,36 @@ export async function ensurePdfFonts(): Promise<void> {
           }
           (pdfMake as any).vfs[vfsName] = btoa(binary);
           loaded++;
+          loadedNames.add(vfsName);
         } catch {
           /* font missing — skip, graceful degradation */
         }
       }
 
+      // Register a family only when its files genuinely loaded — a
+      // half-registered family throws inside pdfmake at layout time.
+      // Descriptors stay as vfs filenames: pdfmake 0.2.x resolves font
+      // files through its virtual file system (see pdfEngineHandles),
+      // which now works because vfs is registered on the global pdfMake.
+      const fam = (name: string, files: string[]) => {
+        if (files.every((f) => loadedNames.has(f))) {
+          (pdfMake as any).fonts[name] = {
+            normal: files[0], bold: files[1] || files[0],
+            italics: files[0], bolditalics: files[1] || files[0],
+          };
+        }
+      };
       if (loaded > 0) {
-        (pdfMake as any).fonts = {
-          ...(pdfMake as any).fonts,
-          NotoSans: { normal: 'NotoSans-Regular.ttf', bold: 'NotoSans-Bold.ttf', italics: 'NotoSans-Regular.ttf', bolditalics: 'NotoSans-Bold.ttf' },
-          NotoSansDevanagari: { normal: 'NotoSansDevanagari-Regular.ttf', bold: 'NotoSansDevanagari-Bold.ttf', italics: 'NotoSansDevanagari-Regular.ttf', bolditalics: 'NotoSansDevanagari-Bold.ttf' },
-          NotoSansBengali: { normal: 'NotoSansBengali-Regular.ttf', bold: 'NotoSansBengali-Bold.ttf', italics: 'NotoSansBengali-Regular.ttf', bolditalics: 'NotoSansBengali-Bold.ttf' },
-          NotoSansTamil: { normal: 'NotoSansTamil-Regular.ttf', bold: 'NotoSansTamil-Bold.ttf', italics: 'NotoSansTamil-Regular.ttf', bolditalics: 'NotoSansTamil-Bold.ttf' },
-          TiroDevanagari: { normal: 'TiroDevanagariHindi-Regular.ttf', bold: 'TiroDevanagariHindi-Regular.ttf', italics: 'TiroDevanagariHindi-Regular.ttf', bolditalics: 'TiroDevanagariHindi-Regular.ttf' },
-        };
+        (pdfMake as any).fonts = { ...(pdfMake as any).fonts };
+        fam('NotoSans', ['NotoSans-Regular.ttf', 'NotoSans-Bold.ttf']);
+        fam('NotoSansDevanagari', ['NotoSansDevanagari-Regular.ttf', 'NotoSansDevanagari-Bold.ttf']);
+        fam('NotoSansBengali', ['NotoSansBengali-Regular.ttf', 'NotoSansBengali-Bold.ttf']);
+        fam('NotoSansTamil', ['NotoSansTamil-Regular.ttf', 'NotoSansTamil-Bold.ttf']);
+        fam('TiroDevanagari', ['TiroDevanagariHindi-Regular.ttf', 'TiroDevanagariHindi-Regular.ttf']);
+        // Same-script fallback: sacred headings stay in Devanagari type
+        // when the display face is missing (better than a hard throw).
+        const F = (pdfMake as any).fonts;
+        if (!F.TiroDevanagari && F.NotoSansDevanagari) F.TiroDevanagari = F.NotoSansDevanagari;
       }
       fontsReady = true;
     } catch (e) {
@@ -202,12 +243,36 @@ export function structuredReceiptNo(centerCode: string, typeCode: string, serial
 
 type ReturnOpt = { download?: boolean; returnType?: 'save' | 'blob' | 'bloburl'; isCopy?: boolean };
 
-async function outputPdf(docDef: any, fileName: string, options?: ReturnOpt): Promise<Blob | string> {
+/**
+ * Resolve the pdfmake engine handles. createPdf() reads fonts/vfs from the
+ * webpack global, which bundlers don't wire to the module namespace — so
+ * pass them explicitly. Falls back through every known location.
+ */
+export async function pdfEngineHandles(): Promise<{ createPdf: (docDef: any) => any; richFonts: boolean }> {
   await ensurePdfFonts();
-  const pdfMake = (await import('pdfmake/build/pdfmake')).default;
+  const mod: any = (await import('pdfmake/build/pdfmake')).default;
+  const g: any = (globalThis as any).pdfMake || {};
+  // Passing explicit fonts disables pdfmake's built-in defaultClientFonts,
+  // so the Roboto fallback must be merged in — otherwise even plain text
+  // breaks when only some custom fonts loaded.
+  const ROBOTO = {
+    Roboto: { normal: 'Roboto-Regular.ttf', bold: 'Roboto-Medium.ttf', italics: 'Roboto-Italic.ttf', bolditalics: 'Roboto-MediumItalic.ttf' },
+  };
+  const fonts = { ...ROBOTO, ...(mod?.fonts || {}), ...(g.fonts || {}) };
+  const vfs = { ...(mod?.vfs || {}), ...(g.vfs || {}) };
+  const richFonts = !!((g.fonts || {}).NotoSansDevanagari && (g.fonts || {}).NotoSans);
+  const createPdf = mod?.createPdf || g.createPdf;
+  return {
+    createPdf: (docDef: any) => createPdf.call(mod || g, docDef, undefined, fonts, vfs),
+    richFonts,
+  };
+}
+
+async function outputPdf(docDef: any, fileName: string, options?: ReturnOpt): Promise<Blob | string> {
+  const { createPdf } = await pdfEngineHandles();
   return new Promise((resolve, reject) => {
     try {
-      const pdf = (pdfMake as any).createPdf(docDef);
+      const pdf = createPdf(docDef);
       if (options?.download || !options?.returnType || options.returnType === 'save') {
         pdf.download(fileName);
         // also resolve a blob for callers that want it
