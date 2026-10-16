@@ -16,6 +16,11 @@ import {
   anniversaryReminders,
   type GeneratedReminder, type IntelConfig, type IntelRole, type Lang3,
 } from '../lib/panjikaIntelligence';
+import { generateAllInsights } from '../lib/appIntelligence';
+import {
+  mergeSuchana, suchanaForRole, type SuchanaItem,
+} from '../lib/suchanaFeed';
+import { buildSoloSnapshot } from '../lib/suchanaSnapshot';
 import { useSoloStore } from './soloStore';
 
 function pickLang(l: Lang3, lang: string): string {
@@ -48,7 +53,9 @@ function abhijitHint(): string {
 export const AjkerSuchana: React.FC<{
   goTab: (t: 'panjika' | 'sadhana' | 'marketplace' | 'sangam') => void;
   role?: IntelRole;
-}> = ({ goTab, role = 'solo' }) => {
+  /** When provided, "view all" opens the full Suchana view instead of expanding. */
+  onViewAll?: () => void;
+}> = ({ goTab, role = 'solo', onViewAll }) => {
   const { lang } = useLocaleText();
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<IntelConfig | null>(null);
@@ -80,7 +87,41 @@ export const AjkerSuchana: React.FC<{
     } catch { return []; }
   }, [role, todayISO, config, state.samskaras]);
 
-  const shown = expanded ? reminders : reminders.slice(0, 3);
+  /**
+   * Unified Suchana: panjika foresight + module state insights, merged
+   * through the suchanaFeed contract (dedupe + calm ordering + role
+   * filter). This EXTENDS the digest data source — rendering below
+   * stays the same warm card style.
+   */
+  const items: SuchanaItem[] = useMemo(() => {
+    try {
+      const insights = generateAllInsights(role, buildSoloSnapshot(state));
+      return suchanaForRole(mergeSuchana(reminders, insights, { digest: true }), role);
+    } catch {
+      return [];
+    }
+  }, [role, reminders, state]);
+
+  const shown = expanded ? items : items.slice(0, 3);
+
+  /** Gentle "in N days" label from a SuchanaItem date. */
+  const whenLabel = (iso: string | null): string | null => {
+    if (!iso) return null;
+    try {
+      const diff = Math.round(
+        (new Date(iso + 'T12:00:00').getTime() - new Date(todayISO + 'T12:00:00').getTime()) / 86400000
+      );
+      if (diff <= 0) return lang === 'bn' ? 'আজ' : lang === 'hi' ? 'आज' : 'today';
+      if (diff === 1) return lang === 'bn' ? 'আগামীকাল' : lang === 'hi' ? 'कल' : 'tomorrow';
+      return `${diff} ${lang === 'bn' ? 'দিন' : lang === 'hi' ? 'दिन' : 'days'}`;
+    } catch { return null; }
+  };
+
+  /** Route a Suchana action into the Solo tab bar (fail-soft to panjika). */
+  const routeAction = (route: string) => {
+    const soloTabs = ['panjika', 'sadhana', 'marketplace', 'sangam'];
+    goTab((soloTabs.includes(route) ? route : 'panjika') as any);
+  };
 
   return (
     <div className="rounded-3xl overflow-hidden shadow-sm border border-orange-200/60">
@@ -124,39 +165,49 @@ export const AjkerSuchana: React.FC<{
             {pickLang(blessing, lang)}
           </p>
         ) : (
-          shown.map((r, i) => (
-            <button
-              key={`${r.eventType}-${r.eventDateISO}-${i}`}
-              type="button"
-              onClick={() => goTab(r.actionTab as any)}
-              className="w-full text-left rounded-2xl bg-white border border-amber-100 p-3.5 min-h-[44px] hover:border-amber-300 transition-colors shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="text-sm font-bold text-stone-800">{pickLang(r.title, lang)}</div>
-                <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
-                  {r.daysUntil === 0
-                    ? (lang === 'bn' ? 'আজ' : lang === 'hi' ? 'आज' : 'today')
-                    : r.daysUntil === 1
-                      ? (lang === 'bn' ? 'আগামীকাল' : lang === 'hi' ? 'कल' : 'tomorrow')
-                      : `${r.daysUntil} ${lang === 'bn' ? 'দিন' : lang === 'hi' ? 'दिन' : 'days'}`}
-                </span>
-              </div>
-              <p className="text-xs text-stone-500 mt-1 leading-relaxed">{pickLang(r.message, lang)}</p>
-              <div className="mt-2 text-xs font-bold text-orange-700">
-                {pickLang(r.actionLabel, lang)} →
-              </div>
-            </button>
-          ))
+          shown.map((item) => {
+            const when = whenLabel(item.date);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => routeAction(item.actionRoute)}
+                className="w-full text-left rounded-2xl bg-white border border-amber-100 p-3.5 min-h-[44px] hover:border-amber-300 transition-colors shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-bold text-stone-800">
+                    <span aria-hidden className="mr-1.5">
+                      {item.source === 'module' ? '📦' : '🗓️'}
+                    </span>
+                    {pickLang(item.title, lang)}
+                  </div>
+                  {when && (
+                    <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                      {when}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-stone-500 mt-1 leading-relaxed">{pickLang(item.message, lang)}</p>
+                <div className="mt-2 text-xs font-bold text-orange-700">
+                  {pickLang(item.actionLabel, lang)} →
+                </div>
+              </button>
+            );
+          })
         )}
-        {reminders.length > 3 && (
+        {items.length > 3 && (
           <button
             type="button"
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => (onViewAll ? onViewAll() : setExpanded(!expanded))}
             className="w-full text-center text-xs font-bold text-amber-700 py-2 min-h-[44px]"
           >
-            {expanded
-              ? (lang === 'bn' ? 'কমান ↑' : lang === 'hi' ? 'समेटें ↑' : 'Show less ↑')
-              : (lang === 'bn' ? `আরও ${reminders.length - 3}টি সূচনা ↓` : lang === 'hi' ? `और ${reminders.length - 3} सूचनाएं ↓` : `View all ${reminders.length} suchana ↓`)}
+            {onViewAll ? (
+              lang === 'bn' ? `সব ${items.length}টি সূচনা দেখুন 🪔` : lang === 'hi' ? `सभी ${items.length} सूचनाएं देखें 🪔` : `View all ${items.length} suchana 🪔`
+            ) : expanded ? (
+              lang === 'bn' ? 'কমান ↑' : lang === 'hi' ? 'समेटें ↑' : 'Show less ↑'
+            ) : (
+              lang === 'bn' ? `আরও ${items.length - 3}টি সূচনা ↓` : lang === 'hi' ? `और ${items.length - 3} सूचनाएं ↓` : `View all ${items.length} suchana ↓`
+            )}
           </button>
         )}
         <button

@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSolo } from './SoloContext';
 import { useSoloStore, todayISO } from './soloStore';
 import { Card, Stat, T, useLocaleText } from './ui';
 import { JoinUpgrade } from './JoinUpgrade';
 import { AjkerSuchana } from './AjkerSuchana';
+import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
+import { GuideCenter } from '../components/suchana/GuideCenter';
 import { drikTodayLine } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 
@@ -20,6 +22,8 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   const { profile } = useSolo();
   const { state } = useSoloStore();
   const { tr } = useLocaleText();
+  const [suchanaOpen, setSuchanaOpen] = useState(false);
+  const [guidesOpen, setGuidesOpen] = useState(false);
 
   const panchangLine = useMemo(() => {
     try {
@@ -63,8 +67,50 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         {panchangLine && <p className="text-xs text-amber-200/80 mt-2">{panchangLine}</p>}
       </div>
 
-      {/* Ajker Suchana — the morning briefing */}
-      <AjkerSuchana goTab={goTab} role="solo" />
+      {/* Ajker Suchana — the morning briefing (now merged: panjika + module insights) */}
+      <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} />
+
+      {/* Suchana + Guides entry row */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setSuchanaOpen(true)}
+          className="rounded-2xl bg-gradient-to-br from-amber-700 via-orange-600 to-rose-700 text-amber-50 p-4 text-left shadow-sm min-h-[64px] hover:shadow-md transition-shadow"
+        >
+          <div className="text-2xl" aria-hidden>🪔</div>
+          <div className="text-sm font-extrabold mt-1">
+            <T en="All Suchana" bn="সব সূচনা" hi="सभी सूचनाएं" />
+          </div>
+          <div className="text-[11px] text-amber-200/80">
+            <T en="Guidance for your path" bn="আপনার পথের নির্দেশনা" hi="आपके मार्ग का मार्गदर्शन" />
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => setGuidesOpen(true)}
+          className="rounded-2xl bg-white border border-amber-200 p-4 text-left shadow-sm min-h-[64px] hover:border-amber-400 hover:shadow-md transition-all"
+        >
+          <div className="text-2xl" aria-hidden>📖</div>
+          <div className="text-sm font-extrabold text-stone-800 mt-1">
+            <T en="Guides" bn="নির্দেশিকা" hi="मार्गदर्शिका" />
+          </div>
+          <div className="text-[11px] text-stone-500">
+            <T en="Every module in 30 seconds" bn="৩০ সেকেন্ডে প্রতিটি মডিউল" hi="30 सेकंड में हर मॉड्यूल" />
+          </div>
+        </button>
+      </div>
+
+      <SuchanaFullModal
+        isOpen={suchanaOpen}
+        onClose={() => setSuchanaOpen(false)}
+        role="solo"
+        onAction={(route) => {
+          setSuchanaOpen(false);
+          const soloTabs = ['panjika', 'sadhana', 'marketplace', 'sangam'];
+          goTab((soloTabs.includes(route) ? route : 'panjika') as any);
+        }}
+      />
+      <GuideCenter isOpen={guidesOpen} onClose={() => setGuidesOpen(false)} />
 
       {/* Sadhana at a glance */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
