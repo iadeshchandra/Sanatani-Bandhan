@@ -161,6 +161,32 @@ service cloud.firestore {
       return request.resource.data.get('workspaceId', null) == resource.data.get('workspaceId', null);
     }
 
+    // Pillar 2 — public RSVP counter bump on festival_events. A signed-in
+    // devotee submitting an RSVP may ONLY move rsvpHeadcount /
+    // slotBooked.<slot> upward by a small sane amount (≤20, one slot per
+    // write). Everything else on the doc stays trustee-only.
+    function slotBookedSane(oldM, newM) {
+      let d = newM.diff(oldM);
+      if (d.addedKeys().size() != 0 || d.removedKeys().size() != 0) return false;
+      let ck = d.changedKeys();
+      if (ck.size() > 1) return false;
+      if (ck.size() == 0) return true;
+      let k = ck[0];
+      let ov = oldM.get(k, 0);
+      let nv = newM.get(k, 0);
+      return (ov is number) && (nv is number) && nv >= ov && nv <= ov + 20;
+    }
+    function publicCounterBump() {
+      let oldHc = resource.data.get('rsvpHeadcount', 0);
+      let newHc = request.resource.data.get('rsvpHeadcount', 0);
+      return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['rsvpHeadcount', 'slotBooked', 'updatedAt'])
+        && (oldHc is number) && (newHc is number)
+        && newHc >= oldHc && newHc <= oldHc + 20
+        && slotBookedSane(resource.data.get('slotBooked', {}),
+                           request.resource.data.get('slotBooked', {}));
+    }
+
     // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
     function R_FINANCE() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT'];
@@ -367,6 +393,57 @@ service cloud.firestore {
         || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
       allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // ------------------------------------------------------------------
+    // Pillar 2 — Festival war-room (market domination).
+    // festival_plans: trustee planning data (footfall, prasad, roster,
+    //   checklist state), per org per festival. Tenant members read;
+    //   staff write. Demo sandboxes stay writable for signed-in users.
+    // festival_events: published devotee event pages. Public read ONLY
+    //   when published==true. Writes are trustee-only, EXCEPT the narrow
+    //   public counter bump (rsvpHeadcount / slotBooked.<slot>) that an
+    //   RSVP performs — same key set, small upward increments only.
+    // festival_rsvps: devotee RSVPs. Signed-in users create their own;
+    //   tenant members read all (feeds the footfall planner); users may
+    //   read/cancel their own.
+    // ------------------------------------------------------------------
+    match /festival_plans/{planId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
+        && (resource == null || wsImmutable());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /festival_events/{eventId} {
+      allow read: if resource.data.get('published', false) == true
+        || demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create: if demoWriteOk(newDocWs())
+        || hasRole(newDocWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER']);
+      allow update: if demoWriteOk(docWs())
+        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'])
+        || (isLoggedIn() && wsImmutable() && publicCounterBump());
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    match /festival_rsvps/{rsvpId} {
+      allow read: if isTenantMember(docWs())
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('workspaceId', '') != ''
+        && request.resource.data.get('eventId', '') != ''
+        && request.resource.data.get('name', '').size() >= 2
+        && request.resource.data.get('name', '').size() <= 80
+        && request.resource.data.get('headcount', 0) >= 1
+        && request.resource.data.get('headcount', 0) <= 20
+        && request.resource.data.keys().hasOnly(
+             ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt']);
+      allow update: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['headcount', 'slotId']))
+        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
+        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
     }
 
     // Inventory & assets
