@@ -22,6 +22,8 @@ import { useToast } from '../../../context/ToastContext';
 import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
 import { DuesTab, RiskTab } from './MarketplaceDuesRisk';
 import { CommissionsTab } from './AdminTabsI';
+import { ReferralConfigPanel } from '../../sevaPro/ReferralConfigPanel';
+import { PipelineAnalytics } from '../../sevaPro/PipelineAnalytics';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -604,7 +606,7 @@ export const MarketplaceGigs: React.FC = () => {
 
 /* ------------------------------ Main tab ------------------------------ */
 
-const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
+const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Referrals', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
 
 export const MarketplaceTab: React.FC = () => {
   const [sub, setSub] = useState('Dashboard');
@@ -621,6 +623,13 @@ export const MarketplaceTab: React.FC = () => {
       {sub === 'Risk' && <RiskTab />}
       {sub === 'Providers' && <MarketplaceProviders />}
       {sub === 'Gigs' && <MarketplaceGigs />}
+      {sub === 'Referrals' && (
+        <div className="space-y-4">
+          {/* Seva Pro Phase 4 — remedy→ritual pipeline: config + analytics */}
+          <ReferralConfigPanel />
+          <PipelineAnalytics />
+        </div>
+      )}
       {sub === 'Pay Methods' && <ProviderPaymentsTab />}
       {sub === 'Bypass Flags' && <BypassFlagsTab />}
       {sub === 'Bypass Rules' && <BypassRulesTab />}

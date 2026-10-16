@@ -19,8 +19,10 @@ import {
   LogOut,
   Bell,
   Store,
+  HandHeart,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { ReferralDashboard } from '../sevaPro/ReferralDashboard';
 import { PurohitProvider, usePurohit } from '../../context/PurohitContext';
 import { provisionalSoloProfile } from '../../solo/soloSession';
 import { VerificationBadge } from '../common/VerificationBadge';
@@ -44,9 +46,10 @@ type PurohitTab =
   | 'verification'
   | 'reviews'
   | 'profile'
-  | 'marketplace';
+  | 'marketplace'
+  | 'referrals';
 
-const getTabs = (t: (k: string) => string): { id: PurohitTab; label: string; icon: React.ReactNode }[] => [
+const getTabs = (t: (k: string) => string, st: (key: string, en: string, bn?: string, hi?: string) => string): { id: PurohitTab; label: string; icon: React.ReactNode }[] => [
   { id: 'overview', label: t('purohit.shell.tabs.home'), icon: <Briefcase className="w-4 h-4" /> },
   { id: 'find', label: t('purohit.shell.tabs.find'), icon: <Search className="w-4 h-4" /> },
   { id: 'gigs', label: t('purohit.shell.tabs.gigs'), icon: <Briefcase className="w-4 h-4" /> },
@@ -56,12 +59,13 @@ const getTabs = (t: (k: string) => string): { id: PurohitTab; label: string; ico
   { id: 'reviews', label: t('purohit.shell.tabs.reviews'), icon: <Star className="w-4 h-4" /> },
   { id: 'profile', label: t('purohit.shell.tabs.profile'), icon: <User className="w-4 h-4" /> },
   { id: 'marketplace', label: t('purohit.shell.tabs.marketplace'), icon: <Store className="w-4 h-4" /> },
+  { id: 'referrals', label: st('purohit.shell.tabs.referrals', 'Referrals', 'রেফারেল', 'रेफ़रल'), icon: <HandHeart className="w-4 h-4" /> },
 ];
 
 const InnerShell: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, safeTranslate } = useLanguage();
   const { logout, exitPurohitSession, enterSoloSession } = useAuthWorkspace();
-  const TABS = getTabs(t);
+  const TABS = getTabs(t, safeTranslate);
   const { profile, profileLoading, effectiveTier, myInvites } = usePurohit();
   const [tab, setTab] = useState<PurohitTab>('overview');
 
@@ -179,6 +183,7 @@ const InnerShell: React.FC = () => {
         {tab === 'reviews' && <ReviewsTab />}
         {tab === 'profile' && <ProfileTab />}
         {tab === 'marketplace' && <ProviderMarketplace providerType="purohit" providerName={profile?.displayName || ''} />}
+        {tab === 'referrals' && <ReferralDashboard />}
       </main>
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">
