@@ -19,7 +19,7 @@
  */
 import React, { useMemo, useRef, useState } from 'react';
 import { UploadCloud, CheckCircle2, Clock3, HeartHandshake, ChevronRight } from 'lucide-react';
-import { sevaProCopy, type SevaProLang } from '../../lib/sevaPro/copy';
+import { sevaProCopy, type SevaProLang } from '../../lib/sevaPro/sevaProCopy';
 
 export type ChecklistKey = 'govtId' | 'photo' | 'tradition' | 'samples' | 'endorsement';
 

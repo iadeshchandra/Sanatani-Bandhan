@@ -6,7 +6,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { sevaProCopy, REJECT_TEMPLATE_KEYS } from '../src/lib/sevaPro/copy';
+import { sevaProCopy, REJECT_TEMPLATE_KEYS } from '../src/lib/sevaPro/sevaProCopy';
 import {
   tierRank, tierBadge, getTier, canAcceptPaidSevas, getsTopPlacement,
   qualifiesForTrusted, isTierAdvancement, TIER_ORDER,
