@@ -121,6 +121,9 @@ const SoloRouter: React.FC = () => {
       <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
         <LocalOnlyBadge />
       </div>
+      {/* Solo tab content — keyed by path so each tab change glides in.
+          Presentational only: remounts the route view on navigation. */}
+      <div key={location.pathname} className="anim-tab-in">
       <Routes>
         <Route path="/app" element={<Navigate to="/app/home" replace />} />
         <Route path="/app/home" element={<HomeTab />} />
@@ -136,6 +139,7 @@ const SoloRouter: React.FC = () => {
             e.g. entering the solo session from the demo menu while at `/`. */}
         <Route path="*" element={<Navigate to="/app/home" replace />} />
       </Routes>
+      </div>
 
       {/* First-run onboarding tour for brand-new Solo users. */}
       <SoloOnboardingTour onNavigate={(t) => navigate(`/app/home/${t}`)} />

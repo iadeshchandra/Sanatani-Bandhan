@@ -8,7 +8,7 @@ import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
 import { SuggestionCards } from './SuggestionCards';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
-import { drikTodayLine } from '../lib/drikPanchang';
+import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 
 /* SoloHome — the personal "My Space" dashboard.
@@ -57,6 +57,39 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         ? tr('solo.greet.afternoon', 'Namaste', 'নমস্কার', 'नमस्ते')
         : tr('solo.greet.evening', 'Shubh Sandhya', 'শুভ সন্ধ্যা', 'शुभ संध्या');
 
+  // Tithi-aware warmth — the Panjika engine knows today; surface it kindly.
+  // Special days get a blessing line; ordinary days stay quiet (the full
+  // panchang line below already carries the detail).
+  const tithiWarm = useMemo(() => {
+    try {
+      const t = drikTithiAt(new Date());
+      if (t.name === 'Ekadashi')
+        return tr(
+          'solo.greet.ekadashi',
+          'Ekadashi today — a blessed day for vrata and remembrance 🙏',
+          'আজ একাদশী — ব্রত ও স্মরণের পুণ্যদিন 🙏',
+          'आज एकादशी है — व्रत और स्मरण का पुण्य दिन 🙏'
+        );
+      if (t.name === 'Purnima')
+        return tr(
+          'solo.greet.purnima',
+          'Purnima tonight — the moon is full, and so is grace 🌕',
+          'আজ পূর্ণিমা — চাঁদ পূর্ণ, কৃপাও পূর্ণ 🌕',
+          'आज पूर्णिमा है — चंद्र पूर्ण, कृपा भी पूर्ण 🌕'
+        );
+      if (t.name === 'Amavasya')
+        return tr(
+          'solo.greet.amavasya',
+          'Amavasya today — a quiet day for remembrance and deep japa 🌑',
+          'আজ অমাবস্যা — স্মরণ ও গভীর জপের নীরব দিন 🌑',
+          'आज अमावस्या है — स्मरण व गहन जप का शांत दिन 🌑'
+        );
+      return '';
+    } catch {
+      return '';
+    }
+  }, [tr]);
+
   return (
     <div className="space-y-4">
       {/* Welcome banner */}
@@ -64,9 +97,10 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         <div className="text-xs font-bold uppercase tracking-widest text-amber-200/80">
           ॥ {tr('solo.motto', 'Atmano Mokshartham', 'আত্মনো মোক্ষার্থম্', 'आत्मनो मोक्षार्थम्')} ॥
         </div>
-        <h1 className="text-xl sm:text-2xl font-extrabold mt-1">
+        <h1 className="font-display text-xl sm:text-2xl font-extrabold mt-1">
           {greeting}, {profile?.displayName || tr('solo.sanatani', 'Sanatani', 'সনাতনী', 'सनातनी')}
         </h1>
+        {tithiWarm && <p className="text-sm text-amber-100/95 mt-1.5 font-medium">{tithiWarm}</p>}
         <p className="text-sm text-amber-100/90 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
         {panchangLine && <p className="text-xs text-amber-200/80 mt-2">{panchangLine}</p>}
       </div>

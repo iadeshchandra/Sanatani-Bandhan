@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSoloStore, uid, todayISO } from './soloStore';
 import { Card, Stat, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
+import { BlessingMoment } from '../components/common/BlessingMoment';
+import { drikTodayLine } from '../lib/drikPanchang';
+import { getCalendar } from '../lib/regionalCalendars';
 
 /* GivingTab — personal dana history across organisations.
  * ============================================================
@@ -16,6 +19,8 @@ export const GivingTab: React.FC = () => {
   const { tr } = useLocaleText();
   const { showToast } = useToast();
   const [form, setForm] = useState({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
+  // The blessing moment — the shareable "Dhanyavaad" shown after each dana.
+  const [blessing, setBlessing] = useState<{ orgName: string; amount: number; purpose?: string } | null>(null);
 
   const total = state.giving.reduce((s, g) => s + g.amount, 0);
   const thisYear = new Date().getFullYear().toString();
@@ -28,18 +33,30 @@ export const GivingTab: React.FC = () => {
       showToast(tr('solo.giving.need', 'Enter organisation and amount', 'সংগঠন ও পরিমাণ দিন', 'संगठन और राशि दें'), 'warning');
       return;
     }
+    const orgName = form.orgName.trim();
+    const purpose = form.purpose.trim() || undefined;
     add('giving', {
       id: uid('g'),
       date: form.date,
-      orgName: form.orgName.trim(),
+      orgName,
       amount,
-      purpose: form.purpose.trim() || undefined,
+      purpose,
       receiptNo: form.receiptNo.trim() || undefined,
       createdAt: Date.now(),
     });
     setForm({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
-    showToast(tr('solo.giving.added', 'Dana recorded — dhanyavaad', 'দান সংরক্ষিত — ধন্যবাদ', 'दान दर्ज — धन्यवाद'), 'success');
+    // The blessing IS the confirmation — full-screen, shareable, warm.
+    setBlessing({ orgName, amount, purpose });
   };
+
+  const tithiLine = useMemo(() => {
+    try {
+      const vsYear = getCalendar('vikram').toRegional(new Date()).year;
+      return drikTodayLine(new Date(), vsYear);
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -109,6 +126,18 @@ export const GivingTab: React.FC = () => {
           </ul>
         )}
       </Card>
+
+      {/* The shareable blessing moment after each dana */}
+      {blessing && (
+        <BlessingMoment
+          open
+          onClose={() => setBlessing(null)}
+          orgName={blessing.orgName}
+          amount={blessing.amount}
+          purpose={blessing.purpose}
+          contextLine={tithiLine}
+        />
+      )}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
 import { APP_VERSION, APP_BUILD_SHA } from '../lib/appVersion';
 import { ProfileOrgHub } from './ProfileOrgHub';
+import { useSacredSound } from '../lib/sacredAudio';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -30,6 +31,7 @@ export const ProfileTab: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { tr } = useLocaleText();
+  const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -274,6 +276,45 @@ export const ProfileTab: React.FC = () => {
 
       {/* My Samskaras — tithi anniversaries */}
       <MySamskaras />
+
+      {/* Preferences — small comforts, the user's own choice */}
+      <Card>
+        <h3 className="font-extrabold text-stone-900 mb-3">
+          <T en="Preferences" bn="পছন্দ" hi="वरीयताएँ" />
+        </h3>
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2.5">
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-stone-800">
+              🔔 <T en="Temple bell on japa completion" bn="জপ শেষে মন্দিরের ঘণ্টা" hi="जप पूर्णता पर मंदिर घंटी" />
+            </div>
+            <p className="text-[11px] text-stone-500 mt-0.5">
+              <T
+                en="A soft bell sounds when you complete a mala (108 / 1008)."
+                bn="মালা (১০৮ / ১০০৮) শেষ হলে মৃদু ঘণ্টা বাজবে।"
+                hi="माला (108 / 1008) पूर्ण होने पर मृदु घंटी बजेगी।"
+              />
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!bellMuted}
+            aria-label={tr('solo.prefs.bell', 'Temple bell on japa completion', 'জপ শেষে মন্দিরের ঘণ্টা', 'जप पूर्णता पर मंदिर घंटी')}
+            onClick={() => {
+              const next = !bellMuted;
+              setBellMuted(next);
+              if (!next) playBell();
+            }}
+            className={`pressable shrink-0 min-w-[56px] min-h-[44px] px-3 rounded-full text-xs font-black transition-colors ${
+              bellMuted ? 'bg-stone-200 text-stone-500' : 'bg-amber-500 text-temple-950'
+            }`}
+          >
+            {bellMuted
+              ? tr('solo.prefs.off', 'Off', 'বন্ধ', 'बंद')
+              : tr('solo.prefs.on', 'On', 'চালু', 'चालू')}
+          </button>
+        </div>
+      </Card>
 
       {/* Backup / sign out */}
       <Card>

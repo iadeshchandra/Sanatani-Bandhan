@@ -177,7 +177,7 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
   const caps = ROLE_CAPABILITIES[displayRole] || ROLE_CAPABILITIES.Devotee;
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden bg-slate-50">
+    <div className="anim-org-enter h-screen w-full flex flex-col overflow-hidden bg-slate-50">
       {/* Org-space header */}
       <header className="shrink-0 bg-temple-950 text-amber-100 border-b border-amber-900/30 z-30">
         <div className="px-3 sm:px-5 py-2.5 flex items-center gap-3">

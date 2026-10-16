@@ -17,6 +17,7 @@
 import React, { useMemo, useState } from 'react';
 import { T } from '../../solo/ui';
 import { useLanguage } from '../../context/LanguageContext';
+import { Skeleton } from '../common/Skeleton';
 import { blessingOfDay } from '../../lib/panjikaIntelligence';
 import { cacheAgeText } from '../../lib/glanceCache';
 import {
@@ -210,10 +211,10 @@ export const GlanceFeed: React.FC<{
     return (
       <div className="space-y-2.5" aria-busy="true" aria-label="Loading guidance">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl border border-stone-200 bg-white p-4 animate-pulse">
-            <div className="h-4 bg-stone-200 rounded w-3/4" />
-            <div className="h-3 bg-stone-100 rounded w-full mt-2" />
-            <div className="h-3 bg-stone-100 rounded w-2/3 mt-1" />
+          <div key={i} className="rounded-2xl border border-stone-200 bg-white p-4">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-full mt-2 opacity-70" />
+            <Skeleton className="h-3 w-2/3 mt-1.5 opacity-70" />
           </div>
         ))}
       </div>

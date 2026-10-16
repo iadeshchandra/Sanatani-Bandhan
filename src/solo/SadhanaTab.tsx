@@ -3,6 +3,8 @@ import { useSoloStore, uid, todayISO } from './soloStore';
 import { Card, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { playSoftBell } from '../lib/sacredAudio';
+import { WARM_SUCCESS, pickLang } from '../lib/microcopy';
 
 /* SadhanaTab — japa counter, vrata observances, personal sankalpa.
  * =====================================================================
@@ -15,7 +17,7 @@ const QUICK_COUNTS = [108, 1008];
 export const SadhanaTab: React.FC = () => {
   const { t } = useLanguage();
   const { state, add, remove, update } = useSoloStore();
-  const { tr } = useLocaleText();
+  const { tr, lang } = useLocaleText();
   const { showToast } = useToast();
   const [mantra, setMantra] = useState('ॐ नमः शिवाय');
   const [customCount, setCustomCount] = useState('');
@@ -43,7 +45,12 @@ export const SadhanaTab: React.FC = () => {
   const logJapa = (count: number) => {
     const m = mantra.trim() || 'Japa';
     add('japa', { id: uid('j'), date: today, mantra: m, count, createdAt: Date.now() });
-    showToast(tr('solo.sadhana.logged', `+${count} ${m} recorded`, `+${count} ${m} সংরক্ষিত`, `+${count} ${m} दर्ज`), 'success');
+    // A full mala (108 / 1008) completes a round — honour it with a soft bell.
+    // The tap IS the user gesture, so autoplay rules are respected; the
+    // bell stays silent when the user muted sacred sounds in Preferences.
+    if (count >= 108) playSoftBell();
+    const t = pickLang(lang);
+    showToast(t(WARM_SUCCESS.japaOffered(count.toLocaleString('en-IN'), m)), 'success');
   };
 
   const addVrata = (e: React.FormEvent) => {
