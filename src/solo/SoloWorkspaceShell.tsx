@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
-import { useToast } from '../context/ToastContext';
 import { SoloProvider, useSolo } from './SoloContext';
 import { SoloStoreProvider } from './soloStore';
 import { PurohitProvider } from '../context/PurohitContext';
-import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
-import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
-import { SoloHome } from './SoloHome';
-import { SadhanaTab } from './SadhanaTab';
-import { PanchangTab } from './PanchangTab';
-import { PanjikaTab } from './PanjikaTab';
-import { SavedTab } from './SavedTab';
-import { GivingTab } from './GivingTab';
+import { AppShell, AppTabId } from '../components/shell/AppShell';
+import { HomeTab, HomeSubTabBar, soloSubTabFromPath, SOLO_TAB_IDS, SoloTabId } from './HomeTab';
+import { OrgsTab } from './OrgsTab';
+import { OrgSwitchRoute } from './OrgSwitchRoute';
+import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
-import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
-import { SangamView } from '../sangam/SangamView';
-import { ClientMarketplace } from '../marketplace/ClientMarketplace';
-import { WalletTab } from './WalletTab';
-import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { SoloOnboardingTour } from './SoloOnboardingTour';
@@ -28,189 +20,97 @@ import { SoloOnboardingTour } from './SoloOnboardingTour';
  * No org switcher, no workspace desks, no org data can reach this tree —
  * the same mutual-exclusion construction Purohit One established.
  *
- * Session switching (all explicit, all user-initiated):
- *  - My Space (solo, current)
- *  - Organisation → exitSoloSession() → normal org session
- *  - Purohit Workspace → enterPurohitSession(existing identity) when a
- *    PUR-XXXXXX is attached; otherwise the JoinUpgrade card offers the
- *    BecomePurohitModal upgrade path.
+ * Phase 1 navigation: 4-tab shell (Home | Orgs | Suchana | Profile),
+ * every tab deep-linkable via /app/* routes. The old ⇄ Switch dropdown
+ * is removed; its actions migrated:
+ *  - "Organisation view"      → /app/orgs (Orgs tab, existing session flow)
+ *  - "Purohit / Jyotishi Workspace" → Profile tab → "My Workspaces"
+ *  - "Sign out"               → Profile tab → "Data & session"
+ * The 12 Solo sub-tabs live INSIDE the Home tab as secondary navigation.
+ * The 🪔 Suchana header button still opens SuchanaFullModal.
  */
 
-type SoloTab = 'home' | 'sangam' | 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'jyotish' | 'marketplace' | 'wallet' | 'samskara' | 'profile';
+const TAB_PATH: Record<AppTabId, string> = {
+  home: '/app/home',
+  orgs: '/app/orgs',
+  suchana: '/app/suchana',
+  profile: '/app/profile',
+};
 
-const TABS: Array<{ id: SoloTab; en: string; bn: string; hi: string }> = [
-  { id: 'home', en: 'My Space', bn: 'আমার স্থান', hi: 'मेरा स्थान' },
-  { id: 'sangam', en: '🪔 Sangam', bn: '🪔 সঙ্গম', hi: '🪔 संगम' },
-  { id: 'sadhana', en: 'Sadhana', bn: 'সাধনা', hi: 'साधना' },
-  { id: 'panchang', en: 'Panchang', bn: 'পঞ্জিকা', hi: 'पञ्चाङ्ग' },
-  { id: 'panjika', en: '🗓️ Panjika', bn: '🗓️ পঞ্জিকা', hi: '🗓️ पञ्जिका' },
-  { id: 'saved', en: 'Saved', bn: 'সংরক্ষিত', hi: 'संग्रहीत' },
-  { id: 'giving', en: 'Giving', bn: 'দান', hi: 'दान' },
-  { id: 'jyotish', en: '🔮 Jyotish', bn: '🔮 জ্যোতিষ', hi: '🔮 ज्योतिष' },
-  { id: 'marketplace', en: '🏪 Marketplace', bn: '🏪 মার্কেটপ্লেস', hi: '🏪 बाज़ार' },
-  { id: 'wallet', en: '🪔 Seva Wallet', bn: '🪔 সেবা ওয়ালেট', hi: '🪔 सेवा वॉलेट' },
-  { id: 'samskara', en: '🪔 Samskara', bn: '🪔 সংস্কার', hi: '🪔 संस्कार' },
-  { id: 'profile', en: 'Profile', bn: 'প্রোফাইল', hi: 'परिचय' },
-];
+function tabFromPath(pathname: string): AppTabId {
+  if (pathname.startsWith('/app/orgs') || pathname.startsWith('/app/org/')) return 'orgs';
+  if (pathname.startsWith('/app/suchana')) return 'suchana';
+  if (pathname.startsWith('/app/profile')) return 'profile';
+  return 'home';
+}
 
-const InnerShell: React.FC = () => {
-  const { soloProfile, exitSoloSession, enterPurohitSession, enterJyotishSession, logout, firebaseUser } = useAuthWorkspace();
+const SoloRouter: React.FC = () => {
+  const { soloProfile } = useAuthWorkspace();
   const { profile } = useSolo();
-  const { identity: purohitIdentity } = useMyPurohitIdentity();
-  const { identity: jyotishIdentity } = useMyJyotishIdentity();
-  const { showToast } = useToast();
-  const [tab, setTab] = useState<SoloTab>('home');
-  const [switchOpen, setSwitchOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
 
+  const activeTab = tabFromPath(location.pathname);
+  const subTab = soloSubTabFromPath(location.pathname);
   const sanId = profile?.id || soloProfile?.id || 'SAN-…';
-  const name = profile?.displayName || soloProfile?.displayName || 'Sanatani';
 
-  const switchToOrg = () => {
-    exitSoloSession();
-    setSwitchOpen(false);
-    showToast('Switched to Organisation view', 'success');
-  };
-
-  const switchToPurohit = () => {
-    if (!purohitIdentity) {
-      showToast('No purohit identity attached yet — use “Become a Purohit” below.', 'info');
-      setSwitchOpen(false);
-      setTab('home');
-      return;
-    }
-    enterPurohitSession(purohitIdentity as any);
-    setSwitchOpen(false);
-    showToast(`Switched to Purohit Workspace (${purohitIdentity.id})`, 'success');
-  };
-
-  const switchToJyotish = () => {
-    if (!jyotishIdentity) {
-      showToast('No jyotishi identity attached yet — use “Become a Jyotishi” below.', 'info');
-      setSwitchOpen(false);
-      setTab('home');
-      return;
-    }
-    enterJyotishSession(jyotishIdentity as any);
-    setSwitchOpen(false);
-    showToast(`Switched to Jyotishi Workspace (${jyotishIdentity.id})`, 'success');
-  };
+  const header = (
+    <header className="sticky top-0 z-40 bg-temple-950/95 backdrop-blur border-b border-amber-900/30">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xl shrink-0">
+            🪔
+          </div>
+          <div className="min-w-0">
+            <div className="text-white font-extrabold text-sm truncate">My Space</div>
+            <div className="text-amber-400/90 text-[11px] font-mono truncate">{sanId}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* 🪔 Suchana — the calm alternative to a notification bell */}
+          <button
+            type="button"
+            onClick={() => setSuchanaOpen(true)}
+            aria-label="Suchana — guidance for your path"
+            title="Suchana"
+            className="w-11 h-11 min-h-[44px] rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center text-xl border border-white/10 transition-colors"
+          >
+            🪔
+          </button>
+        </div>
+      </div>
+      {/* Secondary sub-tab navigation — only inside the Home tab */}
+      {activeTab === 'home' && (
+        <HomeSubTabBar current={subTab} onSelect={(t) => navigate(`/app/home/${t}`)} />
+      )}
+    </header>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-stone-50">
-      {/* Personal header — no org chrome whatsoever. */}
-      <header className="sticky top-0 z-40 bg-temple-950/95 backdrop-blur border-b border-amber-900/30">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xl shrink-0">
-              🪔
-            </div>
-            <div className="min-w-0">
-              <div className="text-white font-extrabold text-sm truncate">My Space</div>
-              <div className="text-amber-400/90 text-[11px] font-mono truncate">{sanId}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* 🪔 Suchana — the calm alternative to a notification bell */}
-            <button
-              type="button"
-              onClick={() => setSuchanaOpen(true)}
-              aria-label="Suchana — guidance for your path"
-              title="Suchana"
-              className="w-11 h-11 min-h-[44px] rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center text-xl border border-white/10 transition-colors"
-            >
-              🪔
-            </button>
-            <div className="relative">
-              <button
-                onClick={() => setSwitchOpen((v) => !v)}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 text-xs font-bold border border-white/10 min-h-[44px]"
-                aria-label="Switch workspace"
-              >
-                ⇄ Switch
-              </button>
-              {switchOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-stone-200 p-2 z-50">
-                  <div className="px-3 py-2 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                    {name}
-                  </div>
-                  <button
-                    onClick={() => setSwitchOpen(false)}
-                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800"
-                  >
-                    🪔 My Space <span className="text-stone-400 font-medium">(current)</span>
-                  </button>
-                  <button
-                    onClick={switchToOrg}
-                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-stone-700 hover:bg-stone-50"
-                  >
-                    🏛️ Organisation view
-                  </button>
-                  <button
-                    onClick={switchToPurohit}
-                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-stone-700 hover:bg-stone-50"
-                  >
-                    🕉️ Purohit Workspace
-                    {!purohitIdentity && <span className="text-stone-400 font-medium"> (not attached)</span>}
-                  </button>
-                  <button
-                    onClick={switchToJyotish}
-                    className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-stone-700 hover:bg-stone-50"
-                  >
-                    🔮 Jyotishi Workspace
-                    {!jyotishIdentity && <span className="text-stone-400 font-medium"> (not attached)</span>}
-                  </button>
-                  <div className="border-t border-stone-100 mt-1 pt-1">
-                    <button
-                      onClick={() => logout()}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Tab bar */}
-        <nav className="max-w-5xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap min-h-[44px] transition-colors ${
-                tab === t.id
-                  ? 'bg-amber-500 text-temple-950'
-                  : 'bg-white/10 text-amber-200/80 hover:bg-white/20'
-              }`}
-            >
-              {t.en}
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 py-5 pb-16">
-        <div className="flex justify-end mb-3">
-          <LocalOnlyBadge />
-        </div>
-        {tab === 'home' && <SoloHome goTab={setTab} />}
-        {tab === 'sangam' && <SangamView />}
-        {tab === 'sadhana' && <SadhanaTab />}
-        {tab === 'panchang' && <PanchangTab />}
-        {tab === 'panjika' && <PanjikaTab />}
-        {tab === 'saved' && <SavedTab />}
-        {tab === 'giving' && <GivingTab />}
-        {tab === 'jyotish' && <JyotishMarketplace />}
-        {tab === 'marketplace' && <ClientMarketplace />}
-        {tab === 'wallet' && <WalletTab />}
-        {tab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
-        {tab === 'profile' && <ProfileTab />}
-      </main>
+    <AppShell
+      activeTab={activeTab}
+      onTabChange={(t) => navigate(TAB_PATH[t])}
+      header={header}
+    >
+      <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
+        <LocalOnlyBadge />
+      </div>
+      <Routes>
+        <Route path="/app" element={<Navigate to="/app/home" replace />} />
+        <Route path="/app/home" element={<HomeTab />} />
+        <Route path="/app/home/:subTab" element={<HomeTab />} />
+        <Route path="/app/orgs" element={<OrgsTab />} />
+        <Route path="/app/org/:orgId" element={<OrgSwitchRoute />} />
+        <Route path="/app/suchana" element={<SuchanaPage />} />
+        <Route path="/app/profile" element={<ProfileTab />} />
+        {/* Any other path inside a solo session lands on the Solo home —
+            e.g. entering the solo session from the demo menu while at `/`. */}
+        <Route path="*" element={<Navigate to="/app/home" replace />} />
+      </Routes>
 
       {/* First-run onboarding tour for brand-new Solo users. */}
-      <SoloOnboardingTour onNavigate={(t) => setTab(t as SoloTab)} />
+      <SoloOnboardingTour onNavigate={(t) => navigate(`/app/home/${t}`)} />
 
       {/* 🪔 Full Suchana view — calm guidance feed */}
       <SuchanaFullModal
@@ -219,12 +119,15 @@ const InnerShell: React.FC = () => {
         role="solo"
         onAction={(route) => {
           setSuchanaOpen(false);
-          const soloTabs = ['panjika', 'sadhana', 'marketplace', 'sangam', 'wallet', 'samskara', 'panchang'];
-          if ((soloTabs as string[]).includes(route)) setTab(route as SoloTab);
-          else setTab('panjika');
+          const id = route as SoloTabId;
+          navigate(
+            (SOLO_TAB_IDS as readonly string[]).includes(id)
+              ? `/app/home/${id}`
+              : '/app/home/panjika'
+          );
         }}
       />
-    </div>
+    </AppShell>
   );
 };
 
@@ -235,7 +138,7 @@ export const SoloWorkspaceShell: React.FC = () => {
     <SoloProvider uid={uid}>
       <SoloStoreProvider uid={uid}>
         <PurohitProvider>
-          <InnerShell />
+          <SoloRouter />
         </PurohitProvider>
       </SoloStoreProvider>
     </SoloProvider>

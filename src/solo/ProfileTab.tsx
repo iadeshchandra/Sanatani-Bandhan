@@ -6,6 +6,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
+import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
+import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
 
 /* ProfileTab — the Sanatani ID card.
@@ -18,8 +20,10 @@ import { MySamskaras } from './MySamskaras';
 export const ProfileTab: React.FC = () => {
   const { profile, updateProfile } = useSolo();
   const { exportJSON, importJSON } = useSoloStore();
-  const { logout } = useAuthWorkspace();
+  const { logout, enterPurohitSession, enterJyotishSession } = useAuthWorkspace();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
+  const { identity: jyotishIdentity } = useMyJyotishIdentity();
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { tr } = useLocaleText();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -84,6 +88,30 @@ export const ProfileTab: React.FC = () => {
     r.readAsText(file);
   };
 
+  const openPurohitWorkspace = () => {
+    if (!purohitIdentity) {
+      showToast(
+        tr('solo.profile.noPurohit', 'No purohit identity attached yet — use “Become a Purohit” in My Space.', 'এখনও পুরোহিত পরিচয় সংযুক্ত হয়নি — “পুরোহিত হোন” ব্যবহার করুন।', 'अभी पुरोहित पहचान जुड़ी नहीं — “पुरोहित बनें” उपयोग करें।'),
+        'info'
+      );
+      return;
+    }
+    enterPurohitSession(purohitIdentity as any);
+    showToast(`Switched to Purohit Workspace (${purohitIdentity.id})`, 'success');
+  };
+
+  const openJyotishWorkspace = () => {
+    if (!jyotishIdentity) {
+      showToast(
+        tr('solo.profile.noJyotish', 'No jyotishi identity attached yet — use “Become a Jyotishi” in My Space.', 'এখনও জ্যোতিষী পরিচয় সংযুক্ত হয়নি।', 'अभी ज्योतिषी पहचान जुड़ी नहीं।'),
+        'info'
+      );
+      return;
+    }
+    enterJyotishSession(jyotishIdentity as any);
+    showToast(`Switched to Jyotishi Workspace (${jyotishIdentity.id})`, 'success');
+  };
+
   return (
     <div className="space-y-4">
       {/* ID card */}
@@ -131,6 +159,49 @@ export const ProfileTab: React.FC = () => {
         <p className="text-[11px] text-stone-400 mt-2">
           <T en="One account, many roles — your personal data never moves." bn="একটি অ্যাকাউন্ট, অনেক ভূমিকা — ব্যক্তিগত তথ্য কখনও সরবে না।" hi="एक खाता, अनेक भूमिकाएँ — आपका व्यक्तिगत डेटा कभी नहीं हटेगा।" />
         </p>
+      </Card>
+
+      {/* My Workspaces — session switching migrated from the old ⇄ Switch menu */}
+      <Card>
+        <h3 className="font-extrabold text-stone-900 mb-3">
+          <T en="My workspaces" bn="আমার কর্মক্ষেত্র" hi="मेरे कार्यक्षेत्र" />
+        </h3>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+            <span className="font-bold text-stone-700 min-w-0">
+              🕉️ <T en="Purohit Workspace" bn="পুরোহিত কর্মক্ষেত্র" hi="पुरोहित कार्यक्षेत्र" />
+              {!purohitIdentity && (
+                <span className="block text-[11px] font-medium text-stone-400">
+                  <T en="Not attached yet" bn="এখনও সংযুক্ত নয়" hi="अभी जुड़ा नहीं" />
+                </span>
+              )}
+            </span>
+            <Btn variant="ghost" onClick={openPurohitWorkspace} disabled={!purohitIdentity}>
+              <T en="Open" bn="খুলুন" hi="खोलें" />
+            </Btn>
+          </li>
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+            <span className="font-bold text-stone-700 min-w-0">
+              🔮 <T en="Jyotishi Workspace" bn="জ্যোতিষী কর্মক্ষেত্র" hi="ज्योतिषी कार्यक्षेत्र" />
+              {!jyotishIdentity && (
+                <span className="block text-[11px] font-medium text-stone-400">
+                  <T en="Not attached yet" bn="এখনও সংযুক্ত নয়" hi="अभी जुड़ा नहीं" />
+                </span>
+              )}
+            </span>
+            <Btn variant="ghost" onClick={openJyotishWorkspace} disabled={!jyotishIdentity}>
+              <T en="Open" bn="খুলুন" hi="खोलें" />
+            </Btn>
+          </li>
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+            <span className="font-bold text-stone-700 min-w-0">
+              🏛️ <T en="Organisation view" bn="সংগঠন দৃশ্য" hi="संगठन दृश्य" />
+            </span>
+            <Btn variant="ghost" onClick={() => navigate('/app/orgs')}>
+              <T en="My organisations" bn="আমার সংগঠন" hi="मेरे संगठन" />
+            </Btn>
+          </li>
+        </ul>
       </Card>
 
       {/* Edit details */}
