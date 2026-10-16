@@ -88,6 +88,8 @@ const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m =
 // Pillar 3: public org page — the temple's web presence + inbound funnel.
 // Supersedes the social-only OrgPage (follow/join actions live here now).
 const OrgPublicPage = lazy(() => import('./pages/OrgPublicPage').then(m => ({ default: m.OrgPublicPage })));
+// Seva Professional (Phase 1): unified purohit+jyotish public profile — /seva/pro/:uid.
+const UnifiedProfessionalProfile = lazy(() => import('./components/sevaPro/UnifiedProfessionalProfile').then(m => ({ default: m.UnifiedProfessionalProfile })));
 const FestivalEventPage = lazy(() => import('./components/festival/FestivalEventPage').then(m => ({ default: m.FestivalEventPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
@@ -1069,6 +1071,8 @@ const AppRouter: React.FC = () => {
           <Route path="/org/:orgId" element={<OrgPublicPage />} />
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
+          {/* Seva Professional (Phase 1): unified public profile, keyed by Firebase Auth uid. */}
+          <Route path="/seva/pro/:uid" element={<UnifiedProfessionalProfile />} />
           {/* Phase 2 dev preview: profile org hub with mock data.
               Dev-only, never renders in production builds. */}
           {import.meta.env.DEV && (
