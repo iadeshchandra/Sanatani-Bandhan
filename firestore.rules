@@ -1022,11 +1022,13 @@ service cloud.firestore {
           && request.resource.data.get('balance', -1) == 0
           && request.resource.data.get('totalToppedUp', -1) == 0
           && request.resource.data.get('totalSpent', -1) == 0)
-        || (isLoggedIn() && walletCreditCreateOk(uid));
+        || (isLoggedIn() && walletCreditCreateOk(uid))
+        || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
         || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
         || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
-        || (isLoggedIn() && walletCreditOk(uid));
+        || (isLoggedIn() && walletCreditOk(uid))
+        || (isLoggedIn() && referralWalletCreditOk(uid));
       allow delete: if false;
     }
     // Wallet transactions: append-only ledger. Clients record their own
@@ -1044,7 +1046,17 @@ service cloud.firestore {
           && request.resource.data.get('type', '') in ['receive', 'commission']
           && request.resource.data.get('orderId', '') != ''
           && (get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('clientUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('providerUid', '') == request.auth.uid));
+            || get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('providerUid', '') == request.auth.uid))
+        // Seva Pro Phase 4: referral guidance credit, anchored to the validated credit doc.
+        || (isLoggedIn()
+          && request.resource.data.get('type', '') == 'referral_credit'
+          && request.resource.data.get('uid', '') != ''
+          && request.resource.data.get('creditId', '') != ''
+          && request.resource.data.get('amount', 0) > 0
+          && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', '')))
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('referrerUid', '') == request.resource.data.get('uid', '')
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('status', '') == 'SETTLED'
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == request.resource.data.get('amount', 0));
       allow update, delete: if false;
     }
     // Top-up claims: user files (pending only); owner approves → credits
@@ -1361,13 +1373,15 @@ service cloud.firestore {
     function gigImmutableOk() {
       return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
         && request.resource.data.get('id', '') == resource.data.get('id', '')
-        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
+        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
     }
     match /gigs/{gigId} {
       allow read: if true;
       allow create: if isLoggedIn()
         && request.resource.data.get('devoteeUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'OPEN';
+        && request.resource.data.get('status', '') == 'OPEN'
+        && gigReferralAnchorOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && gigTransitionOk() && gigImmutableOk()
           && (isGigParty()
@@ -1527,13 +1541,15 @@ service cloud.firestore {
     function consultationImmutableOk() {
       return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
         && request.resource.data.get('id', '') == resource.data.get('id', '')
-        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0);
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
+        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
     }
     match /jyotishConsultations/{consultationId} {
       allow read: if true;
       allow create: if isLoggedIn()
         && request.resource.data.get('devoteeUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'OPEN';
+        && request.resource.data.get('status', '') == 'OPEN'
+        && consultationReferralAnchorOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
           && (isConsultationParty()
@@ -1558,6 +1574,32 @@ service cloud.firestore {
           && request.resource.data.get('senderUid', '') == request.auth.uid
           && request.resource.data.get('text', '') != '';
         allow update, delete: if false;
+      }
+
+      // --- remedies subcollection (Seva Pro Phase 4): the assigned jyotish
+      // prescribes; both parties read; the devotee flips PENDING ->
+      // BOOKED / DISMISSED. Drives the RemedyToRitual warm card.
+      match /remedies/{remedyId} {
+        function isRemedyParty() {
+          return (isLoggedIn()
+            && exists(/databases/$(database)/documents/jyotishConsultations/$(consultationId))
+            && (get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('devoteeUid', '') == request.auth.uid
+              || get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('assignedJyotishUid', '') == request.auth.uid));
+        }
+        allow read: if isRemedyParty() || isSuperAdmin();
+        allow create: if isRemedyParty()
+          && request.resource.data.get('jyotishUid', '') == request.auth.uid
+          && request.resource.data.get('consultationId', '') == consultationId
+          && request.resource.data.get('devoteeUid', '') == get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('devoteeUid', '')
+          && request.resource.data.get('ritualName', '') != ''
+          && request.resource.data.get('remedyText', '') != ''
+          && request.resource.data.get('status', '') == 'PENDING';
+        allow update: if isSuperAdmin()
+          || (isRemedyParty()
+            && resource.data.get('status', '') == 'PENDING'
+            && request.resource.data.get('status', '') in ['BOOKED', 'DISMISSED']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'bookedGigId']));
+        allow delete: if false;
       }
     }
 
@@ -1617,6 +1659,173 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    // ================= Seva Pro Phase 4 — referral pipeline =================
+    // Money rule: referral credit = min(referral% of seva value, platform
+    // commission). Never from the other provider's earnings. All amounts are
+    // integers; referral share is stored as integer basis points.
+
+    // --- referredBy anchoring on gig create (jyotish -> purohit) ---
+    function remedyAnchorOk() {
+      return exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', '')))
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('devoteeUid', '') == request.auth.uid
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('jyotishUid', '') == request.resource.data.get('referredBy', {}).get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('status', '') == 'PENDING';
+    }
+    function gigReferralAnchorOk() {
+      return !('referredBy' in request.resource.data)
+        || (request.resource.data.get('referredBy', {}).get('direction', '') == 'jyotish-to-purohit'
+          && request.resource.data.get('referredBy', {}).get('referrerUid', '') != ''
+          && request.resource.data.get('referredBy', {}).get('remedyId', '') != ''
+          && request.resource.data.get('referredBy', {}).get('consultationId', '') != ''
+          && request.resource.data.get('referredBy', {}).get('ritualName', '') != ''
+          && remedyAnchorOk());
+    }
+
+    // --- referredBy anchoring on consultation create (purohit -> jyotish) ---
+    function referralAnchorOk() {
+      return exists(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', '')))
+        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('fromKind', '') == 'purohit'
+        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('toKind', '') == 'jyotish'
+        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('fromUid', '') == request.resource.data.get('referredBy', {}).get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('devoteeUid', '') == request.auth.uid;
+    }
+    function consultationReferralAnchorOk() {
+      return !('referredBy' in request.resource.data)
+        || (request.resource.data.get('referredBy', {}).get('direction', '') == 'purohit-to-jyotish'
+          && request.resource.data.get('referredBy', {}).get('referrerUid', '') != ''
+          && request.resource.data.get('referredBy', {}).get('referralId', '') != ''
+          && referralAnchorOk());
+    }
+
+    // --- referralAttributions/{orderId} ---
+    function attributionGigOk() {
+      return request.resource.data.get('orderType', '') == 'gig'
+        && exists(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', '')))
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+    }
+    function attributionConsultationOk() {
+      return request.resource.data.get('orderType', '') == 'consultation'
+        && exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', '')))
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+    }
+    function attributionOrderOk() {
+      return attributionGigOk() || attributionConsultationOk();
+    }
+    function attributionTerminalOk() {
+      return (request.resource.data.get('orderType', '') == 'gig'
+          && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED')
+        || (request.resource.data.get('orderType', '') == 'consultation'
+          && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED');
+    }
+    // Only an order party may move the attribution (prevents griefing the
+    // settle flow by flipping OPEN -> SKIPPED_NO_VALUE from outside).
+    function attributionPartyOk() {
+      return (request.resource.data.get('orderType', '') == 'gig'
+          && (get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid))
+        || (request.resource.data.get('orderType', '') == 'consultation'
+          && (get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid));
+    }
+
+    // --- referralCredits/rc_{orderId} ---
+    function creditGigOk() {
+      return request.resource.data.get('orderType', '') == 'gig'
+        && exists(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', '')))
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED'
+        && (get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+          || get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid)
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+    }
+    function creditConsultationOk() {
+      return request.resource.data.get('orderType', '') == 'consultation'
+        && exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', '')))
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED'
+        && (get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+          || get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid)
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+    }
+    function creditOrderOk() {
+      return creditGigOk() || creditConsultationOk();
+    }
+    function gigSevaValue() {
+      return get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0) > 0
+        ? get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0)
+        : get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('budgetMax', 0);
+    }
+    function consultationSevaValue() {
+      return get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0) > 0
+        ? get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0)
+        : get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('budgetMax', 0);
+    }
+    function creditSevaValueOk() {
+      return (request.resource.data.get('orderType', '') == 'gig'
+          && request.resource.data.get('sevaValue', -1) == gigSevaValue())
+        || (request.resource.data.get('orderType', '') == 'consultation'
+          && request.resource.data.get('sevaValue', -1) == consultationSevaValue());
+    }
+    function creditRoundingOk() {
+      return request.resource.data.get('creditAmount', 0) * 10000 >= request.resource.data.get('sevaValue', 0) * request.resource.data.get('referralBps', 0) - 5000
+        && request.resource.data.get('creditAmount', 0) * 10000 <= request.resource.data.get('sevaValue', 0) * request.resource.data.get('referralBps', 0) + 5000;
+    }
+    function creditMathOk() {
+      return request.resource.data.get('referralBps', 0) > 0
+        && request.resource.data.get('referralBps', 0) <= 5000
+        && request.resource.data.get('creditAmount', 0) > 0
+        && request.resource.data.get('creditAmount', 0) <= request.resource.data.get('platformCommission', 0)
+        && request.resource.data.get('platformCommission', 0) <= request.resource.data.get('sevaValue', 0)
+        && creditSevaValueOk()
+        && creditRoundingOk();
+    }
+    function creditOrderParty() {
+      return (resource.data.get('orderType', '') == 'gig'
+          && (get(/databases/$(database)/documents/gigs/$(resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/gigs/$(resource.data.get('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid))
+        || (resource.data.get('orderType', '') == 'consultation'
+          && (get(/databases/$(database)/documents/jyotishConsultations/$(resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/jyotishConsultations/$(resource.data.get('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid));
+    }
+
+    // --- wallet credit anchored to a validated referral credit doc ---
+    // The delta is fully pinned to referralCredits/{id}: this operation can
+    // only ADD the validated amount to the referrer's balance, so no caller
+    // party check is needed (no exfiltration/inflation vector exists).
+    function referralCreditDocOk(uid) {
+      return request.resource.data.get('lastReferralCreditId', '') != ''
+        && request.resource.data.get('lastReferralCreditId', '') != resource.data.get('lastReferralCreditId', '')
+        && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', '')))
+        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('referrerUid', '') == uid
+        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('balance', -1) == resource.data.get('balance', 0) + get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+        && request.resource.data.get('totalReceived', -1) == resource.data.get('totalReceived', 0) + get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+        && request.resource.data.get('totalToppedUp', -1) == resource.data.get('totalToppedUp', 0)
+        && request.resource.data.get('totalSpent', -1) == resource.data.get('totalSpent', 0)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
+    }
+    function referralWalletCreditOk(uid) {
+      return referralCreditDocOk(uid);
+    }
+    function referralWalletCreditCreateOk(uid) {
+      return request.resource.data.get('lastReferralCreditId', '') != ''
+        && request.resource.data.get('uid', '') == uid
+        && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', '')))
+        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('referrerUid', '') == uid
+        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('balance', -1) == get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+        && request.resource.data.get('totalReceived', -1) == get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+        && request.resource.data.get('totalToppedUp', -1) == 0
+        && request.resource.data.get('totalSpent', -1) == 0;
+    }
+    // =============== end Seva Pro Phase 4 helpers ===============
+
+
     // --- jyotishReferrals: cross-referrals jyotish ↔ purohit. Public read
     // (they are trust signals); the referrer writes their own; the named
     // professional must carry a badge (non-REGISTERED tier pinned at write).
@@ -1630,6 +1839,56 @@ service cloud.firestore {
         && request.resource.data.get('reason', '') != '';
       allow update, delete: if isSuperAdmin();
     }
+
+
+    // --- referralAttributions/{orderId}: one row per referred order.
+    // Written once at order creation by the booking devotee; anchored to the
+    // order's pinned referredBy. Parties + owner read. Settle transition
+    // (OPEN -> SETTLED) only when the order is DAKSHINA_RELEASED.
+    match /referralAttributions/{orderId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn()
+          && (resource.data.get('devoteeUid', '') == request.auth.uid
+            || resource.data.get('referrerUid', '') == request.auth.uid));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orderId', '') == orderId
+        && request.resource.data.get('devoteeUid', '') == request.auth.uid
+        && request.resource.data.get('orderType', '') in ['gig', 'consultation']
+        && request.resource.data.get('status', '') == 'OPEN'
+        && request.resource.data.get('referrerUid', '') != ''
+        && attributionOrderOk();
+      allow update: if isSuperAdmin()
+        || (isLoggedIn()
+          && resource.data.get('status', '') == 'OPEN'
+          && request.resource.data.get('status', '') in ['SETTLED', 'SKIPPED_NO_VALUE']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'settledAt', 'creditId'])
+          && attributionTerminalOk()
+          && attributionPartyOk());
+      allow delete: if false;
+    }
+
+    // --- referralCredits/{creditId}: settled guidance credits.
+    // Deterministic id rc_{orderId}; create-once anchored to the completed
+    // order with exact integer math. Owner-only updates (fraud reversal);
+    // no deletes.
+    match /referralCredits/{creditId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('referrerUid', '') == request.auth.uid)
+        || (isLoggedIn() && creditOrderParty());
+      allow create: if isLoggedIn()
+        && creditId == 'rc_' + request.resource.data.get('orderId', '')
+        && request.resource.data.get('orderId', '') != ''
+        && request.resource.data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('direction', '') in ['jyotish-to-purohit', 'purohit-to-jyotish']
+        && creditOrderOk()
+        && creditMathOk();
+      allow update: if isSuperAdmin()
+        && resource.data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('status', '') == 'REVERSED'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reversedAt', 'reversalReason']);
+      allow delete: if false;
+    }
+
 
     // NOTE: no catch-all allow — default deny.
 
