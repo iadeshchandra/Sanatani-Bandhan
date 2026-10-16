@@ -222,16 +222,296 @@ const MOCK_THREADS: ChatThreadLive[] = [
   },
 ];
 
+/* ------------------------------------------------------------------ */
+/* Chat + P2P — DEV PREVIEW (mock data, never shipped)                 */
+/* Section via ?section=list|thread|cards|wallet|modal|qr|ledger|      */
+/* skeletons. Used for visual QA + screenshots only.                  */
+/* ------------------------------------------------------------------ */
+import MoneyRequestCard from '../chat/MoneyRequestCard';
+import { PersonalWallet } from '../chat/PersonalWallet';
+import RequestModal from '../chat/RequestModal';
+import RequestQR from '../chat/RequestQR';
+import { OrgRequestLedger } from '../chat/OrgRequestLedger';
+import {
+  ThreadListSkeleton,
+  MessageListSkeleton,
+  WalletEntriesSkeleton,
+  LedgerRowsSkeleton,
+} from '../chat/ChatSkeletons';
+import type { ChatMessage, MoneyRequest } from '../chat/types';
+
+const NOW = Date.now();
+const mockReq = (over: Partial<MoneyRequest> & { id: string }): MoneyRequest => ({
+  direction: 'user_to_user',
+  senderId: 'uidA',
+  senderName: 'Aarav Sharma',
+  receiverId: 'preview-self',
+  receiverName: 'Preview Devotee',
+  amount: 1500,
+  currency: 'BDT',
+  note: 'Dakshina for the Satyanarayan katha',
+  status: 'pending',
+  chatId: 'preview-self_uidA',
+  expiresAt: NOW + 36 * 3600 * 1000,
+  createdAt: NOW - 2 * 3600 * 1000,
+  updatedAt: NOW - 2 * 3600 * 1000,
+  ...over,
+});
+
+const PREVIEW_REQUESTS: Record<string, MoneyRequest> = {
+  'preview-req-1': mockReq({ id: 'preview-req-1' }),
+  'preview-req-accepted': mockReq({
+    id: 'preview-req-accepted',
+    senderId: 'preview-self',
+    senderName: 'Preview Devotee',
+    receiverId: 'uidB',
+    receiverName: 'Meera Banerjee',
+    amount: 2500,
+    currency: 'INR',
+    note: 'Prasad sponsorship for Janmashtami',
+    status: 'accepted',
+  }),
+  'preview-req-paid': mockReq({
+    id: 'preview-req-paid',
+    amount: 5000,
+    currency: 'BDT',
+    status: 'paid',
+    paidAt: NOW - 30 * 60 * 1000,
+    paidRef: 'TRX9HXK2M4P',
+    paidVia: 'bkash',
+    note: 'Goshala monthly contribution',
+  }),
+  'preview-req-settled': mockReq({
+    id: 'preview-req-settled',
+    amount: 750,
+    currency: 'INR',
+    status: 'settled',
+    paidAt: NOW - 86400000,
+    paidRef: 'UPI-882931',
+    paidVia: 'upi',
+    settledAt: NOW - 80000000,
+    note: 'Satsang hall booking share',
+  }),
+  'preview-req-declined': mockReq({
+    id: 'preview-req-declined',
+    amount: 2000,
+    status: 'declined',
+    note: 'Festival decoration fund',
+  }),
+  'preview-req-countered': mockReq({
+    id: 'preview-req-countered',
+    amount: 3000,
+    status: 'countered',
+    note: 'Yatra bus booking',
+  }),
+  'preview-req-cancelled': mockReq({
+    id: 'preview-req-cancelled',
+    amount: 1000,
+    status: 'cancelled',
+    note: 'Bhajan evening flowers',
+  }),
+  'preview-req-expired': mockReq({
+    id: 'preview-req-expired',
+    amount: 1200,
+    status: 'expired',
+    expiresAt: NOW - 3600000,
+    note: 'Diya oil for the mandir',
+  }),
+};
+
+const PREVIEW_MESSAGES: Record<string, ChatMessage[]> = {
+  'preview-self_uidA': [
+    {
+      id: 'm1',
+      chatId: 'preview-self_uidA',
+      senderId: 'uidA',
+      kind: 'text',
+      text: 'Namaste 🙏 — are you joining the katha tomorrow evening?',
+      createdAt: NOW - 86400000 - 7200000,
+    },
+    {
+      id: 'm2',
+      chatId: 'preview-self_uidA',
+      senderId: 'preview-self',
+      kind: 'text',
+      text: 'Namaste! Yes, I will be there with family. I was also thinking we should collect the dakshina beforehand this time, because last month we were counting well past midnight and the treasurer had to stay back — আগেরবার অনেক রাত হয়ে গিয়েছিল, এবার আগে থেকে গুছিয়ে নিলে ভালো হয়।',
+      createdAt: NOW - 5 * 3600000,
+    },
+    {
+      id: 'm3',
+      chatId: 'preview-self_uidA',
+      senderId: 'uidA',
+      kind: 'blessing',
+      text: '॥ शुभ दीपावली ॥',
+      blessingMeta: { occasion: 'deepavali', occasionBn: 'দীপাবলি', occasionHi: 'दीपावली' },
+      createdAt: NOW - 4 * 3600000,
+    },
+    {
+      id: 'm4',
+      chatId: 'preview-self_uidA',
+      senderId: 'preview-self',
+      kind: 'request_card',
+      text: 'Money request',
+      requestId: 'preview-req-1',
+      createdAt: NOW - 3 * 3600000,
+    },
+    {
+      id: 'm5',
+      chatId: 'preview-self_uidA',
+      senderId: 'uidA',
+      kind: 'text',
+      text: 'Received with gratitude 🙏 — accepting now.',
+      createdAt: NOW - 2 * 3600000,
+    },
+  ],
+};
+
+const PREVIEW_MY_REQUESTS: MoneyRequest[] = [
+  mockReq({ id: 'w1', status: 'pending', amount: 1500, note: 'Dakshina for the Satyanarayan katha' }),
+  mockReq({
+    id: 'w2',
+    senderId: 'preview-self',
+    senderName: 'Preview Devotee',
+    receiverId: 'uidB',
+    receiverName: 'Meera Banerjee with a very long name that should truncate gracefully',
+    amount: 2500,
+    currency: 'INR',
+    status: 'accepted',
+    note: 'Prasad sponsorship for Janmashtami celebrations at the community hall',
+  }),
+  mockReq({
+    id: 'w3',
+    amount: 5000,
+    status: 'paid',
+    paidAt: NOW - 30 * 60 * 1000,
+    paidRef: 'TRX9HXK2M4P',
+    paidVia: 'bkash',
+    note: 'Goshala monthly contribution',
+  }),
+  mockReq({
+    id: 'w4',
+    direction: 'org_to_user',
+    senderId: 'preview-org',
+    senderName: 'Kashi Vishwanath Trust',
+    senderTrusteeId: 'uidT',
+    senderTrusteeName: 'Pt. Ramesh Shastri',
+    orgId: 'preview-org',
+    orgName: 'Kashi Vishwanath Trust',
+    receiverId: 'preview-self',
+    receiverName: 'Preview Devotee',
+    amount: 11000,
+    currency: 'INR',
+    status: 'accepted',
+    note: 'Diwali volunteer honorarium',
+  }),
+  mockReq({
+    id: 'w5',
+    amount: 750,
+    currency: 'INR',
+    status: 'settled',
+    paidAt: NOW - 86400000,
+    settledAt: NOW - 80000000,
+    paidRef: 'UPI-882931',
+    paidVia: 'upi',
+    note: 'Satsang hall booking share',
+  }),
+  mockReq({ id: 'w6', amount: 2000, status: 'declined', note: 'Festival decoration fund' }),
+];
+
+const PREVIEW_ORG_REQUESTS: MoneyRequest[] = [
+  mockReq({
+    id: 'o1',
+    direction: 'org_to_user',
+    senderId: 'preview-org',
+    senderName: 'Kashi Vishwanath Trust',
+    senderTrusteeId: 'uidT',
+    senderTrusteeName: 'Pt. Ramesh Shastri',
+    orgId: 'preview-org',
+    orgName: 'Kashi Vishwanath Trust',
+    receiverId: 'uidV1',
+    receiverName: 'Volunteer Ananya',
+    amount: 11000,
+    currency: 'INR',
+    status: 'accepted',
+    note: 'Diwali volunteer honorarium',
+  }),
+  mockReq({
+    id: 'o2',
+    direction: 'user_to_org',
+    senderId: 'uidD1',
+    senderName: 'Devotee Harish',
+    receiverId: 'preview-org',
+    receiverName: 'Kashi Vishwanath Trust',
+    orgId: 'preview-org',
+    orgName: 'Kashi Vishwanath Trust',
+    amount: 51000,
+    currency: 'INR',
+    status: 'settled',
+    paidAt: NOW - 2 * 86400000,
+    settledAt: NOW - 2 * 86400000 + 3600000,
+    paidVia: 'upi',
+    paidRef: 'UPI-551200',
+    note: 'Annadanam sponsorship — Kartik month',
+  }),
+  mockReq({
+    id: 'o3',
+    direction: 'org_to_user',
+    senderId: 'preview-org',
+    senderName: 'Kashi Vishwanath Trust',
+    senderTrusteeId: 'uidT2',
+    senderTrusteeName: 'Smt. Lakshmi Devi',
+    orgId: 'preview-org',
+    orgName: 'Kashi Vishwanath Trust',
+    receiverId: 'uidV2',
+    receiverName: 'Supplier Gopal Traders',
+    amount: 25000,
+    currency: 'INR',
+    status: 'paid',
+    paidAt: NOW - 5 * 3600000,
+    paidVia: 'bank',
+    paidRef: 'NEFT-99821',
+    note: 'Diya oil — 500 litres for Deepavali',
+  }),
+];
+
+const CARD_ORDER = [
+  'preview-req-1',
+  'preview-req-accepted',
+  'preview-req-paid',
+  'preview-req-settled',
+  'preview-req-declined',
+  'preview-req-countered',
+  'preview-req-cancelled',
+  'preview-req-expired',
+];
+
 export const ChatPreview: React.FC = () => {
+  const section = new URLSearchParams(window.location.search).get('section') || 'list';
   const [openId, setOpenId] = React.useState<string | null>(null);
+
+  // Mock-data injection for visual QA. NOTE: this object is consumed ONLY
+  // when the temporary screenshot-harness patches are applied to
+  // useChat.ts (useChatMessages), p2pLedger.ts (fetchMyMoneyRequests,
+  // fetchOrgMoneyRequests) and p2pService.ts (subscribeRequest). Those
+  // patches are never pushed; without them the sections below simply show
+  // their real loading/empty/error states against the live backend.
+  (window as unknown as { __CHAT_PREVIEW__?: unknown }).__CHAT_PREVIEW__ = {
+    messages: PREVIEW_MESSAGES,
+    requestsById: PREVIEW_REQUESTS,
+    myRequests: PREVIEW_MY_REQUESTS,
+    orgRequests: PREVIEW_ORG_REQUESTS,
+  };
+
   const active = MOCK_THREADS.find((t) => t.id === openId) ?? null;
+
   return (
     <LanguageProvider>
       <div className="min-h-screen bg-[#faf7f2]">
         <p className="text-[11px] font-black uppercase tracking-widest text-stone-400 text-center pt-4">
-          DEV PREVIEW — Chat Phase 1 (mock data, never shipped)
+          DEV PREVIEW — Chat + P2P (mock data, never shipped) · section: {section}
         </p>
-        {!openId ? (
+
+        {section === 'list' && !openId && (
           <>
             <h2 className="text-center font-extrabold text-stone-800 mt-2 mb-3">
               <T en="Conversation list" bn="কথোপকথন তালিকা" hi="बातचीत सूची" />
@@ -254,9 +534,86 @@ export const ChatPreview: React.FC = () => {
               ))}
             </div>
           </>
-        ) : (
+        )}
+
+        {(section === 'list' && openId) || section === 'thread' ? (
           <div className="max-w-xl mx-auto h-[86vh] bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm mt-2">
-            <ChatThread uid="preview-self" chatId={openId} thread={active} onBack={() => setOpenId(null)} />
+            <ChatThread
+              uid="preview-self"
+              chatId={section === 'thread' ? 'preview-self_uidA' : openId!}
+              thread={section === 'thread' ? MOCK_THREADS[0] : active}
+              onBack={() => setOpenId(null)}
+            />
+          </div>
+        ) : null}
+
+        {section === 'cards' && (
+          <div className="max-w-xl mx-auto px-4 py-6 space-y-5">
+            {CARD_ORDER.map((id) => (
+              <div key={id}>
+                <p className="text-xs font-black uppercase tracking-widest text-stone-400 mb-1.5">
+                  {PREVIEW_REQUESTS[id].status}
+                </p>
+                <MoneyRequestCard request={PREVIEW_REQUESTS[id]} currentUid="preview-self" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {section === 'wallet' && (
+          <PersonalWallet uid="preview-self" isOpen={true} onClose={() => {}} />
+        )}
+
+        {section === 'modal' && (
+          <div className="min-h-[92vh]">
+            <RequestModal
+              open={true}
+              onClose={() => {}}
+              chatId="preview-self_uidA"
+              currentUser={{ uid: 'preview-self', displayName: 'Preview Devotee' }}
+              recipient={{ id: 'uidA', name: 'Aarav Sharma' }}
+            />
+          </div>
+        )}
+
+        {section === 'qr' && (
+          <div className="min-h-[92vh]">
+            <RequestQR request={PREVIEW_REQUESTS['preview-req-1']} open={true} onClose={() => {}} />
+          </div>
+        )}
+
+        {section === 'ledger' && (
+          <OrgRequestLedger
+            orgId="preview-org"
+            orgName="Kashi Vishwanath Trust"
+            role="trustee"
+            isOpen={true}
+            onClose={() => {}}
+          />
+        )}
+
+        {section === 'skeletons' && (
+          <div className="max-w-xl mx-auto px-4 py-6 space-y-8">
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-400 mb-2">Thread list</p>
+              <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden">
+                <ThreadListSkeleton rows={4} />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-400 mb-2">Messages</p>
+              <div className="bg-[#faf7f2] rounded-3xl border border-stone-200 overflow-hidden">
+                <MessageListSkeleton />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-400 mb-2">Wallet entries</p>
+              <WalletEntriesSkeleton rows={3} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-stone-400 mb-2">Ledger rows</p>
+              <LedgerRowsSkeleton rows={3} />
+            </div>
           </div>
         )}
       </div>
