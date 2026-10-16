@@ -7,10 +7,12 @@ import { AjkerSuchana } from './AjkerSuchana';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
 import { SuggestionCards } from './SuggestionCards';
-import { PersonalWallet } from '../chat/PersonalWallet';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
+import { Chat } from '../chat/Chat';
+import { useChatUnreadTotal } from '../chat/useChat';
+import type { ChatParticipant } from '../chat/types';
 
 /* SoloHome — the personal "My Space" dashboard.
  * =====================================================================
@@ -29,7 +31,15 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   const { tr } = useLocaleText();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const unreadTotal = useChatUnreadTotal(uid === 'anon' ? null : uid);
+  const selfInfo: ChatParticipant = {
+    uid,
+    displayName: profile?.displayName || tr('solo.sanatani', 'Sanatani', 'সনাতনী', 'सनातनी'),
+    photoUrl: ((firebaseUser as { photoURL?: string } | null)?.photoURL as string) || undefined,
+    sanataniId: profile?.id,
+    verificationTier: profile?.verificationTier,
+  };
 
   const panchangLine = useMemo(() => {
     try {
@@ -113,6 +123,52 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
       {/* Progressive discovery — Suchana suggests the next natural feature */}
       <SuggestionCards uid={uid} />
 
+      {/* Messages — chat entry (full-screen overlay, not a modal) */}
+      {uid !== 'anon' && (
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          className="w-full rounded-2xl bg-gradient-to-br from-amber-700 via-orange-700 to-amber-800 text-amber-50 p-4 flex items-center gap-4 text-left shadow-sm hover:shadow-md transition-shadow min-h-[76px]"
+        >
+          <div className="relative shrink-0">
+            <div className="text-3xl" aria-hidden>
+              💬
+            </div>
+            {unreadTotal > 0 && (
+              <span className="absolute -top-1.5 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-amber-200 text-amber-900 text-[11px] font-extrabold flex items-center justify-center shadow">
+                {unreadTotal > 99 ? '99+' : unreadTotal}
+              </span>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-extrabold">
+              <T en="Messages" bn="বার্তা" hi="संदेश" />
+            </div>
+            <div className="text-[11px] text-amber-200/80">
+              {unreadTotal > 0 ? (
+                <T
+                  en={`${unreadTotal} unread — your sangha is speaking`}
+                  bn={`${unreadTotal}টি অপঠিত — আপনার সংঘ কথা বলছে`}
+                  hi={`${unreadTotal} अपठित — आपका संघ बोल रहा है`}
+                />
+              ) : (
+                <T
+                  en="Calm conversations with verified Sanatanis"
+                  bn="যাচাইকৃত সনাতনীদের সঙ্গে শান্ত কথোপকথন"
+                  hi="सत्यापित सनातनियों के साथ शांत बातचीत"
+                />
+              )}
+            </div>
+          </div>
+          <div className="text-amber-200/70 text-xl" aria-hidden>
+            →
+          </div>
+        </button>
+      )}
+      {chatOpen && uid !== 'anon' && (
+        <Chat uid={uid} selfInfo={selfInfo} onClose={() => setChatOpen(false)} />
+      )}
+
       {/* Suchana + Guides entry row */}
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -154,30 +210,6 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         }}
       />
       <GuideCenter isOpen={guidesOpen} onClose={() => setGuidesOpen(false)} />
-
-      {/* My Wallet — private P2P obligation ledger (not an AppShell tab) */}
-      {uid !== 'anon' && (
-        <button
-          type="button"
-          onClick={() => setWalletOpen(true)}
-          className="w-full rounded-2xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800 text-white p-4 text-left shadow-sm min-h-[64px] hover:shadow-md transition-shadow"
-        >
-          <div className="text-2xl" aria-hidden>
-            🪙
-          </div>
-          <div className="text-sm font-extrabold mt-1">
-            <T en="My Wallet" bn="আমার ওয়ালেট" hi="मेरा वॉलेट" />
-          </div>
-          <div className="text-[11px] text-emerald-100/80">
-            <T
-              en="Private P2P obligations — only you can see"
-              bn="ব্যক্তিগত P2P হিসাব — শুধু আপনি দেখতে পাবেন"
-              hi="निजी P2P हिसाब — केवल आप देख सकते हैं"
-            />
-          </div>
-        </button>
-      )}
-      <PersonalWallet uid={uid} isOpen={walletOpen} onClose={() => setWalletOpen(false)} />
 
       {/* Sadhana at a glance */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

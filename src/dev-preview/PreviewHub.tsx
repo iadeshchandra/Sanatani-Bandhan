@@ -145,3 +145,121 @@ export const FestivalEventPreview: React.FC = () => (
     </div>
   </LanguageProvider>
 );
+
+/* ------------------------------------------------------------------ */
+/* Phase 1 chat foundation — DEV PREVIEW (mock data, never shipped)    */
+/* ------------------------------------------------------------------ */
+import { ChatList } from '../chat/ChatList';
+import { ChatThread } from '../chat/ChatThread';
+import { BlessingCard, BLESSING_OCCASIONS } from '../chat/BlessingCard';
+import { T } from '../solo/ui';
+import type { ChatParticipant } from '../chat/types';
+import type { ChatThreadLive } from '../chat/chatService';
+
+const MOCK_SELF: ChatParticipant = {
+  uid: 'preview-self',
+  displayName: 'Preview Devotee',
+  sanataniId: 'SAN-7K2Q9M',
+  verificationTier: 'VERIFIED',
+};
+
+const mockPerson = (uid: string, displayName: string, sanataniId: string, verified: boolean): ChatParticipant => ({
+  uid,
+  displayName,
+  sanataniId,
+  verificationTier: verified ? 'VERIFIED' : 'REGISTERED',
+});
+
+const MOCK_THREADS: ChatThreadLive[] = [
+  {
+    id: 'preview-self_uidA',
+    type: 'direct',
+    participants: ['preview-self', 'uidA'],
+    participantInfo: {
+      'preview-self': MOCK_SELF,
+      uidA: mockPerson('uidA', 'Aarav Sharma', 'SAN-3M8X2P', true),
+    },
+    lastMessage: 'Shubh Deepavali! 🪔',
+    lastMessageAt: Date.now() - 25 * 60 * 1000,
+    unreadCounts: { 'preview-self': 2, uidA: 0 },
+    lastReadAt: {},
+    typing: { uidA: true },
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 25 * 60 * 1000,
+  },
+  {
+    id: 'preview-self_uidB',
+    type: 'direct',
+    participants: ['preview-self', 'uidB'],
+    participantInfo: {
+      'preview-self': MOCK_SELF,
+      uidB: mockPerson('uidB', 'Meera Banerjee', 'SAN-9Q4W7Z', true),
+    },
+    lastMessage: 'The Ekadashi checklist helped a lot, dhanyavaad 🙏',
+    lastMessageAt: Date.now() - 2 * 86400000,
+    unreadCounts: { 'preview-self': 0, uidB: 0 },
+    lastReadAt: { uidB: Date.now() - 86400000 },
+    typing: {},
+    createdAt: Date.now() - 5 * 86400000,
+    updatedAt: Date.now() - 2 * 86400000,
+  },
+  {
+    id: 'org_org9_preview-self',
+    type: 'org',
+    participants: ['preview-self', 'org9'],
+    participantInfo: {
+      'preview-self': MOCK_SELF,
+      org9: { uid: 'org9', displayName: 'Kashi Vishwanath Trust', orgId: 'org9', verificationTier: 'VERIFIED' },
+    },
+    lastMessage: 'Diwali volunteer roster is open — reply to join',
+    lastMessageAt: Date.now() - 8 * 86400000,
+    unreadCounts: { 'preview-self': 0, org9: 0 },
+    lastReadAt: {},
+    typing: {},
+    createdAt: Date.now() - 12 * 86400000,
+    updatedAt: Date.now() - 8 * 86400000,
+    archivedBy: ['preview-self'],
+  },
+];
+
+export const ChatPreview: React.FC = () => {
+  const [openId, setOpenId] = React.useState<string | null>(null);
+  const active = MOCK_THREADS.find((t) => t.id === openId) ?? null;
+  return (
+    <LanguageProvider>
+      <div className="min-h-screen bg-[#faf7f2]">
+        <p className="text-[11px] font-black uppercase tracking-widest text-stone-400 text-center pt-4">
+          DEV PREVIEW — Chat Phase 1 (mock data, never shipped)
+        </p>
+        {!openId ? (
+          <>
+            <h2 className="text-center font-extrabold text-stone-800 mt-2 mb-3">
+              <T en="Conversation list" bn="কথোপকথন তালিকা" hi="बातचीत सूची" />
+            </h2>
+            <div className="max-w-xl mx-auto h-[62vh] bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
+              <ChatList
+                uid="preview-self"
+                threads={MOCK_THREADS}
+                loading={false}
+                selfInfo={MOCK_SELF}
+                onOpen={(id) => setOpenId(id)}
+              />
+            </div>
+            <h2 className="text-center font-extrabold text-stone-800 mt-8 mb-3">
+              <T en="Blessing cards" bn="আশীর্বাদ কার্ড" hi="आशीर्वाद कार्ड" />
+            </h2>
+            <div className="max-w-xl mx-auto grid grid-cols-2 gap-3 px-4 pb-10">
+              {BLESSING_OCCASIONS.map((b) => (
+                <BlessingCard key={b.key} occasion={b.key} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="max-w-xl mx-auto h-[86vh] bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm mt-2">
+            <ChatThread uid="preview-self" chatId={openId} thread={active} onBack={() => setOpenId(null)} />
+          </div>
+        )}
+      </div>
+    </LanguageProvider>
+  );
+};

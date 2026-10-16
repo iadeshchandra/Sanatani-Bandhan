@@ -15,7 +15,7 @@ import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { OrgSpaceShell } from './components/shell/OrgSpaceShell';
-import { ProfileOrgHubPreview, JoinOrgScreenPreview, FestivalEventPreview } from './dev-preview/PreviewHub';
+import { ProfileOrgHubPreview, JoinOrgScreenPreview, FestivalEventPreview, ChatPreview } from './dev-preview/PreviewHub';
 import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
@@ -1079,6 +1079,9 @@ const AppRouter: React.FC = () => {
           )}
           {import.meta.env.DEV && (
             <Route path="/dev-preview/festival" element={<FestivalEventPreview />} />
+          )}
+          {import.meta.env.DEV && (
+            <Route path="/dev-preview/chat" element={<ChatPreview />} />
           )}
           {/* Solo-first progressive flow: an already-authenticated Solo user
               registers their organisation here (the "Grow with Sanatani
