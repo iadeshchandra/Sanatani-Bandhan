@@ -166,23 +166,26 @@ service cloud.firestore {
     // slotBooked.<slot> upward by a small sane amount (≤20, one slot per
     // write). Everything else on the doc stays trustee-only.
     function slotBookedSane(oldM, newM) {
-      let d = newM.diff(oldM);
-      if (d.addedKeys().size() != 0 || d.removedKeys().size() != 0) return false;
-      let ck = d.changedKeys();
-      if (ck.size() > 1) return false;
-      if (ck.size() == 0) return true;
-      let k = ck[0];
-      let ov = oldM.get(k, 0);
-      let nv = newM.get(k, 0);
-      return (ov is number) && (nv is number) && nv >= ov && nv <= ov + 20;
+      return newM.diff(oldM).addedKeys().size() == 0
+          && newM.diff(oldM).removedKeys().size() == 0
+          && newM.diff(oldM).changedKeys().size() <= 1
+          && (
+            newM.diff(oldM).changedKeys().size() == 0
+            || (
+              (oldM.get(newM.diff(oldM).changedKeys()[0], 0) is number)
+              && (newM.get(newM.diff(oldM).changedKeys()[0], 0) is number)
+              && newM.get(newM.diff(oldM).changedKeys()[0], 0) >= oldM.get(newM.diff(oldM).changedKeys()[0], 0)
+              && newM.get(newM.diff(oldM).changedKeys()[0], 0) <= oldM.get(newM.diff(oldM).changedKeys()[0], 0) + 20
+            )
+          );
     }
     function publicCounterBump() {
-      let oldHc = resource.data.get('rsvpHeadcount', 0);
-      let newHc = request.resource.data.get('rsvpHeadcount', 0);
       return request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['rsvpHeadcount', 'slotBooked', 'updatedAt'])
-        && (oldHc is number) && (newHc is number)
-        && newHc >= oldHc && newHc <= oldHc + 20
+        && (resource.data.get('rsvpHeadcount', 0) is number)
+        && (request.resource.data.get('rsvpHeadcount', 0) is number)
+        && request.resource.data.get('rsvpHeadcount', 0) >= resource.data.get('rsvpHeadcount', 0)
+        && request.resource.data.get('rsvpHeadcount', 0) <= resource.data.get('rsvpHeadcount', 0) + 20
         && slotBookedSane(resource.data.get('slotBooked', {}),
                            request.resource.data.get('slotBooked', {}));
     }
