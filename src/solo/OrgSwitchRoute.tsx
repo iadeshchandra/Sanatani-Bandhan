@@ -5,10 +5,11 @@ import { useToast } from '../context/ToastContext';
 
 /* OrgSwitchRoute — /app/org/:orgId.
  * =====================================================================
- * Phase 1: no placeholder "coming soon" — this route runs the EXISTING
- * exitSoloSession() + switchWorkspace() flow so the org space opens in
- * the normal org session (AppContent). Phase 2 will render the full
- * org space inline in the shell instead.
+ * Runs the exitSoloSession() + switchWorkspace() flow so the org opens
+ * in the normal org session. Phase 2 renders the full org space chrome
+ * (OrgSpaceShell: back button, "Viewing as [Role]" pill, breadcrumb,
+ * per-org RBAC) around AppContent via AppContentRouter — no placeholder
+ * "coming soon" here.
  */
 export const OrgSwitchRoute: React.FC = () => {
   const { orgId } = useParams<{ orgId: string }>();
