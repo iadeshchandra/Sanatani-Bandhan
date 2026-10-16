@@ -36,7 +36,7 @@ import {
   ChevronUp,
   Clock,
 } from 'lucide-react';
-import { firestoreAdmin } from '../../../lib/firestoreAdmin';
+import { firestoreAdmin, type NativeResult } from '../../../lib/firestoreAdmin';
 import { useToast } from '../../../context/ToastContext';
 import { professionalsAdmin, type PendingApplication, type ProfessionalKind, type ProfessionalSummary } from '../../../lib/sevaPro/professionalsAdmin';
 import {
@@ -44,7 +44,7 @@ import {
   type PrathamSevaConfig, type CommissionScheduleBracket,
 } from '../../../lib/sevaPro/prathamSeva';
 import { tierBadge, TIER_ORDER, type SevaProTier } from '../../../lib/sevaPro/tiers';
-import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../lib/sevaPro/sevaProCopy';
+import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../lib/sevaPro/copy';
 
 
 /* ---------- local shared primitives (match AdminTabsC/G pattern) ---------- */
@@ -121,11 +121,11 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
     setLoadError('');
     try {
       const [t, p, d, c, x] = await Promise.all([
-        firestoreAdmin.topupQueue('pending').catch(() => ({ ok: false })),
-        firestoreAdmin.payoutQueue('all').catch(() => ({ ok: false })),
-        firestoreAdmin.duesList('pending').catch(() => ({ ok: false })),
-        firestoreAdmin.paymentClaims('pending').catch(() => ({ ok: false })),
-        firestoreAdmin.marketplaceTransactions('all', 200).catch(() => ({ ok: false })),
+        firestoreAdmin.topupQueue('pending').catch((): NativeResult => ({ ok: false })),
+        firestoreAdmin.payoutQueue('all').catch((): NativeResult => ({ ok: false })),
+        firestoreAdmin.duesList('pending').catch((): NativeResult => ({ ok: false })),
+        firestoreAdmin.paymentClaims('pending').catch((): NativeResult => ({ ok: false })),
+        firestoreAdmin.marketplaceTransactions('all', 200).catch((): NativeResult => ({ ok: false })),
       ]);
       if (t.ok) setTopups((t.data as any)?.claims || []);
       if (p.ok) setPayouts((p.data as any)?.payouts || []);

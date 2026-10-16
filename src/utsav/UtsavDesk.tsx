@@ -31,15 +31,15 @@ import './print.css';
 /* ------------------------------------------------------------------ */
 
 const TABS = [
-  { id: 'warroom' },
-  { id: 'dashboard' },
-  { id: 'festivals' },
-  { id: 'budget' },
-  { id: 'committee' },
-  { id: 'vendors' },
-  { id: 'program' },
-  { id: 'safety' },
-  { id: 'reports' },
+  { id: 'warroom', bn: 'ওয়ার রুম', en: 'War Room', hi: 'वार रूम' },
+  { id: 'dashboard', bn: 'ড্যাশবোর্ড', en: 'Dashboard', hi: 'डैशबोर्ड' },
+  { id: 'festivals', bn: 'উৎসবসমূহ', en: 'Festivals', hi: 'उत्सव' },
+  { id: 'budget', bn: 'বাজেট', en: 'Budget', hi: 'बजट' },
+  { id: 'committee', bn: 'কমিটি', en: 'Committee', hi: 'समिति' },
+  { id: 'vendors', bn: 'সরবরাহকারী', en: 'Vendors', hi: 'विक्रेता' },
+  { id: 'program', bn: 'অনুষ্ঠানসূচি', en: 'Program', hi: 'कार्यक्रम' },
+  { id: 'safety', bn: 'নিরাপত্তা', en: 'Safety', hi: 'सुरक्षा' },
+  { id: 'reports', bn: 'প্রতিবেদন', en: 'Reports', hi: 'रिपोर्ट' },
 ];
 
 const UtsavInner: React.FC = () => {
