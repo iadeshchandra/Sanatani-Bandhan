@@ -1,0 +1,68 @@
+/**
+ * Sanatani Bandhan — Firebase Storage security rules (Pillar 1: org logos)
+ *
+ * The repo does not deploy Storage rules via CI (no storage section in
+ * firebase.json and GitHub App writes are blocked under .github/), so the
+ * OWNER pastes this file's rules into the Firebase console:
+ *   Build → Storage → Rules tab → paste → Publish.
+ *
+ * What it does:
+ *   - `orgLogos/{orgId}/logo.{ext}` is PUBLICLY READABLE — org branding is
+ *     shown on public org pages, shared receipts and the devotee portal.
+ *   - WRITES are restricted to that org's Trustees/SuperAdmins (checked via
+ *     the `workspaceMembers/{orgId}_{uid}` edge doc, same source the
+ *     Firestore rules use) plus the platform owner.
+ *   - Defense in depth: 2 MB size cap + png/jpeg/webp content-type check,
+ *     mirroring the client-side validation in src/lib/orgBranding.ts.
+ *     (The client crops to a 512px square before upload.)
+ */
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // --- helpers ---------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function memberRole(orgId) {
+      return firestore.get(
+        /databases/(default)/documents/workspaceMembers/$(orgId + '_' + request.auth.uid)
+      ).data.get('role', '');
+    }
+
+    // Trustee of THIS org (or platform owner / SuperAdmin edge role).
+    function isOrgTrustee(orgId) {
+      return isSignedIn() && (
+        request.auth.uid == 'sxIGHmvpYUTqPnpI1bLFT1O1cA62'
+        || (firestore.exists(
+              /databases/(default)/documents/workspaceMembers/$(orgId + '_' + request.auth.uid)
+            )
+            && memberRole(orgId) in ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+      );
+    }
+
+    function isLogoUpload() {
+      return request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+
+    // --- Pillar 1: org logos ---------------------------------------------
+    match /orgLogos/{orgId}/logo.{ext} {
+      // Public branding: readable by everyone (org pages, receipts).
+      allow read: if true;
+      // Only the org's trustees may (re)write its logo.
+      allow write: if isOrgTrustee(orgId)
+        && isLogoUpload()
+        && ext in ['png', 'jpg', 'jpeg', 'webp'];
+      allow delete: if isOrgTrustee(orgId);
+    }
+
+    // --- default deny -----------------------------------------------------
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
