@@ -7,6 +7,7 @@ import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
 import { InstallPrompt } from './components/common/InstallPrompt';
+import { UpdatePrompt } from './components/pwa/UpdatePrompt';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { DeskErrorBoundary } from './components/common/DeskErrorBoundary';
 import { AppInitializer } from './context/AppInitializer';
@@ -1098,6 +1099,7 @@ export default function App() {
                       <AppRouter />
                       <GlobalSOSListener />
                       <InstallPrompt />
+                      <UpdatePrompt />
                     </QuickGuideProvider>
                   </MembershipProvider>
                 </DataProvider>

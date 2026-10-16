@@ -10,6 +10,7 @@ import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity
 import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
+import { APP_VERSION, APP_BUILD_SHA } from '../lib/appVersion';
 import { ProfileOrgHub } from './ProfileOrgHub';
 
 /* ProfileTab — the Sanatani ID card.
@@ -291,6 +292,10 @@ export const ProfileTab: React.FC = () => {
             <T en="Sign out" bn="সাইন আউট" hi="साइन आउट" />
           </Btn>
         </div>
+        {/* App version — lets support instantly tell if a user is on stale code */}
+        <p className="mt-3 text-[11px] text-stone-400 select-all">
+          {APP_VERSION}{APP_BUILD_SHA && APP_BUILD_SHA !== 'nogit' ? ` · ${APP_BUILD_SHA}` : ''}
+        </p>
       </Card>
     </div>
   );
