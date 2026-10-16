@@ -94,7 +94,20 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
+  /* Pillar 5 — display serif for sacred headlines.
+     System serif stack only: offline-safe, zero webfont downloads. */
+  .font-display {
+    font-family: ui-serif, Georgia, 'Times New Roman', 'Noto Serif',
+      'Noto Serif Devanagari', 'Noto Serif Bengali', 'Kokila', serif;
+  }
+
+  /* Pillar 5 — tabular numerals: amounts, counts and IDs stop jittering. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;

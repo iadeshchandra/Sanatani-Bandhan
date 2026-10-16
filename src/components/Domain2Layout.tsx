@@ -23,10 +23,12 @@ import { MandirCampaignsDesk } from './domain2/MandirCampaignsDesk';
 import { RatnaBhandarAssetDesk } from './domain2/RatnaBhandarAssetDesk';
 import { AssetInventoryDesk } from './domain2/AssetInventoryDesk';
 import { KarmaLedgerDesk } from './domain2/KarmaLedgerDesk';
+import { AuditTrailView } from './treasury/AuditTrailDesk';
+import { T } from '../solo/ui';
 
 export interface SubTab {
   id: string;
-  label: string;
+  label: React.ReactNode;
   icon: React.ComponentType<{ className?: string }>;
 }
 
@@ -34,6 +36,7 @@ export const SUB_TABS: SubTab[] = [
   { id: 'blind-audit', label: 'Blind Hundi Audit', icon: EyeOff },
   { id: '80g-studio', label: 'Live 80G Studio', icon: FileText },
   { id: 'treasury', label: 'Treasury Ledger', icon: Landmark },
+  { id: 'audit-trail', label: <T en="Audit Trail" bn="অডিট ট্রেইল" hi="ऑडिट ट्रेल" />, icon: ShieldCheck },
   { id: 'tally', label: 'Tally XML Export', icon: FileCode2 },
   { id: 'tax-receipt', label: '80G Tax Receipts', icon: Receipt },
   { id: 'hundi-audit', label: 'Hundi Counting Audit', icon: ShieldCheck },
@@ -59,7 +62,7 @@ export const Domain2Layout: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 isActive
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -84,6 +87,8 @@ export const Domain2Layout: React.FC = () => {
               return <TallyExportDesk />;
             case 'treasury':
               return <TreasuryLedgerDesk />;
+            case 'audit-trail':
+              return <AuditTrailView />;
             case 'tax-receipt':
               return <TaxReceiptDesk />;
             case 'hundi-audit':

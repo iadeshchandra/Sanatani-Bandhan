@@ -73,6 +73,30 @@
   to   { transform: translateX(100%); }
 }
 
+/* Tab switch — a touch calmer than a desk switch (flow, not pop). */
+@keyframes sb-tab-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Org-space entry — the whole shell glides in from the right, once. */
+@keyframes sb-org-enter {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Blessing moment — slow, reverent scale-in for the Dhanyavaad card. */
+@keyframes sb-blessing-in {
+  from { opacity: 0; transform: scale(0.94) translateY(14px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Diya flame — barely-there breathing, transform + opacity only. */
+@keyframes sb-diya {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.06); opacity: 0.92; }
+}
+
 /* ------------------------------------------------------------------ */
 /* Utility classes                                                     */
 /* ------------------------------------------------------------------ */
@@ -95,8 +119,21 @@
 /* Ambient float for sacred-vibe moments (landing diya, hero mandala). */
 .anim-float { animation: sb-float 7s ease-in-out infinite; }
 
-/* Press feedback for primary CTAs — transform-only, 120ms. */
-.pressable { transition: transform 120ms ease-out; }
+/* Pillar 5 — tab content transitions (Solo shell, keyed by route). */
+.anim-tab-in { animation: sb-tab-in 240ms var(--sb-ease) both; }
+
+/* Pillar 5 — org space entry slide (OrgSpaceShell mounts once). */
+.anim-org-enter { animation: sb-org-enter 380ms var(--sb-ease) both; }
+
+/* Pillar 5 — blessing card entrance. */
+.anim-blessing-in { animation: sb-blessing-in 560ms var(--sb-ease) both; }
+
+/* Pillar 5 — diya breathing for blessing moments. */
+.anim-diya { animation: sb-diya 3.2s ease-in-out infinite; transform-origin: center; }
+
+/* Press feedback for primary CTAs — transform-only, 120ms.
+   Keeps colour transitions alive so hover states still fade. */
+.pressable { transition: transform 120ms ease-out, background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out; }
 .pressable:active { transform: scale(0.97); }
 
 /* Skeleton shimmer — replaces animate-pulse where a sweep reads better. */
@@ -161,6 +198,7 @@ aside ul.space-y-1 > li:nth-child(n+8) { animation-delay: 210ms; }
     scroll-behavior: auto !important;
   }
   .anim-float,
+  .anim-diya,
   .anim-skeleton::after {
     animation: none !important;
   }

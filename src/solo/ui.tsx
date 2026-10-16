@@ -53,7 +53,7 @@ export const Stat: React.FC<{ label: React.ReactNode; value: React.ReactNode; su
   return (
     <div className={`rounded-2xl border p-3 sm:p-4 ${tones[tone]}`}>
       <div className="text-xs font-semibold opacity-70">{label}</div>
-      <div className="text-xl sm:text-2xl font-extrabold mt-1">{value}</div>
+      <div className="text-xl sm:text-2xl font-extrabold mt-1 tnum">{value}</div>
       {sub && <div className="text-xs mt-1 opacity-75">{sub}</div>}
     </div>
   );
@@ -73,7 +73,7 @@ export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { var
   return (
     <button
       {...rest}
-      className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors min-h-[44px] ${styles} ${className}`}
+      className={`pressable rounded-xl px-4 py-2 text-sm font-bold transition-colors min-h-[44px] ${styles} ${className}`}
     />
   );
 };
