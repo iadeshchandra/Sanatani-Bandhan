@@ -142,8 +142,26 @@ export interface PurohitApplication {
   reviewedAt?: number;
 }
 
-/** Marketplace gig status machine (workflow-level escrow — see header note). */
-export type GigStatus =
+/**
+ * Seva Pro Phase 4 — attribution pinned on a gig at creation when the
+ * booking came from a jyotish's remedy prescription. Immutable afterwards
+ * (see firestore.rules: gigImmutableOk). Rules also anchor it to a real,
+ * PENDING remedy doc naming this devotee + jyotish.
+ */
+export interface GigReferralAttribution {
+  direction: 'jyotish-to-purohit';
+  referrerUid: string;
+  referrerName: string;
+  referrerRoleId: string;
+  consultationId: string;
+  remedyId: string;
+  remedyText: string;
+  ritualName: string;
+  suggestedMuhurat?: string;
+  createdAt: number;
+}
+
+/** Marketplace gig status machine (workflow-level escrow — see header note). */export type GigStatus =
   | 'OPEN'
   | 'ASSIGNED'
   | 'IN_PROGRESS'
@@ -177,12 +195,13 @@ export interface RitualGig {
   assignedPurohitUid?: string;
   assignedPurohitName?: string;
   dakshinaAgreed?: number;
+  /** Seva Pro Phase 4: pinned at creation, immutable after (rules). */
+  referredBy?: GigReferralAttribution;
   createdAt: number;
   updatedAt: number;
 }
 
-export interface GigReview {
-  id: string;
+export interface GigReview {  id: string;
   gigId: string;
   reviewerUid: string;
   reviewerKind: 'devotee' | 'purohit';

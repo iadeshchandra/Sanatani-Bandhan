@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { GigStatus } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, GhostButton, GigStatusBadge, EmptyState } from '../ui';
+import { ReferToJyotish } from '../../sevaPro/ReferToJyotish';
 import { useLanguage } from '../../../context/LanguageContext';
 
 const getNextAction = (t: (k: string) => string): Partial<Record<GigStatus, { next: GigStatus; label: string }>> => ({
@@ -124,6 +125,10 @@ export const MyGigsTab: React.FC = () => {
                     {ratingFor === g.id ? t('purohit.gigs.close') : t('purohit.gigs.rateDevotee')}
                   </GhostButton>
                 )}
+              </div>
+              {/* Seva Pro Phase 4 — purohit → jyotish referral, during/after the puja */}
+              <div className="mt-2">
+                <ReferToJyotish gig={g} compact />
               </div>
 
               {ratingFor === g.id && (

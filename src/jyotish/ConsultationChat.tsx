@@ -10,7 +10,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { Consultation } from '../types/jyotish';
-
+import { PrescribeRemedy } from '../components/sevaPro/PrescribeRemedy';
+import { RemedyToRitual } from '../components/sevaPro/RemedyToRitual';
 export const ConsultationChat: React.FC<{ consultation: Consultation }> = ({ consultation }) => {
   const { firebaseUser } = useAuthWorkspace();
   const { sendMessage } = useJyotish();
@@ -44,8 +45,9 @@ export const ConsultationChat: React.FC<{ consultation: Consultation }> = ({ con
       <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2">
         💬 Consultation chat — {consultation.devoteeName} ⇄ {consultation.assignedJyotishName || 'Jyotishi'}
       </div>
-      <div className="max-h-64 overflow-y-auto space-y-2 mb-3 pr-1">
-        {messages.length === 0 && (
+      {/* Seva Pro Phase 4 — devotee sees prescribed remedies as warm booking cards */}
+      <RemedyToRitual consultation={consultation} />
+      <div className="max-h-64 overflow-y-auto space-y-2 mb-3 pr-1">        {messages.length === 0 && (
           <p className="text-xs text-stone-400 text-center py-4">
             No messages yet. Say namaste and agree on the consultation details.
           </p>
@@ -84,6 +86,10 @@ export const ConsultationChat: React.FC<{ consultation: Consultation }> = ({ con
           Send
         </button>
       </form>
+      {/* Seva Pro Phase 4 — jyotish prescribes a sacred remedy (self-gated) */}
+      <div className="mt-2 flex justify-end">
+        <PrescribeRemedy consultation={consultation} />
+      </div>
     </div>
   );
 };

@@ -44,6 +44,9 @@ import { db } from '../firebase';
 import { useAuthWorkspace } from './AuthWorkspaceContext';
 import { useToast } from './ToastContext';
 import {
+  DEFAULT_PLATFORM_COMMISSION_PERCENT,
+  settleReferralCredit,
+} from '../lib/sevaPro/referrals';import {
   Consultation,
   ConsultationMessage,
   ConsultationReview,
@@ -397,8 +400,20 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       if (!allowed[c.status].includes(next)) throw new Error(`Cannot move ${c.status} → ${next}`);
       await updateDoc(doc(db, 'jyotishConsultations', c.id), { status: next, updatedAt: now() });
-      if (next === 'COMPLETED' && profile) {
+      if (next === 'DAKSHINA_RELEASED' && (c as Consultation).referredBy) {
+        // Seva Pro Phase 4: settle the referrer's guidance credit. Best-effort —
+        // rules re-validate everything against the completed consultation.
         try {
+          await settleReferralCredit({
+            orderId: c.id,
+            orderType: 'consultation',
+            platformCommissionPercent: DEFAULT_PLATFORM_COMMISSION_PERCENT,
+          });
+        } catch {
+          /* settlement is retryable from the referral dashboard */
+        }
+      }
+      if (next === 'COMPLETED' && profile) {        try {
           await updateDoc(doc(db, 'jyotishProfiles', profile.id), {
             completedConsultations: (profile.completedConsultations || 0) + 1,
             updatedAt: now(),

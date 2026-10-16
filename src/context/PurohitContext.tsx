@@ -37,6 +37,9 @@ import { db } from '../firebase';
 import { useAuthWorkspace } from './AuthWorkspaceContext';
 import { useToast } from './ToastContext';
 import {
+  DEFAULT_PLATFORM_COMMISSION_PERCENT,
+  settleReferralCredit,
+} from '../lib/sevaPro/referrals';import {
   GigReview,
   GigStatus,
   PurohitApplication,
@@ -94,6 +97,16 @@ interface PurohitContextType {
   advanceGig: (gig: RitualGig, next: GigStatus) => Promise<void>;
   cancelGig: (gig: RitualGig) => Promise<void>;
 
+  // Seva Pro Phase 4 — purohit → jyotish referrals (remedy → ritual pipeline).
+  referJyotish: (args: {
+    toRoleId: string;
+    toName: string;
+    toTier: import('../types/jyotish').JyotishVerificationTier;
+    reason: string;
+    gigId?: string;
+    devoteeUid?: string;
+    devoteeName?: string;
+  }) => Promise<void>;
   // Reviews
   reviewsForPurohit: (purohitId: string) => Promise<GigReview[]>;
   myReceivedReviews: GigReview[];
@@ -413,7 +426,19 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!allowed[gig.status].includes(next)) throw new Error(`Cannot move ${gig.status} → ${next}`);
       const updates: any = { status: next, updatedAt: now() };
       await updateDoc(doc(db, 'gigs', gig.id), updates);
-      if (next === 'COMPLETED' && profile) {
+      if (next === 'DAKSHINA_RELEASED' && (gig as RitualGig).referredBy) {
+        // Seva Pro Phase 4: settle the referrer's guidance credit. Best-effort —
+        // rules re-validate everything against the completed gig; retryable later.
+        try {
+          await settleReferralCredit({
+            orderId: gig.id,
+            orderType: 'gig',
+            platformCommissionPercent: DEFAULT_PLATFORM_COMMISSION_PERCENT,
+          });
+        } catch {
+          /* settlement is retryable from the referral dashboard */
+        }
+      }      if (next === 'COMPLETED' && profile) {
         // Increment completed gigs on the profile (public counter; rules allow
         // counter-only updates, recomputed from reviews by anyone).
         try {
@@ -438,6 +463,42 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [advanceGig]
   );
 
+  // Seva Pro Phase 4 — purohit refers the devotee to a verified jyotishi.
+  // Mirrors JyotishContext.referProfessional; carries gig/devotee context so
+  // the devotee sees a warm card in their bookings.
+  const referJyotish = useCallback(
+    async (args: {
+      toRoleId: string;
+      toName: string;
+      toTier: import('../types/jyotish').JyotishVerificationTier;
+      reason: string;
+      gigId?: string;
+      devoteeUid?: string;
+      devoteeName?: string;
+    }) => {
+      if (!uid) throw new Error('Sign in to refer');
+      if (!profile) throw new Error('Only a registered purohit can refer');
+      const ref = doc(collection(db, 'jyotishReferrals'));
+      await setDoc(ref, {
+        id: ref.id,
+        gigId: args.gigId || '',
+        devoteeUid: args.devoteeUid || '',
+        devoteeName: args.devoteeName || '',
+        fromUid: uid,
+        fromName: profile.displayName,
+        fromKind: 'purohit',
+        fromRoleId: profile.id,
+        toRoleId: args.toRoleId,
+        toName: args.toName,
+        toKind: 'jyotish',
+        toTier: args.toTier,
+        reason: args.reason.slice(0, 500),
+        createdAt: now(),
+      });
+      showToast(`Referral sent with love — ${args.toName} will see it`, 'success');
+    },
+    [uid, profile, showToast]
+  );
   // ---- Reviews --------------------------------------------------------------
   // ANTI-GAMING: a review doc ID is deterministic —
   // `reviews/{gigId}_{reviewerUid}_{kind}` — so each party can rate a gig at
@@ -758,7 +819,7 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
     myInvites,
     invitePurohit,
     respondToInvite,
+    referJyotish,
   };
-
   return <PurohitContext.Provider value={value}>{children}</PurohitContext.Provider>;
 };

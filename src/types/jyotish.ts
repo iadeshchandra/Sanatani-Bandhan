@@ -166,10 +166,26 @@ export const CONSULTATION_STATUS_META: Record<ConsultationStatus, { label: strin
   CANCELLED: { label: 'Cancelled', color: 'slate' },
 };
 
+/**
+ * Seva Pro Phase 4 — attribution pinned on a consultation at creation when
+ * the booking came from a purohit's referral. Immutable afterwards
+ * (see firestore.rules: consultationImmutableOk). Rules anchor it to a real
+ * jyotishReferrals doc.
+ */
+export interface ConsultationReferralAttribution {
+  direction: 'purohit-to-jyotish';
+  referrerUid: string;
+  referrerName: string;
+  referrerRoleId: string;
+  gigId?: string;
+  referralId: string;
+  reason: string;
+  createdAt: number;
+}
+
 export interface Consultation {
   id: string;
-  consultationType: ConsultationType;
-  /** Birth details for chart work (optional for Prashna). */
+  consultationType: ConsultationType;  /** Birth details for chart work (optional for Prashna). */
   birthDate?: string;
   birthTime?: string;
   birthPlace?: string;
@@ -194,12 +210,13 @@ export interface Consultation {
   assignedJyotishUid?: string;
   assignedJyotishName?: string;
   dakshinaAgreed?: number;
+  /** Seva Pro Phase 4: pinned at creation, immutable after (rules). */
+  referredBy?: ConsultationReferralAttribution;
   createdAt: number;
   updatedAt: number;
 }
 
-export interface ConsultationReview {
-  id: string;
+export interface ConsultationReview {  id: string;
   consultationId: string;
   reviewerUid: string;
   reviewerKind: 'devotee' | 'jyotish';

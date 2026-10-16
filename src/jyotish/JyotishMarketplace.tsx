@@ -23,6 +23,7 @@ import {
 } from '../types/jyotish';
 import { Card, StatusPill, Btn, Empty, SectionTitle, Field, inputCls } from './ui';
 import { ConsultationChat } from './ConsultationChat';
+import { JyotishReferralCard } from '../components/sevaPro/JyotishReferralCard';
 
 type MarketTab = 'find' | 'post' | 'mine';
 
@@ -382,6 +383,8 @@ const MyConsultationsDevotee: React.FC = () => {
   return (
     <Card>
       <SectionTitle>{t('jyotish.myConsultations')}</SectionTitle>
+      {/* Seva Pro Phase 4 — warm cards for purohit → jyotish referrals */}
+      <JyotishReferralCard />
       {sorted.length === 0 ? (
         <Empty text="You haven't posted any consultation requirements yet." />
       ) : (
