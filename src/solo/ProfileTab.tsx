@@ -6,6 +6,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
+import { MySamskaras } from './MySamskaras';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -163,6 +164,9 @@ export const ProfileTab: React.FC = () => {
           </div>
         </form>
       </Card>
+
+      {/* My Samskaras — tithi anniversaries */}
+      <MySamskaras />
 
       {/* Backup / sign out */}
       <Card>

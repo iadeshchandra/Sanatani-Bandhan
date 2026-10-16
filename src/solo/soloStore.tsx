@@ -26,6 +26,7 @@ const emptyState = (): SoloPersonalState => ({
   saved: [],
   giving: [],
   reminders: [],
+  samskaras: [],
 });
 
 function loadState(uid: string): SoloPersonalState {

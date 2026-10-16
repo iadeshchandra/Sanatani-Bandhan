@@ -9,6 +9,10 @@
 
 export type SanataniVerificationTier = 'REGISTERED' | 'VERIFIED';
 
+/** Tithi-anniversary samskara (from the intelligence engine). */
+import type { UserSamskara } from '../lib/panjikaIntelligence';
+export type { UserSamskara } from '../lib/panjikaIntelligence';
+
 export interface SanataniProfile {
   /** Universal Sanatani ID, e.g. SAN-7K2Q9M. Permanent, never reassigned. */
   id: string;
@@ -114,4 +118,6 @@ export interface SoloPersonalState {
   saved: SavedItem[];
   giving: GivingRecord[];
   reminders: PersonalReminder[];
+  /** Personal samskara dates for the tithi-anniversary engine. */
+  samskaras: UserSamskara[];
 }

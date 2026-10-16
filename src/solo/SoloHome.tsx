@@ -3,6 +3,7 @@ import { useSolo } from './SoloContext';
 import { useSoloStore, todayISO } from './soloStore';
 import { Card, Stat, T, useLocaleText } from './ui';
 import { JoinUpgrade } from './JoinUpgrade';
+import { AjkerSuchana } from './AjkerSuchana';
 import { drikTodayLine } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 
@@ -13,7 +14,7 @@ import { getCalendar } from '../lib/regionalCalendars';
  * person-scoped — no organisation data can appear by construction.
  */
 
-export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'saved' | 'giving' | 'profile') => void }> = ({
+export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'profile' | 'marketplace' | 'sangam') => void }> = ({
   goTab,
 }) => {
   const { profile } = useSolo();
@@ -61,6 +62,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'saved' | 
         <p className="text-sm text-amber-100/90 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
         {panchangLine && <p className="text-xs text-amber-200/80 mt-2">{panchangLine}</p>}
       </div>
+
+      {/* Ajker Suchana — the morning briefing */}
+      <AjkerSuchana goTab={goTab} role="solo" />
 
       {/* Sadhana at a glance */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
