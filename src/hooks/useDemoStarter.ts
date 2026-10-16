@@ -16,12 +16,26 @@ import { WorkspaceConfig, WorkspaceType } from '../types';
  */
 export const useDemoStarter = () => {
   const navigate = useNavigate();
-  const { addWorkspace, switchWorkspace, loginAsRole } = useAuthWorkspace();
+  const { addWorkspace, switchWorkspace, loginAsRole, isAuthenticated, exitDemo } = useAuthWorkspace();
   const { seedDemoData } = useData();
   const { showToast } = useToast();
 
   return useCallback(
     (type: WorkspaceType = 'Mandir', view: 'trustee' | 'devotee' = 'trustee') => {
+      // FIX (2026-10-17): Demo is for anonymous exploration only. If a
+      // signed-in user somehow triggers a demo start (stale landing tab,
+      // deep link), clear any existing demo state first and refuse to
+      // enter demo mode — they should use the real org flow.
+      if (isAuthenticated) {
+        exitDemo();
+        showToast(
+          'You are signed in — the demo is for exploring before you join. Use "Organisation view" for your real spaces.',
+          'info',
+          'Demo unavailable'
+        );
+        navigate('/app/orgs');
+        return;
+      }
       const demoId = `DEMO_${type.toUpperCase()}_${Date.now()}`;
       const demoWorkspace: WorkspaceConfig = {
         id: demoId,
@@ -65,6 +79,6 @@ export const useDemoStarter = () => {
       // '/app' matches no explicit route → MainAppView → AppContent (app shell).
       navigate('/app');
     },
-    [navigate, addWorkspace, switchWorkspace, loginAsRole, seedDemoData, showToast]
+    [navigate, addWorkspace, switchWorkspace, loginAsRole, seedDemoData, showToast, isAuthenticated, exitDemo]
   );
 };

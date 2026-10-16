@@ -123,6 +123,28 @@ export async function mintOrFetchSanataniProfile(
     // 1. Firestore is the source of truth.
     const existing = await fetchSanataniProfile(uid);
     if (existing) {
+      // FIX (2026-10-17): Backfill display name. SoloContext.refresh() mints
+      // the profile on mount with no name; the signup form then calls
+      // ensureProfile with the user's name, but the existing profile was
+      // returned as-is, leaving the name permanently empty. If we have a
+      // name now and the stored profile doesn't, update it.
+      const trimmedFallback = (fallbackName || '').trim();
+      if (trimmedFallback && !existing.displayName?.trim()) {
+        const updated = { ...existing, displayName: trimmedFallback, updatedAt: Date.now() };
+        writeCachedProfile(uid, updated);
+        try {
+          await setDoc(
+            doc(db, 'sanataniProfiles', uid),
+            { displayName: trimmedFallback, updatedAt: serverTimestamp() },
+            { merge: true }
+          );
+          updated.synced = true;
+          writeCachedProfile(uid, updated);
+        } catch {
+          /* offline — cached copy carries the name for this session */
+        }
+        return updated;
+      }
       writeCachedProfile(uid, existing);
       return existing;
     }
@@ -132,6 +154,12 @@ export async function mintOrFetchSanataniProfile(
     //    churn across reloads when Firestore is unreachable.
     const cached = readCachedProfile(uid);
     if (cached) {
+      // FIX (2026-10-17): Backfill display name on the cached copy too.
+      const trimmedFallback = (fallbackName || '').trim();
+      if (trimmedFallback && !cached.displayName?.trim()) {
+        cached.displayName = trimmedFallback;
+        cached.updatedAt = Date.now();
+      }
       // Best-effort: try to persist the cached profile now.
       try {
         const { gotra: _g, ...publicCached } = cached as any;

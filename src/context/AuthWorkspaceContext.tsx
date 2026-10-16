@@ -687,6 +687,20 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
             const defaultRole: UserRole = 'Devotee';
             setRole(defaultRole);
             setCurrentRole(defaultRole);
+            // FIX (2026-10-17): New users must never inherit a demo workspace.
+            // Clear any demo workspaces from state and storage before marking
+            // authenticated — otherwise the fallback lands them in the demo.
+            setWorkspaces((prev) => {
+              const real = prev.filter((w) => !w.id.startsWith('DEMO_'));
+              try {
+                set('sanatani_workspaces', real);
+                localStorage.removeItem('sanatani_active_workspace_id');
+                localStorage.removeItem('sb_pending_demo_conversion');
+              } catch { /* storage unavailable */ }
+              return real;
+            });
+            setWorkspaceId('');
+            setActiveWorkspaceId('');
             setIsAuthenticated(true);
           }
         } catch (err: any) {
@@ -826,39 +840,62 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
    * clears the persisted demo workspace ID, and switches to the first real
    * workspace. If no real workspace exists, the ID is cleared (empty string)
    * which triggers the org onboarding flow — the user is never trapped in demo.
+   *
+   * FIX (2026-10-17): The old version used a stale `workspaces` closure to
+   * compute the target, and the activeWorkspace fallback would land on
+   * INITIAL_WORKSPACES[0] (a DEMO workspace) when the list was empty —
+   * trapping the user in demo. This version computes the target atomically
+   * from the filtered list and explicitly avoids demo fallbacks.
    */
   const exitDemo = useCallback(() => {
-    setWorkspaces((prev) => {
-      const real = prev.filter((w) => !w.id.startsWith('DEMO_'));
-      // Persist the filtered list (demo workspaces are ephemeral)
-      try {
-        set('sanatani_workspaces', real);
-      } catch { /* storage unavailable */ }
-      return real;
-    });
-    // Find the first real workspace, or empty (triggers onboarding)
-    const realWorkspaces = workspaces.filter((w) => !w.id.startsWith('DEMO_'));
-    const targetId = realWorkspaces[0]?.id || '';
+    // Compute the real (non-demo) workspaces from the freshest persisted
+    // state, not the potentially stale React closure.
+    // CRITICAL: Write to storage SYNCHRONOUSLY first — callers may trigger
+    // an immediate page reload (window.location.href), and React state
+    // updates are async. Storage is the source of truth on reload.
+    let real: WorkspaceConfig[] = [];
+    try {
+      const stored = localStorage.getItem('sanatani_workspaces');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          real = parsed.filter((w) => w.id && !w.id.startsWith('DEMO_'));
+        }
+      }
+      // Persist synchronously BEFORE any state update or navigation
+      set('sanatani_workspaces', real);
+      localStorage.removeItem('sb_pending_demo_conversion');
+      const activeWs = localStorage.getItem('sanatani_active_workspace_id');
+      if (!activeWs || activeWs.startsWith('DEMO_')) {
+        localStorage.removeItem('sanatani_active_workspace_id');
+      }
+    } catch { /* storage unavailable — fall through to state */ }
+
+    // Update React state to match (for the current session if no reload)
+    setWorkspaces(real);
+    // Find the first real workspace, or empty (triggers onboarding).
+    // CRITICAL: never fall back to a DEMO workspace here.
+    const targetId = real[0]?.id || '';
     setWorkspaceId(targetId);
     setActiveWorkspaceId(targetId);
     try {
       if (targetId) {
         set('sanatani_active_workspace_id', targetId);
-      } else {
-        localStorage.removeItem('sanatani_active_workspace_id');
       }
-      // Clear demo-specific flags
-      localStorage.removeItem('sb_pending_demo_conversion');
     } catch { /* storage unavailable */ }
-  }, [workspaces]);
+  }, []);
 
   const activeWorkspace = useMemo(() => {
-    return (
+    const found =
       workspaces.find((w) => w.id === activeWorkspaceId) ||
-      workspaces[0] ||
-      INITIAL_WORKSPACES[0]
-    );
-  }, [workspaces, activeWorkspaceId]);
+      workspaces[0];
+    if (found) return found;
+    // FIX (2026-10-17): Never fall back to a DEMO workspace for authenticated
+    // users — that's the exit-demo trap. Authenticated users with no workspace
+    // get undefined (triggers org onboarding); anonymous users get the demo.
+    if (isAuthenticated) return undefined as unknown as WorkspaceConfig;
+    return INITIAL_WORKSPACES[0];
+  }, [workspaces, activeWorkspaceId, isAuthenticated]);
 
   const updateWorkspaceType = (newType: WorkspaceType) => {
     setWorkspaces((prev) =>
