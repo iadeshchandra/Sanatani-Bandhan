@@ -332,7 +332,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
-  const { activeWorkspace, currentRole, checkPermission, setViewMode } = useAuthWorkspace();
+  // Phase 2 org spaces: nav filtering evaluates the per-org effective
+  // role (from the workspaceMembers edge), not the global session role.
+  const { activeWorkspace, effectiveRole, checkPermission, setViewMode } = useAuthWorkspace();
   const taxonomy = useWorkspaceTaxonomy();
   const { t } = useLanguage();
   const { showToast } = useToast();
@@ -389,7 +391,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // Strict RBAC: Devotees must not render the B2B sidebar at all
-  if (currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE') {
+  if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
     return null;
   }
 
@@ -415,7 +417,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // 2. Strict RBAC permissions enforcement
       let hasRole = false;
 
-      if (currentRole === 'Priest') {
+      if (effectiveRole === 'Priest') {
         // If Priest: hide links to Domain 1, 2, and 6
         if (m.domain === 1 || m.domain === 2 || m.domain === 6) {
           return false;
@@ -429,7 +431,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           'utsav-one', 'tirth-one', 'yoga-one', 'matha-one', 'satsang-one', 'sabha-one', 'samskara-one'
         ];
         hasRole = priestAllowed.includes(m.id) || m.domain === 3;
-      } else if (currentRole === 'Accountant') {
+      } else if (effectiveRole === 'Accountant') {
         // If Accountant: hide links to Domain 1, 3, and 6
         if (m.domain === 1 || m.domain === 3 || m.domain === 6) {
           return false;
@@ -440,14 +442,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           'bhoomi', 'vahan', 'recurring-seva'
         ];
         hasRole = accountantAllowed.includes(m.id) || m.domain === 2;
-      } else if (currentRole === 'CSO') {
+      } else if (effectiveRole === 'CSO') {
         // CSO authorized for tactical radar, gate command checkin, crisis command, qr scanner; blocked from treasury & rituals
         const csoAllowed = [
           'tactical-radar', 'checkin', 'crisis-command', 'qrScanner', 'yatranet-gis',
           'sevadar-roster', 'devotee-portal'
         ];
         hasRole = csoAllowed.includes(m.id);
-      } else if (currentRole === 'SuperAdmin') {
+      } else if (effectiveRole === 'SuperAdmin') {
         hasRole = true;
       } else {
         // Fallback for Trustee / Sevadar / Volunteer
@@ -489,7 +491,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         m.id?.toLowerCase().includes(term)
       );
     });
-  }, [searchTerm, selectedDomainFilter, activeWorkspace, currentRole, checkPermission]);
+  }, [searchTerm, selectedDomainFilter, activeWorkspace, effectiveRole, checkPermission]);
 
   // C-6: plan-tier locks. Locked modules STAY visible (upgrade affordance)
   // instead of being hidden — the lock badge + upsell is the conversion path.
@@ -564,11 +566,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ];
     return allPills.filter((p) => {
       if (p.domain === null) return true;
-      if (currentRole === 'Priest' && (p.domain === 1 || p.domain === 2 || p.domain === 6)) return false;
-      if (currentRole === 'Accountant' && (p.domain === 1 || p.domain === 3 || p.domain === 6)) return false;
+      if (effectiveRole === 'Priest' && (p.domain === 1 || p.domain === 2 || p.domain === 6)) return false;
+      if (effectiveRole === 'Accountant' && (p.domain === 1 || p.domain === 3 || p.domain === 6)) return false;
       return true;
     });
-  }, [currentRole]);
+  }, [effectiveRole]);
 
   return (
     <>

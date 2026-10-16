@@ -3,12 +3,14 @@ import { useSolo } from './SoloContext';
 import { useSoloStore } from './soloStore';
 import { Card, T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { useMembership } from '../context/MembershipContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
 import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
+import { ProfileOrgHub } from './ProfileOrgHub';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -20,7 +22,8 @@ import { MySamskaras } from './MySamskaras';
 export const ProfileTab: React.FC = () => {
   const { profile, updateProfile } = useSolo();
   const { exportJSON, importJSON } = useSoloStore();
-  const { logout, enterPurohitSession, enterJyotishSession } = useAuthWorkspace();
+  const { logout, enterPurohitSession, enterJyotishSession, switchWorkspace, exitSoloSession, workspaces, activeWorkspace } = useAuthWorkspace();
+  const { myMemberships, orgMembers, orgJoinRequests } = useMembership();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
   const { identity: jyotishIdentity } = useMyJyotishIdentity();
   const navigate = useNavigate();
@@ -98,6 +101,25 @@ export const ProfileTab: React.FC = () => {
     }
     enterPurohitSession(purohitIdentity as any);
     showToast(`Switched to Purohit Workspace (${purohitIdentity.id})`, 'success');
+  };
+
+  // Phase 2: open an organisation — the same flow as the Orgs tab's
+  // Open button (exitSoloSession + switchWorkspace), so behaviour is
+  // identical everywhere.
+  const [openingOrg, setOpeningOrg] = useState<string | null>(null);
+  const openOrg = async (wsId: string, wsName: string) => {
+    setOpeningOrg(wsId);
+    try {
+      const ok = await switchWorkspace(wsId);
+      if (ok) {
+        exitSoloSession();
+        showToast(`🙏 ${wsName}`, 'success');
+      } else {
+        showToast('Could not open this organisation right now.', 'error');
+      }
+    } finally {
+      setOpeningOrg(null);
+    }
   };
 
   const openJyotishWorkspace = () => {
@@ -203,6 +225,19 @@ export const ProfileTab: React.FC = () => {
           </li>
         </ul>
       </Card>
+
+      {/* My Organisations hub — role badge per org from the real membership
+          edge; status line uses only real data (never invented). */}
+      <ProfileOrgHub
+        memberships={myMemberships}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspace?.id}
+        orgMembersCount={orgMembers.length}
+        pendingRequestsCount={orgJoinRequests.length}
+        openingOrgId={openingOrg}
+        onOpen={openOrg}
+        onJoin={() => navigate('/app/orgs/join')}
+      />
 
       {/* Edit details */}
       <Card>
