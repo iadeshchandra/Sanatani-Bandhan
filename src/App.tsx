@@ -13,6 +13,8 @@ import { AppInitializer } from './context/AppInitializer';
 import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
+import { OrgSpaceShell } from './components/shell/OrgSpaceShell';
+import { ProfileOrgHubPreview, JoinOrgScreenPreview } from './dev-preview/PreviewHub';
 import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
@@ -202,18 +204,21 @@ const RestrictedAccess: React.FC = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { checkPermission, activeWorkspace, currentRole, viewMode, logout, isAuthenticated, exitDemo } = useAuthWorkspace();
+  // Phase 2 org spaces: RBAC here evaluates effectiveRole — the user's
+  // ACTUAL role in THIS org (from the workspaceMembers edge), not the
+  // global role carried from another session.
+  const { checkPermission, activeWorkspace, effectiveRole, viewMode, logout, isAuthenticated, exitDemo } = useAuthWorkspace();
   const { showToast } = useToast();
   const { demoUpsellModule, closeDemoUpsell, getDemoStats } = useData();
   const [activeModule, setActiveModule] = useState<string>('dashboard');
   React.useEffect(() => {
-    if (currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE') {
+    if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
       const allowedDevoteeDesks = ['devoteePortal', 'devotee-super-app', 'devotee-portal', 'personal-portal', 'devotee-account'];
       if (!allowedDevoteeDesks.includes(activeModule)) {
         setActiveModule('devoteePortal');
       }
     }
-  }, [currentRole, activeModule]);
+  }, [effectiveRole, activeModule]);
 
   React.useEffect(() => {
     const handleNavigate = (e: any) => {
@@ -230,6 +235,15 @@ const AppContent: React.FC = () => {
       window.removeEventListener('NAVIGATE' as any, handleNavigate);
     };
   }, []);
+  // Phase 2 org spaces: broadcast the active desk so OrgSpaceShell can
+  // render its breadcrumb. Read-only — desk navigation itself is untouched.
+  React.useEffect(() => {
+    try {
+      window.dispatchEvent(new CustomEvent('sanatani:org-desk', { detail: activeModule }));
+    } catch {
+      /* non-DOM environment */
+    }
+  }, [activeModule]);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isQuickChandaOpen, setIsQuickChandaOpen] = useState<boolean>(false);
@@ -249,7 +263,7 @@ const AppContent: React.FC = () => {
       if (
         shouldShowWizard({
           workspaceId: activeWorkspace?.id,
-          currentRole,
+          currentRole: effectiveRole,
           storage: localStorage,
         })
       ) {
@@ -262,7 +276,7 @@ const AppContent: React.FC = () => {
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [activeWorkspace?.id, currentRole]);
+  }, [activeWorkspace?.id, effectiveRole]);
   const { openGuide } = useQuickGuide();
 
   /**
@@ -312,7 +326,7 @@ const AppContent: React.FC = () => {
     // Strict Guard: Devotee cannot view any administrative desk (Domains 1-7),
     // EXCEPT poojaBooking — devotee self-booking (M-10). The desk renders its
     // devotee-friendly 'book' tab via its internal isDevotee path.
-    if (currentRole === 'Devotee' || (currentRole as string) === 'DEVOTEE') {
+    if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
       if (!['devotee-portal', 'personal-portal', 'devotee-account', 'poojaBooking', 'pooja-booking'].includes(activeModule)) {
         return <DevoteePortal onBackToERP={() => setActiveModule('dashboard')} />;
       }
@@ -657,10 +671,13 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Phase 2 org spaces: AppContent renders inside OrgSpaceShell (which owns
+  // the h-screen column), so the root fills the shell instead of the
+  // viewport. OrgSpaceShell is the ONLY renderer of AppContent.
   return (
-    <div className="h-screen w-full bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
+    <div className="h-full w-full bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
       {/* Universal Header (Hidden for Devotee) */}
-      {currentRole !== 'Devotee' && (
+      {effectiveRole !== 'Devotee' && (
         <Header
           activeModule={activeModule}
           onNavigate={(mod) => setActiveModule(mod)}
@@ -688,7 +705,7 @@ const AppContent: React.FC = () => {
 
       <div className="flex grow overflow-hidden">
         {/* Universal 46-Module Sidebar (Hidden for Devotee) */}
-        {currentRole !== 'Devotee' && (
+        {effectiveRole !== 'Devotee' && (
           <Sidebar
             activeModule={activeModule}
             onSelectModule={(mod) => setActiveModule(mod)}
@@ -700,7 +717,7 @@ const AppContent: React.FC = () => {
         )}
 
         {/* Main Content Area */}
-        <main className={`grow p-6 flex flex-col gap-6 overflow-hidden ${currentRole === 'Devotee' ? 'p-0 bg-stone-950' : ''}`}>
+        <main className={`grow p-6 flex flex-col gap-6 overflow-hidden ${effectiveRole === 'Devotee' ? 'p-0 bg-stone-950' : ''}`}>
           <div className="flex flex-col grow overflow-y-auto custom-scrollbar">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full text-center">
@@ -723,7 +740,7 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {currentRole !== 'Devotee' && (
+      {effectiveRole !== 'Devotee' && (
         <Footer onOpenTelemetry={() => setIsTelemetryOpen(true)} />
       )}
 
@@ -964,7 +981,14 @@ const AppContentRouter: React.FC = () => {
   if (sessionKind === 'jyotish') {
     return <JyotishWorkspaceShell />;
   }
-  return <AppContent />;
+  // Phase 2: org sessions render inside the org-space chrome (back button,
+  // "Viewing as [Role]" pill, breadcrumb, per-org RBAC). Desk navigation
+  // inside AppContent is untouched.
+  return (
+    <OrgSpaceShell>
+      <AppContent />
+    </OrgSpaceShell>
+  );
 };
 
 const AppRouter: React.FC = () => {
@@ -1036,6 +1060,14 @@ const AppRouter: React.FC = () => {
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           <Route path="/org/:orgId" element={<OrgPage />} />
+          {/* Phase 2 dev preview: profile org hub with mock data.
+              Dev-only, never renders in production builds. */}
+          {import.meta.env.DEV && (
+            <Route path="/dev-preview/profile-org-hub" element={<ProfileOrgHubPreview />} />
+          )}
+          {import.meta.env.DEV && (
+            <Route path="/dev-preview/join-org" element={<JoinOrgScreenPreview />} />
+          )}
           {/* Solo-first progressive flow: an already-authenticated Solo user
               registers their organisation here (the "Grow with Sanatani
               Bandhan" upgrade card links here). Reuses PortalLogin's

@@ -240,6 +240,19 @@ export interface AuthWorkspaceContextType {
   switchRole: (role: UserRole) => void;
   updateCurrentUserRole?: (role: UserRole) => void;
   checkPermission: (allowedRoles: (UserRole | string)[]) => boolean;
+  /**
+   * Phase 2 org spaces: the user's role in the CURRENT org, resolved from
+   * the rules-enforced workspaceMembers edge (published by OrgSpaceShell
+   * from myMemberships). When set, it drives checkPermission() and
+   * effectiveRole for all org-session RBAC — the role pill and desk
+   * filtering follow the actual per-org role, not the global role carried
+   * from another session. Platform owners keep SuperAdmin clearance
+   * regardless of the override. Cleared when the org session ends.
+   */
+  orgRoleOverride: string | null;
+  setOrgRoleOverride: (role: string | null) => void;
+  /** The role RBAC actually evaluates right now (override-aware). */
+  effectiveRole: UserRole;
   loginWithPin: (pin: string, devoteeList: DevoteeMember[]) => Promise<boolean>;
   loginAsRole: (role: UserRole, customName?: string) => void;
   switchPersona: (role: UserRole, name: string, targetModule?: string) => void;
@@ -339,6 +352,10 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       /* storage unavailable */
     }
   };
+  // Phase 2 org spaces: per-org role override. Set by OrgSpaceShell from
+  // the workspaceMembers membership edge; null means "no override — use
+  // the global role". Never persisted (re-derived per org entry).
+  const [orgRoleOverride, setOrgRoleOverride] = useState<string | null>(null);
   // Jyotish One: independent jyotishi session. Mirrors the purohit hard
   // guard — entering jyotish never mounts org UI; the jyotish profile is
   // rehydrated by JyotishContext on refresh (session kind persisted).
@@ -867,22 +884,38 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     set('sanatani_user_role', normalized);
   };
 
+  /**
+   * Phase 2 org spaces: RBAC evaluates the effective role — the per-org
+   * override from the workspaceMembers edge when present (a Trustee in org
+   * A who is a Devotee in org B is a Devotee while inside org B), otherwise
+   * the pre-existing global role logic. SuperAdmin keeps platform clearance
+   * everywhere.
+   */
+  const effectiveRole = useMemo((): UserRole => {
+    const globalRole = (role || currentRole) as UserRole;
+    if (globalRole === 'SuperAdmin') return 'SuperAdmin';
+    if (orgRoleOverride) {
+      return (ROLE_MIGRATION_MAP[orgRoleOverride] || orgRoleOverride) as UserRole;
+    }
+    return globalRole;
+  }, [orgRoleOverride, role, currentRole]);
+
   const checkPermission = useCallback(
     (allowedRoles: (UserRole | string)[]): boolean => {
-      const effectiveRole: UserRole = (role ? ROLE_MIGRATION_MAP[role] || role : currentRole) as UserRole;
-      if (effectiveRole === 'SuperAdmin') return true;
+      const eff = effectiveRole;
+      if (eff === 'SuperAdmin') return true;
 
       return allowedRoles.some((allowed) => {
         const normalizedAllowed = ROLE_MIGRATION_MAP[allowed] || allowed;
-        if (normalizedAllowed === effectiveRole || allowed === effectiveRole) return true;
+        if (normalizedAllowed === eff || allowed === eff) return true;
         // Trustee hierarchy grants operational leadership clearance
-        if (effectiveRole === 'Trustee' && ['Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'].includes(normalizedAllowed)) {
+        if (eff === 'Trustee' && ['Priest', 'Accountant', 'Sevadar', 'Devotee', 'CSO'].includes(normalizedAllowed)) {
           return true;
         }
         return false;
       });
     },
-    [role, currentRole]
+    [effectiveRole]
   );
 
   /**
@@ -1291,6 +1324,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         switchRole,
         updateCurrentUserRole: switchRole,
         checkPermission,
+        orgRoleOverride,
+        setOrgRoleOverride,
+        effectiveRole,
         loginWithPin,
         loginAsRole,
         switchPersona,
