@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { SoloProvider, useSolo } from './SoloContext';
@@ -14,6 +14,8 @@ import { ProfileTab } from './ProfileTab';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { SoloOnboardingTour } from './SoloOnboardingTour';
+import { OnboardingFlow } from './OnboardingFlow';
+import { hasOnboarded } from '../lib/intentProfile';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -46,11 +48,33 @@ function tabFromPath(pathname: string): AppTabId {
 }
 
 const SoloRouter: React.FC = () => {
-  const { soloProfile } = useAuthWorkspace();
+  const { soloProfile, firebaseUser } = useAuthWorkspace();
   const { profile } = useSolo();
   const location = useLocation();
   const navigate = useNavigate();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+
+  // Intelligent onboarding — once per user, skippable, non-blocking.
+  useEffect(() => {
+    let live = true;
+    if (uid === 'anon') {
+      setOnboarded(true);
+      return;
+    }
+    hasOnboarded(uid)
+      .then((done) => {
+        if (live) setOnboarded(done);
+      })
+      .catch(() => {
+        if (live) setOnboarded(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, [uid]);
 
   const activeTab = tabFromPath(location.pathname);
   const subTab = soloSubTabFromPath(location.pathname);
@@ -115,6 +139,11 @@ const SoloRouter: React.FC = () => {
 
       {/* First-run onboarding tour for brand-new Solo users. */}
       <SoloOnboardingTour onNavigate={(t) => navigate(`/app/home/${t}`)} />
+
+      {/* Intelligent onboarding — 3 questions, once, skippable. */}
+      {onboarded === false && (
+        <OnboardingFlow uid={uid} onDone={() => setOnboarded(true)} />
+      )}
 
       {/* 🪔 Full Suchana view — calm guidance feed */}
       <SuchanaFullModal

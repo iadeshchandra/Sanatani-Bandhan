@@ -6,6 +6,8 @@ import { JoinUpgrade } from './JoinUpgrade';
 import { AjkerSuchana } from './AjkerSuchana';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
+import { SuggestionCards } from './SuggestionCards';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { drikTodayLine } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 
@@ -21,6 +23,8 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 }) => {
   const { profile } = useSolo();
   const { state } = useSoloStore();
+  const { firebaseUser } = useAuthWorkspace();
+  const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   const { tr } = useLocaleText();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
@@ -69,6 +73,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 
       {/* Ajker Suchana — the morning briefing (now merged: panjika + module insights) */}
       <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} />
+
+      {/* Progressive discovery — Suchana suggests the next natural feature */}
+      <SuggestionCards uid={uid} />
 
       {/* Suchana + Guides entry row */}
       <div className="grid grid-cols-2 gap-3">

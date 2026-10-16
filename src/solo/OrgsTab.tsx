@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { useMembership } from '../context/MembershipContext';
 import { useToast } from '../context/ToastContext';
 import { Card, T, Btn } from './ui';
 
@@ -14,11 +15,49 @@ import { Card, T, Btn } from './ui';
 export const OrgsTab: React.FC = () => {
   const { workspaces, activeWorkspace, switchWorkspace, exitSoloSession } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { browseOrgPages } = useMembership();
   const navigate = useNavigate();
   const [opening, setOpening] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [suggested, setSuggested] = useState<Array<{ orgId: string; name: string; type?: string; city?: string }>>([]);
 
   const realWorkspaces = workspaces.filter((w) => !w.id.startsWith('DEMO_'));
   const demoWorkspaces = workspaces.filter((w) => w.id.startsWith('DEMO_'));
+
+  // Cross-org search across joined organisations (RBAC-safe by construction:
+  // only orgs this user belongs to are searchable here).
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? realWorkspaces.filter(
+        (w) =>
+          w.name.toLowerCase().includes(q) ||
+          String(w.type || '').toLowerCase().includes(q) ||
+          String(w.city || '').toLowerCase().includes(q)
+      )
+    : realWorkspaces;
+
+  // Warm suggestions when the user belongs to no org yet.
+  useEffect(() => {
+    let live = true;
+    if (realWorkspaces.length === 0) {
+      browseOrgPages(undefined)
+        .then((pages) => {
+          if (!live) return;
+          setSuggested(
+            (pages || []).slice(0, 3).map((p: any) => ({
+              orgId: p.orgId,
+              name: p.name,
+              type: p.type,
+              city: p.city,
+            }))
+          );
+        })
+        .catch(() => {});
+    }
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const openOrg = async (wsId: string, wsName: string) => {
     setOpening(wsId);
@@ -91,19 +130,81 @@ export const OrgsTab: React.FC = () => {
             hi="आपके मंदिर, आश्रम व संस्थान — किसी एक को खोलने पर आप उसके कार्यक्षेत्र में चले जाएँगे।"
           />
         </p>
+        {/* Cross-org search */}
+        <div className="mt-3 relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" aria-hidden>
+            🔍
+          </span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your organisations…"
+            aria-label="Search your organisations"
+            className="w-full pl-11 pr-4 py-3 min-h-[48px] rounded-2xl border border-stone-200 bg-white text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
+          />
+        </div>
       </div>
 
-      {realWorkspaces.length > 0 ? (
-        <ul className="space-y-2">{realWorkspaces.map(renderRow)}</ul>
-      ) : (
+      {filtered.length > 0 ? (
+        <ul className="space-y-2">{filtered.map(renderRow)}</ul>
+      ) : q ? (
         <Card>
           <p className="text-sm text-stone-500 text-center py-4">
             <T
-              en="No organisations yet. Register your temple, ashram or institution to begin."
-              bn="এখনও কোনো সংগঠন নেই। শুরু করতে আপনার মন্দির, আশ্রম বা প্রতিষ্ঠান নিবন্ধন করুন।"
-              hi="अभी कोई संगठन नहीं। आरंभ हेतु अपना मंदिर, आश्रम या संस्थान पंजीकृत करें।"
+              en="No organisations match your search."
+              bn="আপনার খোঁজের সঙ্গে কোনো সংগঠন মেলেনি।"
+              hi="आपकी खोज से कोई संगठन नहीं मिला।"
             />
           </p>
+        </Card>
+      ) : (
+        <Card>
+          <div className="text-center py-6 px-4">
+            <div className="text-5xl mb-3" aria-hidden>
+              🏛️
+            </div>
+            <p className="font-extrabold text-stone-900 text-sm">
+              <T
+                en="Your sangha awaits"
+                bn="আপনার সংঘ অপেক্ষা করছে"
+                hi="आपका संघ प्रतीक्षा कर रहा है"
+              />
+            </p>
+            <p className="text-xs text-stone-500 mt-2 max-w-sm mx-auto leading-relaxed">
+              <T
+                en="Join your temple, ashram or institution to see its life here — festivals, announcements and what needs you, all in one glance."
+                bn="আপনার মন্দির, আশ্রম বা প্রতিষ্ঠানে যোগ দিন — উৎসব, ঘোষণা ও আপনার প্রয়োজনীয় সবকিছু এক নজরে দেখুন।"
+                hi="अपने मंदिर, आश्रम या संस्थान से जुड़ें — उत्सव, घोषणाएँ व आपको क्या चाहिए, सब एक नज़र में देखें।"
+              />
+            </p>
+            {suggested.length > 0 && (
+              <div className="mt-4 space-y-2 text-left">
+                <div className="text-[11px] font-black uppercase tracking-widest text-stone-400">
+                  <T en="Suggested for you" bn="আপনার জন্য প্রস্তাবিত" hi="आपके लिए सुझाव" />
+                </div>
+                {suggested.map((s) => (
+                  <button
+                    key={s.orgId}
+                    type="button"
+                    onClick={() => navigate('/app/orgs/join')}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl border border-stone-200 hover:border-amber-300 hover:bg-amber-50/50 text-left transition-colors min-h-[56px]"
+                  >
+                    <span className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0" aria-hidden>
+                      🏛️
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-extrabold text-stone-900 text-sm truncate">{s.name}</span>
+                      <span className="block text-[11px] text-stone-500 truncate">
+                        {s.type}
+                        {s.city ? ` · ${s.city}` : ''}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
