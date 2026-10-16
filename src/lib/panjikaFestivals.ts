@@ -1,1 +1,88 @@
-LyoqCiAqIHBhbmppa2FGZXN0aXZhbHMudHMg4oCUIEN1cmF0ZWQgQmVuZ2FsaS9IaW5kdSBmZXN0aXZhbCBkYXRhYmFzZS4KICogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAqIFJFQUwgZGF0ZXMgdmVyaWZpZWQgYnkgd2ViIHJlc2VhcmNoICgyMDI24oCTMjAyOCkuIEVhY2ggZW50cnkgY2FycmllcyBpdHMKICogc291cmNlLiBDb21wdXRlZCBlbnRyaWVzIChFa2FkYXNoaSkgYXJlIGdlbmVyYXRlZCBhdCBydW50aW1lIGZyb20gdGhlCiAqIHRpdGhpIGVuZ2luZSwgbm90IGhhcmRjb2RlZCBoZXJlLgogKgogKiBDYXRlZ29yaWVzOiAncHVqYScgfCAnZmVzdGl2YWwnIHwgJ2Zhc3RpbmcnIHwgJ2hvbGlkYXknIHwgJ3NhbXNrYXJhJwogKiBWYXJpYW50OiAnYmQnIHwgJ3diJyB8ICdib3RoJyDigJQgd2hpY2ggY2FsZW5kYXIgdHJhZGl0aW9uIHRoZSBkYXRlIGZvbGxvd3MuCiAqLwppbXBvcnQgeyBGRVNUSVZBTF9EQVRBIH0gZnJvbSAnLi9wYW5qaWthRmVzdGl2YWxEYXRhJzsKCmV4cG9ydCB0eXBlIEZlc3RpdmFsQ2F0ZWdvcnkgPSAncHVqYScgfCAnZmVzdGl2YWwnIHwgJ2Zhc3RpbmcnIHwgJ2hvbGlkYXknIHwgJ3NhbXNrYXJhJzsKZXhwb3J0IHR5cGUgRmVzdGl2YWxWYXJpYW50ID0gJ2JkJyB8ICd3YicgfCAnYm90aCc7CgpleHBvcnQgaW50ZXJmYWNlIFBhbmppa2FGZXN0aXZhbCB7CiAgLyoqIEdyZWdvcmlhbiBkYXRlIElTTyAoWVlZWS1NTS1ERCkgKi8KICBkYXRlOiBzdHJpbmc7CiAgbmFtZUVuOiBzdHJpbmc7CiAgbmFtZUJuOiBzdHJpbmc7CiAgbmFtZUhpPzogc3RyaW5nOwogIHNpZ25pZmljYW5jZUVuOiBzdHJpbmc7CiAgc2lnbmlmaWNhbmNlQm46IHN0cmluZzsKICBjYXRlZ29yeTogRmVzdGl2YWxDYXRlZ29yeTsKICB2YXJpYW50OiBGZXN0aXZhbFZhcmlhbnQ7CiAgLyoqIENhbGVuZGFyIHRyYWRpdGlvbiBpZHMgdGhpcyBmZXN0aXZhbCBiZWxvbmdzIHRvIChlLmcuIFsnYmVuZ2FsaV9iZCcsJ2JlbmdhbGlfd2InLCd2aWtyYW0nXSkgKi8KICByZWdpb25zOiBzdHJpbmdbXTsKICAvKiogJ3ZlcmlmaWVkJyA9IGNvbmZpcm1lZCBieSDiiaUyIHNvdXJjZXM7ICdzaW5nbGUnID0gb25lIHNvdXJjZTsgJ2NvbXB1dGVkJyA9IGRlcml2ZWQgKi8KICBjb25maWRlbmNlOiAndmVyaWZpZWQnIHwgJ3NpbmdsZScgfCAnY29tcHV0ZWQnOwogIHNvdXJjZT86IHN0cmluZzsKICAvKiogV2hlcmUgdHJhZGl0aW9uYWwgc2Nob29scyBkaXZlcmdlLCBzaG93IGJvdGgg4oCUIG5ldmVyIHNpbGVudGx5IHBpY2suICovCiAgYWx0RGF0ZT86IHN0cmluZzsKICBhbHRMYWJlbD86IHN0cmluZzsKICBzY2hvb2xOb3RlPzogc3RyaW5nOwp9CgovKioKICogRkVTVElWQUwgREFUQUJBU0Ug4oCUIHZlcmlmaWVkIHJlc2VhcmNoICgyMDI24oCTMjAyOCkuCiAqIFNlZSBwYW5qaWthRmVzdGl2YWxEYXRhLnRzIGZvciB0aGUgZnVsbCBjdXJhdGVkIGxpc3Qgd2l0aCBzb3VyY2VzLgogKi8KZXhwb3J0IGNvbnN0IFBBTkpJS0FfRkVTVElWQUxTOiBQYW5qaWthRmVzdGl2YWxbXSA9IEZFU1RJVkFMX0RBVEE7CgovKiogRmVzdGl2YWxzIG9uIGEgZ2l2ZW4gSVNPIGRhdGUuICovCmV4cG9ydCBmdW5jdGlvbiBmZXN0aXZhbHNPbihpc286IHN0cmluZywgbGlzdDogUGFuamlrYUZlc3RpdmFsW10gPSBQQU5KSUtBX0ZFU1RJVkFMUyk6IFBhbmppa2FGZXN0aXZhbFtdIHsKICByZXR1cm4gbGlzdC5maWx0ZXIoKGYpID0+IGYuZGF0ZSA9PT0gaXNvKTsKfQoKLyoqIFVwY29taW5nIGZlc3RpdmFscyBmcm9tIGEgZGF0ZSwgc29ydGVkLiAqLwpleHBvcnQgZnVuY3Rpb24gdXBjb21pbmdGZXN0aXZhbHMoCiAgZnJvbUlzbzogc3RyaW5nLAogIGxpbWl0ID0gMjAsCiAgbGlzdDogUGFuamlrYUZlc3RpdmFsW10gPSBQQU5KSUtBX0ZFU1RJVkFMUwopOiBQYW5qaWthRmVzdGl2YWxbXSB7CiAgcmV0dXJuIGxpc3QKICAgIC5maWx0ZXIoKGYpID0+IGYuZGF0ZSA+PSBmcm9tSXNvKQogICAgLnNvcnQoKGEsIGIpID0+IGEuZGF0ZS5sb2NhbGVDb21wYXJlKGIuZGF0ZSkpCiAgICAuc2xpY2UoMCwgbGltaXQpOwp9CgovKiogRmVzdGl2YWxzIHdpdGhpbiBhIEdyZWdvcmlhbiBtb250aCAoZm9yIHRoZSBjYWxlbmRhciBncmlkKS4gKi8KZXhwb3J0IGZ1bmN0aW9uIGZlc3RpdmFsc0luTW9udGgoCiAgeWVhcjogbnVtYmVyLAogIG1vbnRoOiBudW1iZXIsIC8vIDEuLjEyCiAgbGlzdDogUGFuamlrYUZlc3RpdmFsW10gPSBQQU5KSUtBX0ZFU1RJVkFMUwopOiBNYXA8c3RyaW5nLCBQYW5qaWthRmVzdGl2YWxbXT4gewogIGNvbnN0IHByZWZpeCA9IGAke3llYXJ9LSR7U3RyaW5nKG1vbnRoKS5wYWRTdGFydCgyLCAnMCcpfWA7CiAgY29uc3QgbWFwID0gbmV3IE1hcDxzdHJpbmcsIFBhbmppa2FGZXN0aXZhbFtdPigpOwogIGZvciAoY29uc3QgZiBvZiBsaXN0KSB7CiAgICBpZiAoZi5kYXRlLnN0YXJ0c1dpdGgocHJlZml4KSkgewogICAgICBjb25zdCBhcnIgPSBtYXAuZ2V0KGYuZGF0ZSkgfHwgW107CiAgICAgIGFyci5wdXNoKGYpOwogICAgICBtYXAuc2V0KGYuZGF0ZSwgYXJyKTsKICAgIH0KICB9CiAgcmV0dXJuIG1hcDsKfQoKY29uc3QgQ0FURUdPUllfTUVUQTogUmVjb3JkPEZlc3RpdmFsQ2F0ZWdvcnksIHsgZW46IHN0cmluZzsgYm46IHN0cmluZzsgZG90OiBzdHJpbmcgfT4gPSB7CiAgcHVqYTogeyBlbjogJ1B1amEnLCBibjogJ+CmquCnguCmnOCmvicsIGRvdDogJ2JnLXJlZC01MDAnIH0sCiAgZmVzdGl2YWw6IHsgZW46ICdGZXN0aXZhbCcsIGJuOiAn4KaJ4KeO4Ka44KasJywgZG90OiAnYmctYW1iZXItNTAwJyB9LAogIGZhc3Rpbmc6IHsgZW46ICdGYXN0aW5nJywgYm46ICfgpongpqrgpqzgpr7gprgnLCBkb3Q6ICdiZy1za3ktNTAwJyB9LAogIGhvbGlkYXk6IHsgZW46ICdIb2xpZGF5JywgYm46ICfgppvgp4Hgpp/gpr8nLCBkb3Q6ICdiZy1zdG9uZS00MDAnIH0sCiAgc2Ftc2thcmE6IHsgZW46ICdTYW1za2FyYScsIGJuOiAn4Ka44KaC4Ka44KeN4KaV4Ka+4KawJywgZG90OiAnYmctZW1lcmFsZC01MDAnIH0sCn07CgpleHBvcnQgZnVuY3Rpb24gY2F0ZWdvcnlNZXRhKGM6IEZlc3RpdmFsQ2F0ZWdvcnkpIHsKICByZXR1cm4gQ0FURUdPUllfTUVUQVtjXTsKfQo=
+/**
+ * panjikaFestivals.ts — Curated Bengali/Hindu festival database.
+ * =====================================================================
+ * REAL dates verified by web research (2026–2028). Each entry carries its
+ * source. Computed entries (Ekadashi) are generated at runtime from the
+ * tithi engine, not hardcoded here.
+ *
+ * Categories: 'puja' | 'festival' | 'fasting' | 'holiday' | 'samskara'
+ * Variant: 'bd' | 'wb' | 'both' — which calendar tradition the date follows.
+ */
+import { FESTIVAL_DATA } from './panjikaFestivalData';
+
+export type FestivalCategory = 'puja' | 'festival' | 'fasting' | 'holiday' | 'samskara';
+export type FestivalVariant = 'bd' | 'wb' | 'both';
+
+export interface PanjikaFestival {
+  /** Gregorian date ISO (YYYY-MM-DD) */
+  date: string;
+  nameEn: string;
+  nameBn: string;
+  nameHi?: string;
+  significanceEn: string;
+  significanceBn: string;
+  category: FestivalCategory;
+  variant: FestivalVariant;
+  /** Calendar tradition ids this festival belongs to (e.g. ['bengali_bd','bengali_wb','vikram']) */
+  regions: string[];
+  /** 'verified' = confirmed by ≥2 sources; 'single' = one source; 'computed' = derived */
+  confidence: 'verified' | 'single' | 'computed';
+  source?: string;
+  /** Where traditional schools diverge, show both — never silently pick. */
+  altDate?: string;
+  altLabel?: string;
+  schoolNote?: string;
+}
+
+/**
+ * FESTIVAL DATABASE — verified research (2026–2028).
+ * See panjikaFestivalData.ts for the full curated list with sources.
+ */
+export const PANJIKA_FESTIVALS: PanjikaFestival[] = FESTIVAL_DATA;
+
+/** Festivals on a given ISO date. */
+export function festivalsOn(iso: string, list: PanjikaFestival[] = PANJIKA_FESTIVALS): PanjikaFestival[] {
+  return list.filter((f) => f.date === iso);
+}
+
+/** Upcoming festivals from a date, sorted. */
+export function upcomingFestivals(
+  fromIso: string,
+  limit = 20,
+  list: PanjikaFestival[] = PANJIKA_FESTIVALS
+): PanjikaFestival[] {
+  return list
+    .filter((f) => f.date >= fromIso)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, limit);
+}
+
+/** Festivals within a Gregorian month (for the calendar grid). */
+export function festivalsInMonth(
+  year: number,
+  month: number, // 1..12
+  list: PanjikaFestival[] = PANJIKA_FESTIVALS
+): Map<string, PanjikaFestival[]> {
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  const map = new Map<string, PanjikaFestival[]>();
+  for (const f of list) {
+    if (f.date.startsWith(prefix)) {
+      const arr = map.get(f.date) || [];
+      arr.push(f);
+      map.set(f.date, arr);
+    }
+  }
+  return map;
+}
+
+const CATEGORY_META: Record<FestivalCategory, { en: string; bn: string; dot: string }> = {
+  puja: { en: 'Puja', bn: 'পূজা', dot: 'bg-red-500' },
+  festival: { en: 'Festival', bn: 'উৎসব', dot: 'bg-amber-500' },
+  fasting: { en: 'Fasting', bn: 'উপবাস', dot: 'bg-sky-500' },
+  holiday: { en: 'Holiday', bn: 'ছুটি', dot: 'bg-stone-400' },
+  samskara: { en: 'Samskara', bn: 'সংস্কার', dot: 'bg-emerald-500' },
+};
+
+export function categoryMeta(c: FestivalCategory) {
+  return CATEGORY_META[c];
+}

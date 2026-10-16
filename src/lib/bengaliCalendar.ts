@@ -1,1 +1,280 @@
-LyoqCiAqIGJlbmdhbGlDYWxlbmRhci50cyDigJQgQmVuZ2FsaSAoQm9uZ2FiZG8pIGNhbGVuZGFyIGVuZ2luZS4KICogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CiAqIFN1cHBvcnRzIEJPVEggQmVuZ2FsaSBjYWxlbmRhciB2YXJpYW50cyB3aXRoIGEgdXNlciB0b2dnbGU6CiAqCiAqICAtICdiZCcg4oCUIEJhbmdsYWRlc2ggcmV2aXNlZCBjYWxlbmRhciAoQmFuZ2xhIEFjYWRlbXksIGVmZmVjdGl2ZSAyMDE5KToKICogICAgUG9oZWxhIEJvaXNoYWtoID0gQXByaWwgMTQuIEZpeGVkIG1vbnRoIGxlbmd0aHM7IEZhbGd1biBnZXRzIDMxIGRheXMKICogICAgaW4gR3JlZ29yaWFuIGxlYXAgeWVhcnMuIEZ1bGx5IGRldGVybWluaXN0aWMuCiAqCiAqICAtICd3Yicg4oCUIFdlc3QgQmVuZ2FsIHRyYWRpdGlvbmFsIHNpZGVyZWFsLXNvbGFyIGNhbGVuZGFyOiBlYWNoIG1vbnRoCiAqICAgIGJlZ2lucyBvbiB0aGUgZGF5IG9mIHNhbmtyYW50aSAoc3VuJ3MgZW50cnkgaW50byB0aGUgbmV4dCBzaWRlcmVhbAogKiAgICByYXNoaSksIGNvbXB1dGVkIHdpdGggYSBMYWhpcmktYXlhbmFtc2Egc29sYXItbG9uZ2l0dWRlIG1vZGVsLgogKiAgICBBY2N1cmF0ZSB0byDCsTEgZGF5IHZzIHByaW50ZWQgcGFuamlrYXMgKHdoaWNoIHVzZSBmdWxsIGVwaGVtZXJpZGVzKS4KICoKICogT2ZmbGluZS1maXJzdDogcHVyZSBjb21wdXRhdGlvbiwgbm8gbmV0d29yay4gQmVuZ2FsaSBudW1lcmFscyBzdXBwb3J0ZWQuCiAqLwoKZXhwb3J0IHR5cGUgQmVuZ2FsaVZhcmlhbnQgPSAnYmQnIHwgJ3diJzsKCmV4cG9ydCBpbnRlcmZhY2UgQmVuZ2FsaU1vbnRoRGVmIHsKICBlbjogc3RyaW5nOwogIGJuOiBzdHJpbmc7CiAgaGk6IHN0cmluZzsKfQoKZXhwb3J0IGNvbnN0IEJFTkdBTElfTU9OVEhTOiBCZW5nYWxpTW9udGhEZWZbXSA9IFsKICB7IGVuOiAnQm9pc2hha2gnLCBibjogJ+CmrOCniOCmtuCmvuCmlicsIGhpOiAn4KSs4KWI4KS24KS+4KSWJyB9LAogIHsgZW46ICdKb2lzaHRobycsIGJuOiAn4Kac4KeN4Kav4KeI4Ka34KeN4KagJywgaGk6ICfgpJzgpY3gpK/gpYfgpLfgpY3gpKAnIH0sCiAgeyBlbjogJ0FzaGFyaCcsIGJuOiAn4KaG4Ka34Ka+4Kai4Ka8JywgaGk6ICfgpIbgpLfgpL7gpKLgpLwnIH0sCiAgeyBlbjogJ1NocmFib24nLCBibjogJ+CmtuCnjeCmsOCmvuCmrOCmoycsIGhpOiAn4KS24KWN4KSw4KS+4KS14KSjJyB9LAogIHsgZW46ICdCaGFkcm8nLCBibjogJ+CmreCmvuCmpuCnjeCmsCcsIGhpOiAn4KSt4KS+4KSm4KWN4KSwJyB9LAogIHsgZW46ICdBc2h3aW4nLCBibjogJ+CmhuCmtuCnjeCmrOCmv+CmqCcsIGhpOiAn4KSG4KS24KWN4KS14KS/4KSoJyB9LAogIHsgZW46ICdLYXJ0aWsnLCBibjogJ+CmleCmvuCmsOCnjeCmpOCmv+CmlScsIGhpOiAn4KSV4KS+4KSw4KWN4KSk4KS/4KSVJyB9LAogIHsgZW46ICdPZ3JvaGF5b24nLCBibjogJ+CmheCml+CnjeCmsOCmueCmvuCmr+CmvOCmoycsIGhpOiAn4KSF4KSX4KWN4KSw4KS54KS+4KSv4KSjJyB9LAogIHsgZW46ICdQb3VzaCcsIGJuOiAn4Kaq4KeM4Ka3JywgaGk6ICfgpKrgpYzgpLcnIH0sCiAgeyBlbjogJ01hZ2gnLCBibjogJ+CmruCmvuCmmCcsIGhpOiAn4KSu4KS+4KSYJyB9LAogIHsgZW46ICdGYWxndW4nLCBibjogJ+Cmq+CmvuCmsuCnjeCml+CngeCmqCcsIGhpOiAn4KSr4KS+4KSy4KWN4KSX4KWB4KSoJyB9LAogIHsgZW46ICdDaG9pdHJvJywgYm46ICfgpprgp4jgpqTgp43gprAnLCBoaTogJ+CkmuCliOCkpOCljeCksCcgfSwKXTsKCmV4cG9ydCBpbnRlcmZhY2UgQmVuZ2FsaURhdGUgewogIHllYXI6IG51bWJlcjsgLy8gQm9uZ2FiZG8sIGUuZy4gMTQzMwogIG1vbnRoOiBudW1iZXI7IC8vIDEuLjEyICgxID0gQm9pc2hha2gpCiAgZGF5OiBudW1iZXI7IC8vIDEuLjMxCiAgbW9udGhFbjogc3RyaW5nOwogIG1vbnRoQm46IHN0cmluZzsKICBtb250aEhpOiBzdHJpbmc7CiAgdmFyaWFudDogQmVuZ2FsaVZhcmlhbnQ7Cn0KCmNvbnN0IEJFTkdBTElfRElHSVRTID0gJ+CnpuCnp+CnqOCnqeCnquCnq+CnrOCnreCnruCnryc7CgovKiogQ29udmVydCAwLTkgZGlnaXRzIGluIGEgc3RyaW5nL251bWJlciB0byBCZW5nYWxpIG51bWVyYWxzLiAqLwpleHBvcnQgZnVuY3Rpb24gdG9CZW5nYWxpTnVtZXJhbHMobjogbnVtYmVyIHwgc3RyaW5nKTogc3RyaW5nIHsKICByZXR1cm4gU3RyaW5nKG4pLnJlcGxhY2UoL1swLTldL2csIChkKSA9PiBCRU5HQUxJX0RJR0lUU1tOdW1iZXIoZCldKTsKfQoKLyoqIEZvcm1hdCBhIEJlbmdhbGkgZGF0ZSwgZS5nLiAi4Keo4KerIOCmhuCmtuCnjeCmrOCmv+CmqCDgp6fgp6rgp6ngp6kiIG9yICIyNSBBc2h3aW4gMTQzMyIuICovCmV4cG9ydCBmdW5jdGlvbiBmb3JtYXRCZW5nYWxpRGF0ZShiZDogQmVuZ2FsaURhdGUsIHNjcmlwdDogJ2JuJyB8ICdlbicgfCAnaGknID0gJ2JuJyk6IHN0cmluZyB7CiAgaWYgKHNjcmlwdCA9PT0gJ2JuJykgewogICAgcmV0dXJuIGAke3RvQmVuZ2FsaU51bWVyYWxzKGJkLmRheSl9ICR7YmQubW9udGhCbn0gJHt0b0JlbmdhbGlOdW1lcmFscyhiZC55ZWFyKX1gOwogIH0KICBpZiAoc2NyaXB0ID09PSAnaGknKSB7CiAgICByZXR1cm4gYCR7YmQuZGF5fSAke2JkLm1vbnRoSGl9ICR7YmQueWVhcn1gOwogIH0KICByZXR1cm4gYCR7YmQuZGF5fSAke2JkLm1vbnRoRW59ICR7YmQueWVhcn1gOwp9CgovKiogRGVmYXVsdCB2YXJpYW50IGZyb20gYSBnZW8vcGF5bWVudCByZWdpb246IEJEIOKGkiBCYW5nbGFkZXNoLCBlbHNlIFdlc3QgQmVuZ2FsLiAqLwpleHBvcnQgZnVuY3Rpb24gdmFyaWFudEZvclJlZ2lvbihyZWdpb246ICdCRCcgfCAnSU4nIHwgJ0lOVEwnKTogQmVuZ2FsaVZhcmlhbnQgewogIHJldHVybiByZWdpb24gPT09ICdCRCcgPyAnYmQnIDogJ3diJzsKfQoKLyogLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tICovCi8qIEJhbmdsYWRlc2ggcmV2aXNlZCBjYWxlbmRhciAoQmFuZ2xhIEFjYWRlbXksIGVmZmVjdGl2ZSAyMDE5KSAgICAgICAgKi8KLyogLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tICovCi8qIENPUlJFQ1RFRCAyMDE5IHRhYmxlICh0aGUgYnJpZWYgaW5pdGlhbGx5IGNhcnJpZWQgcHJlLTIwMTkgdmFsdWVzKToKICogQm9pc2hha2ggMzEsIEpvaXNodGhvIDMxLCBBc2hhcmggMzEsIFNocmFib24gMzEsIEJoYWRybyAzMSwgQXNod2luIDMxLAogKiBLYXJ0aWsgMzAsIE9ncm9oYXlvbiAzMCwgUG91c2ggMzAsIE1hZ2ggMzAsIEZhbGd1biAyOSAoMzAgaW4gbGVhcCksCiAqIENob2l0cm8gMzAuCiAqIERyaXZlbiBieSB0aGUgZml4ZWQgR3JlZ29yaWFuIFNUQVJUIGRhdGVzIGJlbG93IOKAlCBtb250aCBsZW5ndGhzIChpbmNsLgogKiBGYWxndW4ncyBsZWFwIHJ1bGUpIGZhbGwgb3V0IGF1dG9tYXRpY2FsbHkuIFZlcmlmaWVkOiBjb25zZWN1dGl2ZSBzdGFydHMKICogYXJlIGV4YWN0bHkgdGhlIHN0YXRlZCBsZW5ndGhzIGFwYXJ0LiAqLwoKaW1wb3J0IHsgY2FsY3VsYXRlU3VucmlzZVN1bnNldCB9IGZyb20gJy4uL3V0aWxzL3BhbmNoYW5nJzsKaW1wb3J0IHsgZHJpa1N1bkxvbmdpdHVkZSB9IGZyb20gJy4vZHJpa1BhbmNoYW5nJzsKCi8qKiBHcmVnb3JpYW4gc3RhcnQgW21vbnRoIDEtMTIsIGRheV0gb2YgZWFjaCBCZW5nYWxpIG1vbnRoICgyMDE5IHJldmlzaW9uKS4gKi8KY29uc3QgQkRfU1RBUlRTOiBBcnJheTxbbnVtYmVyLCBudW1iZXJdPiA9IFsKICBbNCwgMTRdLCBbNSwgMTVdLCBbNiwgMTVdLCBbNywgMTZdLCBbOCwgMTZdLCBbOSwgMTZdLAogIFsxMCwgMTddLCBbMTEsIDE2XSwgWzEyLCAxNl0sIFsxLCAxNV0sIFsyLCAxNF0sIFszLCAxNV0sCl07CgovKiogR3JlZ29yaWFuIHN0YXJ0IG9mIEJlbmdhbGkgbW9udGggYG1pYCAoMC1iYXNlZCkgaW4gQm9uZ2FiZG8geWVhciBgYnlgLiAqLwpmdW5jdGlvbiBiZE1vbnRoU3RhcnQoYnk6IG51bWJlciwgbWk6IG51bWJlcik6IERhdGUgewogIGNvbnN0IFttLCBkXSA9IEJEX1NUQVJUU1ttaV07CiAgY29uc3QgZ3kgPSBtaSA8PSA4ID8gYnkgKyA1OTMgOiBieSArIDU5NDsgLy8gUG91c2ggYW5kIGVhcmxpZXI6IHNhbWUgR3k7IE1hZ2grOiBuZXh0CiAgcmV0dXJuIG5ldyBEYXRlKGd5LCBtIC0gMSwgZCk7Cn0KCmNvbnN0IHN0YXJ0T2ZEYXlMb2NhbCA9IChkOiBEYXRlKTogRGF0ZSA9PiBuZXcgRGF0ZShkLmdldEZ1bGxZZWFyKCksIGQuZ2V0TW9udGgoKSwgZC5nZXREYXRlKCkpOwoKZnVuY3Rpb24gYmRHcmVnb3JpYW5Ub0JlbmdhbGkoZGF0ZTogRGF0ZSk6IEJlbmdhbGlEYXRlIHsKICBjb25zdCBkYXlPbmx5ID0gc3RhcnRPZkRheUxvY2FsKGRhdGUpOwogIC8vIEJvbmdhYmRvIHllYXI6IHRoZSBBcHItMTQgKFBvaGVsYSBCb2lzaGFraCkgb24vYmVmb3JlIHRoaXMgZGF0ZQogIGxldCBwYkd5ID0gZGF5T25seS5nZXRGdWxsWWVhcigpOwogIGlmIChkYXlPbmx5IDwgbmV3IERhdGUocGJHeSwgMywgMTQpKSBwYkd5LS07CiAgY29uc3QgYnkgPSBwYkd5IC0gNTkzOwogIGZvciAobGV0IG1pID0gMDsgbWkgPCAxMjsgbWkrKykgewogICAgY29uc3QgcyA9IGJkTW9udGhTdGFydChieSwgbWkpOwogICAgY29uc3QgZSA9IG1pIDwgMTEgPyBiZE1vbnRoU3RhcnQoYnksIG1pICsgMSkgOiBuZXcgRGF0ZShwYkd5ICsgMSwgMywgMTQpOwogICAgaWYgKGRheU9ubHkgPj0gcyAmJiBkYXlPbmx5IDwgZSkgewogICAgICBjb25zdCBkYXkgPSBNYXRoLnJvdW5kKChkYXlPbmx5LmdldFRpbWUoKSAtIHMuZ2V0VGltZSgpKSAvIDg2NDAwMDAwKSArIDE7CiAgICAgIGNvbnN0IG0gPSBCRU5HQUxJX01PTlRIU1ttaV07CiAgICAgIHJldHVybiB7IHllYXI6IGJ5LCBtb250aDogbWkgKyAxLCBkYXksIG1vbnRoRW46IG0uZW4sIG1vbnRoQm46IG0uYm4sIG1vbnRoSGk6IG0uaGksIHZhcmlhbnQ6ICdiZCcgfTsKICAgIH0KICB9CiAgY29uc3QgbSA9IEJFTkdBTElfTU9OVEhTWzBdOwogIHJldHVybiB7IHllYXI6IGJ5LCBtb250aDogMSwgZGF5OiAxLCBtb250aEVuOiBtLmVuLCBtb250aEJuOiBtLmJuLCBtb250aEhpOiBtLmhpLCB2YXJpYW50OiAnYmQnIH07Cn0KCmZ1bmN0aW9uIGJkTW9udGhMZW5ndGgoYnk6IG51bWJlciwgbWk6IG51bWJlcik6IG51bWJlciB7CiAgY29uc3QgcyA9IGJkTW9udGhTdGFydChieSwgbWkpOwogIGNvbnN0IGUgPSBtaSA8IDExID8gYmRNb250aFN0YXJ0KGJ5LCBtaSArIDEpIDogbmV3IERhdGUoYnkgKyA1OTQsIDMsIDE0KTsKICByZXR1cm4gTWF0aC5yb3VuZCgoZS5nZXRUaW1lKCkgLSBzLmdldFRpbWUoKSkgLyA4NjQwMDAwMCk7Cn0KCmZ1bmN0aW9uIGJkQmVuZ2FsaVRvR3JlZ29yaWFuKGJ5OiBudW1iZXIsIG1vbnRoOiBudW1iZXIsIGRheTogbnVtYmVyKTogRGF0ZSB8IG51bGwgewogIGNvbnN0IG1pID0gbW9udGggLSAxOwogIGlmIChtaSA8IDAgfHwgbWkgPiAxMSB8fCBkYXkgPCAxKSByZXR1cm4gbnVsbDsKICBpZiAoZGF5ID4gYmRNb250aExlbmd0aChieSwgbWkpKSByZXR1cm4gbnVsbDsKICBjb25zdCBzID0gYmRNb250aFN0YXJ0KGJ5LCBtaSk7CiAgcmV0dXJuIG5ldyBEYXRlKHMuZ2V0VGltZSgpICsgKGRheSAtIDEpICogODY0MDAwMDApOwp9CgovKioKICogU3VucmlzZS1hd2FyZSAidG9kYXkiOiB0aGUgQmVuZ2FsaSBkYXkgYmVnaW5zIGF0IFNVTlJJU0UsIG5vdCBtaWRuaWdodC4KICogQmVmb3JlIGxvY2FsIHN1bnJpc2UsIHRoZSBjdXJyZW50IEJlbmdhbGkgZGF0ZSBpcyBzdGlsbCB5ZXN0ZXJkYXkncy4KICovCmV4cG9ydCBmdW5jdGlvbiBiZW5nYWxpVG9kYXkoCiAgdmFyaWFudDogQmVuZ2FsaVZhcmlhbnQsIGxhdDogbnVtYmVyLCBsb246IG51bWJlciwgdHpPZmZzZXRIb3VyczogbnVtYmVyCik6IEJlbmdhbGlEYXRlIHsKICBjb25zdCBub3cgPSBuZXcgRGF0ZSgpOwogIHRyeSB7CiAgICBjb25zdCB7IHN1bnJpc2VEYXRlIH0gPSBjYWxjdWxhdGVTdW5yaXNlU3Vuc2V0KG5vdywgbGF0LCBsb24sIHR6T2Zmc2V0SG91cnMpOwogICAgY29uc3QgZWZmZWN0aXZlID0gbm93LmdldFRpbWUoKSA8IHN1bnJpc2VEYXRlLmdldFRpbWUoKQogICAgICA/IG5ldyBEYXRlKG5vdy5nZXRUaW1lKCkgLSA4NjQwMDAwMCkKICAgICAgOiBub3c7CiAgICByZXR1cm4gZ3JlZ29yaWFuVG9CZW5nYWxpKGVmZmVjdGl2ZSwgdmFyaWFudCk7CiAgfSBjYXRjaCB7CiAgICByZXR1cm4gZ3JlZ29yaWFuVG9CZW5nYWxpKG5vdywgdmFyaWFudCk7CiAgfQp9CgovKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi8KLyogV2VzdCBCZW5nYWwgdHJhZGl0aW9uYWwgc2lkZXJlYWwtc29sYXIgY2FsZW5kYXIgICAgICAgICAgICAgICAgICAgICAqLwovKiAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0gKi8KCi8qKiBTdW4ncyBhcHBhcmVudCBzaWRlcmVhbCBsb25naXR1ZGUgKGRlZ3JlZXMgMC4uMzYwKSDigJQgTGFoaXJpIGF5YW5hbXNhIChEcmlrKS4KICogIERlbGVnYXRlcyB0byB0aGUgRHJpayBlbmdpbmUgKFNjaGx5dGVyKTsga2VwdCBoZXJlIGZvciBBUEkgc3RhYmlsaXR5LiAqLwpleHBvcnQgZnVuY3Rpb24gc3VuU2lkZXJlYWxMb25naXR1ZGUoZGF0ZTogRGF0ZSk6IG51bWJlciB7CiAgcmV0dXJuIGRyaWtTdW5Mb25naXR1ZGUoZGF0ZSk7Cn0KCmNvbnN0IGF0Tm9vbiA9IChkOiBEYXRlKTogRGF0ZSA9PiB7CiAgY29uc3QgYyA9IG5ldyBEYXRlKGQpOwogIGMuc2V0SG91cnMoMTIsIDAsIDAsIDApOwogIHJldHVybiBjOwp9OwoKLyoqIEZpbmQgdGhlIGNhbGVuZGFyIGRheSBvbiB3aGljaCB0aGUgc3VuJ3Mgc2lkZXJlYWwgbG9uZ2l0dWRlIGNyb3NzZXMgYHRhcmdldERlZ2AgKDAuLjM2MCksCiAqIHNlYXJjaGluZyBuZWFyIGBhcHByb3hEYXRlYC4gRXhwb3J0ZWQgZm9yIHRoZSByZWdpb25hbCBjYWxlbmRhciBmcmFtZXdvcmsuICovCmV4cG9ydCBmdW5jdGlvbiBzYW5rcmFudGlOZWFyKHRhcmdldERlZzogbnVtYmVyLCBhcHByb3hEYXRlOiBEYXRlKTogRGF0ZSB7CiAgcmV0dXJuIGZpbmRTYW5rcmFudGkodGFyZ2V0RGVnLCBhcHByb3hEYXRlKTsKfQoKLyoqIEZpbmQgdGhlIGNhbGVuZGFyIGRheSBvbiB3aGljaCB0aGUgc3VuJ3Mgc2lkZXJlYWwgbG9uZ2l0dWRlIGNyb3NzZXMgYHRhcmdldGAgKDAuLjM2MCkuICovCmZ1bmN0aW9uIGZpbmRTYW5rcmFudGkodGFyZ2V0OiBudW1iZXIsIGFwcHJveERhdGU6IERhdGUpOiBEYXRlIHsKICBjb25zdCBUID0gKCh0YXJnZXQgJSAzNjApICsgMzYwKSAlIDM2MDsKICBmb3IgKGxldCBvZmZzZXQgPSAtMTA7IG9mZnNldCA8PSAxMDsgb2Zmc2V0KyspIHsKICAgIGNvbnN0IGQxID0gYXROb29uKG5ldyBEYXRlKGFwcHJveERhdGUuZ2V0VGltZSgpICsgb2Zmc2V0ICogODY0MDAwMDApKTsKICAgIGNvbnN0IGQyID0gbmV3IERhdGUoZDEuZ2V0VGltZSgpICsgODY0MDAwMDApOwogICAgY29uc3QgbDEgPSBzdW5TaWRlcmVhbExvbmdpdHVkZShkMSk7CiAgICBsZXQgbDIgPSBzdW5TaWRlcmVhbExvbmdpdHVkZShkMik7CiAgICAvLyBmb3J3YXJkIG1vdGlvbiBhY3Jvc3MgdGhlIGRheSAodW53cmFwKQogICAgbGV0IGRsID0gbDIgLSBsMTsKICAgIGlmIChkbCA8IDApIGRsICs9IDM2MDsKICAgIGlmIChkbCA+IDE4MCkgY29udGludWU7IC8vIHNhbml0eTogc3VuIG1vdmVzIH4xwrAvZGF5CiAgICBsZXQgZHQgPSBUIC0gbDE7CiAgICBpZiAoZHQgPCAwKSBkdCArPSAzNjA7CiAgICBpZiAoZHQgPD0gZGwpIHsKICAgICAgLy8gY3Jvc3NpbmcgaGFwcGVuZWQgdGhpcyBkYXkg4oaSIHRoYXQgY2FsZW5kYXIgZGF5IGlzIGRheSAxIG9mIHRoZSBtb250aAogICAgICByZXR1cm4gbmV3IERhdGUoZDEuZ2V0RnVsbFllYXIoKSwgZDEuZ2V0TW9udGgoKSwgZDEuZ2V0RGF0ZSgpKTsKICAgIH0KICB9CiAgcmV0dXJuIG5ldyBEYXRlKGFwcHJveERhdGUuZ2V0RnVsbFllYXIoKSwgYXBwcm94RGF0ZS5nZXRNb250aCgpLCBhcHByb3hEYXRlLmdldERhdGUoKSk7Cn0KCi8qKiAxMyBzYW5rcmFudGkgZGF5LXN0YXJ0cyBib3VuZGluZyB0aGUgMTIgbW9udGhzIG9mIEJvbmdhYmRvIHllYXIgYGJ5YCAoMMKwLi4zNjDCsCkuICovCmNvbnN0IHNhbmtyYW50aUNhY2hlID0gbmV3IE1hcDxudW1iZXIsIERhdGVbXT4oKTsKCmV4cG9ydCBmdW5jdGlvbiB3YlNhbmtyYW50aXMoYnk6IG51bWJlcik6IERhdGVbXSB7CiAgY29uc3QgaGl0ID0gc2Fua3JhbnRpQ2FjaGUuZ2V0KGJ5KTsKICBpZiAoaGl0KSByZXR1cm4gaGl0OwogIGNvbnN0IHN0YXJ0R3kgPSBieSArIDU5MzsgLy8gR3JlZ29yaWFuIHllYXIgb2YgTWVzaGEgc2Fua3JhbnRpCiAgY29uc3QgbWVzaGFBcHByb3ggPSBuZXcgRGF0ZShzdGFydEd5LCAzLCAxNCwgMTIsIDAsIDApOyAvLyB+QXByIDE0CiAgY29uc3Qgb3V0OiBEYXRlW10gPSBbXTsKICBmb3IgKGxldCBrID0gMDsgayA8PSAxMjsgaysrKSB7CiAgICBjb25zdCBhcHByb3ggPSBuZXcgRGF0ZShtZXNoYUFwcHJveC5nZXRUaW1lKCkgKyBrICogMzAuNDM3NSAqIDg2NDAwMDAwKTsKICAgIG91dC5wdXNoKGZpbmRTYW5rcmFudGkoayAqIDMwLCBhcHByb3gpKTsKICB9CiAgc2Fua3JhbnRpQ2FjaGUuc2V0KGJ5LCBvdXQpOwogIHJldHVybiBvdXQ7Cn0KCmZ1bmN0aW9uIHdiR3JlZ29yaWFuVG9CZW5nYWxpKGRhdGU6IERhdGUpOiBCZW5nYWxpRGF0ZSB7CiAgY29uc3QgZGF5T25seSA9IG5ldyBEYXRlKGRhdGUuZ2V0RnVsbFllYXIoKSwgZGF0ZS5nZXRNb250aCgpLCBkYXRlLmdldERhdGUoKSk7CiAgLy8gQ2FuZGlkYXRlIEJvbmdhYmRvIHllYXJzOiB0aGUgeWVhciBzdGFydGluZyB0aGlzIEFwciwgYW5kIHBvc3NpYmx5IHRoZSBwcmV2aW91cwogIGNvbnN0IGd5ID0gZGF0ZS5nZXRGdWxsWWVhcigpOwogIGNvbnN0IGdtID0gZGF0ZS5nZXRNb250aCgpICsgMTsKICBjb25zdCBnZCA9IGRhdGUuZ2V0RGF0ZSgpOwogIGNvbnN0IGd1ZXNzQnkgPSBnbSA+IDQgfHwgKGdtID09PSA0ICYmIGdkID49IDEzKSA/IGd5IC0gNTkzIDogZ3kgLSA1OTQ7CiAgZm9yIChjb25zdCBieSBvZiBbZ3Vlc3NCeSwgZ3Vlc3NCeSAtIDEsIGd1ZXNzQnkgKyAxXSkgewogICAgY29uc3QgcyA9IHdiU2Fua3JhbnRpcyhieSk7CiAgICBmb3IgKGxldCBtaSA9IDA7IG1pIDwgMTI7IG1pKyspIHsKICAgICAgaWYgKGRheU9ubHkgPj0gc1ttaV0gJiYgZGF5T25seSA8IHNbbWkgKyAxXSkgewogICAgICAgIGNvbnN0IGRheSA9IE1hdGgucm91bmQoKGRheU9ubHkuZ2V0VGltZSgpIC0gc1ttaV0uZ2V0VGltZSgpKSAvIDg2NDAwMDAwKSArIDE7CiAgICAgICAgY29uc3QgbSA9IEJFTkdBTElfTU9OVEhTW21pXTsKICAgICAgICByZXR1cm4geyB5ZWFyOiBieSwgbW9udGg6IG1pICsgMSwgZGF5LCBtb250aEVuOiBtLmVuLCBtb250aEJuOiBtLmJuLCBtb250aEhpOiBtLmhpLCB2YXJpYW50OiAnd2InIH07CiAgICAgIH0KICAgIH0KICB9CiAgLy8gRmFsbGJhY2sgKHNob3VsZCBub3QgaGFwcGVuKTogYXBwcm94aW1hdGUKICBjb25zdCBtID0gQkVOR0FMSV9NT05USFNbM107CiAgcmV0dXJuIHsgeWVhcjogZ3Vlc3NCeSwgbW9udGg6IDQsIGRheTogMSwgbW9udGhFbjogbS5lbiwgbW9udGhCbjogbS5ibiwgbW9udGhIaTogbS5oaSwgdmFyaWFudDogJ3diJyB9Owp9CgpmdW5jdGlvbiB3YkJlbmdhbGlUb0dyZWdvcmlhbihieTogbnVtYmVyLCBtb250aDogbnVtYmVyLCBkYXk6IG51bWJlcik6IERhdGUgfCBudWxsIHsKICBjb25zdCBtaSA9IG1vbnRoIC0gMTsKICBpZiAobWkgPCAwIHx8IG1pID4gMTEgfHwgZGF5IDwgMSkgcmV0dXJuIG51bGw7CiAgY29uc3QgcyA9IHdiU2Fua3JhbnRpcyhieSk7CiAgY29uc3QgbW9udGhMZW4gPSBNYXRoLnJvdW5kKChzW21pICsgMV0uZ2V0VGltZSgpIC0gc1ttaV0uZ2V0VGltZSgpKSAvIDg2NDAwMDAwKTsKICBpZiAoZGF5ID4gbW9udGhMZW4pIHJldHVybiBudWxsOwogIHJldHVybiBuZXcgRGF0ZShzW21pXS5nZXRUaW1lKCkgKyAoZGF5IC0gMSkgKiA4NjQwMDAwMCk7Cn0KCi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAqLwovKiBQdWJsaWMgQVBJICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICovCi8qIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLSAqLwoKZXhwb3J0IGZ1bmN0aW9uIGdyZWdvcmlhblRvQmVuZ2FsaShkYXRlOiBEYXRlLCB2YXJpYW50OiBCZW5nYWxpVmFyaWFudCk6IEJlbmdhbGlEYXRlIHsKICByZXR1cm4gdmFyaWFudCA9PT0gJ2JkJyA/IGJkR3JlZ29yaWFuVG9CZW5nYWxpKGRhdGUpIDogd2JHcmVnb3JpYW5Ub0JlbmdhbGkoZGF0ZSk7Cn0KCmV4cG9ydCBmdW5jdGlvbiBiZW5nYWxpVG9HcmVnb3JpYW4oCiAgeWVhcjogbnVtYmVyLCBtb250aDogbnVtYmVyLCBkYXk6IG51bWJlciwgdmFyaWFudDogQmVuZ2FsaVZhcmlhbnQKKTogRGF0ZSB8IG51bGwgewogIHJldHVybiB2YXJpYW50ID09PSAnYmQnCiAgICA/IGJkQmVuZ2FsaVRvR3JlZ29yaWFuKHllYXIsIG1vbnRoLCBkYXkpCiAgICA6IHdiQmVuZ2FsaVRvR3JlZ29yaWFuKHllYXIsIG1vbnRoLCBkYXkpOwp9CgovKiogR3JlZ29yaWFuIFtzdGFydCwgZW5kXSAoaW5jbHVzaXZlKSBvZiBhIEJlbmdhbGkgbW9udGguICovCmV4cG9ydCBmdW5jdGlvbiBiZW5nYWxpTW9udGhSYW5nZSgKICBieTogbnVtYmVyLCBtb250aDogbnVtYmVyLCB2YXJpYW50OiBCZW5nYWxpVmFyaWFudAopOiB7IHN0YXJ0OiBEYXRlOyBlbmQ6IERhdGUgfSB7CiAgaWYgKHZhcmlhbnQgPT09ICd3YicpIHsKICAgIGNvbnN0IHMgPSB3YlNhbmtyYW50aXMoYnkpOwogICAgY29uc3QgbWkgPSBtb250aCAtIDE7CiAgICByZXR1cm4geyBzdGFydDogbmV3IERhdGUoc1ttaV0pLCBlbmQ6IG5ldyBEYXRlKHNbbWkgKyAxXS5nZXRUaW1lKCkgLSA4NjQwMDAwMCkgfTsKICB9CiAgY29uc3Qgc3RhcnQgPSBiZEJlbmdhbGlUb0dyZWdvcmlhbihieSwgbW9udGgsIDEpITsKICBjb25zdCBsZW4gPSBiZE1vbnRoTGVuZ3RoKGJ5LCBtb250aCAtIDEpOwogIHJldHVybiB7IHN0YXJ0LCBlbmQ6IG5ldyBEYXRlKHN0YXJ0LmdldFRpbWUoKSArIChsZW4gLSAxKSAqIDg2NDAwMDAwKSB9Owp9CgovKiogVG9kYXkncyBCZW5nYWxpIGRhdGUgaW4gYm90aCB2YXJpYW50cyDigJQgaGFuZHkgZm9yIHRoZSBoZWFkZXIuICovCmV4cG9ydCBmdW5jdGlvbiB0b2RheUJlbmdhbGkoZGF0ZTogRGF0ZSA9IG5ldyBEYXRlKCkpOiB7IGJkOiBCZW5nYWxpRGF0ZTsgd2I6IEJlbmdhbGlEYXRlIH0gewogIHJldHVybiB7IGJkOiBncmVnb3JpYW5Ub0JlbmdhbGkoZGF0ZSwgJ2JkJyksIHdiOiBncmVnb3JpYW5Ub0JlbmdhbGkoZGF0ZSwgJ3diJykgfTsKfQo=
+/**
+ * bengaliCalendar.ts — Bengali (Bongabdo) calendar engine.
+ * =====================================================================
+ * Supports BOTH Bengali calendar variants with a user toggle:
+ *
+ *  - 'bd' — Bangladesh revised calendar (Bangla Academy, effective 2019):
+ *    Pohela Boishakh = April 14. Fixed month lengths; Falgun gets 31 days
+ *    in Gregorian leap years. Fully deterministic.
+ *
+ *  - 'wb' — West Bengal traditional sidereal-solar calendar: each month
+ *    begins on the day of sankranti (sun's entry into the next sidereal
+ *    rashi), computed with a Lahiri-ayanamsa solar-longitude model.
+ *    Accurate to ±1 day vs printed panjikas (which use full ephemerides).
+ *
+ * Offline-first: pure computation, no network. Bengali numerals supported.
+ */
+
+export type BengaliVariant = 'bd' | 'wb';
+
+export interface BengaliMonthDef {
+  en: string;
+  bn: string;
+  hi: string;
+}
+
+export const BENGALI_MONTHS: BengaliMonthDef[] = [
+  { en: 'Boishakh', bn: 'বৈশাখ', hi: 'बैशाख' },
+  { en: 'Joishtho', bn: 'জ্যৈষ্ঠ', hi: 'ज्येष्ठ' },
+  { en: 'Asharh', bn: 'আষাঢ়', hi: 'आषाढ़' },
+  { en: 'Shrabon', bn: 'শ্রাবণ', hi: 'श्रावण' },
+  { en: 'Bhadro', bn: 'ভাদ্র', hi: 'भाद्र' },
+  { en: 'Ashwin', bn: 'আশ্বিন', hi: 'आश्विन' },
+  { en: 'Kartik', bn: 'কার্তিক', hi: 'कार्तिक' },
+  { en: 'Ogrohayon', bn: 'অগ্রহায়ণ', hi: 'अग्रहायण' },
+  { en: 'Poush', bn: 'পৌষ', hi: 'पौष' },
+  { en: 'Magh', bn: 'মাঘ', hi: 'माघ' },
+  { en: 'Falgun', bn: 'ফাল্গুন', hi: 'फाल्गुन' },
+  { en: 'Choitro', bn: 'চৈত্র', hi: 'चैत्र' },
+];
+
+export interface BengaliDate {
+  year: number; // Bongabdo, e.g. 1433
+  month: number; // 1..12 (1 = Boishakh)
+  day: number; // 1..31
+  monthEn: string;
+  monthBn: string;
+  monthHi: string;
+  variant: BengaliVariant;
+}
+
+const BENGALI_DIGITS = '০১২৩৪৫৬৭৮৯';
+
+/** Convert 0-9 digits in a string/number to Bengali numerals. */
+export function toBengaliNumerals(n: number | string): string {
+  return String(n).replace(/[0-9]/g, (d) => BENGALI_DIGITS[Number(d)]);
+}
+
+/** Format a Bengali date, e.g. "২৫ আশ্বিন ১৪৩৩" or "25 Ashwin 1433". */
+export function formatBengaliDate(bd: BengaliDate, script: 'bn' | 'en' | 'hi' = 'bn'): string {
+  if (script === 'bn') {
+    return `${toBengaliNumerals(bd.day)} ${bd.monthBn} ${toBengaliNumerals(bd.year)}`;
+  }
+  if (script === 'hi') {
+    return `${bd.day} ${bd.monthHi} ${bd.year}`;
+  }
+  return `${bd.day} ${bd.monthEn} ${bd.year}`;
+}
+
+/** Default variant from a geo/payment region: BD → Bangladesh, else West Bengal. */
+export function variantForRegion(region: 'BD' | 'IN' | 'INTL'): BengaliVariant {
+  return region === 'BD' ? 'bd' : 'wb';
+}
+
+/* ------------------------------------------------------------------ */
+/* Bangladesh revised calendar (Bangla Academy, effective 2019)        */
+/* ------------------------------------------------------------------ */
+/* CORRECTED 2019 table (the brief initially carried pre-2019 values):
+ * Boishakh 31, Joishtho 31, Asharh 31, Shrabon 31, Bhadro 31, Ashwin 31,
+ * Kartik 30, Ogrohayon 30, Poush 30, Magh 30, Falgun 29 (30 in leap),
+ * Choitro 30.
+ * Driven by the fixed Gregorian START dates below — month lengths (incl.
+ * Falgun's leap rule) fall out automatically. Verified: consecutive starts
+ * are exactly the stated lengths apart. */
+
+import { calculateSunriseSunset } from '../utils/panchang';
+import { drikSunLongitude } from './drikPanchang';
+
+/** Gregorian start [month 1-12, day] of each Bengali month (2019 revision). */
+const BD_STARTS: Array<[number, number]> = [
+  [4, 14], [5, 15], [6, 15], [7, 16], [8, 16], [9, 16],
+  [10, 17], [11, 16], [12, 16], [1, 15], [2, 14], [3, 15],
+];
+
+/** Gregorian start of Bengali month `mi` (0-based) in Bongabdo year `by`. */
+function bdMonthStart(by: number, mi: number): Date {
+  const [m, d] = BD_STARTS[mi];
+  const gy = mi <= 8 ? by + 593 : by + 594; // Poush and earlier: same Gy; Magh+: next
+  return new Date(gy, m - 1, d);
+}
+
+const startOfDayLocal = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+function bdGregorianToBengali(date: Date): BengaliDate {
+  const dayOnly = startOfDayLocal(date);
+  // Bongabdo year: the Apr-14 (Pohela Boishakh) on/before this date
+  let pbGy = dayOnly.getFullYear();
+  if (dayOnly < new Date(pbGy, 3, 14)) pbGy--;
+  const by = pbGy - 593;
+  for (let mi = 0; mi < 12; mi++) {
+    const s = bdMonthStart(by, mi);
+    const e = mi < 11 ? bdMonthStart(by, mi + 1) : new Date(pbGy + 1, 3, 14);
+    if (dayOnly >= s && dayOnly < e) {
+      const day = Math.round((dayOnly.getTime() - s.getTime()) / 86400000) + 1;
+      const m = BENGALI_MONTHS[mi];
+      return { year: by, month: mi + 1, day, monthEn: m.en, monthBn: m.bn, monthHi: m.hi, variant: 'bd' };
+    }
+  }
+  const m = BENGALI_MONTHS[0];
+  return { year: by, month: 1, day: 1, monthEn: m.en, monthBn: m.bn, monthHi: m.hi, variant: 'bd' };
+}
+
+function bdMonthLength(by: number, mi: number): number {
+  const s = bdMonthStart(by, mi);
+  const e = mi < 11 ? bdMonthStart(by, mi + 1) : new Date(by + 594, 3, 14);
+  return Math.round((e.getTime() - s.getTime()) / 86400000);
+}
+
+function bdBengaliToGregorian(by: number, month: number, day: number): Date | null {
+  const mi = month - 1;
+  if (mi < 0 || mi > 11 || day < 1) return null;
+  if (day > bdMonthLength(by, mi)) return null;
+  const s = bdMonthStart(by, mi);
+  return new Date(s.getTime() + (day - 1) * 86400000);
+}
+
+/**
+ * Sunrise-aware "today": the Bengali day begins at SUNRISE, not midnight.
+ * Before local sunrise, the current Bengali date is still yesterday's.
+ */
+export function bengaliToday(
+  variant: BengaliVariant, lat: number, lon: number, tzOffsetHours: number
+): BengaliDate {
+  const now = new Date();
+  try {
+    const { sunriseDate } = calculateSunriseSunset(now, lat, lon, tzOffsetHours);
+    const effective = now.getTime() < sunriseDate.getTime()
+      ? new Date(now.getTime() - 86400000)
+      : now;
+    return gregorianToBengali(effective, variant);
+  } catch {
+    return gregorianToBengali(now, variant);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* West Bengal traditional sidereal-solar calendar                     */
+/* ------------------------------------------------------------------ */
+
+/** Sun's apparent sidereal longitude (degrees 0..360) — Lahiri ayanamsa (Drik).
+ *  Delegates to the Drik engine (Schlyter); kept here for API stability. */
+export function sunSiderealLongitude(date: Date): number {
+  return drikSunLongitude(date);
+}
+
+const atNoon = (d: Date): Date => {
+  const c = new Date(d);
+  c.setHours(12, 0, 0, 0);
+  return c;
+};
+
+/** Find the calendar day on which the sun's sidereal longitude crosses `targetDeg` (0..360),
+ * searching near `approxDate`. Exported for the regional calendar framework. */
+export function sankrantiNear(targetDeg: number, approxDate: Date): Date {
+  return findSankranti(targetDeg, approxDate);
+}
+
+/** Find the calendar day on which the sun's sidereal longitude crosses `target` (0..360). */
+function findSankranti(target: number, approxDate: Date): Date {
+  const T = ((target % 360) + 360) % 360;
+  for (let offset = -10; offset <= 10; offset++) {
+    const d1 = atNoon(new Date(approxDate.getTime() + offset * 86400000));
+    const d2 = new Date(d1.getTime() + 86400000);
+    const l1 = sunSiderealLongitude(d1);
+    let l2 = sunSiderealLongitude(d2);
+    // forward motion across the day (unwrap)
+    let dl = l2 - l1;
+    if (dl < 0) dl += 360;
+    if (dl > 180) continue; // sanity: sun moves ~1°/day
+    let dt = T - l1;
+    if (dt < 0) dt += 360;
+    if (dt <= dl) {
+      // crossing happened this day → that calendar day is day 1 of the month
+      return new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    }
+  }
+  return new Date(approxDate.getFullYear(), approxDate.getMonth(), approxDate.getDate());
+}
+
+/** 13 sankranti day-starts bounding the 12 months of Bongabdo year `by` (0°..360°). */
+const sankrantiCache = new Map<number, Date[]>();
+
+export function wbSankrantis(by: number): Date[] {
+  const hit = sankrantiCache.get(by);
+  if (hit) return hit;
+  const startGy = by + 593; // Gregorian year of Mesha sankranti
+  const meshaApprox = new Date(startGy, 3, 14, 12, 0, 0); // ~Apr 14
+  const out: Date[] = [];
+  for (let k = 0; k <= 12; k++) {
+    const approx = new Date(meshaApprox.getTime() + k * 30.4375 * 86400000);
+    out.push(findSankranti(k * 30, approx));
+  }
+  sankrantiCache.set(by, out);
+  return out;
+}
+
+function wbGregorianToBengali(date: Date): BengaliDate {
+  const dayOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  // Candidate Bongabdo years: the year starting this Apr, and possibly the previous
+  const gy = date.getFullYear();
+  const gm = date.getMonth() + 1;
+  const gd = date.getDate();
+  const guessBy = gm > 4 || (gm === 4 && gd >= 13) ? gy - 593 : gy - 594;
+  for (const by of [guessBy, guessBy - 1, guessBy + 1]) {
+    const s = wbSankrantis(by);
+    for (let mi = 0; mi < 12; mi++) {
+      if (dayOnly >= s[mi] && dayOnly < s[mi + 1]) {
+        const day = Math.round((dayOnly.getTime() - s[mi].getTime()) / 86400000) + 1;
+        const m = BENGALI_MONTHS[mi];
+        return { year: by, month: mi + 1, day, monthEn: m.en, monthBn: m.bn, monthHi: m.hi, variant: 'wb' };
+      }
+    }
+  }
+  // Fallback (should not happen): approximate
+  const m = BENGALI_MONTHS[3];
+  return { year: guessBy, month: 4, day: 1, monthEn: m.en, monthBn: m.bn, monthHi: m.hi, variant: 'wb' };
+}
+
+function wbBengaliToGregorian(by: number, month: number, day: number): Date | null {
+  const mi = month - 1;
+  if (mi < 0 || mi > 11 || day < 1) return null;
+  const s = wbSankrantis(by);
+  const monthLen = Math.round((s[mi + 1].getTime() - s[mi].getTime()) / 86400000);
+  if (day > monthLen) return null;
+  return new Date(s[mi].getTime() + (day - 1) * 86400000);
+}
+
+/* ------------------------------------------------------------------ */
+/* Public API                                                          */
+/* ------------------------------------------------------------------ */
+
+export function gregorianToBengali(date: Date, variant: BengaliVariant): BengaliDate {
+  return variant === 'bd' ? bdGregorianToBengali(date) : wbGregorianToBengali(date);
+}
+
+export function bengaliToGregorian(
+  year: number, month: number, day: number, variant: BengaliVariant
+): Date | null {
+  return variant === 'bd'
+    ? bdBengaliToGregorian(year, month, day)
+    : wbBengaliToGregorian(year, month, day);
+}
+
+/** Gregorian [start, end] (inclusive) of a Bengali month. */
+export function bengaliMonthRange(
+  by: number, month: number, variant: BengaliVariant
+): { start: Date; end: Date } {
+  if (variant === 'wb') {
+    const s = wbSankrantis(by);
+    const mi = month - 1;
+    return { start: new Date(s[mi]), end: new Date(s[mi + 1].getTime() - 86400000) };
+  }
+  const start = bdBengaliToGregorian(by, month, 1)!;
+  const len = bdMonthLength(by, month - 1);
+  return { start, end: new Date(start.getTime() + (len - 1) * 86400000) };
+}
+
+/** Today's Bengali date in both variants — handy for the header. */
+export function todayBengali(date: Date = new Date()): { bd: BengaliDate; wb: BengaliDate } {
+  return { bd: gregorianToBengali(date, 'bd'), wb: gregorianToBengali(date, 'wb') };
+}

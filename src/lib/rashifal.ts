@@ -1,1 +1,173 @@
-LyoqCiAqIHJhc2hpZmFsLnRzIOKAlCBEYWlseSBCZW5nYWxpIHJhc2hpZmFsIChob3Jvc2NvcGUgZ3VpZGFuY2UpLgogKiA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICogVGFzdGVmdWwsIG5vbi1mZWFyLWJhc2VkIGRhaWx5IGd1aWRhbmNlIGZvciB0aGUgMTIgcmFzaGlzLiBUZXh0cyBhcmUKICogZHJhd24gZnJvbSBhIGN1cmF0ZWQgYmFuaywgc2VsZWN0ZWQgZGV0ZXJtaW5pc3RpY2FsbHkgYnkgZGF0ZSAoc2VlZGVkKSwKICogc28gZXZlcnkgdXNlciBzZWVzIHRoZSBzYW1lIHN0YWJsZSBndWlkYW5jZSBmb3IgYSBnaXZlbiBkYXkuCiAqCiAqIFJVTEVTOiBuZXZlciBmZWFyLW1vbmdlcmluZywgaGVhbHRoIHNjYXJlcywgZmluYW5jaWFsIGRvb20sIG9yCiAqICJiZXdhcmUgb2YgZW5lbWllcyIgc3R5bGUgY29udGVudC4gRnJhbWVkIGFzIHRyYWRpdGlvbmFsIGd1aWRhbmNlIHdpdGgKICogYSBzdGFuZGluZyBkaXNjbGFpbWVyIHBvaW50aW5nIHRvIHRoZSB1c2VyJ3Mgb3duIGp5b3Rpc2hpLgogKi8KCmV4cG9ydCBpbnRlcmZhY2UgUmFzaGlEZWYgewogIGlkOiBzdHJpbmc7CiAgYm46IHN0cmluZzsKICBlbjogc3RyaW5nOwogIGhpOiBzdHJpbmc7CiAgdGE6IHN0cmluZzsKICBkYXRlczogc3RyaW5nOyAvLyBhcHByb3ggR3JlZ29yaWFuIHNwYW4KICBsb3JkOiBzdHJpbmc7CiAgZWxlbWVudDogc3RyaW5nOwp9CgpleHBvcnQgY29uc3QgUkFTSElTOiBSYXNoaURlZltdID0gWwogIHsgaWQ6ICdtZXNoJywgYm46ICfgpq7gp4fgprcnLCBlbjogJ01lc2gnLCBoaTogJ+CkruClh+CktycsIHRhOiAn4K6u4K+H4K634K6u4K+NJywgZGF0ZXM6ICdBcHIgMTQg4oCTIE1heSAxNCcsIGxvcmQ6ICdNYW5nYWwnLCBlbGVtZW50OiAnQWduaScgfSwKICB7IGlkOiAnYnJpc2gnLCBibjogJ+CmrOCng+CmtycsIGVuOiAnQnJpc2gnLCBoaTogJ+CkteClg+CktycsIHRhOiAn4K6w4K6/4K634K6q4K6u4K+NJywgZGF0ZXM6ICdNYXkgMTUg4oCTIEp1biAxNCcsIGxvcmQ6ICdTaHVrcmEnLCBlbGVtZW50OiAnUHJpdGh2aScgfSwKICB7IGlkOiAnbWl0aHVuJywgYm46ICfgpq7gpr/gpqXgp4HgpqgnLCBlbjogJ01pdGh1bicsIGhpOiAn4KSu4KS/4KSl4KWB4KSoJywgdGE6ICfgrq7grr/grqTgr4Hgrqngrq7gr40nLCBkYXRlczogJ0p1biAxNSDigJMgSnVsIDE1JywgbG9yZDogJ0J1ZGgnLCBlbGVtZW50OiAnVmF5dScgfSwKICB7IGlkOiAna2Fya2F0JywgYm46ICfgppXgprDgp43gppXgpp8nLCBlbjogJ0thcmthdCcsIGhpOiAn4KSV4KSw4KWN4KSV4KSfJywgdGE6ICfgrpXgrp/grpXgrq7gr40nLCBkYXRlczogJ0p1bCAxNiDigJMgQXVnIDE1JywgbG9yZDogJ0NoYW5kcmEnLCBlbGVtZW50OiAnSmFsJyB9LAogIHsgaWQ6ICdzaW5naGEnLCBibjogJ+CmuOCmv+CmguCmuScsIGVuOiAnU2luZ2hhJywgaGk6ICfgpLjgpL/gpILgpLknLCB0YTogJ+CumuCuv+CuruCvjeCuruCuruCvjScsIGRhdGVzOiAnQXVnIDE2IOKAkyBTZXAgMTUnLCBsb3JkOiAnU3VyeWEnLCBlbGVtZW50OiAnQWduaScgfSwKICB7IGlkOiAna2FueWEnLCBibjogJ+CmleCmqOCnjeCmr+CmvicsIGVuOiAnS2FueWEnLCBoaTogJ+CkleCkqOCljeCkr+CkvicsIHRhOiAn4K6V4K6p4K+N4K6p4K6/JywgZGF0ZXM6ICdTZXAgMTYg4oCTIE9jdCAxNScsIGxvcmQ6ICdCdWRoJywgZWxlbWVudDogJ1ByaXRodmknIH0sCiAgeyBpZDogJ3R1bGEnLCBibjogJ+CmpOCngeCmsuCmvicsIGVuOiAnVHVsYScsIGhpOiAn4KSk4KWB4KSy4KS+JywgdGE6ICfgrqTgr4HgrrLgrr7grq7gr40nLCBkYXRlczogJ09jdCAxNiDigJMgTm92IDE0JywgbG9yZDogJ1NodWtyYScsIGVsZW1lbnQ6ICdWYXl1JyB9LAogIHsgaWQ6ICdicmlzY2hpaycsIGJuOiAn4Kas4KeD4Ka24KeN4Kaa4Ka/4KaVJywgZW46ICdCcmlzY2hpaycsIGhpOiAn4KS14KWD4KS24KWN4KSa4KS/4KSVJywgdGE6ICfgrrXgrr/grrDgr4Hgrprgr43grprgrr/grpXgrq7gr40nLCBkYXRlczogJ05vdiAxNSDigJMgRGVjIDE0JywgbG9yZDogJ01hbmdhbCcsIGVsZW1lbnQ6ICdKYWwnIH0sCiAgeyBpZDogJ2RoYW51JywgYm46ICfgpqfgpqjgp4EnLCBlbjogJ0RoYW51JywgaGk6ICfgpKfgpKjgpYEnLCB0YTogJ+CupOCuqeCvgeCumuCvgScsIGRhdGVzOiAnRGVjIDE1IOKAkyBKYW4gMTMnLCBsb3JkOiAnR3VydScsIGVsZW1lbnQ6ICdBZ25pJyB9LAogIHsgaWQ6ICdtYWthcicsIGJuOiAn4Kau4KaV4KawJywgZW46ICdNYWthcicsIGhpOiAn4KSu4KSV4KSwJywgdGE6ICfgrq7grpXgrrDgrq7gr40nLCBkYXRlczogJ0phbiAxNCDigJMgRmViIDEyJywgbG9yZDogJ1NoYW5pJywgZWxlbWVudDogJ1ByaXRodmknIH0sCiAgeyBpZDogJ2t1bWJoYScsIGJuOiAn4KaV4KeB4Kau4KeN4KatJywgZW46ICdLdW1iaGEnLCBoaTogJ+CkleClgeCkruCljeCkrScsIHRhOiAn4K6V4K+B4K6u4K+N4K6q4K6u4K+NJywgZGF0ZXM6ICdGZWIgMTMg4oCTIE1hciAxMycsIGxvcmQ6ICdTaGFuaScsIGVsZW1lbnQ6ICdWYXl1JyB9LAogIHsgaWQ6ICdtZWVuJywgYm46ICfgpq7gp4DgpqgnLCBlbjogJ01lZW4nLCBoaTogJ+CkruClgOCkqCcsIHRhOiAn4K6u4K+A4K6p4K6u4K+NJywgZGF0ZXM6ICdNYXIgMTQg4oCTIEFwciAxMycsIGxvcmQ6ICdHdXJ1JywgZWxlbWVudDogJ0phbCcgfSwKXTsKCmV4cG9ydCBpbnRlcmZhY2UgUmFzaGlmYWxFbnRyeSB7CiAgcmFzaGk6IFJhc2hpRGVmOwogIHNodWJoQ29sb3I6IHsgZW46IHN0cmluZzsgYm46IHN0cmluZyB9OwogIHNodWJoTnVtYmVyOiBudW1iZXI7CiAgZ3VpZGFuY2U6IHsgZW46IHN0cmluZzsgYm46IHN0cmluZyB9OwogIGZvY3VzOiB7IGVuOiBzdHJpbmc7IGJuOiBzdHJpbmcgfTsgLy8gYXJlYSBvZiB0aGUgZGF5OiBlLmcuIGZhbWlseSwgd29yaywgc2FkaGFuYQp9Cgpjb25zdCBTSFVCSF9DT0xPUlMgPSBbCiAgeyBlbjogJ1NhZmZyb24nLCBibjogJ+Cml+Cnh+CmsOCngeCmr+CmvOCmvicgfSwgeyBlbjogJ1doaXRlJywgYm46ICfgprjgpr7gpqbgpr4nIH0sCiAgeyBlbjogJ1llbGxvdycsIGJuOiAn4Ka54Kay4KeB4KamJyB9LCB7IGVuOiAnR3JlZW4nLCBibjogJ+CmuOCmrOCngeCmnCcgfSwKICB7IGVuOiAnUmVkJywgYm46ICfgprLgpr7gprInIH0sIHsgZW46ICdTa3kgYmx1ZScsIGJuOiAn4KaG4KaV4Ka+4Ka24Ka/JyB9LAogIHsgZW46ICdDcmVhbScsIGJuOiAn4KaV4KeN4Kaw4Ka/4KauJyB9LCB7IGVuOiAnR29sZGVuJywgYm46ICfgprjgp4vgpqjgpr7gprLgpr8nIH0sCl07Cgpjb25zdCBHVUlEQU5DRV9CQU5LOiBBcnJheTx7IGVuOiBzdHJpbmc7IGJuOiBzdHJpbmc7IGZvY3VzRW46IHN0cmluZzsgZm9jdXNCbjogc3RyaW5nIH0+ID0gWwogIHsKICAgIGVuOiAnQSBzdGVhZHkgZGF5IGZvciBjb21wbGV0aW5nIHBlbmRpbmcgZHV0aWVzLiBPZmZlciB5b3VyIHdvcmsgYXMgc2V2YSBhbmQgdGhlIHJlc3VsdHMgd2lsbCBmb2xsb3cuJywKICAgIGJuOiAn4KaF4Ka44Kau4Ka+4Kaq4KeN4KakIOCmleCmvuCmnCDgprbgp4fgprcg4KaV4Kaw4Ka+4KawIOCmnOCmqOCnjeCmryDgprjgp43gpqXgpr/gprAg4Kam4Ka/4Kao4KWkIOCmleCmvuCmnOCmleCnhyDgprjgp4fgpqzgpr4g4Ka54Ka/4Ka44KeH4Kas4KeHIOCmheCmsOCnjeCmquCmoyDgppXgprDgp4HgpqgsIOCmq+CmsiDgpobgprjgpqzgp4fgpofgpaQnLAogICAgZm9jdXNFbjogJ0R1dHkgJiBkaXNjaXBsaW5lJywgZm9jdXNCbjogJ+CmleCmsOCnjeCmpOCmrOCnjeCmryDgppMg4Ka24KeD4KaZ4KeN4KaW4Kay4Ka+JywKICB9LAogIHsKICAgIGVuOiAnVGltZSBzcGVudCB3aXRoIGVsZGVycyBhbmQgZmFtaWx5IGJyaW5ncyBxdWlldCBqb3kgdG9kYXkuIExpc3RlbiBtb3JlIHRoYW4geW91IHNwZWFrLicsCiAgICBibjogJ+CmhuCmnCDgpqzgpq/gprzgp4vgppzgp43gpq/gp4fgprfgp43gpqAg4KaTIOCmquCmsOCmv+CmrOCmvuCmsOCnh+CmsCDgprjgppngp43gppfgp4cg4Ka44Kau4Kav4Ka8IOCmtuCmvuCmqOCnjeCmpCDgpobgpqjgpqjgp43gpqYg4Kam4KeH4Kas4KeH4KWkIOCmrOCmsuCmvuCmsCDgpprgp4fgpq/gprzgp4cg4Ka24KeB4Kao4KeB4KaoIOCmrOCnh+CmtuCmv+ClpCcsCiAgICBmb2N1c0VuOiAnRmFtaWx5IGhhcm1vbnknLCBmb2N1c0JuOiAn4Kaq4Ka+4Kaw4Ka/4Kas4Ka+4Kaw4Ka/4KaVIOCmuOCmruCnjeCmquCnjeCmsOCngOCmpOCmvycsCiAgfSwKICB7CiAgICBlbjogJ0EgZ29vZCBkYXkgZm9yIGxlYXJuaW5nIGFuZCByZWZsZWN0aW9uLiBSZWFkaW5nIHNjcmlwdHVyZSBvciBhIHdpc2UgYm9vayB3aWxsIHN0ZWFkeSB0aGUgbWluZC4nLAogICAgYm46ICfgprbgpr/gppXgp43gprfgpr4g4KaTIOCmmuCmv+CmqOCnjeCmpOCmqOCnh+CmsCDgppzgpqjgp43gpq8g4Ka24KeB4KatIOCmpuCmv+CmqOClpCDgprbgpr7gprjgp43gpqTgp43gprAg4Kas4Ka+IOCmnOCnjeCmnuCmvuCmqOCml+CmsOCnjeCmrSDgpqzgpocg4Kaq4Kah4Ka84Kay4KeHIOCmruCmqCDgprjgp43gpqXgpr/gprAg4Ka54Kas4KeH4KWkJywKICAgIGZvY3VzRW46ICdMZWFybmluZycsIGZvY3VzQm46ICfgpqzgpr/gpqbgp43gpq/gpr4nLAogIH0sCiAgewogICAgZW46ICdDaGFyaXR5IGdpdmVuIHF1aWV0bHkgdG9kYXkgbXVsdGlwbGllcyBpbiBtZXJpdC4gSGVscCBzb21lb25lIHdpdGhvdXQgZXhwZWN0aW5nIHRoYW5rcy4nLAogICAgYm46ICfgpobgppwg4Kao4KeA4Kaw4Kas4KeHIOCmpuCnh+Cmk+Cmr+CmvOCmviDgpqbgpr7gpqgg4Kaq4KeB4Kaj4KeN4KavIOCmrOCmueCngeCml+CngeCmoyDgpqzgpr7gpqHgprzgpr7gpq/gprzgpaQg4KaV4KeD4Kak4Kac4KeN4Kae4Kak4Ka+IOCmhuCmtuCmviDgpqjgpr4g4KaV4Kaw4KeHIOCmleCmvuCmieCmleCnhyDgprjgpr7gprngpr7gpq/gp43gpq8g4KaV4Kaw4KeB4Kao4KWkJywKICAgIGZvY3VzRW46ICdEYWFuICYgc2V2YScsIGZvY3VzQm46ICfgpqbgpr7gpqgg4KaTIOCmuOCnh+CmrOCmvicsCiAgfSwKICB7CiAgICBlbjogJ0JlZ2luIHRoYXQgdGFzayB5b3UgaGF2ZSBiZWVuIHBvc3Rwb25pbmcg4oCUIHRoZSBtdWh1cmF0IGZhdm91cnMgZnJlc2ggc3RhcnRzIG1hZGUgd2l0aCBhIGNsZWFyIGhlYXJ0LicsCiAgICBibjogJ+Cmr+CnhyDgppXgpr7gppwg4Kaq4Ka/4Kab4Ka/4Kav4Ka84KeHIOCmsOCnh+CmluCnh+Cmm+Cnh+CmqCDgpqTgpr4g4KaG4KacIOCmtuCngeCmsOCngSDgppXgprDgp4Hgpqgg4oCUIOCmqOCmv+CmsOCnjeCmruCmsiDgpq7gpqjgp4cg4Kao4Kak4KeB4KaoIOCmtuCngeCmsOCngeCmsCDgppzgpqjgp43gpq8g4Ka24KeB4KatIOCmuOCmruCmr+CmvOClpCcsCiAgICBmb2N1c0VuOiAnTmV3IGJlZ2lubmluZ3MnLCBmb2N1c0JuOiAn4Kao4Kak4KeB4KaoIOCmtuCngeCmsOCngScsCiAgfSwKICB7CiAgICBlbjogJ1BhdGllbmNlIGluIHNwZWVjaCBwcm90ZWN0cyByZWxhdGlvbnNoaXBzIHRvZGF5LiBBIGtpbmQgd29yZCBjb3N0cyBub3RoaW5nIGFuZCBlYXJucyBtdWNoLicsCiAgICBibjogJ+CmhuCmnCDgpqzgpr7gppXgp43gpq/gp4cg4Kan4KeI4Kaw4KeN4KavIOCmuOCmruCnjeCmquCmsOCnjeCmlSDgprDgppXgp43gprfgpr4g4KaV4Kaw4KeH4KWkIOCmuOCmpuCmr+CmvCDgppXgpqXgpr4g4Kas4Ka/4Kao4Ka+4Kau4KeC4Kay4KeN4Kav4KeHLCDgpoXgprDgp43gppzgpqgg4KaF4Kao4KeH4KaV4KWkJywKICAgIGZvY3VzRW46ICdTcGVlY2ggJiByZWxhdGlvbnMnLCBmb2N1c0JuOiAn4Kas4Ka+4KaV4KeN4KavIOCmkyDgprjgpq7gp43gpqrgprDgp43gppUnLAogIH0sCiAgewogICAgZW46ICdEZXZvdGlvbiBkZWVwZW5zIHRocm91Z2ggc21hbGwsIHNpbmNlcmUgYWN0cyDigJQgYSBkaXlhIGF0IGRhd24sIGEgbWFudHJhIHdpdGggYXR0ZW50aW9uLicsCiAgICBibjogJ+Cmm+Cni+CmnyDgpobgpqjgp43gpqTgprDgpr/gppUg4KaV4Ka+4Kac4KeHIOCmreCmleCnjeCmpOCmvyDgppfgpq3gp4DgprAg4Ka54Kav4Ka8IOKAlCDgpq3gp4vgprDgp4cg4KaP4KaV4Kaf4Ka/IOCmquCnjeCmsOCmpuCngOCmqiwg4Kau4Kao4KeL4Kav4KeL4KaX4KeHIOCmj+CmleCmn+CmvyDgpq7gpqjgp43gpqTgp43gprDgpaQnLAogICAgZm9jdXNFbjogJ1NhZGhhbmEnLCBmb2N1c0JuOiAn4Ka44Ka+4Kan4Kao4Ka+JywKICB9LAogIHsKICAgIGVuOiAnRmluYW5jaWFsIG1hdHRlcnMgZmF2b3VyIGNhdXRpb24gb3ZlciBoYXN0ZS4gUmV2aWV3LCBwbGFuLCBhbmQgbGV0IGRlY2lzaW9ucyByaXBlbi4nLAogICAgYm46ICfgpoXgprDgp43gpqXgpqzgpr/gprfgpq/gprzgp4cg4Kak4Ka+4Kah4Ka84Ka+4Ka54KeB4Kah4Ka84KeL4KawIOCmmuCnh+Cmr+CmvOCnhyDgprjgpqTgprDgp43gppXgpqTgpr4g4Ka24KeN4Kaw4KeH4Kav4Ka84KWkIOCmquCmsOCnjeCmr+CmvuCmsuCni+CmmuCmqOCmviDgppXgprDgp4HgpqgsIOCmquCmsOCmv+CmleCmsuCnjeCmquCmqOCmviDgppXgprDgp4HgpqgsIOCmuOCmv+CmpuCnjeCmp+CmvuCmqOCnjeCmpCDgpqrgpr7gppXgpqTgp4cg4Kam4Ka/4Kao4KWkJywKICAgIGZvY3VzRW46ICdQbGFubmluZycsIGZvY3VzQm46ICfgpqrgprDgpr/gppXgprLgp43gpqrgpqjgpr4nLAogIH0sCiAgewogICAgZW46ICdBbiBvbGQgZnJpZW5kIG9yIHJlbGF0aXZlIG1heSByZWNvbm5lY3Qg4oCUIHJlY2VpdmUgdGhlbSB3YXJtbHk7IGJvbmRzIHJlbmV3ZWQgYnJpbmcgc3RyZW5ndGguJywKICAgIGJuOiAn4Kaq4KeB4Kaw4Kao4KeLIOCmrOCmqOCnjeCmp+CngSDgpqzgpr4g4KaG4Kak4KeN4Kau4KeA4Kav4Ka84KeH4KawIOCmuOCmmeCnjeCml+CnhyDgpq/gp4vgppfgpr7gpq/gp4vgppcg4Ka54Kak4KeHIOCmquCmvuCmsOCnhyDigJQg4KaJ4Ka34KeN4Kaj4Kat4Ka+4Kas4KeHIOCml+CnjeCmsOCmueCmoyDgppXgprDgp4Hgpqg7IOCmqOCmrOCmvuCmr+CmvOCmv+CmpCDgpqzgpqjgp43gpqfgpqgg4Ka24KaV4KeN4Kak4Ka/IOCmpuCnh+Cmr+CmvOClpCcsCiAgICBmb2N1c0VuOiAnUmVsYXRpb25zaGlwcycsIGZvY3VzQm46ICfgprjgpq7gp43gpqrgprDgp43gppUnLAogIH0sCiAgewogICAgZW46ICdIZWFsdGggZmF2b3VycyByb3V0aW5lIHRvZGF5OiBzaW1wbGUgZm9vZCwgZWFybHkgcmVzdCwgYW5kIGEgc2hvcnQgd2FsayBjbGVhciB0aGUgbWluZC4nLAogICAgYm46ICfgpobgppwg4Ka44KeN4Kas4Ka+4Ka44KeN4Kal4KeN4Kav4KeH4KawIOCmnOCmqOCnjeCmryDgpqjgpr/gpq/gprzgpq4g4Ka24KeB4KatOiDgprjgpr7gpqbgpr7gprjgpr/gpqfgp4cg4KaW4Ka+4Kas4Ka+4KawLCDgpqTgpr7gpqHgprzgpr7gpqTgpr7gpqHgprzgpr8g4Kas4Ka/4Ka24KeN4Kaw4Ka+4KauLCDgpoXgprLgp43gpqog4Ka54Ka+4KaB4Kaf4Ka+IOCmruCmqCDgpqrgprDgpr/gprfgp43gppXgpr7gprAg4KaV4Kaw4KeH4KWkJywKICAgIGZvY3VzRW46ICdXZWxsYmVpbmcnLCBmb2N1c0JuOiAn4Ka44KeB4Ka44KeN4Kal4Kak4Ka+JywKICB9LAogIHsKICAgIGVuOiAnQ3JlYXRpdmUgd29yayBmbG93cyB3ZWxsIOKAlCB3cml0aW5nLCBtdXNpYywgb3IgY3JhZnQgZG9uZSB3aXRoIGRldm90aW9uIGNhcnJpZXMgc3BlY2lhbCBncmFjZS4nLAogICAgYm46ICfgprjgp4Pgppzgpqjgprbgp4DgprIg4KaV4Ka+4KacIOCmreCmvuCmsuCniyDgprngpqzgp4cg4oCUIOCmreCmleCnjeCmpOCmv+CmreCmsOCnhyDgppXgprDgpr4g4Kay4KeH4KaW4Ka+LCDgprjgppngp43gppfgp4DgpqQg4Kas4Ka+IOCmueCmuOCnjeCmpOCmtuCmv+CmsuCnjeCmquCnhyDgpqzgpr/gprbgp4fgprcg4KaV4KeD4Kaq4Ka+4KWkJywKICAgIGZvY3VzRW46ICdDcmVhdGl2aXR5JywgZm9jdXNCbjogJ+CmuOCng+CmnOCmqOCmtuCngOCmsuCmpOCmvicsCiAgfSwKICB7CiAgICBlbjogJ1NlcnZlIHlvdXIgY29tbXVuaXR5IGluIHNvbWUgc21hbGwgd2F5IHRvZGF5OyBzaGFyZWQgbWVyaXQgbGlmdHMgZXZlcnlvbmUsIGluY2x1ZGluZyB5b3UuJywKICAgIGJuOiAn4KaG4KacIOCmleCni+CmqOCniyDgppvgp4vgpp/gpq3gpr7gpqzgp4cg4Ka44Kau4Ka+4Kac4KeH4KawIOCmuOCnh+CmrOCmviDgppXgprDgp4Hgpqg7IOCmreCmvuCmlyDgppXgprDgpr4g4Kaq4KeB4Kaj4KeN4KavIOCmuOCmrOCmvuCmh+CmleCnhyDgpongpqjgp43gpqjgp4DgpqQg4KaV4Kaw4KeHLCDgpobgpqrgpqjgpr7gppXgp4fgppPgpaQnLAogICAgZm9jdXNFbjogJ0NvbW11bml0eSBzZXZhJywgZm9jdXNCbjogJ+CmuOCmruCmvuCmnOCmuOCnh+CmrOCmvicsCiAgfSwKXTsKCi8qKiBEZXRlcm1pbmlzdGljIGRhaWx5IHBpY2s6IHNhbWUgZGF0ZSArIHJhc2hpIOKGkiBzYW1lIGVudHJ5LCBzdGFibGUgYWxsIGRheS4gKi8KZnVuY3Rpb24gc2VlZGVkUGljazxUPihpdGVtczogVFtdLCBzZWVkOiBzdHJpbmcpOiBUIHsKICBsZXQgaCA9IDIxNjYxMzYyNjE7CiAgZm9yIChsZXQgaSA9IDA7IGkgPCBzZWVkLmxlbmd0aDsgaSsrKSB7CiAgICBoIF49IHNlZWQuY2hhckNvZGVBdChpKTsKICAgIGggPSBNYXRoLmltdWwoaCwgMTY3Nzc2MTkpOwogIH0KICByZXR1cm4gaXRlbXNbTWF0aC5hYnMoaCkgJSBpdGVtcy5sZW5ndGhdOwp9CgpleHBvcnQgZnVuY3Rpb24gZ2V0UmFzaGlmYWwoZGF0ZTogRGF0ZSA9IG5ldyBEYXRlKCkpOiBSYXNoaWZhbEVudHJ5W10gewogIGNvbnN0IGtleSA9IGAke2RhdGUuZ2V0RnVsbFllYXIoKX0tJHtkYXRlLmdldE1vbnRoKCkgKyAxfS0ke2RhdGUuZ2V0RGF0ZSgpfWA7CiAgcmV0dXJuIFJBU0hJUy5tYXAoKHJhc2hpLCBpKSA9PiB7CiAgICBjb25zdCBnID0gc2VlZGVkUGljayhHVUlEQU5DRV9CQU5LLCBgJHtrZXl9OiR7cmFzaGkuaWR9YCk7CiAgICBjb25zdCBjb2xvciA9IHNlZWRlZFBpY2soU0hVQkhfQ09MT1JTLCBgJHtrZXl9OiR7cmFzaGkuaWR9OmNvbG9yYCk7CiAgICBjb25zdCBzaHViaE51bWJlciA9IChNYXRoLmFicyhoYXNoU3RyKGAke2tleX06JHtyYXNoaS5pZH06bnVtYCkpICUgOSkgKyAxOwogICAgdm9pZCBpOwogICAgcmV0dXJuIHsKICAgICAgcmFzaGksCiAgICAgIHNodWJoQ29sb3I6IGNvbG9yLAogICAgICBzaHViaE51bWJlciwKICAgICAgZ3VpZGFuY2U6IHsgZW46IGcuZW4sIGJuOiBnLmJuIH0sCiAgICAgIGZvY3VzOiB7IGVuOiBnLmZvY3VzRW4sIGJuOiBnLmZvY3VzQm4gfSwKICAgIH07CiAgfSk7Cn0KCmZ1bmN0aW9uIGhhc2hTdHIoczogc3RyaW5nKTogbnVtYmVyIHsKICBsZXQgaCA9IDIxNjYxMzYyNjE7CiAgZm9yIChsZXQgaSA9IDA7IGkgPCBzLmxlbmd0aDsgaSsrKSB7CiAgICBoIF49IHMuY2hhckNvZGVBdChpKTsKICAgIGggPSBNYXRoLmltdWwoaCwgMTY3Nzc2MTkpOwogIH0KICByZXR1cm4gaDsKfQoKLyoqIFJhc2hpIGRpc3BsYXkgbmFtZSBpbiB0aGUgdXNlcidzIGxhbmd1YWdlLiAqLwpleHBvcnQgZnVuY3Rpb24gcmFzaGlOYW1lKHI6IFJhc2hpRGVmLCBsYW5nOiBzdHJpbmcpOiBzdHJpbmcgewogIHN3aXRjaCAobGFuZykgewogICAgY2FzZSAnYm4nOiByZXR1cm4gci5ibjsKICAgIGNhc2UgJ2hpJzogY2FzZSAnbXInOiBjYXNlICdndSc6IGNhc2UgJ3NhJzogcmV0dXJuIHIuaGk7CiAgICBjYXNlICd0YSc6IHJldHVybiByLnRhOwogICAgZGVmYXVsdDogcmV0dXJuIHIuZW47CiAgfQp9CgpleHBvcnQgY29uc3QgUkFTSElGQUxfTEFCRUwgPSB7CiAgZW46ICdDaGFuZHJhLWdvY2hhciBnZW5lcmFsIGd1aWRhbmNlJywKICBibjogJ+CmmuCmqOCnjeCmpuCnjeCmsC3gppfgp4vgpprgprAg4Ka44Ka+4Kan4Ka+4Kaw4KajIOCmqOCmv+CmsOCnjeCmpuCnh+CmtuCmqOCmvicsCiAgaGk6ICfgpJrgpILgpKbgpY3gpLAt4KSX4KWL4KSa4KSwIOCkuOCkvuCkruCkvuCkqOCljeCkryDgpK7gpL7gpLDgpY3gpJfgpKbgpLDgpY3gpLbgpKgnLAp9OwoKZXhwb3J0IGNvbnN0IFJBU0hJRkFMX0RJU0NMQUlNRVIgPSB7CiAgZW46ICdDaGFuZHJhLWdvY2hhciBnZW5lcmFsIGd1aWRhbmNlIG9ubHkg4oCUIG5ldmVyIGEgZGV0ZXJtaW5pc3RpYyBwcmVkaWN0aW9uLiBZb3VyIGp5b3Rpc2hpIGtub3dzIHlvdXIga3VuZGFsaSBiZXN0LicsCiAgYm46ICfgprbgp4Hgpqfgp4Hgpq7gpr7gpqTgp43gprAg4Kaa4Kao4KeN4Kam4KeN4KawLeCml+Cni+CmmuCmsCDgprjgpr7gpqfgpr7gprDgpqMg4Kao4Ka/4Kaw4KeN4Kam4KeH4Ka24Kao4Ka+IOKAlCDgppXgppbgpqjgp4vgpocg4Kao4Ka/4Ka24KeN4Kaa4Ka/4KakIOCmreCmrOCmv+Cmt+CnjeCmr+CmpuCnjeCmrOCmvuCmo+CngCDgpqjgpq/gprzgpaQg4KaG4Kaq4Kao4Ka+4KawIOCmnOCnjeCmr+Cni+CmpOCmv+Cmt+CngCDgpobgpqrgpqjgpr7gprAg4KaV4KeB4Kaj4KeN4Kah4Kay4KeAIOCmuOCmrOCmmuCnh+Cmr+CmvOCnhyDgpq3gpr7gprLgp4sg4Kac4Ka+4Kao4KeH4Kao4KWkJywKICBoaTogJ+CkleClh+CkteCksiDgpJrgpILgpKbgpY3gpLAt4KSX4KWL4KSa4KSwIOCkuOCkvuCkruCkvuCkqOCljeCkryDgpK7gpL7gpLDgpY3gpJfgpKbgpLDgpY3gpLbgpKgg4oCUIOCkqOCkv+CktuCljeCkmuCkv+CkpCDgpK3gpLXgpL/gpLfgpY3gpK/gpLXgpL7gpKPgpYAg4KSo4KS54KWA4KSC4KWkIOCkhuCkquCkleClhyDgpJzgpY3gpK/gpYvgpKTgpL/gpLfgpYAg4KSG4KSq4KSV4KWAIOCkleClgeCkguCkoeCksuClgCDgpLjgpKzgpLjgpYcg4KSF4KSa4KWN4KSb4KWAIOCkpOCksOCkuSDgpJzgpL7gpKjgpKTgpYcg4KS54KWI4KSC4KWkJywKfTsK
+/**
+ * rashifal.ts — Daily Bengali rashifal (horoscope guidance).
+ * =====================================================================
+ * Tasteful, non-fear-based daily guidance for the 12 rashis. Texts are
+ * drawn from a curated bank, selected deterministically by date (seeded),
+ * so every user sees the same stable guidance for a given day.
+ *
+ * RULES: never fear-mongering, health scares, financial doom, or
+ * "beware of enemies" style content. Framed as traditional guidance with
+ * a standing disclaimer pointing to the user's own jyotishi.
+ */
+
+export interface RashiDef {
+  id: string;
+  bn: string;
+  en: string;
+  hi: string;
+  ta: string;
+  dates: string; // approx Gregorian span
+  lord: string;
+  element: string;
+}
+
+export const RASHIS: RashiDef[] = [
+  { id: 'mesh', bn: 'মেষ', en: 'Mesh', hi: 'मेष', ta: 'மேஷம்', dates: 'Apr 14 – May 14', lord: 'Mangal', element: 'Agni' },
+  { id: 'brish', bn: 'বৃষ', en: 'Brish', hi: 'वृष', ta: 'ரிஷபம்', dates: 'May 15 – Jun 14', lord: 'Shukra', element: 'Prithvi' },
+  { id: 'mithun', bn: 'মিথুন', en: 'Mithun', hi: 'मिथुन', ta: 'மிதுனம்', dates: 'Jun 15 – Jul 15', lord: 'Budh', element: 'Vayu' },
+  { id: 'karkat', bn: 'কর্কট', en: 'Karkat', hi: 'कर्कट', ta: 'கடகம்', dates: 'Jul 16 – Aug 15', lord: 'Chandra', element: 'Jal' },
+  { id: 'singha', bn: 'সিংহ', en: 'Singha', hi: 'सिंह', ta: 'சிம்மம்', dates: 'Aug 16 – Sep 15', lord: 'Surya', element: 'Agni' },
+  { id: 'kanya', bn: 'কন্যা', en: 'Kanya', hi: 'कन्या', ta: 'கன்னி', dates: 'Sep 16 – Oct 15', lord: 'Budh', element: 'Prithvi' },
+  { id: 'tula', bn: 'তুলা', en: 'Tula', hi: 'तुला', ta: 'துலாம்', dates: 'Oct 16 – Nov 14', lord: 'Shukra', element: 'Vayu' },
+  { id: 'brischik', bn: 'বৃশ্চিক', en: 'Brischik', hi: 'वृश्चिक', ta: 'விருச்சிகம்', dates: 'Nov 15 – Dec 14', lord: 'Mangal', element: 'Jal' },
+  { id: 'dhanu', bn: 'ধনু', en: 'Dhanu', hi: 'धनु', ta: 'தனுசு', dates: 'Dec 15 – Jan 13', lord: 'Guru', element: 'Agni' },
+  { id: 'makar', bn: 'মকর', en: 'Makar', hi: 'मकर', ta: 'மகரம்', dates: 'Jan 14 – Feb 12', lord: 'Shani', element: 'Prithvi' },
+  { id: 'kumbha', bn: 'কুম্ভ', en: 'Kumbha', hi: 'कुम्भ', ta: 'கும்பம்', dates: 'Feb 13 – Mar 13', lord: 'Shani', element: 'Vayu' },
+  { id: 'meen', bn: 'মীন', en: 'Meen', hi: 'मीन', ta: 'மீனம்', dates: 'Mar 14 – Apr 13', lord: 'Guru', element: 'Jal' },
+];
+
+export interface RashifalEntry {
+  rashi: RashiDef;
+  shubhColor: { en: string; bn: string };
+  shubhNumber: number;
+  guidance: { en: string; bn: string };
+  focus: { en: string; bn: string }; // area of the day: e.g. family, work, sadhana
+}
+
+const SHUBH_COLORS = [
+  { en: 'Saffron', bn: 'গেরুয়া' }, { en: 'White', bn: 'সাদা' },
+  { en: 'Yellow', bn: 'হলুদ' }, { en: 'Green', bn: 'সবুজ' },
+  { en: 'Red', bn: 'লাল' }, { en: 'Sky blue', bn: 'আকাশি' },
+  { en: 'Cream', bn: 'ক্রিম' }, { en: 'Golden', bn: 'সোনালি' },
+];
+
+const GUIDANCE_BANK: Array<{ en: string; bn: string; focusEn: string; focusBn: string }> = [
+  {
+    en: 'A steady day for completing pending duties. Offer your work as seva and the results will follow.',
+    bn: 'অসমাপ্ত কাজ শেষ করার জন্য স্থির দিন। কাজকে সেবা হিসেবে অর্পণ করুন, ফল আসবেই।',
+    focusEn: 'Duty & discipline', focusBn: 'কর্তব্য ও শৃঙ্খলা',
+  },
+  {
+    en: 'Time spent with elders and family brings quiet joy today. Listen more than you speak.',
+    bn: 'আজ বয়োজ্যেষ্ঠ ও পরিবারের সঙ্গে সময় শান্ত আনন্দ দেবে। বলার চেয়ে শুনুন বেশি।',
+    focusEn: 'Family harmony', focusBn: 'পারিবারিক সম্প্রীতি',
+  },
+  {
+    en: 'A good day for learning and reflection. Reading scripture or a wise book will steady the mind.',
+    bn: 'শিক্ষা ও চিন্তনের জন্য শুভ দিন। শাস্ত্র বা জ্ঞানগর্ভ বই পড়লে মন স্থির হবে।',
+    focusEn: 'Learning', focusBn: 'বিদ্যা',
+  },
+  {
+    en: 'Charity given quietly today multiplies in merit. Help someone without expecting thanks.',
+    bn: 'আজ নীরবে দেওয়া দান পুণ্য বহুগুণ বাড়ায়। কৃতজ্ঞতা আশা না করে কাউকে সাহায্য করুন।',
+    focusEn: 'Daan & seva', focusBn: 'দান ও সেবা',
+  },
+  {
+    en: 'Begin that task you have been postponing — the muhurat favours fresh starts made with a clear heart.',
+    bn: 'যে কাজ পিছিয়ে রেখেছেন তা আজ শুরু করুন — নির্মল মনে নতুন শুরুর জন্য শুভ সময়।',
+    focusEn: 'New beginnings', focusBn: 'নতুন শুরু',
+  },
+  {
+    en: 'Patience in speech protects relationships today. A kind word costs nothing and earns much.',
+    bn: 'আজ বাক্যে ধৈর্য সম্পর্ক রক্ষা করে। সদয় কথা বিনামূল্যে, অর্জন অনেক।',
+    focusEn: 'Speech & relations', focusBn: 'বাক্য ও সম্পর্ক',
+  },
+  {
+    en: 'Devotion deepens through small, sincere acts — a diya at dawn, a mantra with attention.',
+    bn: 'ছোট আন্তরিক কাজে ভক্তি গভীর হয় — ভোরে একটি প্রদীপ, মনোযোগে একটি মন্ত্র।',
+    focusEn: 'Sadhana', focusBn: 'সাধনা',
+  },
+  {
+    en: 'Financial matters favour caution over haste. Review, plan, and let decisions ripen.',
+    bn: 'অর্থবিষয়ে তাড়াহুড়োর চেয়ে সতর্কতা শ্রেয়। পর্যালোচনা করুন, পরিকল্পনা করুন, সিদ্ধান্ত পাকতে দিন।',
+    focusEn: 'Planning', focusBn: 'পরিকল্পনা',
+  },
+  {
+    en: 'An old friend or relative may reconnect — receive them warmly; bonds renewed bring strength.',
+    bn: 'পুরনো বন্ধু বা আত্মীয়ের সঙ্গে যোগাযোগ হতে পারে — উষ্ণভাবে গ্রহণ করুন; নবায়িত বন্ধন শক্তি দেয়।',
+    focusEn: 'Relationships', focusBn: 'সম্পর্ক',
+  },
+  {
+    en: 'Health favours routine today: simple food, early rest, and a short walk clear the mind.',
+    bn: 'আজ স্বাস্থ্যের জন্য নিয়ম শুভ: সাদাসিধে খাবার, তাড়াতাড়ি বিশ্রাম, অল্প হাঁটা মন পরিষ্কার করে।',
+    focusEn: 'Wellbeing', focusBn: 'সুস্থতা',
+  },
+  {
+    en: 'Creative work flows well — writing, music, or craft done with devotion carries special grace.',
+    bn: 'সৃজনশীল কাজ ভালো হবে — ভক্তিভরে করা লেখা, সঙ্গীত বা হস্তশিল্পে বিশেষ কৃপা।',
+    focusEn: 'Creativity', focusBn: 'সৃজনশীলতা',
+  },
+  {
+    en: 'Serve your community in some small way today; shared merit lifts everyone, including you.',
+    bn: 'আজ কোনো ছোটভাবে সমাজের সেবা করুন; ভাগ করা পুণ্য সবাইকে উন্নীত করে, আপনাকেও।',
+    focusEn: 'Community seva', focusBn: 'সমাজসেবা',
+  },
+];
+
+/** Deterministic daily pick: same date + rashi → same entry, stable all day. */
+function seededPick<T>(items: T[], seed: string): T {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return items[Math.abs(h) % items.length];
+}
+
+export function getRashifal(date: Date = new Date()): RashifalEntry[] {
+  const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  return RASHIS.map((rashi, i) => {
+    const g = seededPick(GUIDANCE_BANK, `${key}:${rashi.id}`);
+    const color = seededPick(SHUBH_COLORS, `${key}:${rashi.id}:color`);
+    const shubhNumber = (Math.abs(hashStr(`${key}:${rashi.id}:num`)) % 9) + 1;
+    void i;
+    return {
+      rashi,
+      shubhColor: color,
+      shubhNumber,
+      guidance: { en: g.en, bn: g.bn },
+      focus: { en: g.focusEn, bn: g.focusBn },
+    };
+  });
+}
+
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h;
+}
+
+/** Rashi display name in the user's language. */
+export function rashiName(r: RashiDef, lang: string): string {
+  switch (lang) {
+    case 'bn': return r.bn;
+    case 'hi': case 'mr': case 'gu': case 'sa': return r.hi;
+    case 'ta': return r.ta;
+    default: return r.en;
+  }
+}
+
+export const RASHIFAL_LABEL = {
+  en: 'Chandra-gochar general guidance',
+  bn: 'চন্দ্র-গোচর সাধারণ নির্দেশনা',
+  hi: 'चंद्र-गोचर सामान्य मार्गदर्शन',
+};
+
+export const RASHIFAL_DISCLAIMER = {
+  en: 'Chandra-gochar general guidance only — never a deterministic prediction. Your jyotishi knows your kundali best.',
+  bn: 'শুধুমাত্র চন্দ্র-গোচর সাধারণ নির্দেশনা — কখনোই নিশ্চিত ভবিষ্যদ্বাণী নয়। আপনার জ্যোতিষী আপনার কুণ্ডলী সবচেয়ে ভালো জানেন।',
+  hi: 'केवल चंद्र-गोचर सामान्य मार्गदर्शन — निश्चित भविष्यवाणी नहीं। आपके ज्योतिषी आपकी कुंडली सबसे अच्छी तरह जानते हैं।',
+};
