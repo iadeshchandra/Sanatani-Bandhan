@@ -19,6 +19,7 @@ import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../lib/googleAuth';
 import { CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { WARM_SUCCESS, humanizeError, pickLang } from '../lib/microcopy';
 
 const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
@@ -28,6 +29,8 @@ const InnerForm: React.FC = () => {
   const { enterSoloSession } = useAuthWorkspace();
   const { ensureProfile } = useSolo();
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
+  const t3 = pickLang(currentLang);
 
   const [form, setForm] = useState({
     displayName: '',
@@ -91,13 +94,10 @@ const InnerForm: React.FC = () => {
       ).catch(() => {});
 
       enterSoloSession(enriched);
-      showToast(`Welcome! Your Sanatani ID: ${enriched.id}`, 'success');
+      showToast(t3(WARM_SUCCESS.welcomeNew(enriched.id)), 'success');
     } catch (err: any) {
-      const msg =
-        err.code === 'auth/email-already-in-use'
-          ? 'This email is already registered. Try logging in instead.'
-          : err.message || 'Registration failed. Please try again.';
-      setError(msg);
+      // Never surface raw Firebase messages — warm, actionable copy.
+      setError(t3(humanizeError(err)));
     } finally {
       setLoading(false);
     }
