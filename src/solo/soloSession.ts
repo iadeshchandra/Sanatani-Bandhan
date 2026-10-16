@@ -17,6 +17,44 @@ export interface MintDetails {
   homeRegion?: string;
 }
 
+/* ------------------------------------------------------------------ */
+/* P0 FIX: Identity continuity hardening (2026-10-16)                  */
+/* ------------------------------------------------------------------ */
+/* Three layers prevent SAN-XXXXXX churn:                              */
+/* 1. Concurrency guard: in-flight mints are shared, never duplicated. */
+/* 2. localStorage cache: a minted-but-unsynced profile is reused      */
+/*    across reloads instead of minting fresh.                         */
+/* 3. Never mint for 'anon': anonymous sessions get a provisional      */
+/*    profile with no SAN ID (Firestore rules would deny the write).   */
+
+// In-flight mint promises by uid — StrictMode double-effects and rapid
+// remounts share the same promise instead of minting twice.
+const inflightMints = new Map<string, Promise<SanataniProfile>>();
+
+const cacheKey = (uid: string) => `sanatani_profile_${uid}`;
+
+function readCachedProfile(uid: string): SanataniProfile | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(uid));
+    if (!raw) return null;
+    const p = JSON.parse(raw) as SanataniProfile;
+    if (p?.uid === uid && typeof p?.id === 'string' && p.id.startsWith('SAN-')) {
+      return p;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(uid: string, profile: SanataniProfile): void {
+  try {
+    localStorage.setItem(cacheKey(uid), JSON.stringify(profile));
+  } catch {
+    /* storage unavailable — non-fatal */
+  }
+}
+
 export async function fetchSanataniProfile(uid: string): Promise<SanataniProfile | null> {
   try {
     const snap = await getDoc(doc(db, 'sanataniProfiles', uid));
@@ -61,6 +99,10 @@ export function provisionalSoloProfile(): SanataniProfile {
 /**
  * Get-or-create the Sanatani profile. Never duplicates: an existing profile
  * is returned as-is. Offline → mints locally, marked unsynced.
+ *
+ * P0 hardening: concurrent calls for the same uid share one promise;
+ * a locally-cached profile is reused if Firestore is unreachable;
+ * 'anon' uids never mint (they would fail Firestore rules).
  */
 export async function mintOrFetchSanataniProfile(
   uid: string,
@@ -68,72 +110,118 @@ export async function mintOrFetchSanataniProfile(
   email = '',
   details: MintDetails = {}
 ): Promise<SanataniProfile> {
-  const existing = await fetchSanataniProfile(uid);
-  if (existing) return existing;
-
-  const minted: SanataniProfile = {
-    id: generateSanataniId(),
-    uid,
-    displayName: fallbackName,
-    email: email || undefined,
-    phone: details.phone || undefined,
-    city: details.city || undefined,
-    gotra: details.gotra || undefined,
-    languages: details.languages || [],
-    homeRegion: details.homeRegion || undefined,
-    verificationTier: 'REGISTERED',
-    roles: {},
-    synced: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
-
-  // Best-effort cloud mint with uniqueness loop on the SAN id.
-  // P0 FIX: The uniqueness query and the Firestore write are now in SEPARATE
-  // try blocks. Previously, if the uniqueness query threw (e.g., missing
-  // composite index on sanataniProfiles.id), the setDoc was skipped entirely,
-  // the profile was never persisted, and every login minted a fresh ID.
-  let sanataniId = minted.id;
-  try {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const candidate = generateSanataniId();
-      const probe = await getDocs(
-        query(collection(db, 'sanataniProfiles'), where('id', '==', candidate), limit(1))
-      );
-      if (probe.empty) {
-        sanataniId = candidate;
-        break;
-      }
-    }
-  } catch {
-    /* uniqueness probe unavailable (missing index / offline) — proceed with
-       the generated ID; the doc-ID (Firebase UID) is already globally unique */
+  // Anonymous sessions never get a real SAN ID.
+  if (!uid || uid === 'anon') {
+    return provisionalSoloProfile();
   }
-  minted.id = sanataniId;
 
-  // The write is ESSENTIAL for identity continuity — never skip it because
-  // the uniqueness probe failed. Separate try/catch so write errors are
-  // logged, not silently swallowed.
-  try {
-    // Gotra is sensitive: it NEVER goes in the public profile doc (public
-    // read). It lives in the owner-only `private/self` subcollection.
-    const { gotra, ...publicMint } = minted as any;
-    await setDoc(doc(db, 'sanataniProfiles', uid), {
-      ...publicMint,
-      email: minted.email || null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    if (gotra) {
-      await setDoc(doc(db, 'sanataniProfiles', uid, 'private', 'self'), {
-        gotra,
+  // Concurrency guard: share in-flight mint.
+  const inflight = inflightMints.get(uid);
+  if (inflight) return inflight;
+
+  const promise = (async (): Promise<SanataniProfile> => {
+    // 1. Firestore is the source of truth.
+    const existing = await fetchSanataniProfile(uid);
+    if (existing) {
+      writeCachedProfile(uid, existing);
+      return existing;
+    }
+
+    // 2. No Firestore doc — reuse a locally cached profile if we minted
+    //    one before (e.g. the earlier write failed). This prevents ID
+    //    churn across reloads when Firestore is unreachable.
+    const cached = readCachedProfile(uid);
+    if (cached) {
+      // Best-effort: try to persist the cached profile now.
+      try {
+        const { gotra: _g, ...publicCached } = cached as any;
+        await setDoc(doc(db, 'sanataniProfiles', uid), {
+          ...publicCached,
+          updatedAt: serverTimestamp(),
+        });
+        cached.synced = true;
+        writeCachedProfile(uid, cached);
+      } catch {
+        /* still offline — keep using the cached ID */
+      }
+      return cached;
+    }
+
+    // 3. Truly new — mint fresh.
+    const minted: SanataniProfile = {
+      id: generateSanataniId(),
+      uid,
+      displayName: fallbackName,
+      email: email || undefined,
+      phone: details.phone || undefined,
+      city: details.city || undefined,
+      gotra: details.gotra || undefined,
+      languages: details.languages || [],
+      homeRegion: details.homeRegion || undefined,
+      verificationTier: 'REGISTERED',
+      roles: {},
+      synced: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Best-effort cloud mint with uniqueness loop on the SAN id.
+    let sanataniId = minted.id;
+    try {
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const candidate = generateSanataniId();
+        const probe = await getDocs(
+          query(collection(db, 'sanataniProfiles'), where('id', '==', candidate), limit(1))
+        );
+        if (probe.empty) {
+          sanataniId = candidate;
+          break;
+        }
+      }
+    } catch {
+      /* uniqueness probe unavailable — the doc-ID (Firebase UID) is already globally unique */
+    }
+    minted.id = sanataniId;
+
+    // Cache locally FIRST so even if the Firestore write fails, reloads
+    // reuse this ID instead of minting fresh.
+    writeCachedProfile(uid, minted);
+
+    // The write is ESSENTIAL for identity continuity.
+    try {
+      // Gotra is sensitive: it NEVER goes in the public profile doc.
+      const { gotra, ...publicMint } = minted as any;
+      await setDoc(doc(db, 'sanataniProfiles', uid), {
+        ...publicMint,
+        email: minted.email || null,
+        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      if (gotra) {
+        await setDoc(doc(db, 'sanataniProfiles', uid, 'private', 'self'), {
+          gotra,
+          updatedAt: serverTimestamp(),
+        });
+      }
+      minted.synced = true;
+      writeCachedProfile(uid, minted);
+    } catch (e: any) {
+      // Visible error logging with Firestore error code — not just warn.
+      console.error('[soloSession] Firestore setDoc FAILED:', {
+        code: e?.code || 'unknown',
+        message: e?.message || String(e),
+        uid,
+        docPath: `sanataniProfiles/${uid}`,
+      });
+      /* offline or denied — localStorage cache keeps the ID stable */
     }
-    minted.synced = true;
-  } catch (e) {
-    console.warn('[soloSession] Failed to persist Sanatani profile to Firestore:', e);
-    /* offline or denied — profile lives locally, syncs later */
+    return minted;
+  })();
+
+  inflightMints.set(uid, promise);
+  try {
+    return await promise;
+  } finally {
+    inflightMints.delete(uid);
   }
-  return minted;
 }
