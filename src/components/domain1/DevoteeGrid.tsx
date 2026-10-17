@@ -112,6 +112,12 @@ export const DevoteeGrid: React.FC = () => {
   const { showToast, confirm } = useToast();
 
   const taxonomy = useWorkspaceTaxonomy();
+  const { safeTranslate } = useLanguage();
+
+  // F-MEM-4 (scale): simple pagination — the directory renders ~24 cards per
+  // page instead of the entire filtered list (600 members = 600 DOM cards).
+  const PAGE_SIZE = 24;
+  const [page, setPage] = useState(1);
 
   const [layoutView, setLayoutView] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -233,6 +239,79 @@ export const DevoteeGrid: React.FC = () => {
       return matchSearch && matchGotra && matchTier && matchGroup && matchAdvanced;
     });
   }, [branchScopedDevotees, searchTerm, selectedGotra, selectedTier, filterGroup, advancedFilters]);
+
+  // F-MEM-4: slice the filtered list into pages (~24/page).
+  const totalPages = Math.max(1, Math.ceil(filteredDevotees.length / PAGE_SIZE));
+  const pagedDevotees = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredDevotees.slice(start, start + PAGE_SIZE);
+  }, [filteredDevotees, page]);
+
+  // Back to the first page whenever the filter set (or workspace) changes.
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedGotra, selectedTier, filterGroup, advancedFilters, workspaceId]);
+
+  const hasActiveFilters =
+    searchTerm.trim() !== '' ||
+    selectedGotra !== 'all' ||
+    selectedTier !== 'all' ||
+    filterGroup !== 'all' ||
+    advancedFilters.minDonation > 0;
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedGotra('all');
+    setSelectedTier('all');
+    setFilterGroup('all');
+    setAdvancedFilters({ minDonation: 0 });
+    setPage(1);
+  };
+
+  // F-MEM-4: pager — simple, safe, no virtualization library.
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const start = (page - 1) * PAGE_SIZE + 1;
+    const end = Math.min(page * PAGE_SIZE, filteredDevotees.length);
+    const btnCls = (disabled: boolean) =>
+      `px-4 min-h-[44px] rounded-xl text-xs font-bold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+        disabled
+          ? 'bg-temple-50 text-temple-400 border-temple-200'
+          : 'bg-white text-temple-700 border-temple-200 hover:border-saffron-400 hover:text-saffron-700'
+      }`;
+    return (
+      <nav
+        aria-label={safeTranslate('devotee_pager_label', 'Devotee directory pages', 'ভক্ত তালিকার পৃষ্ঠা', 'भक्त सूची के पृष्ठ')}
+        className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1"
+      >
+        <span className="text-[11px] text-temple-500 font-medium sm:mr-2">
+          {safeTranslate('devotee_pager_showing', 'Showing', 'দেখানো হচ্ছে', 'दिखाया जा रहा')} {start}–{end}{' '}
+          {safeTranslate('devotee_pager_of', 'of', 'এর', 'में से')} {filteredDevotees.length}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={btnCls(page <= 1)}
+          >
+            {safeTranslate('devotee_pager_prev', 'Previous', 'আগের', 'पिछला')}
+          </button>
+          <span className="text-xs text-temple-600 font-semibold px-1 min-w-[72px] text-center">
+            {safeTranslate('devotee_pager_page', 'Page', 'পৃষ্ঠা', 'पृष्ठ')} {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className={btnCls(page >= totalPages)}
+          >
+            {safeTranslate('devotee_pager_next', 'Next', 'পরের', 'अगला')}
+          </button>
+        </div>
+      </nav>
+    );
+  };
 
   const selectedDevoteeDonations = useMemo(() => {
     if (!selectedDevotee) return [];
@@ -606,7 +685,13 @@ export const DevoteeGrid: React.FC = () => {
               {taxonomy.workspaceLabel}
             </span>
             <span className="text-xs text-temple-600 font-mono">
-              Total {taxonomy.memberNoun}: {branchScopedDevotees.length}
+              {/* F-MEM-3: the count reflects the active filters — "3 / 10 Bhaktas"
+                  when filtered, "Total Bhaktas: 10" when not. */}
+              {filteredDevotees.length === branchScopedDevotees.length ? (
+                <>Total {taxonomy.memberNoun}: {branchScopedDevotees.length}</>
+              ) : (
+                <>{filteredDevotees.length} / {branchScopedDevotees.length} {taxonomy.memberNoun}</>
+              )}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-semibold text-temple-900">
@@ -781,9 +866,53 @@ export const DevoteeGrid: React.FC = () => {
           <div className="w-8 h-8 border-4 border-saffron-500 border-t-transparent rounded-full animate-spin mb-3"></div>
           <p className="text-xs font-semibold text-temple-700">Loading Devotee Records from Firestore...</p>
         </div>
+      ) : filteredDevotees.length === 0 ? (
+        /* F-MEM-2 (spec §7): warm empty state — acknowledge + bless + guide + one action.
+           Never a blank white void. */
+        <div className="flex flex-col items-center justify-center text-center py-16 px-6 bg-white border-2 border-dashed border-temple-200 rounded-xl shadow-sm">
+          <div className="text-5xl mb-4" aria-hidden="true">🪔</div>
+          <h3 className="text-base font-bold text-temple-900">
+            {hasActiveFilters
+              ? safeTranslate('devotee_empty_search_title', 'No matches for your search', 'আপনার খোঁজে কিছু মেলেনি', 'आपकी खोज में कुछ नहीं मिला')
+              : safeTranslate('devotee_empty_title', 'Your directory awaits its first bhakta', 'আপনার তালিকা প্রথম ভক্তের অপেক্ষায়', 'आपकी सूची अपने पहले भक्त की प्रतीक्षा में है')}
+          </h3>
+          <p className="text-xs text-temple-600 mt-2 max-w-md leading-relaxed">
+            {hasActiveFilters
+              ? safeTranslate(
+                  'devotee_empty_search_desc',
+                  'Every parivar begins somewhere. Try a different name, gotra, or phone — may your community grow in dharma. 🙏',
+                  'প্রতিটি পরিবার কোথাও না কোথাও শুরু হয়। অন্য নাম, গোত্র বা ফোনে খুঁজুন — আপনার সম্প্রদায় ধর্মে বেড়ে উঠুক। 🙏',
+                  'हर परिवार कहीं न कहीं से शुरू होता है। कोई दूसरा नाम, गोत्र या फ़ोन आज़माएँ — आपका समुदाय धर्म में फले-फूले। 🙏'
+                )
+              : safeTranslate(
+                  'devotee_empty_desc',
+                  'Every parivar begins somewhere. Register your first bhakta and watch your spiritual family blossom under divine grace. 🙏',
+                  'প্রতিটি পরিবার কোথাও না কোথাও শুরু হয়। আপনার প্রথম ভক্তকে নথিভুক্ত করুন — ঐশ্বরিক কৃপায় আপনার আধ্যাত্মিক পরিবার ফুলে উঠুক। 🙏',
+                  'हर परिवार कहीं न कहीं से शुरू होता है। अपने पहले भक्त को पंजीकृत करें — दिव्य कृपा से आपका आध्यात्मिक परिवार फले-फूले। 🙏'
+                )}
+          </p>
+          {canRegister ? (
+            <button
+              type="button"
+              onClick={() => { resetForm(); setIsAddModalOpen(true); }}
+              className="mt-5 px-5 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white text-xs font-bold shadow-sm shadow-saffron-600/20 transition-all cursor-pointer"
+            >
+              {safeTranslate('devotee_empty_register', 'Register Bhakta', 'ভক্ত নথিভুক্ত করুন', 'भक्त पंजीकृत करें')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="mt-5 px-5 py-2.5 min-h-[44px] rounded-xl bg-white hover:bg-temple-50 text-temple-700 border border-temple-200 text-xs font-bold transition-colors cursor-pointer"
+            >
+              {safeTranslate('devotee_empty_clear', 'Clear search & filters', 'খোঁজ ও ফিল্টার মুছুন', 'खोज व फ़िल्टर साफ़ करें')}
+            </button>
+          )}
+        </div>
       ) : layoutView === 'grid' ? (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDevotees.map((devotee, idx) => (
+          {pagedDevotees.map((devotee, idx) => (
             <div
               key={`${devotee.id}-${idx}`}
               onClick={() => openDetailModal(devotee)}
@@ -823,9 +952,7 @@ export const DevoteeGrid: React.FC = () => {
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <span className="text-[10px] text-temple-600 font-mono bg-temple-50 px-1.5 py-0.5 rounded border border-temple-200">
-                          ID: {devotee.id}
-                        </span>
+                        {/* F-MEM-1: raw internal IDs (dev_…) never surface on cards. */}
                         {devotee.role && devotee.role !== 'DEVOTEE' && (
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-saffron-700 bg-saffron-50 px-1.5 py-0.5 rounded border border-saffron-200 text-saffron-700 flex items-center gap-1">
                             <Shield className="w-2.5 h-2.5" />
@@ -967,7 +1094,10 @@ export const DevoteeGrid: React.FC = () => {
             </div>
           ))}
         </div>
+        {renderPagination()}
+      </>
       ) : (
+        <>
         <div className="bg-white border border-temple-200 shadow-sm rounded-xl overflow-hidden shadow-sm overflow-x-auto">
           <table className="w-full text-left text-xs whitespace-nowrap">
             <thead className="bg-temple-50 text-temple-700 border-b border-temple-200 font-semibold uppercase tracking-wider text-[10px]">
@@ -989,7 +1119,7 @@ export const DevoteeGrid: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-temple-800/60 text-temple-700">
-              {filteredDevotees.map((devotee, idx) => (
+              {pagedDevotees.map((devotee, idx) => (
                 <tr 
                   key={`${devotee.id}-${idx}`} 
                   onClick={() => openDetailModal(devotee)}
@@ -1031,7 +1161,7 @@ export const DevoteeGrid: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-temple-500 font-mono">ID: {devotee.id}</p>
+                        {/* F-MEM-1: raw internal IDs (dev_…) never surface in the directory. */}
                       </div>
                     </div>
                   </td>
@@ -1094,6 +1224,8 @@ export const DevoteeGrid: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {renderPagination()}
+        </>
       )}
 
             {/* Detail Modal */}
