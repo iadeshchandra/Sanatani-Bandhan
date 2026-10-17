@@ -52,8 +52,6 @@ export const ArchiveViewer: React.FC = () => {
         </button>
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-2">
           {openThread.messages.map((m) => {
-            const mine = false; // archive has no "me" — render neutrally
-            void mine;
             return (
               <div key={m.id} className="max-w-[85%] rounded-2xl bg-white border border-stone-200 px-3 py-2 shadow-sm">
                 <p className="text-sm text-stone-800 whitespace-pre-wrap break-words">{m.text}</p>
