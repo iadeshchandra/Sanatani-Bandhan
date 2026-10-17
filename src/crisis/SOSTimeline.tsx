@@ -19,6 +19,7 @@ import {
   flushVoiceOutbox,
   resolveSOS,
   subscribeToEvent,
+  subscribeToNotifiedCount,
   subscribeToResponses,
 } from './sosService';
 import { cancelSOSWithNotify } from './crisisNotify';
@@ -47,6 +48,7 @@ export const SOSTimeline: React.FC<{
   const t = useCrisisT();
   const [event, setEvent] = useState<CrisisEvent | null>(null);
   const [responses, setResponses] = useState<CrisisResponse[]>([]);
+  const [notifiedCount, setNotifiedCount] = useState(0);
   const [confirmSafe, setConfirmSafe] = useState(false);
   const [confirmResolve, setConfirmResolve] = useState(false);
   const [outcome, setOutcome] = useState('');
@@ -55,6 +57,7 @@ export const SOSTimeline: React.FC<{
   useEffect(() => {
     const unsubEvent = subscribeToEvent(eventId, setEvent);
     const unsubResp = subscribeToResponses(eventId, setResponses);
+    const unsubNotified = subscribeToNotifiedCount(eventId, setNotifiedCount);
     // Retry any voice note staged while offline.
     void flushVoiceOutbox(eventId);
     const onOnline = () => void flushVoiceOutbox(eventId);
@@ -62,6 +65,7 @@ export const SOSTimeline: React.FC<{
     return () => {
       unsubEvent();
       unsubResp();
+      unsubNotified();
       window.removeEventListener('online', onOnline);
     };
   }, [eventId]);
@@ -161,6 +165,20 @@ export const SOSTimeline: React.FC<{
                 )}
               </p>
             </div>
+
+            {/* Location visibility — who can see me right now */}
+            {!finished && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3" aria-live="polite">
+                <MapPin className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" aria-hidden />
+                <div>
+                  <p className="text-sm font-bold text-amber-950">
+                    {t(crisisCopy.mapVisibleTo)} {Math.max(notifiedCount, total)}{' '}
+                    {t(crisisCopy.mapResponders)}
+                  </p>
+                  <p className="text-[12px] text-amber-800 mt-0.5">{t(crisisCopy.mapStopSharing)}</p>
+                </div>
+              </div>
+            )}
 
             {/* Responder avatars */}
             {responses.length > 0 && (

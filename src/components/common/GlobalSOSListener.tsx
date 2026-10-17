@@ -6,6 +6,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 // Crisis Command Phase 1 — surgical additions (ack counts + "I'm coming").
 import { ackSOS, subscribeToResponses } from '../../crisis/sosService';
 import { crisisCopy, useCrisisT } from '../../crisis/crisisStrings';
+import { SOSResponderSheet } from '../../crisis/SOSResponderSheet';
 // Phase 3 notification wiring: NotificationCenter emits replace the local
 // NotificationContext pings (the context stays as the UI bell layer).
 import {
@@ -53,6 +54,8 @@ export const GlobalSOSListener: React.FC = () => {
   // Crisis Command Phase 1: live crisis_events alerts (ack counts update via snapshot).
   const [crisisAlerts, setCrisisAlerts] = useState<any[]>([]);
   const [ackedCrisisIds, setAckedCrisisIds] = useState<Set<string>>(new Set());
+  // Responder map sheet: eventId of the alert whose map is open.
+  const [mapEventId, setMapEventId] = useState<string | null>(null);
 
   const ensureAudio = () => {
     if (!audioRef.current) {
@@ -477,6 +480,13 @@ export const GlobalSOSListener: React.FC = () => {
                     {t(crisisCopy.ackButton)}
                   </button>
                 )}
+                <button
+                  onClick={() => setMapEventId(alert.id)}
+                  className="min-h-[48px] px-6 rounded-2xl bg-white/10 border border-amber-300/40 text-amber-50 font-bold text-sm hover:bg-white/20 transition-colors flex items-center gap-2"
+                >
+                  <MapPin className="w-4 h-4" aria-hidden />
+                  {t(crisisCopy.mapViewMap)}
+                </button>
               </div>
             </div>
 
@@ -490,6 +500,24 @@ export const GlobalSOSListener: React.FC = () => {
           </div>
         );
       })}
+
+      {/* Responder map sheet */}
+      {mapEventId ? (
+        (() => {
+          const ev = crisisAlerts.find((a) => a.id === mapEventId);
+          if (!ev) return null;
+          return (
+            <div className="pointer-events-auto">
+              <SOSResponderSheet
+                event={ev}
+                onClose={() => setMapEventId(null)}
+                onAcknowledge={() => void handleImComing(ev)}
+                acknowledged={ackedCrisisIds.has(ev.id)}
+              />
+            </div>
+          );
+        })()
+      ) : null}
     </div>
   );
 
