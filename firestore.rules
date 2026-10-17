@@ -2140,6 +2140,25 @@ service cloud.firestore {
       );
       allow delete: if false;
     };
+    // Sevadar live reports — "human sensors" for campus conditions.
+    // Read is public (live conditions are public information).
+    // Write: sevadar+ of that workspace (role-gated). Reports EXPIRE
+    // (expiresAt); no delete needed — clients filter expired, cleanup
+    // removes them. Never per-user tracking data here.
+    match /zoneReports/{reportId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orgId', '') != ''
+        && request.resource.data.get('reportedBy', '') == request.auth.uid
+        && request.resource.data.keys().hasOnly(['id', 'orgId', 'zoneId',
+          'zoneName', 'type', 'note', 'reportedBy', 'reporterName',
+          'createdAt', 'expiresAt', 'serverAt'])
+        && (hasRole(request.resource.data.get('orgId', ''),
+              ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Sevadar',
+               'SEVADAR', 'Coordinator', 'COORDINATOR'])
+            || isOwner());
+      allow update, delete: if false;
+    };
 
 match /fileVault/{fileId} {
       allow read: if isLoggedIn()
