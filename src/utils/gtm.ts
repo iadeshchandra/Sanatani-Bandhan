@@ -40,7 +40,8 @@ export const pushToDataLayer = (eventName: string, payload: Record<string, any>)
     if (telemetryLogBuffer.length > 50) telemetryLogBuffer.pop();
 
     listeners.forEach((fn) => fn([...telemetryLogBuffer]));
-    console.log(`[GA4 DataLayer] ${eventName}:`, payload);
+    // Dev-only: every tracked event would otherwise spam production consoles.
+    if (import.meta.env.DEV) console.log(`[GA4 DataLayer] ${eventName}:`, payload);
   }
 };
 

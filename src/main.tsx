@@ -44,14 +44,16 @@ try {
   /* analytics must never break boot */
 }
 
-// Startup Health Check Log
-console.log('App Startup Health Check:', {
-  env: import.meta.env.MODE,
-  baseUrl: import.meta.env.BASE_URL,
-  dev: import.meta.env.DEV,
-  prod: import.meta.env.PROD,
-  timestamp: new Date().toISOString(),
-});
+// Startup Health Check Log — dev only; production consoles stay clean.
+if (import.meta.env.DEV) {
+  console.log('App Startup Health Check:', {
+    env: import.meta.env.MODE,
+    baseUrl: import.meta.env.BASE_URL,
+    dev: import.meta.env.DEV,
+    prod: import.meta.env.PROD,
+    timestamp: new Date().toISOString(),
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
