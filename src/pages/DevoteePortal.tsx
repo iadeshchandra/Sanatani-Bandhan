@@ -239,7 +239,12 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP, previ
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950"
+      // F-RBAC-1: in preview the phone pane is staged chromeless at full
+      // viewport — a warm radial glow keeps the gutters intentional, not waste.
+      style={previewMode ? { background: 'radial-gradient(ellipse at top, rgba(245,158,11,0.10), transparent 70%), #020617' } : undefined}
+    >
       {/* MOBILE SIMULATOR WRAPPER */}
       <div className="w-full max-w-md mx-auto min-h-screen flex flex-col bg-slate-900 border-x border-slate-800 shadow-2xl relative pb-24">
         {activeSubView === 'vivah' ? (
