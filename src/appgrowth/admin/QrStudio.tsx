@@ -89,6 +89,7 @@ export const QrStudio: React.FC = () => {
       const ref = await addDoc(collection(db, 'appGrowthCampaigns'), {
         label: cleanLabel,
         templeName: temple.trim(),
+        active: true, // contract with growthService.getCampaign: explicit false = hidden
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.uid ?? 'unknown',
       });
