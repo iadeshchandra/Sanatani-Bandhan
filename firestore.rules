@@ -680,6 +680,13 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
+    // Rail-2 provider sequence counter (unique TrxID reference numbering).
+    match /rail2Sequences/{providerUid} {
+      allow read: if isLoggedIn();
+      allow write: if isLoggedIn()
+        && request.resource.data.keys().hasOnly(['seq', 'updatedAt'])
+        && request.resource.data.get('seq', 0) is int;
+    }
     // Disputes: either party on the order may open; owner resolves.
     match /marketplaceDisputes/{disputeId} {
       allow read: if isOwner() || isSuperAdmin()
@@ -779,6 +786,30 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + gross;
     }
+    // P2P "Pay from Seva Wallet" (atomic client debit): the sender settles
+    // an ACCEPTED money request with a real debit of their OWN wallet.
+    // Anchored to the live p2pRequests doc — same idempotency pattern as
+    // walletDebitOk: lastDebitP2PRequestId must change, so a replay or a
+    // double-tap can never debit twice. Rules get() reads committed state,
+    // so the transaction's own request→'paid' flip is invisible here; the
+    // request leg is validated by the p2pRequests match below.
+    function p2pSettlementDebitOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let requestId = data.get('lastDebitP2PRequestId', '');
+      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let amount = get(rpath).data.get('amount', 0);
+      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastDebitP2PRequestId', 'currency'])
+        && requestId != '' && requestId != old.get('lastDebitP2PRequestId', '')
+        && exists(rpath)
+        && get(rpath).data.get('senderId', '') == request.auth.uid
+        && get(rpath).data.get('senderId', '') == uid
+        && get(rpath).data.get('status', '') == 'accepted'
+        && amount > 0
+        && data.get('balance', -1) == old.get('balance', 0) - amount
+        && data.get('balance', -1) >= 0
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0) + amount;
+    }
     function walletCreditOk(uid) {
       let data = request.resource.data;
       let old = resource.data;
@@ -865,6 +896,7 @@ service cloud.firestore {
         || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
         || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
+        || (isLoggedIn() && uid == request.auth.uid && p2pSettlementDebitOk(uid))
         || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
         || (isLoggedIn() && referralWalletCreditOk(uid));
@@ -2010,6 +2042,50 @@ service cloud.firestore {
       match /prefs {
         allow read, write: if isLoggedIn() && request.auth.uid == uid;
       }
+    }
+
+    // App Growth funnel (/get-app QR smart link). The landing page is
+    // PUBLIC, so scan/install/waitlist logging must be anonymously
+    // writable — but tightly validated: exact key allow-list, bounded
+    // campaign ids, server timestamps only. Reads are owner-only
+    // (GodMode Analytics tab). Campaign + config docs are publicly
+    // readable (the landing page renders them); writes are owner-only.
+    match /appGrowthScans/{scanId} {
+      allow create: if request.resource.data.keys().hasOnly(['campaignId', 'platform', 'ts'])
+        && (request.resource.data.get('campaignId', null) == null
+          || (request.resource.data.get('campaignId', '') is string
+            && request.resource.data.get('campaignId', '').size() <= 64))
+        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('ts', null) == request.time;
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+    match /appGrowthInstalls/{installId} {
+      allow create: if request.resource.data.keys().hasOnly(['campaignId', 'platform', 'ts'])
+        && (request.resource.data.get('campaignId', null) == null
+          || (request.resource.data.get('campaignId', '') is string
+            && request.resource.data.get('campaignId', '').size() <= 64))
+        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('ts', null) == request.time;
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+    match /appGrowthWaitlist/{entryId} {
+      allow create: if request.resource.data.keys().hasOnly(['platform', 'ts'])
+        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('ts', null) == request.time;
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+    match /appGrowthCampaigns/{campaignId} {
+      allow get: if true;
+      allow list: if isOwner();
+      allow create, update, delete: if isOwner();
+    }
+    match /appGrowth/{docId} {
+      allow get: if docId == 'config';
+      allow list: if false;
+      allow create, update, delete: if isOwner();
     }
 
     // P2P money requests (chat-embedded): parties-only, strict state machine, no delete.
