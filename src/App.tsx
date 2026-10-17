@@ -399,7 +399,8 @@ const AppContent: React.FC = () => {
       // Domain 1
       case 'devotees':
       case 'devotee-grid':
-        return <DevoteeGrid />;
+        // V10 RBAC: member directory — authenticated staff only (defense in depth).
+        return checkPermission(['TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER', 'ACCOUNTANT', 'PUROHIT']) ? <DevoteeGrid /> : <RestrictedAccess />;
       case 'membership':
       case 'membership-desk':
       case 'org-membership':
@@ -442,7 +443,8 @@ const AppContent: React.FC = () => {
       case 'quickChandaPos':
       case 'chanda-pos':
       case 'counter-pos':
-        return <QuickChandaPOS />;
+        // V9 RBAC: cash-collection POS — finance roles only.
+        return checkPermission(['TRUSTEE', 'ACCOUNTANT', 'SuperAdmin']) ? <QuickChandaPOS /> : <RestrictedAccess />;
       case 'treasury-audit':
       case 'treasuryAudit':
       case 'treasury':
@@ -786,10 +788,14 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      <QuickChandaModal
-        isOpen={isQuickChandaOpen}
-        onClose={() => setIsQuickChandaOpen(false)}
-      />
+      {/* V9 RBAC: Quick Chanda modal is a cash-collection surface — finance
+          roles only. Guards every open path (DashboardHome, AppShell, tour). */}
+      {checkPermission(['TRUSTEE', 'ACCOUNTANT']) && (
+        <QuickChandaModal
+          isOpen={isQuickChandaOpen}
+          onClose={() => setIsQuickChandaOpen(false)}
+        />
+      )}
 
       <MySpaceModal
         isOpen={isMySpaceOpen}
