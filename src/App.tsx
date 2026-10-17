@@ -6,6 +6,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
+import { SOSFlow } from './crisis/SOSFlow';
 import { InstallPrompt } from './components/common/InstallPrompt';
 import { UpdatePrompt } from './components/pwa/UpdatePrompt';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -128,6 +129,7 @@ const PitruShradhDesk = lazy(() => import('./components/domain3/PitruShradhDesk'
 const PanchangMuhuratDesk = lazy(() => import('./components/domain3/PanchangMuhuratDesk').then(m => ({ default: m.PanchangMuhuratDesk })));
 const PanchangAstrologyEngine = lazy(() => import('./components/domain3/PanchangAstrologyEngine').then(m => ({ default: m.PanchangAstrologyEngine })));
 const YatraNetCommandCenter = lazy(() => import('./components/domain3/YatraNetCommandCenter').then(m => ({ default: m.YatraNetCommandCenter })));
+const CrisisDashboard = lazy(() => import('./crisis/CrisisDashboard').then(m => ({ default: m.CrisisDashboard })));
 
 // Domain 4: Gau Seva & Community
 const GauSevaDesk = lazy(() => import('./components/domain4/GauSevaDesk').then(m => ({ default: m.GauSevaDesk })));
@@ -651,7 +653,9 @@ const AppContent: React.FC = () => {
       case 'panchayatPolls':
         return checkPermission(['TRUSTEE', 'MANAGER']) ? <PanchayatPollingDesk /> : <RestrictedAccess />;
       case 'crisis-command':
-        return checkPermission(['CSO', 'TRUSTEE', 'MANAGER']) ? <CrisisCommandCenter /> : <RestrictedAccess />;
+        // Tier 1 Crisis Command (crisis_events). Legacy CrisisCommandCenter
+        // (yatra_broadcasts) remains in repo, unrouted.
+        return <CrisisDashboard />;
 
       case 'spiritualSettings':
       case 'platformBroadcast':
@@ -1116,6 +1120,7 @@ export default function App() {
                     <QuickGuideProvider>
                       <AppRouter />
                       <GlobalSOSListener />
+                      <SOSFlow />
                       <InstallPrompt />
                       <UpdatePrompt />
                     </QuickGuideProvider>
