@@ -1,0 +1,134 @@
+/**
+ * campus/reporting.ts — Sevadar live reporting layer ("human sensors").
+ * =====================================================================
+ * Sevadars report live conditions per zone: "queue long", "counter open",
+ * "lost child at gate", "medical needed", "all clear". Devotees see these
+ * as live badges on the campus map — the human layer no camera system
+ * can replace.
+ *
+ * Collection: `zoneReports/{reportId}`
+ *   read:   public (live conditions are public information)
+ *   write:  sevadar+ of that workspace (rules-gated)
+ *   delete: none (reports EXPIRE — see below)
+ *
+ * EXPIRY (structural): every report carries expiresAt (default: createdAt
+ * + 2h; festival mode: +30min). Clients filter expired reports; a cleanup
+ * pass deletes them. Live conditions are never permanent.
+ *
+ * FESTIVAL MODE: when a campus sets festivalMode=true, clients degrade
+ * their refresh cadence (60s → 5min) and reports expire faster. This
+ * keeps Firestore reads bounded when 100k devotees open the map.
+ *
+ * ANTI-ABUSE: reports are attributed (reportedBy uid + name). Coordinators
+ * can clear bad reports. This is a trusted-role feature, not anonymous.
+ */
+
+import {
+  collection,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+  type Unsubscribe,
+} from 'firebase/firestore';
+import { db } from '../firebase';
+
+const COL = 'zoneReports';
+
+/** Live condition types — simple language, elderly-friendly. */
+export type ReportType =
+  | 'queue_long'      // "Long queue here right now"
+  | 'queue_short'     // "Short queue — good time to visit"
+  | 'counter_open'    // "Counter / facility is open"
+  | 'counter_closed'  // "Counter / facility is closed"
+  | 'lost_child'      // "Lost child reported here — please look out"
+  | 'medical_needed'  // "Medical help needed here"
+  | 'crowded'         // "Very crowded — consider coming later"
+  | 'all_clear';      // "All clear"
+
+export const REPORT_META: Record<ReportType, { icon: string; label: string; tone: 'warn' | 'good' | 'alert' }> = {
+  queue_long: { icon: '🧍', label: 'Long queue here', tone: 'warn' },
+  queue_short: { icon: '✅', label: 'Short queue — good time', tone: 'good' },
+  counter_open: { icon: '🟢', label: 'Open now', tone: 'good' },
+  counter_closed: { icon: '🔴', label: 'Closed for now', tone: 'warn' },
+  lost_child: { icon: '🧒', label: 'Lost child — please look out', tone: 'alert' },
+  medical_needed: { icon: '⛑️', label: 'Medical help needed', tone: 'alert' },
+  crowded: { icon: '👥', label: 'Very crowded', tone: 'warn' },
+  all_clear: { icon: '🕊️', label: 'All clear', tone: 'good' },
+};
+
+export interface ZoneReport {
+  id: string;
+  orgId: string;
+  zoneId: string;
+  zoneName: string;
+  type: ReportType;
+  /** Optional one-line note from the sevadar, plain language. */
+  note?: string;
+  reportedBy: string; // uid
+  reporterName: string;
+  createdAt: number;
+  /** Structural expiry — clients hide expired; cleanup deletes. */
+  expiresAt: number;
+}
+
+export function reportExpiryMs(festivalMode: boolean): number {
+  return festivalMode ? 30 * 60 * 1000 : 2 * 60 * 60 * 1000;
+}
+
+export function isReportLive(r: ZoneReport, now = Date.now()): boolean {
+  return r.expiresAt > now;
+}
+
+export async function submitZoneReport(
+  input: Omit<ZoneReport, 'id' | 'createdAt' | 'expiresAt'> & { festivalMode?: boolean },
+): Promise<string> {
+  const id = `zr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const now = Date.now();
+  const report: ZoneReport = {
+    ...input,
+    id,
+    createdAt: now,
+    expiresAt: now + reportExpiryMs(!!input.festivalMode),
+  };
+  const { festivalMode: _fm, ...doc_data } = report as ZoneReport & { festivalMode?: boolean };
+  void _fm;
+  await setDoc(doc(db, COL, id), { ...doc_data, serverAt: serverTimestamp() });
+  return id;
+}
+
+/**
+ * Live reports for one org, newest first. Clients MUST filter with
+ * isReportLive (expiry is structural). In festival mode, callers should
+ * throttle re-subscription (see reportRefreshMs).
+ */
+export function subscribeToZoneReports(
+  orgId: string,
+  onReports: (reports: ZoneReport[]) => void,
+): Unsubscribe {
+  const q = query(
+    collection(db, COL),
+    where('orgId', '==', orgId),
+    orderBy('createdAt', 'desc'),
+  );
+  return onSnapshot(
+    q,
+    (snap) => {
+      const now = Date.now();
+      onReports(
+        snap.docs
+          .map((d) => d.data() as ZoneReport)
+          .filter((r) => isReportLive(r, now)),
+      );
+    },
+    () => onReports([]),
+  );
+}
+
+/** Client refresh cadence: degrades automatically in festival mode. */
+export function reportRefreshMs(festivalMode: boolean): number {
+  return festivalMode ? 5 * 60 * 1000 : 60 * 1000;
+}
