@@ -15,11 +15,10 @@ import { OrgLogo } from '../common/OrgLogo';
  * AppContentRouter: <OrgSpaceShell><AppContent /></OrgSpaceShell>.
  * It adds, without touching AppContent's desk navigation:
  *
- *  - Header: back button (← Home → solo session), org name, and a
- *    "Viewing as [Role]" pill that reflects the user's ACTUAL role in
- *    THIS org (from the rules-enforced workspaceMembers edge via
- *    myMemberships), falling back to the global role when the edge has
- *    not loaded yet.
+ *  - Header: back button (← Home → solo session), org name, and a role
+ *    chip that reflects the user's ACTUAL role in THIS org (from the
+ *    rules-enforced workspaceMembers edge via myMemberships), falling
+ *    back to the global role when the edge has not loaded yet.
  *  - The membership role also drives RBAC: the shell publishes it into
  *    AuthWorkspaceContext as orgRoleOverride, so checkPermission(),
  *    the Sidebar nav filter and AppContent's devotee guard all evaluate
@@ -212,12 +211,13 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
               <span className="text-amber-400/80">{deskLabel}</span>
             </nav>
           </div>
+          {/* Role chip — plain role name, no "Viewing as" framing (Track 0:
+              "viewing" language reads as demo/preview chrome to real users). */}
           <span
             className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-black ${pillCls}`}
-            title={`You are viewing ${orgName} as ${displayRole}`}
+            title={`Your role in ${orgName}: ${displayRole}`}
           >
-            <T en="Viewing as" bn="ভূমিকা" hi="भूमिका" />
-            &nbsp;{displayRole}
+            {displayRole}
           </span>
         </div>
       </header>

@@ -39,11 +39,17 @@ import { VivahEngine } from '../components/devotee/VivahEngine';
 
 interface DevoteePortalProps {
   onBackToERP?: () => void;
+  /**
+   * previewMode — TRUE only when staff open this from inside the org shell
+   * ("Devotee view") to see what members see. FALSE on the public /devotee
+   * route, where a real devotee must never meet "preview" chrome (Track 0).
+   */
+  previewMode?: boolean;
 }
 
-export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => {
+export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP, previewMode = false }) => {
   const { showToast } = useToast();
-  const { currentRole, switchRole } = useAuthWorkspace();
+  const { currentRole, switchRole, activeWorkspace } = useAuthWorkspace();
   const { language } = useLanguage();
 
   // Canonical today line — single source of truth (src/utils/panchang.ts).
@@ -276,12 +282,12 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             {/* TOP STATUS & NAVIGATION STRIP */}
         <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-wrap gap-y-2">
           <div className="flex items-center gap-2.5">
-            {onBackToERP && (
+            {previewMode && onBackToERP && (
               <button
                 type="button"
                 onClick={onBackToERP}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                title="Return to the Institution ERP (staff workspace)"
+                title={`Back to ${activeWorkspace?.name || 'your workspace'}`}
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
@@ -291,10 +297,11 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             </div>
             <div>
               <div className="text-xs font-black text-white flex items-center gap-1 leading-tight">
-                <span>Devotee App Preview</span>
-                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  B2C
-                </span>
+                {previewMode ? (
+                  <span>👁 Devotee view</span>
+                ) : (
+                  <span>🙏 {devotee.name}</span>
+                )}
               </div>
               <div className="text-[10px] text-slate-400 font-mono">
                 {devotee.name} &bull; {devotee.gotra}
@@ -302,12 +309,15 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
             </div>
           </div>
 
-          {/* B2B/B2C boundary explainer — unmistakable hat labeling */}
-          <div className="px-4 pt-2 basis-full">
-            <p className="text-[10px] text-slate-500 text-center">
-              You're previewing the <span className="text-amber-400 font-bold">Devotee App</span> — what your community members see. Staff manage everything from the <span className="text-amber-400 font-bold">Institution ERP</span>.
-            </p>
-          </div>
+          {/* Plain-language staff strip — only in previewMode (opened from the
+              org shell). Never "B2C / Institution ERP" jargon (Track 0). */}
+          {previewMode && (
+            <div className="px-4 pt-2 basis-full">
+              <p className="text-[10px] text-slate-500 text-center">
+                What your community members see — your staff workspace is one tap away.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             {/* Punya Mudras Balance Chip */}
@@ -316,15 +326,15 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP }) => 
               <span>{devotee.punyaMudras}</span>
             </div>
 
-            {/* Switch to ERP Button */}
-            {onBackToERP && (
+            {/* Back to the staff workspace — previewMode only */}
+            {previewMode && onBackToERP && (
               <button
                 type="button"
                 onClick={onBackToERP}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-mono font-bold text-amber-400 transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[10px] font-bold text-amber-400 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Building2 className="w-3 h-3 text-amber-400" />
-                <span>Institution ERP</span>
+                <span>← {activeWorkspace?.name || 'Workspace'}</span>
               </button>
             )}
           </div>

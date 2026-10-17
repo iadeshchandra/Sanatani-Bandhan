@@ -286,13 +286,13 @@ export const Header: React.FC<HeaderProps> = ({
               } else {
                 window.location.href = '/devotee';
               }
-              showToast('Switched to Sanatani Devotee Super App 🙏', 'success', 'B2C Super App');
+              showToast('Here is what your community members see 🙏', 'success', 'Devotee view');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 rounded-xl transition-all border border-amber-500/40 font-bold text-xs shadow-xs cursor-pointer group"
-            title="Switch to Devotee View (B2C Super App Portal)"
+            title="See what your community members see"
           >
             <Sparkles className="w-4 h-4 text-amber-400 group-hover:text-slate-950 transition-colors" />
-            <span className="font-bold">Switch to Devotee View</span>
+            <span className="font-bold">Devotee view</span>
           </button>
 
           <button
@@ -398,7 +398,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="h-px bg-temple-700 my-1 mx-2"></div>
               </div>
 
-              {/* B2C Portal Switch */}
+              {/* Devotee-view switch (plain language — no B2C jargon) */}
               <div className="px-1 py-1 mb-2 space-y-1">
                 <button
                   type="button"
@@ -409,12 +409,12 @@ export const Header: React.FC<HeaderProps> = ({
                     } else {
                       window.location.href = '/devotee';
                     }
-                    showToast('Switched to Sanatani Devotee Super App 🙏', 'success', 'B2C Super App');
+                    showToast('Here is what your community members see 🙏', 'success', 'Devotee view');
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 transition-all border border-amber-500/40 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Switch to Devotee View</span>
+                  <span>Devotee view</span>
                 </button>
                 <button
                   type="button"
@@ -441,7 +441,7 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Your personal Sanatani space — sadhana, panchang, saved texts"
                 >
                   <span className="text-sm">🪔</span>
-                  <span>Personal (Sanatani)</span>
+                  <span>My Space — home</span>
                 </button>
               </div>
 

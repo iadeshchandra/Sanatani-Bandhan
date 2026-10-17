@@ -70,7 +70,10 @@ function mergeFragments(
   devoteeNs: Partial<TranslationSchema>,
   orgNs: Partial<TranslationSchema>,
   ritualNs?: Partial<TranslationSchema>,
-  suitesNs?: Partial<TranslationSchema>
+  // The suites namespace (seva suggestions catalog, samskara desk) was
+  // never modeled in TranslationSchema — its 79-module catalog is
+  // intentionally schema-free. Type it loosely; deepMerge handles it.
+  suitesNs?: Record<string, unknown>
 ): TranslationSchema {
   return deepMerge({}, core, professional, devoteeNs, orgNs, ritualNs, suitesNs) as TranslationSchema;
 }
@@ -99,7 +102,7 @@ function splitLang(
   loadDevotee: () => Promise<{ devoteeNs: Partial<TranslationSchema> }>,
   loadOrg: () => Promise<{ orgNs: Partial<TranslationSchema> }>,
   loadRitual?: () => Promise<{ ritual: Partial<TranslationSchema> }>,
-  loadSuites?: () => Promise<{ suites: Partial<TranslationSchema> }>
+  loadSuites?: () => Promise<{ suites: Record<string, unknown> }>
 ): () => Promise<{ default: TranslationSchema }> {
   return () =>
     Promise.all([

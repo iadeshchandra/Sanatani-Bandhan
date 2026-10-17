@@ -754,8 +754,17 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     async (newWorkspaceId: string): Promise<boolean> => {
       if (!newWorkspaceId) return false;
 
-      // Sandbox Demo workspaces are always switchable for preview & QA
+      // Track 0 (demo quarantine): demo workspaces are switchable for
+      // ANONYMOUS preview & QA only — including demo-internal moves (demo
+      // sessions are technically "authenticated" via anonymous login). A
+      // REAL session (signed-in, non-demo workspace) must never land in
+      // demo chrome via a deep link (/app/org/DEMO_…) or stale tab.
       if (newWorkspaceId.startsWith('DEMO_')) {
+        const inDemoSession = activeWorkspaceId?.startsWith('DEMO_');
+        if (isAuthenticated && !inDemoSession) {
+          console.warn(`Demo workspace switch denied for signed-in user: ${newWorkspaceId}`);
+          return false;
+        }
         setWorkspaceId(newWorkspaceId);
         setActiveWorkspaceId(newWorkspaceId);
         set('sanatani_active_workspace_id', newWorkspaceId);
@@ -832,7 +841,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       console.warn('Production workspace switch denied: User is not authenticated.');
       return false;
     },
-    [user, role, currentRole, userDocData]
+    [user, role, currentRole, userDocData, isAuthenticated, activeWorkspaceId]
   );
 
   /**

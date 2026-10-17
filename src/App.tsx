@@ -369,7 +369,7 @@ const AppContent: React.FC = () => {
     // devotee-friendly 'book' tab via its internal isDevotee path.
     if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
       if (!['devotee-portal', 'personal-portal', 'devotee-account', 'poojaBooking', 'pooja-booking'].includes(activeModule)) {
-        return <DevoteePortal onBackToERP={() => setActiveModule('dashboard')} />;
+        return <DevoteePortal previewMode onBackToERP={() => setActiveModule('dashboard')} />;
       }
       if (['poojaBooking', 'pooja-booking'].includes(activeModule)) {
         return <PoojaBookingDesk />;
@@ -415,7 +415,7 @@ const AppContent: React.FC = () => {
     switch (activeModule) {
       case 'devoteePortal':
       case 'devotee-super-app':
-        return <DevoteePortal onBackToERP={() => setActiveModule('dashboard')} />;
+        return <DevoteePortal previewMode onBackToERP={() => setActiveModule('dashboard')} />;
       case 'devotee-portal':
       case 'personal-portal':
       case 'devotee-account':
@@ -1105,9 +1105,9 @@ const AppRouter: React.FC = () => {
                 purohitApplications. Verification now lives in the unified console. */}
             <Route element={<PurohitReviewsRedirect />} path="purohit-reviews" />
           </Route>
-          <Route path="/devotee" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
-          <Route path="/devotee-portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
-          <Route path="/portal" element={<DevoteePortal onBackToERP={() => { window.location.href = '/'; }} />} />
+          <Route path="/devotee" element={<DevoteePortal />} />
+          <Route path="/devotee-portal" element={<DevoteePortal />} />
+          <Route path="/portal" element={<DevoteePortal />} />
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           {/* Pillar 3: canonical public org page — accepts orgId or publicSlug. */}

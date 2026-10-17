@@ -3,7 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
-import { WorkspaceConfig, WorkspaceType } from '../types';
+import { WorkspaceConfig, WorkspaceType, UserRole } from '../types';
+import type { DemoView } from '../components/public/DemoSelectionModal';
+
+/** Demo-only role mapping — drives loginAsRole in the local demo bootstrap.
+ *  Production RBAC is untouched (this never runs outside demo start). */
+const DEMO_ROLE_FOR_VIEW: Record<DemoView, UserRole> = {
+  trustee: 'Trustee',
+  devotee: 'Devotee',
+  priest: 'Priest',
+  accountant: 'Accountant',
+  sevadar: 'Sevadar',
+  superadmin: 'SuperAdmin',
+};
 
 /**
  * useDemoStarter — self-sufficient demo workspace bootstrap.
@@ -21,7 +33,7 @@ export const useDemoStarter = () => {
   const { showToast } = useToast();
 
   return useCallback(
-    (type: WorkspaceType = 'Mandir', view: 'trustee' | 'devotee' = 'trustee') => {
+    (type: WorkspaceType = 'Mandir', view: DemoView = 'trustee') => {
       // FIX (2026-10-17): Demo is for anonymous exploration only. If a
       // signed-in user somehow triggers a demo start (stale landing tab,
       // deep link), clear any existing demo state first and refuse to
@@ -63,13 +75,12 @@ export const useDemoStarter = () => {
       addWorkspace(demoWorkspace);
       // switchWorkspace is async; the login below does not depend on its result.
       void switchWorkspace(demoId);
-      // Explicit view choice (2026-10-15 audit P1-4): devotee preview logs in
-      // as Devotee so the app shell renders the devotee experience.
-      if (view === 'devotee') {
-        loginAsRole('Devotee', 'Demo Devotee');
-      } else {
-        loginAsRole('Trustee', 'Demo User');
-      }
+      // Explicit view choice (2026-10-15 audit P1-4): the chosen role drives
+      // loginAsRole so the app shell renders that role's experience —
+      // trustee console, devotee experience, or a staff role's desks.
+      // Demo-only: production RBAC is never weakened by this.
+      const demoRole = DEMO_ROLE_FOR_VIEW[view] || 'Trustee';
+      loginAsRole(demoRole, view === 'devotee' ? 'Demo Devotee' : 'Demo User');
       seedDemoData(demoId, type);
       showToast(
         `${type} sandbox ready — explore freely, sample records loaded.`,

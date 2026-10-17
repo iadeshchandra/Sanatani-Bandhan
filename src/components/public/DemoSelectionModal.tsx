@@ -7,8 +7,19 @@ import { useLanguage } from '../../context/LanguageContext';
 interface DemoSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (type: WorkspaceType, view: 'trustee' | 'devotee') => void;
+  onSelect: (type: WorkspaceType, view: DemoView) => void;
 }
+
+/** Demo-only role preview. Never touches production RBAC — this only drives
+ *  the local demo bootstrap (useDemoStarter → loginAsRole). */
+export type DemoView = 'trustee' | 'devotee' | 'priest' | 'accountant' | 'sevadar' | 'superadmin';
+
+const STAFF_VIEWS: { id: Exclude<DemoView, 'trustee' | 'devotee'>; icon: string; label: string; desc: string }[] = [
+  { id: 'priest', icon: '🪔', label: 'Priest', desc: 'Rituals & sanctum' },
+  { id: 'accountant', icon: '📒', label: 'Accountant', desc: 'Treasury & audit' },
+  { id: 'sevadar', icon: '🤝', label: 'Sevadar', desc: 'Front-desk seva' },
+  { id: 'superadmin', icon: '🛡️', label: 'SuperAdmin', desc: 'Everything' },
+];
 
 const ORG_TYPES: WorkspaceType[] = [
   'Mandir', 'Goshala', 'Sangha', 'Ashram', 'Gurukul',
@@ -29,7 +40,7 @@ const ORG_LABELS: Record<string, string> = {
 export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, onClose, onSelect }) => {
   const { safeTranslate } = useLanguage();
   const [selected, setSelected] = useState<WorkspaceType | null>(null);
-  const [view, setView] = useState<'trustee' | 'devotee'>('trustee');
+  const [view, setView] = useState<DemoView>('trustee');
 
   if (!isOpen) return null;
 
@@ -69,11 +80,12 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        {/* View selector: explicit Trustee vs Devotee choice (2026-10-15 audit P1-4:
-            demo entry was non-deterministic — buyers got random views) */}
+        {/* View selector: explicit role choice (2026-10-15 audit P1-4:
+            demo entry was non-deterministic — buyers got random views).
+            Plain "Explore as" — never insider "Preview" jargon (Track 0). */}
         <div className="px-6 pt-4">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-            {safeTranslate('demo_view_label', 'Preview as', 'হিসেবে দেখুন', 'के रूप में देखें')}
+            {safeTranslate('demo_view_label', 'Explore as', 'হিসেবে দেখুন', 'के रूप में देखें')}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -108,6 +120,30 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
                 {safeTranslate('demo_view_devotee_desc', 'See what your community members see', 'আপনার সম্প্রদায়ের সদস্যরা যা দেখেন তা দেখুন', 'देखें कि आपके समुदाय के सदस्य क्या देखते हैं')}
               </p>
             </button>
+          </div>
+          {/* Staff role previews — demo-only (never weakens production RBAC).
+              Lets a buyer feel what each role's workspace is like. */}
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2">
+            {safeTranslate('demo_view_staff_label', 'Also explore as — staff roles', 'কর্মী ভূমিকা হিসেবেও দেখুন', 'स्टाफ भूमिकाओं के रूप में भी देखें')}
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {STAFF_VIEWS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setView(s.id)}
+                className={`p-2.5 rounded-xl border text-left transition-all min-h-[52px] ${
+                  view === s.id
+                    ? 'border-saffron-500 bg-saffron-50 ring-2 ring-saffron-500/20'
+                    : 'border-slate-200 bg-white hover:border-saffron-500/30'
+                }`}
+              >
+                <p className={`text-[13px] font-bold ${view === s.id ? 'text-saffron-900' : 'text-slate-700'}`}>
+                  <span aria-hidden className="mr-1">{s.icon}</span>{s.label}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{s.desc}</p>
+              </button>
+            ))}
           </div>
         </div>
 

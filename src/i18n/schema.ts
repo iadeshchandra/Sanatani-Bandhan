@@ -2419,6 +2419,7 @@ export interface TranslationSchema {
         body: string;
       };
       tabs: {
+        warroom: string;
         dashboard: string;
         festivals: string;
         budget: string;

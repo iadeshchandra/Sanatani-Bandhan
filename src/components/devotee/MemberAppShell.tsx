@@ -74,7 +74,7 @@ export default function MemberAppShell() {
     }
     if (activeWorkspace?.id?.startsWith('DEMO_')) {
       exitDemo();
-      showToast('Exited demo sandbox — welcome to your Institution ERP 🙏', 'success', 'Mode Changed');
+      showToast(`Exited demo — welcome back to ${activeWorkspace?.name || 'your workspace'} 🙏`, 'success', 'Demo exited');
     } else {
       showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
     }
