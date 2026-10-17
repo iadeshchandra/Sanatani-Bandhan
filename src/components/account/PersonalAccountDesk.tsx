@@ -21,7 +21,7 @@ export const PersonalAccountDesk: React.FC<{
   initialTab?: ProfileTab;
   onNavigateDesk?: (deskId: string) => void;
 }> = ({ initialTab = 'card', onNavigateDesk }) => {
-  const { currentUser, currentRole, activeWorkspace, setViewMode, switchRole, logout } = useAuthWorkspace();
+  const { currentUser, currentRole, activeWorkspace, setViewMode, switchRole, logout, checkPermission } = useAuthWorkspace();
   const { treasury } = useData();
   const { language, setLanguage, safeTranslate, t } = useLanguage();
   const taxonomy = useWorkspaceTaxonomy();
@@ -97,13 +97,24 @@ export const PersonalAccountDesk: React.FC<{
       setKeyValidationStatus('valid');
       showToast('✅ Gemini API Key verified and saved securely in your browser!', 'success');
     } catch (e: any) {
+      console.warn('Gemini key verification failed:', e?.message || e);
       if (e?.message === 'GEMINI_KEY_MISSING') {
         setKeyValidationStatus('invalid');
-        showToast('❌ Verification failed: empty key', 'error');
+        showToast(safeTranslate(
+          'personalAccount.keyNotVerified',
+          "That key didn't verify — please check and try again.",
+          'কীটি যাচাই হয়নি — দেখে আবার চেষ্টা করুন।',
+          'वह कुंजी सत्यापित नहीं हुई — जाँचकर फिर से प्रयास करें।'
+        ), 'error');
       } else if (String(e?.message || '').startsWith('GEMINI_HTTP_')) {
         // Key was rejected by Google (401/403) or upstream errored.
         setKeyValidationStatus('invalid');
-        showToast(`❌ Verification failed: ${e.message}`, 'error');
+        showToast(safeTranslate(
+          'personalAccount.keyNotVerified',
+          "That key didn't verify — please check and try again.",
+          'কীটি যাচাই হয়নি — দেখে আবার চেষ্টা করুন।',
+          'वह कुंजी सत्यापित नहीं हुई — जाँचकर फिर से प्रयास करें।'
+        ), 'error');
       } else {
         // Offline or network err: save locally anyway with warning (existing behavior).
         localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
@@ -1110,8 +1121,10 @@ export const PersonalAccountDesk: React.FC<{
                   </div>
                 </div>
 
-                {/* Role Switcher if authorized */}
-                {((currentRole as string) === 'SuperAdmin' || (currentRole as string) === 'SUPER_ADMIN' || (currentRole as string) === 'Sevadar' || (currentRole as string) === 'MANAGER' || (currentRole as string) === 'Trustee' || (currentRole as string) === 'TRUSTEE') && (
+                {/* Role Switcher — V2 RBAC: Trustee+ only. Previously Sevadar/MANAGER
+                    could see the switchRole('SuperAdmin') button with only the
+                    switchRole() DEMO-workspace guard as a second layer. */}
+                {checkPermission(['TRUSTEE', 'SuperAdmin']) && (
                   <div className="pt-4 border-t border-temple-200 space-y-2">
                     <label className="text-xs font-bold text-temple-700 uppercase tracking-wider">
                       Switch Role Mode
