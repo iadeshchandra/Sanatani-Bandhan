@@ -1102,64 +1102,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Crisis events — Tier 1 SOS.
-  function isCrisisCoordinator(tenantId) {
-    return isLoggedIn() && tenantId != null && exists(
-      /databases/$(database)/documents/crisisCoordinators/$(tenantId + '_' + request.auth.uid));
-  }
-  match /crisis_events/{eventId} {
-    function parent() {
-      return get(/databases/$(database)/documents/crisis_events/$(eventId)).data;
+    // Crisis events
+    match /crisis_events/{eventId} {
+      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
+      allow create: if demoWriteOk(newDocWs()) || isTenantMember(newDocWs());
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])) && wsImmutable();
+      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
     }
-    allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-    allow create: if demoWriteOk(newDocWs()) || isTenantMember(newDocWs());
-    allow update: if (demoWriteOk(docWs())
-        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
-        || isCrisisCoordinator(docWs())
-        || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
-          && request.resource.data.get('status', '') in ['cancelled', 'resolved']))
-      && wsImmutable();
-    allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-    match /responses/{uid} {
-      allow read: if isTenantMember(parent().get('workspaceId', null));
-      allow create, update: if isLoggedIn() && request.auth.uid == uid
-        && request.resource.data.get('uid', '') == uid
-        && request.resource.data.get('status', '') in ['coming', 'arrived'];
-      allow delete: if false;
-    }
-    match /notified/{uid} {
-      allow read: if isLoggedIn() && request.auth.uid == uid;
-      allow create: if isLoggedIn() && parent().get('senderUid', '') == request.auth.uid;
-      allow update, delete: if false;
-    }
-  }
-  match /crisisCoordinators/{edgeId} {
-    allow read: if isLoggedIn() && (resource.data.get('uid', '') == request.auth.uid
-      || isTenantMember(resource.data.get('orgId', '')));
-    allow create: if isSuperAdmin()
-      || hasRole(request.resource.data.get('orgId', ''), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-    allow delete: if isSuperAdmin()
-      || hasRole(resource.data.get('orgId', ''), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-    allow update: if false;
-  }
-  match /emergencyContacts/{uid} {
-    allow read, write: if isLoggedIn() && request.auth.uid == uid;
-  }
-  match /crisisAbuse/{uid} {
-    allow read, write: if isLoggedIn() && request.auth.uid == uid;
-  }
-  match /familyLinks/{uid} {
-    allow read: if isLoggedIn() && request.auth.uid == uid;
-    allow create: if isLoggedIn() && request.auth.uid == uid;
-    allow update: if isLoggedIn() && (request.auth.uid == uid
-      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['incomingInvites'])
-        && request.resource.data.get('incomingInvites', {}).diff(
-          resource.data.get('incomingInvites', {})).affectedKeys().hasOnly([request.auth.uid])));
-    allow delete: if isLoggedIn() && request.auth.uid == uid;
-  }
-
 
     // Polls
     match /polls/{pollId} {
@@ -2273,5 +2222,45 @@ service cloud.firestore {
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', '')));
     }
+
+    // NotificationCenter collections (Phase 3 merge of
+    match /notifications/{uid} {
+      allow read, write: if false;
+
+      // --- In-app notification center --------------------
+      match /items/{itemId} {
+        allow read: if isLoggedIn() && request.auth.uid == uid;
+        allow create: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasAll([
+            'id', 'uid', 'kind', 'priority', 'title', 'body', 'dedupeKey', 'createdAt'
+          ]);
+        allow update: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid;
+        allow delete: if false;
+      }
+
+      match /pushRequests/{reqId} {
+        allow read: if isLoggedIn() && request.auth.uid == uid;
+        allow create: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.toUser == uid
+          && request.resource.data.status == 'pending';
+        allow update, delete: if false;
+      }
+
+      // --- Suchana feed hook (gentle items; Phase 3 UI mer
+      match /suchanaItems/{suchanaId} {
+        allow read: if isLoggedIn() && request.auth.uid == uid;
+        allow create: if isLoggedIn() && request.auth.uid == uid;
+        allow update: if isLoggedIn() && request.auth.uid == uid;
+        allow delete: if false;
+      }
+
+      // --- Owner-only preferences ------------------------
+      match /prefs {
+        allow read, write: if isLoggedIn() && request.auth.uid == uid;
+      }
+    }
+
   }
 }
