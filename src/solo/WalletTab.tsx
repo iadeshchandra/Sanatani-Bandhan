@@ -8,6 +8,8 @@ import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
 import { PersonalWallet } from '../chat/PersonalWallet';
+import { Chat } from '../chat/Chat';
+import type { ChatParticipant } from '../chat/types';
 import { QRScanner } from '../components/common/QRScanner';
 import {
   getWallet, getTransactions, fileTopupClaim, myTopupClaims, ensureWallet, updateTopupClaim,
@@ -45,7 +47,10 @@ const TXN_LABEL: Record<string, string> = {
   refund: 'Refund', adjustment: 'Adjustment', topup_request: 'Top-up request',
 };
 
-const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack: () => void }> = ({ currency, onDone, onBack }) => {
+/** Reused by provider shells (Purohit/Jyotish) as the `seva-pro:open-topup`
+ *  listener target — the wallet top-up claim flow is uid-scoped, not
+ *  session-scoped, so it works unchanged outside the Solo tab. */
+export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void; onBack: () => void }> = ({ currency, onDone, onBack }) => {
   const { showToast } = useToast();
   const { t } = useLanguage();
   const [region, setRegion] = useState<PayRegion>('BD');
@@ -298,6 +303,15 @@ export const WalletTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingClaim, setEditingClaim] = useState<TopupClaim | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  // sanatani:open-chat wiring (see PersonalWallet): deep-link the Messages
+  // overlay straight into the thread tapped inside the P2P ledger.
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInitialId, setChatInitialId] = useState<string | null>(null);
+  const selfInfo: ChatParticipant = {
+    uid,
+    displayName: ((firebaseUser as { displayName?: string | null } | null)?.displayName) || 'Sanatani',
+    photoUrl: ((firebaseUser as { photoURL?: string | null } | null)?.photoURL as string) || undefined,
+  };
   const [scanOpen, setScanOpen] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   // Quick Guide: the two-wallet explainer (Seva Wallet vs personal P2P
@@ -517,7 +531,26 @@ export const WalletTab: React.FC = () => {
           platform money moves only via top-up/bookings; person-to-person
           moves are IOU records here, never custody). */}
       {sendOpen && uid !== 'anon' && (
-        <PersonalWallet uid={uid} isOpen={sendOpen} onClose={() => setSendOpen(false)} />
+        <PersonalWallet
+          uid={uid}
+          isOpen={sendOpen}
+          onClose={() => setSendOpen(false)}
+          onOpenChat={(chatId) => {
+            setChatInitialId(chatId);
+            setSendOpen(false);
+            setChatOpen(true);
+          }}
+        />
+      )}
+
+      {/* Messages overlay — opened from the P2P ledger's per-entry chat action. */}
+      {chatOpen && uid !== 'anon' && (
+        <Chat
+          uid={uid}
+          selfInfo={selfInfo}
+          initialChatId={chatInitialId || undefined}
+          onClose={() => { setChatOpen(false); setChatInitialId(null); }}
+        />
       )}
 
       {/* Scan — Sanatani QR codes (gate passes, payment references). */}

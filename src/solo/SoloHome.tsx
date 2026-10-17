@@ -46,6 +46,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   const [walletOpen, setWalletOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  // Deep-link target for the Messages overlay — set when the Personal Wallet
+  // "chat" action fires (sanatani:open-chat via PersonalWallet onOpenChat).
+  const [chatInitialId, setChatInitialId] = useState<string | null>(null);
   const unreadTotal = useChatUnreadTotal(uid === 'anon' ? null : uid);
   const selfInfo: ChatParticipant = {
     uid,
@@ -288,7 +291,12 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
       )}
       {chatOpen && uid !== 'anon' && (
         <>
-          <Chat uid={uid} selfInfo={selfInfo} onClose={() => setChatOpen(false)} />
+          <Chat
+            uid={uid}
+            selfInfo={selfInfo}
+            initialChatId={chatInitialId || undefined}
+            onClose={() => { setChatOpen(false); setChatInitialId(null); }}
+          />
           {/* First-run guides — each shows once, dismissable forever. */}
           <ChatFirstRunHint />
           <RequestFirstRunWatcher uid={uid} />
@@ -359,7 +367,19 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           </div>
         </button>
       )}
-      <PersonalWallet uid={uid} isOpen={walletOpen} onClose={() => setWalletOpen(false)} />
+      <PersonalWallet
+        uid={uid}
+        isOpen={walletOpen}
+        onClose={() => setWalletOpen(false)}
+        // sanatani:open-chat wiring: the wallet's per-entry "chat" action
+        // deep-links straight into the thread (closes the wallet first so the
+        // Messages overlay owns the screen).
+        onOpenChat={(chatId) => {
+          setChatInitialId(chatId);
+          setWalletOpen(false);
+          setChatOpen(true);
+        }}
+      />
       {/* First-run wallet explainer — shows once, dismissable forever. */}
       {walletOpen && uid !== 'anon' && <WalletFirstRunHint />}
 
