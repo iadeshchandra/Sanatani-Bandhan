@@ -6,7 +6,6 @@ import { LanguageProvider } from './context/LanguageContext';
 import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
-import { SOSFlow } from './crisis/SOSFlow';
 import { InstallPrompt } from './components/common/InstallPrompt';
 import { UpdatePrompt } from './components/pwa/UpdatePrompt';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -58,6 +57,7 @@ import { TawkToWidget } from './components/common/TawkToWidget';
 import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
 import { LandingPage } from './pages/LandingPage';
 import { ContactPage } from './pages/ContactPage';
+import { GetAppPage } from './appgrowth/GetAppPage';
 import { DevoteePortal } from './pages/DevoteePortal';
 import { PortalLogin } from './components/public/PortalLogin';
 import { useToast } from './context/ToastContext';
@@ -129,7 +129,6 @@ const PitruShradhDesk = lazy(() => import('./components/domain3/PitruShradhDesk'
 const PanchangMuhuratDesk = lazy(() => import('./components/domain3/PanchangMuhuratDesk').then(m => ({ default: m.PanchangMuhuratDesk })));
 const PanchangAstrologyEngine = lazy(() => import('./components/domain3/PanchangAstrologyEngine').then(m => ({ default: m.PanchangAstrologyEngine })));
 const YatraNetCommandCenter = lazy(() => import('./components/domain3/YatraNetCommandCenter').then(m => ({ default: m.YatraNetCommandCenter })));
-const CrisisDashboard = lazy(() => import('./crisis/CrisisDashboard').then(m => ({ default: m.CrisisDashboard })));
 
 // Domain 4: Gau Seva & Community
 const GauSevaDesk = lazy(() => import('./components/domain4/GauSevaDesk').then(m => ({ default: m.GauSevaDesk })));
@@ -653,9 +652,7 @@ const AppContent: React.FC = () => {
       case 'panchayatPolls':
         return checkPermission(['TRUSTEE', 'MANAGER']) ? <PanchayatPollingDesk /> : <RestrictedAccess />;
       case 'crisis-command':
-        // Tier 1 Crisis Command (crisis_events). Legacy CrisisCommandCenter
-        // (yatra_broadcasts) remains in repo, unrouted.
-        return <CrisisDashboard />;
+        return checkPermission(['CSO', 'TRUSTEE', 'MANAGER']) ? <CrisisCommandCenter /> : <RestrictedAccess />;
 
       case 'spiritualSettings':
       case 'platformBroadcast':
@@ -1043,6 +1040,8 @@ const AppRouter: React.FC = () => {
             }
           />
           <Route path="/contact" element={<ContactPage />} />
+          {/* App Growth (Phases 1+2): QR smart link + landing page. */}
+          <Route path="/get-app" element={<GetAppPage />} />
           {/* Secret Obfuscated Platform Route: Accessed via URL typing only, strictly guarded */}
           <Route
             path="/system-override"
@@ -1120,7 +1119,6 @@ export default function App() {
                     <QuickGuideProvider>
                       <AppRouter />
                       <GlobalSOSListener />
-                      <SOSFlow />
                       <InstallPrompt />
                       <UpdatePrompt />
                     </QuickGuideProvider>
