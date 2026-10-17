@@ -29,6 +29,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   query,
   where,
   updateDoc,
@@ -476,16 +477,29 @@ export async function getPlatformWalletBalance(uid: string): Promise<PlatformBal
 
 /**
  * "Pay from Seva Wallet" — settles a P2P money request with a REAL,
- * atomic debit of the payer's own platform wallet.
+ * atomic movement of platform-wallet funds from payer to receiver.
  *
  * The whole settlement happens inside ONE Firestore transaction:
- *   1. read wallets/{uid}.balance (+ the request's live status),
- *   2. write the append-only `walletTransactions` "spend" doc,
- *   3. debit wallets/{uid}.balance / bump totalSpent,
- *   4. flip the p2p request accepted → paid (paidVia: 'platform_wallet').
+ *   1. read wallets/{senderUid}.balance (+ the request's live status),
+ *   2. write the append-only `walletTransactions` "spend" doc (sender),
+ *   3. debit wallets/{senderUid}.balance / bump totalSpent,
+ *   4. write the append-only `walletTransactions` "p2p_receive" doc (receiver),
+ *   5. credit wallets/{receiverUid}.balance / bump totalReceived —
+ *      creating the wallet doc when it does not exist yet,
+ *   6. flip the p2p request accepted → paid (paidVia: 'platform_wallet').
  *
- * All-or-nothing: either every leg commits or none does — the debit IS
- * the settlement, there is no finance-approval queue behind it.
+ * All-or-nothing: either every leg commits or none does. Money can
+ * never leave the sender without arriving at the receiver — the
+ * asymmetry the old code had (debit with no credit) is impossible.
+ *
+ * The receiver wallet is never READ by the sender (no read right on
+ * another user's wallet). The credit is a blind merge-set using
+ * increment(): on an existing doc it adds to the live balance; on a
+ * missing doc it materialises one. Server-side rules
+ * (`p2pSettlementCreditOk` / `p2pSettlementCreditCreateOk`) re-validate
+ * the credit against the live p2pRequests doc: receiver-bound, exact
+ * amount, currency pinned, one credit per request
+ * (lastCreditP2PRequestId).
  *
  * Server-side (firestore.rules `p2pSettlementDebitOk`) re-validates the
  * debit against the live p2pRequests doc: sender-only, exact amount,
@@ -494,6 +508,9 @@ export async function getPlatformWalletBalance(uid: string): Promise<PlatformBal
  * Throws (never silently succeeds) when:
  *   - the request is not in 'accepted' status,
  *   - the caller is not the sender (only the payer's own wallet debits),
+ *   - the receiver is an organisation (orgs settle via the treasury /
+ *     donation flow, never a P2P wallet credit),
+ *   - the sender tries to settle a request to themselves,
  *   - the wallet is missing, in a different currency, or the balance
  *     cannot cover the amount.
  */
@@ -516,10 +533,26 @@ export async function payMoneyRequestFromPlatformWallet(
   if (!(amount > 0)) {
     throw new Error('This request has an invalid amount and cannot be settled.');
   }
+  // Organisation receivers settle through the treasury / donation flow —
+  // never a P2P wallet credit into a shadow wallets/{orgId} doc.
+  if (req.orgId && req.receiverId === req.orgId) {
+    throw new Error(
+      'Requests to an organisation settle through the donation flow, not the Seva Wallet.',
+    );
+  }
+  // No self-settlement: debiting and crediting the same wallet is a no-op
+  // that would only pollute the ledger.
+  if (req.receiverId === uid) {
+    throw new Error('You cannot settle a request to yourself from your Seva Wallet.');
+  }
 
   const walletRef = doc(db, 'wallets', uid);
   const requestRef = doc(db, 'p2pRequests', req.id);
   const txnRef = doc(collection(db, 'walletTransactions'));
+  // Receiver-side refs. The sender has no read right on the receiver's
+  // wallet, so the credit below is a blind merge-set (never a read).
+  const receiverWalletRef = doc(db, 'wallets', req.receiverId);
+  const creditTxnRef = doc(collection(db, 'walletTransactions'));
 
   try {
     await runTransaction(db, async (tx) => {
@@ -575,7 +608,41 @@ export async function payMoneyRequestFromPlatformWallet(
         updatedAt: Date.now(),
       });
 
-      // 3) Request accepted → paid, anchored to the spend doc.
+      // 3) Append-only receive record for the receiver (their audit trail).
+      tx.set(creditTxnRef, {
+        uid: req.receiverId,
+        type: 'p2p_receive',
+        amount,
+        currency: req.currency,
+        requestId: req.id,
+        note: `P2P settlement via Seva Wallet · request ${req.id} from ${req.senderName}`,
+        createdAt: Date.now(),
+      });
+
+      // 4) The real credit — blind merge-set with increment(), because the
+      // sender cannot read the receiver's wallet:
+      //   - existing doc: balance/totalReceived grow by the exact amount;
+      //     currency is pinned by rules (mismatch denies the whole txn);
+      //   - missing doc: materialises with balance == amount (increment(0)
+      //     is a no-op that still creates totalToppedUp/totalSpent as 0).
+      // lastCreditP2PRequestId anchors one-credit-per-request, so a
+      // retried or double-tapped settlement can never credit twice.
+      tx.set(
+        receiverWalletRef,
+        {
+          uid: req.receiverId,
+          balance: increment(amount),
+          currency: req.currency,
+          totalToppedUp: increment(0),
+          totalSpent: increment(0),
+          totalReceived: increment(amount),
+          lastCreditP2PRequestId: req.id,
+          updatedAt: Date.now(),
+        },
+        { merge: true },
+      );
+
+      // 5) Request accepted → paid, anchored to the spend doc.
       tx.update(requestRef, {
         status: 'paid',
         paidAt: Date.now(),
@@ -585,8 +652,17 @@ export async function payMoneyRequestFromPlatformWallet(
       });
     });
   } catch (e) {
+    // A rules-denied transaction is almost always a receiver-side problem
+    // the sender cannot see (e.g. the receiver's wallet is in a different
+    // currency) — say so plainly instead of a raw permissions error.
+    if (e instanceof Error && (e as { code?: string }).code === 'permission-denied') {
+      throw new Error(
+        'Seva Wallet settlement was blocked — this can happen if the receiver\u2019s ' +
+          'wallet is in a different currency. Ask them to check their wallet, then try again.',
+      );
+    }
     // Preserve our own loud, specific errors; wrap anything unexpected
-    // (network, permission-denied) in a clear message — never silent.
+    // (network, unknown) in a clear message — never silent.
     if (e instanceof Error) throw e;
     throw new Error('Seva Wallet settlement failed. Please check your connection and try again.');
   }

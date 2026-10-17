@@ -810,6 +810,54 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + amount;
     }
+    // P2P settlement credit (receiver side): the sender's transaction
+    // credits wallets/{receiverUid} via blind merge-set + increment().
+    // Anchored to the live p2pRequests doc — receiver-bound, exact
+    // amount, currency pinned, one credit per request
+    // (lastCreditP2PRequestId). Mirrors p2pSettlementDebitOk.
+    function p2pSettlementCreditOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let requestId = data.get('lastCreditP2PRequestId', '');
+      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let rdata = get(rpath).data;
+      let amount = rdata.get('amount', 0);
+      return data.diff(old).affectedKeys().hasOnly(
+          ['uid', 'balance', 'currency', 'totalToppedUp', 'totalSpent',
+           'totalReceived', 'lastCreditP2PRequestId', 'updatedAt'])
+        && requestId != '' && requestId != old.get('lastCreditP2PRequestId', '')
+        && exists(rpath)
+        && rdata.get('receiverId', '') == uid
+        && rdata.get('senderId', '') == request.auth.uid
+        && rdata.get('status', '') == 'accepted'
+        && amount > 0
+        && data.get('currency', '') == rdata.get('currency', '')
+        && data.get('currency', '') == old.get('currency', '')
+        && data.get('balance', -1) == old.get('balance', 0) + amount
+        && data.get('totalReceived', -1) == old.get('totalReceived', 0) + amount
+        && data.get('totalToppedUp', -1) == old.get('totalToppedUp', 0)
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0);
+    }
+    // Create-path for the P2P receiver credit: the wallet doc may not
+    // exist yet when the first settlement arrives.
+    function p2pSettlementCreditCreateOk(uid) {
+      let data = request.resource.data;
+      let requestId = data.get('lastCreditP2PRequestId', '');
+      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let rdata = get(rpath).data;
+      let amount = rdata.get('amount', 0);
+      return requestId != ''
+        && exists(rpath)
+        && rdata.get('receiverId', '') == uid
+        && rdata.get('senderId', '') == request.auth.uid
+        && rdata.get('status', '') == 'accepted'
+        && amount > 0
+        && data.get('balance', -1) == amount
+        && data.get('currency', '') == rdata.get('currency', '')
+        && data.get('totalReceived', -1) == amount
+        && data.get('totalToppedUp', -1) == 0
+        && data.get('totalSpent', -1) == 0;
+    }
     function walletCreditOk(uid) {
       let data = request.resource.data;
       let old = resource.data;
@@ -893,12 +941,14 @@ service cloud.firestore {
           && request.resource.data.get('totalToppedUp', -1) == 0
           && request.resource.data.get('totalSpent', -1) == 0)
         || (isLoggedIn() && walletCreditCreateOk(uid))
+        || (isLoggedIn() && p2pSettlementCreditCreateOk(uid))
         || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
         || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
         || (isLoggedIn() && uid == request.auth.uid && p2pSettlementDebitOk(uid))
         || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
+        || (isLoggedIn() && p2pSettlementCreditOk(uid))
         || (isLoggedIn() && referralWalletCreditOk(uid));
       allow delete: if false;
     }
@@ -925,7 +975,20 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', '')))
           && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('referrerUid', '') == request.resource.data.get('uid', '')
           && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('status', '') == 'SETTLED'
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == request.resource.data.get('amount', 0));
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == request.resource.data.get('amount', 0))
+        // P2P settlement receiver receipt: the sender's transaction writes
+        // the receiver's audit-trail doc. Anchored to the live p2pRequests
+        // doc — sender-bound, receiver-bound, exact amount, still accepted.
+        || (isLoggedIn()
+          && request.resource.data.get('type', '') == 'p2p_receive'
+          && request.resource.data.get('requestId', '') != ''
+          && request.resource.data.get('amount', 0) > 0
+          && request.resource.data.get('uid', '') != request.auth.uid
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('senderId', '') == request.auth.uid
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('receiverId', '') == request.resource.data.get('uid', '')
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('amount', 0) == request.resource.data.get('amount', 0)
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('currency', '') == request.resource.data.get('currency', '')
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('status', '') == 'accepted');
       allow update, delete: if false;
     }
     // Top-up claims: user files (pending only); owner approves â credits
