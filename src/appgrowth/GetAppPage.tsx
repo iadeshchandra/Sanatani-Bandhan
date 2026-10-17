@@ -254,6 +254,18 @@ export const GetAppPage: React.FC = () => {
     useAppGrowth();
   const { changeLanguage } = useLanguage();
 
+  // The app boot splash ("Initializing Secure Environment…") is the wrong
+  // context for a public landing page and would cover the hero for ~4s —
+  // remove it as soon as this page mounts. main.tsx's delayed remover
+  // no-ops when the element is already gone.
+  useEffect(() => {
+    try {
+      document.getElementById('sb-splash-screen')?.remove();
+    } catch {
+      /* non-DOM environment — ignore */
+    }
+  }, []);
+
   // Phase 1: probe the native app on mobile. While probing we show a
   // calm interstitial; if the OS claims the scheme the visitor leaves
   // and this page never renders. Desktop/unknown render immediately.
