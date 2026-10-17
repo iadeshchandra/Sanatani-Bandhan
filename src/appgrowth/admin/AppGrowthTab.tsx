@@ -22,9 +22,9 @@
  * every load is guarded, empty states are honest. Client-side owner checks in
  * useAppGrowthConfig.save(); Firestore rules are the hard boundary.
  *
- * QR note: rendering/export currently ships via ./qrBranded (compat shim over
- * qrcode + jspdf). The QR builder owns src/appgrowth/qr/; when it lands,
- * rewire QrStudio.tsx and delete the shim.
+ * QR note: rendering/export/posters come from the QR builder's
+ * `src/appgrowth/qr/` module (BrandedQr, export fns, PosterGenerator) —
+ * QrStudio.tsx consumes that public API.
  */
 import React, { useState } from 'react';
 import { Link2, QrCode, Type, BarChart3 } from 'lucide-react';

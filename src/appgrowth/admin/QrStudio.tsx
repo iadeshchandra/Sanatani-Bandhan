@@ -1,22 +1,30 @@
 /**
  * QrStudio — App Growth admin: branded QR codes, campaign QRs, print posters.
  * ==========================================================================
- * QR rendering/export lives in `./qrBranded` — a COMPAT SHIM. The QR builder
- * owns `src/appgrowth/qr/` (BrandedQr, export fns, PosterGenerator); when it
- * lands, rewire the imports below to `../qr/...` and delete `qrBranded.tsx`.
+ * QR rendering/export/posters come from the QR builder's module
+ * `src/appgrowth/qr/` (BrandedQr, exportQrPng/Svg/Pdf, PosterGenerator,
+ * buildAppLink). Campaign CRUD here is the Admin builder's ownership —
+ * `qrLinks.ts` treats `appGrowthCampaigns` as read-only.
  *
- * Campaigns live in `appGrowthCampaigns/{id}`: { label, templeName, createdAt,
- * createdBy }. Each campaign gets its own QR pointing at /get-app?c=<id> so
- * scans attribute to the temple/event that printed it.
+ * Campaigns live in `appGrowthCampaigns/{id}`: { label, templeName, active,
+ * createdAt, createdBy }. Each campaign gets its own QR pointing at
+ * /get-app?c=<id> so scans attribute to the temple/event that printed it.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { collection, getDocs, addDoc, serverTimestamp, orderBy, query } from 'firebase/firestore';
-import { Download, Plus, Megaphone, Printer, QrCode } from 'lucide-react';
+import { Download, Plus, Megaphone, QrCode, FileText } from 'lucide-react';
 import { db, auth } from '../../firebase';
-import { appGrowthLink, isOwnerClient } from '../useAppGrowthConfig';
+import { isOwnerClient } from '../useAppGrowthConfig';
 import { useToast } from '../../context/ToastContext';
 import { Card, Empty, Loading, SectionTitle, Field, inputCls, btnPrimary, btnGhost } from './ui';
-import { BrandedQrPreview, downloadQrPng, downloadQrSvg, downloadPosterPdf } from './qrBranded';
+import {
+  BrandedQr,
+  PosterGenerator,
+  buildAppLink,
+  exportQrPng,
+  exportQrSvg,
+  exportQrPdf,
+} from '../qr';
 
 interface Campaign {
   id: string;
@@ -24,35 +32,36 @@ interface Campaign {
   templeName: string;
 }
 
-const DownloadRow: React.FC<{ value: string; label: string; posterOpts?: { title: string; templeName?: string } }> = ({ value, label, posterOpts }) => {
+const DownloadRow: React.FC<{ campaignId?: string | null; campaignLabel?: string }> = ({ campaignId, campaignLabel }) => {
+  const { showToast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const run = async (kind: 'png' | 'svg' | 'pdf', fn: () => Promise<void>) => {
+  const opts = {
+    campaignId: campaignId ?? null,
+    campaignLabel,
+    variant: (campaignId ? 'campaign' : 'generic') as 'campaign' | 'generic',
+  };
+  const run = async (kind: 'png' | 'svg' | 'pdf', fn: () => Promise<unknown>) => {
     setBusy(kind);
-    try { await fn(); } catch { /* toast from caller context */ } finally { setBusy(null); }
+    try {
+      await fn();
+      showToast(`${kind.toUpperCase()} downloaded.`, 'success');
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : `${kind.toUpperCase()} export failed.`, 'error');
+    } finally {
+      setBusy(null);
+    }
   };
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" className={btnGhost} disabled={!!busy} onClick={() => run('png', () => downloadQrPng(value, label))}>
+      <button type="button" className={btnGhost} disabled={!!busy} onClick={() => run('png', () => exportQrPng(opts))}>
         <Download className="w-4 h-4" /> {busy === 'png' ? '…' : 'PNG'}
       </button>
-      <button type="button" className={btnGhost} disabled={!!busy} onClick={() => run('svg', () => downloadQrSvg(value, label))}>
+      <button type="button" className={btnGhost} disabled={!!busy} onClick={() => run('svg', () => exportQrSvg(opts))}>
         <Download className="w-4 h-4" /> {busy === 'svg' ? '…' : 'SVG'}
       </button>
-      {posterOpts && (
-        <button
-          type="button"
-          className={btnGhost}
-          disabled={!!busy}
-          onClick={() => run('pdf', () => downloadPosterPdf({
-            value,
-            title: posterOpts.title,
-            campaignLabel: label,
-            templeName: posterOpts.templeName,
-          }))}
-        >
-          <Printer className="w-4 h-4" /> {busy === 'pdf' ? '…' : 'Poster PDF'}
-        </button>
-      )}
+      <button type="button" className={btnGhost} disabled={!!busy} onClick={() => run('pdf', () => exportQrPdf(opts))}>
+        <FileText className="w-4 h-4" /> {busy === 'pdf' ? '…' : 'Print PDF'}
+      </button>
     </div>
   );
 };
@@ -105,9 +114,7 @@ export const QrStudio: React.FC = () => {
     }
   };
 
-  const baseLink = appGrowthLink();
   const active = campaigns.find((c) => c.id === activeId) ?? null;
-  const activeLink = active ? appGrowthLink(active.id) : null;
 
   return (
     <div className="space-y-4">
@@ -116,10 +123,12 @@ export const QrStudio: React.FC = () => {
           <span className="flex items-center gap-2"><QrCode className="w-4 h-4 text-saffron-400" /> Master QR</span>
         </SectionTitle>
         <div className="flex flex-col sm:flex-row items-center gap-5">
-          <BrandedQrPreview value={baseLink} label="Get the app" size={170} />
+          <div className="rounded-2xl bg-white p-3">
+            <BrandedQr url={buildAppLink()} size={170} variant="generic" />
+          </div>
           <div className="space-y-2 w-full">
-            <p className="text-[11px] text-slate-500 break-all font-mono">{baseLink}</p>
-            <DownloadRow value={baseLink} label="Get the app" posterOpts={{ title: 'Get the Sanatani Bandhan app' }} />
+            <p className="text-[11px] text-slate-500 break-all font-mono">{buildAppLink()}</p>
+            <DownloadRow />
           </div>
         </div>
       </Card>
@@ -160,22 +169,27 @@ export const QrStudio: React.FC = () => {
           )}
         </div>
 
-        {active && activeLink && (
+        {active && (
           <div className="mt-4 rounded-xl border border-saffron-500/30 bg-saffron-500/5 p-4">
             <div className="flex flex-col sm:flex-row items-center gap-5">
-              <BrandedQrPreview value={activeLink} label={active.label} size={170} />
+              <div className="rounded-2xl bg-white p-3">
+                <BrandedQr url={buildAppLink(active.id)} size={170} variant="campaign" campaignLabel={active.label} />
+              </div>
               <div className="space-y-2 w-full">
                 <p className="text-sm font-bold text-white">{active.label}</p>
-                <p className="text-[11px] text-slate-500 break-all font-mono">{activeLink}</p>
-                <DownloadRow
-                  value={activeLink}
-                  label={active.label}
-                  posterOpts={{ title: 'Get the Sanatani Bandhan app', templeName: active.templeName || undefined }}
-                />
+                <p className="text-[11px] text-slate-500 break-all font-mono">{buildAppLink(active.id)}</p>
+                <DownloadRow campaignId={active.id} campaignLabel={active.label} />
               </div>
             </div>
           </div>
         )}
+      </Card>
+
+      <Card>
+        <SectionTitle hint="Temple-notice-board poster: pick a campaign, preview the A4, download the print PDF. Built by the QR builder.">
+          Poster generator
+        </SectionTitle>
+        <PosterGenerator />
       </Card>
     </div>
   );
