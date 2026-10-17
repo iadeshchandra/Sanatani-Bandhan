@@ -183,7 +183,7 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 });
 
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
-  const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails } = useAuthWorkspace();
+  const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
 
   // P2P request ledger (trustee/accountant only) — role from the membership edge.
@@ -203,6 +203,11 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
   const handleEnableSuggestion = (moduleId: string) => {
     if (!activeWorkspace) return;
+    // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+    if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
+      showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+      return;
+    }
     enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, workspaceId);
     showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
   };
