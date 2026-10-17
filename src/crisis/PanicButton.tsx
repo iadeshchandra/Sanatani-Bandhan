@@ -17,14 +17,33 @@ import { crisisCopy, useCrisisT } from './crisisStrings';
 
 const HOLD_MS = 1500;
 const SIZE = 72; // ≥64px touch target
+const HINT_SEEN_KEY = 'sb_sos_hint_seen';
 
 export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }) => {
   const t = useCrisisT();
   const [holding, setHolding] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1
+  // The "Press and hold 1.5s" hint shows ONCE ever — dismiss forever on first
+  // activation, manual dismiss, or a first press attempt (persisted flag).
+  const [hintVisible, setHintVisible] = useState(() => {
+    try {
+      return window.localStorage.getItem(HINT_SEEN_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  });
   const timerRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
+
+  const dismissHintForever = useCallback(() => {
+    try {
+      window.localStorage.setItem(HINT_SEEN_KEY, '1');
+    } catch {
+      /* storage unavailable — hint just reappears next load */
+    }
+    setHintVisible(false);
+  }, []);
 
   const clear = useCallback(() => {
     if (timerRef.current !== null) {
@@ -53,6 +72,8 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
     (e: React.PointerEvent) => {
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      // First touch of the button → the one-time hint has served its purpose.
+      dismissHintForever();
       startRef.current = performance.now();
       setHolding(true);
       rafRef.current = requestAnimationFrame(tick);
@@ -64,25 +85,47 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
         } catch {
           /* haptics unavailable — visual feedback already given */
         }
+        // First real use → the one-time hint never returns.
+        dismissHintForever();
         onActivate();
       }, HOLD_MS);
     },
-    [clear, onActivate, tick]
+    [clear, dismissHintForever, onActivate, tick]
   );
 
   const radius = 30;
   const circumference = 2 * Math.PI * radius;
 
   return (
-    <div className="fixed bottom-5 right-5 z-[9990] flex flex-col items-center gap-1.5 select-none">
-      <span
-        className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-md transition-colors ${
-          holding ? 'bg-amber-900 text-amber-100' : 'bg-amber-950/90 text-amber-100/90'
-        }`}
-        aria-hidden
-      >
-        {holding ? t(crisisCopy.releaseToCancel) : t(crisisCopy.panicHoldHint)}
-      </span>
+    /* Mobile: floats ABOVE the fixed bottom tab bar (~64px) + safe-area;
+       desktop keeps the original corner. */
+    <div
+      className="fixed right-5 z-[9990] flex flex-col items-center gap-1.5 select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:bottom-5"
+    >
+      {/* One-time "Press and hold 1.5s" hint (dismissed forever via
+          localStorage); "Release to cancel" still shows during any hold. */}
+      {(hintVisible || holding) && (
+        <div className="relative flex items-center gap-1.5">
+          <span
+            className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-md transition-colors ${
+              holding ? 'bg-amber-900 text-amber-100' : 'bg-amber-950/90 text-amber-100/90'
+            }`}
+            aria-hidden
+          >
+            {holding ? t(crisisCopy.releaseToCancel) : t(crisisCopy.panicHoldHint)}
+          </span>
+          {hintVisible && !holding && (
+            <button
+              type="button"
+              onClick={dismissHintForever}
+              aria-label={t(crisisCopy.close)}
+              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-amber-950/90 text-amber-100/90 text-sm font-bold flex items-center justify-center shadow-md hover:bg-amber-900"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
       <button
         type="button"
         aria-label={t(crisisCopy.panicLabel)}

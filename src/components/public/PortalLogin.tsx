@@ -37,7 +37,7 @@ const translations = {
     scan_auto_login: 'Scan QR to Login',
     login_identity: 'Identity',
     login_forgot: 'Forgot Password?',
-    btn_access_portal: 'Access Portal',
+    btn_access_portal: 'Enter My Space',
     qr_expired: 'This QR code has expired or was already used. Ask your temple office for a fresh code.',
     qr_offline: 'Could not reach the temple database. Check your connection and try again.',
     qr_not_login: 'This QR code is not a login code. Please scan the login QR from your temple office.',
@@ -88,7 +88,7 @@ const translations = {
     cred_password_ph: 'Min 6 characters',
     cred_continue: 'Continue',
     cred_creating: 'Creating your account…',
-    cred_secure_note: 'Secured by Firebase Authentication',
+    cred_secure_note: 'Your identity is protected',
     solo_minting: 'Creating your Sanatani ID…',
     cred_name_required: 'Please enter your name.',
     cred_password_min: 'Password must be at least 6 characters.',
@@ -111,7 +111,7 @@ const translations = {
     scan_auto_login: 'लॉगिन के लिए QR स्कैन करें',
     login_identity: 'पहचान',
     login_forgot: 'पासवर्ड भूल गए?',
-    btn_access_portal: 'पोर्टल एक्सेस करें',
+    btn_access_portal: 'मेरा स्थान खोलें',
     qr_expired: 'यह QR कोड समाप्त हो गया है या पहले ही उपयोग किया जा चुका है। कृपया अपने मंदिर कार्यालय से नया कोड लें।',
     qr_offline: 'मंदिर डेटाबेस से संपर्क नहीं हो सका। अपना कनेक्शन जांचें और पुनः प्रयास करें।',
     qr_not_login: 'यह QR कोड लॉगिन कोड नहीं है। कृपया अपने मंदिर कार्यालय से लॉगिन QR स्कैन करें।',
@@ -161,7 +161,7 @@ const translations = {
     cred_password_ph: 'कम से कम 6 अक्षर',
     cred_continue: 'आगे बढ़ें',
     cred_creating: 'आपका खाता बनाया जा रहा है…',
-    cred_secure_note: 'Firebase Authentication द्वारा सुरक्षित',
+    cred_secure_note: 'आपकी पहचान सुरक्षित है',
     solo_minting: 'आपकी सनातनी आईडी बनाई जा रही है…',
     cred_name_required: 'कृपया अपना नाम दर्ज करें।',
     cred_password_min: 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।',
@@ -183,7 +183,7 @@ const translations = {
     scan_auto_login: 'লগইন করতে QR স্ক্যান করুন',
     login_identity: 'পরিচয়',
     login_forgot: 'পাসওয়ার্ড ভুলে গেছেন?',
-    btn_access_portal: 'পোর্টাল অ্যাক্সেস করুন',
+    btn_access_portal: 'আমার স্থানে প্রবেশ করুন',
     qr_expired: 'এই QR কোডের মেয়াদ শেষ হয়ে গেছে বা এটি ইতিমধ্যে ব্যবহৃত হয়েছে। অনুগ্রহ করে আপনার মন্দির অফিস থেকে নতুন কোড নিন।',
     qr_offline: 'মন্দির ডাটাবেসে পৌঁছানো যাচ্ছে না। আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।',
     qr_not_login: 'এই QR কোডটি লগইন কোড নয়। অনুগ্রহ করে আপনার মন্দির অফিস থেকে লগইন QR স্ক্যান করুন।',
@@ -233,7 +233,7 @@ const translations = {
     cred_password_ph: 'কমপক্ষে ৬ অক্ষর',
     cred_continue: 'এগিয়ে যান',
     cred_creating: 'আপনার অ্যাকাউন্ট তৈরি হচ্ছে…',
-    cred_secure_note: 'Firebase Authentication দ্বারা সুরক্ষিত',
+    cred_secure_note: 'আপনার পরিচয় সুরক্ষিত',
     solo_minting: 'আপনার সনাতনী আইডি তৈরি হচ্ছে…',
     cred_name_required: 'অনুগ্রহ করে আপনার নাম লিখুন।',
     cred_password_min: 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।',
@@ -493,7 +493,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       try {
         const pinSuccess = await loginWithPin(cred, []);
         if (pinSuccess) {
-          showToast("Master PIN Verified (Sandbox Access)", "success");
+          showToast("Master PIN verified", "success");
           onSuccess();
           return;
         }
@@ -1124,7 +1124,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       transition={{ duration: 0.25 }}
                     >
                       <h2 className="text-[22px] sm:text-2xl font-black text-white tracking-tight leading-tight">{viewMeta[activeView].title}</h2>
-                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 leading-snug">{viewMeta[activeView].sub}</p>
+                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 truncate">{viewMeta[activeView].sub}</p>
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -1214,7 +1214,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     >
                       <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
                         <ShieldCheck size={16} className="text-emerald-300 shrink-0" />
-                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">Secure login for Admins, Members &amp; Purohits</p>
+                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">Secure login for Admins, Members, Purohits &amp; Solo Sanatanis</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -1272,23 +1272,17 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         </div>
                       </div>
 
-                      {/* PROMINENT BIOMETRIC AUTHENTICATION BUTTON */}
+                      {/* Biometric re-confirm — deliberately SECONDARY: the single
+                          primary CTA on this screen is "Enter My Space"
+                          below. This only re-confirms an existing session. */}
                       <div className="pt-1">
                         <button
                           type="button"
                           onClick={handleBiometricLogin}
-                          onMouseMove={magneticGlow}
-                          className="auth-cta group relative w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-[13.5px] tracking-wide transition-all shadow-[0_10px_30px_rgba(16,185,129,0.35)] hover:shadow-[0_14px_40px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2.5 border border-emerald-300/30 min-h-[52px]"
+                          className="w-full py-3 px-4 rounded-2xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white font-bold text-[13px] tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 min-h-[52px]"
                         >
-                          <span className="auth-cta-shimmer" />
-                          <span className="relative flex items-center justify-center">
-                            <Fingerprint className="w-5 h-5 text-emerald-100 group-hover:scale-110 transition-transform" />
-                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
-                            </span>
-                          </span>
-                          <span className="relative">Re-confirm Session with FaceID / TouchID</span>
+                          <Fingerprint className="w-5 h-5 text-emerald-300/80" />
+                          <span>Re-confirm Session with FaceID / TouchID</span>
                         </button>
                         <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
                           Device-unlock grade: re-confirms your existing signed-in session on this device.

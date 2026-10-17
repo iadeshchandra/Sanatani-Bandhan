@@ -2,10 +2,13 @@
  * WalletTab — platform wallet for Solo users.
  * Balance + top-up (geo-based payment methods) + transaction history.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, Send, ScanLine } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { Card, Btn, Field, inputCls, Empty, Modal } from './ui';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { Card, Btn, Field, inputCls, Modal } from './ui';
+import { PersonalWallet } from '../chat/PersonalWallet';
+import { QRScanner } from '../components/common/QRScanner';
 import {
   getWallet, getTransactions, fileTopupClaim, myTopupClaims, ensureWallet, updateTopupClaim,
   currencyForRegion, fmtWallet, CURRENCY_SYMBOL, TOPUP_LIMITS, TOPUP_EXPIRY_HOURS,
@@ -283,7 +286,9 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
 export const WalletTab: React.FC = () => {
   const { showToast } = useToast();
   const { currentLang, t } = useLanguage();
+  const { activeWorkspace, firebaseUser } = useAuthWorkspace();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
+  const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
   const [claims, setClaims] = useState<TopupClaim[]>([]);
@@ -291,6 +296,19 @@ export const WalletTab: React.FC = () => {
   const [topping, setTopping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingClaim, setEditingClaim] = useState<TopupClaim | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const historyRef = useRef<HTMLDivElement>(null);
+  // Balance privacy — inline eye toggle (Revolut heuristic: never bury in
+  // settings). Persisted per device so the choice survives reloads.
+  const [hidden, setHidden] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('sb_wallet_hidden') === '1'; } catch { return false; }
+  });
+  const toggleHidden = () => {
+    const next = !hidden;
+    setHidden(next);
+    try { window.localStorage.setItem('sb_wallet_hidden', next ? '1' : '0'); } catch { /* ignore */ }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -306,7 +324,31 @@ export const WalletTab: React.FC = () => {
   // PayRegion is string-typed (config-driven); currencyForRegion needs the
   // known literal union. Narrow honestly — unknown regions fall back to 'BD'.
   const regionForCurrency = region === 'IN' || region === 'INTL' ? region : 'BD';
-  const currency: WalletCurrency = wallet && wallet.balance + wallet.totalToppedUp > 0 ? wallet.currency : currencyForRegion(regionForCurrency);
+  // Currency precedence (fixes the "$0"-in-INR-context first-paint bug):
+  // an active wallet's stored currency always wins; a fresh/zero-activity
+  // wallet inherits the WORKSPACE currency — never the geo fallback, which
+  // resolves INTL→USD in environments without real geolocation.
+  const workspaceCurrency: WalletCurrency | null = (() => {
+    const c = String((activeWorkspace as { currency?: string } | null)?.currency || '').toUpperCase();
+    return c === 'INR' || c === 'BDT' || c === 'USD' ? (c as WalletCurrency) : null;
+  })();
+  const hasActivity =
+    !!wallet &&
+    (wallet.balance + wallet.totalToppedUp + wallet.totalReceived > 0 || claims.length > 0);
+  const currency: WalletCurrency =
+    hasActivity && wallet ? wallet.currency : workspaceCurrency || currencyForRegion(regionForCurrency);
+
+  const scrollToHistory = () => {
+    historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleSend = () => {
+    if (uid === 'anon') {
+      showToast(mkt(L, 'signInToSend'), 'error');
+      return;
+    }
+    setSendOpen(true);
+  };
 
   if (topping) {
     return <TopupFlow currency={currency} onBack={() => setTopping(false)} onDone={() => { setTopping(false); load(); }} />;
@@ -316,25 +358,61 @@ export const WalletTab: React.FC = () => {
     <div className="space-y-3">
       <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-0">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-bold text-white/80 uppercase tracking-widest">{mkt(L, 'sevaWallet')}</p>
-            <p className="text-3xl font-black mt-1">
-              {loading ? '…' : fmtWallet(wallet?.balance || 0, currency)}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              {/* One Big Number — 30px semibold; skeleton while loading so a
+                  wrong currency never flashes on first paint. */}
+              {loading ? (
+                <div className="h-9 w-36 rounded-lg bg-white/25 animate-pulse" aria-hidden />
+              ) : (
+                <p className="text-[30px] leading-9 font-semibold tabular-nums">
+                  {hidden ? '••••••' : fmtWallet(wallet?.balance || 0, currency)}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={toggleHidden}
+                aria-label={hidden ? mkt(L, 'showBalance') : mkt(L, 'hideBalance')}
+                title={hidden ? mkt(L, 'showBalance') : mkt(L, 'hideBalance')}
+                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors"
+              >
+                {hidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
             <p className="text-[11px] text-white/70 mt-1">
-              {mkt(L, 'dakshinaBalance')}: {fmtWallet(wallet?.balance || 0, currency)}
+              {mkt(L, 'dakshinaBalance')}: {loading ? '…' : hidden ? '••••' : fmtWallet(wallet?.balance || 0, currency)}
             </p>
           </div>
-          <WalletIcon className="w-10 h-10 text-white/60" />
+          <button
+            type="button"
+            onClick={load}
+            aria-label="Refresh"
+            className="min-h-[48px] px-4 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold self-start"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
-        <div className="flex gap-2 mt-4">
-          <button type="button" onClick={() => setTopping(true)}
-            className="flex-1 min-h-[48px] rounded-xl bg-white text-orange-700 font-black text-sm flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> {mkt(L, 'addToSevaWallet')}
-          </button>
-          <button type="button" onClick={load} className="min-h-[48px] px-4 rounded-xl bg-white/20 text-white font-bold">
-            <RefreshCw className="w-4 h-4" />
-          </button>
+        {/* Quick actions — the four daily money moves, one row, ≥44px targets */}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {(
+            [
+              { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => setTopping(true) },
+              { id: 'send', icon: Send, label: mkt(L, 'quickSend'), fn: handleSend },
+              { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
+              { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: scrollToHistory },
+            ] as const
+          ).map(({ id, icon: Icon, label, fn }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={fn}
+              className="min-h-[64px] rounded-xl bg-white/15 hover:bg-white/25 text-white flex flex-col items-center justify-center gap-1 transition-colors"
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[11px] font-bold">{label}</span>
+            </button>
+          ))}
         </div>
       </Card>
 
@@ -381,9 +459,24 @@ export const WalletTab: React.FC = () => {
         </Card>
       )}
 
+      <div ref={historyRef} className="scroll-mt-4">
       <Card>
         <p className="text-xs font-black text-stone-800 mb-2 uppercase tracking-widest">{t('solo.wallet.history')}</p>
-        {txns.length === 0 ? <Empty text="No wallet activity yet." /> : (
+        {txns.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3" aria-hidden>🪔</div>
+            <p className="text-sm font-bold text-stone-700">{mkt(L, 'walletEmptyTitle')}</p>
+            <p className="text-xs text-stone-500 mt-1">{mkt(L, 'walletEmptySub')}</p>
+            <button
+              type="button"
+              onClick={() => setTopping(true)}
+              className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
+            >
+              <Plus className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+              {mkt(L, 'quickTopUp')}
+            </button>
+          </div>
+        ) : (
           <div className="divide-y divide-stone-100">
             {txns.map((t) => (
               <div key={t.id} className="flex items-center gap-2.5 py-2.5">
@@ -400,6 +493,7 @@ export const WalletTab: React.FC = () => {
           </div>
         )}
       </Card>
+      </div>
 
       {editingClaim && (
         <EditClaimModal
@@ -407,6 +501,29 @@ export const WalletTab: React.FC = () => {
           onClose={() => setEditingClaim(null)}
           onSaved={() => { setEditingClaim(null); load(); }}
         />
+      )}
+
+      {/* Send — the private P2P obligation ledger (two-wallet architecture:
+          platform money moves only via top-up/bookings; person-to-person
+          moves are IOU records here, never custody). */}
+      {sendOpen && uid !== 'anon' && (
+        <PersonalWallet uid={uid} isOpen={sendOpen} onClose={() => setSendOpen(false)} />
+      )}
+
+      {/* Scan — Sanatani QR codes (gate passes, payment references). */}
+      {scanOpen && (
+        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setScanOpen(false)}>
+          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <QRScanner
+              onClose={() => setScanOpen(false)}
+              onScanSuccess={() => {
+                showToast(mkt(L, 'scanValid'), 'success');
+                setScanOpen(false);
+              }}
+              onScanError={(err) => showToast(err, 'error')}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

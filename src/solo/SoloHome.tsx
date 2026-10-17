@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSolo } from './SoloContext';
 import { useSoloStore, todayISO } from './soloStore';
 import { Card, Stat, T, useLocaleText } from './ui';
@@ -8,11 +8,16 @@ import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
 import { SuggestionCards } from './SuggestionCards';
 import { PersonalWallet } from '../chat/PersonalWallet';
+import { QRScanner } from '../components/common/QRScanner';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 import { Chat } from '../chat/Chat';
 import { useChatUnreadTotal } from '../chat/useChat';
+import { getWallet, fmtWallet, currencyForRegion, type WalletCurrency } from '../lib/wallet';
+import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
+import { mkt, type MktLang } from '../lib/marketplaceCopy';
+import { Eye, EyeOff, Plus, Send, ScanLine, History } from 'lucide-react';
 import {
   ChatFirstRunHint,
   RequestFirstRunWatcher,
@@ -27,17 +32,19 @@ import type { ChatParticipant } from '../chat/types';
  * person-scoped — no organisation data can appear by construction.
  */
 
-export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'profile' | 'marketplace' | 'sangam') => void }> = ({
+export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'profile' | 'marketplace' | 'sangam' | 'wallet') => void }> = ({
   goTab,
 }) => {
   const { profile } = useSolo();
   const { state } = useSoloStore();
-  const { firebaseUser } = useAuthWorkspace();
+  const { firebaseUser, activeWorkspace } = useAuthWorkspace();
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
-  const { tr } = useLocaleText();
+  const { tr, lang } = useLocaleText();
+  const L = (lang === 'bn' || lang === 'hi' ? lang : 'en') as MktLang;
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const unreadTotal = useChatUnreadTotal(uid === 'anon' ? null : uid);
   const selfInfo: ChatParticipant = {
@@ -67,6 +74,51 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4);
   const givingTotal = state.giving.reduce((s, g) => s + g.amount, 0);
+
+  // Home wallet glance — spec §1: the balance card sits DIRECTLY below the
+  // home header. One Big Number + 4 quick actions; whole card taps → Wallet.
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [glanceCurrency, setGlanceCurrency] = useState<WalletCurrency>('INR');
+  const [balanceHidden, setBalanceHidden] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('sb_wallet_hidden') === '1'; } catch { return false; }
+  });
+  const toggleBalanceHidden = () => {
+    const next = !balanceHidden;
+    setBalanceHidden(next);
+    try { window.localStorage.setItem('sb_wallet_hidden', next ? '1' : '0'); } catch { /* ignore */ }
+  };
+  useEffect(() => {
+    let live = true;
+    setWalletLoading(true);
+    (async () => {
+      try {
+        const w = await getWallet();
+        if (!live) return;
+        setWalletBalance(w.balance);
+        // Currency precedence (same as WalletTab — never the geo flash):
+        // active wallet currency > workspace currency > geo fallback.
+        const hasAct = w.balance + w.totalToppedUp + w.totalReceived > 0;
+        if (hasAct) {
+          setGlanceCurrency(w.currency);
+        } else {
+          const c = String((activeWorkspace as { currency?: string } | null)?.currency || '').toUpperCase();
+          if (c === 'INR' || c === 'BDT' || c === 'USD') setGlanceCurrency(c as WalletCurrency);
+          else {
+            try {
+              const r = await detectPayRegion();
+              setGlanceCurrency(currencyForRegion(r === 'IN' || r === 'INTL' ? r : 'BD'));
+            } catch { /* keep default — skeleton hides the paint anyway */ }
+          }
+        }
+      } catch {
+        if (live) setWalletBalance(0);
+      } finally {
+        if (live) setWalletLoading(false);
+      }
+    })();
+    return () => { live = false; };
+  }, [uid, activeWorkspace]);
 
   const hour = new Date().getHours();
   const greeting =
@@ -123,6 +175,68 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         <p className="text-sm text-amber-100/90 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
         {panchangLine && <p className="text-xs text-amber-200/80 mt-2">{panchangLine}</p>}
       </div>
+
+      {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
+          One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => goTab('wallet')}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goTab('wallet'); } }}
+        aria-label={mkt(L, 'sevaWallet')}
+        className="rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 text-white p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[12px] font-bold text-white/80 uppercase tracking-widest">
+            {mkt(L, 'sevaWallet')}
+          </p>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); toggleBalanceHidden(); }}
+            aria-label={balanceHidden ? mkt(L, 'showBalance') : mkt(L, 'hideBalance')}
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          >
+            {balanceHidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+        {walletLoading ? (
+          <div className="h-9 w-40 rounded-lg bg-white/25 animate-pulse mt-1" aria-hidden />
+        ) : (
+          <p className="text-[30px] leading-9 font-semibold tabular-nums mt-1">
+            {balanceHidden ? '••••••' : fmtWallet(walletBalance || 0, glanceCurrency)}
+          </p>
+        )}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {(
+            [
+              { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => goTab('wallet') },
+              { id: 'send', icon: Send, label: mkt(L, 'quickSend'), fn: () => { if (uid !== 'anon') setWalletOpen(true); else goTab('wallet'); } },
+              { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
+              { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: () => goTab('wallet') },
+            ] as const
+          ).map(({ id, icon: Icon, label, fn }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); fn(); }}
+              className="min-h-[64px] rounded-xl bg-white/15 hover:bg-white/25 flex flex-col items-center justify-center gap-1 transition-colors"
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[11px] font-bold">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {scanOpen && (
+        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setScanOpen(false)}>
+          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <QRScanner
+              onClose={() => setScanOpen(false)}
+              onScanSuccess={() => setScanOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Ajker Suchana — the morning briefing (now merged: panjika + module insights) */}
       <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} uid={uid} />

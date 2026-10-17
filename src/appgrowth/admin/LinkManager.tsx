@@ -35,7 +35,7 @@ const DeviceMock: React.FC<{ kind: 'android' | 'ios' | 'desktop'; playLive: bool
       <div className="mx-auto w-36 rounded-[1.6rem] border-2 border-slate-700 bg-slate-950 p-2">
         <div className="rounded-[1.1rem] bg-gradient-to-b from-amber-950/60 to-slate-950 p-3 space-y-2">
           <div className="flex items-center gap-1.5 text-saffron-300">{icon}<span className="text-[10px] font-black tracking-widest uppercase">{kind}</span></div>
-          <p className="text-[11px] font-bold text-white leading-snug">Carry your Mandir in your pocket</p>
+          <p className="text-[11px] font-bold text-white leading-snug">Carry your sacred space in your pocket</p>
           {body}
         </div>
       </div>

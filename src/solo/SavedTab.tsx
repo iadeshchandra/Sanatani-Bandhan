@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSoloStore, uid } from './soloStore';
-import { Card, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
+import { Card, T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
 import type { SavedItemKind } from './types';
 
@@ -73,7 +73,7 @@ export const SavedTab: React.FC = () => {
       <Card>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h2 className="text-lg font-extrabold text-stone-900">
-            <T en="My treasury" bn="আমার ভাণ্ডার" hi="मेरा भंडार" /> ({filtered.length})
+            <T en="My sacred shelf" bn="আমার পবিত্র তাক" hi="मेरी पवित्र ताक" /> ({filtered.length})
           </h2>
           <select className={`${inputCls} !w-40`} value={filter} onChange={(e) => setFilter(e.target.value as SavedItemKind | '')}>
             <option value="">{tr('solo.saved.all', 'All', 'সব', 'सभी')}</option>
@@ -83,7 +83,22 @@ export const SavedTab: React.FC = () => {
           </select>
         </div>
         {filtered.length === 0 ? (
-          <Empty text={tr('solo.saved.none', 'Nothing saved yet.', 'এখনও কিছু সংরক্ষিত নেই।', 'अभी कुछ संग्रहीत नहीं।')} />
+          <div className="text-center py-10">
+            <div className="text-4xl mb-3" aria-hidden>🪔</div>
+            <p className="text-sm font-bold text-stone-700">
+              <T en="Your sacred shelf is waiting for its first treasure." bn="আপনার পবিত্র তাকে প্রথম রত্নের অপেক্ষা।" hi="आपकी पवित्र ताक अपने पहले रत्न की प्रतीक्षा में है।" />
+            </p>
+            <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
+              <T en="Save the shlokas and stotras you love — they stay with you, on this device and beyond." bn="প্রিয় শ্লোক ও স্তোত্র সংরক্ষণ করুন — এই ডিভাইসে এবং তার বাইরেও আপনার সঙ্গে থাকবে।" hi="अपने प्रिय श्लोक और स्तोत्र संग्रहीत करें — इस डिवाइस पर और उसके पार भी आपके साथ रहेंगे।" />
+            </p>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
+            >
+              <T en="Save your first text" bn="প্রথম পাঠ সংরক্ষণ করুন" hi="अपना पहला पाठ संग्रहीत करें" />
+            </button>
+          </div>
         ) : (
           <ul className="space-y-3">
             {filtered.map((s) => (

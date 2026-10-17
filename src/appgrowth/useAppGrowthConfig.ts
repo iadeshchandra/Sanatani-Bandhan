@@ -61,9 +61,9 @@ export interface AppGrowthContent {
 export const DEFAULT_CONTENT: AppGrowthContent = {
   hero: {
     headline: tri(
-      'Carry your Mandir in your pocket',
-      'আপনার মন্দির এখন আপনার পকেটে',
-      'आपका मंदिर अब आपकी जेब में',
+      'Carry your sacred space in your pocket',
+      'আপনার পবিত্র স্থান এখন আপনার পকেটে',
+      'आपका पवित्र स्थान अब आपकी जेब में',
     ),
     subline: tri(
       'Sanatani Bandhan on your phone — panchang, seva bookings, treasury transparency and your community, wherever you are.',

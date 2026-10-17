@@ -85,7 +85,7 @@ import { whatsappLink, hasWhatsApp } from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
-import { DemoSelectionModal } from '../components/public/DemoSelectionModal';
+import { DemoSelectionModal, type DemoView } from '../components/public/DemoSelectionModal';
 import { WorkspaceType } from '../types';
 
 interface LandingPageProps {
@@ -571,7 +571,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const tithiLine = panchang ? `Today • ${getPanchangTodayLine(panchang)}` : null;
 
-  const handleStartDemo = (type: WorkspaceType = 'Mandir', view: 'trustee' | 'devotee' = 'trustee') => {
+  const handleStartDemo = (type: WorkspaceType = 'Mandir', view: DemoView = 'trustee') => {
     if (onDemoStart) {
       onDemoStart(type);
       return;
@@ -895,6 +895,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Free forever · 60-second guided setup · No card, no salesman
             </p>
+
+            {/* Third, quiet hero door — the individual devotee's entry.
+                Institutions get the two loud CTAs above; the Solo Sanatani
+                gets a calm doorway to their personal space. */}
+            <div className="mt-7 flex flex-col items-center">
+              <button
+                type="button"
+                onClick={handleSignup}
+                className="group min-h-[48px] px-6 rounded-full border border-amber-200 bg-amber-50/60 hover:bg-amber-50 text-amber-900 text-sm font-bold flex items-center gap-2 transition-colors"
+              >
+                <span aria-hidden>🙏</span>
+                Join as a Devotee
+                <span className="font-medium text-amber-700/80">— your personal Sanatani space</span>
+                <span aria-hidden className="text-amber-400 group-hover:translate-x-0.5 transition-transform">→</span>
+              </button>
+              <p className="mt-3 text-[11px] text-stone-400 font-medium max-w-md text-center leading-relaxed">
+                Built with temples, goshalas, ashrams, gurukuls and sanghas across Bharat and Bangladesh —
+                and the devotees who call them home.
+              </p>
+            </div>
           </div>
         </section>
 
