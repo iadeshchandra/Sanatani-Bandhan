@@ -16,7 +16,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { EmptyState } from '../common/EmptyState';
 import { isValidLatLng } from '../../utils/geo';
 import { useToast } from '../../context/ToastContext';
-import { MapContainer, TileLayer, Marker, Circle } from 'react-leaflet';
+import { MapContainer, Marker, Circle } from 'react-leaflet';
+import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -677,9 +678,7 @@ export const SanataniSocialFeed: React.FC = () => {
                       style={{ height: '100%', width: '100%' }}
                       zoomControl={false}
                     >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
+                      <ResilientTileLayer />
                       <Circle center={[emergency.location.lat, emergency.location.lng]} radius={emergency.location.accuracy} pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2, weight: 1 }} />
                       <Marker position={[emergency.location.lat, emergency.location.lng]} icon={emergencyIcon} />
                     </MapContainer>
