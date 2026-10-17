@@ -1,31 +1,15 @@
 rules_version = '2';
 
 /**
- * Sanatani Bandhan — Hardened Firestore Security Rules (Phase 21S)
- * =================================================================
- * Model: DENY-BY-DEFAULT with tenant isolation.
- *
- * Identity: Firebase Auth. Authorization comes from custom claims
- * (`tenantId`, `role`, optional `roles[]`) minted by the server
- * provisioning engine (POST /api/auth/verify-pin, POST /api/admin/users/:uid/claims).
- * During migration, claims fall back to the `users/{uid}` document
- * (`workspaceId`, `role` fields).
- *
- * Tenant isolation: a caller may only touch documents whose tenant matches
- * their own `tenantId` claim (or the '*' wildcard), unless SuperAdmin.
- *
- * DEMO_* workspaces are public sandboxes: reads are public, writes require
- * any authenticated session. Production data is never readable anonymously.
- *
- * Sensitive field allow-lists are enforced on writes; destructive deletes on
- * financial ledgers are forbidden (append-only fiduciary posture).
+ * Sanatani Bandhan — Hardened Firestore Security Rules.
+ * DENY-BY-DEFAULT, tenant isolation. Identity: Firebase Auth (custom claims
+ * tenantId/role/roles[], falling back to users/{uid}). DEMO_* = public-read
+ * sandboxes. Financial ledgers append-only; sensitive writes field-allowlisted.
  */
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------
     // 1. Identity & role helpers
-    // ------------------------------------------------------------------
     function isLoggedIn() {
       return request.auth != null && request.auth.uid != null;
     }
@@ -36,7 +20,6 @@ service cloud.firestore {
     }
 
     // Platform SuperAdmin: explicit claim, canonical role claim, or the
-    // server-managed platform_admins registry (active != false).
     function isSuperAdmin() {
       return isLoggedIn() && (
         request.auth.token.isSuperAdmin == true ||
@@ -49,9 +32,6 @@ service cloud.firestore {
     }
 
     // Platform owner: the canonical human owner UID. Used for Spark-native
-    // admin operations (no Cloud Functions deployed). Narrower than
-    // SuperAdmin claims — this is one verified human, checked by UID only.
-    // Rules are the hard boundary: even a compromised client can't widen this.
     function isOwner() {
       return isLoggedIn() && request.auth.uid == 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
     }
@@ -65,7 +45,6 @@ service cloud.firestore {
     }
 
     // Role check: single `role` claim, `roles[]` claim, or users-doc fallback.
-    // `roles` is the allow-list (canonical + legacy UPPER_CASE variants).
     function roleIn(roles) {
       return request.auth != null && (
         request.auth.token.role in roles ||
@@ -80,14 +59,6 @@ service cloud.firestore {
     }
 
     // Task contract: tenant member = logged in AND (own tenant claim |
-    // wildcard '*' claim | SuperAdmin). The null-guard is load-bearing:
-    // without it, `null == null` would grant membership for documents that
-    // carry no tenant id (fail closed instead).
-    //
-    // Membership sprint: a rules-enforced `workspaceMembers/{tenant}_{uid}`
-    // edge ALSO confers membership. Trustees write these edges (join-request
-    // approvals); invited users write their own on invite-accept (verified
-    // against the invite doc). Clients can never forge membership.
     function wsMemberPath(tenantId) {
       return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + request.auth.uid);
     }
@@ -108,17 +79,12 @@ service cloud.firestore {
     }
 
     // Task contract: role check scoped to the tenant. SuperAdmin bypasses
-    // role checks (needed for platform admins acting cross-tenant).
-    // Membership sprint: the workspaceMembers edge role counts too, so an
-    // invited Sevadar/Accountant/etc. passes staff gates in their org.
     function hasRole(tenantId, roles) {
       return isSuperAdmin()
         || (isTenantMember(tenantId) && (roleIn(roles) || wsMemberRoleIn(tenantId, roles)));
     }
 
     // Organisation Trustee for a specific org (used by membership flows):
-    // tenant member + Trustee/SuperAdmin via users-doc role OR the
-    // workspaceMembers edge role.
     function isOrgTrustee(orgId) {
       return isLoggedIn() && orgId != null && orgId != '' && (
         isSuperAdmin() ||
@@ -130,8 +96,6 @@ service cloud.firestore {
     }
 
     // Role-grant matrix for invites / member adds. A Trustee may grant
-    // operational roles at/below their own — never Trustee, never
-    // SuperAdmin. Only a SuperAdmin may grant those.
     function grantableRole(orgId, targetRole) {
       return isSuperAdmin() || (
         isOrgTrustee(orgId) &&
@@ -162,9 +126,6 @@ service cloud.firestore {
     }
 
     // Pillar 2 — public RSVP counter bump on festival_events. A signed-in
-    // devotee submitting an RSVP may ONLY move rsvpHeadcount /
-    // slotBooked.<slot> upward by a small sane amount (≤20, one slot per
-    // write). Everything else on the doc stays trustee-only.
     function slotBookedSane(oldM, newM) {
       return newM.diff(oldM).addedKeys().size() == 0
           && newM.diff(oldM).removedKeys().size() == 0
@@ -205,9 +166,7 @@ service cloud.firestore {
               'Accountant', 'ACCOUNTANT', 'Priest', 'PRIEST', 'PUROHIT', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
     }
 
-    // ------------------------------------------------------------------
     // 2. Platform admin registry (server-managed via Admin SDK only)
-    // ------------------------------------------------------------------
     match /platform_admins/{adminId} {
       allow read: if isSuperAdmin();
       allow write: if false;
@@ -224,10 +183,7 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // ------------------------------------------------------------------
     // 3. User profiles — owner or SuperAdmin only.
-    //    Clients can never self-grant role / tenant / admin flags.
-    // ------------------------------------------------------------------
     match /users/{userId} {
       allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
       allow create: if isLoggedIn() && request.auth.uid == userId
@@ -247,20 +203,11 @@ service cloud.firestore {
     }
 
     // FCM device tokens for push delivery. Each user manages only their own
-    // tokens; the messaging backend reads them via the Admin SDK (which
-    // bypasses rules). Register client-side with:
-    //   setDoc(doc(db, 'users', uid, 'fcmTokens', token),
-    //          { token, platform: 'web', createdAt: serverTimestamp() })
     match /users/{userId}/fcmTokens/{tokenId} {
       allow read, write: if isLoggedIn() && request.auth.uid == userId;
     }
 
-    // ------------------------------------------------------------------
     // 4. Tenant partitions
-    //    - /tenants/{id}: public discovery doc (name/city/type/logo only).
-    //      Sensitive fields live in /private (restricted).
-    //    - Writes: Trustee+ with a strict public-field allow-list.
-    // ------------------------------------------------------------------
     match /tenants/{tenantId} {
       allow read: if true; // public discovery
       allow create: if isSuperAdmin();
@@ -301,15 +248,11 @@ service cloud.firestore {
       }
     }
 
-    // ------------------------------------------------------------------
     // 5. Workspace documents (client-managed workspaces collection)
-    // ------------------------------------------------------------------
     match /workspaces/{workspaceId} {
       // NOTE: adminPinHash may only ever be written via the server
-      // (POST /api/admin/tenants/:id/pin uses the Admin SDK and bypasses rules).
       allow read: if isTenantMember(workspaceId) || isOwner();
       // Anonymous (demo) sessions cannot create real workspaces — must sign in
-      // with email/Google first. Closes demo → real Trustee escalation.
       allow create: if isLoggedIn() && !isAnonymous()
         && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
       // Owner (Spark-native console) may change plan + limits-bypass fields only — never pins.
@@ -320,12 +263,9 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // ------------------------------------------------------------------
     // 6. Root collections (keyed by `workspaceId` field) — deny by default
-    // ------------------------------------------------------------------
 
     // Financial ledger — append-only. Demo workspaces are blocked from writing
-    // here: demo treasury stays local-only and never touches production Firestore.
     match /treasury/{docId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_FINANCE())
@@ -365,7 +305,6 @@ service cloud.firestore {
     }
 
     // Devotee PII — read: any tenant member; write: staff roles only
-    // (Accountant is intentionally excluded from PII writes).
     match /devotees/{devoteeId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
         || resource.data.get('userId', '') == request.auth.uid || devoteeId == request.auth.uid;
@@ -398,19 +337,7 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
     }
 
-    // ------------------------------------------------------------------
     // Pillar 2 — Festival war-room (market domination).
-    // festival_plans: trustee planning data (footfall, prasad, roster,
-    //   checklist state), per org per festival. Tenant members read;
-    //   staff write. Demo sandboxes stay writable for signed-in users.
-    // festival_events: published devotee event pages. Public read ONLY
-    //   when published==true. Writes are trustee-only, EXCEPT the narrow
-    //   public counter bump (rsvpHeadcount / slotBooked.<slot>) that an
-    //   RSVP performs — same key set, small upward increments only.
-    // festival_rsvps: devotee RSVPs. Signed-in users create their own;
-    //   tenant members read all (feeds the footfall planner); users may
-    //   read/cancel their own.
-    // ------------------------------------------------------------------
     match /festival_plans/{planId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
@@ -494,12 +421,6 @@ service cloud.firestore {
     }
 
     // One-time QR login pairing tokens — bearer-token pattern (Spark-plan,
-    // server-free login). Doc IDs are unguessable 256-bit random values minted
-    // by staff; anyone holding the token may get + delete it exactly once
-    // (the claim flow burns it), but ONLY while it is unexpired — enforced
-    // server-side here, not just in client JS (C-3). `list` is denied: without
-    // it, unauthenticated visitors cannot enumerate/harvest the outstanding
-    // token pool. Token roles are allowlisted — never SuperAdmin.
     match /qrPairTokens/{tokenId} {
       allow create: if isLoggedIn()
         && request.resource.data.keys().hasAll(['memberId', 'workspaceId', 'role', 'expiresAt'])
@@ -530,7 +451,6 @@ service cloud.firestore {
     }
 
     // Audit logs — append-only, actor-bound. Owner gets full read + write
-    // (Spark-native console); everyone else keeps the existing tenant scoping.
     match /audit_logs/{logId} {
       allow read: if isOwner() || demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
       allow create: if (isOwner() && request.resource.data.get('actorUid', '') == request.auth.uid)
@@ -540,7 +460,6 @@ service cloud.firestore {
     }
 
     // Verification applications — owner-reviewed, never client-writable beyond apply.
-    // Owner approves/rejects via the Spark-native console (update) or Admin SDK.
     match /verificationApplications/{appId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if isLoggedIn()
@@ -560,7 +479,6 @@ service cloud.firestore {
     }
 
     // Moderation hide directives — read-only for clients, enforced in UI.
-    // Owner writes via the Spark-native console or Admin SDK.
     match /moderationHides/{hideId} {
       allow read: if isLoggedIn();
       allow create, update: if isOwner();
@@ -575,15 +493,12 @@ service cloud.firestore {
     }
 
     // ---- Manual billing (bKash / Nagad / UPI / PhonePe) ----
-    // Payment method instructions are public (users need to know where to send
-    // money); only the owner configures them.
     match /paymentMethods/{methodId} {
       allow read: if true;
-      allow create, update, delete: if false; // owner writes via Admin SDK only
+      allow create, update, delete: if isOwner(); // owner writes via Admin SDK only
     }
 
     // Payment claims: any authenticated member files their own claim; only the
-    // owner reviews. Status flips happen via the Spark-native console or Admin SDK.
     match /paymentClaims/{claimId} {
       allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid);
@@ -595,7 +510,6 @@ service cloud.firestore {
     }
 
     // Subscriptions: readable by owner or workspace members; owner activates
-    // via the Spark-native console, server writes via the billing API.
     match /subscriptions/{workspaceId} {
       allow read: if isSuperAdmin() || isOwner() || (isLoggedIn() && isTenantMember(workspaceId));
       allow create, update: if isOwner();
@@ -603,9 +517,6 @@ service cloud.firestore {
     }
 
     // ---- Messaging ----
-    // Inbox messages: the target user reads their own; only the read flag is
-    // client-mutable (and only by the target user). The owner sends via the
-    // Spark-native console or the messaging API.
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('targetUid', '') == request.auth.uid);
@@ -617,7 +528,6 @@ service cloud.firestore {
     }
 
     // Campaigns, scheduled messages, templates: owner-only reads; owner writes
-    // campaigns/schedules via the Spark-native console, everything via Admin SDK.
     match /messageCampaigns/{campaignId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if isOwner();
@@ -633,38 +543,26 @@ service cloud.firestore {
       // Owner manages templates from the Console 3.0 Content Manager.
       allow create, update, delete: if isOwner();
     }
-    match /broadcastCaps/{capId} {
-      allow read, write: if false; // server-internal rate-cap bookkeeping
-    }
-
     // ---- Console 3.0: commission, content, settings, support ----
-    // All owner-managed via the Spark-native console. Clients never write.
 
     // Commission rules: public read so the future marketplace UI can show
-    // "platform fee X%"; only the owner edits.
     match /commissionRules/{ruleId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
     // Platform config (commission tier rates etc): public read so booking
-    // flows resolve rates; owner-only writes.
     match /platformConfig/{configId} {
       allow read: if true;
       allow create, update: if isOwner();
       allow delete: if false;
     }
     // Marketplace transactions: owner-only. Written by the future booking
-    // flow via Admin SDK; the console records status changes.
     match /marketplaceTransactions/{txnId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create, update: if isOwner();
       allow delete: if false;
     }
     // Payouts: providers request via their own doc (future), owner decides.
-    // For now the console seeds/manages; clients cannot write.
-    // Extended: providers may CREATE their own payout requests (applicantUid
-    // must match); owner approves / marks paid. orderIds[] links payouts to
-    // marketplace orders.
     match /payouts/{payoutId} {
       allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
@@ -689,7 +587,6 @@ service cloud.firestore {
       allow create, update, delete: if isOwner();
     }
     // Feature flags: logged-in clients read (the app gates modules on these);
-    // only the owner toggles.
     match /featureFlags/{flagId} {
       allow read: if isLoggedIn();
       allow create, update, delete: if isOwner();
@@ -700,14 +597,6 @@ service cloud.firestore {
       allow create, update, delete: if isOwner();
     }
     // Payment methods: public read so billing pages can render them;
-    // only the owner creates/updates/deletes.
-    match /paymentMethods/{methodId} {
-      allow read: if true;
-      allow create, update, delete: if isOwner();
-    }
-    // ---- Marketplace (Fiverr-like gigs for Purohit / Jyotishi) ----
-    // Gigs: public read (the marketplace browse); the provider owns their
-    // gigs (providerUid must match on create); owner can moderate anything.
     match /marketplaceGigs/{gigId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -720,10 +609,6 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
     // Orders: client creates (clientUid must match); provider + client read
-    // their own orders; status moves by owner, provider (accept/complete),
-    // or client (confirm/cancel while pending). Owner overrides all.
-    // COMMISSION PROTECTION: commissionPercent / commissionAmount / providerNet
-    // are snapshotted at creation and immutable for non-owners.
     match /marketplaceOrders/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -738,9 +623,11 @@ service cloud.firestore {
           && request.resource.data.get('commissionAmount', 0) == resource.data.get('commissionAmount', 0)
           && request.resource.data.get('providerNet', 0) == resource.data.get('providerNet', 0)
           && (
-          // Provider: accept / decline / mark complete on their orders
+          // Provider: accept / decline / progress; 'completed' only from a live status
           (resource.data.get('providerUid', '') == request.auth.uid
-            && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed'])
+            && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed']
+            && (request.resource.data.get('status', '') != 'completed'
+              || resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']))
           // Provider (pay-after-task): task done, now awaiting the platform commission
           || (resource.data.get('providerUid', '') == request.auth.uid
             && resource.data.get('payAfterTask', false) == true
@@ -751,12 +638,12 @@ service cloud.firestore {
             && resource.data.get('rail', '') == 'rail2'
             && request.resource.data.get('status', '') == 'pending_payment'
             && request.resource.data.get('rail2Proof', {}).get('disputed', false) == true)
-          // Client: confirm completion, or cancel while still pending
+          // Client: confirm completion (only from a live status), or cancel
           || (resource.data.get('clientUid', '') == request.auth.uid
-            && request.resource.data.get('status', '') in ['completed', 'cancelled'])
+            && request.resource.data.get('status', '') in ['completed', 'cancelled']
+            && (request.resource.data.get('status', '') != 'completed'
+              || resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']))
           // Client (wallet): pay from wallet → pending_payment becomes paid.
-          // The wallet debit is validated by the wallets/{uid} rule against
-          // this same order (batched write — both succeed or both fail).
           || (resource.data.get('clientUid', '') == request.auth.uid
             && resource.data.get('payWithWallet', false) == true
             && resource.data.get('status', '') == 'pending_payment'
@@ -769,10 +656,6 @@ service cloud.firestore {
             && request.resource.data.get('status', '') == 'paid'
             && request.resource.data.get('rail2Proof', {}).get('trxId', '') != '')
           // PHASE 3 — dispute freeze: an order party moves an ACTIVE order to
-          // 'commission_held'. The wallet is untouched, completion is blocked
-          // until the owner releases the hold (owner bypass covers
-          // -> 'in_progress' / -> 'cancelled'). Money fields stay pinned by
-          // the rule head above.
           || (isLoggedIn()
             && (resource.data.get('providerUid', '') == request.auth.uid
               || resource.data.get('clientUid', '') == request.auth.uid)
@@ -782,10 +665,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
-    // where the commission was already taken. The request is idempotent
-    // (doc id = orderId); only the owner can act on it — approving sets
-    // platformRevenue.{orderId}.commissionFrozen = true via owner tooling
-    // (platformRevenue update is already owner-only).
     match /commissionFreezeRequests/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -815,22 +694,13 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Commission overrides: public read (marketplace shows "platform fee X%");
-    // owner-only writes. Applies to NEW orders only — existing orders keep
-    // their commissionPercent snapshot.
     match /commissionOverrides/{overrideId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
     // Platform config (maintenance mode etc.): public read of the main doc.
-    match /platformConfig/{cfgId} {
-      allow read: if true;
-      allow create, update: if isOwner();
-      allow delete: if false;
-    }
 
     // ---- Marketplace anti-bypass + provider payments ----
-    // Provider payment methods: provider submits (forced 'pending'), reads own;
-    // only the owner approves / rejects / assigns platform rail.
     match /providerPaymentMethods/{mId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
@@ -851,8 +721,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Bypass flags: the sender's own client creates the flag when a message
-    // is scanned (senderId must match). Owner-only read. Excerpt only, never
-    // full message content (privacy).
     match /bypassFlags/{flagId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if isLoggedIn()
@@ -862,7 +730,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Bypass keyword patterns: public read (clients need them to scan);
-    // owner-only writes.
     match /bypassKeywords/{kwId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
@@ -875,9 +742,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // ---- Rail-2: platform dues (Layer 6) ----
-    // Commission receivables on provider-direct (Rail-2) orders.
-    // Provider reads own; owner full control. Create is client-side on order
-    // completion — validated against the real Rail-2 order doc.
     match /platformDues/{dueId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
@@ -890,7 +754,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Provider marketplace profile (dues suspension flags): owner writes,
-    // provider reads own.
     match /marketplaceProviders/{providerUid} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && providerUid == request.auth.uid);
@@ -899,15 +762,6 @@ service cloud.firestore {
     }
 
     // ---- Platform wallet + escrow top-up system ----
-    // Wallets: user reads own; owner full access. Balance changes are
-    // tightly validated:
-    //  - CLIENT DEBIT (spending): only via batched write against a real
-    //    marketplace order (pending_payment + payWithWallet). The order doc
-    //    acts as the idempotency key — replay fails because the order is no
-    //    longer pending_payment after the first debit.
-    //  - PROVIDER CREDIT (receiving net): only the exact providerNet of a
-    //    real order, initiated by an order party during completion.
-    //  - Owner bypasses all (top-up approvals, manual adjustments).
     function walletDebitOk(uid) {
       let data = request.resource.data;
       let old = resource.data;
@@ -945,15 +799,6 @@ service cloud.firestore {
         && data.get('totalSpent', -1) == old.get('totalSpent', 0);
     }
     // PHASE 3 — provider commission debit, order-anchored.
-    // The provider's own wallet is debited inside the atomic completion
-    // batch. Bounded: 0 < debit <= the order's snapshotted commissionAmount
-    // (never above the booking promise). Idempotent: lastCommissionOrderId
-    // must change (replay fails), and the order must still be in a
-    // completable pre-batch status (rules `get()` reads committed state, so
-    // the batch's own order->completed is invisible here — the order leg of
-    // the batch enforces the transition separately).
-    // Free sevas / zero-commission orders skip the wallet leg entirely, so
-    // this arm requires debit > 0.
     function commissionHoldOk(uid) {
       let data = request.resource.data;
       let old = resource.data;
@@ -974,11 +819,6 @@ service cloud.firestore {
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + debit;
     }
     // PHASE 3 — Pratham Seva counter advancement, order-anchored.
-    // The provider's own profile (purohits / jyotishProfiles) may advance
-    // completedSevasSinceVerified by exactly +1 and decrement
-    // freeSevasRemaining by exactly 1 (only while one remains), inside the
-    // atomic completion batch. Nothing else may change on this write, and
-    // the order anchor makes replays fail.
     function sevaProfileCompletionOk() {
       let data = request.resource.data;
       let old = resource.data;
@@ -996,7 +836,6 @@ service cloud.firestore {
         && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress'];
     }
     // Create-path for provider credit: the wallet doc may not exist yet when
-    // the first payout lands. Same order validation, starting from zero.
     function walletCreditCreateOk(uid) {
       let data = request.resource.data;
       let orderId = data.get('lastCreditOrderId', '');
@@ -1032,8 +871,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Wallet transactions: append-only ledger. Clients record their own
-    // spend/top-up-requests; completion batches record the provider's
-    // receive + the platform's commission; owner records everything.
     match /walletTransactions/{txnId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -1060,7 +897,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     // Top-up claims: user files (pending only); owner approves → credits
-    // the wallet. Mirrors the paymentClaims pattern.
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -1073,7 +909,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Commission payments (Path B: post-task direct pay, commission to
-    // platform). Client or provider files; owner confirms → order completes.
     match /commissionPayments/{payId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -1089,7 +924,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     // Platform revenue ledger: one doc per completed order, amount pinned to
-    // the order's commissionAmount. Recorded by an order party at completion.
     match /platformRevenue/{orderId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if isLoggedIn()
@@ -1097,25 +931,42 @@ service cloud.firestore {
         && request.resource.data.get('recordedBy', '') == request.auth.uid
         && request.resource.data.get('amount', -1) >= 0
         && request.resource.data.get('amount', -1) <=
-             get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -1);
+             get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -1)
+        && (get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
+          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid);
       allow update: if isOwner();
       allow delete: if false;
     }
 
-    // Crisis events — Tier 1 SOS. Sender may cancel/resolve own SOS.
-    // (Coordinator edge, nearby pings, abuse counters, family links deferred.)
+    // Crisis events — Tier 1 SOS (sender cancel, coordinator ack/resolve, response fan-out).
     match /crisis_events/{eventId} {
       function parent() {
         return get(/databases/$(database)/documents/crisis_events/$(eventId)).data;
+      }
+      function isCrisisCoord(ws) {
+        return isLoggedIn() && ws != null
+          && exists(/databases/$(database)/documents/crisisCoordinators/$(ws + '_' + request.auth.uid));
       }
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if demoWriteOk(newDocWs()) || isTenantMember(newDocWs());
       allow update: if (demoWriteOk(docWs())
           || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+          // Sender: "I'm safe" — cancel own SOS.
           || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
-            && request.resource.data.get('status', '') in ['cancelled', 'resolved']))
+            && request.resource.data.get('status', '') in ['cancelled', 'resolved'])
+          // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
+          || (isCrisisCoord(docWs())
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'acknowledgedBy', 'acknowledgedAt', 'ackCount',
+                'resolvedAt', 'outcomeNote', 'updatedAt'])
+            && request.resource.data.get('status', '') in ['acknowledged', 'resolved'])
+          // Tenant member: best-effort ack bump from ackSOS; only -> acknowledged.
+          || (isTenantMember(docWs())
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
+            && request.resource.data.get('status', '') == 'acknowledged'))
         && wsImmutable();
       allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
       match /responses/{uid} {
@@ -1125,6 +976,31 @@ service cloud.firestore {
           && request.resource.data.get('status', '') in ['coming', 'arrived'];
         allow delete: if false;
       }
+      // Nearby-ping fan-out: sender's client writes one doc per nearby uid.
+      match /notified/{uid} {
+        allow read: if isTenantMember(parent().get('workspaceId', null));
+        allow create: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.get('uid', '') == uid
+          && isTenantMember(parent().get('workspaceId', null));
+        allow update, delete: if false;
+      }
+    }
+    // Coordinator edge docs (crisisCoordinators/{orgId}_{uid}): trustee-managed.
+    match /crisisCoordinators/{edgeId} {
+      allow read: if isLoggedIn()
+        && (resource.data.get('uid', '') == request.auth.uid
+          || isTenantMember(resource.data.get('orgId', null)));
+      allow create, update: if isOrgTrustee(request.resource.data.get('orgId', ''))
+        && request.resource.data.get('uid', '') != ''
+        && (resource == null
+          || request.resource.data.get('orgId', '') == resource.data.get('orgId', ''))
+        && edgeId == request.resource.data.get('orgId', '') + '_'
+          + request.resource.data.get('uid', '');
+      allow delete: if isOrgTrustee(resource.data.get('orgId', ''));
+    }
+    // Abuse counters (crisisAbuse/{uid}): self-only read/write.
+    match /crisisAbuse/{uid} {
+      allow read, write: if isLoggedIn() && request.auth.uid == uid;
     }
     match /emergencyContacts/{uid} {
       allow read, write: if isLoggedIn() && request.auth.uid == uid;
@@ -1135,17 +1011,6 @@ service cloud.firestore {
     match /polls/{pollId} {
       allow read: if isLoggedIn();
       allow write: if hasRole(effTenant(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-    }
-    match /panchayat_polls/{pollId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-      match /votes/{userId} {
-        allow read: if request.auth.uid == userId || hasRole(get(/databases/$(database)/documents/panchayat_polls/$(pollId)).data.get('workspaceId', null), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
-        allow create: if request.auth.uid == userId
-          && !exists(/databases/$(database)/documents/panchayat_polls/$(pollId)/votes/$(userId));
-        allow update, delete: if false;
-      }
     }
 
     // YatraNet broadcasts — keyed by communityId.
@@ -1158,14 +1023,6 @@ service cloud.firestore {
       allow update: if isSuperAdmin() || (isTenantMember(resource.data.get('communityId', null))
         && request.resource.data.get('communityId', null) == resource.data.get('communityId', null));
       allow delete: if isSuperAdmin();
-    }
-    match /yatra_alerts/{aId} {
-      allow read: if isSuperAdmin()
-        || (isDemoWs(resource.data.get('communityId', null)) && (request.auth == null || effTenant() == resource.data.get('communityId', null)))
-        || isTenantMember(resource.data.get('communityId', null));
-      allow create: if isLoggedIn() && (isDemoWs(request.resource.data.get('communityId', null))
-        || isTenantMember(request.resource.data.get('communityId', null)));
-      allow update, delete: if isSuperAdmin();
     }
 
     // Support threads
@@ -1219,16 +1076,9 @@ service cloud.firestore {
       allow write: if isLoggedIn() && (isDemoWs(communityId) || isTenantMember(communityId));
     }
 
-    // ------------------------------------------------------------------
     // Purohit One — independent purohit identity + verification + marketplace
-    // ------------------------------------------------------------------
-    // Global (non-workspace-scoped) collections. Deny-by-default posture is
-    // preserved: every match below states its exact allow conditions.
 
     // --- purohits/{purohitId}: public read (marketplace); owner + admin write.
-    // Tier/aggregates/uid are admin-only; public counter fields are refreshable
-    // by any signed-in user because they are publicly recomputable from the
-    // reviews collection (gaming is detectable, admin-reversible).
     match /purohits/{purohitId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1266,18 +1116,7 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/purohits/$(purohitId)).data.get('uid', '') == request.auth.uid);
     }
 
-    // ------------------------------------------------------------------
     // Solo Sanatani — Universal Sanatani ID spine (sanataniProfiles/{uid})
-    // ------------------------------------------------------------------
-    // Person-scoped identity doc. Public read (the trust anchor for
-    // Sangam/marketplace later). Sensitive fields (gotra) are NEVER stored
-    // here — they live owner-only under `private/self` (see below).
-    // Deny-by-default: create pinned to the
-    // caller's own uid with REGISTERED tier and empty roles. Updates can
-    // never change id or verificationTier. The `roles` link map is
-    // append-only for identities the caller provably owns: a purohitId may
-    // be attached only when the referenced `purohits` doc exists and its
-    // uid is the caller (the BecomePurohitModal upgrade flow). Deletes denied.
     match /sanataniProfiles/{uid} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1300,12 +1139,6 @@ service cloud.firestore {
       allow delete: if false;
 
       // A purohitId may be attached only when the referenced `purohits`
-      // doc exists and is owned by the caller (the BecomePurohitModal
-      // upgrade flow). The diff constraint pins the roles key-set: the ONLY
-      // change permitted on this path is setting purohitId — no other role
-      // key can be added, changed or removed here, so a caller cannot smuggle
-      // arbitrary privilege keys into their own roles map. jyotishId attaches
-      // via validJyotishAttach below (Jyotish One) — same key-set pinning.
       function validPurohitAttach() {
         let newRoles = request.resource.data.get('roles', {});
         let oldRoles = resource.data.get('roles', {});
@@ -1318,10 +1151,6 @@ service cloud.firestore {
       }
 
       // A jyotishId may be attached only when the referenced
-      // `jyotishProfiles` doc exists and is owned by the caller (the
-      // BecomeJyotishModal upgrade flow). The diff constraint pins the roles
-      // key-set: the ONLY change permitted on this path is setting
-      // jyotishId — no other role key can be added, changed or removed here.
       function validJyotishAttach() {
         let newRoles = request.resource.data.get('roles', {});
         let oldRoles = resource.data.get('roles', {});
@@ -1335,16 +1164,11 @@ service cloud.firestore {
     }
 
     // Solo Sanatani — private profile fields (gotra and future sensitive
-    // data). Owner-only: never publicly readable, unlike the profile doc
-    // above. Single well-known doc id keeps the rule tight.
     match /sanataniProfiles/{uid}/private/self {
       allow read, write: if isLoggedIn() && uid == request.auth.uid;
     }
 
 // ------------------------- Section A: program config ----------------------
-    // --- prathamSevaConfig: the single global Pratham Seva config doc
-    // (id "global"). Owner writes; any signed-in user may read the public
-    // defaults (the welcome blessing is shown to professionals).
     match /prathamSevaConfig/{configId} {
       allow read: if isLoggedIn();
       allow create, update: if isSuperAdmin()
@@ -1354,11 +1178,6 @@ service cloud.firestore {
     }
 
 // ----------------- Section B: purohitApplications (REPLACES) --------------
-    // --- purohitApplications: applicant + admin read; applicant creates as
-    // PENDING; only the platform admin decides (approve/reject).
-    // Phase 2: applicants may NOT self-set review-only fields on create
-    // (tier, freeSevasRemaining, boostUntil, reviewedBy, reviewNote) —
-    // the welcome blessing is granted by the owner on approval only.
     match /purohitApplications/{appId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -1376,7 +1195,6 @@ service cloud.firestore {
     }
 
     // --- gigs: public read (marketplace); signed-in devotees post;
-    // status machine enforced on the ordered path; only parties write.
     function isGigParty() {
       return isLoggedIn()
         && (resource.data.get('devoteeUid', '') == request.auth.uid
@@ -1407,7 +1225,6 @@ service cloud.firestore {
         || (isLoggedIn() && gigTransitionOk() && gigImmutableOk()
           && (isGigParty()
             // Accept flow: any verified-path purohit may claim an OPEN gig;
-            // the claim itself names them as the assigned party.
             || (resource.data.get('status', '') == 'OPEN'
               && request.resource.data.get('status', '') == 'ASSIGNED'
               && request.resource.data.get('assignedPurohitUid', '') == request.auth.uid)));
@@ -1415,8 +1232,6 @@ service cloud.firestore {
     }
 
     // --- endorsements: public read; Trustees (any real org) may endorse.
-    // ANTI-GAMING: endorsement requires a Trustee role; the orgId must be a
-    // real workspace id (non-empty, checked against workspaces by clients).
     match /endorsements/{endorsementId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1429,7 +1244,6 @@ service cloud.firestore {
     }
 
     // --- reviews: public read; deterministic ids (one rating per party per
-    // gig); only gig parties may rate, only after completion.
     function reviewPartyOk() {
       let gigPath = /databases/$(database)/documents/gigs/$(request.resource.data.get('gigId', ''));
       return exists(gigPath)
@@ -1449,8 +1263,6 @@ service cloud.firestore {
     }
 
     // --- purohitInvites: org → purohit staff invites. Readable by the invited
-    // purohit, org Trustees, and admins. Trustees create; the invited purohit
-    // may only flip status (accept/decline).
     match /purohitInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -1471,20 +1283,9 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ------------------------------------------------------------------
     // Jyotish One — independent jyotishi identity + verification +
-    // consultation marketplace. HUMAN REVIEW REQUIRED on this section.
-    // ------------------------------------------------------------------
-    // Mirrors the Purohit One rules above: global (non-workspace-scoped)
-    // collections, deny-by-default posture. Collections:
-    //   jyotishProfiles, jyotishApplications, jyotishConsultations (+
-    //   messages subcollection), jyotishReviews, jyotishAvailability,
-    //   jyotishEndorsements, jyotishInvites, jyotishReferrals.
 
     // --- jyotishProfiles/{jyotishId}: public read (marketplace); owner +
-    // admin write. Tier/aggregates/uid are admin-only; public counter fields
-    // are refreshable by any signed-in user (publicly recomputable from the
-    // reviews collection — gaming detectable, admin-reversible).
     match /jyotishProfiles/{jyotishId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1523,9 +1324,6 @@ service cloud.firestore {
     }
 
 // ----------------- Section C: jyotishApplications (REPLACES) --------------
-    // --- jyotishApplications: applicant + admin read; applicant creates as
-    // PENDING; only the platform admin decides (approve/reject).
-    // Phase 2: same review-field hardening as purohitApplications above.
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
@@ -1543,8 +1341,6 @@ service cloud.firestore {
     }
 
     // --- jyotishConsultations: public read (marketplace); signed-in
-    // devotees post; status machine enforced on the ordered path; only
-    // parties write.
     function isConsultationParty() {
       return isLoggedIn()
         && (resource.data.get('devoteeUid', '') == request.auth.uid
@@ -1575,7 +1371,6 @@ service cloud.firestore {
         || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
           && (isConsultationParty()
             // Accept flow: any jyotishi may claim an OPEN consultation;
-            // the claim itself names them as the assigned party.
             || (resource.data.get('status', '') == 'OPEN'
               && request.resource.data.get('status', '') == 'ASSIGNED'
               && request.resource.data.get('assignedJyotishUid', '') == request.auth.uid)));
@@ -1598,8 +1393,6 @@ service cloud.firestore {
       }
 
       // --- remedies subcollection (Seva Pro Phase 4): the assigned jyotish
-      // prescribes; both parties read; the devotee flips PENDING ->
-      // BOOKED / DISMISSED. Drives the RemedyToRitual warm card.
       match /remedies/{remedyId} {
         function isRemedyParty() {
           return (isLoggedIn()
@@ -1637,8 +1430,6 @@ service cloud.firestore {
     }
 
     // --- jyotishReviews: public read; deterministic ids (one rating per
-    // party per consultation); only consultation parties may rate, only
-    // after completion.
     function consultationReviewPartyOk() {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('consultationId', ''));
       return exists(cpath)
@@ -1658,8 +1449,6 @@ service cloud.firestore {
     }
 
     // --- jyotishInvites: org → jyotishi staff invites. Readable by the
-    // invited jyotishi, org Trustees, and admins. Trustees create; the
-    // invited jyotishi may only flip status (accept/decline).
     match /jyotishInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -1682,9 +1471,6 @@ service cloud.firestore {
 
 
     // ================= Seva Pro Phase 4 — referral pipeline =================
-    // Money rule: referral credit = min(referral% of seva value, platform
-    // commission). Never from the other provider's earnings. All amounts are
-    // integers; referral share is stored as integer basis points.
 
     // --- referredBy anchoring on gig create (jyotish -> purohit) ---
     function remedyAnchorOk() {
@@ -1744,7 +1530,6 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED');
     }
     // Only an order party may move the attribution (prevents griefing the
-    // settle flow by flipping OPEN -> SKIPPED_NO_VALUE from outside).
     function attributionPartyOk() {
       return (request.resource.data.get('orderType', '') == 'gig'
           && (get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
@@ -1815,9 +1600,6 @@ service cloud.firestore {
     }
 
     // --- wallet credit anchored to a validated referral credit doc ---
-    // The delta is fully pinned to referralCredits/{id}: this operation can
-    // only ADD the validated amount to the referrer's balance, so no caller
-    // party check is needed (no exfiltration/inflation vector exists).
     function referralCreditDocOk(uid) {
       return request.resource.data.get('lastReferralCreditId', '') != ''
         && request.resource.data.get('lastReferralCreditId', '') != resource.data.get('lastReferralCreditId', '')
@@ -1848,8 +1630,6 @@ service cloud.firestore {
 
 
     // --- jyotishReferrals: cross-referrals jyotish ↔ purohit. Public read
-    // (they are trust signals); the referrer writes their own; the named
-    // professional must carry a badge (non-REGISTERED tier pinned at write).
     match /jyotishReferrals/{referralId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1863,9 +1643,6 @@ service cloud.firestore {
 
 
     // --- referralAttributions/{orderId}: one row per referred order.
-    // Written once at order creation by the booking devotee; anchored to the
-    // order's pinned referredBy. Parties + owner read. Settle transition
-    // (OPEN -> SETTLED) only when the order is DAKSHINA_RELEASED.
     match /referralAttributions/{orderId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -1889,9 +1666,6 @@ service cloud.firestore {
     }
 
     // --- referralCredits/{creditId}: settled guidance credits.
-    // Deterministic id rc_{orderId}; create-once anchored to the completed
-    // order with exact integer math. Owner-only updates (fraud reversal);
-    // no deletes.
     match /referralCredits/{creditId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('referrerUid', '') == request.auth.uid)
@@ -1913,17 +1687,9 @@ service cloud.firestore {
 
     // NOTE: no catch-all allow — default deny.
 
-    // ------------------------------------------------------------------
     // Sangam — the Sanatani social layer (personal view)
-    // ------------------------------------------------------------------
-    // Deny-by-default. Every actor is identity-anchored: posts carry the
-    // author's SAN id; purohit/jyotish tiers are validated against the
-    // canonical profile (badges are never client-forgivable); organisation
-    // page posts require a trustee role edge and are badged OFFICIAL.
 
     // Badge validation: devotee/org authors carry no tier; purohit/jyotish
-    // tiers must match the canonical profile document AND the profile must
-    // belong to the requester (prevents impersonating another verified pro).
     function sangamAuthorTierOk() {
       let kind = request.resource.data.get('authorKind', '');
       let tier = request.resource.data.get('authorTier', '');
@@ -1949,7 +1715,6 @@ service cloud.firestore {
     }
 
     // --- sangamPosts: public read (the community feed); author create;
-    // author may edit text/image only; admin moderates.
     match /sangamPosts/{postId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1989,7 +1754,6 @@ service cloud.firestore {
     }
 
     // --- sangamComments: public read; signed-in create (author pinned,
-    // tier validated); author or admin edits.
     match /sangamComments/{commentId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -2026,7 +1790,6 @@ service cloud.firestore {
     }
 
     // --- sangamEvents: public read; signed-in create (org events need
-    // trustee); creator/admin update.
     match /sangamEvents/{eventId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -2053,7 +1816,6 @@ service cloud.firestore {
     }
 
     // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;
-    // owner-only write (follow/unfollow).
     match /sangamFollows/{followId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -2077,18 +1839,9 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    // ------------------------------------------------------------------
     // Membership sprint — Organisation Membership System
-    // ------------------------------------------------------------------
-    // Global (non-workspace-scoped) collections. Deny-by-default posture is
-    // preserved: every match below states its exact allow conditions.
 
     // --- orgGlance/{workspaceId}: per-org glance summaries for the Solo
-    // "what needs me" feed. Read: any authenticated member of the org
-    // (checked via workspaceMembers edge) or platform admin. Write: any
-    // authenticated member — writers can only summarize what they can
-    // read, and readers re-filter by role client-side (glanceForRole),
-    // so a summary can at worst be stale, never a privilege leak.
     match /orgGlance/{workspaceId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && isTenantMember(workspaceId));
@@ -2099,11 +1852,6 @@ service cloud.firestore {
     }
 
     // --- orgPages/{orgId}: public read (discovery + public org page).
-    // Write: org Trustee/SuperAdmin or platform admin, public fields only.
-    // Pillar 3: the whitelist below is the PUBLIC/PRIVATE BOUNDARY — it must
-    // match ORG_PUBLIC_FIELDS in src/lib/orgPublic.ts. Fields not listed here
-    // (treasury, members, bank details, pins) can never be published, even
-    // by a trustee's client code.
     match /orgPages/{orgId} {
       allow read: if true;
       allow create, update: if isSuperAdmin() || (
@@ -2129,9 +1877,6 @@ service cloud.firestore {
     }
 
     // --- joinRequests/{orgId}_{uid}: deterministic id = one pending per
-    // user per org. Create: the requesting user only, PENDING. Read:
-    // requester + org trustees + admin. Decide: org trustees only
-    // (APPROVED/REJECTED). A rejected user may re-request (PENDING again).
     match /joinRequests/{requestId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('userUid', '') == request.auth.uid)
@@ -2154,11 +1899,6 @@ service cloud.firestore {
     }
 
     // --- orgInvites/{inviteId}: org → user invitations.
-    // Create: org Trustee/SuperAdmin, role grant bounded by grantableRole()
-    // (a Trustee can never invite another Trustee), PENDING, future expiry.
-    // Read: the invited user (uid / token-email / users-doc phone match),
-    // org trustees, admin. Accept/decline: the invited user only, and only
-    // while PENDING and unexpired (rules enforce expiry server-side).
     function inviteMatchesMe() {
       return isLoggedIn() && (
         resource.data.get('invitedUid', '') == request.auth.uid ||
@@ -2190,11 +1930,6 @@ service cloud.firestore {
     }
 
     // --- workspaceMembers/{workspaceId}_{uid}: the rules-enforced membership
-    // edge. Read: the member, org trustees, admin. Create: (a) org trustee
-    // granting a bounded role (join approval / direct add), or (b) the user
-    // themselves accepting an invite — verified against the ACCEPTED invite
-    // doc (role must equal the invite's role: no self-escalation; invite
-    // must be unexpired). Update/delete: org trustees (+ role bound).
     function inviteAcceptOk(inviteId, workspaceId, role) {
       let ipath = /databases/$(database)/documents/orgInvites/$(inviteId);
       return inviteId != '' && exists(ipath)
@@ -2220,18 +1955,12 @@ service cloud.firestore {
             && grantableRole(request.resource.data.get('workspaceId', ''),
               request.resource.data.get('role', '')))
           // (b) Self-accept of an invite: the invite must name me, be
-          // ACCEPTED and unexpired, and the role must equal the invite's.
           || (request.resource.data.get('uid', '') == request.auth.uid
             && inviteAcceptOk(
               request.resource.data.get('viaInviteId', ''),
               request.resource.data.get('workspaceId', ''),
               request.resource.data.get('role', '')))
           // (c) Workspace creator self-provisions as the first Trustee.
-          // The workspace doc must already exist with createdBy == me;
-          // role is pinned to 'Trustee' (never SuperAdmin) and uid to me.
-          // Without this, a brand-new signup can never satisfy the
-          // trustee-gated writes (org page sync, member adds) for the
-          // workspace it just created.
           || (request.resource.data.get('uid', '') == request.auth.uid
             && request.resource.data.get('role', '') == 'Trustee'
             && get(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).data.createdBy == request.auth.uid)
@@ -2280,6 +2009,69 @@ service cloud.firestore {
       // --- Owner-only preferences ------------------------
       match /prefs {
         allow read, write: if isLoggedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // P2P money requests (chat-embedded): parties-only, strict state machine, no delete.
+    match /p2pRequests/{reqId} {
+      allow read: if isLoggedIn()
+        && (resource.data.get('senderId', '') == request.auth.uid
+          || resource.data.get('receiverId', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('senderId', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending';
+      allow update: if isLoggedIn()
+        && (resource.data.get('senderId', '') == request.auth.uid
+          || resource.data.get('receiverId', '') == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt', 'paidRef', 'paidVia', 'paidAt', 'settledAt', 'supersededBy'])
+        && (
+          (resource.data.get('receiverId', '') == request.auth.uid
+            && resource.data.get('status', '') == 'pending'
+            && request.resource.data.get('status', '') in ['accepted', 'declined', 'countered'])
+          || (resource.data.get('senderId', '') == request.auth.uid
+            && resource.data.get('status', '') == 'accepted'
+            && request.resource.data.get('status', '') == 'paid')
+          || (resource.data.get('receiverId', '') == request.auth.uid
+            && resource.data.get('status', '') == 'paid'
+            && request.resource.data.get('status', '') == 'settled')
+          || (resource.data.get('senderId', '') == request.auth.uid
+            && resource.data.get('status', '') == 'pending'
+            && request.resource.data.get('status', '') == 'cancelled'));
+      allow delete: if false;
+    }
+
+    // File Vault (zero-cost Storage replacement: Firestore + IndexedDB).
+    match /fileVault/{fileId} {
+      allow read: if isLoggedIn()
+        && (resource.data.get('visibility', 'private') == 'public'
+          || resource.data.get('ownerUid', '') == request.auth.uid
+          || (resource.data.get('visibility', '') == 'crisis'
+            && isTenantMember(resource.data.get('tenantId', null))));
+      allow create: if isLoggedIn()
+        && request.resource.data.get('ownerUid', '') == request.auth.uid
+        && request.resource.data.get('size', 99999999) <= 1048576
+        && request.resource.data.keys().hasOnly(['data', 'contentType', 'fileName',
+          'size', 'hash', 'category', 'visibility', 'ownerUid', 'createdAt',
+          'localOnly', 'chunkCount', 'tenantId']);
+      allow update: if false;
+      allow delete: if isLoggedIn()
+        && resource.data.get('ownerUid', '') == request.auth.uid;
+      // Chunks carry denormalized gating fields: authorized from the chunk doc alone.
+      match /chunks/{n} {
+        allow read: if isLoggedIn()
+          && (resource.data.get('visibility', 'private') == 'public'
+            || resource.data.get('ownerUid', '') == request.auth.uid
+            || (resource.data.get('visibility', '') == 'crisis'
+              && isTenantMember(resource.data.get('tenantId', null))));
+        allow create: if isLoggedIn()
+          && request.resource.data.get('ownerUid', '') == request.auth.uid
+          && request.resource.data.get('visibility', '') in ['public', 'crisis']
+          && request.resource.data.keys().hasOnly(
+            ['i', 'data', 'ownerUid', 'visibility', 'tenantId']);
+        allow update: if false;
+        allow delete: if isLoggedIn()
+          && resource.data.get('ownerUid', '') == request.auth.uid;
       }
     }
 
