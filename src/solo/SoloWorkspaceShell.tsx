@@ -16,6 +16,7 @@ import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { SoloOnboardingTour } from './SoloOnboardingTour';
 import { OnboardingFlow } from './OnboardingFlow';
 import { hasOnboarded } from '../lib/intentProfile';
+import { useNotifications } from '../context/NotificationContext';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -53,6 +54,8 @@ const SoloRouter: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [suchanaOpen, setSuchanaOpen] = useState(false);
+  // Unread badge for the Suchana tab — one calm number, no anxiety (spec §3).
+  const { unreadCount } = useNotifications();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
@@ -117,6 +120,7 @@ const SoloRouter: React.FC = () => {
       activeTab={activeTab}
       onTabChange={(t) => navigate(TAB_PATH[t])}
       header={header}
+      suchanaUnread={unreadCount}
     >
       <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
         <LocalOnlyBadge />

@@ -53,6 +53,14 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   // Misc
   dakshinaReceived: { en: 'Dakshina received', bn: 'প্রাপ্ত দক্ষিণা', hi: 'प्राप्त दक्षिणा' },
   noSevasYet: { en: 'No sevas yet.', bn: 'এখনও কোনো সেবা নেই।', hi: 'अभी कोई सेवा नहीं।' },
+
+  // Booking trust (spec §4/§8 — at the decision point, never in a help article)
+  escrowNote: { en: 'Held securely until your seva is complete', bn: 'সেবা সম্পূর্ণ না হওয়া পর্যন্ত নিরাপদে সংরক্ষিত', hi: 'सेवा पूर्ण होने तक सुरक्षित रखा जाता है' },
+
+  // Marketplace empty state (spec §7: acknowledge + bless + guide + action)
+  marketEmptyTitle: { en: 'No sevas match — yet.', bn: 'কোনো সেবা মেলেনি — এখনও।', hi: 'कोई सेवा नहीं मिली — अभी।' },
+  marketEmptySub: { en: 'Every pandit\u2019s first blessing starts somewhere. Try a different search, or explore a guided journey.', bn: 'প্রতিটি পণ্ডিতের প্রথম আশীর্বাদ কোথাও না কোথাও শুরু হয়। অন্য কিছু খুঁজুন, অথবা একটি নির্দেশিত যাত্রা দেখুন।', hi: 'हर पंडित का पहला आशीर्वाद कहीं न कहीं शुरू होता है। कुछ और खोजें, या निर्देशित यात्रा देखें।' },
+  browseAllSevas: { en: 'Browse all sevas', bn: 'সব সেবা দেখুন', hi: 'सभी सेवाएँ देखें' },
 };
 
 export function mkt(lang: MktLang, key: keyof typeof COPY): string {

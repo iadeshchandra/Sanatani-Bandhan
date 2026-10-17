@@ -7,7 +7,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Clock, X, CheckCircle2, RefreshCw, AlertTriangle, ChevronLeft } from 'lucide-react';
+import { Search, Star, Clock, X, CheckCircle2, RefreshCw, AlertTriangle, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import {
   listGigs, getGig, createOrder, myOrdersAsClient, orderTransition, openDispute,
@@ -36,28 +36,50 @@ const statusColor: Record<string, string> = {
   disputed: 'bg-red-100 text-red-700', refunded: 'bg-orange-100 text-orange-800',
 };
 
+/** Category → honest visual anchor (the Gig model carries no photos;
+ *  a category tile beats a grey box, and never fakes a face). */
+const CATEGORY_TILE: Record<string, string> = {
+  Puja: '🪔', Havan: '🔥', Katha: '📖', Samskara: '🕉️', Vastu: '🏠',
+  Kundli: '🔮', Horoscope: '✨', Remedy: '🌿', Consultation: '💬', Other: '🙏',
+};
+
 /* ------------------------------ Browse ------------------------------ */
 
 const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => {
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
+  const hasRating = Number(gig.avgRating) > 0;
   return (
-  <button type="button" onClick={onOpen} className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-amber-300 transition-colors min-h-[44px]">
-    <div className="flex items-start justify-between gap-2">
-      <div className="min-w-0">
+  <button type="button" onClick={onOpen} className="w-full text-left bg-white rounded-2xl border border-stone-200 p-4 hover:border-amber-300 transition-colors min-h-[44px] flex gap-3">
+    {/* Thumbnail anchor — category tile (spec §3: cards lead with a visual) */}
+    <div
+      className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 border border-amber-200/60 flex items-center justify-center text-2xl shrink-0"
+      aria-hidden
+    >
+      {CATEGORY_TILE[gig.category] || '🙏'}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div>
         {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">FEATURED</span>}
         {(gig as any).providerVerified && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 mb-1 inline-block ml-1">✓ {L === 'en' ? 'VERIFIED' : L === 'bn' ? 'যাচাইকৃত' : 'सत्यापित'}</span>}
         <p className="text-sm font-black text-stone-900 truncate">{gig.title}</p>
         <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
+        {/* Rating row (spec §3): ★ + count; "🙏 N ashirvad" stays as the
+            secondary social proof — counts convert, stars alone don't. */}
         <p className="text-[11px] text-stone-500 flex items-center gap-1 mt-0.5">
+          {hasRating && (
+            <span className="inline-flex items-center gap-0.5 font-bold text-amber-700">
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" aria-hidden />{Number(gig.avgRating).toFixed(1)}
+            </span>
+          )}
           <span aria-hidden>🙏</span>{gig.totalOrders || 0} {mkt(L, 'ashirvad')}
           <span className="mx-1">·</span><Clock className="w-3 h-3" />{gig.durationMinutes}m
         </p>
       </div>
-      <div className="text-right shrink-0">
-        <p className="text-[9px] text-stone-400 font-bold">{mkt(L, 'suggestedDakshina')}</p>
-        <p className="text-sm font-black text-amber-700">{fmt(Number(gig.priceAmount))}</p>
-      </div>
+    </div>
+    <div className="text-right shrink-0 self-center">
+      <p className="text-[9px] text-stone-400 font-bold">{mkt(L, 'suggestedDakshina')}</p>
+      <p className="text-sm font-black text-amber-700">{fmt(Number(gig.priceAmount))}</p>
     </div>
   </button>
   );
@@ -131,6 +153,11 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <div className="flex justify-between mt-2 text-sm">
           <span className="text-stone-500">{mkt(L, 'suggestedDakshina')}</span><b>{fmt(Number(gig.priceAmount))}</b>
         </div>
+        {/* Escrow trust line — directly under the price, before the Confirm
+            CTA (spec §4: trust placed at the moment of money movement). */}
+        <p className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1.5 mt-2">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" aria-hidden />{mkt(L, 'escrowNote')}
+        </p>
         <p className="text-[10px] text-stone-400 mt-1">{L === 'en' ? 'Includes a small seva contribution that sustains Sanatani Bandhan — what you see is what you offer.' : L === 'bn' ? 'সনাতনী বন্ধনকে টিকিয়ে রাখে এমন একটি ছোট সেবা অবদান অন্তর্ভুক্ত — যা দেখছেন তাই অর্পণ করুন।' : 'सनातनी बंधन को बनाए रखने वाला एक छोटा सेवा योगदान शामिल — जो दिख रहा है वही अर्पित करें।'}</p>
       </div>
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
@@ -374,7 +401,20 @@ export const ClientMarketplace: React.FC = () => {
           </div>
           {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p> : (
             <div className="space-y-2.5">
-              {filtered.length === 0 && <Empty text="No services match. Try another search." />}
+              {filtered.length === 0 && (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-3" aria-hidden>🪔</div>
+                  <p className="text-sm font-bold text-stone-700">{mkt(L, 'marketEmptyTitle')}</p>
+                  <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">{mkt(L, 'marketEmptySub')}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setQ(''); setCat('all'); setPtype('all'); }}
+                    className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
+                  >
+                    {mkt(L, 'browseAllSevas')}
+                  </button>
+                </div>
+              )}
               {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => openBooking(g)} />)}
             </div>
           )}

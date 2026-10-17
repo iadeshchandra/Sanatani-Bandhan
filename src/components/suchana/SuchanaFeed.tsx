@@ -64,13 +64,81 @@ const SEVERITY_DOT: Record<SuchanaSeverity, string> = {
 
 const SOURCE_ICON: Record<string, string> = { panjika: '🗓️', module: '📦' };
 
+/** One time-grouped section of the full feed ("Today" / "Earlier"). */
+function FeedGroup({
+  title,
+  items,
+  lang,
+  onAction,
+}: {
+  title: React.ReactNode;
+  items: SuchanaItem[];
+  lang: string;
+  onAction?: (route: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section aria-label={typeof title === 'string' ? title : undefined}>
+      <h3 className="text-xs font-black uppercase tracking-widest text-stone-500 mb-2 px-1">
+        {title}
+      </h3>
+      <div className="space-y-2.5">
+        {items.map((item) => {
+          const when = whenLabel(item.date, lang);
+          return (
+            <article
+              key={item.id}
+              className={`rounded-2xl border p-4 ${SEVERITY_STYLE[item.severity]}`}
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-xl shrink-0 mt-0.5" aria-hidden>
+                  {SOURCE_ICON[item.source] || '🪔'}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-sm font-bold text-stone-800 leading-snug">
+                      {lang3(item.title, lang)}
+                    </h4>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {when && (
+                        <span className="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                          {when}
+                        </span>
+                      )}
+                      <span
+                        className={`w-2 h-2 rounded-full ${SEVERITY_DOT[item.severity]}`}
+                        aria-hidden
+                      />
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                    {lang3(item.message, lang)}
+                  </p>
+                  {onAction && item.actionRoute && (
+                    <button
+                      type="button"
+                      onClick={() => onAction(item.actionRoute)}
+                      className="mt-2.5 text-xs font-bold text-orange-700 hover:text-orange-800 min-h-[44px] px-1 -ml-1"
+                    >
+                      {lang3(item.actionLabel, lang)} →
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export const SuchanaFeed: React.FC<{
   items: SuchanaItem[];
   mode?: FeedMode;
   onAction?: (route: string) => void;
   maxItems?: number;
-}> = ({ items, mode = 'digest', onAction, maxItems }) => {
-  const { currentLang } = useLanguage();
+}> = ({ items, mode = 'digest', onAction, maxItems }) => {  const { currentLang } = useLanguage();
   const lang = currentLang === 'bn' ? 'bn' : currentLang === 'hi' ? 'hi' : 'en';
   const [filter, setFilter] = useState<FilterKind>('all');
 
@@ -84,6 +152,20 @@ export const SuchanaFeed: React.FC<{
     }
     return typeof maxItems === 'number' ? list.slice(0, maxItems) : list;
   }, [items, mode, filter, maxItems]);
+
+  // Time-grouping for the full view (spec §3 — "Today / Earlier").
+  // Items carry only the date they relate to, so "Today" means dated
+  // today or timeless; "Earlier" means the date has already passed.
+  const { todayItems, earlierItems } = useMemo(() => {
+    const today = todayISO();
+    const t: SuchanaItem[] = [];
+    const e: SuchanaItem[] = [];
+    for (const item of visible) {
+      if (item.date && item.date < today) e.push(item);
+      else t.push(item);
+    }
+    return { todayItems: t, earlierItems: e };
+  }, [visible]);
 
   const blessing = useMemo(() => {
     try {
@@ -134,6 +216,23 @@ export const SuchanaFeed: React.FC<{
             🪔
           </div>
           <p className="text-sm text-stone-600 italic leading-relaxed">{blessing}</p>
+        </div>
+      ) : mode === 'full' ? (
+        <div className="space-y-5">
+          <FeedGroup
+            title={<T en="Today" bn="আজ" hi="आज" />}
+            items={todayItems}
+            lang={lang}
+            onAction={onAction}
+          />
+          {earlierItems.length > 0 && (
+            <FeedGroup
+              title={<T en="Earlier" bn="আগের" hi="पहले की" />}
+              items={earlierItems}
+              lang={lang}
+              onAction={onAction}
+            />
+          )}
         </div>
       ) : (
         visible.map((item) => {

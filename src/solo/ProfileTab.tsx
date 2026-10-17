@@ -12,6 +12,9 @@ import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
 import { APP_VERSION, APP_BUILD_SHA } from '../lib/appVersion';
 import { ProfileOrgHub } from './ProfileOrgHub';
+import { NotificationSettings } from '../notifications/NotificationSettings';
+import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notifications/preferences';
+import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useSacredSound } from '../lib/sacredAudio';
 
 /* ProfileTab — the Sanatani ID card.
@@ -24,7 +27,7 @@ import { useSacredSound } from '../lib/sacredAudio';
 export const ProfileTab: React.FC = () => {
   const { profile, updateProfile } = useSolo();
   const { exportJSON, importJSON } = useSoloStore();
-  const { logout, enterPurohitSession, enterJyotishSession, switchWorkspace, exitSoloSession, workspaces, activeWorkspace } = useAuthWorkspace();
+  const { logout, enterPurohitSession, enterJyotishSession, switchWorkspace, exitSoloSession, workspaces, activeWorkspace, firebaseUser } = useAuthWorkspace();
   const { myMemberships, orgMembers, orgJoinRequests } = useMembership();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
   const { identity: jyotishIdentity } = useMyJyotishIdentity();
@@ -33,6 +36,85 @@ export const ProfileTab: React.FC = () => {
   const { tr } = useLocaleText();
   const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
   const fileRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  // Profile photo — device-local by design (the solo profile itself is
+  // device-local until synced). Downscaled to 256px so it stays tiny in
+  // storage. Keyed by uid so shared devices never leak photos across users.
+  const photoKey = `sb_profile_photo_${profile?.uid || 'anon'}`;
+  const [photo, setPhoto] = useState<string | null>(() => {
+    try { return window.localStorage.getItem(photoKey); } catch { return null; }
+  });
+  const googlePhoto = ((firebaseUser as { photoURL?: string | null } | null)?.photoURL as string) || undefined;
+  const avatarSrc = photo || googlePhoto;
+  const monogram = (profile?.displayName || '?').trim().charAt(0).toUpperCase();
+
+  const onPhotoPicked = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast(tr('solo.profile.photoType', 'Please choose an image file', 'ছবির ফাইল বেছে নিন', 'छवि फ़ाइल चुनें'), 'error');
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const MAX = 256;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        window.localStorage.setItem(photoKey, dataUrl);
+        setPhoto(dataUrl);
+        showToast(tr('solo.profile.photoSaved', 'Photo updated 🙏', 'ছবি আপডেট হয়েছে 🙏', 'फ़ोटो अपडेट हुई 🙏'), 'success');
+      } catch {
+        showToast(tr('solo.profile.photoFail', 'Could not save photo', 'ছবি সংরক্ষণ করা যায়নি', 'फ़ोटो सहेजी नहीं गई'), 'error');
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      showToast(tr('solo.profile.photoFail', 'Could not save photo', 'ছবি সংরক্ষণ করা যায়নি', 'फ़ोटो सहेजी नहीं गई'), 'error');
+    };
+    img.src = url;
+  };
+
+  const removePhoto = () => {
+    try { window.localStorage.removeItem(photoKey); } catch { /* ignore */ }
+    setPhoto(null);
+  };
+
+  // Notification preferences (spec §3) — quiet hours, digest, per-topic
+  // toggles. Loads lazily; the engine already honours every value via
+  // decideRouting. Failures fall back to calm defaults (offline-safe).
+  const prefsUid = profile?.uid || '';
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(() => ({
+    ...DEFAULT_PREFS,
+    quietHours: { ...DEFAULT_PREFS.quietHours },
+  }));
+  const openNotifSettings = async () => {
+    if (prefsUid) {
+      try {
+        const stored = await readPrefsDoc(prefsUid);
+        setPrefs(mergePrefs(stored as Partial<NotificationPrefs> | undefined));
+      } catch {
+        /* offline — keep defaults */
+      }
+    }
+    setNotifOpen(true);
+  };
+  const onPrefsChange = (next: NotificationPrefs) => {
+    setPrefs(next);
+    if (prefsUid) {
+      writePrefsDoc(prefsUid, next as unknown as Record<string, unknown>).catch(() => {
+        /* offline — the engine reads the stored doc when it can */
+      });
+    }
+  };
 
   const [form, setForm] = useState({
     displayName: profile?.displayName || '',
@@ -139,15 +221,33 @@ export const ProfileTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* ID card */}
+      {/* ID card — spec §2 hierarchy starts with the photo */}
       <div className="rounded-3xl bg-gradient-to-br from-temple-950 via-stone-900 to-amber-950 text-amber-50 p-6">
-        <div className="text-[10px] font-black uppercase tracking-widest text-amber-400/80">
-          ॥ <T en="Universal Sanatani ID" bn="ইউনিভার্সাল সনাতনী আইডি" hi="यूनिवर्सल सनातनी आईडी" /> ॥
+        <div className="flex items-center gap-4">
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt={profile?.displayName || 'Profile photo'}
+              className="w-[84px] h-[84px] rounded-full object-cover border-4 border-amber-400/40 shadow-lg shrink-0"
+            />
+          ) : (
+            <div
+              className="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl font-black text-white shadow-lg shrink-0"
+              aria-hidden
+            >
+              {monogram}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-[10px] font-black uppercase tracking-widest text-amber-400/80">
+              ॥ <T en="Universal Sanatani ID" bn="ইউনিভার্সাল সনাতনী আইডি" hi="यूनिवर्सल सनातनी आईडी" /> ॥
+            </div>
+            <button onClick={copyId} className="font-mono text-2xl sm:text-3xl font-black text-amber-300 mt-1 hover:text-amber-200" title={tr('solo.profile.tapCopy', 'Tap to copy', 'কপি করতে চাপুন', 'कॉपी हेतु दबाएँ')}>
+              {profile?.id || 'SAN-…'}
+            </button>
+          </div>
         </div>
-        <button onClick={copyId} className="font-mono text-3xl font-black text-amber-300 mt-2 hover:text-amber-200" title={tr('solo.profile.tapCopy', 'Tap to copy', 'কপি করতে চাপুন', 'कॉपी हेतु दबाएँ')}>
-          {profile?.id || 'SAN-…'}
-        </button>
-        <div className="text-lg font-bold mt-1">{profile?.displayName}</div>
+        <div className="text-lg font-bold mt-3">{profile?.displayName}</div>
         <div className="mt-2 flex items-center gap-2">
           <VerificationBadge tier={profile?.verificationTier === 'VERIFIED' ? 'PLATFORM_VERIFIED' : 'REGISTERED'} />
           {!profile?.synced && (
@@ -248,6 +348,49 @@ export const ProfileTab: React.FC = () => {
           <T en="Personal details" bn="ব্যক্তিগত তথ্য" hi="व्यक्तिगत विवरण" />
         </h3>
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-3">
+          {/* Profile photo — device-local upload */}
+          <div className="sm:col-span-2 flex items-center gap-4 rounded-2xl bg-stone-50 border border-stone-100 p-3">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-amber-200 shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-2xl font-black text-white shrink-0" aria-hidden>
+                {monogram}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-stone-800">
+                <T en="Profile photo" bn="প্রোফাইল ছবি" hi="प्रोफ़ाइल फ़ोटो" />
+              </p>
+              <p className="text-[11px] text-stone-500">
+                <T en="Only you see it — stored on this device." bn="শুধু আপনি দেখতে পাবেন — এই ডিভাইসে সংরক্ষিত।" hi="केवल आप देख सकते हैं — इस डिवाइस पर संग्रहीत।" />
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => photoRef.current?.click()}
+                  className="min-h-[44px] px-4 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-black"
+                >
+                  <T en="Upload photo" bn="ছবি আপলোড" hi="फ़ोटो अपलोड" />
+                </button>
+                {photo && (
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="min-h-[44px] px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold"
+                  >
+                    <T en="Remove" bn="সরান" hi="हटाएँ" />
+                  </button>
+                )}
+              </div>
+              <input
+                ref={photoRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { onPhotoPicked(e.target.files?.[0]); e.target.value = ''; }}
+              />
+            </div>
+          </div>
           <Field label={<T en="Name" bn="নাম" hi="नाम" />}>
             <input className={inputCls} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
           </Field>
@@ -273,6 +416,32 @@ export const ProfileTab: React.FC = () => {
           </div>
         </form>
       </Card>
+
+      {/* Notifications — quiet hours, digest, per-topic toggles (spec §3) */}
+      <Card>
+        <h3 className="font-extrabold text-stone-900 mb-1">
+          🔔 <T en="Notifications" bn="বিজ্ঞপ্তি" hi="सूचनाएँ" />
+        </h3>
+        <p className="text-sm text-stone-600 leading-relaxed">
+          <T
+            en="Gentle pings only, when you want them. Choose instant, digest, or off for each kind — and keep sacred hours quiet."
+            bn="শুধু কোমল বার্তা, যখন আপনি চান। প্রতিটি ধরনের জন্য তাৎক্ষণিক, সারসংক্ষেপ বা বন্ধ বেছে নিন — এবং পবিত্র সময় শান্ত রাখুন।"
+            hi="केवल कोमल संदेश, जब आप चाहें। प्रत्येक प्रकार हेतु तुरंत, सारांश या बंद चुनें — और पवित्र समय शांत रखें।"
+          />
+        </p>
+        <div className="mt-3">
+          <Btn variant="ghost" onClick={openNotifSettings}>
+            <T en="Manage notifications" bn="বিজ্ঞপ্তি ব্যবস্থাপনা" hi="सूचना प्रबंधन" />
+          </Btn>
+        </div>
+      </Card>
+      {notifOpen && (
+        <NotificationSettings
+          prefs={prefs}
+          onChange={onPrefsChange}
+          onClose={() => setNotifOpen(false)}
+        />
+      )}
 
       {/* My Samskaras — tithi anniversaries */}
       <MySamskaras />

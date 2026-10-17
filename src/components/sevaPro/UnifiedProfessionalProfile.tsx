@@ -20,7 +20,10 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Share2, Check, MessageCircle, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useToast } from '../../context/ToastContext';
 import { PUROHIT_TIER_META } from '../../types/purohit';
 import {
   fetchUnifiedProfessional,
@@ -36,6 +39,9 @@ import {
   Stars,
 } from './sevaProUi';
 import { BookingSheet } from './BookingSheet';
+import { Chat } from '../../chat/Chat';
+import { getOrCreateDirectChat } from '../../chat/chatService';
+import type { ChatParticipant } from '../../chat/types';
 
 interface ProfilePageProps {
   viewSpec?: SpecializationKind;
@@ -52,12 +58,19 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
   const uid = uidOverride || routeUid || '';
   const { safeTranslate } = useLanguage();
   const tx = (en: string, bn: string, hi: string) => safeTranslate('', en, bn, hi);
+  const { firebaseUser } = useAuthWorkspace();
+  const { showToast } = useToast();
+  const myUid = ((firebaseUser as { uid?: string; displayName?: string | null; photoURL?: string | null } | null)?.uid || '') as string;
 
   const [profile, setProfile] = useState<UnifiedProfessional | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [bookingTab, setBookingTab] = useState<SpecializationKind | null>(null);
+  const [shareState, setShareState] = useState<'idle' | 'copied'>('idle');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatStarting, setChatStarting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +103,73 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
     // Both specializations: open the sheet on the tabbed view.
     setBookingTab(profile?.hasPurohit ? 'purohit' : 'jyotish');
     setBookingOpen(true);
+  };
+
+  /** Contact-before-commit (spec §4): chat with the professional before
+   *  booking. Opens (or creates) the 1:1 thread and deep-links into it. */
+  const openChat = async () => {
+    if (!profile) return;
+    if (!myUid) {
+      showToast(
+        tx('Sign in to chat with this professional', 'এই পেশাদারের সঙ্গে চ্যাট করতে সাইন ইন করুন', 'इस पेशेवर से चैट करने हेतु साइन इन करें'),
+        'info'
+      );
+      return;
+    }
+    if (myUid === profile.uid) return;
+    setChatStarting(true);
+    try {
+      const selfInfo: ChatParticipant = {
+        uid: myUid,
+        displayName:
+          (firebaseUser as { displayName?: string | null } | null)?.displayName ||
+          tx('Sanatani', 'সনাতনী', 'सनातनी'),
+        photoUrl: ((firebaseUser as { photoURL?: string | null } | null)?.photoURL as string) || undefined,
+      };
+      const peerInfo: ChatParticipant = {
+        uid: profile.uid,
+        displayName: profile.displayName,
+        photoUrl: profile.photoURL || undefined,
+      };
+      const id = await getOrCreateDirectChat(myUid, profile.uid, selfInfo, peerInfo);
+      setChatId(id);
+      setChatOpen(true);
+    } catch (e: any) {
+      showToast(
+        e?.message || tx('Could not open chat', 'চ্যাট খোলা যায়নি', 'चैट नहीं खुला'),
+        'error'
+      );
+    }
+    setChatStarting(false);
+  };
+
+  const shareProfile = async () => {
+    if (!profile) return;
+    const url = `${window.location.origin}/seva/pro/${profile.uid}`;
+    const shareData = {
+      title: `${profile.displayName} — Sanatani Bandhan`,
+      text: tx(
+        `Blessings from ${profile.displayName} — verified seva professional on Sanatani Bandhan.`,
+        `${profile.displayName}-এর আশীর্বাদ — সনাতনী বন্ধনে যাচাইকৃত সেবা পেশাদার।`,
+        `${profile.displayName} का आशीर्वाद — सनातनी बंधन पर सत्यापित सेवा पेशेवर।`
+      ),
+      url,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      /* user dismissed the share sheet — fall through to copy */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareState('copied');
+      setTimeout(() => setShareState('idle'), 2000);
+    } catch {
+      /* clipboard unavailable — nothing more to offer */
+    }
   };
 
   if (loading) {
@@ -141,10 +221,41 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
   if (profile.purohit?.bio) bios.push({ kind: 'purohit', text: profile.purohit.bio });
   if (profile.jyotish?.bio) bios.push({ kind: 'jyotish', text: profile.jyotish.bio });
 
+  // One-liner headline (spec §2 — the Fiverr rule: who + specialty + proof).
+  // Built only from real profile data; absent parts are simply omitted.
+  const headlineParts: string[] = [];
+  const firstSpec = profile.purohit?.specializations?.[0] || profile.jyotish?.specializations?.[0];
+  if (firstSpec) headlineParts.push(firstSpec);
+  if (profile.experienceYears > 0)
+    headlineParts.push(
+      tx(
+        `${profile.experienceYears} yrs of sadhana`,
+        `${profile.experienceYears} বছরের সাধনা`,
+        `${profile.experienceYears} वर्षों की साधना`
+      )
+    );
+  if (profile.serviceAreas[0]) headlineParts.push(profile.serviceAreas[0]);
+  const headline = headlineParts.join(' · ');
+
   return (
-    <div className="max-w-3xl mx-auto px-4 pb-28 sm:pb-10 pt-4 sm:pt-6 space-y-4">
+    <div className={`max-w-3xl mx-auto px-4 pt-4 sm:pt-6 space-y-4 ${hideBookCta ? 'pb-10' : 'pb-28'}`}>
       {/* ============ HERO ============ */}
-      <header className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 rounded-3xl border border-amber-200 shadow-sm p-5 sm:p-6">
+      <header className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 rounded-3xl border border-amber-200 shadow-sm p-5 sm:p-6">
+        <button
+          type="button"
+          onClick={shareProfile}
+          aria-label={tx('Share profile', 'প্রোফাইল শেয়ার করুন', 'प्रोफ़ाइल साझा करें')}
+          className="absolute top-3 right-3 inline-flex items-center gap-1.5 min-h-[40px] px-3 rounded-full bg-white/85 border border-amber-200 text-amber-900 text-xs font-bold shadow-sm transition active:scale-95 hover:bg-white"
+        >
+          {shareState === 'copied' ? (
+            <Check className="w-4 h-4 text-green-700" aria-hidden="true" />
+          ) : (
+            <Share2 className="w-4 h-4" aria-hidden="true" />
+          )}
+          {shareState === 'copied'
+            ? tx('Copied', 'কপি হয়েছে', 'कॉपी हुआ')
+            : tx('Share', 'শেয়ার', 'साझा करें')}
+        </button>
         <div className="flex items-start gap-4">
           {profile.photoURL ? (
             <img
@@ -179,6 +290,10 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
                 </span>
               )}
             </p>
+            {/* One-liner headline: specialty + proof (spec §2) */}
+            {headline && (
+              <p className="text-[13px] text-stone-600 mt-1">{headline}</p>
+            )}
             <div className="flex flex-wrap gap-2 mt-2.5">
               {showPurohit && profile.purohit && (
                 <HonorBadge tier={profile.purohit.verificationTier} role="Purohit" />
@@ -443,16 +558,30 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
         </div>
       )}
 
-      {/* ============ BOOK CTA ============ */}
+      {/* ============ STICKY CTA BAR ============
+          [Chat] (ghost) + [Book Seva] (solid), side by side, on EVERY
+          viewport (spec §4 — the old bar was mobile-only; on desktop the
+          CTA scrolled away). Contact-before-commit for trust goods. */}
       {!hideBookCta && (
-        <div className="fixed bottom-0 inset-x-0 z-40 sm:static sm:mt-2">
-          <div className="bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-3 sm:rounded-2xl sm:border sm:shadow-sm">
+        <div className="fixed bottom-0 inset-x-0 z-40">
+          <div className="bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-3">
             <div className="max-w-3xl mx-auto flex gap-2">
+              <button
+                type="button"
+                onClick={openChat}
+                disabled={chatStarting}
+                className="flex-1 min-h-[48px] rounded-xl border-2 border-amber-600 text-amber-800 font-bold text-base hover:bg-amber-50 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" aria-hidden />
+                {chatStarting
+                  ? tx('Opening…', 'খোলা হচ্ছে…', 'खुल रहा…')
+                  : tx('Chat', 'চ্যাট', 'चैट')}
+              </button>
               {dual ? (
                 <button
                   type="button"
                   onClick={openUnifiedBooking}
-                  className="flex-1 min-h-[48px] rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-base shadow-md active:scale-[0.99]"
+                  className="flex-[2] min-h-[48px] rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-base shadow-md active:scale-[0.99]"
                 >
                   {tx('🪔 Book Seva', '🪔 সেবা বুক করুন', '🪔 सेवा बुक करें')}
                 </button>
@@ -460,7 +589,7 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
                 <button
                   type="button"
                   onClick={() => openBooking(singleKind)}
-                  className="flex-1 min-h-[48px] rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-base shadow-md active:scale-[0.99]"
+                  className="flex-[2] min-h-[48px] rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-base shadow-md active:scale-[0.99]"
                 >
                   {singleKind === 'purohit'
                     ? tx('🪔 Book Purohit Seva', '🪔 পুরোহিত সেবা বুক করুন', '🪔 पुरोहित सेवा बुक करें')
@@ -470,6 +599,21 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {chatOpen && myUid && (
+        <Chat
+          uid={myUid}
+          selfInfo={{
+            uid: myUid,
+            displayName:
+              (firebaseUser as { displayName?: string | null } | null)?.displayName ||
+              tx('Sanatani', 'সনাতনী', 'सनातनी'),
+            photoUrl: ((firebaseUser as { photoURL?: string | null } | null)?.photoURL as string) || undefined,
+          }}
+          initialChatId={chatId || undefined}
+          onClose={() => setChatOpen(false)}
+        />
       )}
 
       {bookingOpen && (
@@ -517,6 +661,15 @@ const SpecializationDetail: React.FC<{
             {feeMin !== undefined && feeMax !== undefined ? ' – ' : ''}
             {feeMax !== undefined ? `₹${feeMax}` : ''}
           </span>
+          {/* Escrow trust line — directly under the price (spec §4) */}
+          <p className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 mt-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            {tx(
+              'Held securely until your seva is complete',
+              'সেবা সম্পূর্ণ না হওয়া পর্যন্ত নিরাপদে সংরক্ষিত',
+              'सेवा पूर्ण होने तक सुरक्षित रखा जाता है'
+            )}
+          </p>
         </div>
       )}
       <div>
