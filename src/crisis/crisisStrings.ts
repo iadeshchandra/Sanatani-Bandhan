@@ -296,4 +296,41 @@ export const crisisCopy = {
     bn: 'তাদের সম্মতিতে দৃশ্যমান। সম্মান করুন।',
     hi: 'उनकी सहमति से दृश्य है। इसका सम्मान करें।',
   } as TriString,
+
+  /* SOS responder map — Track 1 */
+  mapViewTitle: { en: 'Where they need you', bn: 'তাদের কোথায় প্রয়োজন', hi: 'उन्हें आपकी कहाँ आवश्यकता है' } as TriString,
+  mapViewMap: { en: 'View map', bn: 'মানচিত্র দেখুন', hi: 'मानचित्र देखें' } as TriString,
+  mapActiveAgo: { en: 'SOS active', bn: 'SOS সক্রিয়', hi: 'SOS सक्रिय' } as TriString,
+  mapEnded: {
+    en: 'This SOS has ended — the location is no longer shared.',
+    bn: 'এই SOS শেষ হয়েছে — অবস্থান আর ভাগ করা হচ্ছে না।',
+    hi: 'यह SOS समाप्त हो गया है — स्थान अब साझा नहीं किया जा रहा।',
+  } as TriString,
+  mapNavigate: { en: 'Navigate', bn: 'পথ দেখুন', hi: 'मार्ग देखें' } as TriString,
+  mapOfflineNote: {
+    en: 'Live map unavailable offline — showing schematic view.',
+    bn: 'অফলাইনে লাইভ মানচিত্র নেই — পরিকল্পিত দৃশ্য দেখানো হচ্ছে।',
+    hi: 'ऑफ़लाइन लाइव मानचित्र उपलब्ध नहीं — योजनाबद्ध दृश्य दिखाया जा रहा है।',
+  } as TriString,
+  mapConsentLine: {
+    en: 'Responders will see your location until you mark yourself safe.',
+    bn: 'আপনি নিরাপদ না জানানো পর্যন্ত সাহায্যকারীরা আপনার অবস্থান দেখতে পাবেন।',
+    hi: 'आपके सुरक्षित बताए जाने तक बचावकर्ता आपका स्थान देख पाएँगे।',
+  } as TriString,
+  mapVisibleTo: {
+    en: 'Your location is visible to',
+    bn: 'আপনার অবস্থান দৃশ্যমান',
+    hi: 'आपका स्थान दिखाई दे रहा है',
+  } as TriString,
+  mapResponders: { en: 'responders', bn: 'জন সাহায্যকারীর কাছে', hi: 'बचावकर्ताओं को' } as TriString,
+  mapStopSharing: {
+    en: 'Marking yourself safe stops sharing instantly.',
+    bn: 'নিজেকে নিরাপদ ঘোষণা করলেই ভাগ করা তৎক্ষণাৎ বন্ধ হবে।',
+    hi: 'स्वयं को सुरक्षित घोषित करते ही साझा करना तुरंत बंद हो जाएगा।',
+  } as TriString,
+  mapFalseAlarmNote: {
+    en: 'A false SOS still shares your location — it counts toward the safety cooldown.',
+    bn: 'ভুল SOS-এও আপনার অবস্থান ভাগ হয় — এটি নিরাপত্তা কুলডাউনে গণনা হবে।',
+    hi: 'गलत SOS में भी आपका स्थान साझा होता है — यह सुरक्षा कूलडाउन में गिना जाएगा।',
+  } as TriString,
 };

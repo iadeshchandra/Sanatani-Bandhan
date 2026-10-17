@@ -521,6 +521,23 @@ export function subscribeToResponses(
   );
 }
 
+/**
+ * Live count of notified responders (family circle + nearby Sanatanis +
+ * coordinators pinged). Used by the sender's "visible to N responders"
+ * indicator. Sender-only read path (rules-gated).
+ */
+export function subscribeToNotifiedCount(
+  eventId: string,
+  onCount: (n: number) => void
+): Unsubscribe {
+  const col = collection(db, CRISIS_COLLECTIONS.events, eventId, 'notified');
+  return onSnapshot(
+    col,
+    (snap) => onCount(snap.size),
+    () => onCount(0)
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Nearest-Sanatanis fan-out (best-effort client query)                */
 /* ------------------------------------------------------------------ */

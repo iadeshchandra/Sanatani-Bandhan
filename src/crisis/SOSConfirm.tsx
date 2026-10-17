@@ -126,7 +126,10 @@ export const SOSConfirm: React.FC<{
 
           <div className="flex items-start gap-2.5 bg-amber-100/80 border border-amber-300/60 rounded-2xl p-4">
             <ShieldCheck className="w-5 h-5 text-amber-900 shrink-0 mt-0.5" aria-hidden />
-            <p className="text-[13px] font-medium text-amber-950 leading-snug">{t(crisisCopy.privacyNotice)}</p>
+            <div>
+              <p className="text-[13px] font-medium text-amber-950 leading-snug">{t(crisisCopy.privacyNotice)}</p>
+              <p className="text-[13px] font-bold text-amber-950 leading-snug mt-1.5">{t(crisisCopy.mapConsentLine)}</p>
+            </div>
           </div>
 
           {inCooldown && (
