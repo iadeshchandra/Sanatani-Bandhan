@@ -4,8 +4,9 @@
  * Single source of truth for institution branding:
  *   - fetch + cache org logo URL and letterhead fields
  *   - offline-capable logo data-URL resolution (IndexedDB) for PDF receipts
- *   - client-side square crop + validated upload to
- *     Firebase Storage `orgLogos/{orgId}/logo.{ext}`
+ *   - client-side square crop + validated upload to the zero-cost File Vault
+ *     (`fileVault/{hash}` in Firestore — public read, owner write).
+ *     Firebase Storage is not used (requires Blaze since Feb 2026).
  *
  * Caching layers (offline-first):
  *   1. in-memory Map (per session)
@@ -14,8 +15,8 @@
  *      used by the PDF engine; legacy key `sb_logo_{orgId}` is read as fallback)
  */
 import { get, set } from 'idb-keyval';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
+import { auth } from './firebase';
+import { uploadFile } from './fileVault';
 
 export interface OrgBranding {
   orgId: string;
@@ -302,17 +303,28 @@ export interface UploadedLogo {
 }
 
 /**
- * Full pipeline: validate → square-crop → upload to
- * `orgLogos/{orgId}/logo.{ext}` → prime offline cache.
+ * Full pipeline: validate → square-crop → upload to the File Vault
+ * (content-addressed `fileVault/{hash}`) → prime offline cache.
+ *
+ * `downloadUrl` is a data URL: it renders instantly, works offline, and
+ * survives in workspace docs across reloads with zero consumer changes.
+ * The vault keeps the deduped canonical copy for the Blaze-day migration.
  */
 export async function uploadOrgLogo(orgId: string, file: File): Promise<UploadedLogo> {
   if (!orgId) throw new Error('org');
   const invalid = validateLogoFile(file);
   if (invalid) throw new Error(invalid);
   const { dataUrl, blob, ext } = await cropImageToSquare(file);
-  const logoRef = ref(storage, `orgLogos/${orgId}/logo.${ext}`);
-  await uploadBytes(logoRef, blob, { contentType: blob.type });
-  const downloadUrl = await getDownloadURL(logoRef);
+  const ownerUid = auth.currentUser?.uid;
+  if (!ownerUid) throw new Error('auth-required');
+  const { fileId } = await uploadFile(blob, {
+    visibility: 'public',
+    category: 'orgLogo',
+    ownerUid,
+    fileName: `orglogo-${orgId}.${ext}`,
+  });
+  const downloadUrl = dataUrl; // self-sufficient; vault id available for migration
+  void fileId;
   const uploadedAt = new Date().toISOString();
   // Prime caches immediately so the preview + receipts work offline at once.
   dataUrlCache.set(orgId, dataUrl);

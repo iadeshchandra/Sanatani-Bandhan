@@ -24,7 +24,7 @@
  *
  * This service never touches firestore.rules.
  */
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { getAuth } from 'firebase/auth';
 import {
   addDoc,
@@ -43,7 +43,7 @@ import {
   where,
   type Unsubscribe,
 } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { uploadFile, vaultUrl } from '../lib/fileVault';
 import {
   CRISIS_COLLECTIONS,
   SITUATION_SEVERITY,
@@ -257,10 +257,16 @@ async function removeStagedVoiceNote(eventId: string): Promise<void> {
 }
 
 async function uploadVoiceNote(uid: string, eventId: string, blob: Blob): Promise<string> {
-  const path = CRISIS_COLLECTIONS.voiceNoteStoragePath(uid, eventId);
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, blob, { contentType: blob.type || 'audio/webm' });
-  return getDownloadURL(storageRef);
+  // Private by design: the voice note's bytes stay on the sender's device
+  // (IndexedDB); Firestore holds only a metadata pointer. No cloud upload,
+  // no Storage dependency — $0 on Spark.
+  const { fileId } = await uploadFile(blob, {
+    visibility: 'private',
+    category: 'voice',
+    ownerUid: uid,
+    fileName: `sos-voice-${eventId}.webm`,
+  });
+  return vaultUrl(fileId);
 }
 
 /**

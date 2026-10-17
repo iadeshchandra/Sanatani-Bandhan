@@ -29,6 +29,7 @@ import type {
 import { tsToMs } from './crisisCommandTypes';
 import { useCrisisT } from './crisisI18n';
 import { SITUATION_ICON, SEVERITY_STYLE, relTime } from './crisisShared';
+import { resolveVaultUrl, isVaultUrl } from '../lib/fileVault';
 import {
   acknowledgeEvent,
   assignSevadars,
@@ -66,6 +67,41 @@ interface Props {
   orgId: string;
   onClose: () => void;
 }
+
+/**
+ * Plays an SOS voice note. Vault references (`vault://…`) resolve to a Blob
+ * URL on the sender's device; everywhere else a calm notice is shown instead
+ * of a dead player — private voice notes never leave the sender's device.
+ */
+const VoiceNotePlayer: React.FC<{ url: string; label: string }> = ({ url, label }) => {
+  const [src, setSrc] = useState<string | null>(isVaultUrl(url) ? null : url);
+  useEffect(() => {
+    let alive = true;
+    if (!isVaultUrl(url)) {
+      setSrc(url);
+      return;
+    }
+    setSrc(null);
+    resolveVaultUrl(url)
+      .then((resolved) => {
+        if (alive) setSrc(resolved);
+      })
+      .catch(() => {
+        if (alive) setSrc(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  if (!src) {
+    return (
+      <p className="text-[12px] text-stone-500 italic">
+        {label} — 🎙️ {isVaultUrl(url) ? 'recorded on the sender\u2019s device' : 'unavailable'}
+      </p>
+    );
+  }
+  return <audio controls src={src} className="w-full h-9" />;
+};
 
 export const CrisisDetailDrawer: React.FC<Props> = ({
   event,
@@ -299,7 +335,7 @@ export const CrisisDetailDrawer: React.FC<Props> = ({
                 <Play size={18} className="text-stone-500 shrink-0" />
                 <div className="flex-1">
                   <p className="text-[12px] text-stone-500 mb-1">{t('drawer.voiceNote')}</p>
-                  <audio controls src={event.voiceNoteUrl} className="w-full h-9" />
+                  <VoiceNotePlayer url={event.voiceNoteUrl} label={t('drawer.voiceNote')} />
                 </div>
               </div>
             ) : null}
