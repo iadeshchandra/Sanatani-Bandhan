@@ -164,13 +164,13 @@ export const Header: React.FC<HeaderProps> = ({
             />
           )}
 
-          <div className="flex flex-col text-left justify-center min-w-0">
+          <div className="flex flex-col text-left justify-center min-w-0 overflow-hidden">
             {/* F-DASH-2: single-line truncate (never a cramped 2-line clamp) so the
                 workspace name ellipsizes gracefully instead of colliding with
                 the tithi line / desk search at tight widths. Full name on hover. */}
             <h1
               title={activeWorkspace.name}
-              className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight truncate max-w-[140px] sm:max-w-[220px] lg:max-w-md"
+              className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight truncate min-w-0 max-w-[140px] sm:max-w-[220px] lg:max-w-md"
             >
               {activeWorkspace.name}
             </h1>
@@ -204,13 +204,15 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Search desks, shortcut Control or Command K"
         >
           <Search className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden lg:inline text-temple-500 font-medium">Search desks…</span>
-          <kbd className="kbd hidden lg:inline-flex" aria-hidden="true">⌘K</kbd>
+          <span className="hidden 2xl:inline text-temple-500 font-medium">Search desks…</span>
+          <kbd className="kbd hidden 2xl:inline-flex" aria-hidden="true">⌘K</kbd>
         </button>
 
         {/* Live Panjika (Hidden on mobile) — canonical today line, live Samvat (no hardcoded years).
-            F-DASH-2: whitespace-nowrap so the tithi line never wraps into the workspace name. */}
-        <div className="hidden xl:flex flex-col items-end border-r border-temple-700 pr-5 mr-1 min-w-0">
+            F-DASH-2: whitespace-nowrap so the tithi line never wraps into the workspace name.
+            Progressive disclosure: the dashboard hero carries the tithi card, so the
+            header Panjika yields below 2xl to give the workspace name room. */}
+        <div className="hidden 2xl:flex flex-col items-end border-r border-temple-700 pr-5 mr-1 min-w-0">
           <span className="text-[10px] uppercase font-bold text-temple-400 tracking-widest whitespace-nowrap">Vikram {panchang.vikramSamvat} / San {panchang.bengaliSan}</span>
           <span className="text-sm font-medium text-saffron-500 italic whitespace-nowrap">
             {getPanchangTodayLine(panchang)}
@@ -256,7 +258,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenGuide}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all shadow-xs cursor-pointer group"
+              className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all shadow-xs cursor-pointer group"
               title="Shastric & Statutory Quick Guide (SOP) & Lexicon"
             >
               <BookOpen className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
@@ -267,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenAssistant}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-saffron-500/10 hover:bg-saffron-500/20 border border-saffron-500/30 text-saffron-500 text-xs font-bold transition-all"
+              className="hidden 2xl:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-saffron-500/10 hover:bg-saffron-500/20 border border-saffron-500/30 text-saffron-500 text-xs font-bold transition-all"
             >
               <Sparkles className="w-4 h-4 animate-pulse" />
               <span>Dharmic AI</span>
@@ -278,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenSahayata}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold transition-all"
+              className="hidden 2xl:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold transition-all"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Community</span>
@@ -312,7 +314,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Switch to Personal Devotee View (Darshan, Sadhana Japa, Vivah, e-Pass & 80G Receipts)"
           >
             <UserCircle className="w-4 h-4 text-saffron-400 group-hover:text-temple-950 transition-colors" />
-            <span className="font-bold">Personal View</span>
+            <span className="font-bold hidden 2xl:inline">Personal View</span>
           </button>
         {checkPermission(['SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']) && (
           <button onClick={onOpenTelemetry} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-temple-400 hover:text-emerald-400 transition-colors border border-white/5">
@@ -321,7 +323,7 @@ export const Header: React.FC<HeaderProps> = ({
         )}
           <button onClick={onOpenMySpace} className="px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors border border-indigo-500/20 flex items-center gap-2 shadow-inner">
             <QrCode className="w-4 h-4" />
-            <span className="text-xs font-bold hidden lg:block">Smart Pass</span>
+            <span className="text-xs font-bold hidden 2xl:block">Smart Pass</span>
           </button>
           
           {/* Notifications — unified center (blessings, not badges) */}
