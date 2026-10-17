@@ -552,9 +552,31 @@ service cloud.firestore {
     }
     // Platform config (commission tier rates etc): public read so booking
     match /platformConfig/{configId} {
-      allow read: if true;
+      allow read: if configId != 'public';
       allow create, update: if isOwner();
       allow delete: if false;
+    }
+    // API Keys — GodMode "API Keys" tab (owner-managed third-party keys).
+    // Two tiers by design: client-safe keys are published to the 'public'
+    // doc below (readable by signed-in clients — anything on a phone is
+    // visible in the network tab); server-only secrets stay owner-only and
+    // can never reach a client on the current plan (no backend).
+    match /platformConfig/apiKeys/{keyId} {
+      allow read, create, update: if isOwner();
+      allow delete: if false;
+    }
+    // Published subset: ONLY client-safe && enabled keys, written by the
+    // owner via "Publish to app". Authenticated read; owner-only write.
+    match /platformConfig/public {
+      allow read: if isLoggedIn();
+      allow create, update: if isOwner();
+      allow delete: if false;
+    }
+    // Append-only audit: who changed which key, when. Values never logged.
+    match /platformConfig/apiKeysAudit/{auditId} {
+      allow read: if isOwner();
+      allow create: if isOwner();
+      allow update, delete: if false;
     }
     // Marketplace transactions: owner-only. Written by the future booking
     match /marketplaceTransactions/{txnId} {

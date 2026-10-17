@@ -36,6 +36,7 @@ import { MarketplaceTab } from './godmode/AdminTabsF';
 import { ProfessionalsTab } from './godmode/AdminTabsJ';
 import { FinanceTab } from './godmode/AdminTabsJ';
 import { AppGrowthTab } from '../../appgrowth/admin/AppGrowthTab';
+import { ApiKeyManager } from '../../apikeys/admin/ApiKeyManager';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -45,7 +46,7 @@ interface GodModeConsole2Props {
 type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
   | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace'
-  | 'professionals' | 'growth' | 'system';
+  | 'professionals' | 'growth' | 'apikeys' | 'system';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Insights', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -59,6 +60,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'marketplace', label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
   { id: 'professionals', label: 'Professionals', icon: <Crown className="w-4 h-4" /> },
   { id: 'growth', label: 'App Growth', icon: <Rocket className="w-4 h-4" /> },
+  { id: 'apikeys', label: 'API Keys', icon: <KeyRound className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
   { id: 'content', label: 'Content', icon: <Megaphone className="w-4 h-4" /> },
@@ -345,6 +347,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'marketplace': return <MarketplaceTab />;
       case 'professionals': return <ProfessionalsTab />;
       case 'growth': return <AppGrowthTab />;
+      case 'apikeys': return <ApiKeyManager />;
       case 'messages': return <MessagesTab />;
       case 'database': return <DatabaseExplorerTab />;
       case 'content': return <ContentTab />;
