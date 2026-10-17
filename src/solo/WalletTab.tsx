@@ -303,7 +303,10 @@ export const WalletTab: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const currency: WalletCurrency = wallet && wallet.balance + wallet.totalToppedUp > 0 ? wallet.currency : currencyForRegion(region);
+  // PayRegion is string-typed (config-driven); currencyForRegion needs the
+  // known literal union. Narrow honestly — unknown regions fall back to 'BD'.
+  const regionForCurrency = region === 'IN' || region === 'INTL' ? region : 'BD';
+  const currency: WalletCurrency = wallet && wallet.balance + wallet.totalToppedUp > 0 ? wallet.currency : currencyForRegion(regionForCurrency);
 
   if (topping) {
     return <TopupFlow currency={currency} onBack={() => setTopping(false)} onDone={() => { setTopping(false); load(); }} />;

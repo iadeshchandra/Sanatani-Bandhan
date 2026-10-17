@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { JyotishProvider, useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import {
