@@ -30,6 +30,9 @@ import { useNotifications } from '../../context/NotificationContext';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { UserRole } from '../../types';
 import { NotificationPanel } from './NotificationPanel';
+import { NotificationBell } from '../../notifications/NotificationBell';
+import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
+import { useNotificationCenter } from '../../notifications/index';
 import { OPEN_PALETTE_EVENT } from './CommandPalette';
 import { BranchSwitcher } from '../branch/BranchSwitcher';
 
@@ -74,11 +77,24 @@ export const Header: React.FC<HeaderProps> = ({
     logout,
     checkPermission,
     enterSoloSession,
+    firebaseUser,
   } = useAuthWorkspace();
 
   const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  // Unified notification center (Phase 2) — the warm full-screen center.
+  const centerUid = firebaseUser?.uid ?? null;
+  const {
+    items: centerItems,
+    summary: centerSummary,
+    criticalUnread: centerCritical,
+    markRead: centerMarkRead,
+    markGroupRead: centerMarkGroupRead,
+    markAllRead: centerMarkAllRead,
+    clearRead: centerClearRead,
+    acknowledge: centerAcknowledge,
+  } = useNotificationCenter(centerUid);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -304,21 +320,30 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs font-bold hidden lg:block">Smart Pass</span>
           </button>
           
-          {/* Notifications */}
+          {/* Notifications — unified center (blessings, not badges) */}
           <div className="relative">
-            <button
+            <NotificationBell
+              unreadCount={centerItems.filter((i) => !i.read).length}
+              criticalCount={centerCritical.length}
               onClick={() => setShowNotifications(true)}
-              className="p-2 rounded-xl text-temple-400 hover:text-white hover:bg-white/10 transition-colors relative border border-transparent hover:border-white/5"
-            >
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full border border-temple-900"></span>
-              )}
-            </button>
-            <NotificationPanel 
-              isOpen={showNotifications} 
-              onClose={() => setShowNotifications(false)} 
-              theme="dark" 
+              className="text-temple-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/5"
+            />
+            {showNotifications && (
+              <NotificationCenterUI
+                items={centerItems}
+                onClose={() => setShowNotifications(false)}
+                onMarkRead={(id) => void centerMarkRead(id)}
+                onMarkGroupRead={(group) => void centerMarkGroupRead(group.items.map((i) => i.id))}
+                onMarkAllRead={() => void centerMarkAllRead()}
+                onClearRead={() => void centerClearRead()}
+                onAcknowledge={(id) => void centerAcknowledge(id)}
+              />
+            )}
+            {/* Legacy panel kept for transition — remove after verification */}
+            <NotificationPanel
+              isOpen={false}
+              onClose={() => {}}
+              theme="dark"
             />
           </div>
         </div>

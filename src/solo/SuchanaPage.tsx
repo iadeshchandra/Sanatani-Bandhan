@@ -21,6 +21,11 @@ export const SuchanaPage: React.FC = () => {
         navigate(route);
         return;
       }
+      // Chat opens from the Home tab's Messages card (state-based, not a route).
+      if (route === 'chat' || route === 'messages') {
+        navigate('/app/home');
+        return;
+      }
       const id = route as SoloTabId;
       navigate(
         (SOLO_TAB_IDS as readonly string[]).includes(id) ? `/app/home/${id}` : '/app/home/panjika'
