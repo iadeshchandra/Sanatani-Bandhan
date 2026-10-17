@@ -460,6 +460,11 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
 
   const handleEnable = (moduleId: string) => {
     if (!activeWorkspace) return;
+    // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+    if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
+      showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+      return;
+    }
     const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
     enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
     showToast(`“${mod?.name || moduleId}” is now on — find it in your sidebar.`, 'success', 'Module Enabled');
