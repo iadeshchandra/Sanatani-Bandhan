@@ -6,13 +6,32 @@
  * - useTypingIndicator(chatId, otherUid): is the other side typing?
  * - useChatUnreadTotal(uid): summed unread count for badges
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   subscribeMessages,
+  subscribeNewMessages,
   subscribeThreads,
   type ChatThreadLive,
 } from './chatService';
 import type { ChatMessage, ChatThread } from './types';
+import { notifyChatMessage } from '../notifications/notifyHelpers';
+
+/* ------------------------------------------------------------------ */
+/* Open-thread registry — the notifier stays silent for the thread the */
+/* devotee is actively reading (no buzz for what is already on screen).*/
+/* ------------------------------------------------------------------ */
+
+let openChatId: string | null = null;
+
+/** Called by the thread view on mount/unmount. */
+export function markChatOpen(chatId: string | null): void {
+  openChatId = chatId;
+}
+
+/** True while the given thread is on screen. */
+export function isChatOpen(chatId: string): boolean {
+  return openChatId === chatId;
+}
 
 export function useChatThreads(uid: string | null | undefined): {
   threads: ChatThreadLive[];
@@ -97,4 +116,62 @@ export function useArchivedSplit(
     }
     return { active, archived };
   }, [threads, uid]);
+}
+
+/* ------------------------------------------------------------------ */
+/* useChatNotify — Phase 3 notification wiring for chat.                */
+/* ================================================================== */
+/* Self-listen pattern (the rules are self-write-only): the recipient's */
+/* own device watches its threads; new arrivals from the other side     */
+/* become NotificationCenter emits. New message → IMPORTANT, blessing  */
+/* card → GENTLE. Silent for the thread currently on screen.            */
+/* Mount once per session (see notifications/NotificationWiring).      */
+/* ------------------------------------------------------------------ */
+
+export function useChatNotify(uid: string | null | undefined): void {
+  const { threads } = useChatThreads(uid);
+  const threadsRef = useRef(threads);
+  threadsRef.current = threads;
+  const threadIds = useMemo(() => threads.map((t) => t.id).sort().join(','), [threads]);
+
+  useEffect(() => {
+    if (!uid || uid === 'anon' || threadIds === '') return;
+    const live = threadsRef.current;
+    const unsubs = live.map((thread) =>
+      subscribeNewMessages(thread.id, (arrivals) => {
+        if (isChatOpen(thread.id)) return;
+        const current = threadsRef.current.find((t) => t.id === thread.id);
+        for (const m of arrivals) {
+          if (m.senderId === uid || m.kind === 'system') continue;
+          const sender = current?.participantInfo?.[m.senderId];
+          const senderName = sender?.displayName || 'A devotee';
+          const label =
+            current?.type === 'org'
+              ? sender?.orgName || current?.participantInfo?.[current.participants.find((p) => p !== uid) ?? '']?.displayName || 'chat'
+              : 'chat';
+          void notifyChatMessage(uid, {
+            senderUid: m.senderId,
+            senderName,
+            senderPhoto: sender?.photoUrl,
+            kind: m.kind,
+            preview: m.text || (m.kind === 'blessing' ? '🪔' : ''),
+            messageId: m.id,
+            chatId: thread.id,
+            threadLabel: label,
+          });
+        }
+      }),
+    );
+    return () => {
+      unsubs.forEach((u) => {
+        try {
+          u();
+        } catch {
+          /* best-effort */
+        }
+      });
+    };
+    // Re-subscribe only when the thread SET changes, not on every update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, threadIds]);
 }

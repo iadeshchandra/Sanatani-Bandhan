@@ -320,6 +320,39 @@ export function subscribeMessages(chatId: string, cb: (messages: ChatMessage[]) 
   );
 }
 
+/**
+ * Realtime "new arrivals" for one thread. Skips the initial snapshot
+ * (history the devotee has already seen) and reports only messages added
+ * afterwards — the primitive the notification layer listens on.
+ * The first snapshot after mount is the baseline; catch-up syncs that
+ * arrive later surface as 'added' and DO notify (the devotee hasn't
+ * seen them yet).
+ */
+export function subscribeNewMessages(
+  chatId: string,
+  onAdded: (messages: ChatMessage[]) => void,
+): Unsubscribe {
+  const q = query(messagesCol(chatId), orderBy('createdAt', 'asc'));
+  let first = true;
+  return onSnapshot(
+    q,
+    (snap: QuerySnapshot<DocumentData>) => {
+      if (first) {
+        first = false;
+        return;
+      }
+      const added = snap
+        .docChanges()
+        .filter((c) => c.type === 'added')
+        .map((c) => toChatMessage(c.doc.id, chatId, c.doc.data()));
+      if (added.length > 0) onAdded(added);
+    },
+    (err) => {
+      console.warn('[chat] subscribeNewMessages error:', err);
+    },
+  );
+}
+
 /** One-off thread read (e.g. to resolve participant info for a fresh chatId). */
 export async function getThread(chatId: string): Promise<ChatThreadLive | null> {
   const snap = await getDoc(chatDoc(chatId));

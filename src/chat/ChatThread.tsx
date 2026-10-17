@@ -17,7 +17,7 @@ import {
   setTyping,
   type ChatThreadLive,
 } from "./chatService";
-import { useChatMessages } from "./useChat";
+import { markChatOpen, useChatMessages } from "./useChat";
 import { MessageListSkeleton } from "./ChatSkeletons";
 import { BlessingCard, BLESSING_OCCASIONS } from "./BlessingCard";
 import { ChatAvatar, VerifiedBadge, formatChatTime } from "./ChatList";
@@ -230,6 +230,12 @@ export const ChatThread: React.FC<{
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
+
+  /* Tell the notification layer this thread is on screen (no buzz for it). */
+  useEffect(() => {
+    markChatOpen(chatId);
+    return () => markChatOpen(null);
+  }, [chatId]);
 
   /* Mark read + delivered when viewing (only when there's something new). */
   useEffect(() => {
