@@ -79,7 +79,6 @@ export function PurohitDesk({ isOnline = navigator.onLine }: { isOnline?: boolea
 
   useEffect(() => {
     if (!session?.communityId) return;
-    console.log('Telemetry skipped');
 
     const purohitRef = collection(db, `communities/${session.communityId}/purohits`);
     const yajRef = collection(db, `communities/${session.communityId}/purohit_yajamans`);
@@ -282,14 +281,12 @@ export function PurohitDesk({ isOnline = navigator.onLine }: { isOnline?: boolea
     const text = `Namaskar 🙏\n\nHere is the required Puja Samagri (Items List) for *${template.title}*:\n\n${template.itemsText}\n\n${template.notes ? `*Notes:* ${template.notes}\n\n` : ''}Please keep these items ready.\n— ${session.userName}`;
     const url = phone ? `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
-    console.log('Telemetry skipped');
   };
 
   const openSankalpGenerator = (anu: any) => {
     const yjm = yajamans.find(y => y.id === anu.yajamanId) || {};
     const sankalpText = `ॐ विष्णुर्विष्णुर्विष्णुः ... अद्य ब्रह्मणो द्वितीयपरार्धे ... \n\n*Gotra:* ${yjm.gotra || '[Gotra]'} \n*Nakshatra:* ${yjm.nakshatra || '[Nakshatra]'} \n*Rashi:* ${yjm.rashi || '[Rashi]'} \n*Nama:* ${yjm.name || '[Yajaman Name]'} \n\nश्रुति स्मृति पुराणोक्त फल प्राप्त्यर्थं ... *${anu.pujaName}* कर्म अहं करिष्ये।`;
     setSankalpPreview({ title: `${safeTranslate('sankalp', 'Sankalp', 'সংকল্প', 'संकल्प')}: ${anu.pujaName}`, text: sankalpText });
-    console.log('Telemetry skipped');
   };
 
   const filteredAnushthans = anushthans.filter(a => (a.pujaName || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.yajamanName || '').toLowerCase().includes(searchTerm.toLowerCase()));
