@@ -1,0 +1,56 @@
+/**
+ * notifications.rules.snippet — Firestore security rules for the NotificationCenter.
+ * ==============================================================================
+ * MERGE NOTE (coordinator): paste this block INSIDE the top-level
+ * `match /databases/{database}/documents { ... }` of firestore.rules, next to
+ * the other feature rules. It relies on the existing `isLoggedIn()` helper.
+ *
+ * Model: DENY-BY-DEFAULT. Every notification path is namespaced under the
+ * owning user's UID. Nobody — not even another authenticated user — can read
+ * or write someone else's notifications, push queue, Suchana items, or prefs.
+ * Push-request docs are append-only for the client (the trusted server
+ * consumes them by flipping `status` via admin SDK, which bypasses rules).
+ */
+
+match /notifications/{uid} {
+  // The container doc itself is never used directly.
+  allow read, write: if false;
+
+  // --- In-app notification center ---------------------------------------
+  match /items/{itemId} {
+    allow read: if isLoggedIn() && request.auth.uid == uid;
+    allow create: if isLoggedIn() && request.auth.uid == uid
+      && request.resource.data.uid == uid
+      && request.resource.data.keys().hasAll([
+        'id', 'uid', 'kind', 'priority', 'title', 'body', 'dedupeKey', 'createdAt'
+      ]);
+    allow update: if isLoggedIn() && request.auth.uid == uid
+      && request.resource.data.uid == uid;
+    // Notification history is append-only: cards are never deleted client-side.
+    allow delete: if false;
+  }
+
+  // --- FCM push request queue (server dispatches from users/{uid}/fcmTokens)
+  match /pushRequests/{reqId} {
+    allow read: if isLoggedIn() && request.auth.uid == uid;
+    allow create: if isLoggedIn() && request.auth.uid == uid
+      && request.resource.data.toUser == uid
+      && request.resource.data.status == 'pending';
+    // Only the trusted server (admin SDK) may consume these.
+    allow update, delete: if false;
+  }
+
+  // --- Suchana feed hook (gentle items; Phase 3 UI merges them) ---------
+  match /suchanaItems/{suchanaId} {
+    allow read: if isLoggedIn() && request.auth.uid == uid;
+    allow create: if isLoggedIn() && request.auth.uid == uid;
+    // Dismiss/read marks are owner updates.
+    allow update: if isLoggedIn() && request.auth.uid == uid;
+    allow delete: if false;
+  }
+
+  // --- Owner-only preferences -------------------------------------------
+  match /prefs {
+    allow read, write: if isLoggedIn() && request.auth.uid == uid;
+  }
+}
