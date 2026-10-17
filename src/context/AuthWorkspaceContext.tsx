@@ -977,6 +977,22 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   /**
+   * V6 RBAC: the raw orgRoleOverride setter must never be handed to arbitrary
+   * components — whoever holds it can escalate privilege (it drives
+   * checkPermission() via effectiveRole). The context exposes this guarded
+   * wrapper instead: it passes through null (session clear) and recognized
+   * role values from ROLE_MIGRATION_MAP, and rejects arbitrary strings.
+   * Sole legitimate publisher remains OrgSpaceShell (membership edge role).
+   */
+  const setOrgRoleOverrideSafe = useCallback((next: string | null) => {
+    if (next === null || ROLE_MIGRATION_MAP[next]) {
+      setOrgRoleOverride(next);
+      return;
+    }
+    console.warn('[RBAC] setOrgRoleOverride rejected unrecognized role value; ignoring.');
+  }, []);
+
+  /**
    * PIN login — Phase 21S hardened, Spark-plan fallback added.
    * - Devotee personal PINs stay client-side (low privilege, no escalation).
    *   Verification prefers PBKDF2-SHA256 (`pinSalt`/`pinHash`) when present,
@@ -989,6 +1005,35 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
    *   check — it proves the device saw this PIN before, not server identity.
    *   UI copy must say so. Client-side rate limit: 5 attempts → 60s cooldown.
    */
+type TriCopy = { en: string; bn: string; hi: string };
+/**
+ * Warm trilingual resolver for auth toasts. Reads the active language from
+ * localStorage at call time (the language can change at runtime and toasts
+ * fire from non-render paths), falling back to English.
+ */
+const trAuth = (copy: TriCopy): string => {
+  try {
+    const lang = localStorage.getItem('sanatani_lang') || 'en';
+    if (lang === 'bn') return copy.bn;
+    if (lang === 'hi') return copy.hi;
+  } catch {
+    /* sandboxed iframe — fall through to English */
+  }
+  return copy.en;
+};
+const PIN_TRY_AGAIN_MSG: TriCopy = {
+  en: "This PIN didn't open the door — please try again.",
+  bn: 'এই পিন দিয়ে দরজা খুলল না — আবার চেষ্টা করুন।',
+  hi: 'इस पिन से द्वार नहीं खुला — कृपया फिर से प्रयास करें।',
+};
+const PIN_TRY_AGAIN_TITLE: TriCopy = {
+  en: 'Please try again',
+  bn: 'আবার চেষ্টা করুন',
+  hi: 'कृपया पुनः प्रयास करें',
+};
+const pinDeniedToast = (
+  toastEvent: (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => void
+) => toastEvent(trAuth(PIN_TRY_AGAIN_MSG), 'error', trAuth(PIN_TRY_AGAIN_TITLE));
   const loginWithPin = async (pin: string, devoteeList: DevoteeMember[]): Promise<boolean> => {
     const toastEvent = (message: string, type: 'success' | 'error' | 'info' | 'warning', title?: string) => {
       if (typeof window !== 'undefined') {
@@ -1027,7 +1072,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (!verified) {
         recordPinFailure(rlKey);
-        toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
+        pinDeniedToast(toastEvent);
         return false;
       }
       clearPinFailures(rlKey);
@@ -1044,7 +1089,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     // 2. Admin PIN — server verification FIRST. No hardcoded fallback exists.
     if (cleanPin.length < 4 || cleanPin.length > 32) {
       recordPinFailure(rlKey);
-      toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
+      pinDeniedToast(toastEvent);
       return false;
     }
 
@@ -1061,7 +1106,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
           toastEvent('Too many PIN attempts. Please wait 15 minutes.', 'error', 'Rate Limited');
         } else {
           recordPinFailure(rlKey);
-          toastEvent('Invalid PIN. Please try again.', 'error', 'Access Denied');
+          pinDeniedToast(toastEvent);
         }
         return false;
       }
@@ -1129,10 +1174,10 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       recordPinFailure(rlKey);
       toastEvent(
         remembered
-          ? 'Invalid PIN. Please try again.'
+          ? trAuth(PIN_TRY_AGAIN_MSG)
           : 'PIN verification unavailable (temple server unreachable) and no remembered PIN on this device. Check your connection and try again.',
         'error',
-        'Access Denied'
+        remembered ? trAuth(PIN_TRY_AGAIN_TITLE) : 'Access Denied'
       );
       return false;
     }
@@ -1383,7 +1428,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         updateCurrentUserRole: switchRole,
         checkPermission,
         orgRoleOverride,
-        setOrgRoleOverride,
+        setOrgRoleOverride: setOrgRoleOverrideSafe,
         effectiveRole,
         loginWithPin,
         loginAsRole,
