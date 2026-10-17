@@ -139,7 +139,7 @@ export const GlobalSOSListener: React.FC = () => {
             audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Intense alert sound
             audioRef.current.loop = false;
           }
-          audioRef.current.play().catch(e => console.log('Audio auto-play blocked by browser.'));
+          audioRef.current.play().catch(() => { /* autoplay blocked — the banner still shows */ });
 
           // 2. NotificationCenter emit (CRITICAL — breaks through quiet hours)
           if (myUid) {
@@ -282,7 +282,7 @@ export const GlobalSOSListener: React.FC = () => {
         const sitLabel = tRef.current(crisisCopy[sitKey]);
 
         // 1. Audio (same channel as existing SOS alerts)
-        ensureAudio().play().catch(() => console.log('Audio auto-play blocked by browser.'));
+        ensureAudio().play().catch(() => { /* autoplay blocked — the banner still shows */ });
 
         // 2. NotificationCenter emit (CRITICAL — breaks through quiet hours)
         if (myUid) {

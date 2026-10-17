@@ -172,7 +172,7 @@ export const printThermalReceipt = async (
   // Check if running on Android/iOS via Capacitor
   if (Capacitor.isNativePlatform()) {
     const escposPayload = formatEscPosReceipt(transaction, workspace);
-    console.log('[Native Print Triggered]', escposPayload);
+    if (import.meta.env.DEV) console.log('[Native Print Triggered]', escposPayload);
 
     // If an ESC/POS Bluetooth printer plugin is registered on window/Capacitor, dispatch safely
     try {
@@ -297,7 +297,7 @@ export const printTokenSlip = async (
   // Native Android/iOS via Capacitor
   if (Capacitor.isNativePlatform()) {
     const escposPayload = formatEscPosToken(booking, workspace);
-    console.log('[Native Print Triggered]', escposPayload);
+    if (import.meta.env.DEV) console.log('[Native Print Triggered]', escposPayload);
 
     try {
       const globalWindow = window as any;

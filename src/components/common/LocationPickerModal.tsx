@@ -52,7 +52,10 @@ const LocationMarker = ({ position, setPosition, setDetails }: any) => {
           if (data && data.address) {
             setDetails(data.address);
           }
-        });
+        })
+        // Best-effort reverse geocode — a failed lookup must never throw an
+        // unhandled rejection into the console on every map tap.
+        .catch(() => {});
     },
   });
 
