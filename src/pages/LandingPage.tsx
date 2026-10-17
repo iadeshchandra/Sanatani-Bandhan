@@ -550,6 +550,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const navigate = useNavigate();
   const startDemo = useDemoStarter();
 
+  // Upgrade deep-link: demo/upgrade CTAs across the app send users here via
+  // `/?action=signup` (DevoteeGrid, PoojaBookingDesk, PanchayatPollingDesk).
+  // Honor it on mount — route to the signup screen instead of silently
+  // dropping the intent on the landing page.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('action') === 'signup') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        navigate('/signup');
+      }
+    } catch {
+      /* non-DOM environment */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [demoModalOpen, setDemoModalOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
