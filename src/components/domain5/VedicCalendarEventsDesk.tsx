@@ -19,7 +19,7 @@ interface UtsavEvent {
 }
 
 export const VedicCalendarEventsDesk: React.FC = () => {
-  const { activeWorkspace, updateWorkspaceDetails } = useAuthWorkspace();
+  const { activeWorkspace, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const { showToast } = useToast();
   const { suggestions, dismiss } = usePendingSuggestions(activeWorkspace?.id);
 
@@ -179,6 +179,11 @@ export const VedicCalendarEventsDesk: React.FC = () => {
               suggestion={s}
               onEnable={(moduleId) => {
                 if (!activeWorkspace) return;
+                // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+                if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
+                  showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+                  return;
+                }
                 enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
                 showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
               }}

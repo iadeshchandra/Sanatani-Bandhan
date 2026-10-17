@@ -53,7 +53,7 @@ function fuzzyScore(query: string, text: string): number {
  * (dispatched by the Header search trigger).
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }) => {
-  const { activeWorkspace, setViewMode, updateWorkspaceDetails } = useAuthWorkspace();
+  const { activeWorkspace, setViewMode, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -127,12 +127,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
   const handleInstall = useCallback(
     (moduleId: string) => {
       if (!activeWorkspace) return;
+      // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+      if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
+        showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+        return;
+      }
       const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
       enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
       showToast(`“${mod?.name || moduleId}” is now on — opening it.`, 'success', 'Module Enabled');
       onSelectModule(moduleId);
     },
-    [activeWorkspace, updateWorkspaceDetails, onSelectModule, showToast]
+    [activeWorkspace, updateWorkspaceDetails, onSelectModule, showToast, checkPermission]
   );
 
   const quickActions: PaletteItem[] = useMemo(
