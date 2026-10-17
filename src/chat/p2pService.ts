@@ -54,6 +54,14 @@ import {
   type PaidVia,
   type RequestCurrency,
 } from "./p2pLogic";
+import {
+  notifyMoneyMarkedPaid,
+  notifyMoneyRequestAccepted,
+  notifyMoneyRequestCountered,
+  notifyMoneyRequestDeclined,
+  notifyMoneyRequestReceived,
+  notifyMoneySettled,
+} from "../notifications/notifyHelpers";
 
 export class P2PError extends Error {
   code:
@@ -619,3 +627,139 @@ export function subscribeUserRequests(
 
 export type { PaidVia, RequestCurrency };
 export { generateRequestQR } from "./p2pLogic";
+
+/* --------------------------------------------------------------------------- */
+/* Phase 3 notification wiring — self-listen transition watcher                */
+/* =========================================================================== */
+/* The rules are self-write-only, so each party's own device watches the       */
+/* requests it belongs to and emits to ITSELF on lifecycle transitions:       */
+/*   new request            → IMPORTANT to receiver (money_request/received)   */
+/*   accepted / declined    → IMPORTANT to sender                              */
+/*   countered              → IMPORTANT to the original sender                 */
+/*   marked paid            → IMPORTANT to receiver                            */
+/*   settled                → GENTLE to sender ("{name} has settled… 🙏")       */
+/* Start once per session (see notifications/NotificationWiring). Emits are   */
+/* fire-and-forget — a notification never blocks a money transition.           */
+/* --------------------------------------------------------------------------- */
+
+const VIA_LABEL: Record<string, string> = {
+  bkash: "bKash",
+  nagad: "Nagad",
+  upi: "UPI",
+  bank: "bank transfer",
+  platform_wallet: "Seva Wallet",
+  cash: "cash",
+  other: "their payment app",
+};
+
+/**
+ * Watch my P2P requests and notify on transitions. Returns an unsubscribe.
+ * The first snapshot is the baseline (no notifications for history).
+ */
+export function startP2PNotify(uid: string): Unsubscribe {
+  if (!uid || uid === "anon") return () => undefined;
+  const watchStart = Date.now();
+  const lastStatus = new Map<string, string>();
+  let baselined = false;
+
+  const handle = (reqs: MoneyRequest[]) => {
+    for (const r of reqs) {
+      const prev = lastStatus.get(r.id);
+      const amount = formatMoney(r.amount, r.currency);
+
+      if (prev === undefined) {
+        // First sighting. Baseline everything from history; only genuinely
+        // new requests (created after the watcher started) notify.
+        lastStatus.set(r.id, r.status);
+        if (!baselined) continue;
+        if (
+          r.createdAt > watchStart &&
+          r.status === "pending" &&
+          r.receiverId === uid &&
+          !r.countersRequestId
+        ) {
+          void notifyMoneyRequestReceived(uid, {
+            name: r.senderName,
+            otherUid: r.senderId,
+            amount,
+            requestId: r.id,
+            chatId: r.chatId,
+          });
+        }
+        continue;
+      }
+
+      if (prev === r.status) continue;
+      lastStatus.set(r.id, r.status);
+      if (prev !== "pending" && !(prev === "accepted" && r.status === "paid") && !(prev === "paid" && r.status === "settled")) {
+        continue;
+      }
+
+      if (prev === "pending" && r.status === "accepted" && r.senderId === uid) {
+        void notifyMoneyRequestAccepted(uid, {
+          name: r.receiverName,
+          otherUid: r.receiverId,
+          amount,
+          requestId: r.id,
+          chatId: r.chatId,
+        });
+      } else if (prev === "pending" && r.status === "declined" && r.senderId === uid) {
+        void notifyMoneyRequestDeclined(uid, {
+          name: r.receiverName,
+          otherUid: r.receiverId,
+          amount,
+          requestId: r.id,
+          chatId: r.chatId,
+        });
+      } else if (prev === "pending" && r.status === "countered" && r.senderId === uid) {
+        // The counter-offer is a NEW request (r.supersededBy); fetch it for
+        // the real amount + counter-maker name. Best-effort — fall back to
+        // the old request's own fields if the read fails.
+        void (async () => {
+          let name = r.receiverName;
+          let amt = amount;
+          let newId = r.id;
+          try {
+            if (r.supersededBy) {
+              const fresh = await getRequest(r.supersededBy);
+              if (fresh) {
+                name = fresh.senderName;
+                amt = formatMoney(fresh.amount, fresh.currency);
+                newId = fresh.id;
+              }
+            }
+          } catch {
+            /* fall back to old-request fields */
+          }
+          await notifyMoneyRequestCountered(uid, {
+            name,
+            otherUid: r.receiverId,
+            amount: amt,
+            requestId: newId,
+            chatId: r.chatId,
+          });
+        })();
+      } else if (prev === "accepted" && r.status === "paid" && r.receiverId === uid) {
+        void notifyMoneyMarkedPaid(uid, {
+          name: r.senderName,
+          otherUid: r.senderId,
+          amount,
+          requestId: r.id,
+          chatId: r.chatId,
+          via: VIA_LABEL[r.paidVia ?? ""] ?? VIA_LABEL.other,
+        });
+      } else if (prev === "paid" && r.status === "settled" && r.senderId === uid) {
+        void notifyMoneySettled(uid, {
+          name: r.receiverName,
+          otherUid: r.receiverId,
+          amount,
+          requestId: r.id,
+          chatId: r.chatId,
+        });
+      }
+    }
+    baselined = true;
+  };
+
+  return subscribeUserRequests(uid, handle);
+}

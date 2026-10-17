@@ -15,8 +15,16 @@
  */
 import {
   collection, doc, getDoc, getDocs, query, where, orderBy, limit,
-  addDoc, setDoc, updateDoc, writeBatch, serverTimestamp,
+  addDoc, setDoc, updateDoc, writeBatch, serverTimestamp, onSnapshot,
 } from 'firebase/firestore';
+
+import {
+  notifyCommissionDue,
+  notifyLowBalance,
+  notifyPayoutReceived,
+  notifyTopupApproved,
+  notifyTopupRejected,
+} from "../notifications/notifyHelpers";
 import { db, auth } from './firebase';
 
 export type WalletCurrency = 'BDT' | 'INR' | 'USD';
@@ -487,4 +495,188 @@ export async function awaitingCommissionWith(providerUid: string): Promise<numbe
   } catch {
     return 0; // fail-open: never block booking on a query error
   }
+}
+
+/* Phase 3 notification wiring — self-listen watchers                          */
+/* =========================================================================== */
+/* The rules are self-write-only, so the devotee's own device watches its      */
+/* wallet data and emits to ITSELF:                                            */
+/*   top-up claim approved  → IMPORTANT (wallet/topupCredited)                 */
+/*   top-up claim rejected  → IMPORTANT (wallet/topupRejected)                 */
+/*   escrow payout received → GENTLE (wallet/payoutReceived)                   */
+/*   seva contribution due  → IMPORTANT (wallet/commissionDue, once per day)   */
+/*   wallet running low     → IMPORTANT (wallet/lowBalance, once per day)      */
+/* Start once per session (see notifications/NotificationWiring).             */
+/* --------------------------------------------------------------------------- */
+
+/** Live subscription to my own top-up claims (newest first, client-sorted). */
+export function subscribeMyClaims(cb: (claims: TopupClaim[]) => void) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return () => undefined;
+  const q = query(collection(db, "topupClaims"), where("uid", "==", uid), limit(50));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as TopupClaim));
+      list.sort((a, b) =>
+        String((b.createdAt as any)?.toDate?.()?.toISOString?.() || "").localeCompare(
+          String((a.createdAt as any)?.toDate?.()?.toISOString?.() || "")
+        )
+      );
+      cb(list);
+    },
+    () => cb([])
+  );
+}
+
+/** Live subscription to my own wallet doc. */
+export function subscribeMyWallet(cb: (w: Wallet | null) => void) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return () => undefined;
+  return onSnapshot(
+    doc(db, "wallets", uid),
+    (snap) => {
+      if (!snap.exists()) {
+        cb(null);
+        return;
+      }
+      const d = snap.data() as any;
+      cb({
+        uid,
+        balance: Number(d.balance || 0),
+        currency: (["BDT", "INR", "USD"].includes(d.currency) ? d.currency : "BDT") as WalletCurrency,
+        totalToppedUp: Number(d.totalToppedUp || 0),
+        totalSpent: Number(d.totalSpent || 0),
+        totalReceived: Number(d.totalReceived || 0),
+        updatedAt: d.updatedAt,
+      });
+    },
+    () => cb(null)
+  );
+}
+
+/** Live subscription to my recent wallet transactions (for payout detection). */
+export function subscribeMyWalletTransactions(cb: (txns: WalletTransaction[]) => void) {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return () => undefined;
+  const q = query(collection(db, "walletTransactions"), where("uid", "==", uid), limit(50));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as WalletTransaction))),
+    () => cb([])
+  );
+}
+
+/** Balance below this (in wallet currency units) counts as "running low". */
+export const LOW_BALANCE_THRESHOLD = 200;
+
+function dayKey(d = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/**
+ * Watch my wallet + claims + dues and notify on transitions.
+ * Returns an unsubscribe. The first snapshots are baselines (no
+ * notifications for history); only transitions afterwards emit.
+ */
+export function startWalletNotify(uid: string): () => void {
+  if (!uid || uid === "anon") return () => undefined;
+  const cleanups: Array<() => void> = [];
+  const stop = () => {
+    for (const c of cleanups) {
+      try {
+        c();
+      } catch {
+        /* best-effort */
+      }
+    }
+  };
+
+  // --- Top-up claims: pending → approved / rejected -------------------------
+  const claimStatus = new Map<string, string>();
+  let claimsBaselined = false;
+  cleanups.push(
+    subscribeMyClaims((claims) => {
+      for (const c of claims) {
+        const id = c.id ?? "";
+        const prev = claimStatus.get(id);
+        claimStatus.set(id, c.status);
+        if (!claimsBaselined) continue;
+        if (prev === "pending" && (c.status === "approved" || c.status === "rejected")) {
+          const amount = fmtWallet(Number(c.amount || 0), c.currency);
+          if (c.status === "approved") void notifyTopupApproved(uid, amount, id);
+          else void notifyTopupRejected(uid, amount, id);
+        }
+      }
+      claimsBaselined = true;
+    })
+  );
+
+  // --- Payouts: new 'receive' transactions tied to an order ------------------
+  const seenTxn = new Set<string>();
+  let txnsBaselined = false;
+  cleanups.push(
+    subscribeMyWalletTransactions((txns) => {
+      for (const t of txns) {
+        const id = t.id ?? "";
+        if (seenTxn.has(id)) continue;
+        seenTxn.add(id);
+        if (!txnsBaselined) continue;
+        if (t.type === "receive" && t.orderId && Number(t.amount || 0) > 0) {
+          void notifyPayoutReceived(uid, fmtWallet(Number(t.amount), (t.currency || "BDT") as WalletCurrency), t.orderId);
+        }
+      }
+      txnsBaselined = true;
+    })
+  );
+
+  // --- Low balance: transition into "low" -----------------------------------
+  let wasLow: boolean | null = null;
+  let lowNotifiedDay = "";
+  cleanups.push(
+    subscribeMyWallet((w) => {
+      if (!w) return;
+      const low = w.balance < LOW_BALANCE_THRESHOLD;
+      const today = dayKey();
+      if (low && wasLow !== true && lowNotifiedDay !== today) {
+        lowNotifiedDay = today;
+        void notifyLowBalance(uid, fmtWallet(w.balance, w.currency), today);
+      }
+      wasLow = low;
+    })
+  );
+
+  // --- Seva contribution due: my provider orders awaiting commission ---------
+  // Polled lightly (30s) — these change rarely; a snapshot listener would
+  // need a composite index. Once per order per day.
+  const duesNotified = new Map<string, string>(); // orderId -> dayKey
+  const checkDues = async () => {
+    try {
+      const snap = await getDocs(
+        query(
+          collection(db, "marketplaceOrders"),
+          where("providerUid", "==", uid),
+          where("status", "==", "awaiting_commission"),
+          limit(10)
+        )
+      );
+      const today = dayKey();
+      for (const d of snap.docs) {
+        const o = d.data() as any;
+        if (duesNotified.get(d.id) === today) continue;
+        duesNotified.set(d.id, today);
+        const amount = fmtWallet(Number(o.commissionAmount || 0), (String(o.currency || "BDT") as WalletCurrency));
+        void notifyCommissionDue(uid, amount, d.id, today);
+      }
+    } catch {
+      /* fail-open: never block on a dues read */
+    }
+  };
+  void checkDues();
+  const duesTimer = setInterval(() => void checkDues(), 30_000);
+  cleanups.push(() => clearInterval(duesTimer));
+
+  return stop;
 }

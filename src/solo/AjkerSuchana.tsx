@@ -16,12 +16,13 @@ import {
   anniversaryReminders,
   type GeneratedReminder, type IntelConfig, type IntelRole, type Lang3,
 } from '../lib/panjikaIntelligence';
-import { generateAllInsights } from '../lib/appIntelligence';
+import { generateAllInsights, type Insight } from '../lib/appIntelligence';
 import {
   mergeSuchana, suchanaForRole, type SuchanaItem,
 } from '../lib/suchanaFeed';
 import { buildSoloSnapshot } from '../lib/suchanaSnapshot';
 import { useSoloStore } from './soloStore';
+import { notifyDigest, notifyInsights } from '../notifications/insightNotify';
 
 function pickLang(l: Lang3, lang: string): string {
   if (lang === 'bn') return l.bn;
@@ -55,7 +56,9 @@ export const AjkerSuchana: React.FC<{
   role?: IntelRole;
   /** When provided, "view all" opens the full Suchana view instead of expanding. */
   onViewAll?: () => void;
-}> = ({ goTab, role = 'solo', onViewAll }) => {
+  /** Signed-in uid — enables Phase 3 insight/digest notification emits. */
+  uid?: string | null;
+}> = ({ goTab, role = 'solo', onViewAll, uid }) => {
   const { lang } = useLocaleText();
   const [expanded, setExpanded] = useState(false);
   const [config, setConfig] = useState<IntelConfig | null>(null);
@@ -93,16 +96,37 @@ export const AjkerSuchana: React.FC<{
    * filter). This EXTENDS the digest data source — rendering below
    * stays the same warm card style.
    */
-  const items: SuchanaItem[] = useMemo(() => {
+  /** Raw App-Intelligence insights — shared by the feed and Phase 3 emits. */
+  const rawInsights: Insight[] = useMemo(() => {
     try {
-      const insights = generateAllInsights(role, buildSoloSnapshot(state));
-      return suchanaForRole(mergeSuchana(reminders, insights, { digest: true }), role);
+      return generateAllInsights(role, buildSoloSnapshot(state));
     } catch {
       return [];
     }
-  }, [role, reminders, state]);
+  }, [role, state]);
+
+  const items: SuchanaItem[] = useMemo(() => {
+    try {
+      return suchanaForRole(mergeSuchana(reminders, rawInsights, { digest: true }), role);
+    } catch {
+      return [];
+    }
+  }, [role, reminders, rawInsights]);
 
   const shown = expanded ? items : items.slice(0, 3);
+
+  /**
+   * Phase 3 — Suchana → NotificationCenter. "Needs care" insights
+   * (urgent/attention) become IMPORTANT emits; the rest join the GENTLE
+   * digest card. insightNotify guards once-per-day per insight, so this
+   * effect is safe to re-run as the digest recomputes.
+   */
+  useEffect(() => {
+    if (!uid || uid === 'anon') return;
+    void notifyInsights(uid, rawInsights).catch(() => undefined);
+    void notifyDigest(uid, items.length).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, todayISO]);
 
   /** Gentle "in N days" label from a SuchanaItem date. */
   const whenLabel = (iso: string | null): string | null => {

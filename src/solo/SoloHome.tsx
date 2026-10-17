@@ -125,7 +125,7 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
       </div>
 
       {/* Ajker Suchana — the morning briefing (now merged: panjika + module insights) */}
-      <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} />
+      <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} uid={uid} />
 
       {/* Progressive discovery — Suchana suggests the next natural feature */}
       <SuggestionCards uid={uid} />
