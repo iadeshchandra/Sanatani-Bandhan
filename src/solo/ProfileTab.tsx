@@ -16,6 +16,7 @@ import { NotificationSettings } from '../notifications/NotificationSettings';
 import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notifications/preferences';
 import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useSacredSound } from '../lib/sacredAudio';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -37,6 +38,8 @@ export const ProfileTab: React.FC = () => {
   const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
+  // Quick Guide: the Sanatani identity explainer — invitational only.
+  const profileGuide = useGuide('profile', (firebaseUser as { uid?: string } | null)?.uid || 'anon');
 
   // Profile photo — device-local by design (the solo profile itself is
   // device-local until synced). Downscaled to 256px so it stays tiny in
@@ -221,8 +224,11 @@ export const ProfileTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end -mb-2">
+        <TourLink guide={GUIDES.profile} onRestart={profileGuide.restart} />
+      </div>
       {/* ID card — spec §2 hierarchy starts with the photo */}
-      <div className="rounded-3xl bg-gradient-to-br from-temple-950 via-stone-900 to-amber-950 text-amber-50 p-6">
+      <div className="rounded-3xl bg-gradient-to-br from-temple-950 via-stone-900 to-amber-950 text-amber-50 p-6" data-guide-anchor="profile-id">
         <div className="flex items-center gap-4">
           {avatarSrc ? (
             <img
@@ -259,9 +265,10 @@ export const ProfileTab: React.FC = () => {
       </div>
 
       {/* Attached roles */}
+      <div data-guide-anchor="profile-identities">
       <Card>
         <h3 className="font-extrabold text-stone-900 mb-3">
-          <T en="Attached identities" bn="সংযুক্ত পরিচয়" hi="संलग्न पहचान" />
+          <T en="Attached identities" bn="সংযুক্ত পরিচয়" hi="संलग্ন पहचान" />
         </h3>
         <ul className="space-y-2 text-sm">
           <li className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
@@ -328,6 +335,7 @@ export const ProfileTab: React.FC = () => {
           </li>
         </ul>
       </Card>
+      </div>
 
       {/* My Organisations hub — role badge per org from the real membership
           edge; status line uses only real data (never invented). */}
@@ -403,7 +411,7 @@ export const ProfileTab: React.FC = () => {
           <Field label={<T en="Home region" bn="নিজ এলাকা" hi="गृह क्षेत्र" />}>
             <input className={inputCls} value={form.homeRegion} onChange={(e) => setForm({ ...form, homeRegion: e.target.value })} />
           </Field>
-          <Field label={<T en="Gotra (private)" bn="গোত্র (গোপন)" hi="गोत्र (निजी)" />}>
+          <Field label={<><WhatsThis compact term="gotra" label={tr('solo.profile.gotra', 'Gotra', 'গোত্র', 'गोत्र')} /> <span className="text-stone-400 font-normal"><T en="(private)" bn="(গোপন)" hi="(निजी)" /></span></>}>
             <input className={inputCls} value={form.gotra} onChange={(e) => setForm({ ...form, gotra: e.target.value })} />
           </Field>
           <Field label={<T en="Languages (comma-separated)" bn="ভাষা" hi="भाषाएँ" />}>
@@ -507,6 +515,12 @@ export const ProfileTab: React.FC = () => {
           {APP_VERSION}{APP_BUILD_SHA && APP_BUILD_SHA !== 'nogit' ? ` · ${APP_BUILD_SHA}` : ''}
         </p>
       </Card>
+
+      {/* Quick Guide: the Sanatani identity explainer — invitational only. */}
+      {profileGuide.pillVisible && (
+        <TourPill guide={GUIDES.profile} uid={(firebaseUser as { uid?: string } | null)?.uid || 'anon'} onStart={profileGuide.start} onDismiss={profileGuide.dismissPill} />
+      )}
+      {profileGuide.tourActive && <CoachMark guide={GUIDES.profile} onFinish={profileGuide.finish} />}
     </div>
   );
 };

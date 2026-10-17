@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { T, useLocaleText } from '../solo/ui';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import {
   MoneyRequest,
   requestStatusLabel,
@@ -72,6 +73,9 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
   const [toDate, setToDate] = useState('');
   const [settleEntry, setSettleEntry] = useState<LedgerEntry | null>(null);
   const [rail, setRail] = useState<NonNullable<MoneyRequest['paidVia']>>('bkash');
+  // Quick Guide: the honest-claim P2P pattern — invitational, never
+  // auto-playing on this money screen.
+  const p2pGuide = useGuide('p2p', uid);
   const [paidRef, setPaidRef] = useState('');
   const [acting, setActing] = useState<string | null>(null);
   const [platform, setPlatform] = useState<PlatformBalance | null>(null);
@@ -228,13 +232,16 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
                 <T en="My Wallet" bn="আমার ওয়ালেট" hi="मेरा वॉलेट" />
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-emerald-100/70 hover:text-white rounded-full min-h-[44px] min-w-[44px]"
-              aria-label="Close"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-1">
+              <TourLink guide={GUIDES.p2p} onRestart={p2pGuide.restart} className="!text-emerald-100 hover:!text-white" />
+              <button
+                onClick={onClose}
+                className="p-2 text-emerald-100/70 hover:text-white rounded-full min-h-[44px] min-w-[44px]"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="rounded-2xl bg-white/10 p-3">
@@ -284,7 +291,7 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" data-guide-anchor="p2p-requests">
           {error && (
             <div className="rounded-2xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
           )}
@@ -440,6 +447,12 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
           />
         )}
       </div>
+
+      {/* Quick Guide: the honest-claim P2P pattern — invitational only. */}
+      {p2pGuide.pillVisible && (
+        <TourPill guide={GUIDES.p2p} uid={uid} onStart={p2pGuide.start} onDismiss={p2pGuide.dismissPill} />
+      )}
+      {p2pGuide.tourActive && <CoachMark guide={GUIDES.p2p} onFinish={p2pGuide.finish} />}
     </div>
   );
 };
@@ -626,7 +639,7 @@ const SettleSheet: React.FC<{
           ))}
         </div>
 
-        <label className="text-xs font-bold uppercase tracking-wider text-stone-500" htmlFor="p2p-paid-ref">
+        <label className="text-xs font-bold uppercase tracking-wider text-stone-500" htmlFor="p2p-paid-ref" data-guide-anchor="p2p-reference">
           <T en="Transaction reference" bn="লেনদেন রেফারেন্স" hi="लेनदेन संदर्भ" />
         </label>
         <input
