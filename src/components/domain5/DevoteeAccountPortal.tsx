@@ -11,7 +11,8 @@ import {
   ChevronDown, Search, Activity
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMap } from 'react-leaflet';
+import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -1651,10 +1652,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     scrollWheelZoom={false}
                     className="w-full h-full"
                   >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+                    <ResilientTileLayer />
                     <MapViewRecenter center={pilgrimageFootprint[activeShrineIndex].coords} />
                     {pilgrimageFootprint.map((shrine, idx) => (
                       <Marker
