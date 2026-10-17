@@ -21,12 +21,14 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { Bell, Check, Download, Play, QrCode, Share, Smartphone } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '../context/LanguageContext';
-import { Tr } from './tr';
+import { Tr, TriText, resolveTri } from './tr';
 import { IosPwaGuide } from './IosPwaGuide';
 import { useAppGrowth } from './useAppGrowth';
+import { tri } from './useAppGrowthConfig';
 import { attemptNativeAppOpen } from './deepLink';
 import { buildSmartLinkUrl } from './deviceDetect';
 import { addToWaitlist } from './growthService';
+import { stashCampaign, appendPlayReferrer } from './attribution';
 import type { GrowthPlatform } from './types';
 import './appgrowth.css';
 
@@ -81,6 +83,8 @@ interface CtaClusterProps {
   onInstallPwa: () => void;
   onOpenIosGuide: () => void;
   loading: boolean;
+  /** ?c= campaign id — stashed on store-badge tap for deferred attribution. */
+  campaignId: string | null;
   compact?: boolean;
 }
 
@@ -98,6 +102,7 @@ const CtaCluster: React.FC<CtaClusterProps> = ({
   onInstallPwa,
   onOpenIosGuide,
   loading,
+  campaignId,
   compact,
 }) => {
   const [waitlist, setWaitlist] = useState<'idle' | 'sending' | 'done'>('idle');
@@ -145,7 +150,10 @@ const CtaCluster: React.FC<CtaClusterProps> = ({
           {playStoreLive && playStoreUrl && (
             <a
               key="play"
-              href={playStoreUrl}
+              // Phase 5: stash the campaign before leaving for the store AND
+              // ride the Play install-referrer param so ?c= survives install.
+              href={appendPlayReferrer(playStoreUrl, campaignId)}
+              onClick={() => stashCampaign(campaignId)}
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-[56px] items-center gap-3 rounded-2xl bg-stone-900 px-6 text-white shadow-xl transition-transform active:scale-[0.98]"
@@ -250,9 +258,28 @@ const CtaCluster: React.FC<CtaClusterProps> = ({
 /* ------------------------------------------------------------------ */
 
 export const GetAppPage: React.FC = () => {
-  const { platform, config, campaign, loading, deferredPrompt, installPwa } =
+  const { platform, config, content, campaign, loading, deferredPrompt, installPwa } =
     useAppGrowth();
   const { changeLanguage } = useLanguage();
+
+  // Phase 5: hero copy comes from appGrowth/config.content (GodMode Content
+  // editor) with the landing's hardcoded copy as the field-wise fallback.
+  const heroHeadline = resolveTri(
+    content.hero.headline,
+    tri(
+      'Your entire Sanatani life, in one app',
+      'আপনার সম্পূর্ণ সনাতনী জীবন, এখন এক অ্যাপে',
+      'आपका संपूर्ण सनातनी जीवन, अब एक ऐप में',
+    ),
+  );
+  const heroSubline = resolveTri(
+    content.hero.subline,
+    tri(
+      'Temples, festivals, donations, community — begin your journey 🙏',
+      'মন্দির, উৎসব, দান, সম্প্রদায় — আপনার যাত্রা শুরু করুন 🙏',
+      'मंदिर, उत्सव, दान, समुदाय — अपनी यात्रा शुरू करें 🙏',
+    ),
+  );
 
   // The app boot splash ("Initializing Secure Environment…") is the wrong
   // context for a public landing page and would cover the hero for ~4s —
@@ -309,6 +336,7 @@ export const GetAppPage: React.FC = () => {
       onInstallPwa={() => void installPwa()}
       onOpenIosGuide={() => setGuideOpen(true)}
       loading={loading}
+      campaignId={campaign?.id ?? null}
     />
   );
 
@@ -387,20 +415,10 @@ export const GetAppPage: React.FC = () => {
             <Tr en="Sanatani Bandhan · The App" bn="সনাতনী বন্ধন · অ্যাপ" hi="सनातनी बंधन · ऐप" gloss={false} />
           </p>
           <h1 className="mx-auto mb-4 max-w-2xl text-4xl font-black leading-[1.08] tracking-tight sm:text-6xl">
-            <Tr
-              en="Your entire Sanatani life, in one app"
-              bn="আপনার সম্পূর্ণ সনাতনী জীবন, এখন এক অ্যাপে"
-              hi="आपका संपूर्ण सनातनी जीवन, अब एक ऐप में"
-              gloss={false}
-            />
+            <TriText t={heroHeadline} gloss={false} as="span" />
           </h1>
           <p className="mx-auto mb-9 max-w-xl text-base font-medium text-orange-100/85 sm:text-lg">
-            <Tr
-              en="Temples, festivals, donations, community — begin your journey 🙏"
-              bn="মন্দির, উৎসব, দান, সম্প্রদায় — আপনার যাত্রা শুরু করুন 🙏"
-              hi="मंदिर, उत्सव, दान, समुदाय — अपनी यात्रा शुरू करें 🙏"
-              gloss={false}
-            />
+            <TriText t={heroSubline} gloss={false} />
           </p>
 
           {/* Primary CTA — above the fold */}
@@ -464,7 +482,7 @@ export const GetAppPage: React.FC = () => {
           </div>
         }
       >
-        <GetAppSections cta={cta} />
+        <GetAppSections cta={cta} content={content} />
       </Suspense>
 
       <IosPwaGuide open={guideOpen} onClose={() => setGuideOpen(false)} />

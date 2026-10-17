@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import './styles/motion.css';
 import { OfflineSyncManager } from './services/OfflineSyncManager';
+import { trackAppGrowthInstall } from './appgrowth/attribution';
 
 // Suppress React warning about duplicate keys for headless testing and handle sandbox Firestore permissions notices
 const originalConsoleError = console.error;
@@ -31,6 +32,17 @@ console.error = (...args) => {
 };
 
 OfflineSyncManager.initListener();
+
+// App Growth (Phase 5): log one anonymous install on first app open for
+// QR/poster campaign attribution. Fail-open by design — it swallows its own
+// errors and never blocks or breaks boot. Deferred deep links (campaign
+// deepLink) are resolved inside and consumed by AppContentRouter after the
+// setup wizard.
+try {
+  trackAppGrowthInstall();
+} catch {
+  /* analytics must never break boot */
+}
 
 // Startup Health Check Log
 console.log('App Startup Health Check:', {

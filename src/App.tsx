@@ -80,6 +80,10 @@ import { shouldShowWizard } from './components/onboarding/wizardDeskMap';
 import { NotificationProvider } from './context/NotificationContext';
 const QRScanner = lazy(() => import('./components/admin/QRScanner').then(m => ({ default: m.QRScanner })));
 
+// App Growth (Phase 5): /get-app smart link + download landing — own lazy
+// chunk so the first paint stays under 2s on low-end phones.
+const GetAppPage = lazy(() => import('./appgrowth/GetAppPage'));
+
 // Dashboard
 const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome').then(m => ({ default: m.DashboardHome })));
 
@@ -287,6 +291,30 @@ const AppContent: React.FC = () => {
     };
   }, [activeWorkspace?.id, effectiveRole]);
   const { openGuide } = useQuickGuide();
+
+  // App Growth (Phase 5) — deferred deep linking: a /get-app?c= campaign may
+  // carry a `deepLink` (e.g. '/festival/dhakeshwari/diwali-2026'). The boot
+  // path (main.tsx) validates the campaign and stashes the target in
+  // sessionStorage; we consume it here once the first-run wizard is out of
+  // the way (returning users with no wizard route immediately). One-shot,
+  // fail-open, and never overrides an explicit in-app navigation.
+  React.useEffect(() => {
+    if (showSetupWizard) return;
+    let target: string | null = null;
+    try {
+      target = sessionStorage.getItem('sb_appgrowth_deeplink');
+      sessionStorage.removeItem('sb_appgrowth_deeplink');
+    } catch {
+      /* storage unavailable — no deep link */
+    }
+    if (
+      target &&
+      /^\/[a-zA-Z0-9/_.\-]{1,120}$/.test(target) &&
+      window.location.pathname !== target
+    ) {
+      window.location.href = target;
+    }
+  }, [showSetupWizard]);
 
   /**
    * Demo → registration handoff. Stashes the demo workspace id so the
@@ -1082,6 +1110,23 @@ const AppRouter: React.FC = () => {
           <Route path="/org/:orgId" element={<OrgPublicPage />} />
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
+          {/* App Growth (Phase 5): QR smart link + download landing. The page
+              owns its own lazy chunk; the below-fold sections lazy-load again
+              inside it, so the hero paints in under 2s. */}
+          <Route
+            path="/get-app"
+            element={
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center bg-[#2b1408] text-orange-50">
+                    <span className="text-5xl" aria-hidden="true">🪔</span>
+                  </div>
+                }
+              >
+                <GetAppPage />
+              </Suspense>
+            }
+          />
           {/* Seva Professional (Phase 1): unified public profile, keyed by Firebase Auth uid. */}
           <Route path="/seva/pro/:uid" element={<UnifiedProfessionalProfile />} />
           {/* Phase 2 dev preview: profile org hub with mock data.
