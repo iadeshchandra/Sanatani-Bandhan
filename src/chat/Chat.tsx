@@ -11,6 +11,8 @@ import { T } from '../solo/ui';
 import { ChatList } from './ChatList';
 import { ChatThread } from './ChatThread';
 import { useChatThreads } from './useChat';
+import { BackupSettings } from './backup/BackupSettings';
+import { BackupBoot } from './backup/BackupBoot';
 import type { ChatParticipant } from './types';
 
 export const Chat: React.FC<{
@@ -22,6 +24,7 @@ export const Chat: React.FC<{
 }> = ({ uid, selfInfo, onClose, initialChatId }) => {
   const { threads, loading } = useChatThreads(uid);
   const [activeChatId, setActiveChatId] = useState<string | null>(initialChatId ?? null);
+  const [backupOpen, setBackupOpen] = useState(false);
   const activeThread = activeChatId ? threads.find((t) => t.id === activeChatId) ?? null : null;
 
   return (
@@ -53,6 +56,17 @@ export const Chat: React.FC<{
           </div>
           <button
             type="button"
+            onClick={() => setBackupOpen(true)}
+            aria-label="Chat backup"
+            title="Chat backup — your words are yours"
+            className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+          >
+            <span className="text-lg" aria-hidden>
+              📦
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={onClose}
             aria-label="Close messages"
             className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
@@ -60,6 +74,9 @@ export const Chat: React.FC<{
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Backup lifecycle: nudge, restore offer, due banner */}
+        <BackupBoot uid={uid} />
 
         {/* Body */}
         <div className="flex-1 min-h-0">
@@ -89,6 +106,34 @@ export const Chat: React.FC<{
             hi="कोई विज्ञापन नहीं · कोई एल्गोरिदमिक शोर नहीं · कोई नकली खाता नहीं"
           />
         </div>
+
+        {/* Chat backup settings */}
+        {backupOpen && (
+          <div
+            className="fixed inset-0 z-[125] bg-stone-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
+            role="dialog"
+            aria-label="Chat backup"
+          >
+            <div className="bg-[#faf7f2] w-full sm:max-w-lg h-[92dvh] sm:h-[85vh] sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+              <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-stone-200">
+                <span className="text-sm font-extrabold text-stone-800">
+                  <T en="Chat Backup" bn="চ্যাট ব্যাকআপ" hi="चैट बैकअप" />
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBackupOpen(false)}
+                  aria-label="Close chat backup"
+                  className="w-11 h-11 min-h-[44px] rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <BackupSettings uid={uid} onClose={() => setBackupOpen(false)} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
