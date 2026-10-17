@@ -22,8 +22,10 @@
  *
  * Every file is content-addressed (SHA-256): uploading the same bytes twice
  * costs one document — re-uploads are a single cached read, not a write.
- * (Private ids are namespaced with `p_` so a public re-upload of identical
- * bytes can never resolve to — or leak — the private copy.)
+ * (Private ids are namespaced `p_{ownerUid}_…` and crisis ids `c_{tenantId}_…`,
+ * so a re-upload of identical bytes by a different owner/tenant gets its own
+ * id — the dedupe early-return can never skip storing YOUR copy, and one
+ * tenant's crisis file can never resolve to another tenant's bytes.)
  *
  * URLs use the `vault://{fileId}` scheme. Resolve them with `getFileUrl()`
  * (Blob URL, for <img>/<audio> src) or `resolveVaultUrl()` (pass-through for
@@ -140,11 +142,29 @@ export async function sha256Hex(data: Uint8Array): Promise<string> {
     .join('');
 }
 
-/** Deterministic, collision-proof file id. `p` prefix keeps private ids in a
- *  separate namespace so a public re-upload of identical bytes can never
- *  resolve to (or leak) the private copy. */
-export function fileIdFor(visibility: VaultVisibility, hashHex: string): string {
-  return `fv_${visibility === 'private' ? 'p_' : ''}${hashHex.slice(0, 48)}`;
+/** Deterministic, collision-proof file id.
+ *
+ * Namespacing prevents cross-visibility dedupe collisions:
+ * - `p_` prefix + ownerUid scope: a private file can never dedupe against
+ *   another user's private copy (or a public copy) — each owner's bytes are
+ *   independent, so the early-return dedupe can never skip *your* IndexedDB
+ *   write because *someone else* uploaded identical bytes.
+ * - `c_` prefix + tenantId scope: a crisis file in tenant A can never
+ *   resolve to tenant B's identical bytes (which B couldn't read anyway).
+ * - public ids stay unscoped: global dedupe is the point (one doc for all).
+ */
+export function fileIdFor(
+  visibility: VaultVisibility,
+  hashHex: string,
+  scope?: string
+): string {
+  const cleanScope =
+    (scope || 'anon').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'anon';
+  if (visibility === 'private')
+    return `fv_p_${cleanScope}_${hashHex.slice(0, 32)}`;
+  if (visibility === 'crisis')
+    return `fv_c_${cleanScope}_${hashHex.slice(0, 32)}`;
+  return `fv_${hashHex.slice(0, 48)}`;
 }
 
 /** Base64 encode without blowing the call stack on large buffers. */
@@ -342,7 +362,18 @@ export async function uploadFile(
   if (bytes.length === 0) throw new Error('filevault/empty');
 
   const hash = await sha256Hex(bytes);
-  const fileId = fileIdFor(visibility, hash);
+  // Scope the id: private → owner, crisis → tenant. Without this, the
+  // content-addressed dedupe below could return *someone else's* fileId for
+  // identical bytes — and the early return would skip storing YOUR copy.
+  const fileId = fileIdFor(
+    visibility,
+    hash,
+    visibility === 'private'
+      ? ownerUid
+      : visibility === 'crisis'
+        ? (opts.tenantId as string)
+        : undefined
+  );
   const metaRef = doc(db, VAULT_COLLECTION, fileId);
 
   // Dedupe: content already vaulted → return the reference, no write.
@@ -400,6 +431,11 @@ export async function uploadFile(
       i,
       data,
       ownerUid,
+      // Denormalized gating fields: chunk reads are authorized from the
+      // chunk doc alone (no parent get()), so a leaked fileId can never
+      // bypass the parent's visibility via direct chunk reads.
+      visibility,
+      ...(visibility === 'crisis' ? { tenantId: opts.tenantId } : {}),
     });
   });
   await batch.commit();

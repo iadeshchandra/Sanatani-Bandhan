@@ -143,6 +143,26 @@ describe('vault url helpers', () => {
     expect(pub).not.toBe(priv);
     expect(priv).toContain('_p_');
   });
+  it('scopes private ids by owner so dedupe never crosses users', () => {
+    const a = fileIdFor('private', 'b'.repeat(64), 'uid-alice');
+    const b = fileIdFor('private', 'b'.repeat(64), 'uid-bob');
+    expect(a).not.toBe(b);
+    expect(a).toContain('uid-alice');
+    expect(b).toContain('uid-bob');
+  });
+  it('scopes crisis ids by tenant so dedupe never crosses tenants', () => {
+    const a = fileIdFor('crisis', 'c'.repeat(64), 'tenant-1');
+    const b = fileIdFor('crisis', 'c'.repeat(64), 'tenant-2');
+    expect(a).not.toBe(b);
+    expect(a).toContain('tenant-1');
+    expect(a).not.toContain('tenant-2');
+  });
+  it('sanitizes scope segments for safe doc ids', () => {
+    const id = fileIdFor('private', 'd'.repeat(64), 'uid/with spaces@x');
+    expect(id).not.toContain('/');
+    expect(id).not.toContain(' ');
+    expect(id).not.toContain('@');
+  });
 });
 
 /* ------------------------- upload / dedupe ------------------------- */
