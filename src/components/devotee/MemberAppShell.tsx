@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { 
   Home, UserCircle, Heart, Flame, Sparkles, BookOpen, 
-  Shield, Building2, ArrowLeftRight, Bell, Radio, 
+  Shield, Building2, ArrowLeftRight, Radio, 
   QrCode, Globe2, Receipt, Compass, CheckCircle2, ChevronRight, LogOut, Download
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { useNotifications } from '../../context/NotificationContext';
-import { NotificationPanel } from '../common/NotificationPanel';
+import { NotificationBell } from '../../notifications/NotificationBell';
+import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
+import { useNotificationCenter } from '../../notifications/index';
 import PersonalSadhanaDesk from '../domain5/PersonalSadhanaDesk';
 import SanataniVivahDesk from '../domain4/SanataniVivahDesk';
 import { PurohitMarketDesk } from '../domain3/PurohitMarketDesk';
@@ -31,11 +32,21 @@ export default function MemberAppShell() {
     switchRole,
     logout,
     exitDemo,
-    checkPermission
+    checkPermission,
+    firebaseUser,
   } = useAuthWorkspace();
   const { language, setLanguage, safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
-  const { unreadCount } = useNotifications();
+  // Unified notification center — live on notifications/{uid}/items.
+  const {
+    items: centerItems,
+    criticalUnread: centerCritical,
+    markRead: centerMarkRead,
+    markGroupRead: centerMarkGroupRead,
+    markAllRead: centerMarkAllRead,
+    clearRead: centerClearRead,
+    acknowledge: centerAcknowledge,
+  } = useNotificationCenter(firebaseUser?.uid ?? null);
   const [activeTab, setActiveTab] = useState<'HOME' | 'SADHANA' | 'PUROHIT' | 'PORTAL' | 'YATRA_NET' | 'VIVAH' | 'PROFILE'>('HOME');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
@@ -314,23 +325,25 @@ export default function MemberAppShell() {
                 )}
               </div>
 
-              {/* Notifications */}
+              {/* Suchana — live notification bell + center */}
               <div className="relative">
-                <button
+                <NotificationBell
+                  unreadCount={centerItems.filter((i) => !i.read).length}
+                  criticalCount={centerCritical.length}
                   onClick={() => setShowNotifications(true)}
-                  className="p-2 rounded-xl text-temple-600 hover:bg-temple-50 border border-temple-200 transition-colors relative"
-                  title="Notifications"
-                >
-                  <Bell className="w-4 h-4 text-temple-700" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                  )}
-                </button>
-                <NotificationPanel 
-                  isOpen={showNotifications} 
-                  onClose={() => setShowNotifications(false)} 
-                  theme="light" 
+                  className="text-temple-600 hover:bg-temple-50 border border-temple-200"
                 />
+                {showNotifications && (
+                  <NotificationCenterUI
+                    items={centerItems}
+                    onClose={() => setShowNotifications(false)}
+                    onMarkRead={(id) => void centerMarkRead(id)}
+                    onMarkGroupRead={(group) => void centerMarkGroupRead(group.items.map((i) => i.id))}
+                    onMarkAllRead={() => void centerMarkAllRead()}
+                    onClearRead={() => void centerClearRead()}
+                    onAcknowledge={(id) => void centerAcknowledge(id)}
+                  />
+                )}
               </div>
 
               {/* Avatar Click for Profile */}

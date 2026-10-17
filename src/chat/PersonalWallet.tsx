@@ -412,6 +412,7 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
             onClose={() => setSettleEntry(null)}
             onPaidViaRail={() => {
               const id = settleEntry.requestId;
+              if (!paidRef.trim()) return; // button is disabled too; never confirm without a reference
               void act(id, () => markMoneyRequestPaid(id, rail, paidRef.trim())).then(() =>
                 setSettleEntry(null),
               );
@@ -420,9 +421,21 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
               const id = settleEntry.requestId;
               const r = requestById(id);
               if (!r) return;
-              void act(id, () => payMoneyRequestFromPlatformWallet(uid, r).then(() => undefined)).then(() =>
-                setSettleEntry(null),
-              );
+              // Keep the settle sheet open on failure so the devotee can
+              // read the loud error (e.g. insufficient balance), top up,
+              // and retry — close it only when the debit actually commits.
+              setActing(id);
+              payMoneyRequestFromPlatformWallet(uid, r)
+                .then(() => {
+                  setSettleEntry(null);
+                  return refresh();
+                })
+                .catch((e: unknown) => {
+                  setError(
+                    e instanceof Error ? e.message : 'Seva Wallet settlement failed. Please try again.',
+                  );
+                })
+                .finally(() => setActing(null));
             }}
           />
         )}
@@ -570,6 +583,10 @@ const SettleSheet: React.FC<{
 }> = ({ entry, L, rail, setRail, paidRef, setPaidRef, platform, busy, onClose, onPaidViaRail, onPaidViaPlatform }) => {
   const platformEligible =
     platform != null && platform.balance >= entry.amount && platform.currency === entry.currency;
+  // The chat path (p2pService.markPaid) refuses an empty reference — the
+  // wallet path must hold the same line: a payment without a TrxID/UPI
+  // reference can't be trusted by the other side.
+  const refMissing = !paidRef.trim();
   return (
     <div className="absolute inset-0 z-[130] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div
@@ -617,12 +634,23 @@ const SettleSheet: React.FC<{
           value={paidRef}
           onChange={(e) => setPaidRef(e.target.value)}
           placeholder={L === 'bn' ? 'যেমন: TrxID 9HXK2M' : L === 'hi' ? 'जैसे: UPI रेफ 1234' : 'e.g. TrxID 9HXK2M'}
-          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm min-h-[44px] mb-4"
+          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm min-h-[44px] mb-1"
         />
+        {refMissing ? (
+          <p className="text-xs text-amber-700 mb-3">
+            <T
+              en="Please add your bKash TrxID / UPI reference above — it keeps the record honest for both sides. 🙏"
+              bn="অনুগ্রহ করে উপরে আপনার বিকাশ TrxID / UPI রেফারেন্স যোগ করুন — এটি উভয় পক্ষের জন্য রেকর্ডটি নির্ভরযোগ্য রাখে। 🙏"
+              hi="कृपया ऊपर अपना bKash TrxID / UPI संदर्भ जोड़ें — इससे दोनों पक्षों के लिए रिकॉर्ड विश्वसनीय रहता है। 🙏"
+            />
+          </p>
+        ) : (
+          <div className="mb-3" />
+        )}
 
         <button
           onClick={onPaidViaRail}
-          disabled={busy}
+          disabled={busy || refMissing}
           className="w-full rounded-2xl bg-emerald-700 text-white font-bold py-3 min-h-[48px] disabled:opacity-50"
         >
           <T en="Confirm — I paid" bn="নিশ্চিত — আমি পরিশোধ করেছি" hi="पुष्टि — मैंने भुगतान किया" />
@@ -635,9 +663,9 @@ const SettleSheet: React.FC<{
             </div>
             <p className="text-xs text-stone-600 mb-2">
               <T
-                en="Pay from your Seva Wallet balance. This records a platform transaction — the owner applies the debit to your Seva Wallet from the finance queue."
-                bn="আপনার সেবা ওয়ালেট ব্যালেন্স থেকে পরিশোধ করুন। এটি একটি প্ল্যাটফর্ম লেনদেন রেকর্ড করে — মালিক ফাইন্যান্স সারি থেকে আপনার সেবা ওয়ালেটে ডেবিট প্রয়োগ করবেন।"
-                hi="अपने सेवा वॉलेट बैलेंस से भुगतान करें। यह एक प्लेटफ़ॉर्म लेनदेन दर्ज करता है — स्वामी वित्त कतार से आपके सेवा वॉलेट में डेबिट लागू करेंगे।"
+                en="Pay from your Seva Wallet balance. The amount is debited immediately in one atomic step — no queues, no waiting."
+                bn="আপনার সেবা ওয়ালেট ব্যালেন্স থেকে পরিশোধ করুন। অর্থ এক ধাপে সাথে সাথে কেটে নেওয়া হয় — কোনো সারি বা অপেক্ষা নেই।"
+                hi="अपने सेवा वॉलेट बैलेंस से भुगतान करें। राशि एक ही चरण में तुरंत डेबिट हो जाती है — कोई कतार नहीं, कोई प्रतीक्षा नहीं।"
               />
             </p>
             <button

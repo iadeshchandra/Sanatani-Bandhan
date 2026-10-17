@@ -12,7 +12,7 @@ import {
   Flame,
   Sparkles,
   ShieldCheck,
-  Send,
+  Check,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -341,7 +341,7 @@ export const LiveSankalpaTeleprompter: React.FC = () => {
           >
             <BellRing className="w-6 h-6 text-slate-950 animate-bounce" />
             <span>{t('ritual.sankalp.markRecited')}</span>
-            <Send className="w-5 h-5 text-slate-950" />
+            <Check className="w-5 h-5 text-slate-950" />
           </button>
         </div>
       </div>

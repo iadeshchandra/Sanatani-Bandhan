@@ -82,7 +82,9 @@ export interface NotificationCenterHandle {
   markGroupRead: (itemIds: string[]) => Promise<void>;
   acknowledge: (itemId: string) => Promise<void>;
   markAllRead: () => Promise<void>;
-  /** Deletes READ items only — never touches unread. */
+  /** Marks everything read. (Deletes are denied by the rules — the
+   *  notification ledger is append-only — so "clearing" empties the
+   *  unread tray instead of destroying history.) */
   clearRead: () => Promise<void>;
 }
 
@@ -213,18 +215,15 @@ export function useNotificationCenter(uid: string | null | undefined): Notificat
 
   const clearRead = useCallback(async () => {
     if (!uid) return;
-    const readIds = items.filter((i) => i.read).map((i) => i.id);
-    if (readIds.length === 0) return;
+    // Rules deny deletes on notification items (append-only ledger), so
+    // "clear" marks everything read instead — the badge empties and the
+    // history stays. Never throws: a failed batch must not break the UI.
     try {
-      const batch = writeBatch(db);
-      for (const id of readIds) {
-        batch.delete(doc(db, 'notifications', uid, 'items', id));
-      }
-      await batch.commit();
+      await markAllRead();
     } catch {
       /* calm */
     }
-  }, [uid, items]);
+  }, [uid, markAllRead]);
 
   const summary = useMemo(() => summarizeForHeader(items), [items]);
   const criticalUnread = useMemo(

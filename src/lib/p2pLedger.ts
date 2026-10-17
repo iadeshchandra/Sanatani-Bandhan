@@ -32,7 +32,7 @@ import {
   query,
   where,
   updateDoc,
-  writeBatch,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
@@ -427,10 +427,18 @@ export async function markMoneyRequestPaid(
   paidVia: NonNullable<MoneyRequest['paidVia']>,
   paidRef: string,
 ): Promise<void> {
+  const cleanRef = (paidRef || '').trim();
+  if (!cleanRef) {
+    // Matches the chat path (p2pService.markPaid): a payment without a
+    // reference is not confirmable — the other side can't verify it.
+    throw new Error(
+      'Please add your transaction reference (bKash TrxID / UPI ref) before confirming — it keeps the record honest for both sides. 🙏',
+    );
+  }
   await updateDoc(doc(db, 'p2pRequests', requestId), {
     status: 'paid',
     paidAt: Date.now(),
-    paidRef: paidRef || '',
+    paidRef: cleanRef,
     paidVia,
     updatedAt: Date.now(),
   });
@@ -467,17 +475,27 @@ export async function getPlatformWalletBalance(uid: string): Promise<PlatformBal
 }
 
 /**
- * "Pay from Seva Wallet" — moves the obligation to platform rails.
+ * "Pay from Seva Wallet" — settles a P2P money request with a REAL,
+ * atomic debit of the payer's own platform wallet.
  *
- * HONEST LIMITATION (Spark-native, no backend): client-side debits of
- * wallets/{uid} are only allowed against a real marketplace order
- * (firestore.rules walletDebitOk), so an atomic self-debit is impossible
- * here and we do NOT attempt one. Instead this records a platform
- * `spend` transaction (client-create of own type:'spend' is allowed) that
- * references the p2p request, and marks the request paid via
- * platform_wallet. The owner applies the actual balance debit from the
- * finance approval queue — the same claim→approve pattern as topupClaims.
- * The UI labels this plainly.
+ * The whole settlement happens inside ONE Firestore transaction:
+ *   1. read wallets/{uid}.balance (+ the request's live status),
+ *   2. write the append-only `walletTransactions` "spend" doc,
+ *   3. debit wallets/{uid}.balance / bump totalSpent,
+ *   4. flip the p2p request accepted → paid (paidVia: 'platform_wallet').
+ *
+ * All-or-nothing: either every leg commits or none does — the debit IS
+ * the settlement, there is no finance-approval queue behind it.
+ *
+ * Server-side (firestore.rules `p2pSettlementDebitOk`) re-validates the
+ * debit against the live p2pRequests doc: sender-only, exact amount,
+ * balance never negative, one debit per request (lastDebitP2PRequestId).
+ *
+ * Throws (never silently succeeds) when:
+ *   - the request is not in 'accepted' status,
+ *   - the caller is not the sender (only the payer's own wallet debits),
+ *   - the wallet is missing, in a different currency, or the balance
+ *     cannot cover the amount.
  */
 export async function payMoneyRequestFromPlatformWallet(
   uid: string,
@@ -486,23 +504,91 @@ export async function payMoneyRequestFromPlatformWallet(
   if (req.status !== 'accepted') {
     throw new Error('Request must be accepted before it can be marked paid.');
   }
-  const batch = writeBatch(db);
+  if (!uid || uid === 'anon') {
+    throw new Error('Sign in to pay from your Seva Wallet.');
+  }
+  // Only the sender (payer) may debit their own wallet — never an org's
+  // treasury, never the receiver's wallet, never a bystander.
+  if (req.senderId !== uid) {
+    throw new Error('Only the sender can settle a request from their own Seva Wallet.');
+  }
+  const amount = Number(req.amount);
+  if (!(amount > 0)) {
+    throw new Error('This request has an invalid amount and cannot be settled.');
+  }
+
+  const walletRef = doc(db, 'wallets', uid);
+  const requestRef = doc(db, 'p2pRequests', req.id);
   const txnRef = doc(collection(db, 'walletTransactions'));
-  batch.set(txnRef, {
-    uid,
-    type: 'spend',
-    amount: req.amount,
-    currency: req.currency,
-    note: `P2P settlement via Seva Wallet · request ${req.id} → ${req.receiverName}`,
-    createdAt: Date.now(),
-  });
-  batch.update(doc(db, 'p2pRequests', req.id), {
-    status: 'paid',
-    paidAt: Date.now(),
-    paidRef: txnRef.id,
-    paidVia: 'platform_wallet',
-    updatedAt: Date.now(),
-  });
-  await batch.commit();
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const [walletSnap, requestSnap] = await Promise.all([
+        tx.get(walletRef),
+        tx.get(requestRef),
+      ]);
+
+      if (!walletSnap.exists()) {
+        throw new Error(
+          'No Seva Wallet found for this account yet. Top up first, then settle.',
+        );
+      }
+      const walletData = walletSnap.data();
+      const balance = Number(walletData.balance || 0);
+      const walletCurrency = String(walletData.currency || 'BDT');
+      if (walletCurrency !== req.currency) {
+        throw new Error(
+          `Currency mismatch — your Seva Wallet is in ${walletCurrency} but this request is in ${req.currency}. ` +
+            'Settle it on a matching rail instead.',
+        );
+      }
+      if (balance < amount) {
+        throw new Error(
+          `Insufficient Seva Wallet balance — ${formatMoney(balance, req.currency)} available, ` +
+            `${formatMoney(amount, req.currency)} needed. Please top up first.`,
+        );
+      }
+
+      // Re-check the live status inside the transaction: a double-tap or a
+      // concurrent settle must not debit twice.
+      const liveStatus = String(requestSnap.data()?.status || '');
+      if (liveStatus !== 'accepted') {
+        throw new Error('This request is no longer awaiting payment.');
+      }
+
+      // 1) Append-only spend record (the audit trail).
+      tx.set(txnRef, {
+        uid,
+        type: 'spend',
+        amount,
+        currency: req.currency,
+        requestId: req.id,
+        note: `P2P settlement via Seva Wallet · request ${req.id} → ${req.receiverName}`,
+        createdAt: Date.now(),
+      });
+
+      // 2) The real debit — balance drops here, atomically.
+      tx.update(walletRef, {
+        balance: balance - amount,
+        totalSpent: Number(walletData.totalSpent || 0) + amount,
+        lastDebitP2PRequestId: req.id,
+        updatedAt: Date.now(),
+      });
+
+      // 3) Request accepted → paid, anchored to the spend doc.
+      tx.update(requestRef, {
+        status: 'paid',
+        paidAt: Date.now(),
+        paidRef: txnRef.id,
+        paidVia: 'platform_wallet',
+        updatedAt: Date.now(),
+      });
+    });
+  } catch (e) {
+    // Preserve our own loud, specific errors; wrap anything unexpected
+    // (network, permission-denied) in a clear message — never silent.
+    if (e instanceof Error) throw e;
+    throw new Error('Seva Wallet settlement failed. Please check your connection and try again.');
+  }
   return txnRef.id;
 }

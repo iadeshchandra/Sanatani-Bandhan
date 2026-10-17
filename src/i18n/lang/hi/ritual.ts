@@ -302,7 +302,7 @@ export const ritual: RitualFragment = {
       prevYajaman: "पिछला यजमान",
       next: "अगला",
       markRecited: "उच्चारित चिह्नित करें (उच्चारित)",
-      toastInvoked: "{name} हेतु संकल्प उच्चारित। भक्त को व्हाट्सऐप पुष्टि भेजी गई!",
+      toastInvoked: "{name} हेतु संकल्प उच्चारित दर्ज किया गया। यह केवल लाइव सूची में चिह्नित करता है — कोई संदेश नहीं भेजा गया।",
       toastAudioTitle: "गर्भगृह ध्वनि आह्वान"
     },
     aarti: {

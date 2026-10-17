@@ -96,6 +96,10 @@ const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m =
 const OrgPublicPage = lazy(() => import('./pages/OrgPublicPage').then(m => ({ default: m.OrgPublicPage })));
 // Seva Professional (Phase 1): unified purohit+jyotish public profile — /seva/pro/:uid.
 const UnifiedProfessionalProfile = lazy(() => import('./components/sevaPro/UnifiedProfessionalProfile').then(m => ({ default: m.UnifiedProfessionalProfile })));
+// Seva Professional: occasion-first samskara journey — devotee picks a life
+// event, gets a curated jyotish-counsel + purohit-ritual bundle, tracks both
+// in one view. Local-only (localStorage bundles), no Firestore dependency.
+const SevaCatalog = lazy(() => import('./components/sevaPro/SevaCatalog').then(m => ({ default: m.SevaCatalog })));
 const FestivalEventPage = lazy(() => import('./components/festival/FestivalEventPage').then(m => ({ default: m.FestivalEventPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
@@ -897,7 +901,7 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // P1-1: Signed-out deep routes must redirect to /login, not render landing
   // content at the protected URL. Preserve the intended destination for
   // post-login return via ?next=.
-  const publicPaths = ['/', '/login', '/signup', '/contact', '/mysecretlogin'];
+  const publicPaths = ['/', '/login', '/signup', '/contact', '/mysecretlogin', '/get-app'];
   const currentPath = window.location.pathname;
   const isPublicPath = publicPaths.some((p) =>
     p === '/' ? currentPath === '/' : currentPath === p || currentPath.startsWith(p + '/')
@@ -1129,6 +1133,8 @@ const AppRouter: React.FC = () => {
           />
           {/* Seva Professional (Phase 1): unified public profile, keyed by Firebase Auth uid. */}
           <Route path="/seva/pro/:uid" element={<UnifiedProfessionalProfile />} />
+          {/* Seva Professional: samskara journey planner (SevaCatalog). */}
+          <Route path="/seva/journeys" element={<SevaCatalog />} />
           {/* Phase 2 dev preview: profile org hub with mock data.
               Dev-only, never renders in production builds. */}
           {import.meta.env.DEV && (

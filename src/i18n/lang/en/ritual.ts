@@ -302,7 +302,7 @@ export const ritual: RitualFragment = {
       prevYajaman: "Prev Yajaman",
       next: "Next",
       markRecited: "MARK RECITED (उच्चारित)",
-      toastInvoked: "Sankalpa invoked for {name}. WhatsApp confirmation dispatched to devotee!",
+      toastInvoked: "Sankalpa for {name} recorded as recited. This only marks the recital in the live list — no message was sent.",
       toastAudioTitle: "Sanctum Audio Invocation"
     },
     aarti: {

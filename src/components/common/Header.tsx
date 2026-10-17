@@ -26,10 +26,8 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
-import { useNotifications } from '../../context/NotificationContext';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { UserRole } from '../../types';
-import { NotificationPanel } from './NotificationPanel';
 import { NotificationBell } from '../../notifications/NotificationBell';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
 import { useNotificationCenter } from '../../notifications/index';
@@ -82,12 +80,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   const { language, setLanguage, t } = useLanguage();
   const { showToast } = useToast();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  // Unified notification center (Phase 2) — the warm full-screen center.
+  // Unified notification center — the warm full-screen center, live on
+  // notifications/{uid}/items. No legacy seed: the list is real or empty.
   const centerUid = firebaseUser?.uid ?? null;
   const {
     items: centerItems,
-    summary: centerSummary,
     criticalUnread: centerCritical,
     markRead: centerMarkRead,
     markGroupRead: centerMarkGroupRead,
@@ -339,12 +336,6 @@ export const Header: React.FC<HeaderProps> = ({
                 onAcknowledge={(id) => void centerAcknowledge(id)}
               />
             )}
-            {/* Legacy panel kept for transition — remove after verification */}
-            <NotificationPanel
-              isOpen={false}
-              onClose={() => {}}
-              theme="dark"
-            />
           </div>
         </div>
 

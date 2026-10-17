@@ -10,3 +10,7 @@
 - **Mathematical Scaling**: Ensure padding, margins, and typography follow logical, consistent increments across the application.
 - **Instant Feedback**: Always provide toast notifications, loading spinners, and immediate visual cues for user actions.
 - **Responsive Architecture**: Ensure touch targets are at least 44px for mobile, while utilizing wider layouts on desktop screens.
+
+## Parallel-Agent Sync Lessons
+- **get_file_contents can return a stale/different blob on first call (2026-10-17):** fetching the same path twice returned two different SHAs for firestore.rules (62d477d2 vs c102745b). Before editing a shared file, fetch twice and compare SHAs / byte-compare; only edit when two consecutive fetches agree.
+- **Local tree staleness is the norm, not the exception:** on 2026-10-17 the local tree was missing the entire src/i18n/lang/ fragment tree, had a monolithic translations.ts, and predated the Header notification-center wiring. Always sync remote bases before editing shared files.
