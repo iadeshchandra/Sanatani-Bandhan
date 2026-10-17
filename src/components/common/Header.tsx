@@ -164,8 +164,14 @@ export const Header: React.FC<HeaderProps> = ({
             />
           )}
 
-          <div className="flex flex-col text-left justify-center">
-            <h1 className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight line-clamp-2 max-w-[180px] sm:max-w-md">
+          <div className="flex flex-col text-left justify-center min-w-0">
+            {/* F-DASH-2: single-line truncate (never a cramped 2-line clamp) so the
+                workspace name ellipsizes gracefully instead of colliding with
+                the tithi line / desk search at tight widths. Full name on hover. */}
+            <h1
+              title={activeWorkspace.name}
+              className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight truncate max-w-[140px] sm:max-w-[220px] lg:max-w-md"
+            >
               {activeWorkspace.name}
             </h1>
             <div className="flex items-center gap-1.5 mt-0.5">
@@ -202,10 +208,11 @@ export const Header: React.FC<HeaderProps> = ({
           <kbd className="kbd hidden lg:inline-flex" aria-hidden="true">⌘K</kbd>
         </button>
 
-        {/* Live Panjika (Hidden on mobile) — canonical today line, live Samvat (no hardcoded years) */}
-        <div className="hidden xl:flex flex-col items-end border-r border-temple-700 pr-5 mr-1">
-          <span className="text-[10px] uppercase font-bold text-temple-400 tracking-widest">Vikram {panchang.vikramSamvat} / San {panchang.bengaliSan}</span>
-          <span className="text-sm font-medium text-saffron-500 italic">
+        {/* Live Panjika (Hidden on mobile) — canonical today line, live Samvat (no hardcoded years).
+            F-DASH-2: whitespace-nowrap so the tithi line never wraps into the workspace name. */}
+        <div className="hidden xl:flex flex-col items-end border-r border-temple-700 pr-5 mr-1 min-w-0">
+          <span className="text-[10px] uppercase font-bold text-temple-400 tracking-widest whitespace-nowrap">Vikram {panchang.vikramSamvat} / San {panchang.bengaliSan}</span>
+          <span className="text-sm font-medium text-saffron-500 italic whitespace-nowrap">
             {getPanchangTodayLine(panchang)}
           </span>
         </div>

@@ -233,6 +233,7 @@ export const ShlokaCard: React.FC = () => {
 
 export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
+  const { safeTranslate } = useLanguage();
   const { devotees, treasury, poojaBookings, cows, gurukulStudents } = useData();
 
   const orgTypeKey = (activeWorkspace.type || 'Mandir').toLowerCase();
@@ -260,7 +261,13 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
           style={{ '--i': 0 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors group"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Devotee Directory</span>
+          {/* F-DASH-4: the card carries the org's own directory name — Goshala's
+              nav says "Gau Sevak Directory", so the KPI does too. */}
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+            {isGoshalaLike
+              ? safeTranslate('kpi_gau_sevak_directory', 'Gau Sevak Directory', 'গো সেবক তালিকা', 'गौ सेवक सूची')
+              : safeTranslate('kpi_devotee_directory', 'Devotee Directory', 'ভক্ত তালিকা', 'भक्त सूची')}
+          </span>
           <div className="flex items-end justify-between mt-1">
             <span className="text-2xl font-bold text-slate-900"><CountUp value={devotees.length} /></span>
             <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded">KYC 100%</span>
@@ -306,7 +313,15 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reserved Sankalps</span>
             <div className="flex items-end justify-between mt-1">
               <span className="text-2xl font-bold text-slate-900"><CountUp value={poojaBookings.length} /></span>
-              <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
+              {/* F-DASH-5: a red "Active" pill on a zero count reads as an alert.
+                  Zero-states stay quiet and neutral. */}
+              {poojaBookings.length > 0 ? (
+                <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
+              ) : (
+                <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_sankalp_none_yet', 'None yet', 'এখনও নেই', 'अभी कोई नहीं')}
+                </span>
+              )}
             </div>
           </div>
         )
