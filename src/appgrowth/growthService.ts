@@ -7,6 +7,10 @@
  * returned so the page always renders a complete, warm experience.
  *
  * Write payloads contain NO PII — only campaignId, platform and timestamps.
+ *
+ * Phase 5: this module is the SCAN/INSTALL/WAITLIST logging contract only.
+ * Config reads converged on `useAppGrowthConfig.ts`; getGrowthConfig and
+ * DEFAULT_CONFIG below are deprecated and kept for compatibility only.
  */
 
 import { collection, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,7 +21,10 @@ import type {
   GrowthPlatform,
 } from './types';
 
-/** Fail-open defaults: PWA prominent, store badges hidden without a URL. */
+/**
+ * Fail-open defaults: PWA prominent, store badges hidden without a URL.
+ * @deprecated Use DEFAULT_CONFIG from './useAppGrowthConfig' instead.
+ */
 export const DEFAULT_CONFIG: AppGrowthConfig = {
   playStoreUrl: '',
   playStoreLive: false,
@@ -39,6 +46,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 /**
  * Fetch appGrowth/config. Resolves to DEFAULT_CONFIG on any failure
  * (network, missing doc, denied read, timeout).
+ *
+ * @deprecated Phase 5: config reads converged on the `useAppGrowthConfig`
+ * hook (which also carries the landing-content override). Kept working for
+ * compatibility — prefer the hook in all new code.
  */
 export async function getGrowthConfig(): Promise<AppGrowthConfig> {
   try {
@@ -85,6 +96,12 @@ export async function getCampaign(campaignId: string | null): Promise<AppGrowthC
       id: campaignId,
       label: typeof data.label === 'string' ? data.label : campaignId,
       templeName: typeof data.templeName === 'string' ? data.templeName : undefined,
+      // Deferred deep link (Phase 5): optional '/path' the app routes to after
+      // onboarding on first open. Strictly validated — junk never navigates.
+      deepLink:
+        typeof data.deepLink === 'string' && /^\/[a-zA-Z0-9/_.\-]{1,120}$/.test(data.deepLink)
+          ? data.deepLink
+          : undefined,
       active: true,
       createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
     };

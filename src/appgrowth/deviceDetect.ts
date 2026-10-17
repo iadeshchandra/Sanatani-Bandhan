@@ -57,6 +57,16 @@ export function needsManualPwaInstall(platform: GrowthPlatform): boolean {
 }
 
 /**
+ * True when the visitor is inside an iOS in-app browser (Instagram, Facebook).
+ * These webviews hide Safari's Share button, so the PWA guide must first say
+ * "Open in Safari". iOS Chrome also runs on the Safari engine — its share
+ * flow matches Safari's, so it is deliberately NOT treated as in-app here.
+ */
+export function isInAppBrowser(userAgent: string): boolean {
+  return /instagram|fban|fbav/i.test(userAgent || '');
+}
+
+/**
  * Shareable smart-link URL for the current page, preserving the campaign
  * param so printed QR codes and forwards keep their attribution.
  */

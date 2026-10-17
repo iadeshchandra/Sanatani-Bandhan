@@ -15,7 +15,13 @@
 /** Platform buckets used across detection, logging and UI branching. */
 export type GrowthPlatform = 'android' | 'ios' | 'desktop' | 'unknown';
 
-/** Single doc at appGrowth/config. Fail-open defaults live in growthService. */
+/**
+ * Single doc at appGrowth/config. Fail-open defaults live in growthService.
+ *
+ * @deprecated Phase 5: the landing + admin converge on the config shape in
+ * `useAppGrowthConfig.ts` (which also carries the `content` override).
+ * This shape is kept only for growthService's deprecated getGrowthConfig.
+ */
 export interface AppGrowthConfig {
   /** Google Play listing URL (empty until the app is published). */
   playStoreUrl: string;
@@ -37,6 +43,12 @@ export interface AppGrowthCampaign {
   label: string;
   /** Human temple/org name used for page personalization. */
   templeName?: string;
+  /**
+   * Optional deferred deep-link target (e.g. '/festival/dhakeshwari/diwali-2026').
+   * Set by the GodMode campaign manager; the boot path routes there after
+   * onboarding. Absent campaigns simply show the generic landing.
+   */
+  deepLink?: string;
   active: boolean;
   createdAt: number;
 }

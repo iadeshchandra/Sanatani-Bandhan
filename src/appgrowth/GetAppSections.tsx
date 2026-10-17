@@ -31,10 +31,35 @@ import {
   ChevronDown,
   MessageCircle,
 } from 'lucide-react';
-import { Tr } from './tr';
+import { Tr, TriText, resolveTri } from './tr';
+import {
+  DEFAULT_CONTENT,
+  tri,
+  type AppGrowthContent,
+  type Tri,
+} from './useAppGrowthConfig';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { WHATSAPP_URL, hasWhatsApp } from '../config/contact';
+
+/* ------------------------------------------------------------------ */
+/* Content-override plumbing (Phase 5)                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Every section below accepts the shared `AppGrowthContent` (read from
+ * appGrowth/config.content by the GodMode Content editor). A section uses
+ * the admin override ONLY when it differs from DEFAULT_CONTENT; otherwise
+ * the landing's richer hardcoded copy renders unchanged. resolveTri gives
+ * field-wise fallback, so a partially-translated override never blanks
+ * a string.
+ */
+const isOverridden = (section: unknown, def: unknown): boolean =>
+  JSON.stringify(section) !== JSON.stringify(def);
+
+type ContentProp = { content?: AppGrowthContent };
+const withContent = (props: ContentProp): AppGrowthContent =>
+  props.content ?? DEFAULT_CONTENT;
 
 /* ------------------------------------------------------------------ */
 /* Shared bits                                                         */
@@ -110,32 +135,46 @@ const WHY_CARDS = [
   },
 ];
 
-export const WhySection: React.FC = () => (
+export const WhySection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  const override = isOverridden(content.whyCards, DEFAULT_CONTENT.whyCards);
+  const cards = WHY_CARDS.map((card, i) => ({
+    icon: card.icon,
+    key: card.en,
+    title: override
+      ? resolveTri(content.whyCards[i].title, tri(card.en, card.bn, card.hi))
+      : tri(card.en, card.bn, card.hi),
+    body: override
+      ? resolveTri(content.whyCards[i].body, tri(card.enBody, card.bnBody, card.hiBody))
+      : tri(card.enBody, card.bnBody, card.hiBody),
+  }));
+  return (
   <SectionShell
     id="why"
     eyebrow={<Tr en="Why Sanatani Bandhan" bn="কেন সনাতনী বন্ধন" hi="क्यों सनातनी बंधन" />}
     title={<Tr en="Made for the way you already live your dharma" bn="আপনার ধর্মজীবনের জন্যই তৈরি" hi="आपके धर्मजीवन के लिए ही बना है" />}
   >
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {WHY_CARDS.map((card) => (
+      {cards.map((card) => (
         <div
-          key={card.en}
+          key={card.key}
           className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg"
         >
           <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-400 text-white shadow-md shadow-orange-500/25">
             <card.icon className="h-6 w-6" />
           </span>
           <h3 className="mb-2 text-base font-extrabold leading-snug">
-            <Tr en={card.en} bn={card.bn} hi={card.hi} />
+            <TriText t={card.title} />
           </h3>
           <p className="text-sm leading-relaxed text-stone-600">
-            <Tr en={card.enBody} bn={card.bnBody} hi={card.hiBody} gloss={false} />
+            <TriText t={card.body} gloss={false} />
           </p>
         </div>
       ))}
     </div>
   </SectionShell>
-);
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* 4. Utilities showcase — horizontal scroll rail                       */
@@ -189,27 +228,55 @@ const UTILITIES = [
   },
 ];
 
-export const UtilitiesSection: React.FC = () => (
+const UTILITY_ICONS = [Receipt, CalendarCheck, ArrowLeftRight, Siren, Store];
+
+export const UtilitiesSection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  const override = isOverridden(content.utilities, DEFAULT_CONTENT.utilities);
+  const title: Tri = override
+    ? resolveTri(
+        content.utilities.title,
+        tri('Small utilities, daily blessings', 'ছোট সুবিধা, প্রতিদিনের আশীর্বাদ', 'छोटी सुविधाएँ, रोज़ का आशीर्वाद'),
+      )
+    : tri('Small utilities, daily blessings', 'ছোট সুবিধা, প্রতিদিনের আশীর্বাদ', 'छोटी सुविधाएँ, रोज़ का आशीर्वाद');
+  // Override items carry titles only (admin contract) — pair them with the
+  // house icon set; hardcoded cards keep their per-card bodies.
+  const items = override
+    ? content.utilities.items.map((item, i) => ({
+        icon: UTILITY_ICONS[i % UTILITY_ICONS.length],
+        key: `override-${i}`,
+        title: resolveTri(item, tri('', '', '')),
+        body: null as Tri | null,
+      }))
+    : UTILITIES.map((u) => ({
+        icon: u.icon,
+        key: u.en,
+        title: tri(u.en, u.bn, u.hi),
+        body: tri(u.enBody, u.bnBody, u.hiBody) as Tri | null,
+      }));
+  return (
   <SectionShell
     id="utilities"
     eyebrow={<Tr en="Inside the app" bn="অ্যাপের ভেতরে" hi="ऐप के अंदर" />}
-    title={<Tr en="Small utilities, daily blessings" bn="ছোট সুবিধা, প্রতিদিনের আশীর্বাদ" hi="छोटी सुविधाएँ, रोज़ का आशीर्वाद" />}
+    title={<TriText t={title} />}
   >
     <div className="ag-no-scrollbar -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2">
-      {UTILITIES.map((u) => (
+      {items.map((u) => (
         <div
-          key={u.en}
+          key={u.key}
           className="w-[240px] shrink-0 snap-start rounded-3xl bg-[#2b1408] p-6 text-orange-50 shadow-lg sm:w-[260px]"
         >
           <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300">
             <u.icon className="h-5 w-5" />
           </span>
           <h3 className="mb-2 text-[15px] font-extrabold leading-snug">
-            <Tr en={u.en} bn={u.bn} hi={u.hi} />
+            <TriText t={u.title} />
           </h3>
-          <p className="text-sm leading-relaxed text-orange-100/80">
-            <Tr en={u.enBody} bn={u.bnBody} hi={u.hiBody} gloss={false} />
-          </p>
+          {u.body && (
+            <p className="text-sm leading-relaxed text-orange-100/80">
+              <TriText t={u.body} gloss={false} />
+            </p>
+          )}
         </div>
       ))}
     </div>
@@ -217,7 +284,8 @@ export const UtilitiesSection: React.FC = () => (
       <Tr en="Swipe to explore →" bn="দেখতে সোয়াইপ করুন →" hi="देखने के लिए स्वाइप करें →" gloss={false} />
     </p>
   </SectionShell>
-);
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* 5. How it works — 3 steps                                           */
@@ -253,16 +321,42 @@ const STEPS = [
   },
 ];
 
-export const HowItWorksSection: React.FC = () => (
+const STEP_ICONS = [QrCode, Download, Sparkles];
+
+export const HowItWorksSection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  const override = isOverridden(content.howItWorks, DEFAULT_CONTENT.howItWorks);
+  const title: Tri = override
+    ? resolveTri(
+        content.howItWorks.title,
+        tri('Three steps to your digital dharma', 'ডিজিটাল ধর্মের তিনটি ধাপ', 'डिजिटल धर्म के तीन चरण'),
+      )
+    : tri('Three steps to your digital dharma', 'ডিজিটাল ধর্মের তিনটি ধাপ', 'डिजिटल धर्म के तीन चरण');
+  // Override steps carry titles only (admin contract) — the hardcoded
+  // three steps keep their bodies.
+  const steps = override
+    ? content.howItWorks.steps.map((step, i) => ({
+        icon: STEP_ICONS[i % STEP_ICONS.length],
+        key: `override-${i}`,
+        title: resolveTri(step, tri('', '', '')),
+        body: null as Tri | null,
+      }))
+    : STEPS.map((step) => ({
+        icon: step.icon,
+        key: step.en,
+        title: tri(step.en, step.bn, step.hi),
+        body: tri(step.enBody, step.bnBody, step.hiBody) as Tri | null,
+      }));
+  return (
   <SectionShell
     id="how"
     dark
     eyebrow={<Tr en="How it works" bn="কীভাবে কাজ করে" hi="यह कैसे काम करता है" />}
-    title={<Tr en="Three steps to your digital dharma" bn="ডিজিটাল ধর্মের তিনটি ধাপ" hi="डिजिटल धर्म के तीन चरण" />}
+    title={<TriText t={title} />}
   >
     <ol className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-      {STEPS.map((step, i) => (
-        <li key={step.en} className="relative text-center">
+      {steps.map((step, i) => (
+        <li key={step.key} className="relative text-center">
           <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-amber-400/40 bg-amber-400/10 text-amber-300">
             <step.icon className="h-7 w-7" />
           </span>
@@ -270,16 +364,19 @@ export const HowItWorksSection: React.FC = () => (
             {i + 1}
           </span>
           <h3 className="mb-1.5 text-base font-extrabold">
-            <Tr en={step.en} bn={step.bn} hi={step.hi} />
+            <TriText t={step.title} />
           </h3>
-          <p className="mx-auto max-w-[240px] text-sm text-orange-100/75">
-            <Tr en={step.enBody} bn={step.bnBody} hi={step.hiBody} gloss={false} />
-          </p>
+          {step.body && (
+            <p className="mx-auto max-w-[240px] text-sm text-orange-100/75">
+              <TriText t={step.body} gloss={false} />
+            </p>
+          )}
         </li>
       ))}
     </ol>
   </SectionShell>
-);
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* 6. Trust signals                                                    */
@@ -315,7 +412,16 @@ const TRUST_BADGES = [
   },
 ];
 
-export const TrustSection: React.FC = () => (
+export const TrustSection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  // Testimonials are NEVER invented: the slot stays empty until the owner
+  // writes a real quote in the GodMode Content editor (which stores it in
+  // appGrowth/config.content.testimonial). Any deviation from the default
+  // placeholder copy counts as the owner having provided one.
+  const testimonialOverride =
+    isOverridden(content.testimonial, DEFAULT_CONTENT.testimonial) &&
+    content.testimonial.quote.en.trim().length > 0;
+  return (
   <SectionShell
     id="trust"
     eyebrow={<Tr en="Trusted & growing" bn="বিশ্বস্ত ও বর্ধনশীল" hi="विश्वसनीय और बढ़ता हुआ" />}
@@ -347,29 +453,45 @@ export const TrustSection: React.FC = () => (
       ))}
     </div>
 
-    {/* Testimonial slot — intentionally empty. Per standing content rule,
-        real temple names/quotes replace this only when the owner provides
-        them. Never invent testimonials. */}
-    <div className="mx-auto max-w-2xl rounded-3xl border-2 border-dashed border-orange-200 bg-orange-50/50 p-8 text-center">
-      <MessageCircle className="mx-auto mb-3 h-8 w-8 text-orange-300" />
-      <p className="text-sm font-bold text-stone-600 sm:text-base">
-        <Tr
-          en="Stories from our temples — coming soon."
-          bn="আমাদের মন্দিরগুলোর গল্প — শীঘ্রই আসছে।"
-          hi="हमारे मंदिरों की कहानियाँ — जल्द आ रही हैं।"
-        />
-      </p>
-      <p className="mt-1 text-xs text-stone-500">
-        <Tr
-          en="Real voices, real temples. Never invented."
-          bn="আসল কণ্ঠ, আসল মন্দির। কখনো বানানো নয়।"
-          hi="असली आवाज़ें, असली मंदिर। कभी गढ़ी हुई नहीं।"
-          gloss={false}
-        />
-      </p>
-    </div>
+    {testimonialOverride ? (
+      <figure className="mx-auto max-w-2xl rounded-3xl border border-orange-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 text-4xl" aria-hidden="true">🪔</div>
+        <blockquote className="text-base font-medium italic leading-relaxed text-stone-800 sm:text-lg">
+          “<TriText t={content.testimonial.quote} gloss={false} />”
+        </blockquote>
+        <figcaption className="mt-4 text-sm font-extrabold text-stone-900">
+          <TriText t={content.testimonial.name} gloss={false} />
+          <span className="mt-0.5 block text-xs font-bold text-stone-500">
+            <TriText t={content.testimonial.role} gloss={false} />
+          </span>
+        </figcaption>
+      </figure>
+    ) : (
+      /* Testimonial slot — intentionally empty. Per standing content rule,
+         real temple names/quotes replace this only when the owner provides
+         them. Never invent testimonials. */
+      <div className="mx-auto max-w-2xl rounded-3xl border-2 border-dashed border-orange-200 bg-orange-50/50 p-8 text-center">
+        <MessageCircle className="mx-auto mb-3 h-8 w-8 text-orange-300" />
+        <p className="text-sm font-bold text-stone-600 sm:text-base">
+          <Tr
+            en="Stories from our temples — coming soon."
+            bn="আমাদের মন্দিরগুলোর গল্প — শীঘ্রই আসছে।"
+            hi="हमारे मंदिरों की कहानियाँ — जल्द आ रही हैं।"
+          />
+        </p>
+        <p className="mt-1 text-xs text-stone-500">
+          <Tr
+            en="Real voices, real temples. Never invented."
+            bn="আসল কণ্ঠ, আসল মন্দির। কখনো বানানো নয়।"
+            hi="असली आवाज़ें, असली मंदिर। कभी गढ़ी हुई नहीं।"
+            gloss={false}
+          />
+        </p>
+      </div>
+    )}
   </SectionShell>
-);
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* 7. Benefits by role — tabs                                          */
@@ -425,8 +547,78 @@ const ROLE_CONTENT: Record<
   },
 };
 
-export const RolesSection: React.FC = () => {
+const ROLE_ICONS = [Users, Landmark, Star];
+
+export const RolesSection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  const override = isOverridden(content.benefits, DEFAULT_CONTENT.benefits);
+  const title: Tri = override
+    ? resolveTri(
+        content.benefits.title,
+        tri("Whatever your seva, there's a home here", 'আপনার সেবা যাই হোক, এখানে ঠাঁই আছে', 'आपकी सेवा जो भी हो, यहाँ घर है'),
+      )
+    : tri("Whatever your seva, there's a home here", 'আপনার সেবা যাই হোক, এখানে ঠাঁই আছে', 'आपकी सेवा जो भी हो, यहाँ घर है');
+
   const [tab, setTab] = useState<RoleTab>('devotee');
+  const [overrideTab, setOverrideTab] = useState(0);
+
+  // --- Override path: admin tabs (role + points) with house icons. ---
+  if (override) {
+    const tabs = content.benefits.tabs.map((t, i) => ({
+      key: `override-${i}`,
+      icon: ROLE_ICONS[i % ROLE_ICONS.length],
+      role: resolveTri(t.role, tri('', '', '')),
+      points: t.points,
+    }));
+    if (tabs.length === 0) return null;
+    const safeTab = Math.min(Math.max(overrideTab, 0), tabs.length - 1);
+    const active = tabs[safeTab];
+    return (
+      <SectionShell
+        id="roles"
+        dark
+        eyebrow={<Tr en="Made for everyone" bn="সবার জন্য তৈরি" hi="सबके लिए बना है" />}
+        title={<TriText t={title} />}
+      >
+        <div className="mb-8 flex flex-wrap justify-center gap-2" role="tablist" aria-label="Benefits by role">
+          {tabs.map((t, i) => {
+            const selected = i === safeTab;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={selected}
+                type="button"
+                onClick={() => setOverrideTab(i)}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-full px-5 py-2.5 text-sm font-extrabold transition-all ${
+                  selected
+                    ? 'bg-amber-400 text-stone-900 shadow-lg shadow-amber-400/25'
+                    : 'border border-orange-100/20 bg-white/5 text-orange-100 hover:bg-white/10'
+                }`}
+              >
+                <t.icon className="h-4 w-4" />
+                <TriText t={t.role} />
+              </button>
+            );
+          })}
+        </div>
+        <div role="tabpanel" className="mx-auto grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+          {active.points.map((p, i) => (
+            <div key={i} className="flex items-start gap-3 rounded-2xl border border-orange-100/15 bg-white/5 p-4">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-400/20 text-amber-300">
+                ✓
+              </span>
+              <p className="text-sm font-bold leading-snug text-orange-50">
+                <TriText t={p} />
+              </p>
+            </div>
+          ))}
+        </div>
+      </SectionShell>
+    );
+  }
+
+  // --- Hardcoded path: the landing's richer role content. ---
   const tabs: RoleTab[] = ['devotee', 'temple', 'pro'];
   const active = ROLE_CONTENT[tab];
 
@@ -435,7 +627,7 @@ export const RolesSection: React.FC = () => {
       id="roles"
       dark
       eyebrow={<Tr en="Made for everyone" bn="সবার জন্য তৈরি" hi="सबके लिए बना है" />}
-      title={<Tr en="Whatever your seva, there's a home here" bn="আপনার সেবা যাই হোক, এখানে ঠাঁই আছে" hi="आपकी सेवा जो भी हो, यहाँ घर है" />}
+      title={<TriText t={title} />}
     >
       <div className="mb-8 flex flex-wrap justify-center gap-2" role="tablist" aria-label="Benefits by role">
         {tabs.map((t) => {
@@ -530,20 +722,40 @@ const FAQS = [
   },
 ];
 
-export const FaqSection: React.FC = () => {
+export const FaqSection: React.FC<ContentProp> = (props) => {
+  const content = withContent(props);
+  const override = isOverridden(content.faq, DEFAULT_CONTENT.faq);
+  const title: Tri = override
+    ? resolveTri(
+        content.faq.title,
+        tri("Everything you're wondering", 'যা যা জানতে চান', 'जो भी आप जानना चाहते हैं'),
+      )
+    : tri("Everything you're wondering", 'যা যা জানতে চান', 'जो भी आप जानना चाहते हैं');
+  // Admin overrides carry { q, a } pairs; hardcoded FAQs keep their bodies.
+  const items = override
+    ? content.faq.items.slice(0, 10).map((f, i) => ({
+        key: `override-${i}`,
+        q: resolveTri(f.q, tri('', '', '')),
+        a: resolveTri(f.a, tri('', '', '')),
+      }))
+    : FAQS.map((f) => ({
+        key: f.en,
+        q: tri(f.en, f.bn, f.hi),
+        a: tri(f.enA, f.bnA, f.hiA),
+      }));
   const [open, setOpen] = useState<number | null>(0);
   return (
     <SectionShell
       id="faq"
       eyebrow={<Tr en="Questions, answered warmly" bn="প্রশ্নের উষ্ণ উত্তর" hi="प्रश्नों के स्नेहिल उत्तर" />}
-      title={<Tr en="Everything you're wondering" bn="যা যা জানতে চান" hi="जो भी आप जानना चाहते हैं" />}
+      title={<TriText t={title} />}
     >
       <div className="mx-auto max-w-2xl space-y-3">
-        {FAQS.map((f, i) => {
+        {items.map((f, i) => {
           const isOpen = open === i;
           return (
             <div
-              key={f.en}
+              key={f.key}
               className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm"
             >
               <button
@@ -553,7 +765,7 @@ export const FaqSection: React.FC = () => {
                 className="flex min-h-[56px] w-full items-center justify-between gap-3 px-5 py-4 text-left"
               >
                 <span className="text-[15px] font-extrabold text-stone-900">
-                  <Tr en={f.en} bn={f.bn} hi={f.hi} />
+                  <TriText t={f.q} />
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 text-orange-600 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -562,7 +774,7 @@ export const FaqSection: React.FC = () => {
               {isOpen && (
                 <div className="px-5 pb-5">
                   <p className="text-sm leading-relaxed text-stone-600">
-                    <Tr en={f.enA} bn={f.bnA} hi={f.hiA} gloss={false} />
+                    <TriText t={f.a} gloss={false} />
                   </p>
                 </div>
               )}
@@ -670,16 +882,18 @@ export const Footer: React.FC = () => {
 export interface GetAppSectionsProps {
   /** The primary download CTA cluster (rendered once in hero, once here). */
   cta: React.ReactNode;
+  /** Landing copy override from appGrowth/config.content (hardcoded copy is the fallback). */
+  content?: AppGrowthContent;
 }
 
-const GetAppSections: React.FC<GetAppSectionsProps> = ({ cta }) => (
+const GetAppSections: React.FC<GetAppSectionsProps> = ({ cta, content = DEFAULT_CONTENT }) => (
   <>
-    <WhySection />
-    <UtilitiesSection />
-    <HowItWorksSection />
-    <TrustSection />
-    <RolesSection />
-    <FaqSection />
+    <WhySection content={content} />
+    <UtilitiesSection content={content} />
+    <HowItWorksSection content={content} />
+    <TrustSection content={content} />
+    <RolesSection content={content} />
+    <FaqSection content={content} />
     <FinalCtaSection cta={cta} />
     <Footer />
   </>

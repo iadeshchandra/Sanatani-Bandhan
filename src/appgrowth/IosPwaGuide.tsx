@@ -8,9 +8,10 @@
  * button glows. No popups outside this modal, no dark patterns —
  * the visitor opened it by tapping "Add to Home Screen" themselves.
  */
-import React, { useEffect } from 'react';
-import { X, Share, PlusSquare, Check, Smartphone } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Share, PlusSquare, Check, Smartphone, ExternalLink } from 'lucide-react';
 import { Tr } from './tr';
+import { isStandaloneDisplay, isInAppBrowser } from './deviceDetect';
 import './appgrowth.css';
 
 export interface IosPwaGuideProps {
@@ -82,6 +83,18 @@ const PhoneMock: React.FC = () => (
 );
 
 export const IosPwaGuide: React.FC<IosPwaGuideProps> = ({ open, onClose }) => {
+  // Phase 5 edge cases:
+  // - already installed (standalone display mode / iOS navigator.standalone)
+  //   → the guide is pointless; show a warm "you're all set" instead.
+  // - in-app browsers (Instagram / Facebook webviews) hide Safari's Share
+  //   button → first show an "Open in Safari" hint. iOS Chrome runs the
+  //   Safari engine and follows the same three steps, so it keeps the
+  //   normal guide.
+  const [alreadyInstalled] = useState(() => isStandaloneDisplay());
+  const [inAppBrowser] = useState(() =>
+    typeof navigator !== 'undefined' ? isInAppBrowser(navigator.userAgent) : false,
+  );
+
   // Lock body scroll while the guide is open; restore on close.
   useEffect(() => {
     if (!open) return;
@@ -142,31 +155,80 @@ export const IosPwaGuide: React.FC<IosPwaGuideProps> = ({ open, onClose }) => {
           />
         </p>
 
-        <PhoneMock />
+        {alreadyInstalled ? (
+          /* Already running as an installed PWA — nothing to teach. */
+          <div className="rounded-3xl border border-green-200 bg-green-50 p-6 text-center">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white shadow-lg">
+              <Check className="h-7 w-7" strokeWidth={3} />
+            </span>
+            <p className="text-base font-black text-green-900">
+              <Tr
+                en="Already installed ✓"
+                bn="ইতিমধ্যে ইনস্টল করা ✓"
+                hi="पहले से इंस्टॉल है ✓"
+              />
+            </p>
+            <p className="mt-1.5 text-sm text-green-800">
+              <Tr
+                en="You're opening Sanatani Bandhan from your Home Screen — enjoy 🙏"
+                bn="আপনি হোম স্ক্রিন থেকে সনাতনী বন্ধন খুলছেন — শুভেচ্ছা 🙏"
+                hi="आप होम स्क्रीन से सनातनी बंधन खोल रहे हैं — शुभकामनाएँ 🙏"
+                gloss={false}
+              />
+            </p>
+          </div>
+        ) : (
+          <>
+            {inAppBrowser && (
+              /* Instagram / Facebook webviews hide the Share button — the
+                 guide's steps only work after opening the page in Safari. */
+              <div className="mb-5 rounded-3xl border border-amber-300 bg-amber-50 p-5">
+                <p className="flex items-center gap-2 text-[15px] font-black text-amber-900">
+                  <ExternalLink className="h-5 w-5 shrink-0" />
+                  <Tr
+                    en="First, open this page in Safari"
+                    bn="প্রথমে পেজটি সাফারিতে খুলুন"
+                    hi="पहले यह पेज सफ़ारी में खोलें"
+                  />
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-amber-900/80">
+                  <Tr
+                    en="You're viewing this inside another app, which hides the install button. Tap its ••• menu and choose “Open in Safari”, then follow the steps below."
+                    bn="আপনি এটি অন্য অ্যাপের ভেতরে দেখছেন, যেখানে ইনস্টল বোতাম লুকানো। এর ••• মেনুতে ট্যাপ করে “সাফারিতে খুলুন” বেছে নিন, তারপর নিচের ধাপগুলো অনুসরণ করুন।"
+                    hi="आप इसे किसी अन्य ऐप के अंदर देख रहे हैं, जो इंस्टॉल बटन छिपाता है। उसके ••• मेनू पर टैप करें और “सफ़ारी में खोलें” चुनें, फिर नीचे दिए चरणों का पालन करें।"
+                    gloss={false}
+                  />
+                </p>
+              </div>
+            )}
 
-        <ol className="mt-6 space-y-4">
-          {STEPS.map((step, i) => (
-            <li key={i} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-                  <step.icon className="h-5 w-5" />
-                </span>
-                {i < STEPS.length - 1 && <span className="mt-1 w-0.5 flex-1 bg-orange-100" />}
-              </div>
-              <div className="pb-1 pt-1">
-                <p className="text-[15px] font-extrabold text-stone-900">
-                  <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-stone-900 text-[11px] font-black text-white">
-                    {i + 1}
-                  </span>
-                  <Tr en={step.en} bn={step.bn} hi={step.hi} />
-                </p>
-                <p className="mt-1 text-sm text-stone-600">
-                  <Tr en={step.enDesc} bn={step.bnDesc} hi={step.hiDesc} gloss={false} />
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
+            <PhoneMock />
+
+            <ol className="mt-6 space-y-4">
+              {STEPS.map((step, i) => (
+                <li key={i} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+                      <step.icon className="h-5 w-5" />
+                    </span>
+                    {i < STEPS.length - 1 && <span className="mt-1 w-0.5 flex-1 bg-orange-100" />}
+                  </div>
+                  <div className="pb-1 pt-1">
+                    <p className="text-[15px] font-extrabold text-stone-900">
+                      <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-stone-900 text-[11px] font-black text-white">
+                        {i + 1}
+                      </span>
+                      <Tr en={step.en} bn={step.bn} hi={step.hi} />
+                    </p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      <Tr en={step.enDesc} bn={step.bnDesc} hi={step.hiDesc} gloss={false} />
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
 
         <a
           href="/app"
