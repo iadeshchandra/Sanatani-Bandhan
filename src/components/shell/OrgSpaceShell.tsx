@@ -141,6 +141,11 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     [deskId]
   );
 
+  // F-RBAC-1: the devotee preview renders chromeless — the org-space header
+  // (org name, breadcrumb, role chip) and the first-entry hint must not leak
+  // around the member-facing pane.
+  const isDevoteePreview = deskId === 'devoteePortal' || deskId === 'devotee-super-app';
+
   // First-entry role hint — once per role per org.
   const [showHint, setShowHint] = useState(false);
   useEffect(() => {
@@ -177,6 +182,8 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <div className="anim-org-enter h-screen w-full flex flex-col overflow-hidden bg-slate-50">
+      {!isDevoteePreview && (
+        <>
       {/* Org-space header */}
       <header className="shrink-0 bg-temple-950 text-amber-100 border-b border-amber-900/30 z-30">
         <div className="px-3 sm:px-5 py-2.5 flex items-center gap-3">
@@ -260,6 +267,8 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* The existing org content (AppContent) — desk navigation untouched */}

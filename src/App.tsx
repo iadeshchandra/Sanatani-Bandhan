@@ -228,6 +228,10 @@ const AppContent: React.FC = () => {
   const { showToast } = useToast();
   const { demoUpsellModule, closeDemoUpsell, getDemoStats } = useData();
   const [activeModule, setActiveModule] = useState<string>('dashboard');
+  // F-RBAC-1: "Devotee view" is a chromeless preview of what members see —
+  // the ERP sidebar/header/footer/demo-banner chrome must not leak around it.
+  const isDevoteePreview = activeModule === 'devoteePortal' || activeModule === 'devotee-super-app';
+  const hideErpChrome = effectiveRole === 'Devotee' || isDevoteePreview;
   React.useEffect(() => {
     if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
       const allowedDevoteeDesks = ['devoteePortal', 'devotee-super-app', 'devotee-portal', 'personal-portal', 'devotee-account'];
@@ -721,8 +725,8 @@ const AppContent: React.FC = () => {
   // viewport. OrgSpaceShell is the ONLY renderer of AppContent.
   return (
     <div className="h-full w-full bg-slate-50 text-slate-900 flex flex-col font-sans overflow-hidden">
-      {/* Universal Header (Hidden for Devotee) */}
-      {effectiveRole !== 'Devotee' && (
+      {/* Universal Header (Hidden for Devotee / devotee preview — F-RBAC-1) */}
+      {effectiveRole !== 'Devotee' && !isDevoteePreview && (
         <Header
           activeModule={activeModule}
           onNavigate={(mod) => setActiveModule(mod)}
@@ -738,8 +742,9 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Demo Sandbox banner (replaces the old watermark) */}
-      <DemoBanner onRegister={handleRegister} />
+      {/* Demo Sandbox banner (replaces the old watermark) — hidden in the
+          chromeless devotee preview (F-RBAC-1); it returns with the ERP. */}
+      {!isDevoteePreview && <DemoBanner onRegister={handleRegister} />}
 
       {/* Guided demo tour: 5-step coachmark, once per demo session */}
       <DemoTour
@@ -749,8 +754,8 @@ const AppContent: React.FC = () => {
       />
 
       <div className="flex grow overflow-hidden">
-        {/* Universal 46-Module Sidebar (Hidden for Devotee) */}
-        {effectiveRole !== 'Devotee' && (
+        {/* Universal 46-Module Sidebar (Hidden for Devotee / devotee preview — F-RBAC-1) */}
+        {effectiveRole !== 'Devotee' && !isDevoteePreview && (
           <Sidebar
             activeModule={activeModule}
             onSelectModule={(mod) => setActiveModule(mod)}
@@ -761,8 +766,9 @@ const AppContent: React.FC = () => {
           />
         )}
 
-        {/* Main Content Area */}
-        <main className={`grow p-6 flex flex-col gap-6 overflow-hidden ${effectiveRole === 'Devotee' ? 'p-0 bg-stone-950' : ''}`}>
+        {/* Main Content Area — full-bleed in the devotee preview (F-RBAC-1:
+            no desktop gutter waste around the phone-width pane). */}
+        <main className={`grow flex flex-col gap-6 overflow-hidden ${hideErpChrome ? 'p-0 bg-stone-950' : 'p-6'}`}>
           <div className="flex flex-col grow overflow-y-auto custom-scrollbar">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full text-center">
@@ -785,7 +791,7 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {effectiveRole !== 'Devotee' && (
+      {effectiveRole !== 'Devotee' && !isDevoteePreview && (
         <Footer onOpenTelemetry={() => setIsTelemetryOpen(true)} />
       )}
 
