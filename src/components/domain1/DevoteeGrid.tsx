@@ -775,7 +775,7 @@ export const DevoteeGrid: React.FC = () => {
                 : 'bg-temple-50 text-temple-600 border border-temple-200 hover:bg-temple-100'
             }`}
           >
-            {filter === 'all' ? `All ${taxonomy.memberNoun}s` : filter === 'revoked' ? 'Suspended' : filter}
+            {filter === 'all' ? `All ${taxonomy.memberNoun}` : filter === 'revoked' ? 'Suspended' : filter}
           </button>
         ))}
       </div>
