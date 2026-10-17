@@ -64,6 +64,7 @@ import { MemberSearchSelect } from '../common/MemberSearchSelect';
 import { getTransactions } from '../../services/treasuryService';
 import { GuideButton } from '../suchana/GuideButton';
 import { AuditTrailView } from '../treasury/AuditTrailDesk';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface TreasuryLedgerDeskProps {
   onOpenQuickPay?: () => void;
@@ -190,6 +191,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const { myMemberships } = useMembership();
   const myOrgRole = myMemberships.find((m) => m.workspaceId === workspaceId)?.role || '';
   const [p2pLedgerOpen, setP2pLedgerOpen] = useState(false);
+  // F-TREAS-1: overflow menu for the secondary actions (toolbar shows ≤4).
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const { t, safeTranslate } = useLanguage();
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
   const { showToast } = useToast();
   const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
@@ -743,58 +747,36 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             </p>
           </div>
 
-          {/* Action Toolbar */}
+          {/* Action Toolbar — F-TREAS-1: the 4 most-used actions stay visible;
+              everything else lives under "More actions" (spec §1: restraint). */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <GuideButton moduleId="treasury" className="!text-amber-300 hover:!text-amber-200 hover:!bg-white/10" />
-            {/* Hundi & Golak Dual Audit Desk — upsell in-context when not enabled,
-                instead of a dead navigation to a blocked desk. */}
-            {onNavigate &&
-              (isModuleAvailable('hundi-audit') ? (
-                <button
-                  type="button"
-                  onClick={() => onNavigate('hundi-audit')}
-                  className="px-3.5 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
-                  title="Open Hundi & Golak Dual-Custody Vault & Counting Desk"
-                >
-                  <Lock className="w-4 h-4 text-amber-400" />
-                  <span>Hundi Vault Desk</span>
-                </button>
-              ) : (
-                <ModuleUpsellCard moduleId="hundi-audit" compact onEnable={handleEnableSuggestion} />
-              ))}
 
-            {/* Tally CSV Export */}
+            {/* New Voucher Entry — primary */}
             <button
               type="button"
-              onClick={handleExportTallyCSV}
-              className="px-3.5 py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 border border-indigo-500/50 text-indigo-200 hover:text-white text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
-              title="Download formatted columnar CSV for Tally Prime import"
+              id="new-voucher-entry-btn"
+              onClick={() => {
+                setVoucherType('Expense');
+                setShowVoucherModal(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5 min-h-[44px]"
             >
-              <FileSpreadsheet className="w-4 h-4 text-indigo-400" />
-              <span>Export to Tally (CSV)</span>
+              <Plus className="w-4 h-4 text-temple-950" />
+              <span>{t('org.finance.treasury.newVoucherEntry')}</span>
             </button>
 
-            {/* Statement PDF */}
-            <button
-              type="button"
-              onClick={handleExportPDF}
-              className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
-              title="Print Audited Statement PDF"
-            >
-              <Printer className="w-4 h-4 text-amber-400" />
-              <span>Print Statement (PDF)</span>
-            </button>
-
-            {/* Standard CSV */}
-            <button
-              type="button"
-              onClick={handleExportStandardCSV}
-              className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Export all rows to CSV"
-            >
-              <Download className="w-4 h-4" />
-              <span>Full CSV</span>
-            </button>
+            {/* Quick Chanda Button (If parent passed callback) */}
+            {onOpenQuickPay && (
+              <button
+                type="button"
+                onClick={onOpenQuickPay}
+                className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer min-h-[44px]"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{t('org.finance.treasury.posChanda')}</span>
+              </button>
+            )}
 
             {/* Pillar 4 — Audit Trail: the 10-second "where did my money go?" view */}
             <button
@@ -806,50 +788,124 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   ? 'bg-emerald-600/25 border-emerald-500/60 text-emerald-200'
                   : 'bg-emerald-950 hover:bg-emerald-900 border-emerald-500/50 text-emerald-200 hover:text-white'
               }`}
-              title="Open the tamper-evident audit trail — every rupee's journey"
+              title={safeTranslate(
+                'treasury_audit_trail_title',
+                'Open the tamper-evident audit trail — every rupee\u2019s journey',
+                'টেম্পার-প্রমাণ অডিট ট্রেইল খুলুন — প্রতিটি টাকার যাত্রা',
+                'छेड़छाड़-रहित ऑडिट ट्रेल खोलें — हर रुपये की यात्रा'
+              )}
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>{showAuditTrail ? 'Close Audit Trail' : 'Audit Trail'}</span>
+              <span>
+                {showAuditTrail
+                  ? safeTranslate('treasury_close_audit_trail', 'Close Audit Trail', 'অডিট ট্রেইল বন্ধ করুন', 'ऑडिट ट्रेल बंद करें')
+                  : safeTranslate('treasury_audit_trail', 'Audit Trail', 'অডিট ট্রেইল', 'ऑडिट ट्रेल')}
+              </span>
             </button>
 
-            {/* New Voucher Entry */}
+            {/* Statement PDF */}
             <button
               type="button"
-              id="new-voucher-entry-btn"
-              onClick={() => {
-                setVoucherType('Expense');
-                setShowVoucherModal(true);
-              }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+              onClick={handleExportPDF}
+              className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px]"
+              title={t('org.finance.treasury.printAuditedStatementPdf')}
             >
-              <Plus className="w-4 h-4 text-temple-950" />
-              <span>New Voucher Entry</span>
+              <Printer className="w-4 h-4 text-amber-400" />
+              <span>{t('org.finance.treasury.printStatementPdf')}</span>
             </button>
 
-            {/* Quick Chanda Button (If parent passed callback) */}
-            {onOpenQuickPay && (
+            {/* Overflow — secondary actions (F-TREAS-1: ≤4 visible) */}
+            <div className="relative">
               <button
                 type="button"
-                onClick={onOpenQuickPay}
-                className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
+                onClick={() => setShowMoreActions((v) => !v)}
+                aria-expanded={showMoreActions}
+                aria-haspopup="menu"
+                className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>POS Chanda</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
+                <span>{safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}</span>
               </button>
-            )}
+              {showMoreActions && (
+                <>
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setShowMoreActions(false)}
+                    className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  />
+                  <div
+                    role="menu"
+                    aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
+                    className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-temple-700 bg-temple-900 p-1.5 shadow-2xl"
+                  >
+                    {/* Hundi & Golak Dual Audit Desk — upsell in-context when not enabled,
+                        instead of a dead navigation to a blocked desk. */}
+                    {onNavigate &&
+                      (isModuleAvailable('hundi-audit') ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => { setShowMoreActions(false); onNavigate('hundi-audit'); }}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-300 hover:bg-white/5 transition-colors cursor-pointer"
+                          title={t('org.finance.treasury.openHundiGolakDualcustodyVaultCountingDe')}
+                        >
+                          <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span>{t('org.finance.treasury.hundiVaultDesk')}</span>
+                        </button>
+                      ) : (
+                        <div className="px-1.5 py-1">
+                          <ModuleUpsellCard moduleId="hundi-audit" compact onEnable={handleEnableSuggestion} />
+                        </div>
+                      ))}
 
-            {/* P2P Request Ledger — trustee/accountant only */}
-            {canViewOrgLedger(myOrgRole) && (
-              <button
-                type="button"
-                onClick={() => setP2pLedgerOpen(true)}
-                className="px-3.5 py-2.5 rounded-xl bg-teal-950 hover:bg-teal-900 border border-teal-500/50 text-teal-200 hover:text-white text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
-                title="Open the organisation's P2P money-request ledger"
-              >
-                <Receipt className="w-4 h-4 text-teal-400" />
-                <span>P2P Requests</span>
-              </button>
-            )}
+                    {/* Tally CSV Export */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setShowMoreActions(false); handleExportTallyCSV(); }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-indigo-200 hover:bg-white/5 transition-colors cursor-pointer"
+                      title={t('org.finance.treasury.downloadFormattedColumnarCsvForTallyPrim')}
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <span>{t('org.finance.treasury.exportToTallyCsv')}</span>
+                    </button>
+
+                    {/* Standard CSV */}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setShowMoreActions(false); handleExportStandardCSV(); }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-temple-300 hover:bg-white/5 transition-colors cursor-pointer"
+                      title={t('org.finance.treasury.exportAllRowsToCsv')}
+                    >
+                      <Download className="w-4 h-4 shrink-0" />
+                      <span>{t('org.finance.treasury.fullCsv')}</span>
+                    </button>
+
+                    {/* P2P Request Ledger — trustee/accountant only */}
+                    {canViewOrgLedger(myOrgRole) && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setShowMoreActions(false); setP2pLedgerOpen(true); }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-teal-200 hover:bg-white/5 transition-colors cursor-pointer"
+                        title={safeTranslate(
+                          'treasury_p2p_title',
+                          'Open the organisation\u2019s P2P money-request ledger',
+                          'সংগঠনের P2P অর্থ-অনুরোধ খতিয়ান খুলুন',
+                          'संगठन का P2P धन-अनुरोध खाता खोलें'
+                        )}
+                      >
+                        <Receipt className="w-4 h-4 text-teal-400 shrink-0" />
+                        <span>{safeTranslate('treasury_p2p_requests', 'P2P Requests', 'P2P অনুরোধ', 'P2P अनुरोध')}</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -874,43 +930,48 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
         )}
 
-        {/* Top-Level Financial KPIs (3 Core Metrics) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Total Inflow */}
-          <div className="bg-temple-900/90 border border-emerald-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-emerald-950/15">
-            <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span className="font-bold uppercase tracking-wider">Total Income (Inflow)</span>
-              <ArrowDownLeft className="w-5 h-5 text-emerald-400" />
+        {/* Hero — one big calm number (F-TREAS-1, spec §1: premium = one big
+            calm number, not three competing ones). Inflow/outflow are demoted
+            to the quiet secondary row below. */}
+        <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-b from-amber-950/50 via-temple-900 to-temple-900/90 p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+          <div className="flex items-center justify-center gap-2 text-amber-400">
+            <ShieldCheck className="w-5 h-5 text-amber-400" />
+            <span className="text-xs font-black uppercase tracking-[0.2em]">
+              {t('org.finance.treasury.netAvailableTreasury')}
+            </span>
+          </div>
+          <p className="mt-3 text-4xl sm:text-5xl font-black text-amber-300 tracking-tight">
+            {formatINR(financialKPIs.netBalance)}
+          </p>
+          <p className="mt-2 text-[11px] text-temple-400 font-mono">
+            {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
+          </p>
+        </div>
+
+        {/* Quiet secondary row — inflow / outflow, demoted (F-TREAS-1) */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-temple-800 bg-temple-900/60 px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-temple-500">
+              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500/70" />
+              <span className="truncate">{t('org.finance.treasury.totalIncomeInflow')}</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-emerald-400 mt-2">
+            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
               + {formatINR(financialKPIs.totalIncome)}
             </p>
-            <p className="text-[11px] text-temple-400 mt-1">Pranami, Seva, Annadanam & Hundi Collections</p>
+            <p className="text-[10px] text-temple-500 mt-0.5 truncate">
+              {t('org.finance.treasury.pranamiSevaAnnadanamHundiCollections')}
+            </p>
           </div>
-
-          {/* Total Outflow */}
-          <div className="bg-temple-900/90 border border-rose-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-rose-950/15">
-            <div className="flex items-center justify-between text-xs text-rose-400">
-              <span className="font-bold uppercase tracking-wider">Total Expenses (Outflow)</span>
-              <ArrowUpRight className="w-5 h-5 text-rose-400" />
+          <div className="rounded-2xl border border-temple-800 bg-temple-900/60 px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-temple-500">
+              <ArrowUpRight className="w-3.5 h-3.5 text-rose-500/70" />
+              <span className="truncate">{t('org.finance.treasury.totalExpensesOutflow')}</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-rose-400 mt-2">
+            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
               - {formatINR(financialKPIs.totalExpense)}
             </p>
-            <p className="text-[11px] text-temple-400 mt-1">Sevadar Honorarium, Ghee, Utilities, Maintenance</p>
-          </div>
-
-          {/* Net Treasury Balance */}
-          <div className="bg-temple-900/90 border border-amber-500/40 rounded-2xl p-5 shadow-lg relative overflow-hidden bg-amber-950/15">
-            <div className="flex items-center justify-between text-xs text-amber-400">
-              <span className="font-bold uppercase tracking-wider">Net Available Treasury</span>
-              <ShieldCheck className="w-5 h-5 text-amber-400" />
-            </div>
-            <p className="text-2xl sm:text-3xl font-black text-amber-300 mt-2">
-              {formatINR(financialKPIs.netBalance)}
-            </p>
-            <p className="text-[11px] text-amber-400/90 mt-1 font-mono font-semibold">
-              Reconciled across Bank, Cash & UPI Ledgers
+            <p className="text-[10px] text-temple-500 mt-0.5 truncate">
+              {t('org.finance.treasury.sevadarHonorariumGheeUtilitiesMaintenanc')}
             </p>
           </div>
         </div>
