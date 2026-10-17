@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { ReferralDashboard } from '../sevaPro/ReferralDashboard';
+import { SevaProTopupModal } from '../sevaPro/SevaProTopupModal';
 import { PurohitProvider, usePurohit } from '../../context/PurohitContext';
 import { provisionalSoloProfile } from '../../solo/soloSession';
 import { VerificationBadge } from '../common/VerificationBadge';
@@ -185,6 +186,10 @@ const InnerShell: React.FC = () => {
         {tab === 'marketplace' && <ProviderMarketplace providerType="purohit" providerName={profile?.displayName || ''} />}
         {tab === 'referrals' && <ReferralDashboard />}
       </main>
+
+      {/* Seva Pro Phase 3: listens for `seva-pro:open-topup` (shortfall top-up
+          from SevaCompletionButton) and opens the wallet top-up claim flow. */}
+      <SevaProTopupModal />
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">
         <p className="text-[11px] text-stone-400">

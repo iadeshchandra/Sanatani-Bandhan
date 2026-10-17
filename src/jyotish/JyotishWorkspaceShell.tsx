@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
+import { SevaProTopupModal } from '../components/sevaPro/SevaProTopupModal';
 import { provisionalSoloProfile } from '../solo/soloSession';
 import { JyotishProvider, useJyotish } from '../context/JyotishContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
@@ -188,6 +189,10 @@ const InnerShell: React.FC = () => {
         {tab === 'profile' && <ProfileTab />}
         {tab === 'marketplace' && <ProviderMarketplace providerType="jyotishi" providerName={profile?.displayName || ''} />}
       </main>
+
+      {/* Seva Pro Phase 3: listens for `seva-pro:open-topup` (shortfall top-up
+          from SevaCompletionButton) and opens the wallet top-up claim flow. */}
+      <SevaProTopupModal />
 
       <footer className="max-w-6xl mx-auto px-4 pb-8 text-center">
         <p className="text-[11px] text-stone-400">

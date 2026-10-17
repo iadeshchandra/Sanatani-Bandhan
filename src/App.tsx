@@ -637,6 +637,7 @@ const AppContent: React.FC = () => {
       // Domain 5
       case 'sandeshBroadcast':
       case 'whatsapp-broadcaster':
+      case 'whatsapp-broadcast': // alias dispatched by GlobalSOSListener SOS banner
         return checkPermission(['MANAGER', 'TRUSTEE']) ? <WhatsAppBroadcasterDesk /> : <RestrictedAccess />;
       case 'utsavPanjika':
       case 'events-utsav':
