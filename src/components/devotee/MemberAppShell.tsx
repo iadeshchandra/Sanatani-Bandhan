@@ -30,7 +30,8 @@ export default function MemberAppShell() {
     currentDevotee,
     switchRole,
     logout,
-    exitDemo
+    exitDemo,
+    checkPermission
   } = useAuthWorkspace();
   const { language, setLanguage, safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
@@ -54,7 +55,12 @@ export default function MemberAppShell() {
   // Safe Switch Handler to safely transition back to Organisation View
   // P0-2: If trapped in the demo sandbox, exit it first — "Return to
   // Institution ERP" must land in the real app, never the demo.
+  // V11 RBAC: mirror DevoteeAccountPortal — staff/sevadar clearance required.
   const handleSwitchToOrganisation = () => {
+    if (!checkPermission(['TRUSTEE', 'SEVADAR', 'VOLUNTEER', 'PRIEST', 'PUROHIT', 'ACCOUNTANT', 'MANAGER'])) {
+      showToast('Access Restricted: Mandir Console requires Sevadar, Trustee, or Priest credentials.', 'error', 'Permission Denied');
+      return;
+    }
     if (activeWorkspace?.id?.startsWith('DEMO_')) {
       exitDemo();
       showToast('Exited demo sandbox — welcome to your Institution ERP 🙏', 'success', 'Mode Changed');

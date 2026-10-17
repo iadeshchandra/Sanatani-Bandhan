@@ -346,10 +346,11 @@ export const PoojaBookingDesk: React.FC = () => {
       if (curDevoteeId && b.devoteeId === curDevoteeId) return true;
       if (curDevoteeName && b.devoteeName?.toLowerCase() === curDevoteeName) return true;
       if (curUserName && b.devoteeName?.toLowerCase() === curUserName) return true;
-      // If user is Devotee but no strict match, show their recent submissions
-      return isDevotee;
+      // V3 RBAC: no strict match → no match. Never fall back to showing all
+      // bookings to a devotee (that was a cross-user data leak).
+      return false;
     });
-  }, [puja_bookings, currentDevotee, user, isDevotee]);
+  }, [puja_bookings, currentDevotee, user]);
 
   // Groupings for Master Roster
   const groupedByPriest = useMemo(() => {
@@ -1345,6 +1346,9 @@ const RosterBookingCard: React.FC<{
   onUpdateStatus: (status: 'Confirmed' | 'Completed' | 'In-Progress') => void;
   onCancel: () => void;
 }> = ({ booking, onPrintSankalp, onUpdateStatus, onCancel }) => {
+  // Pre-existing i18n gap (QR-agent commit): module-level card used parent-scope
+  // `t` — wire the hook locally so tsc is clean.
+  const { t } = useLanguage();
   return (
     <div className="bg-temple-950/80 border border-temple-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3 transition-colors">
       <div>
