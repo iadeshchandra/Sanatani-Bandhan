@@ -2,21 +2,42 @@ import React, { useState } from 'react';
 import { FileSpreadsheet, Upload, Download, CheckCircle2, AlertTriangle, Users, Sparkles } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { DEMO_CREATES_PER_MODULE } from '../../context/data/quotaEngine';
 import { generateSampleDevoteeCSV, parseDevoteeCSV, IngestedDevoteeRow } from '../../utils/csvEngine';
 import { useToast } from '../../context/ToastContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const BulkImportDesk: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, safeTranslate } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
-  const { devotees, addDevotee } = useData();
+  const { devotees, addDevotee, getDemoStats } = useData();
   const { showToast } = useToast();
 
   const [parsedRows, setParsedRows] = useState<IngestedDevoteeRow[]>([]);
   const [duplicateCount, setDuplicateCount] = useState(0);
   const [validCount, setValidCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Bulk-import honesty (Track 3, §7): the demo sandbox allows only
+  // DEMO_CREATES_PER_MODULE creates per module — warn BEFORE commit when the
+  // quota will truncate the batch, and count ACTUAL successes afterwards.
+  const isDemoWorkspace = !!activeWorkspace?.id?.startsWith('DEMO_');
+  const usedDevoteeQuota = isDemoWorkspace ? (getDemoStats().perModule['devotees'] || 0) : 0;
+  const remainingQuota = isDemoWorkspace
+    ? Math.max(0, DEMO_CREATES_PER_MODULE - usedDevoteeQuota)
+    : Number.MAX_SAFE_INTEGER;
+  const quotaWillTruncate = isDemoWorkspace && validCount > remainingQuota;
+  const quotaWarning = quotaWillTruncate
+    ? safeTranslate(
+        'bulk_quota_warning',
+        'Demo sandbox: only {a} of {b} will be enrolled — create a free account for the rest.',
+        'ডেমো স্যান্ডবক্স: {b} জনের মধ্যে মাত্র {a} জন নথিভুক্ত হবে — বাকিদের জন্য একটি ফ্রি অ্যাকাউন্ট খুলুন।',
+        'डेमो सैंडबॉक्स: {b} में से केवल {a} नामांकित होंगे — बाकी के लिए एक मुफ़्त खाता बनाएँ।'
+      )
+        .replace('{a}', String(remainingQuota))
+        .replace('{b}', String(validCount))
+    : null;
 
   const handleDownloadSample = () => {
     generateSampleDevoteeCSV();
@@ -53,7 +74,9 @@ export const BulkImportDesk: React.FC = () => {
 
     const validRows = parsedRows.filter((r) => !r.isDuplicate);
     for (const r of validRows) {
-      addDevotee({
+      // Honesty fix (§7): addDevotee returns false when the demo quota blocks
+      // the create — count ACTUAL successes, not attempts.
+      const result = addDevotee({
         workspaceId: activeWorkspace.id,
         fullName: r.fullName,
         spiritualName: r.spiritualName,
@@ -71,12 +94,28 @@ export const BulkImportDesk: React.FC = () => {
         totalDonated: 0,
         volunteerHours: 0,
       });
-      added++;
+      if (result !== false) added++;
     }
 
     setIsProcessing(false);
     setParsedRows([]);
-    showToast(`Successfully enrolled ${added} new devotees with auto-provisioned PINs!`, 'success', 'Batch Ingestion Complete');
+    if (added === validCount) {
+      showToast(`Successfully enrolled ${added} new devotees with auto-provisioned PINs!`, 'success', 'Batch Ingestion Complete');
+    } else {
+      showToast(
+        safeTranslate(
+          'bulk_quota_truncated',
+          'Enrolled {a} of {b} — the demo sandbox allows {q} per module. Create a free account to enroll the rest.',
+          '{b} জনের মধ্যে {a} জন নথিভুক্ত হয়েছে — ডেমো স্যান্ডবক্সে প্রতি মডিউলে {q} জন। বাকিদের জন্য ফ্রি অ্যাকাউন্ট খুলুন।',
+          '{b} में से {a} नामांकित हुए — डेमो सैंडबॉक्स में प्रति मॉड्यूल {q}। बाकी के लिए मुफ़्त खाता बनाएँ।'
+        )
+          .replace('{a}', String(added))
+          .replace('{b}', String(validCount))
+          .replace('{q}', String(DEMO_CREATES_PER_MODULE)),
+        'warning',
+        'Batch Ingestion Complete'
+      );
+    }
   };
 
   return (
@@ -153,6 +192,17 @@ export const BulkImportDesk: React.FC = () => {
               <span>{isProcessing ? 'Enrolling...' : `Commit & Enroll ${validCount} Members`}</span>
             </button>
           </div>
+
+          {/* Pre-commit quota honesty (Track 3, §7): warn BEFORE the quota truncates. */}
+          {quotaWarning && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-xs text-amber-200 leading-relaxed">{quotaWarning}</p>
+            </div>
+          )}
 
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-xs">
