@@ -9,7 +9,7 @@
  * - Audience is gated upstream (alert banner / coordinator dashboard);
  *   this component additionally refuses non-active events.
  *
- * MAP TECH: Leaflet + CARTO basemaps (free, no key; dark tiles at night)
+ * MAP TECH: Leaflet + Esri basemaps (free, no key; dark tiles at night)
  * with OSM fallback, via the shared src/maps/tileProviders module. If all
  * tiles fail (offline / patchy data), degrades to the schematic SVG view —
  * never a blank screen. Offline-first is a standing rule.

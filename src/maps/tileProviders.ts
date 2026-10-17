@@ -2,27 +2,35 @@
  * tileProviders.ts — single source of truth for map tile layers.
  * ============================================================================
  * Every Leaflet map in the app (SOS responder map, campus visitor view,
- * campus builder) renders its base tiles through `addResilientTiles()` below.
+ * campus builder, and all react-leaflet maps via <ResilientTileLayer>)
+ * renders its base tiles through `addResilientTiles()` below.
  *
  * PROVIDER CHAIN (all $0, no API keys, no billing):
- *   1. CARTO basemaps (primary) — free with attribution, prettier cartography
- *      than raw OSM. Light: `voyager` · Dark: `dark_all`.
+ *   1. Esri basemaps (primary) — free to embed with attribution, no key.
+ *      Light: World Topo Map · Dark: Dark Gray Canvas (battery-friendly
+ *      night maps). Note the Esri tile URL order is {z}/{y}/{x}.
  *   2. OpenStreetMap standard (fallback) — the community tile service.
  *   3. The app's own offline schematic SVG (final fallback — handled by the
  *      caller via `onAllFailed`; the map never blank-screens).
  *
+ * WHY NOT CARTO: since 25 September 2026 CARTO raster tiles require a free
+ * API key (their tiles now render "API KEY REQUIRED" without one). If the
+ * owner ever requests a key (1 minute, no account, carto.com/basemaps/apikey)
+ * it can be re-added here as primary with `?key=` — until then Esri is the
+ * best keyless option. Google Maps is permanently off the table: it needs a
+ * billing account and violates the project's $0 / no-card rule.
+ *
  * USAGE-POLICY NOTES (please keep these true):
- *   - CARTO basemaps are free for this use with the attribution line below.
- *     See https://carto.com/basemaps/ for terms.
+ *   - Esri basemaps are free to embed with the attribution line below.
+ *     See https://www.esri.com/en-us/legal/terms/full-master-agreement
+ *     (free basemap use) — do not strip the attribution.
  *   - OSM's tile servers are donation-funded: no bulk downloading / scraping,
  *     normal interactive panning only. The browser sends an identifying
  *     Referer automatically. If traffic ever outgrows fair use, switch the
  *     primary to a dedicated tile host — this module is the only file to edit.
- *   - Never add Google Maps tiles here: they require a billing account and
- *     violate the project's $0 / no-card rule.
  */
 
-export type TileProviderId = 'carto-voyager' | 'carto-dark' | 'osm-standard';
+export type TileProviderId = 'esri-topo' | 'esri-dark' | 'osm-standard';
 
 export interface TileProvider {
   id: TileProviderId;
@@ -31,26 +39,24 @@ export interface TileProvider {
   /** Exact attribution HTML — required by the provider's terms. */
   attribution: string;
   maxZoom: number;
-  /** Subdomain pool for parallel tile fetching. */
-  subdomains: string;
+  /** Subdomain pool for parallel tile fetching (omit when the URL has no {s}). */
+  subdomains?: string;
 }
 
 export const TILE_PROVIDERS: Record<TileProviderId, TileProvider> = {
-  'carto-voyager': {
-    id: 'carto-voyager',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  'esri-topo': {
+    id: 'esri-topo',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 20,
-    subdomains: 'abcd',
+      'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community',
+    maxZoom: 19,
   },
-  'carto-dark': {
-    id: 'carto-dark',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
+  'esri-dark': {
+    id: 'esri-dark',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 20,
-    subdomains: 'abcd',
+      'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, DeLorme, NAVTEQ',
+    maxZoom: 16,
   },
   'osm-standard': {
     id: 'osm-standard',
@@ -65,8 +71,8 @@ export const TILE_PROVIDERS: Record<TileProviderId, TileProvider> = {
 /** Ordered failover chain for a given theme. */
 function chainFor(dark: boolean): TileProviderId[] {
   return dark
-    ? ['carto-dark', 'osm-standard']
-    : ['carto-voyager', 'osm-standard'];
+    ? ['esri-dark', 'osm-standard']
+    : ['esri-topo', 'osm-standard'];
 }
 
 /**
@@ -114,7 +120,7 @@ export interface ResilientTilesHandle {
 /**
  * Adds a tile layer to a Leaflet map with automatic provider failover.
  *
- * Chain: CARTO (voyager or dark_all) → OSM standard → `onAllFailed`.
+ * Chain: Esri (topo or dark canvas) → OSM standard → `onAllFailed`.
  * A handful of consecutive `tileerror` events moves to the next provider;
  * any successful `tileload` resets the counter. The first provider is chosen
  * by theme (dark option or OS preference).
