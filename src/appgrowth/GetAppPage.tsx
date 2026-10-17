@@ -366,7 +366,7 @@ export const GetAppPage: React.FC = () => {
           }}
           aria-hidden="true"
         />
-        <div className="ag-flame pointer-events-none absolute left-1/2 top-16 -translate-x-1/2 text-6xl sm:text-7xl" aria-hidden="true">
+        <div className="ag-flame pointer-events-none absolute left-1/2 top-6 -translate-x-1/2 text-6xl sm:text-7xl" aria-hidden="true">
           🪔
         </div>
 
