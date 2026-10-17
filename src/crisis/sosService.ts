@@ -215,6 +215,8 @@ interface VoiceOutboxEntry {
   eventId: string;
   uid: string;
   blob: Blob;
+  /** Crisis tenant for shared upload; null → private fallback. */
+  tenantId: string | null;
   queuedAt: number;
 }
 
@@ -256,14 +258,24 @@ async function removeStagedVoiceNote(eventId: string): Promise<void> {
   }
 }
 
-async function uploadVoiceNote(uid: string, eventId: string, blob: Blob): Promise<string> {
-  // Private by design: the voice note's bytes stay on the sender's device
-  // (IndexedDB); Firestore holds only a metadata pointer. No cloud upload,
-  // no Storage dependency — $0 on Spark.
+async function uploadVoiceNote(
+  uid: string,
+  eventId: string,
+  blob: Blob,
+  tenantId: string | null
+): Promise<string> {
+  // Crisis-shared: the voice note's bytes upload to Firestore so the
+  // response team can hear them (`visibility: 'crisis'`, reads gated to
+  // tenant members by the security rules). Safety-critical audio MUST
+  // reach responders.
+  // No tenant (solo SOS without a workspace): falls back to private —
+  // bytes stay on the sender's device, metadata pointer only.
+  const visibility = tenantId ? 'crisis' : 'private';
   const { fileId } = await uploadFile(blob, {
-    visibility: 'private',
+    visibility,
     category: 'voice',
     ownerUid: uid,
+    ...(visibility === 'crisis' ? { tenantId } : {}),
     fileName: `sos-voice-${eventId}.webm`,
   });
   return vaultUrl(fileId);
@@ -278,7 +290,7 @@ export async function flushVoiceOutbox(eventId: string): Promise<void> {
   const entry = await drainVoiceNote(eventId).catch(() => null);
   if (!entry) return;
   try {
-    const url = await uploadVoiceNote(entry.uid, entry.eventId, entry.blob);
+    const url = await uploadVoiceNote(entry.uid, entry.eventId, entry.blob, entry.tenantId ?? null);
     await updateDoc(doc(db, CRISIS_COLLECTIONS.events, eventId), { voiceNoteUrl: url });
     await removeStagedVoiceNote(eventId);
   } catch {
@@ -345,13 +357,20 @@ export async function triggerSOS(input: TriggerSOSInput): Promise<string> {
   const eventId = refDoc.id;
 
   // Voice note: upload now, or stage for reconnect. Never blocks the SOS.
+  // The sender's workspace id becomes the crisis tenant so the response
+  // team can play the note (rules-gated); solo SOS without a workspace
+  // falls back to device-local private storage.
   if (input.voiceNoteBlob) {
-    uploadVoiceNote(uid, eventId, input.voiceNoteBlob)
+    uploadVoiceNote(uid, eventId, input.voiceNoteBlob, sender.workspaceId)
       .then((url) => updateDoc(eventDoc(eventId), { voiceNoteUrl: url }).catch(() => undefined))
       .catch(async () => {
-        await stageVoiceNote({ eventId, uid, blob: input.voiceNoteBlob as Blob, queuedAt: Date.now() }).catch(
-          () => undefined
-        );
+        await stageVoiceNote({
+          eventId,
+          uid,
+          blob: input.voiceNoteBlob as Blob,
+          tenantId: sender.workspaceId,
+          queuedAt: Date.now(),
+        }).catch(() => undefined);
       });
   }
 

@@ -254,4 +254,46 @@ describe('uploadFile validation', () => {
       uploadFile(blob, { visibility: 'public', category: 'other', ownerUid: '' })
     ).rejects.toThrow('filevault/auth-required');
   });
+
+  it('requires a tenantId for crisis visibility', async () => {
+    const blob = new Blob([randomBytes(10)], { type: 'application/octet-stream' });
+    await expect(
+      uploadFile(blob, { visibility: 'crisis', category: 'voice', ownerUid: 'test-uid-1' })
+    ).rejects.toThrow('filevault/tenant-required');
+  });
+});
+
+describe('uploadFile (crisis)', () => {
+  it('uploads bytes to Firestore with visibility + tenantId in metadata', async () => {
+    const blob = new Blob([randomBytes(50 * 1024)], { type: 'audio/webm' });
+    const { fileId, url } = await uploadFile(blob, {
+      visibility: 'crisis',
+      category: 'voice',
+      ownerUid: 'test-uid-1',
+      tenantId: 'ws-test-123',
+      fileName: 'sos-voice-evt1.webm',
+    });
+
+    expect(url).toBe(`vault://${fileId}`);
+
+    // Bytes ARE in Firestore (single doc) — the response team can read them.
+    const meta = mockStore.get(`fileVault/${fileId}`);
+    expect(meta).toBeDefined();
+    expect(meta.visibility).toBe('crisis');
+    expect(meta.tenantId).toBe('ws-test-123');
+    expect(meta.localOnly).toBeFalsy();
+    expect(typeof meta.data).toBe('string');
+    expect(meta.data.length).toBeGreaterThan(0);
+
+    // Nothing went to the device store.
+    expect(putPrivateFileMock).not.toHaveBeenCalled();
+
+    // And the bytes round-trip intact.
+    const file = await getFile(fileId);
+    expect(file).not.toBeNull();
+    expect(file!.contentType).toBe('audio/webm');
+    expect(new Uint8Array(await file!.blob.arrayBuffer())).toEqual(
+      new Uint8Array(await blob.arrayBuffer())
+    );
+  });
 });

@@ -70,8 +70,11 @@ interface Props {
 
 /**
  * Plays an SOS voice note. Vault references (`vault://…`) resolve to a Blob
- * URL on the sender's device; everywhere else a calm notice is shown instead
- * of a dead player — private voice notes never leave the sender's device.
+ * URL: crisis-shared notes (`visibility: 'crisis'`) are readable by the
+ * response team via the tenant-gated Firestore rules, so coordinators on
+ * any device can play them. The calm notice below appears only when the
+ * note genuinely can't be resolved (missing, permissions, or a legacy
+ * device-local private note) — never a dead player.
  */
 const VoiceNotePlayer: React.FC<{ url: string; label: string }> = ({ url, label }) => {
   const [src, setSrc] = useState<string | null>(isVaultUrl(url) ? null : url);

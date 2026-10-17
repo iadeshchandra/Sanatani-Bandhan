@@ -2,15 +2,28 @@
  * Sanatani Bandhan — Zero-Cost File Vault
  * ============================================================================
  * Replaces Firebase Storage (which requires a Blaze billing account since
- * Feb 2026) with a Firestore + IndexedDB hybrid that costs $0 on Spark:
+ * Feb 2026) with a Firestore + IndexedDB hybrid that costs $0 on Spark.
+ *
+ * Three visibility tiers:
  *
  *   PUBLIC files   → Firestore `fileVault/{fileId}` as base64
  *                    (single doc ≤700KB raw; chunked subcollection above that)
+ *                    Readable by any signed-in user.
+ *   CRISIS files   → Firestore `fileVault/{fileId}` as base64, exactly like
+ *                    public — PLUS a `tenantId` field. Security rules gate
+ *                    reads to tenant members of that crisis
+ *                    (`visibility == 'crisis' && isTenantMember(tenantId)`).
+ *                    Used for SOS voice notes so the response team can hear
+ *                    them. Safety-critical audio MUST reach responders.
  *   PRIVATE files  → IndexedDB on this device ONLY. Firestore holds a tiny
  *                    metadata pointer (`localOnly: true`). Bytes never upload.
+ *                    For verification documents and other sensitive material
+ *                    that must stay under the user's physical control.
  *
  * Every file is content-addressed (SHA-256): uploading the same bytes twice
  * costs one document — re-uploads are a single cached read, not a write.
+ * (Private ids are namespaced with `p_` so a public re-upload of identical
+ * bytes can never resolve to — or leak — the private copy.)
  *
  * URLs use the `vault://{fileId}` scheme. Resolve them with `getFileUrl()`
  * (Blob URL, for <img>/<audio> src) or `resolveVaultUrl()` (pass-through for
@@ -46,7 +59,7 @@ import {
 /* Types                                                               */
 /* ------------------------------------------------------------------ */
 
-export type VaultVisibility = 'public' | 'private';
+export type VaultVisibility = 'public' | 'crisis' | 'private';
 export type VaultCategory =
   | 'avatar'
   | 'orgLogo'
@@ -61,6 +74,12 @@ export interface UploadOptions {
   category: VaultCategory;
   /** UID of the uploader — bound into Firestore rules (owner-only write). */
   ownerUid: string;
+  /**
+   * Required when visibility is 'crisis': the crisis event's tenant/
+   * workspace id. Security rules gate crisis reads to tenant members of
+   * this id (`isTenantMember(tenantId)`). Ignored for other visibilities.
+   */
+  tenantId?: string | null;
   fileName?: string;
 }
 
@@ -292,6 +311,8 @@ interface VaultMeta {
   hash: string;
   fileName: string;
   chunkCount: number;
+  /** Set for 'crisis' visibility — the tenant allowed to read this file. */
+  tenantId?: string | null;
   localOnly?: boolean;
   data?: string;
   createdAt: unknown;
@@ -308,6 +329,9 @@ export async function uploadFile(
 ): Promise<UploadResult> {
   const { visibility, category, ownerUid } = opts;
   if (!ownerUid) throw new Error('filevault/auth-required');
+  if (visibility === 'crisis' && !opts.tenantId) {
+    throw new Error('filevault/tenant-required');
+  }
 
   let blob: Blob = file instanceof Blob ? file : new Blob([file as BlobPart]);
   if (blob.type.startsWith('image/')) {
@@ -339,6 +363,9 @@ export async function uploadFile(
     hash,
     fileName,
     chunkCount: 0,
+    // Crisis files carry the tenant id so rules can gate reads to the
+    // response team. Public/private omit it.
+    ...(visibility === 'crisis' ? { tenantId: opts.tenantId } : {}),
     createdAt: serverTimestamp() as unknown as number,
   };
 
@@ -356,6 +383,8 @@ export async function uploadFile(
     return { fileId, url: vaultUrl(fileId) };
   }
 
+  // 'public' and 'crisis' both upload bytes to Firestore (single doc or
+  // chunked). Crisis reads are gated by tenantId in the security rules.
   if (bytes.length <= VAULT_SINGLE_DOC_MAX) {
     await setDoc(metaRef, { ...baseMeta, data: bytesToBase64(bytes) });
     return { fileId, url: vaultUrl(fileId) };
