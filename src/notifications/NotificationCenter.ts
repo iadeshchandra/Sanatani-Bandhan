@@ -52,7 +52,7 @@ import {
   writeSuchanaHook,
   writePrefsDoc,
 } from './delivery';
-import { createOutbox, type OutboxStore } from './outbox';
+import { createOutbox, backoffMs, type OutboxStore } from './outbox';
 
 export interface CenterConfig {
   uid: string;
@@ -71,6 +71,8 @@ export interface DrainReport {
   replayed: number;
   digested: number;
   dropped: number;
+  /** Kept in the outbox for a later retry (failed delivery or backoff wait). */
+  retried: number;
 }
 
 function newId(prefix: string): string {
@@ -132,6 +134,9 @@ class NotificationCenter {
     this.bindNetworkEvents();
     // Fire-and-forget: the outbox must not block sign-in.
     void this.drainOutbox().catch(() => undefined);
+    // Quiet-hours holds may have expired while the app was closed —
+    // release them now (in-app cards were already written at emit time).
+    void this.flushHeld().catch(() => undefined);
   }
 
   getPrefs(): NotificationPrefs {
@@ -159,6 +164,11 @@ class NotificationCenter {
   async emit(event: NotifyEvent): Promise<EmitResult> {
     if (!this.uid) throw new Error('NotificationCenter not configured — call configure() first.');
     const now = Date.now();
+
+    // Self-release: quiet-hours/DND holds expire on their own clock, and a
+    // PWA has no reliable background timer — so every emit opportunistically
+    // releases expired holds (throttled inside maybeFlushHeld).
+    void this.maybeFlushHeld(now).catch(() => undefined);
 
     if (event.expiresAt !== undefined && event.expiresAt <= now) {
       return {
@@ -221,7 +231,13 @@ class NotificationCenter {
     }
 
     const item = this.buildItem(uid, event, decision, now);
-    await deliver({ uid, item, decision });
+    const { ok, errors } = await deliver({ uid, item, decision });
+    if (!ok) {
+      // Surface delivery failure to the caller. The outbox replay path
+      // keeps the event for backoff retry (never deletes undelivered
+      // events); live emit() callers report it via their own handling.
+      throw new Error(`delivery failed: ${errors.join('; ') || 'unknown error'}`);
+    }
     return {
       status: decision.holdUntil !== null ? 'held' : 'delivered',
       itemId: item.id,
@@ -261,31 +277,57 @@ class NotificationCenter {
    * Drain the offline outbox. Gentle items older than 6h go straight to the
    * digest (never ping); important/critical replay normally; expired items
    * are dropped quietly.
+   *
+   * INTEGRITY RULE: an entry leaves the outbox ONLY after its delivery
+   * succeeds. A failed replay keeps the entry and schedules it for a later
+   * attempt with exponential backoff (capped at 15 min) — an undelivered
+   * event (e.g. a critical SOS reassurance) is never deleted for failing.
+   * Expired events are the single exception: their moment has passed.
    */
   async drainOutbox(): Promise<DrainReport> {
-    if (!this.uid || this.draining) return { replayed: 0, digested: 0, dropped: 0 };
+    if (!this.uid || this.draining) return { replayed: 0, digested: 0, dropped: 0, retried: 0 };
     // Never drain while offline — failed Firestore writes must not eat the queue.
-    if (!this.online()) return { replayed: 0, digested: 0, dropped: 0 };
+    if (!this.online()) return { replayed: 0, digested: 0, dropped: 0, retried: 0 };
     this.draining = true;
-    const report: DrainReport = { replayed: 0, digested: 0, dropped: 0 };
+    const report: DrainReport = { replayed: 0, digested: 0, dropped: 0, retried: 0 };
     try {
       const now = Date.now();
       const queued = await this.outbox.list();
       for (const q of queued) {
         if (q.uid !== this.uid) continue;
+        // Backoff gate: a failed replay waits its turn — never spins hot.
+        if (q.nextRetryAt !== undefined && q.nextRetryAt > now) {
+          report.retried += 1;
+          continue;
+        }
         const verdict = classifyReplay(q, now);
         if (verdict === 'drop') {
+          await this.outbox.remove(q.id).catch(() => undefined);
           report.dropped += 1;
-        } else if (verdict === 'digest') {
-          const decision = digestOnlyDecision(digestWindowPref(this.prefs));
-          const item = this.buildItem(q.uid, q, decision, now);
-          await deliver({ uid: q.uid, item, decision });
-          report.digested += 1;
-        } else {
-          await this.emitOnline(q, now);
-          report.replayed += 1;
+          continue;
         }
-        await this.outbox.remove(q.id);
+        try {
+          if (verdict === 'digest') {
+            const decision = digestOnlyDecision(digestWindowPref(this.prefs));
+            const item = this.buildItem(q.uid, q, decision, now);
+            const { ok, errors } = await deliver({ uid: q.uid, item, decision });
+            if (!ok) throw new Error(errors.join('; ') || 'delivery failed');
+            report.digested += 1;
+          } else {
+            // emitOnline throws when delivery fails — see the catch below.
+            await this.emitOnline(q, now);
+            report.replayed += 1;
+          }
+          // Delivered: only now may the entry leave the outbox.
+          await this.outbox.remove(q.id).catch(() => undefined);
+        } catch (e) {
+          // Delivery failed: keep the entry, retry with backoff.
+          const attempts = (q.attempts || 0) + 1;
+          await this.outbox
+            .enqueue({ ...q, attempts, nextRetryAt: now + backoffMs(attempts) })
+            .catch(() => undefined);
+          report.retried += 1;
+        }
       }
     } finally {
       this.draining = false;
@@ -296,8 +338,16 @@ class NotificationCenter {
   // ------------------------------------------------------------ held items
   /**
    * Release pushes whose quiet-hours/DND hold has expired. Called when
-   * quiet hours end (Phase 3 scheduler), when DND is switched off, and on
-   * configure() — the in-app cards were already written at emit time.
+   * quiet hours end, when DND is switched off, on configure(), on app
+   * foreground (see NotificationWiring), and opportunistically on every
+   * emit() via maybeFlushHeld() — the in-app cards were already written
+   * at emit time, so this only dispatches the deferred push requests.
+   *
+   * ARCHITECTURE NOTE: there is deliberately no background timer or
+   * scheduler for this. A PWA cannot rely on timers while backgrounded,
+   * so held notifications self-release instead: every entry point that
+   * means "the devotee is here now" (configure/boot, foreground return,
+   * any emit) checks holdUntil and releases what's due.
    */
   async flushHeld(now: number = Date.now()): Promise<number> {
     if (!this.uid) return 0;
@@ -331,6 +381,19 @@ class NotificationCenter {
       }
     }
     return released;
+  }
+
+  private lastFlushHeldAt = 0;
+
+  /**
+   * Opportunistic held-release for the self-release contract: runs
+   * flushHeld() at most once per 60 seconds so hot paths (every emit,
+   * foreground returns) stay cheap while no expired hold waits long.
+   */
+  async maybeFlushHeld(now: number = Date.now()): Promise<number> {
+    if (now - this.lastFlushHeldAt < 60_000) return 0;
+    this.lastFlushHeldAt = now;
+    return this.flushHeld(now);
   }
 
   private async readItemForRelease(

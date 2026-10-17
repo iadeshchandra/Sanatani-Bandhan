@@ -402,8 +402,27 @@ export async function cancelSOS(eventId: string, wasFalseAlarm = false): Promise
 }
 
 /**
- * A responder taps "I'm coming". Writes responses/{uid} and bumps the
- * denormalized ackCount atomically. Idempotent per uid.
+ * A responder taps "I'm coming".
+ *
+ * - The responder's own response doc is the exactly-once record of their
+ *   ack (idempotent by doc id): always written, even on a resolved event.
+ * - The denormalized counters are exactly-once PER UID: responses/{uid}
+ *   exists ⟺ this devotee already acked (the doc is only ever created
+ *   here), so the increment runs only for a new uid — double-tapping
+ *   never double-counts.
+ * - Terminal states are never resurrected: if the event is already
+ *   `resolved` or `cancelled`, the ack is recorded (response doc) but the
+ *   status is left alone.
+ *
+ * Why not an `ackedBy` array + transaction: this service is offline-first
+ * (writes queue via Firestore persistence; runTransaction needs a live
+ * server round-trip and fails offline), and firestore.rules pins the ack
+ * bump to ['status','ackCount','responderCount','updatedAt'] — a new field
+ * would be rules-denied. The responses subcollection already tracks acked
+ * uids exactly-once by doc id, so no schema or rules change is needed.
+ * Residual race (same uid acking from two devices in the same sync
+ * window) is cosmetic; the responses subcollection stays the source of
+ * truth.
  */
 export async function ackSOS(
   eventId: string,
@@ -417,7 +436,37 @@ export async function ackSOS(
     distanceM: responder.distanceM ?? null,
     createdAt: Date.now(),
   };
+
+  // Idempotency signal, read BEFORE writing: responses/{uid} exists ⟺ this
+  // devotee already acked. Cache-served when offline and includes our own
+  // pending writes via latency compensation, so a double-tap counts once.
+  let alreadyAcked = false;
+  try {
+    const prior = await getDoc(doc(responsesCol(eventId), responder.uid));
+    alreadyAcked = prior.exists();
+  } catch {
+    // Read failed: fall through — the terminal-state guard below still
+    // runs, and a duplicate count here would only be cosmetic.
+  }
+
+  // Always written (idempotent by doc id): the ack itself is recorded even
+  // on a resolved/cancelled event.
   await setDoc(doc(responsesCol(eventId), responder.uid), response, { merge: true });
+
+  // Terminal states are never resurrected.
+  let terminal = false;
+  try {
+    const snap = await getDoc(eventDoc(eventId));
+    if (snap.exists()) {
+      const status = (snap.data() as Partial<CrisisEvent>).status as SOSStatus | undefined;
+      terminal = status === 'resolved' || status === 'cancelled';
+    }
+  } catch {
+    // Read failed: attempt the guarded write anyway (best-effort, as before).
+  }
+
+  if (terminal || alreadyAcked) return;
+
   await updateDoc(eventDoc(eventId), {
     ackCount: increment(1),
     responderCount: increment(1),

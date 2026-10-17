@@ -54,7 +54,7 @@ export interface SangamPost {
   isOfficialPagePost: boolean;
   kind: PostKind;
   text: string;
-  imageUrl?: string; // photo posts: URL only in v1 (no uploads) — honest scope
+  imageUrl?: string; // photo posts: https:// URL or vault:// File Vault reference (public tier)
   shlokaRef?: string; // shloka posts: source reference e.g. "Bhagavad Gita 2.47"
   seva?: SevaDetails; // seva posts: opportunity details
   eventRef?: string; // event posts: link to a sangamEvents doc

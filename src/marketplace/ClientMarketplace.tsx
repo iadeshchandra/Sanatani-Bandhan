@@ -6,6 +6,7 @@
  * rate. Disputes if needed.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Star, Clock, X, CheckCircle2, RefreshCw, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import {
@@ -15,7 +16,7 @@ import {
 import { detectRail } from '../lib/rail2';
 import { Rail2PaymentScreen } from './Rail2PaymentScreen';
 import { CommissionPayScreen } from './CommissionPayScreen';
-import { detectPayRegion } from '../lib/geoDetect';
+import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { getPaymentMethods, indianPaymentsReady } from '../lib/paymentMethods';
 import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
 import { useLanguage } from '../context/LanguageContext';
@@ -68,7 +69,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const { showToast } = useToast();
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
-  const [region, setRegion] = useState<'BD' | 'IN' | 'INTL'>('BD');
+  const [region, setRegion] = useState<PayRegion>('BD');
   /** IN fallback: until the owner configures the UPI QR, Indian users pay via the international rail. */
   const [inReady, setInReady] = useState(false);
   const [payRef, setPayRef] = useState('');
@@ -342,6 +343,22 @@ export const ClientMarketplace: React.FC = () => {
       </div>
       {view === 'bookings' ? <MyBookings /> : (
         <>
+          {/* Seva journey planner: occasion-first samskara bundles (counsel + ritual, one view). */}
+          <Link
+            to="/seva/journeys"
+            className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 min-h-[44px] hover:border-amber-400 transition-colors"
+          >
+            <span className="text-2xl" aria-hidden="true">🪔</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-black text-stone-900">
+                {L === 'en' ? 'Planning a samskara or life event?' : L === 'bn' ? 'কোনো সংস্কার বা জীবনের অনুষ্ঠানের পরিকল্পনা?' : 'किसी संस्कार या जीवन-उत्सव की योजना?'}
+              </span>
+              <span className="block text-xs text-stone-600 mt-0.5">
+                {L === 'en' ? 'Bundle jyotish counsel + the sacred rite in one guided journey.' : L === 'bn' ? 'এক নির্দেশিত যাত্রায় জ্যোতিষ পরামর্শ + পবিত্র বিধি একসাথে।' : 'एक निर्देशित यात्रा में ज्योतिष परामर्श + पवित्र विधि एक साथ।'}
+              </span>
+            </span>
+            <ChevronLeft className="w-5 h-5 text-amber-600 rotate-180 shrink-0" aria-hidden="true" />
+          </Link>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search puja, kundli, havan…" className={`${inputCls} pl-9`} />

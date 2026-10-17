@@ -382,13 +382,27 @@ export const HowItWorksSection: React.FC<ContentProp> = (props) => {
 /* 6. Trust signals                                                    */
 /* ------------------------------------------------------------------ */
 
-// TODO(appgrowth): these counts are hardcoded placeholders. The Admin
-// builder's content editor should wire them to live values (e.g. from a
-// public stats doc) — do NOT ship real claims without owner-verified data.
-const TRUST_COUNTS = [
-  { value: '500+', en: 'Temples connected', bn: 'সংযুক্ত মন্দির', hi: 'जुड़े मंदिर' },
-  { value: '50,000+', en: 'Devotees', bn: 'ভক্ত', hi: 'भक्त' },
-  { value: '3', en: 'Languages', bn: 'ভাষা', hi: 'भाषाएँ' },
+// Honest by design: these are warm, claim-free value props — never invented
+// counts. Real numbers may only appear here from owner-verified data.
+const TRUST_POINTS = [
+  {
+    icon: '🛕',
+    en: 'Made for every mandir — from village shrines to Tirupati-scale trusts',
+    bn: 'প্রতিটি মন্দিরের জন্য — গ্রামের ছোট মন্দির থেকে তিরুপতির মতো বড় ট্রাস্ট পর্যন্ত',
+    hi: 'हर मंदिर के लिए — गाँव के छोटे मंदिर से तिरुपति जैसे बड़े ट्रस्ट तक',
+  },
+  {
+    icon: '📴',
+    en: 'Works without internet — your seva never waits on a signal',
+    bn: 'ইন্টারনেট ছাড়াই চলে — আপনার সেবা সিগন্যালের অপেক্ষায় থাকে না',
+    hi: 'इंटरनेट के बिना चलता है — आपकी सेवा सिग्नल की प्रतीक्षा नहीं करती',
+  },
+  {
+    icon: '🙏',
+    en: 'Dharma at the centre — dignity in every screen',
+    bn: 'কেন্দ্রে ধর্ম — প্রতিটি পর্দায় মর্যাদা',
+    hi: 'केंद्र में धर्म — हर स्क्रीन में गरिमा',
+  },
 ];
 
 const TRUST_BADGES = [
@@ -428,13 +442,13 @@ export const TrustSection: React.FC<ContentProp> = (props) => {
     title={<Tr en="A growing family of faith" bn="বিশ্বাসের বর্ধনশীল পরিবার" hi="आस्था का बढ़ता परिवार" />}
   >
     <div className="mb-8 grid grid-cols-3 gap-3 sm:gap-6">
-      {TRUST_COUNTS.map((c) => (
+      {TRUST_POINTS.map((c) => (
         <div
           key={c.en}
           className="rounded-3xl border border-orange-100 bg-white px-2 py-6 text-center shadow-sm"
         >
-          <p className="text-2xl font-black text-orange-600 sm:text-4xl">{c.value}</p>
-          <p className="mt-1 text-xs font-bold text-stone-600 sm:text-sm">
+          <p className="text-2xl sm:text-4xl" aria-hidden="true">{c.icon}</p>
+          <p className="mt-2 text-xs font-bold leading-relaxed text-stone-600 sm:text-sm">
             <Tr en={c.en} bn={c.bn} hi={c.hi} />
           </p>
         </div>

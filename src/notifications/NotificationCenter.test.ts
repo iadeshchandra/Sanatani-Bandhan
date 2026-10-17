@@ -465,7 +465,7 @@ describe('NotificationCenter pipeline (mocked Firestore)', () => {
 
     // Still offline: drain must NOT consume the queue.
     const kept = await center.drainOutbox();
-    expect(kept).toEqual({ replayed: 0, digested: 0, dropped: 0 });
+    expect(kept).toEqual({ replayed: 0, digested: 0, dropped: 0, retried: 0 });
     expect(await outbox.list()).toHaveLength(1);
 
     // Reconnect: the fresh gentle event replays through the normal pipeline.
@@ -511,7 +511,40 @@ describe('NotificationCenter pipeline (mocked Firestore)', () => {
       queuedAt: now - 60_000,
     });
     const report = await center.drainOutbox();
-    expect(report).toEqual({ replayed: 1, digested: 1, dropped: 1 });
+    expect(report).toEqual({ replayed: 1, digested: 1, dropped: 1, retried: 0 });
+    expect(await outbox.list()).toHaveLength(0);
+  });
+
+  it('drainOutbox keeps failed replays and retries with backoff — never deletes undelivered events', async () => {
+    const { center, outbox } = await setup({ online: true });
+    const now = Date.now();
+    await outbox.enqueue({
+      ...baseEvent({ priority: 'important', dedupeKey: 'k-fail' }),
+      id: 'q-f',
+      uid: 'u-devotee',
+      queuedAt: now - 60_000,
+    });
+    // Delivery fails (e.g. Firestore unreachable between the online check
+    // and the write): the entry must survive, with backoff scheduled.
+    (setDoc as jest.Mock).mockRejectedValueOnce(new Error('unavailable'));
+    const report = await center.drainOutbox();
+    expect(report).toEqual({ replayed: 0, digested: 0, dropped: 0, retried: 1 });
+    const kept = await outbox.list();
+    expect(kept).toHaveLength(1);
+    expect(kept[0].attempts).toBe(1);
+    expect(kept[0].nextRetryAt).toBeGreaterThan(now);
+
+    // Still inside the backoff window: the drain must not spin hot.
+    const again = await center.drainOutbox();
+    expect(again.retried).toBe(1);
+    expect(await outbox.list()).toHaveLength(1);
+
+    // After the window passes and delivery succeeds, the entry is removed.
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+    const matured = kept[0];
+    await outbox.enqueue({ ...matured, nextRetryAt: Date.now() - 1 });
+    const done = await center.drainOutbox();
+    expect(done.replayed).toBe(1);
     expect(await outbox.list()).toHaveLength(0);
   });
 

@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, SyncLabel, useLocaleText, T } from './ui';
 import type { SangamPost, PostKind, SangamReport } from './types';
+import { uploadFile, resolveVaultUrl } from '../lib/fileVault';
 
 /* Sangam Feed — the personal home feed.
  * =====================================================================
@@ -20,8 +21,26 @@ const KIND_TABS: Array<{ id: PostKind | 'all'; en: string; bn: string; hi: strin
   { id: 'event', en: 'Events', bn: 'অনুষ্ঠান', hi: 'आयोजन', icon: '🎪' },
 ];
 
-const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {
-  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online } = useSangam();
+/** Renders a post photo: resolves `vault://` uploads to blob URLs, passes
+ *  plain https: URLs through untouched. Shows a soft placeholder while the
+ *  vault file loads (and nothing at all if it is gone). */
+const FeedImage: React.FC<{ url: string }> = ({ url }) => {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    resolveVaultUrl(url).then((r) => { if (live) setSrc(r); }).catch(() => { if (live) setSrc(null); });
+    return () => { live = false; };
+  }, [url]);
+  if (!src) return <div className="w-full h-40 bg-stone-100 animate-pulse rounded-xl" aria-hidden="true" />;
+  return (
+    <div className="mt-3 rounded-xl overflow-hidden border border-stone-100">
+      {/* eslint-disable-next-line jsx-a11y/alt-text */}
+      <img src={src} className="w-full max-h-80 object-cover" loading="lazy" />
+    </div>
+  );
+};
+
+const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online } = useSangam();
   const { tr } = useLocaleText();
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -77,12 +96,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
           📿 {post.shlokaRef}
         </div>
       )}
-      {post.imageUrl && (
-        <div className="mt-3 rounded-xl overflow-hidden border border-stone-100">
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <img src={post.imageUrl} className="w-full max-h-80 object-cover" loading="lazy" />
-        </div>
-      )}
+      {post.imageUrl && <FeedImage url={post.imageUrl} />}
       {post.kind === 'seva' && post.seva && (
         <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
           <div className="text-sm font-extrabold text-emerald-900">🤲 {tr('Seva opportunity', 'সেবার সুযোগ', 'सेवा अवसर')}</div>
@@ -217,6 +231,32 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
   const [sevaSlots, setSevaSlots] = useState('10');
   const [sevaHours, setSevaHours] = useState('3');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  /** Upload a photo from the device into the public File Vault tier, then
+   *  attach the resulting vault:// URL to the post. Images are compressed
+   *  client-side before upload (see lib/fileVault). */
+  const onPhotoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const res = await uploadFile(file, {
+        visibility: 'public',
+        category: 'gallery',
+        ownerUid: author.uid,
+        fileName: file.name,
+      });
+      setImageUrl(res.url);
+    } catch (err: any) {
+      setUploadError(err?.message || tr('Upload failed. Please try again.', 'আপলোড ব্যর্থ। আবার চেষ্টা করুন।', 'अपलोड विफल। पुनः प्रयास करें।'));
+    }
+    setUploading(false);
+  };
 
   const post = async () => {
     if (!text.trim() || busy) return;
@@ -292,10 +332,22 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
         </div>
       )}
       {kind === 'photo' && (
-        <div className="mt-2">
-          <Field label={<T en="Photo URL (uploads coming soon)" bn="ছবির URL" hi="चित्र URL" />}>
+        <div className="mt-2 space-y-2">
+          <Field label={<T en="Photo" bn="ছবি" hi="चित्र" />}>
             <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputCls} placeholder="https://" maxLength={500} />
           </Field>
+          <div>
+            <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={onPhotoFile} aria-hidden />
+            <Btn variant="ghost" onClick={() => photoRef.current?.click()} disabled={uploading} className="w-full">
+              {uploading
+                ? tr('Uploading…', 'আপলোড হচ্ছে…', 'अपलोड हो रहा…')
+                : `📤 ${tr('Upload from this device', 'এই ডিভাইস থেকে আপলোড', 'इस डिवाइस से अपलोड')}`}
+            </Btn>
+            {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+            {imageUrl.startsWith('vault://') && (
+              <p className="text-[11px] text-emerald-700 mt-1">✅ {tr('Photo attached — it will appear with your post.', 'ছবি যুক্ত হয়েছে — পোস্টের সঙ্গে দেখা যাবে।', 'चित्र जुड़ गया — पोस्ट के साथ दिखेगा।')}</p>
+            )}
+          </div>
         </div>
       )}
       {kind === 'seva' && (

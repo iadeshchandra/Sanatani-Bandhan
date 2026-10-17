@@ -43,7 +43,7 @@ import type { EmitResult, NotificationItem, NotifyEvent, QueuedEvent } from './t
 import { NotificationCenter } from './NotificationCenter';
 import { decideRouting, digestOnlyDecision, findGroupTarget, groupedCardText, classifyReplay } from './engine';
 import { deliver, readPrefsDoc, updateInAppItem } from './delivery';
-import { createOutbox, type OutboxStore } from './outbox';
+import { createOutbox, backoffMs, type OutboxStore } from './outbox';
 import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from './preferences';
 import {
   collection,
@@ -99,7 +99,24 @@ function outbox(): OutboxStore {
 }
 
 let replayBound = false;
-/** Replays queued events for ANY uid when connectivity returns. */
+
+/** A delivery failure that retrying can never fix (Firestore rules denial). */
+class PermanentDeliveryError extends Error {}
+
+/** Heuristic: does this deliver() error list smell like a rules denial? */
+function isPermissionDenied(errors: string[]): boolean {
+  return errors.some((e) => /permission|insufficient permissions|PERMISSION_DENIED/i.test(e));
+}
+
+/**
+ * Replays queued events for ANY uid when connectivity returns.
+ *
+ * INTEGRITY RULE: an entry leaves the outbox ONLY after its delivery
+ * succeeds. A failed replay keeps the entry and retries with exponential
+ * backoff (capped at 15 min) — never deleted for failing. Two exceptions:
+ * expired events (their moment passed) and rules-denied writes (retrying
+ * can never succeed — dropped loudly so they can't poison the outbox).
+ */
 async function replayQueued(): Promise<void> {
   const now = Date.now();
   let queued: QueuedEvent[];
@@ -109,25 +126,60 @@ async function replayQueued(): Promise<void> {
     return;
   }
   for (const q of queued) {
-    try {
-      const verdict = classifyReplay(q, now);
-      if (verdict === 'drop') {
-        /* expired — gone quietly */
-      } else if (verdict === 'digest') {
-        const prefs = await loadPrefs(q.uid);
-        const decision = digestOnlyDecision(prefs.suchana === 'evening' ? 'evening' : 'morning');
-        await deliver({ uid: q.uid, item: buildItem(q.uid, q, decision, now), decision });
-      } else {
-        await emitOnlineTo(q.uid, q, now);
+    // Backoff gate: a failed replay waits its turn — never spins hot.
+    if (q.nextRetryAt !== undefined && q.nextRetryAt > now) continue;
+    const verdict = classifyReplay(q, now);
+    if (verdict === 'drop') {
+      /* expired — gone quietly */
+      try {
+        await outbox().remove(q.id);
+      } catch {
+        /* best-effort */
       }
-    } catch {
-      /* one stuck item must not block the rest; it stays queued */
       continue;
     }
     try {
-      await outbox().remove(q.id);
-    } catch {
-      /* best-effort */
+      if (verdict === 'digest') {
+        const prefs = await loadPrefs(q.uid);
+        const decision = digestOnlyDecision(prefs.suchana === 'evening' ? 'evening' : 'morning');
+        const { ok, errors } = await deliver({
+          uid: q.uid,
+          item: buildItem(q.uid, q, decision, now),
+          decision,
+        });
+        if (!ok) {
+          if (isPermissionDenied(errors)) throw new PermanentDeliveryError(errors.join('; '));
+          throw new Error(errors.join('; ') || 'delivery failed');
+        }
+      } else {
+        // emitOnlineTo throws on delivery failure — see the catch below.
+        await emitOnlineTo(q.uid, q, now);
+      }
+      // Delivered: only now may the entry leave the outbox.
+      try {
+        await outbox().remove(q.id);
+      } catch {
+        /* best-effort */
+      }
+    } catch (e) {
+      if (e instanceof PermanentDeliveryError) {
+        // A denied write (rules) must not poison the outbox with retries
+        // that can never succeed — drop it loudly.
+        console.warn('[notify] replay dropped (rules deny):', e.message, q.dedupeKey);
+        try {
+          await outbox().remove(q.id);
+        } catch {
+          /* best-effort */
+        }
+        continue;
+      }
+      // Transient failure: keep the entry, retry with backoff.
+      const attempts = (q.attempts || 0) + 1;
+      try {
+        await outbox().enqueue({ ...q, attempts, nextRetryAt: now + backoffMs(attempts) });
+      } catch {
+        /* best-effort */
+      }
     }
   }
 }
@@ -236,11 +288,13 @@ async function emitOnlineTo(uid: string, event: NotifyEvent, now: number): Promi
   const item = buildItem(uid, event, decision, now);
   const { ok, errors } = await deliver({ uid, item, decision });
   if (!ok) {
-    // A denied write (rules) must not poison the outbox with retries that
-    // can never succeed — drop it loudly. True network loss is already
-    // covered by the offline queue + Firestore's own persistence.
-    console.warn('[notify] delivery failed, dropped:', errors.join('; '), event.dedupeKey);
-    return { status: 'dropped', itemId: item.id, decision };
+    // Signal the failure instead of silently dropping: the live emitNotify
+    // path reports it as 'dropped'; the offline replay path keeps the
+    // event and retries with backoff — EXCEPT a rules denial, which can
+    // never succeed and must not poison the outbox.
+    console.warn('[notify] delivery failed:', errors.join('; '), event.dedupeKey);
+    if (isPermissionDenied(errors)) throw new PermanentDeliveryError(errors.join('; '));
+    throw new Error(errors.join('; ') || 'delivery failed');
   }
   return {
     status: decision.holdUntil !== null ? 'held' : 'delivered',

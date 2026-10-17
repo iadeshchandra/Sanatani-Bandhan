@@ -5,7 +5,9 @@
  * signed-in user it:
  *
  *   1. configures the NotificationCenter singleton (prefs hydration,
- *      offline-outbox drain on reconnect, quiet-hours holds);
+ *      offline-outbox drain on reconnect, quiet-hours holds — expired
+ *      holds are released on boot and whenever the app returns to the
+ *      foreground, since a PWA has no reliable background timer);
  *   2. starts the self-listen watchers — chat, P2P, wallet — each of
  *      which observes shared source data and emits to THIS user
  *      (the only pattern the self-write-only rules allow);
@@ -32,10 +34,31 @@ export const NotificationWiring: React.FC = () => {
   // Singleton configuration for the signed-in user.
   useEffect(() => {
     if (!uid) return undefined;
-    void NotificationCenter.get()
+    const center = NotificationCenter.get();
+    let cancelled = false;
+    void center
       .configure({ uid })
+      .then(() => {
+        // Boot: release any quiet-hours/DND holds that expired while the
+        // app was closed. (configure() already does this too — harmless
+        // to repeat; flushHeld is idempotent.)
+        if (!cancelled) void center.flushHeld().catch(() => undefined);
+      })
       .catch(() => undefined);
-    return undefined;
+    // Foreground: a PWA has no reliable background timer, so held
+    // notifications self-release when the devotee returns — the clock may
+    // have crossed quiet-hours end while we were away. Throttled inside.
+    const onForeground = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      void center.maybeFlushHeld().catch(() => undefined);
+    };
+    document.addEventListener('visibilitychange', onForeground);
+    window.addEventListener('focus', onForeground);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onForeground);
+      window.removeEventListener('focus', onForeground);
+    };
   }, [uid]);
 
   // P2P lifecycle transitions → NotificationCenter (self-listen).

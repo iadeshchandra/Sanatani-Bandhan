@@ -14,7 +14,7 @@
  */
 import {
   collection, doc, getDoc, getDocs, query, where, limit,
-  addDoc, updateDoc, serverTimestamp,
+  addDoc, setDoc, updateDoc, serverTimestamp, runTransaction,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { assignPayableAmount, generateOrderCode } from './uniqueAmount';
@@ -95,6 +95,46 @@ export interface Rail2OrderInput {
 }
 
 /**
+ * Atomically allocate the next per-provider Rail-2 order sequence.
+ *
+ * The old `(query size) + 1` was non-atomic: two clients booking the same
+ * provider at once could receive the SAME sequence and therefore the SAME
+ * unique payable amount — the owner would then confirm the wrong order
+ * paid. A dedicated `rail2Sequences/{providerUid}` counter doc,
+ * incremented inside a Firestore transaction, makes the allocation
+ * atomic.
+ *
+ * First booking: the doc doesn't exist yet, so it is seeded from the
+ * legacy order count — the new sequence continues where old orders left
+ * off instead of restarting at 1 and re-issuing old amounts. Concurrent
+ * seeds are harmless (the transaction below serializes the increments).
+ *
+ * REQUIRES firestore.rules: `match /rail2Sequences/{providerUid}` must
+ * allow signed-in clients to create/update { seq, updatedAt } — without
+ * it the transaction is denied and booking fails closed (see fallback
+ * in createRail2Order).
+ */
+async function nextRail2OrderSeq(providerUid: string): Promise<number> {
+  const seqRef = doc(db, 'rail2Sequences', providerUid);
+  const existing = await getDoc(seqRef).catch(() => null);
+  if (!existing || !existing.exists()) {
+    const priorSnap = await getDocs(
+      query(collection(db, 'marketplaceOrders'), where('providerUid', '==', providerUid), limit(500)),
+    ).catch(() => null);
+    const seed = priorSnap ? priorSnap.size : 0;
+    await setDoc(seqRef, { seq: seed, updatedAt: serverTimestamp() }, { merge: true }).catch(
+      () => undefined,
+    );
+  }
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(seqRef);
+    const next = (snap.exists() ? Number((snap.data() as { seq?: unknown }).seq) || 0 : 0) + 1;
+    tx.set(seqRef, { seq: next, updatedAt: serverTimestamp() }, { merge: true });
+    return next;
+  });
+}
+
+/**
  * Create a Rail-2 order: generates orderCode (SB-XXXXXX) + unique payable
  * amount, snapshots commission, stores provider's payment method details
  * for the client to pay against.
@@ -112,9 +152,24 @@ export async function createRail2Order(input: Rail2OrderInput): Promise<{
   const { rail, method } = await detectRail(gig.providerUid);
   if (rail !== 'rail2' || !method) throw new Error('This provider uses platform payment. Please book normally.');
 
-  // Per-provider order sequence for unique amount assignment.
-  const priorSnap = await getDocs(query(collection(db, 'marketplaceOrders'), where('providerUid', '==', gig.providerUid), limit(500)));
-  const orderSeq = priorSnap.size + 1;
+  // Per-provider order sequence for unique amount assignment — allocated
+  // atomically so concurrent bookings can't share a payable amount.
+  let orderSeq: number;
+  try {
+    orderSeq = await nextRail2OrderSeq(gig.providerUid);
+  } catch (e) {
+    // The atomic counter needs the rail2Sequences rules grant (see
+    // nextRail2OrderSeq). Until that ships, fall back to the legacy
+    // count — racy but functional — rather than breaking bookings.
+    console.warn(
+      '[rail2] atomic sequence unavailable, using legacy count:',
+      e instanceof Error ? e.message : String(e),
+    );
+    const priorSnap = await getDocs(
+      query(collection(db, 'marketplaceOrders'), where('providerUid', '==', gig.providerUid), limit(500)),
+    );
+    orderSeq = priorSnap.size + 1;
+  }
   const currency = gig.priceCurrency || 'INR';
   const { payableAmount, amountCode, display } = assignPayableAmount(Number(gig.priceAmount), orderSeq, currency);
   const orderCode = generateOrderCode();

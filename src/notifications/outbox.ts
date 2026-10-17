@@ -118,3 +118,13 @@ export class IndexedDbOutbox implements OutboxStore {
 export function createOutbox(): OutboxStore {
   return indexedDBAvailable() ? new IndexedDbOutbox() : new MemoryOutbox();
 }
+
+/**
+ * Exponential backoff for failed outbox replays: 10s, 20s, 40s … capped
+ * at 15 minutes. Offline-friendly: a flaky connection retries gently
+ * instead of spinning hot, and the event is never deleted for failing.
+ */
+export function backoffMs(attempts: number): number {
+  const step = Math.min(Math.max(Math.floor(attempts), 1), 7);
+  return Math.min(10_000 * 2 ** (step - 1), 15 * 60_000);
+}

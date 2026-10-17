@@ -136,4 +136,12 @@ export interface QueuedEvent extends NotifyEvent {
   id: string;
   uid: string;
   queuedAt: number;
+  /**
+   * Replay attempts since the event was queued. Drives exponential backoff
+   * (see backoffMs in outbox.ts). An undelivered event is NEVER deleted —
+   * it waits with a growing delay instead of being dropped.
+   */
+  attempts?: number;
+  /** Epoch ms after which this event becomes eligible for replay again. */
+  nextRetryAt?: number;
 }
