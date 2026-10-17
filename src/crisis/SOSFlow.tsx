@@ -20,14 +20,19 @@ import { PanicButton } from './PanicButton';
 import { SituationPicker, type SituationSelection } from './SituationPicker';
 import { SOSConfirm } from './SOSConfirm';
 import { SOSTimeline } from './SOSTimeline';
+import { GUIDES, useGuide, TourPill, CoachMark } from '../components/guide';
 
 type Step = 'idle' | 'pick' | 'confirm' | 'active';
 
 export const SOSFlow: React.FC = () => {
-  const { isAuthenticated } = useAuthWorkspace();
+  const { isAuthenticated, firebaseUser } = useAuthWorkspace();
   const [step, setStep] = useState<Step>('idle');
   const [selection, setSelection] = useState<SituationSelection | null>(null);
   const [eventId, setEventId] = useState<string | null>(null);
+  // Quick Guide: "what happens when you press" — invitational, never
+  // auto-playing; the pill shows once, the tour is always re-runnable.
+  const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  const sosGuide = useGuide('sos', uid);
 
   const reset = useCallback(() => {
     setStep('idle');
@@ -40,6 +45,16 @@ export const SOSFlow: React.FC = () => {
   return (
     <>
       <PanicButton onActivate={() => setStep('pick')} />
+      {sosGuide.pillVisible && (
+        <TourPill
+          guide={GUIDES.sos}
+          uid={uid}
+          onStart={sosGuide.start}
+          onDismiss={sosGuide.dismissPill}
+          className="!left-auto !translate-x-0 right-5 bottom-[calc(180px+env(safe-area-inset-bottom))] md:bottom-24"
+        />
+      )}
+      {sosGuide.tourActive && <CoachMark guide={GUIDES.sos} onFinish={sosGuide.finish} />}
 
       {step === 'pick' && (
         <SituationPicker
@@ -55,6 +70,12 @@ export const SOSFlow: React.FC = () => {
         <SOSConfirm
           selection={selection}
           onCancel={reset}
+          onRestartTour={() => {
+            // The tour always runs from the calm idle state — close the
+            // confirm sheet first so the spotlight can find its anchors.
+            reset();
+            sosGuide.restart();
+          }}
           onSent={(id) => {
             setEventId(id);
             setStep('active');

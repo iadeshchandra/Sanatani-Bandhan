@@ -16,6 +16,7 @@ import { getAbuseRecord, isInCooldown } from './sosService';
 import { triggerSOSWithNotify } from './crisisNotify';
 import { crisisCopy, useCrisisT } from './crisisStrings';
 import type { SituationSelection } from './SituationPicker';
+import { GUIDES, TourLink } from '../components/guide';
 
 const SITUATION_ICON: Record<SituationKind, string> = {
   medical: '🩸',
@@ -39,7 +40,9 @@ export const SOSConfirm: React.FC<{
   selection: SituationSelection;
   onSent: (eventId: string) => void;
   onCancel: () => void;
-}> = ({ selection, onSent, onCancel }) => {
+  /** Re-opens the "what happens when you press" quick tour. */
+  onRestartTour?: () => void;
+}> = ({ selection, onSent, onCancel, onRestartTour }) => {
   const t = useCrisisT();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +105,7 @@ export const SOSConfirm: React.FC<{
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm" data-guide-anchor="sos-location">
             <MapPin className="w-7 h-7 text-amber-800 shrink-0" aria-hidden />
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
@@ -114,7 +117,7 @@ export const SOSConfirm: React.FC<{
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm" data-guide-anchor="sos-who">
             <Users className="w-7 h-7 text-amber-800 shrink-0" aria-hidden />
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">
@@ -167,6 +170,11 @@ export const SOSConfirm: React.FC<{
             {sending ? t(crisisCopy.sending) : t(crisisCopy.confirmSend)}
           </button>
         </div>
+        {onRestartTour && (
+          <div className="mt-3 text-center">
+            <TourLink guide={GUIDES.sos} onRestart={onRestartTour} />
+          </div>
+        )}
       </div>
     </div>
   );

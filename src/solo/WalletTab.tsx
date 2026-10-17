@@ -19,6 +19,7 @@ import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { getPaymentMethods, methodsForRegionWithFallback, type PaymentMethodDoc } from '../lib/paymentMethods';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). Local-region methods always first. */
 const orderMethods = (list: PaymentMethodDoc[], region: PayRegion): PaymentMethodDoc[] =>
@@ -299,6 +300,9 @@ export const WalletTab: React.FC = () => {
   const [sendOpen, setSendOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
+  // Quick Guide: the two-wallet explainer (Seva Wallet vs personal P2P
+  // ledger) — invitational pill, never auto-playing on this money screen.
+  const walletGuide = useGuide('wallet', uid);
   // Balance privacy — inline eye toggle (Revolut heuristic: never bury in
   // settings). Persisted per device so the choice survives reloads.
   const [hidden, setHidden] = useState<boolean>(() => {
@@ -356,6 +360,10 @@ export const WalletTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end -mb-1">
+        <TourLink guide={GUIDES.wallet} onRestart={walletGuide.restart} />
+      </div>
+      <div data-guide-anchor="wallet-seva">
       <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-0">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
@@ -407,6 +415,7 @@ export const WalletTab: React.FC = () => {
               key={id}
               type="button"
               onClick={fn}
+              data-guide-anchor={id === 'send' ? 'wallet-personal' : undefined}
               className="min-h-[64px] rounded-xl bg-white/15 hover:bg-white/25 text-white flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <Icon className="w-5 h-5" />
@@ -415,6 +424,7 @@ export const WalletTab: React.FC = () => {
           ))}
         </div>
       </Card>
+      </div>
 
       {claims.filter((c) => claimDisplayStatus(c) === 'pending' || claimDisplayStatus(c) === 'expired').length > 0 && (
         <Card className="border-amber-200 bg-amber-50/60">
@@ -525,6 +535,12 @@ export const WalletTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Guide: the two-wallet explainer — invitational only. */}
+      {walletGuide.pillVisible && (
+        <TourPill guide={GUIDES.wallet} uid={uid} onStart={walletGuide.start} onDismiss={walletGuide.dismissPill} />
+      )}
+      {walletGuide.tourActive && <CoachMark guide={GUIDES.wallet} onFinish={walletGuide.finish} />}
     </div>
   );
 };
