@@ -24,6 +24,7 @@ import {
   type OrgKind,
   type ZoneCategory,
 } from './types';
+import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 import '../crisis/leaflet.css';
 
 const LANGS = [
@@ -93,6 +94,7 @@ export const CampusBuilder: React.FC<Props> = ({ orgId, orgName, orgKind, uid, o
   useEffect(() => {
     if (!loaded || mode !== 'geo' || !mapRef.current) return;
     let cancelled = false;
+    let tilesHandle: ResilientTilesHandle | null = null;
     (async () => {
       try {
         const mod = await import('leaflet');
@@ -102,10 +104,12 @@ export const CampusBuilder: React.FC<Props> = ({ orgId, orgName, orgKind, uid, o
         const leaf = L.map(mapRef.current).setView(
           first ? [first.lat!, first.lng!] : [22.5726, 88.3639], 16,
         );
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap',
-        }).addTo(leaf);
+        // Base tiles via the shared resilient provider chain
+        // (CARTO → OSM). The builder stays usable offline: zone list
+        // editing never needs tiles.
+        tilesHandle = addResilientTiles(L, leaf, {
+          onAllFailed: () => { /* offline — list editing still works */ },
+        });
         leaf.on('click', (e: any) => {
           if (!placing) return;
           const { lat, lng } = e.latlng;
@@ -122,6 +126,7 @@ export const CampusBuilder: React.FC<Props> = ({ orgId, orgName, orgKind, uid, o
     })();
     return () => {
       cancelled = true;
+      try { tilesHandle?.destroy(); } catch { /* noop */ }
       try { leafletMap.current?.remove(); } catch { /* noop */ }
       leafletMap.current = null;
     };

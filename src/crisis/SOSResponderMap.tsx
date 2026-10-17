@@ -9,14 +9,16 @@
  * - Audience is gated upstream (alert banner / coordinator dashboard);
  *   this component additionally refuses non-active events.
  *
- * MAP TECH: Leaflet + OpenStreetMap tiles (free, no key). If tiles fail
- * (offline / patchy data), degrades to the schematic SVG view — never
- * a blank screen. Offline-first is a standing rule.
+ * MAP TECH: Leaflet + CARTO basemaps (free, no key; dark tiles at night)
+ * with OSM fallback, via the shared src/maps/tileProviders module. If all
+ * tiles fail (offline / patchy data), degrades to the schematic SVG view —
+ * never a blank screen. Offline-first is a standing rule.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigation, MapPin, AlertTriangle } from 'lucide-react';
 import type { CrisisEvent } from './types';
 import { crisisCopy, useCrisisT } from './crisisStrings';
+import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 
 const SEV_COLOR: Record<string, string> = {
   critical: '#dc2626',
@@ -55,6 +57,7 @@ export const SOSResponderMap: React.FC<Props> = ({ event, onAcknowledge, acknowl
   useEffect(() => {
     if (!active || !hasCoords || !mapRef.current) return;
     let cancelled = false;
+    let tilesHandle: ResilientTilesHandle | null = null;
     let L: any = null;
 
     (async () => {
@@ -70,20 +73,19 @@ export const SOSResponderMap: React.FC<Props> = ({ event, onAcknowledge, acknowl
           zoomControl: true,
           attributionControl: true,
         });
-        const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // Base tiles via the shared resilient provider chain
+        // (CARTO → OSM → schematic fallback). Never a blank screen.
+        tilesHandle = addResilientTiles(L, map, {
+          onAllFailed: () => {
+            // Every tile provider failed → destroy the map instance and
+            // show the schematic fallback (offline-first).
+            if (!cancelled) {
+              try { map.remove(); } catch { /* noop */ }
+              leafletMap.current = null;
+              setTilesFailed(true);
+            }
+          },
         });
-        tiles.on('tileerror', () => {
-          // First tile failure → destroy the map instance and show the
-          // schematic fallback (offline-first). Never a blank screen.
-          if (!cancelled) {
-            try { map.remove(); } catch { /* noop */ }
-            leafletMap.current = null;
-            setTilesFailed(true);
-          }
-        });
-        tiles.addTo(map);
         const icon = L.divIcon({
           className: 'sos-pin-wrap',
           html: `<div style="width:44px;height:44px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:22px;">🆘</div>`,
@@ -115,6 +117,7 @@ export const SOSResponderMap: React.FC<Props> = ({ event, onAcknowledge, acknowl
 
     return () => {
       cancelled = true;
+      try { tilesHandle?.destroy(); } catch { /* noop */ }
       try { leafletMap.current?.remove(); } catch { /* noop */ }
       leafletMap.current = null;
     };

@@ -11,7 +11,8 @@ import {
   Compass,
   Map as MapIcon
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -201,10 +202,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           {/* Right panel (Map) */}
           <div className="w-full md:w-2/3 h-[400px] md:h-auto rounded-2xl overflow-hidden border-2 border-slate-200 relative">
             <MapContainer center={position as L.LatLngExpression} zoom={13} style={{ height: '100%', width: '100%' }}>
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
+              <ResilientTileLayer />
               <LocationMarker position={position} setPosition={setPosition} setDetails={setAddressDetails} />
             </MapContainer>
           </div>

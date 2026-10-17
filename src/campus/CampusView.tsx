@@ -16,6 +16,7 @@ import { subscribeToZoneReports, REPORT_META, reportRefreshMs, type ZoneReport }
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
 import { useLanguage } from '../context/LanguageContext';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
+import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 import '../crisis/leaflet.css';
 
 interface Props {
@@ -85,6 +86,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
   useEffect(() => {
     if (!map || map.mode !== 'geo' || !mapRef.current || geoZones.length === 0) return;
     let cancelled = false;
+    let tilesHandle: ResilientTilesHandle | null = null;
     (async () => {
       try {
         const mod = await import('leaflet');
@@ -93,12 +95,11 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
         const cLat = map.centerLat ?? geoZones[0].lat!;
         const cLng = map.centerLng ?? geoZones[0].lng!;
         const leaf = L.map(mapRef.current, { center: [cLat, cLng], zoom: map.zoom ?? 17 });
-        const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // Base tiles via the shared resilient provider chain
+        // (CARTO → OSM → schematic fallback). Never a blank screen.
+        tilesHandle = addResilientTiles(L, leaf, {
+          onAllFailed: () => { if (!cancelled) setTilesFailed(true); },
         });
-        tiles.on('tileerror', () => { if (!cancelled) setTilesFailed(true); });
-        tiles.addTo(leaf);
         for (const z of geoZones) {
           const meta = ZONE_CATEGORY_META[z.category];
           const icon = L.divIcon({
@@ -117,6 +118,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
     })();
     return () => {
       cancelled = true;
+      try { tilesHandle?.destroy(); } catch { /* noop */ }
       try { leafletMap.current?.remove(); } catch { /* noop */ }
       leafletMap.current = null;
     };
