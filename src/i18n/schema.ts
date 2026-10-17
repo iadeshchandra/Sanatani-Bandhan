@@ -180,6 +180,116 @@ export interface TranslationSchema {
     };
   };
 
+  /**
+   * guide — the app-wide Quick Guide system (coach marks + "What's this?"
+   * term explanations). All guide copy lives here, in all ten languages.
+   */
+  guide: {
+    next: string;
+    back: string;
+    skip: string;
+    gotIt: string;
+    takeTour: string;
+    close: string;
+    /** Template with {n} and {total}, e.g. "Step 2 of 3". */
+    stepOf: string;
+    whatsThis: string;
+    sos: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    wallet: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    booking: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    campus: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    p2p: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    suchana: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    profile: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    orgdash: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    terms: {
+      gotra: string;
+      tithi: string;
+      dakshina: string;
+      sankalpa: string;
+      pravara: string;
+      nakshatra: string;
+      muhurat: string;
+      seva: string;
+      purohit: string;
+      jyotish: string;
+      chanda: string;
+      prasad: string;
+    };
+  };
+
   purohit: {
     shell: {
       tabs: {
