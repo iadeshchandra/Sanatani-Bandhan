@@ -4,6 +4,7 @@ import { GlanceFeed } from '../components/suchana/GlanceFeed';
 import { useGlanceFeed } from '../components/suchana/useGlanceFeed';
 import { T } from './ui';
 import { SOLO_TAB_IDS, SoloTabId } from './HomeTab';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 
 /* SuchanaPage — the full-page Suchana tab at /app/suchana.
  * =====================================================================
@@ -14,16 +15,13 @@ import { SOLO_TAB_IDS, SoloTabId } from './HomeTab';
 export const SuchanaPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, orgs, loading, offline, updatedAt, counts } = useGlanceFeed();
+  // Quick Guide: the calm Suchana alternative — invitational only.
+  const suchanaGuide = useGuide('suchana');
 
   const onAction = (route: string) => {
     try {
       if (route.startsWith('/app/org/')) {
         navigate(route);
-        return;
-      }
-      // Chat opens from the Home tab's Messages card (state-based, not a route).
-      if (route === 'chat' || route === 'messages') {
-        navigate('/app/home');
         return;
       }
       const id = route as SoloTabId;
@@ -61,14 +59,24 @@ export const SuchanaPage: React.FC = () => {
           </p>
         )}
       </div>
-      <GlanceFeed
-        items={items}
-        orgs={orgs}
-        loading={loading}
-        offline={offline}
-        updatedAt={updatedAt}
-        onAction={onAction}
-      />
+      <div data-guide-anchor="suchana-feed">
+        <GlanceFeed
+          items={items}
+          orgs={orgs}
+          loading={loading}
+          offline={offline}
+          updatedAt={updatedAt}
+          onAction={onAction}
+        />
+      </div>
+      <div className="text-center mt-4">
+        <TourLink guide={GUIDES.suchana} onRestart={suchanaGuide.restart} />
+      </div>
+      {/* Quick Guide: the calm alternative — invitational only. */}
+      {suchanaGuide.pillVisible && (
+        <TourPill guide={GUIDES.suchana} onStart={suchanaGuide.start} onDismiss={suchanaGuide.dismissPill} />
+      )}
+      {suchanaGuide.tourActive && <CoachMark guide={GUIDES.suchana} onFinish={suchanaGuide.finish} />}
     </div>
   );
 };

@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { useLanguage } from '../../context/LanguageContext';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../guide';
 import { RITUAL_TYPES } from '../../types/purohit';
 import {
   CONSULTATION_TYPES,
@@ -69,6 +70,9 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
   const [done, setDone] = useState(false);
 
   const user = auth.currentUser;
+  // Quick Guide: booking flow explainer — invitational, never auto-playing
+  // on this money screen.
+  const bookingGuide = useGuide('booking', user?.uid || 'anon');
 
   const parseBudget = (): [number, number] => {
     const nums = budget
@@ -421,9 +425,10 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
                   className={`${inputCls} mt-1`}
                 />
               </label>
-              <label className="block">
+              <label className="block" data-guide-anchor="booking-dakshina">
                 <span className="text-xs font-semibold text-stone-600">
-                  {tx('Dakshina budget (₹)', 'দক্ষিণা বাজেট (₹)', 'दक्षिणा बजट (₹)')}
+                  <WhatsThis compact term="dakshina" label={tx('Dakshina', 'দক্ষিণা', 'दक्षिणा')} />{' '}
+                  {tx('budget (₹)', 'বাজেট (₹)', 'बजट (₹)')}
                 </span>
                 <input
                   value={budget}
@@ -462,6 +467,7 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
               type="button"
               onClick={submit}
               disabled={submitting || !user}
+              data-guide-anchor="booking-confirm"
               className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-base shadow-md disabled:opacity-50 active:scale-[0.99]"
             >
               {submitting
@@ -472,16 +478,24 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
                     '🪔 बुकिंग अनुरोध भेजें'
                   )}
             </button>
-            <p className="text-[11px] text-stone-500 text-center pb-1">
+            <p className="text-[11px] text-stone-500 text-center pb-1" data-guide-anchor="booking-escrow">
               {tx(
                 'No payment is taken here — dakshina is agreed directly with the professional.',
                 'এখানে কোনো অর্থ নেওয়া হয় না — দক্ষিণা সরাসরি পেশাদারের সঙ্গে ঠিক হয়।',
                 'यहाँ कोई भुगतान नहीं लिया जाता — दक्षिणा सीधे पेशेवर से तय होती है।'
               )}
             </p>
+            <div className="text-center pb-2">
+              <TourLink guide={GUIDES.booking} onRestart={bookingGuide.restart} />
+            </div>
           </div>
         )}
       </div>
+      {/* Quick Guide: booking flow — invitational only. */}
+      {bookingGuide.pillVisible && (
+        <TourPill guide={GUIDES.booking} uid={user?.uid || 'anon'} onStart={bookingGuide.start} onDismiss={bookingGuide.dismissPill} />
+      )}
+      {bookingGuide.tourActive && <CoachMark guide={GUIDES.booking} onFinish={bookingGuide.finish} />}
     </div>
   );
 };

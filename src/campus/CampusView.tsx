@@ -15,6 +15,7 @@ import { subscribeToCampusMap } from './campusService';
 import { subscribeToZoneReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
 import { useLanguage } from '../context/LanguageContext';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import '../crisis/leaflet.css';
 
 interface Props {
@@ -33,6 +34,9 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
   const [tilesFailed, setTilesFailed] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const leafletMap = useRef<any>(null);
+  // Quick Guide: visitor basics — invitational; dormant until the UX agent
+  // wires campus routes into App.tsx.
+  const campusGuide = useGuide('campus');
 
   useEffect(() => {
     let settled = false;
@@ -160,6 +164,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
           </h3>
           <p className="text-[12px] text-stone-500">Find your way around {orgName} 🪔</p>
         </div>
+        <TourLink guide={GUIDES.campus} onRestart={campusGuide.restart} />
       </div>
 
       {hasLiveReports && (
@@ -178,6 +183,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
         </div>
       )}
 
+      <div data-guide-anchor="campus-map">
       {map.mode === 'geo' && !tilesFailed ? (
         <div
           ref={mapRef}
@@ -214,9 +220,10 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
           </p>
         </div>
       )}
+      </div>
 
       {/* Zone list — always available, works offline. Big targets, simple language. */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5" data-guide-anchor="campus-zones">
         {map.zones.map((z) => {
           const meta = ZONE_CATEGORY_META[z.category];
           const lbl = zoneLabel(z, currentLang);
@@ -307,6 +314,12 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
           </div>
         </div>
       )}
+
+      {/* Quick Guide: visitor basics — invitational only. */}
+      {campusGuide.pillVisible && (
+        <TourPill guide={GUIDES.campus} onStart={campusGuide.start} onDismiss={campusGuide.dismissPill} />
+      )}
+      {campusGuide.tourActive && <CoachMark guide={GUIDES.campus} onFinish={campusGuide.finish} />}
     </div>
   );
 };
