@@ -2129,7 +2129,19 @@ service cloud.firestore {
     }
 
     // File Vault (zero-cost Storage replacement: Firestore + IndexedDB).
-    match /fileVault/{fileId} {
+        // Campus maps — public temple layouts (Phase 1: builder + visitor view).
+    // Read is public: a temple map is public information. Write is org-admin
+    // only (trustee/superadmin of that workspace). No personal data here.
+    match /campusMaps/{orgId} {
+      allow read: if true;
+      allow create, update: if isLoggedIn() && (
+        hasRole(orgId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+        || isOwner()
+      );
+      allow delete: if false;
+    };
+
+match /fileVault/{fileId} {
       allow read: if isLoggedIn()
         && (resource.data.get('visibility', 'private') == 'public'
           || resource.data.get('ownerUid', '') == request.auth.uid
