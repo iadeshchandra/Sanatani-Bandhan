@@ -115,7 +115,9 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
       margin: 1,
       width: 280,
       color: { dark: '#0f172a', light: '#ffffff' },
-    }).then((url) => setDynamicGatePassQr(url));
+    }).then((url) => setDynamicGatePassQr(url)).catch(() => {
+      // QR render failure is cosmetic — the gate pass still works via token.
+    });
     setGatePassSecondsLeft(300);
   }, [activeMember, activeWorkspace]);
 

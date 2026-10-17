@@ -274,7 +274,7 @@ export const RiskTab: React.FC = () => {
           (data.overdueDues || []).map((r: any, i: number) => (
             <div key={i} className="flex items-center justify-between py-1 border-t border-slate-800 first:border-0">
               <p className="text-[11px] text-slate-300"><b className="font-mono">{String(r.providerUid).slice(0, 12)}…</b> — {fmt(r.total)} · {r.ageDays}d overdue</p>
-              <button type="button" onClick={() => firestoreAdmin.checkDuesSuspension(r.providerUid).then(() => { showToast('Suspension check run.', 'success'); load(); })} className={btnGhost}>
+              <button type="button" onClick={() => firestoreAdmin.checkDuesSuspension(r.providerUid).then(() => { showToast('Suspension check run.', 'success'); load(); }).catch(() => showToast('Suspension check failed.', 'error'))} className={btnGhost}>
                 <Ban className="w-3.5 h-3.5 inline mr-1" />Suspend
               </button>
             </div>
