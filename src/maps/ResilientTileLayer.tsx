@@ -10,9 +10,10 @@
  *     ...
  *   </MapContainer>
  *
- * Renders Esri basemaps (free, no key; dark tiles follow the OS dark
- * preference for battery-friendly night maps), fails over to OSM standard
- * on tile errors. Pass `dark` to force a theme.
+ * Renders CARTO Voyager when a managed `cartoApiKey` is published in
+ * GodMode, otherwise Esri basemaps (free, no key; dark tiles follow the OS
+ * dark preference for battery-friendly night maps), fails over to OSM
+ * standard on tile errors. Pass `dark` to force a theme.
  */
 import React, { useEffect } from 'react';
 import { useMap } from 'react-leaflet';

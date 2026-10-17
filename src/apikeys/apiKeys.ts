@@ -117,6 +117,30 @@ export async function getPublicApiKey(name: string): Promise<string | null> {
   }
 }
 
+/**
+ * Synchronous cached read of one published key — no network, never throws.
+ * Checks the in-memory cache first, then localStorage. Returns null when the
+ * cache has never been populated (e.g. very first load before any async
+ * fetch). Map tile layers use this at init so a newly published key takes
+ * effect on the next map open with no reload and no code deploy.
+ */
+export function getCachedApiKeySync(name: string): string | null {
+  try {
+    if (memCache && typeof memCache.keys[name] === 'string' && memCache.keys[name].length > 0) {
+      return memCache.keys[name];
+    }
+    const local = readLocalCache();
+    if (local) {
+      memCache = local; // warm the memory cache from disk
+      const v = local.keys[name];
+      return typeof v === 'string' && v.length > 0 ? v : null;
+    }
+  } catch {
+    /* storage unavailable — treat as unconfigured */
+  }
+  return null;
+}
+
 /** React hook version. Returns null while loading or when unconfigured. */
 export function useApiKey(name: string): string | null {
   const [key, setKey] = useState<string | null>(null);

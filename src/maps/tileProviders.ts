@@ -5,22 +5,39 @@
  * campus builder, and all react-leaflet maps via <ResilientTileLayer>)
  * renders its base tiles through `addResilientTiles()` below.
  *
- * PROVIDER CHAIN (all $0, no API keys, no billing):
- *   1. Esri basemaps (primary) — free to embed with attribution, no key.
- *      Light: World Topo Map · Dark: Dark Gray Canvas (battery-friendly
- *      night maps). Note the Esri tile URL order is {z}/{y}/{x}.
- *   2. OpenStreetMap standard (fallback) — the community tile service.
- *   3. The app's own offline schematic SVG (final fallback — handled by the
+ * PROVIDER CHAIN (all $0):
+ *   1. CARTO basemaps (primary — ONLY when the owner has published a key;
+ *      see "MANAGED CARTO KEY" below). Light: Voyager · Dark: Dark Matter.
+ *   2. Esri basemaps (primary when no CARTO key is configured) — free to
+ *      embed with attribution, no key. Light: World Topo Map · Dark: Dark
+ *      Gray Canvas (battery-friendly night maps). Note the Esri tile URL
+ *      order is {z}/{y}/{x}.
+ *   3. OpenStreetMap standard (fallback) — the community tile service.
+ *   4. The app's own offline schematic SVG (final fallback — handled by the
  *      caller via `onAllFailed`; the map never blank-screens).
  *
- * WHY NOT CARTO: since 25 September 2026 CARTO raster tiles require a free
- * API key (their tiles now render "API KEY REQUIRED" without one). If the
- * owner ever requests a key (1 minute, no account, carto.com/basemaps/apikey)
- * it can be re-added here as primary with `?key=` — until then Esri is the
- * best keyless option. Google Maps is permanently off the table: it needs a
- * billing account and violates the project's $0 / no-card rule.
+ * MANAGED CARTO KEY (no code deploys for rotation):
+ *   GodMode → "API Keys" → add a key named `cartoApiKey` (client-safe) →
+ *   Save + Publish. Every map reads the published key from its local cache
+ *   at init (getCachedApiKeySync — no network); the key takes effect on the
+ *   next map open, no app update or page reload required. Removing the key
+ *   in GodMode restores Esri as primary just as silently.
+ *   Free tier: 5M tile requests/month non-commercial, 1M/month commercial
+ *   (counted across all keys on the account). Past the quota CARTO serves
+ *   watermark tiles — rotate or upgrade the key in GodMode.
+ *   Google Maps is permanently off the table: it needs a billing account
+ *   and violates the project's $0 / no-card rule.
+ *
+ * KNOWN LIMITATION: a revoked/invalid CARTO key serves "API KEY REQUIRED"
+ * watermark tiles with HTTP 200, which Leaflet counts as successful loads —
+ * automatic failover will NOT trigger on a bad key. If maps ever show
+ * watermarks, fix or remove `cartoApiKey` in GodMode (removing it restores
+ * Esri primary on the next map open).
  *
  * USAGE-POLICY NOTES (please keep these true):
+ *   - CARTO: attribution "© OpenStreetMap contributors, © CARTO" must stay
+ *     visible — that is the price of the free tier. Keys are per-customer;
+ *     do not share them. Terms: https://carto.com/basemaps/
  *   - Esri basemaps are free to embed with the attribution line below.
  *     See https://www.esri.com/en-us/legal/terms/full-master-agreement
  *     (free basemap use) — do not strip the attribution.
@@ -30,7 +47,17 @@
  *     primary to a dedicated tile host — this module is the only file to edit.
  */
 
-export type TileProviderId = 'esri-topo' | 'esri-dark' | 'osm-standard';
+import { getCachedApiKeySync } from '../apikeys/apiKeys';
+
+/** Managed key name the owner publishes in GodMode → API Keys. */
+export const CARTO_KEY_NAME = 'cartoApiKey';
+
+export type TileProviderId =
+  | 'carto-voyager'
+  | 'carto-dark'
+  | 'esri-topo'
+  | 'esri-dark'
+  | 'osm-standard';
 
 export interface TileProvider {
   id: TileProviderId;
@@ -43,7 +70,10 @@ export interface TileProvider {
   subdomains?: string;
 }
 
-export const TILE_PROVIDERS: Record<TileProviderId, TileProvider> = {
+/** Static (keyless) providers. CARTO providers are built at runtime — see buildCartoProviders. */
+type StaticTileProviderId = Exclude<TileProviderId, 'carto-voyager' | 'carto-dark'>;
+
+export const TILE_PROVIDERS: Record<StaticTileProviderId, TileProvider> = {
   'esri-topo': {
     id: 'esri-topo',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
@@ -68,11 +98,47 @@ export const TILE_PROVIDERS: Record<TileProviderId, TileProvider> = {
   },
 };
 
-/** Ordered failover chain for a given theme. */
-function chainFor(dark: boolean): TileProviderId[] {
-  return dark
-    ? ['esri-dark', 'osm-standard']
-    : ['esri-topo', 'osm-standard'];
+/**
+ * Builds the two CARTO providers for a published key. Key param name `key`
+ * per https://carto.com/basemaps/ (verified 2026-10-17).
+ */
+export function buildCartoProviders(apiKey: string): {
+  light: TileProvider;
+  dark: TileProvider;
+} {
+  const key = encodeURIComponent(apiKey.trim());
+  const attribution =
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  return {
+    light: {
+      id: 'carto-voyager',
+      url: `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${key}`,
+      attribution,
+      maxZoom: 20,
+    },
+    dark: {
+      id: 'carto-dark',
+      url: `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${key}`,
+      attribution,
+      maxZoom: 20,
+    },
+  };
+}
+
+/**
+ * Ordered failover chain for a given theme. CARTO leads ONLY when a key is
+ * published in GodMode; otherwise the chain is byte-for-byte the old
+ * Esri → OSM behavior.
+ */
+function chainFor(dark: boolean, cartoKey: string | null): TileProvider[] {
+  const chain: TileProvider[] = dark
+    ? [TILE_PROVIDERS['esri-dark'], TILE_PROVIDERS['osm-standard']]
+    : [TILE_PROVIDERS['esri-topo'], TILE_PROVIDERS['osm-standard']];
+  if (cartoKey && cartoKey.trim().length > 0) {
+    const carto = buildCartoProviders(cartoKey);
+    chain.unshift(dark ? carto.dark : carto.light);
+  }
+  return chain;
 }
 
 /**
@@ -120,10 +186,13 @@ export interface ResilientTilesHandle {
 /**
  * Adds a tile layer to a Leaflet map with automatic provider failover.
  *
- * Chain: Esri (topo or dark canvas) → OSM standard → `onAllFailed`.
- * A handful of consecutive `tileerror` events moves to the next provider;
- * any successful `tileload` resets the counter. The first provider is chosen
- * by theme (dark option or OS preference).
+ * Chain: CARTO (when a managed `cartoApiKey` is published in GodMode) →
+ * Esri (topo or dark canvas) → OSM standard → `onAllFailed`. A handful of
+ * consecutive `tileerror` events moves to the next provider; any successful
+ * `tileload` resets the counter. The first provider is chosen by theme
+ * (dark option or OS preference). The managed key is read synchronously
+ * from the local cache — no network at map init, no behavior change when
+ * no key is configured.
  *
  * @param L Leaflet module (dynamically imported by callers).
  * @param map Leaflet map instance.
@@ -136,7 +205,10 @@ export function addResilientTiles(
   opts: ResilientTilesOptions,
 ): ResilientTilesHandle {
   const dark = opts.dark ?? prefersDarkMap();
-  const chain = chainFor(dark);
+  // Sync cache read only — never blocks map init on network. Null when the
+  // owner hasn't published a key (or the cache is cold): Esri stays primary.
+  const cartoKey = getCachedApiKeySync(CARTO_KEY_NAME);
+  const chain = chainFor(dark, cartoKey);
   const failoverAfter = Math.max(1, opts.failoverAfterErrors ?? 3);
 
   let index = 0;
@@ -147,7 +219,7 @@ export function addResilientTiles(
 
   const mount = (i: number) => {
     if (destroyed) return;
-    const provider = TILE_PROVIDERS[chain[i]];
+    const provider = chain[i];
     try {
       if (layer) {
         try {
@@ -198,7 +270,7 @@ export function addResilientTiles(
   mount(0);
 
   return {
-    currentProvider: () => chain[index],
+    currentProvider: (): TileProviderId => chain[index].id,
     destroy: () => {
       destroyed = true;
       try {
