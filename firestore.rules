@@ -1082,12 +1082,28 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && request.resource.data.get('status', '') in ['cancelled', 'resolved'])
+          // Sender: attach the voice-note vault URL after the audio upload
+          // finishes (uploadVoiceNote / flushVoiceOutbox). Field-pinned to
+          // the pointer alone — no other sender field may change here.
+          || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['voiceNoteUrl', 'updatedAt']))
           // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
           || (isCrisisCoord(docWs())
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'acknowledgedBy', 'acknowledgedAt', 'ackCount',
                 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && request.resource.data.get('status', '') in ['acknowledged', 'resolved'])
+          // Coordinator edge: assign sevadars (assignSevadars) — appends to
+          // the assignments array, bumps responderCount, flips
+          // active -> responding. Assignments stay a list so a bad write
+          // fails closed instead of corrupting the roster.
+          || (isCrisisCoord(docWs())
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['assignments', 'status', 'responderCount', 'updatedAt'])
+            && request.resource.data.get('status', '')
+              in ['active', 'responding', 'acknowledged']
+            && request.resource.data.get('assignments', []) is list)
           // Tenant member: best-effort ack bump from ackSOS; only -> acknowledged.
           || (isTenantMember(docWs())
             && request.resource.data.diff(resource.data).affectedKeys()
@@ -1103,13 +1119,24 @@ service cloud.firestore {
           && request.resource.data.get('status', '') in ['coming', 'arrived'];
         allow delete: if false;
       }
-      // Nearby-ping fan-out: sender's client writes one doc per nearby uid.
+      // Nearby-ping fan-out: sender's client writes one doc per nearby uid
+      // (fanOutToNearby); a responder's own client may also self-register.
       match /notified/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
-        allow create: if isLoggedIn() && request.auth.uid == uid
+        allow create: if isLoggedIn()
           && request.resource.data.get('uid', '') == uid
-          && isTenantMember(parent().get('workspaceId', null));
+          && request.resource.data.keys()
+            .hasOnly(['uid', 'notifiedAt', 'distanceM'])
+          && (
+            // Responder self-register: their own client marks them notified.
+            (request.auth.uid == uid
+              && isTenantMember(parent().get('workspaceId', null)))
+            // Sender fan-out: the sender's client writes one lightweight
+            // ping doc per nearby uid so the active-only responder-read
+            // carve-out above can grant them access.
+            || parent().get('senderUid', '') == request.auth.uid
+          );
         allow update, delete: if false;
       }
     }
