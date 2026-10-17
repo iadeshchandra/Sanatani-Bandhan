@@ -9,7 +9,8 @@ import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { isValidLatLng } from '../../utils/geo';
-import { MapContainer, TileLayer, Marker, Circle, Popup } from 'react-leaflet';
+import { MapContainer, Marker, Circle, Popup } from 'react-leaflet';
+import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
@@ -264,7 +265,7 @@ export const CrisisCommandCenter: React.FC = () => {
                 zoom={5} 
                 style={{ height: '100%', width: '100%' }}
               >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <ResilientTileLayer />
                 {incidents.map((inc, idx) => {
                   // Guard: a location object with missing/non-finite lat/lng
                   // crashes Leaflet ("Invalid LatLng object") and takes the

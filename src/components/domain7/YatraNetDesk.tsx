@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -717,10 +718,7 @@ export default function YatraNetDesk() {
                 className="z-0"
               >
                 {/* Free OpenStreetMap Tiles */}
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
+                <ResilientTileLayer />
 
                 {/* Smooth Fly-To Controller */}
                 <FlyToController target={flyTarget} />
