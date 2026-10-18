@@ -83,7 +83,7 @@
 
 | Module | One line | Key files | State |
 |---|---|---|---|
-| Solo Home + Sanatani ID | Devotee's personal space; auto-minted `SAN-XXXXXX` on signup | `src/solo/` (`SoloHome.tsx`, `HomeTab.tsx`, `SoloSignupForm.tsx`, `ProfileTab.tsx`) | ✅ Complete |
+| Solo Home + Sanatani ID | Devotee's personal space; auto-minted `SAN-XXXXXX` on signup; VDA-style speakable alias (`name@scope`) on top | `src/solo/` (`SoloHome.tsx`, `HomeTab.tsx`, `SoloSignupForm.tsx`, `ProfileTab.tsx`, `VdaAliasSection.tsx`), `src/lib/vda.ts` | ✅ Complete |
 | Sangam (social) | Devotional social layer: feed, circles, seva board, events, org pages; Ashirvad 🙏, chronological, no ads | `src/sangam/` | ✅ Complete (org pages still seed-based — living auto-provisioned pages designed, not built) |
 | Chat + P2P money | 1:1/org threads, blessing cards, money-request IOU tracker (Rail-1/Rail-2, TrxID confirm) | `src/chat/` (`chatService.ts`, `p2pService.ts`, `p2pLedger.ts`) | ✅ Complete |
 | Seva Pro marketplace | Purohit/jyotish bookings, tiers (REGISTERED→VERIFIED→TRUSTED), atomic commission pre-funding, referral pipeline | `src/lib/sevaPro/`, `/seva/pro/:uid` | ✅ Complete |
@@ -97,7 +97,7 @@
 | Matha One | Sangha/Ashram suite, parampara lineage | `src/matha/` | ✅ Complete |
 | Jyotish One | Consultations, remedies → purohit referral pipeline | `src/jyotish/` | ✅ Complete |
 | Treasury | Org finance: one-big-number hero, hundi/donation ledgers, 80G receipts | (org desks) | ✅ Complete |
-| Wallet | Platform wallet: top-up (geo), history, scan | `src/solo/WalletTab.tsx`, `src/lib/wallet.ts` | ✅ Complete |
+| Wallet | Platform wallet: top-up (geo), history, scan; express dana sheet (UPI-first, shradhā slider, "Give again"), punya ledger, tithi nudges, shareable receipts | `src/solo/WalletTab.tsx`, `src/solo/ExpressDanaSheet.tsx`, `src/solo/ShareReceipt.tsx`, `src/notifications/tithiNudges.ts`, `src/lib/wallet.ts` | ✅ Complete |
 | Notifications | `NotificationCenter` event bus (see §9) | `src/notifications/` | ✅ Complete (FCM dispatch needs Blaze) |
 | Guides | Coach marks + WhatsThis framework, 10-lang | `src/components/guide/` | ✅ Complete |
 | QR / App Growth | Branded QR studio, `/get-app`, temple posters, GodMode analytics | `src/appgrowth/` | ✅ Complete |
@@ -217,9 +217,15 @@ Freemium = all features on every plan; only usage caps differ (Seva: 100 devotee
 
 ---
 
-## Appendix A — In-flight work (as of 2026-10-18)
+## Appendix A — Work log (updated 2026-10-18)
 
-The **7-item "give better" program** (from competitor teardowns) is **IN PROGRESS, not complete**: express dana sheet (UPI-first, 15-sec bar) → "🙏 Give again" one-tap + shradhā slider → VDA-style ID alias → tangible seva cards with goal bars → devotional giving layer (Panjika reminders, sadhana journal, 80G+blessing) → multi-channel receipts → offline hundi chain-of-custody (coordinated with the `mandir-cash-chain-of-custody` goal). Do not treat these as shipped.
+**"Give better" program — SHIPPED ✅** (7 commits on `main`, 2026-10-18, all SHA-verified): the 7 items from the competitor teardowns are live — express dana sheet (`src/solo/ExpressDanaSheet.tsx`: UPI-first, presets, 15-sec bar) → "🙏 Give again" one-tap + shradhā slider → VDA-style ID alias (`src/lib/vda.ts`, `src/solo/VdaAliasSection.tsx`: `name@scope` on top of SAN-XXXXXX, first-write-wins claim) → tangible seva cards (`src/components/org/SevaCards.tsx`, trustee CRUD, goal bars) → devotional layer (`src/notifications/tithiNudges.ts`: Ekadashi/Purnima/Amavasya nudges; punya ledger in SadhanaTab; blessing on 80G receipts) → multi-channel receipts (`src/solo/ShareReceipt.tsx`: WhatsApp/SMS/email/in-app). New rules: `vdaAliases/{aliasId}`, `orgPages/{orgId}/sevaCards/{cardId}`. Offline hundi chain-of-custody deliberately NOT built here — owned by the `mandir-cash-chain-of-custody` goal.
+
+**Red-gap fix program — IN PROGRESS (2026-10-18):** from the all-files gap review — familyLinks/qrCodes/dispute-status rules additions, campus-map entry points (banner + trustee builder link on org pages), Purohit "In-App Chat" dead-button wiring, Purohit checkout SaaS→dharma copy rewrite. Staged for push on completion.
+
+**Browser-audit fix batch — STAGED, awaiting push approval:** collapsible SOS FAB + body safe-padding, top-up geo-race fix, signed-in demo CTA deep-links, wallet currency via geo-detect, Panjika single dayAnchor, "Send"→"Obligations" relabel, duplicate LanguageProvider removal, demo-toast scoping, campus routes. (Samskara raw-keys report was a stale deploy, not a code bug.)
+
+**Known deferred items:** living auto-provisioned Sangam org pages (designed, not built); Map Phase 2 (visit journal → Tirtha Diary → yatra); Crisis T2 SMS / T3 mesh (designed, not approved); Sidebar crisis-command nav entry (local-only).
 
 ## Appendix B — Key file pointers
 
