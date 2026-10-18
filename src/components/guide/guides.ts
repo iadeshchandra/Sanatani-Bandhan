@@ -42,7 +42,8 @@ export type GuideId =
   | 'dana'
   | 'devotional'
   | 'vda'
-  | 'sevacards';
+  | 'sevacards'
+  | 'sevabazar';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -201,12 +202,12 @@ export const GUIDES: Record<GuideId, GuideDef> = {
     pillKey: 'guide.devotional.pill',
     steps: [
       {
-        anchor: 'sadhana-punya',
+        anchor: 'giving-ledger',
         titleKey: 'guide.devotional.s1t',
         bodyKey: 'guide.devotional.s1b',
       },
       {
-        anchor: 'sadhana-punya-share',
+        anchor: 'giving-ledger-share',
         titleKey: 'guide.devotional.s2t',
         bodyKey: 'guide.devotional.s2b',
       },
@@ -238,6 +239,24 @@ export const GUIDES: Record<GuideId, GuideDef> = {
         bodyKey: 'guide.sevacards.s1b',
       },
       { titleKey: 'guide.sevacards.s2t', bodyKey: 'guide.sevacards.s2b' },
+    ],
+  },
+  sevabazar: {
+    id: 'sevabazar',
+    titleKey: 'guide.sevabazar.title',
+    pillKey: 'guide.sevabazar.pill',
+    steps: [
+      {
+        anchor: 'sevabazar-card',
+        titleKey: 'guide.sevabazar.s1t',
+        bodyKey: 'guide.sevabazar.s1b',
+      },
+      {
+        anchor: 'sevabazar-ask',
+        titleKey: 'guide.sevabazar.s2t',
+        bodyKey: 'guide.sevabazar.s2b',
+      },
+      { titleKey: 'guide.sevabazar.s3t', bodyKey: 'guide.sevabazar.s3b' },
     ],
   },
 };

@@ -34,7 +34,7 @@ export const SevaBoardTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
       <Card className="!bg-gradient-to-r !from-emerald-700 !to-teal-800 !border-0">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-white font-extrabold text-lg">🤲 <T en="Seva Board" bn="সেবা বোর্ড" hi="सेवा बोर्ड" /></div>
+            <div className="text-white font-extrabold text-lg">🤲 <T en="Community Board" bn="কমিউনিটি বোর্ড" hi="सामुदायिक बोर्ड" /></div>
             <div className="text-emerald-100 text-xs mt-0.5">
               {tr('Your seva karma', 'আপনার সেবা কর্ম', 'आपका सेवा कर्म')}: <span className="font-black text-white">{myHours}h</span>
               <span className="opacity-80"> · {tr('recorded to your Sanatani ID', 'আপনার সনাতনী আইডিতে', 'आपकी सनातनी ID पर')}</span>

@@ -36,7 +36,8 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
 
   // Wallet quick actions (home glance + wallet tab)
   quickTopUp: { en: 'Top up', bn: 'টপ আপ', hi: 'टॉप अप' },
-  quickSend: { en: 'Send', bn: 'পাঠান', hi: 'भेजें' },
+  quickGive: { en: '🪔 Give', bn: '🪔 দিন', hi: '🪔 दें' },
+  quickObligations: { en: 'Obligations', bn: 'দেনা-পাওনা', hi: 'लेन-देन' },
   quickScan: { en: 'Scan', bn: 'স্ক্যান', hi: 'स्कैन' },
   quickHistory: { en: 'History', bn: 'ইতিহাস', hi: 'इतिहास' },
   showBalance: { en: 'Show balance', bn: 'ব্যালেন্স দেখুন', hi: 'शेष राशि दिखाएँ' },
@@ -44,7 +45,7 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   walletEmptyTitle: { en: 'Your Seva Wallet is waiting to be blessed.', bn: 'আপনার সেবা ওয়ালেট আশীর্বাদের অপেক্ষায় রয়েছে।', hi: 'आपका सेवा वॉलेट आशीर्वाद की प्रतीक्षा में है।' },
   walletEmptySub: { en: 'Top up to begin your giving journey.', bn: 'আপনার দানের যাত্রা শুরু করতে টপ আপ করুন।', hi: 'अपनी दान-यात्रा आरंभ करने हेतु टॉप अप करें।' },
   scanValid: { en: 'Valid code scanned. 🙏', bn: 'বৈধ কোড স্ক্যান হয়েছে। 🙏', hi: 'वैध कोड स्कैन हो गया। 🙏' },
-  signInToSend: { en: 'Sign in to send from your wallet.', bn: 'ওয়ালেট থেকে পাঠাতে সাইন ইন করুন।', hi: 'वॉलेट से भेजने हेतु साइन इन करें।' },
+  signInForObligations: { en: 'Sign in to view your obligations.', bn: 'আপনার দেনা-পাওনা দেখতে সাইন ইন করুন।', hi: 'अपना लेन-देन देखने हेतु साइन इन करें।' },
 
   // Provider tiers
   communityTier: { en: 'Community', bn: 'কমিউনিটি', hi: 'समुदाय' },

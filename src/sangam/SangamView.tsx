@@ -76,7 +76,7 @@ const InnerSangam: React.FC = () => {
   const TABS: Array<{ id: SangamTab; en: string; bn: string; hi: string; icon: string }> = [
     { id: 'feed', en: 'Feed', bn: 'ফিড', hi: 'फ़ीड', icon: '🪔' },
     { id: 'circles', en: 'Circles', bn: 'বৃত্ত', hi: 'मंडल', icon: '⭕' },
-    { id: 'seva', en: 'Seva Board', bn: 'সেবা বোর্ড', hi: 'सेवा बोर्ड', icon: '🤲' },
+    { id: 'seva', en: 'Community Board', bn: 'কমিউনিটি বোর্ড', hi: 'सामुदायिक बोर्ड', icon: '🤲' },
     { id: 'events', en: 'Events', bn: 'অনুষ্ঠান', hi: 'आयोजन', icon: '📅' },
     { id: 'pages', en: 'Pages', bn: 'পৃষ্ঠা', hi: 'पृष्ठ', icon: '🏛️' },
   ];

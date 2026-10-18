@@ -26,11 +26,17 @@ interface AppShellProps {
   children: React.ReactNode;
   /** Unread notification count — shown as a quiet badge on the Suchana tab. */
   suchanaUnread?: number;
+  /** Unread chat count — shown as a quiet badge on the Home tab (the
+      Messages card lives there; the 4-tab shell is law, so unread needs
+      a shell-level surface). */
+  homeChatUnread?: number;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, header, children, suchanaUnread = 0 }) => {
+export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, header, children, suchanaUnread = 0, homeChatUnread = 0 }) => {
   const showBadge = suchanaUnread > 0;
   const badgeLabel = suchanaUnread > 9 ? '9+' : String(suchanaUnread);
+  const showHomeBadge = homeChatUnread > 0;
+  const homeBadgeLabel = homeChatUnread > 9 ? '9+' : String(homeChatUnread);
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-stone-50">
       {/* Desktop: fixed left sidebar */}
@@ -50,6 +56,7 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
           {APP_TABS.map((t) => {
             const isActive = activeTab === t.id;
             const tabBadge = t.id === 'suchana' && showBadge;
+            const homeBadge = t.id === 'home' && showHomeBadge;
             return (
               <button
                 key={t.id}
@@ -69,11 +76,21 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
                       {badgeLabel}
                     </span>
                   )}
+                  {homeBadge && (
+                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow">
+                      {homeBadgeLabel}
+                    </span>
+                  )}
                 </span>
                 <T en={t.en} bn={t.bn} hi={t.hi} />
                 {tabBadge && (
                   <span className="sr-only">
                     {suchanaUnread} unread
+                  </span>
+                )}
+                {homeBadge && (
+                  <span className="sr-only">
+                    {homeChatUnread} unread messages
                   </span>
                 )}
               </button>
@@ -104,13 +121,14 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
           {APP_TABS.map((t) => {
             const isActive = activeTab === t.id;
             const tabBadge = t.id === 'suchana' && showBadge;
+            const homeBadge = t.id === 'home' && showHomeBadge;
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onTabChange(t.id)}
                 aria-current={isActive ? 'page' : undefined}
-                aria-label={tabBadge ? `${t.en}, ${suchanaUnread} unread` : t.en}
+                aria-label={tabBadge ? `${t.en}, ${suchanaUnread} unread` : homeBadge ? `${t.en}, ${homeChatUnread} unread messages` : t.en}
                 className={`relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors ${
                   isActive ? 'text-amber-400' : 'text-amber-200/60'
                 }`}
@@ -120,6 +138,11 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
                   {tabBadge && (
                     <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shadow">
                       {badgeLabel}
+                    </span>
+                  )}
+                  {homeBadge && (
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow">
+                      {homeBadgeLabel}
                     </span>
                   )}
                 </span>

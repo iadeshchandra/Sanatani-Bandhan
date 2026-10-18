@@ -5,7 +5,7 @@
  * server rules deny anything else). Coordination layer, NOT custody: this
  * tracks who owes whom; money moves on bKash/Nagad/UPI outside the app.
  *
- * Entry point: the "My Wallet" card on Solo Home. NOT an AppShell tab.
+ * Entry point: the "🤝 My obligations" card on Solo Home. NOT an AppShell tab.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { T, useLocaleText } from '../solo/ui';
@@ -37,6 +37,8 @@ import {
   payMoneyRequestFromPlatformWallet,
   PlatformBalance,
 } from '../lib/p2pLedger';
+import { detectPayRegion } from '../lib/geoDetect';
+import { currencyForRegion } from '../lib/wallet';
 
 type TabId = 'all' | 'owed_to_me' | 'i_owe' | 'pending' | 'history';
 
@@ -79,6 +81,16 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
   const [paidRef, setPaidRef] = useState('');
   const [acting, setActing] = useState<string | null>(null);
   const [platform, setPlatform] = useState<PlatformBalance | null>(null);
+  // FIX 5: the headline currency's single source of truth is the
+  // geo-detected currency. An empty ledger used to headline in ৳ (hardcoded
+  // 'BDT') while the rest of the app shows ₹. Defaults to INR (the app's
+  // workspace default) until detection resolves.
+  const [geoCurrency, setGeoCurrency] = useState<string>('INR');
+  useEffect(() => {
+    detectPayRegion()
+      .then((r) => setGeoCurrency(currencyForRegion(r === 'IN' || r === 'INTL' ? r : 'BD')))
+      .catch(() => {});
+  }, []);
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('p2p-netting-dismissed') || '[]'));
@@ -113,7 +125,7 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
   }, [isOpen, refresh]);
 
   const entries = useMemo(() => deriveWalletEntries(requests, uid), [requests, uid]);
-  const summary = useMemo(() => summarizeWallet(uid, entries), [uid, entries]);
+  const summary = useMemo(() => summarizeWallet(uid, entries, geoCurrency), [uid, entries, geoCurrency]);
   const netting = useMemo(
     () => suggestNetting(entries).filter((s) => !dismissed.has(s.id)),
     [entries, dismissed],
@@ -229,7 +241,7 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
                 <T en="Private — only you can see this" bn="ব্যক্তিগত — শুধু আপনি দেখতে পাবেন" hi="निजी — केवल आप देख सकते हैं" />
               </div>
               <h2 className="text-xl font-extrabold mt-1">
-                <T en="My Wallet" bn="আমার ওয়ালেট" hi="मेरा वॉलेट" />
+                <T en="🤝 My obligations" bn="🤝 আমার দেনা-পাওনা" hi="🤝 मेरे लेन-देन" />
               </h2>
             </div>
             <div className="flex items-center gap-1">
