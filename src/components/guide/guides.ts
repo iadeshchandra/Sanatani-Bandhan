@@ -38,7 +38,11 @@ export type GuideId =
   | 'p2p'
   | 'suchana'
   | 'profile'
-  | 'orgdash';
+  | 'orgdash'
+  | 'dana'
+  | 'devotional'
+  | 'vda'
+  | 'sevacards';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -171,6 +175,69 @@ export const GUIDES: Record<GuideId, GuideDef> = {
       { titleKey: 'guide.orgdash.s1t', bodyKey: 'guide.orgdash.s1b' },
       { titleKey: 'guide.orgdash.s2t', bodyKey: 'guide.orgdash.s2b' },
       { titleKey: 'guide.orgdash.s3t', bodyKey: 'guide.orgdash.s3b' },
+    ],
+  },
+  dana: {
+    id: 'dana',
+    titleKey: 'guide.dana.title',
+    pillKey: 'guide.dana.pill',
+    steps: [
+      {
+        anchor: 'dana-amount',
+        titleKey: 'guide.dana.s1t',
+        bodyKey: 'guide.dana.s1b',
+      },
+      {
+        anchor: 'dana-shradha',
+        titleKey: 'guide.dana.s2t',
+        bodyKey: 'guide.dana.s2b',
+      },
+      { titleKey: 'guide.dana.s3t', bodyKey: 'guide.dana.s3b' },
+    ],
+  },
+  devotional: {
+    id: 'devotional',
+    titleKey: 'guide.devotional.title',
+    pillKey: 'guide.devotional.pill',
+    steps: [
+      {
+        anchor: 'sadhana-punya',
+        titleKey: 'guide.devotional.s1t',
+        bodyKey: 'guide.devotional.s1b',
+      },
+      {
+        anchor: 'sadhana-punya-share',
+        titleKey: 'guide.devotional.s2t',
+        bodyKey: 'guide.devotional.s2b',
+      },
+      { titleKey: 'guide.devotional.s3t', bodyKey: 'guide.devotional.s3b' },
+    ],
+  },
+  vda: {
+    id: 'vda',
+    titleKey: 'guide.vda.title',
+    pillKey: 'guide.vda.pill',
+    steps: [
+      {
+        anchor: 'vda-alias',
+        titleKey: 'guide.vda.s1t',
+        bodyKey: 'guide.vda.s1b',
+      },
+      { titleKey: 'guide.vda.s2t', bodyKey: 'guide.vda.s2b' },
+      { titleKey: 'guide.vda.s3t', bodyKey: 'guide.vda.s3b' },
+    ],
+  },
+  sevacards: {
+    id: 'sevacards',
+    titleKey: 'guide.sevacards.title',
+    pillKey: 'guide.sevacards.pill',
+    steps: [
+      {
+        anchor: 'seva-cards',
+        titleKey: 'guide.sevacards.s1t',
+        bodyKey: 'guide.sevacards.s1b',
+      },
+      { titleKey: 'guide.sevacards.s2t', bodyKey: 'guide.sevacards.s2b' },
     ],
   },
 };

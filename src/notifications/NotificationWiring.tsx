@@ -23,6 +23,7 @@ import { NotificationCenter } from './NotificationCenter';
 import { useChatNotify } from '../chat/useChat';
 import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
+import { startTithiNudgeNotify } from './tithiNudges';
 
 export const NotificationWiring: React.FC = () => {
   const { firebaseUser } = useAuthWorkspace();
@@ -85,6 +86,14 @@ export const NotificationWiring: React.FC = () => {
         /* best-effort */
       }
     };
+  }, [uid]);
+
+  // Tithi-timed devotional giving reminders → NotificationCenter (self-listen).
+  // Gentle tier only, once per day max, quiet-hours held by the pipeline;
+  // suggestions only — a devotee is never chased by their own dharma.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startTithiNudgeNotify(uid);
   }, [uid]);
 
   return null;

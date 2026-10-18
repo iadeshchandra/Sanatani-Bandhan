@@ -16,7 +16,7 @@ import { isInQuietHours, type QuietHours } from './preferences';
 import type { NotifyLang, TriText } from './types';
 
 /** Nudge kinds — suggestions only, NEVER auto-actions (standing rule). */
-export type NudgeKind = 'money_reminder' | 'digest_waiting' | 'announcement_unread';
+export type NudgeKind = 'money_reminder' | 'digest_waiting' | 'announcement_unread' | 'upcoming_tithi';
 
 export interface NudgeAction {
   label: TriText;
@@ -56,7 +56,10 @@ export interface AnnouncementSignal {
   ageHours: number;
   /** Only members get the nudge — never outsiders. */
   isMember: boolean;
-  /** Optional deep link override; defaults to the org announcements page. */
+  /** Org id for the public page deep link (/org/:orgId). Optional. */
+  orgId?: string;
+  /** Optional deep link override; defaults to the org public page (/org/:orgId),
+   * falling back to the org directory (/orgs) when orgId is unknown. */
   deepLink?: string;
 }
 
@@ -67,6 +70,23 @@ export interface NudgeSignals {
   /** How many items are waiting in the unopened digest. */
   digestPendingCount: number;
   unreadAnnouncements: AnnouncementSignal[];
+  /**
+   * Devotional giving layer (Phase 3): Ekadashi / Purnima / Amavasya
+   * approaching within the reminder window. Optional — older callers
+   * that don't know about tithis keep working unchanged.
+   */
+  upcomingTithis?: UpcomingTithiSignal[];
+}
+
+/** One approaching observance the devotee might give around. */
+export interface UpcomingTithiSignal {
+  /** Stable id, e.g. 'ekadashi-2026-11-04' — the dedupe key root. */
+  id: string;
+  tithi: 'Ekadashi' | 'Purnima' | 'Amavasya';
+  /** Whole days from today (1 = tomorrow). */
+  daysUntil: number;
+  /** YYYY-MM-DD of the observance. */
+  dateIso: string;
 }
 
 export interface NudgeOptions {
@@ -205,10 +225,33 @@ function announcementNudge(orgName: string, hours: number): { title: TriText; bo
   };
 }
 
+/**
+ * Tithi-timed giving reminder — a suggestion, never a demand.
+ * Warm, dismissible, no streak-shaming: dana is an offering, not a target.
+ */
+function tithiNudge(tithi: UpcomingTithiSignal['tithi'], days: number): { title: TriText; body: TriText } {
+  const nameBn = tithi === 'Ekadashi' ? 'একাদশী' : tithi === 'Purnima' ? 'পূর্ণিমা' : 'অমাবস্যা';
+  const nameHi = tithi === 'Ekadashi' ? 'एकादशी' : tithi === 'Purnima' ? 'पूर्णिमा' : 'अमावस्या';
+  const dayWord = (n: number, one: string, many: string) => (n === 1 ? one : many);
+  return {
+    title: {
+      en: `🪔 A gentle tithi reminder`,
+      bn: `🪔 একটি কোমল তিথি-স্মরণ`,
+      hi: `🪔 एक सौम्य तिथि-स्मरण`,
+    },
+    body: {
+      en: `${tithi} is in ${days} ${dayWord(days, 'day', 'days')} — a gentle reminder, if you wish, for anna-dana or any giving close to your heart. 🙏`,
+      bn: `${days} দিন পর ${nameBn} — চাইলে অন্নদান বা আপনার প্রিয় কোনো দানের জন্য একটি কোমল স্মরণ। 🙏`,
+      hi: `${nameHi} ${days} दिन बाद है — चाहें तो अन्नदान या प्रिय दान हेतु एक सौम्य स्मरण। 🙏`,
+    },
+  };
+}
+
 const ACTION_COPY: Record<NudgeKind, TriText> = {
   money_reminder: { en: 'Send gentle reminder', bn: 'কোমল স্মরণ পাঠান', hi: 'सौम्य स्मरण भेजें' },
   digest_waiting: { en: 'Open Suchana', bn: 'সুচনা খুলুন', hi: 'सूचना खोलें' },
   announcement_unread: { en: 'Read announcement', bn: 'ঘোষণা পড়ুন', hi: 'घोषणा पढ़ें' },
+  upcoming_tithi: { en: 'View punya ledger', bn: 'পুণ্য-খতিয়ান দেখুন', hi: 'पुण्य-लेखा देखें' },
 };
 
 /* ------------------------------------------------------------------ */
@@ -220,6 +263,12 @@ export const DIGEST_NUDGE_AFTER_HOURS = 24;
 export const ANNOUNCEMENT_NUDGE_AFTER_HOURS = 48;
 /** The digest nudge may re-fire at most once per this window if still unopened. */
 export const DIGEST_NUDGE_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/**
+ * Tithi reminder window: an Ekadashi / Purnima / Amavasya approaching
+ * within this many days earns one gentle suggestion. Never on the day
+ * itself (the Panjika covers today) and never past the window.
+ */
+export const UPCOMING_TITHI_WITHIN_DAYS = 7;
 
 const t = (tri: TriText, lang: NotifyLang): TriText => tri; // identity: copy is already trilingual
 
@@ -296,8 +345,28 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
       body: t(copy.body, lang),
       action: {
         label: ACTION_COPY.announcement_unread,
-        deepLink: ann.deepLink ?? `/org/announcements/${ann.id}`,
+        deepLink: ann.deepLink ?? (ann.orgId ? `/org/${ann.orgId}` : '/orgs'),
       },
+      dismissable: true,
+    });
+    store.markShown(key, now.getTime());
+  }
+
+  /* 4. Tithi-timed giving reminder — Ekadashi / Purnima / Amavasya within
+   * the window. One gentle suggestion per observance (dedupe-keyed), never
+   * pushy, never streak-shaming. Deep link opens the punya ledger. */
+  for (const ts of signals.upcomingTithis ?? []) {
+    if (ts.daysUntil < 1 || ts.daysUntil > UPCOMING_TITHI_WITHIN_DAYS) continue;
+    const key = `tithi:${ts.id}`;
+    if (store.wasShown(key) || store.wasDismissed(key)) continue;
+    const copy = tithiNudge(ts.tithi, ts.daysUntil);
+    nudges.push({
+      id: `nudge-tithi-${ts.id}`,
+      kind: 'upcoming_tithi',
+      priority: 'gentle',
+      title: t(copy.title, lang),
+      body: t(copy.body, lang),
+      action: { label: ACTION_COPY.upcoming_tithi, deepLink: '/app/home/sadhana' },
       dismissable: true,
     });
     store.markShown(key, now.getTime());
@@ -312,6 +381,7 @@ export function dismissNudge(nudgeId: string, store: NudgeStore): void {
   const key = nudgeId
     .replace(/^nudge-money-/, 'money:')
     .replace(/^nudge-ann-/, 'ann:')
+    .replace(/^nudge-tithi-/, 'tithi:')
     .replace(/^nudge-digest-.*$/, 'digest');
   store.markDismissed(key);
 }

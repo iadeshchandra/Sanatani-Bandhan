@@ -22,6 +22,13 @@ export interface SanataniProfile {
   email?: string;
   phone?: string;
   city?: string;
+  /**
+   * Speakable VDA-style alias, e.g. `aarav@kashi` (Phase 2). A friendly layer
+   * on top of the canonical SAN-XXXXXX id — claimable first-write-wins in
+   * `vdaAliases/{alias}`, releasable back to the pool. Never a replacement
+   * for `id`.
+   */
+  vdaAlias?: string;
   /** Gotra is optional and private — never exposed publicly. */
   gotra?: string;
   languages: string[];

@@ -17,6 +17,7 @@ import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notificati
 import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useSacredSound } from '../lib/sacredAudio';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
+import { VdaAliasSection } from './VdaAliasSection';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -263,6 +264,9 @@ export const ProfileTab: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Your spoken ID — VDA-style alias on top of the canonical SAN-XXXXXX (Phase 2) */}
+      <VdaAliasSection />
 
       {/* Attached roles */}
       <div data-guide-anchor="profile-identities">
