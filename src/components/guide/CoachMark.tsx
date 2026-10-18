@@ -16,6 +16,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { translationStatus } from '../../i18n/translationQuality';
+import { TranslationSuggestionSheet } from './TranslationSuggestionSheet';
 import type { GuideDef } from './guides';
 
 interface AnchorRect {
@@ -51,9 +53,19 @@ export interface CoachMarkProps {
   onFinish: (completed: boolean) => void;
 }
 
+/** "Help us say this better" — warm, never "submit correction". */
+const HELP_BETTER: Record<string, string> = {
+  hi: '🙏 इसे और बेहतर कहने में हमारी मदद करें',
+  bn: '🙏 এটিকে আরও ভালোভাবে বলতে আমাদের সাহায্য করুন',
+};
+function helpBetterCopy(lang: string): string {
+  return HELP_BETTER[(lang || '').toLowerCase()] || '🙏 Help us say this better';
+}
+
 export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
-  const { t } = useLanguage();
+  const { t, currentLang } = useLanguage();
   const [stepIdx, setStepIdx] = useState(0);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState<AnchorRect | null>(null);
   const [cardH, setCardH] = useState(EST_CARD_HEIGHT);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -74,6 +86,18 @@ export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
   const step = guide.steps[stepIdx];
   const isFirst = stepIdx === 0;
   const isLast = stepIdx === guide.steps.length - 1;
+
+  // Translation Quality System: when the shown step's wording is an
+  // unreviewed draft in the devotee's language, offer a one-tap way to
+  // suggest better wording. Verified languages see zero UI change.
+  const stepIsDraft =
+    translationStatus(currentLang, step?.titleKey || '') === 'draft' ||
+    translationStatus(currentLang, step?.bodyKey || '') === 'draft';
+
+  // Close the suggestion sheet whenever the step changes.
+  useEffect(() => {
+    setSuggestOpen(false);
+  }, [stepIdx]);
 
   const measure = useCallback(() => {
     const next = findAnchor(step?.anchor);
@@ -220,6 +244,16 @@ export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
             {t(step.titleKey)}
           </h3>
           <p className="text-[14px] text-stone-600 mt-1.5 leading-relaxed">{t(step.bodyKey)}</p>
+          {/* Translation Quality System: one-tap correction for draft strings. */}
+          {stepIsDraft && (
+            <button
+              type="button"
+              onClick={() => setSuggestOpen(true)}
+              className="mt-1 text-[13px] font-semibold text-amber-700 hover:text-amber-800 underline decoration-amber-300 underline-offset-2 min-h-[44px] text-left"
+            >
+              {helpBetterCopy(currentLang)}
+            </button>
+          )}
         </div>
 
         {/* Step dots */}
@@ -269,6 +303,20 @@ export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
           </button>
         </div>
       </div>
+
+      {/* Translation Quality System: the suggestion sheet captures taps. */}
+      {suggestOpen && step && (
+        <div className="pointer-events-auto">
+          <TranslationSuggestionSheet
+            lang={currentLang}
+            lines={[
+              { key: step.titleKey, kind: 'title', currentText: t(step.titleKey) },
+              { key: step.bodyKey, kind: 'body', currentText: t(step.bodyKey) },
+            ]}
+            onClose={() => setSuggestOpen(false)}
+          />
+        </div>
+      )}
     </div>
   );
 };

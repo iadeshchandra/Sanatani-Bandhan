@@ -202,6 +202,75 @@ const dictCache: Record<string, TranslationSchema> = { en: enDict };
 /** In-flight load promises (dedupe concurrent requests for the same code). */
 const pendingLoads: Record<string, Promise<TranslationSchema> | undefined> = {};
 
+/* ── Runtime translation overrides (Translation Quality System) ─────────
+ * Approved corrections live in Firestore (`translationOverrides/{lang}` —
+ * a flat map of dot-delimited key → text) and merge OVER the bundled
+ * dictionaries at runtime. This lets the owner fix a draft string without
+ * a redeploy. Fail-open: without overrides the bundled dict is used as-is.
+ */
+
+/** Stored override maps per language (flat key → text), merged on top. */
+const overrideStore: Record<string, Record<string, string>> = {};
+
+/** Expand a flat dot-key map into a nested object for deepMerge. */
+function expandFlatMap(flat: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(flat)) {
+    const text = flat[key];
+    if (typeof text !== 'string' || !key || key.includes('__proto__')) continue;
+    const segs = key.split('.');
+    let cur: Record<string, unknown> = out;
+    for (let i = 0; i < segs.length - 1; i++) {
+      const s = segs[i];
+      const next = cur[s];
+      if (!next || typeof next !== 'object' || Array.isArray(next)) {
+        cur[s] = {};
+      }
+      cur = cur[s] as Record<string, unknown>;
+    }
+    cur[segs[segs.length - 1]] = text;
+  }
+  return out;
+}
+
+/** Apply any stored overrides for a language onto its cached dictionary. */
+function applyStoredOverrides(lang: string): void {
+  const flat = overrideStore[lang];
+  const dict = dictCache[lang];
+  if (!flat || !dict) return;
+  deepMerge(dict as Record<string, any>, expandFlatMap(flat) as Record<string, any>);
+}
+
+/**
+ * Register runtime overrides for a language (from Firestore). Merges over
+ * the bundled dictionary immediately when it is cached; otherwise stored
+ * and applied when the dictionary finishes loading. Never throws.
+ */
+export function applyTranslationOverrides(lang: string, flatMap: Record<string, string>): void {
+  try {
+    const normalized = (lang || 'en').toLowerCase();
+    const clean: Record<string, string> = {};
+    for (const k of Object.keys(flatMap || {})) {
+      const v = (flatMap as Record<string, unknown>)[k];
+      if (typeof v === 'string' && k && v.length <= 4000) clean[k] = v;
+    }
+    overrideStore[normalized] = { ...(overrideStore[normalized] || {}), ...clean };
+    applyStoredOverrides(normalized);
+  } catch {
+    // Overrides are a nicety — never break the dictionary.
+  }
+}
+
+/** The currently applied override map for a language (GodMode editor badges). */
+export function getOverrideMap(lang: string): Record<string, string> {
+  return { ...(overrideStore[(lang || 'en').toLowerCase()] || {}) };
+}
+
+/** True when a key currently resolves from a runtime override. */
+export function isOverridden(lang: string, key: string): boolean {
+  return key in (overrideStore[(lang || 'en').toLowerCase()] || {});
+}
+
 /**
  * Load the dictionary for a language code. Resolves to the English dict
  * for unknown codes. Safe to call repeatedly — cached after first load.
@@ -217,6 +286,9 @@ export async function loadLanguageDict(code: string): Promise<TranslationSchema>
     pendingLoads[normalized] = loader()
       .then((mod) => {
         dictCache[normalized] = mod.default;
+        // Translation Quality System: merge any fetched runtime overrides
+        // (owner-approved corrections) over the freshly loaded dictionary.
+        applyStoredOverrides(normalized);
         pendingLoads[normalized] = undefined;
         return mod.default;
       })

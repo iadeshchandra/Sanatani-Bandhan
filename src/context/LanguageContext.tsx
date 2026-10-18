@@ -10,6 +10,7 @@ import {
   type TranslationSchema,
 } from '../i18n/translations';
 import { term as termbaseTerm } from '../i18n/termbase';
+import { fetchTranslationOverrides } from '../i18n/translationOverrides';
 import { dharmicTaxonomy } from '../i18n/taxonomy';
 import { WorkspaceType } from '../types';
 
@@ -187,6 +188,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLangLoading(true);
     loadLanguageDict(currentLang)
       .then(() => {
+        // Translation Quality System: fetch owner-approved runtime
+        // overrides for this language — fire-and-forget with its own
+        // timeout, never blocks boot. A second version bump applies them
+        // to the UI once they land.
+        fetchTranslationOverrides(currentLang).then((applied) => {
+          if (applied && loadSeq.current === seq) setDictVersion((v) => v + 1);
+        });
         if (loadSeq.current === seq) {
           setDictVersion((v) => v + 1);
           setLangLoading(false);
