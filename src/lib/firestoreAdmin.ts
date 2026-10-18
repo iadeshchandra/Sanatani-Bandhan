@@ -1547,6 +1547,69 @@ export async function saveIntelConfig(cfg: IntelConfigDoc): Promise<NativeResult
   return { ok: true, data: { ok: true } };
 }
 
+/** Geo payment region config: owner-editable payment rails (BD / IN / INTL +
+ * any custom regions). Stored at `geoPaymentConfig/config`. Every signed-in
+ * user reads it to pick payment rails (see src/lib/geoDetect.ts); the client
+ * fails over to DEFAULT_REGIONS when the doc is absent. */
+export interface GeoRegionInput {
+  id: string;
+  name: string;
+  currency: string;
+  currencySymbol: string;
+  countryCodes: string[];
+  ipCountries: string[];
+  enabled: boolean;
+  flag?: string;
+}
+
+export interface GeoConfigInput {
+  regions: GeoRegionInput[];
+  defaultRegion: string;
+}
+
+export async function geoConfigSave(cfg: GeoConfigInput): Promise<NativeResult> {
+  const ownerUid = requireOwner();
+  const cleanRegions = (Array.isArray(cfg.regions) ? cfg.regions : [])
+    .filter((r) => r && typeof r.id === 'string' && r.id.trim())
+    .slice(0, 50)
+    .map((r) => ({
+      id: r.id.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'X',
+      name: String(r.name || '').slice(0, 60),
+      currency: String(r.currency || '').toUpperCase().slice(0, 8),
+      currencySymbol: String(r.currencySymbol || '').slice(0, 8),
+      countryCodes: (Array.isArray(r.countryCodes) ? r.countryCodes : [])
+        .filter((c) => typeof c === 'string')
+        .map((c) => c.replace(/\D/g, '').slice(0, 8))
+        .filter(Boolean)
+        .slice(0, 20),
+      ipCountries: (Array.isArray(r.ipCountries) ? r.ipCountries : [])
+        .filter((c) => typeof c === 'string')
+        .map((c) => c.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2))
+        .filter(Boolean)
+        .slice(0, 20),
+      enabled: r.enabled !== false,
+      ...(typeof r.flag === 'string' && r.flag.trim()
+        ? { flag: r.flag.trim().slice(0, 12) }
+        : {}),
+    }));
+  if (cleanRegions.length === 0) {
+    return { ok: false, error: 'Add at least one region before saving.', code: 'BAD_REGIONS' };
+  }
+  const wantDefault = String(cfg.defaultRegion || '').toUpperCase();
+  const defaultRegion = cleanRegions.some((r) => r.id === wantDefault)
+    ? wantDefault
+    : cleanRegions[0].id;
+  const clean = {
+    regions: cleanRegions,
+    defaultRegion,
+    updatedAt: serverTimestamp(),
+    updatedBy: ownerUid,
+  };
+  await setDoc(doc(db, 'geoPaymentConfig', 'config'), clean, { merge: true });
+  await writeAudit('geo.payments.config', { regions: cleanRegions.length, defaultRegion }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
 /** Resolve the effective commission for a NEW order.
  *  Resolution order: provider override > category override > tier+rail default > fallback.
  *  Rail-1 (platform-processed) is cheaper to encourage the trackable path. */
@@ -2496,6 +2559,7 @@ export const firestoreAdmin = {
   saveCommissionConfig,
   getIntelConfig,
   saveIntelConfig,
+  geoConfigSave,
   getProviderTier,
   marketplaceTransactions,
   transactionSetStatus,
