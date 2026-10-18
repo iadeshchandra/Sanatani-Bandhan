@@ -683,7 +683,16 @@ service cloud.firestore {
               || resource.data.get('clientUid', '') == request.auth.uid)
             && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']
             && request.resource.data.get('status', '') == 'commission_held'
-            && request.resource.data.get('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)));
+            && request.resource.data.get('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)
+          // openDispute(): an order party flags an ACTIVE order 'disputed'.
+          // The dispute record itself lives in marketplaceDisputes (ruled
+          // separately); on the order only status + updatedAt may change here.
+          || (isLoggedIn()
+            && (resource.data.get('providerUid', '') == request.auth.uid
+              || resource.data.get('clientUid', '') == request.auth.uid)
+            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']
+            && request.resource.data.get('status', '') == 'disputed'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))));
       allow delete: if false;
     }
     // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
@@ -2037,6 +2046,96 @@ service cloud.firestore {
           && request.resource.data.get('amount', 0) is number
           && request.resource.data.get('amount', 0) > 0);
       allow delete: if isSuperAdmin() || isOrgTrustee(orgId);
+    }
+
+    // --- familyLinks/{uid}: family safety circles (crisis module). ---
+    // Each user's doc holds linkedUids, consents, incomingInvites, outgoingInvites.
+    // Read: own doc, or a linked member's doc (consent-gated SOS history view).
+    //   A denied read means "no consent" — callers treat it as an empty list.
+    // Write own doc: top-level fields pinned. Cross-user writes are parties-only:
+    //   sending an invite writes incomingInvites.{ownUid} (pending) on the
+    //   target's doc; accept/decline/revoke touch only self-scoped keys and are
+    //   anchored to a pending invite or an existing link, so a stranger can
+    //   never forge a family link to read someone's SOS history.
+    // Only the writer's own key may differ inside one of the link maps.
+    function familyLinkMapOnlySelfChanged(beforeMap, afterMap) {
+      return afterMap.diff(beforeMap).affectedKeys().hasOnly([request.auth.uid]);
+    }
+    // A well-formed pending invite FROM the writer (no one can invite as another).
+    function familyLinkInviteContentOk(invite) {
+      return invite != null
+        && invite.get('fromUid', '') == request.auth.uid
+        && invite.get('status', '') == 'pending'
+        && invite.keys().hasOnly(
+          ['fromUid', 'fromName', 'fromPhoto', 'fromSanId', 'status', 'createdAt']);
+    }
+    // Cross-user update on someone else's familyLinks doc. Three legitimate
+    // shapes: (1) send/resend my pending invite, (2) accept their invite to me
+    // (gain link + consent), (3) decline/revoke (remove my keys). Anything else
+    // — including granting myself a link without their invite — is denied.
+    function familyLinkCrossUpdateOk() {
+      let me = request.auth.uid;
+      let before = resource.data;
+      let after = request.resource.data;
+      let topChanged = after.diff(before).affectedKeys();
+      let scoped = topChanged.hasOnly(
+          ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites'])
+        && familyLinkMapOnlySelfChanged(
+          before.get('consents', {}), after.get('consents', {}))
+        && familyLinkMapOnlySelfChanged(
+          before.get('incomingInvites', {}), after.get('incomingInvites', {}))
+        && familyLinkMapOnlySelfChanged(
+          before.get('outgoingInvites', {}), after.get('outgoingInvites', {}))
+        && after.get('linkedUids', []).toSet()
+          .difference(before.get('linkedUids', []).toSet()).hasOnly([me])
+        && before.get('linkedUids', []).toSet()
+          .difference(after.get('linkedUids', []).toSet()).hasOnly([me]);
+      // (1) send/resend: only my incoming invite changes, and it is well-formed.
+      let onlyInvite = topChanged.hasOnly(['incomingInvites'])
+        && familyLinkInviteContentOk(after.get('incomingInvites', {}).get(me, null));
+      // (2) accept: THEY invited me (pending outgoing invite on their doc).
+      let accept = before.get('outgoingInvites', {}).get(me, {}).get('status', '') == 'pending'
+        && (me in after.get('linkedUids', []))
+        && after.get('consents', {}).get(me, {}).get('granted', false) == true;
+      // (3) decline/revoke: I remove my keys, anchored to their pending invite
+      // or to an existing link. Never grants anything.
+      let withdraw = (before.get('outgoingInvites', {}).get(me, null) != null
+          || (me in before.get('linkedUids', [])))
+        && !(me in after.get('linkedUids', []))
+        && after.get('consents', {}).get(me, null) == null;
+      return scoped && (onlyInvite || accept || withdraw);
+    }
+    match /familyLinks/{docUid} {
+      allow read: if isLoggedIn()
+        && (request.auth.uid == docUid
+          || (resource != null && request.auth.uid in resource.data.get('linkedUids', [])));
+      allow create, update: if isLoggedIn() && request.auth.uid == docUid
+        && request.resource.data.keys().hasOnly(
+          ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites']);
+      allow delete: if isLoggedIn() && request.auth.uid == docUid;
+      // Invite send → the TARGET's doc (create on first invite).
+      allow create: if isLoggedIn() && request.auth.uid != docUid
+        && request.resource.data.keys().hasOnly(['incomingInvites'])
+        && request.resource.data.get('incomingInvites', {}).keys().hasOnly([request.auth.uid])
+        && familyLinkInviteContentOk(
+          request.resource.data.get('incomingInvites', {}).get(request.auth.uid, null));
+      // Invite resend / accept / decline / revoke → the other party's doc.
+      allow update: if isLoggedIn() && request.auth.uid != docUid
+        && familyLinkCrossUpdateOk();
+    }
+
+    // --- qrCodes/{region}: owner-uploaded regional payment QRs. ---
+    // GodMode → Geo Payments → QR Codes. Public read: payers must see the QR
+    // at checkout (paymentMethods.ts). Owner-only write/delete, content pinned
+    // to image data URLs so the collection can never become a file dump.
+    match /qrCodes/{region} {
+      allow read: if true;
+      allow create, update: if isOwner()
+        && request.resource.data.get('region', '') == region
+        && request.resource.data.keys().hasOnly(
+          ['imageData', 'region', 'uploadedAt', 'uploadedBy'])
+        && request.resource.data.get('imageData', '').matches('^data:image/(png|jpeg|webp);base64,');
+      allow delete: if isOwner();
     }
 
     // --- vdaAliases/{alias}: speakable devotee-ID claims (Phase 2).
