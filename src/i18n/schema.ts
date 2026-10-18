@@ -236,6 +236,14 @@ export interface TranslationSchema {
       s3t: string;
       s3b: string;
     };
+    maptemple: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+    };
     p2p: {
       title: string;
       pill: string;
@@ -371,6 +379,18 @@ export interface TranslationSchema {
      * other languages fall back to English until translated.
      */
     groups?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+    };
+    /**
+     * Live Darshan guide. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    darshan?: {
       title: string;
       pill: string;
       s1t: string;

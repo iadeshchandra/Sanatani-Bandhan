@@ -231,6 +231,14 @@ export const core: CoreFragment = {
         s3t: "Live, from sevadars",
         s3b: "Sevadars share live updates — crowds, queues, prasad timings — so your darshan stays peaceful.",
       },
+      maptemple: {
+        title: "Map your temple, step by step",
+        pill: "Mapping your temple? Take the quick tour 🪔",
+        s1t: "Take it slow — one pin at a time",
+        s1b: "The wizard walks you through: shrine first, then entrances, then comforts. Each step is one simple action — tap the map, place the pin.",
+        s2t: "Devotees see what you publish",
+        s2b: "The review step shows exactly what visitors will find. Required pins are marked — recommended ones are gentle nudges. Your draft auto-saves, so you can finish anytime.",
+      },
       p2p: {
         title: "Honest money, between friends",
         pill: "New to money requests? Take the quick tour 🪔",
@@ -346,6 +354,14 @@ export const core: CoreFragment = {
         s1b: "Groups are private — only invited members see messages. There is no public listing, no discovery, no strangers. The invite code is the only door.",
         s2t: "Admins keep it sacred",
         s2b: "Admins add members, rename the group, and care for the space. Anyone can leave anytime — and rejoin later with the code. 🙏",
+      },
+      darshan: {
+        title: "Live Darshan",
+        pill: "Temples you follow will tell you when they're live — take the tour 🛕",
+        s1t: "Never miss a live aarti",
+        s1b: "When a temple you follow goes live on YouTube, you'll get a gentle Suchana — never in quiet hours. Tap the 🔴 badge to join the darshan.",
+        s2t: "Sacred and private",
+        s2b: "Streams use YouTube's privacy-respecting embed. Purohit live sessions need everyone's consent first — and shraddha ceremonies stay private by default. 🙏",
       },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",

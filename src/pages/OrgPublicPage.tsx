@@ -271,7 +271,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                 onClick={() => navigate(`/org/${page.publicSlug || page.orgId}/campus/manage`)}
                 className="min-h-[48px] px-6 rounded-2xl bg-white border border-stone-300 text-stone-800 font-black text-sm shadow-sm hover:bg-stone-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                {T('orgpublic_campus_manage', 'Manage Map', 'মানচিত্র পরিচালনা', 'नक्शा प्रबंधित करें')}
+                {T('orgpublic_campus_manage', '🗺️ Map Your Temple', '🗺️ মন্দিরের মানচিত্র', '🗺️ अपना मंदिर मैप करें')}
               </button>
             )}
           </div>

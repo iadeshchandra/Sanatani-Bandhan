@@ -21,6 +21,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { OrgPage as OrgPageType } from '../types/membership';
 import { CampusView } from '../campus/CampusView';
 import { CampusBuilder } from '../campus/CampusBuilder';
+const MapYourTemple = React.lazy(() => import('../campus/MapYourTemple'));
 import type { OrgKind } from '../campus/types';
 import { OWNER_EMAIL } from '../lib/firestoreAdmin';
 
@@ -298,6 +299,8 @@ export const CampusManagePage: React.FC = () => {
     );
   }
 
+  const [mode, setMode] = React.useState<'guided' | 'advanced'>('guided');
+
   return (
     <Shell
       kicker={page.name}
@@ -311,6 +314,40 @@ export const CampusManagePage: React.FC = () => {
       backTo={`${canonical}/campus`}
       backLabel={T('campus_view_map', 'View campus map', 'ক্যাম্পাস মানচিত্র দেখুন', 'परिसर मानचित्र देखें')}
     >
+      {/* Guided wizard vs advanced builder toggle */}
+      <div className="flex justify-center mb-6" role="tablist" aria-label={T('campus_mode', 'Setup mode', 'সেটআপ মোড', 'सेटअप मोड')}>
+        <div className="inline-flex bg-stone-100 rounded-2xl p-1">
+          <button
+            role="tab"
+            aria-selected={mode === 'guided'}
+            onClick={() => setMode('guided')}
+            className={`px-5 py-2.5 min-h-[44px] rounded-xl text-sm font-black transition-colors ${mode === 'guided' ? 'bg-white text-amber-800 shadow-sm' : 'text-stone-500'}`}
+          >
+            {T('campus_guided', '🗺️ Guided setup', '🗺️ নির্দেশিত সেটআপ', '🗺️ निर्देशित सेटअप')}
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'advanced'}
+            onClick={() => setMode('advanced')}
+            className={`px-5 py-2.5 min-h-[44px] rounded-xl text-sm font-black transition-colors ${mode === 'advanced' ? 'bg-white text-amber-800 shadow-sm' : 'text-stone-500'}`}
+          >
+            {T('campus_advanced', 'Advanced builder', 'উন্নত নির্মাতা', 'उन्नत निर्माता')}
+          </button>
+        </div>
+      </div>
+      {mode === 'guided' ? (
+        <React.Suspense fallback={<LoadingState label={T('campus_loading', 'Opening the campus…', 'ক্যাম্পাস খোলা হচ্ছে…', 'परिसर खोला जा रहा…')} />}>
+          <MapYourTemple
+            orgId={page.orgId}
+            orgName={page.name}
+            orgKind={orgKindOf(page.type)}
+            uid={uid}
+            myRole={myRole}
+            onDone={() => navigate(`${canonical}/campus`)}
+            onClose={() => navigate(`${canonical}/campus`)}
+          />
+        </React.Suspense>
+      ) : (
       <CampusBuilder
         orgId={page.orgId}
         orgName={page.name}
@@ -318,6 +355,7 @@ export const CampusManagePage: React.FC = () => {
         uid={uid}
         onSaved={() => navigate(`${canonical}/campus`)}
       />
+      )}
       <p className="text-center text-[11px] text-stone-400 font-semibold mt-6 flex items-center justify-center gap-1.5">
         <PencilLine size={13} />
         {T(

@@ -46,7 +46,9 @@ export type GuideId =
   | 'sevabazar'
   | 'sevaBooking'
   | 'tirtha'
-  | 'groups';
+  | 'groups'
+  | 'darshan'
+  | 'maptemple';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -316,6 +318,36 @@ export const GUIDES: Record<GuideId, GuideDef> = {
       {
         titleKey: 'guide.groups.s2t',
         bodyKey: 'guide.groups.s2b',
+      },
+    ],
+  },
+  darshan: {
+    id: 'darshan',
+    titleKey: 'guide.darshan.title',
+    pillKey: 'guide.darshan.pill',
+    steps: [
+      {
+        titleKey: 'guide.darshan.s1t',
+        bodyKey: 'guide.darshan.s1b',
+      },
+      {
+        titleKey: 'guide.darshan.s2t',
+        bodyKey: 'guide.darshan.s2b',
+      },
+    ],
+  },
+  maptemple: {
+    id: 'maptemple',
+    titleKey: 'guide.maptemple.title',
+    pillKey: 'guide.maptemple.pill',
+    steps: [
+      {
+        titleKey: 'guide.maptemple.s1t',
+        bodyKey: 'guide.maptemple.s1b',
+      },
+      {
+        titleKey: 'guide.maptemple.s2t',
+        bodyKey: 'guide.maptemple.s2b',
       },
     ],
   },
