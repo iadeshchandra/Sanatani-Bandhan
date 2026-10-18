@@ -23,7 +23,7 @@ export const T: React.FC<{ en: string; bn: string; hi?: string; sa?: string; cla
   return (
     <span className={className}>
       <span className="font-bold">{primary}</span>
-      {showGloss && <span className="text-stone-500 font-normal text-[0.85em]"> ({en})</span>}
+      {showGloss && <span className="whitespace-nowrap text-stone-500 font-normal text-[0.85em]"> ({en})</span>}
     </span>
   );
 };
@@ -53,7 +53,7 @@ export const Stat: React.FC<{ label: React.ReactNode; value: React.ReactNode; su
   return (
     <div className={`rounded-2xl border p-3 sm:p-4 ${tones[tone]}`}>
       <div className="text-xs font-semibold opacity-70">{label}</div>
-      <div className="text-xl sm:text-2xl font-extrabold mt-1 tnum">{value}</div>
+      <div className="text-xl sm:text-2xl font-extrabold mt-1">{value}</div>
       {sub && <div className="text-xs mt-1 opacity-75">{sub}</div>}
     </div>
   );
@@ -73,7 +73,7 @@ export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { var
   return (
     <button
       {...rest}
-      className={`pressable rounded-xl px-4 py-2 text-sm font-bold transition-colors min-h-[44px] ${styles} ${className}`}
+      className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors min-h-[44px] ${styles} ${className}`}
     />
   );
 };
@@ -101,7 +101,7 @@ export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; chil
   onClose,
   children,
 }) => (
-  <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+  <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
     <div
       className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto"
       onClick={(e) => e.stopPropagation()}

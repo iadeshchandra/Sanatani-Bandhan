@@ -42,7 +42,7 @@ export const TourPill: React.FC<TourPillProps> = ({
 
   return (
     <div
-      className={`fixed z-[150] left-1/2 -translate-x-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] md:bottom-8 ${className}`}
+      className={`fixed z-[150] left-1/2 -translate-x-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] md:bottom-8 max-w-[calc(100vw-32px)] ${className}`}
       role="dialog"
       aria-label={t(guide.pillKey)}
     >
@@ -50,9 +50,9 @@ export const TourPill: React.FC<TourPillProps> = ({
         <button
           type="button"
           onClick={onStart}
-          className="min-h-[44px] flex items-center gap-2 text-[13px] font-bold"
+          className="min-h-[44px] min-w-0 flex items-center gap-2 text-[13px] font-bold"
         >
-          <Sparkles className="w-4 h-4 text-amber-300" aria-hidden />
+          <Sparkles className="w-4 h-4 text-amber-300 shrink-0" aria-hidden />
           <span className="max-w-[52vw] truncate">{t(guide.pillKey)}</span>
         </button>
         <button

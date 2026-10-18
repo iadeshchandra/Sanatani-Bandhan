@@ -237,14 +237,16 @@ body {
  * column), which the body rule cannot reach.
  */
 body.sb-has-sos {
-  padding-bottom: 156px;
+  /* 176px clears both FABs (Ask 56px + "Ask" pill at bottom 92px, SOS mirrored
+     on the right) with a comfortable margin — no text ever hides beneath. */
+  padding-bottom: 176px;
   transition: padding-bottom 0.25s ease;
 }
 body.sb-has-sos.sb-sos-open {
   padding-bottom: 240px;
 }
 body.sb-has-sos .sb-sos-clear {
-  padding-bottom: 156px;
+  padding-bottom: 176px;
   transition: padding-bottom 0.25s ease;
 }
 body.sb-has-sos.sb-sos-open .sb-sos-clear {
