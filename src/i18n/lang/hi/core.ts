@@ -155,6 +155,8 @@ export const core: CoreFragment = {
         topUpRequests: "टॉप-अप अनुरोध",
         topUpUpdated: "टॉप-अप अनुरोध अपडेट किया गया!",
         trxIdHint: "जैसे TRX9F8K2P1A — अपने bKash/Nagad/UPI ऐप इतिहास में मिलेगी",
+        trxIdMustMatchAmount: "अपने पेमेंट ऐप के लेन-देन इतिहास से TrxID/UTR कॉपी करें। यह आपके भेजे गए {amount} से मेल खाना चाहिए।",
+        trxIdEnterAmountFirst: "ऊपर राशि दर्ज करें, फिर अपने पेमेंट ऐप से TrxID/UTR कॉपी करें।",
         yourReference: "आपका संदर्भ",
       },
       signup: {

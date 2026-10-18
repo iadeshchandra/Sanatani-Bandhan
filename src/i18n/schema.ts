@@ -147,6 +147,8 @@ export interface TranslationSchema {
       enterTrxId: string;
       correctTrxId: string;
       trxIdHint: string;
+      trxIdMustMatchAmount: string;
+      trxIdEnterAmountFirst: string;
       copyReference: string;
       yourReference: string;
       newReference: string;
