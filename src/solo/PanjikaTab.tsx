@@ -99,7 +99,7 @@ export const PanjikaTab: React.FC = () => {
   const [section, setSection] = useState<Section>('calendar');
   const [calId, setCalId] = useState<string>(() => {
     try {
-      return localStorage.getItem(CAL_STORAGE) || defaultCalendarId(getCachedRegion() || 'INTL', 'en');
+      return localStorage.getItem(CAL_STORAGE) || defaultCalendarId((getCachedRegion() || 'INTL') as 'BD' | 'IN' | 'INTL', 'en');
     } catch {
       return 'vikram';
     }
@@ -129,18 +129,37 @@ export const PanjikaTab: React.FC = () => {
   }, [cal, school]);
 
   const today = useMemo(() => new Date(), []);
-  // The regional day begins at SUNRISE, not midnight: before local sunrise
-  // the prevailing date is still yesterday's.
-  const todayRd: RegionalDate = useMemo(() => {
-    let eff = today;
+  // The dharmic day begins at SUNRISE, not midnight: before local sunrise the
+  // prevailing day is still yesterday's. A SINGLE anchor moment drives the
+  // header date AND the Drik tithi/nakshatra/yoga/karana/lunar-month —
+  // previously the header used the current moment while the Drik snapshot used
+  // today's sunrise, so the two could contradict on one screen (e.g. header
+  // "Shukla Shashthi" vs Tithi field "Shukla Saptami"; a mid-day tithi change
+  // could split them too). Anchoring both on the day's sunrise = the
+  // published-panjika convention for "today's tithi".
+  const dayAnchor = useMemo(() => {
+    let effSunrise = today;
+    let effSunset = today;
     try {
-      const { sunriseDate } = calculateSunriseSunset(today, city.lat, city.lon, city.tz);
-      if (today.getTime() < sunriseDate.getTime()) eff = new Date(today.getTime() - 86400000);
-    } catch { /* noop */ }
-    try { return cal.toRegional(eff); } catch {
+      const ss = calculateSunriseSunset(today, city.lat, city.lon, city.tz);
+      if (today.getTime() < ss.sunriseDate.getTime()) {
+        // Pre-sunrise: anchor on yesterday's sunrise — the tithi prevailing now.
+        const yesterday = new Date(today.getTime() - 86400000);
+        const ys = calculateSunriseSunset(yesterday, city.lat, city.lon, city.tz);
+        effSunrise = ys.sunriseDate;
+        effSunset = ys.sunsetDate;
+      } else {
+        effSunrise = ss.sunriseDate;
+        effSunset = ss.sunsetDate;
+      }
+    } catch { /* fall back to `today` — header and Drik stay mutually consistent */ }
+    return { effSunrise, effSunset };
+  }, [today, city]);
+  const todayRd: RegionalDate = useMemo(() => {
+    try { return cal.toRegional(dayAnchor.effSunrise); } catch {
       return { year: today.getFullYear(), month: 1, monthEn: '', monthNative: '', day: 1, kind: 'solar', era: '', eraNative: '' };
     }
-  }, [cal, city, today]);
+  }, [cal, dayAnchor, today]);
 
   // ---- Calendar view state ----
   const [viewY, setViewY] = useState(todayRd.year);
@@ -234,13 +253,13 @@ export const PanjikaTab: React.FC = () => {
   }, [today, city]);
   const drik = useMemo(() => {
     try {
-      const { sunriseDate, sunsetDate } = calculateSunriseSunset(today, city.lat, city.lon, city.tz);
-      const snap = drikSnapshot(sunriseDate, school);
-      // Headline nakshatra = majority of the daylight span (matches published panjikas)
-      const dayNak = drikDayNakshatra(sunriseDate, sunsetDate);
+      // Same anchor as the header (day's sunrise) — the two can never disagree.
+      const snap = drikSnapshot(dayAnchor.effSunrise, school);
+      // Headline nakshatra = majority of the prevailing day's daylight span (matches published panjikas)
+      const dayNak = drikDayNakshatra(dayAnchor.effSunrise, dayAnchor.effSunset);
       return { ...snap, nakshatra: dayNak.name, nakshatraTransitions: dayNak.transitions };
     } catch { return null; }
-  }, [today, city, school]);
+  }, [dayAnchor, school]);
 
   // ---- Muhurat finder ----
   const tradition: MuhuratTradition = calId.startsWith('bengali') ? 'bengali' : 'north_indian';
