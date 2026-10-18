@@ -1894,6 +1894,27 @@ service cloud.firestore {
           && tier == get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('verificationTier', ''));
     }
 
+    // Seva Bazar service_card: the editorial bar, enforced server-side.
+    // Only providers (purohit/jyotish) may post them; the devotional text
+    // (≥30 chars) and honest dakshina are non-negotiable. Cheap-signal
+    // language is a client + moderation concern; the rules hold the shape.
+    // NOTE: the 1-card/72h/provider spam line is enforced client-side in the
+    // composer; true server-side rate limiting needs a Cloud Function
+    // (Blaze-gated — unavailable on the $0 plan).
+    function serviceCardOk() {
+      let kind = request.resource.data.get('kind', '');
+      if (kind != 'service_card') { return true; }
+      let authorKind = request.resource.data.get('authorKind', '');
+      let card = request.resource.data.get('serviceCard', {});
+      return (authorKind == 'purohit' || authorKind == 'jyotish')
+        && card != null
+        && card.get('devotionalText', '').size() >= 30
+        && card.get('serviceLine', '') != ''
+        && card.get('dakshina', 0) > 0
+        && card.get('providerUid', '') == request.auth.uid
+        && card.get('providerTier', '') in ['REGISTERED', 'VERIFIED', 'TRUSTED'];
+    }
+
     // Official page posts: only a trustee of that org may post as the page.
     function sangamPagePostOk() {
       let official = request.resource.data.get('isOfficialPagePost', false);
@@ -1903,6 +1924,7 @@ service cloud.firestore {
     }
 
     // --- sangamPosts: public read (the community feed); author create;
+    // service_card (Seva Bazar): provider-only, editorial bar enforced.
     match /sangamPosts/{postId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -1910,7 +1932,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(
           ['authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
            'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
-           'seva', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount', 'commentCount',
+           'seva', 'serviceCard', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount', 'commentCount',
            'shareCount', 'visibility', 'status'])
         && request.resource.data.get('ashirvadCount', -1) == 0
         && request.resource.data.get('commentCount', -1) == 0
@@ -1919,7 +1941,8 @@ service cloud.firestore {
         && request.resource.data.get('visibility', '') == 'public'
         && request.resource.data.get('text', '') != ''
         && sangamAuthorTierOk()
-        && sangamPagePostOk();
+        && sangamPagePostOk()
+        && serviceCardOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl', 'updatedAt'])
@@ -2406,7 +2429,7 @@ service cloud.firestore {
         || isOwner()
       );
       allow delete: if false;
-    };
+    }
     // Sevadar live reports — "human sensors" for campus conditions.
     // Read is public (live conditions are public information).
     // Write: sevadar+ of that workspace (role-gated). Reports EXPIRE
@@ -2425,7 +2448,7 @@ service cloud.firestore {
                'SEVADAR', 'Coordinator', 'COORDINATOR'])
             || isOwner());
       allow update, delete: if false;
-    };
+    }
 
 match /fileVault/{fileId} {
       allow read: if isLoggedIn()
