@@ -17,6 +17,8 @@ import { languageHelpTask } from './language_help';
 import { sosHelpTask } from './sos_help';
 import { voiceUpgradeTask } from './voice_upgrade';
 import { dharmaQuestionTask } from './dharma_question';
+import { navigationQuestionTask } from './navigation';
+import { nearbyTask } from './nearby';
 import { tirthaSummaryTask } from './tirtha_summary';
 import { greetingTask } from './greeting';
 import { fallbackUnknownTask } from './fallback_unknown';
@@ -33,6 +35,8 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   sos_help: sosHelpTask,
   voice_upgrade: voiceUpgradeTask,
   dharma_question: dharmaQuestionTask,
+  navigation_question: navigationQuestionTask,
+  nearby_temples: nearbyTask,
   tirtha_summary: tirthaSummaryTask,
   greeting: greetingTask,
   fallback_unknown: fallbackUnknownTask,

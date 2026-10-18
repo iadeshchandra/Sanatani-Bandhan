@@ -76,7 +76,9 @@ const ALL_INTENTS: IntentId[] = [
   'sos_help',
   'voice_upgrade',
   'dharma_question',
+  'navigation_question',
   'tirtha_summary',
+  'nearby_temples',
   'greeting',
   'fallback_unknown',
 ];

@@ -46,14 +46,16 @@ export const TourPill: React.FC<TourPillProps> = ({
       role="dialog"
       aria-label={t(guide.pillKey)}
     >
-      <div className="flex items-center gap-1 pl-4 pr-1.5 py-1.5 rounded-full bg-amber-950/95 text-amber-50 shadow-xl border border-amber-400/30 backdrop-blur-sm animate-[guidePillIn_0.45s_ease-out]">
+      <div className="flex items-center gap-1 pl-4 pr-1.5 py-1.5 rounded-[24px] bg-amber-950/95 text-amber-50 shadow-xl border border-amber-400/30 backdrop-blur-sm animate-[guidePillIn_0.45s_ease-out]">
         <button
           type="button"
           onClick={onStart}
-          className="min-h-[44px] min-w-0 flex items-center gap-2 text-[13px] font-bold"
+          className="min-h-[44px] min-w-0 flex-1 flex items-center gap-2 text-[13px] font-bold text-left"
         >
           <Sparkles className="w-4 h-4 text-amber-300 shrink-0" aria-hidden />
-          <span className="max-w-[52vw] truncate">{t(guide.pillKey)}</span>
+          {/* Wraps at word boundaries instead of truncating mid-word:
+              the invitation must stay readable in every language. */}
+          <span className="leading-snug">{t(guide.pillKey)}</span>
         </button>
         <button
           type="button"

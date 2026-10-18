@@ -36,6 +36,8 @@ export const ASSISTANT_TEMPLATE_KEYS: string[] = [
   'assistant.sos_help',
   'assistant.voice_upgrade',
   'assistant.dharma_question',
+  'assistant.navigation_question',
+  'assistant.nearby_temples',
   'assistant.greeting',
   'assistant.fallback_unknown',
   'assistant.crisis',
@@ -219,6 +221,71 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
     },
   },
 
+  /* ---------------- navigation_question ---------------- */
+  navigation_question: {
+    answer: {
+      en: (p, c) => `${p['answer']}`,
+      hi: (p, c) => `${p['answer']}`,
+      bn: (p, c) => `${p['answer']}`,
+    },
+    clarify: {
+      en: (p, c) =>
+        `🙏 I'd love to point you the right way — which part of the app are you looking for? Try "where is my wallet?" or "where is the Tirtha Diary?" 🌼`,
+      hi: (p, c) =>
+        `🙏 आपको सही रास्ता बताने में प्रसन्नता होगी — ऐप का कौन-सा भाग ढूँढ रहे हैं? "मेरा वॉलेट कहाँ है?" या "तीर्थ डायरी कहाँ है?" पूछकर देखें। 🌼`,
+      bn: (p, c) =>
+        `🙏 আপনাকে সঠিক পথ দেখাতে পারলে আনন্দ হবে — অ্যাপের কোন অংশটি খুঁজছেন? "আমার ওয়ালেট কোথায়?" বা "তীর্থ ডায়েরি কোথায়?" জিজ্ঞেস করে দেখুন। 🌼`,
+    },
+    default: {
+      en: (p, c) => `🙏 Ask me where anything lives in the app — your wallet, Tirtha Diary, group chats, language settings — and I'll take you there. 🌼`,
+      hi: (p, c) => `🙏 ऐप में कुछ भी कहाँ है, पूछिए — आपका वॉलेट, तीर्थ डायरी, ग्रुप चैट, भाषा सेटिंग — मैं आपको वहाँ ले चलूँगा। 🌼`,
+      bn: (p, c) => `🙏 অ্যাপে যেকোনো কিছু কোথায় আছে জিজ্ঞেস করুন — আপনার ওয়ালেট, তীর্থ ডায়েরি, গ্রুপ চ্যাট, ভাষা সেটিং — আমি আপনাকে সেখানে নিয়ে যাব। 🌼`,
+    },
+  },
+  /* ---------------- nearby_temples ---------------- */
+  nearby_temples: {
+    consent: {
+      en: (p, c) => `🙏 To find temples near you, I'll need your location — just this once, never stored, never shared. May I access it?`,
+      hi: (p, c) => `🙏 आपके पास के मंदिर खोजने के लिए मुझे आपका स्थान चाहिए — सिर्फ इस बार, कभी संग्रहित नहीं, कभी साझा नहीं। क्या मैं एक्सेस कर सकता हूँ?`,
+      bn: (p, c) => `🙏 আপনার কাছের মন্দির খুঁজতে আমার আপনার অবস্থান দরকার — শুধু এইবার, কখনো সংরক্ষণ নয়, কখনো ভাগ নয়। আমি কি অ্যাক্সেস করতে পারি?`,
+    },
+    denied: {
+      en: (p, c) =>
+        `🙏 I understand completely — your location stays yours. If you'd like, tell me a city name and I'll find the great tirthas near it. Or explore the campus maps of temples in your Organisations. 🌼`,
+      hi: (p, c) =>
+        `🙏 मैं पूरी तरह समझता हूँ — आपका स्थान आपका ही रहेगा। चाहें तो किसी शहर का नाम बताएँ — मैं उसके पास के प्रमुख तीर्थ बताऊँगा। या अपने संगठनों के मंदिरों के परिसर मानचित्र देखें। 🌼`,
+      bn: (p, c) =>
+        `🙏 আমি সম্পূর্ণ বুঝি — আপনার অবস্থান আপনারই থাকবে। চাইলে কোনো শহরের নাম বলুন — আমি তার কাছের প্রধান তীর্থগুলো জানাব। অথবা আপনার সংগঠনগুলোর মন্দিরের ক্যাম্পাস মানচিত্র দেখুন। 🌼`,
+    },
+    results: {
+      en: (p, c) => `${p['header']}\n\n${p['list']}\n\n${p['footer']}`,
+      hi: (p, c) => `${p['header']}\n\n${p['list']}\n\n${p['footer']}`,
+      bn: (p, c) => `${p['header']}\n\n${p['list']}\n\n${p['footer']}`,
+    },
+    empty: {
+      en: (p, c) =>
+        `🛕 No mapped temples within 25km of you — but the great tirthas are never far in spirit. Try a city name, or ask your nearest temple to create a campus map so fellow devotees can find it. 🪔`,
+      hi: (p, c) =>
+        `🛕 आपके 25 किमी के दायरे में कोई मानचित्रित मंदिर नहीं — पर महान तीर्थ आत्मा से कभी दूर नहीं। किसी शहर का नाम बताकर देखें, या अपने निकटतम मंदिर से परिसर मानचित्र बनाने को कहें। 🪔`,
+      bn: (p, c) =>
+        `🛕 আপনার 25 কিমির মধ্যে কোনো মানচিত্রিত মন্দির নেই — তবে মহান তীর্থ আত্মায় কখনো দূরে নয়। কোনো শহরের নাম বলে দেখুন, অথবা আপনার কাছের মন্দিরকে ক্যাম্পাস মানচিত্র বানাতে বলুন। 🪔`,
+    },
+    locating: {
+      en: (p, c) => `🛕 Finding your location… one moment.`,
+      hi: (p, c) => `🛕 आपका स्थान खोज रहा हूँ… एक क्षण।`,
+      bn: (p, c) => `🛕 আপনার অবস্থান খুঁজছি… এক মুহূর্ত।`,
+    },
+    with_coords: {
+      en: (p, c) => `🙏 Searching for temples near you…`,
+      hi: (p, c) => `🙏 आपके पास मंदिर खोज रहा हूँ…`,
+      bn: (p, c) => `🙏 আপনার কাছে মন্দির খুঁজছি…`,
+    },
+    default: {
+      en: (p, c) => `🙏 Ask me "temples near me" and I'll help you find sacred spaces nearby — always with your explicit permission. 🌼`,
+      hi: (p, c) => `🙏 "मेरे पास मंदिर" पूछिए — आपकी स्पष्ट अनुमति से पास के पवित्र स्थान खोजने में मदद करूँगा। 🌼`,
+      bn: (p, c) => `🙏 "আমার কাছে মন্দির" জিজ্ঞেস করুন — আপনার স্পষ্ট অনুমতিতে কাছের পবিত্র স্থান খুঁজতে সাহায্য করব। 🌼`,
+    },
+  },
   /* ---------------- tirtha_summary ---------------- */
   tirtha_summary: {
     summary: {
@@ -534,6 +601,16 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['What is Ekadashi?', 'What is karma?', 'How to do morning puja?'],
     hi: ['एकादशी क्या है?', 'कर्म क्या है?', 'सुबह पूजा कैसे करें?'],
     bn: ['একাদশী কী?', 'কর্ম কী?', 'সকালের পূজা কীভাবে করব?'],
+  },
+  navigation_question: {
+    en: ['Where is my wallet?', 'Where is the Tirtha Diary?', 'Where are group chats?'],
+    hi: ['मेरा वॉलेट कहाँ है?', 'तीर्थ डायरी कहाँ है?', 'ग्रुप चैट कहाँ हैं?'],
+    bn: ['আমার ওয়ালেট কোথায়?', 'তীর্থ ডায়েরি কোথায়?', 'গ্রুপ চ্যাট কোথায়?'],
+  },
+  nearby_temples: {
+    en: ['Temples near me', 'Nearby mandirs', 'Temples around here?'],
+    hi: ['मेरे पास मंदिर', 'आस-पास मंदिर', 'नज़दीकी मंदिर?'],
+    bn: ['আমার কাছে মন্দির', 'কাছাকাছি মন্দির', 'আশেপাশে মন্দির?'],
   },
   tirtha_summary: {
     en: ['My Tirtha Diary', "Today's tithi?", 'Next festival?'],

@@ -31,7 +31,9 @@ export type IntentId =
   | 'sos_help'
   | 'voice_upgrade'
   | 'dharma_question'
+  | 'navigation_question'
   | 'tirtha_summary'
+  | 'nearby_temples'
   | 'greeting'
   | 'fallback_unknown';
 
@@ -57,12 +59,12 @@ export interface AssistantCtx {
 
 /** Machine-readable follow-up the host UI may act on. */
 export interface AssistantAction {
-  kind: 'navigate' | 'openGuide' | 'openSheet';
+  kind: 'navigate' | 'openGuide' | 'openSheet' | 'requestLocation';
   /** Route path, guide id, or sheet id — resolved by the host shell. */
   target: string;
 }
 
-export type ResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos';
+export type ResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent';
 
 export interface AssistantResponse {
   type: ResponseType;

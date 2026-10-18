@@ -13,6 +13,7 @@
 
 import type { IntentId, LangCode } from './types';
 import { matchDharma } from './dharma';
+import { isWhereQuestion, matchNavigation } from './navigation';
 
 export interface IntentDef {
   id: IntentId;
@@ -31,6 +32,8 @@ export const INTENTS: IntentDef[] = [
   { id: 'sos_help', description: 'Explains the SOS flow (does NOT trigger SOS)' },
   { id: 'voice_upgrade', description: 'Get the warmer on-device AI voice (Settings card)' },
   { id: 'dharma_question', description: 'Answer from the restricted Dharma corpus (or escalate to Purohitji)' },
+  { id: 'navigation_question', description: 'Where an app feature lives (navigation corpus + deep-link)' },
+  { id: 'nearby_temples', description: 'Temples near the devotee — explicit location consent, never stored' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
 ];
@@ -107,6 +110,13 @@ const TIRTHA_KW = [
   'how many temples', 'temples have i visited', 'my diary', 'tirtha diary',
   'तीर्थ', 'यात्रा', 'मंदिर गए', 'कितने मंदिर', 'तीर्थ डायरी',
   'তীর্থ', 'যাত্রা', 'মন্দির গেছি', 'কটি মন্দির', 'তীর্থ ডায়েরি',
+];
+
+const NEARBY_KW = [
+  'near me', 'nearby', 'close to me', 'around here', 'closest temple',
+  'nearest temple', 'temples near', 'mandir near', 'temple near',
+  'पास', 'नज़दीक', 'नजदीक', 'आस-पास', 'आसपास', 'नजदीकी मंदिर', 'पास का मंदिर',
+  'কাছে', 'কাছাকাছি', 'নিকটে', 'কাছের মন্দির', 'আশেপাশে',
 ];
 
 const BOOKING_VERB_KW = [
@@ -199,6 +209,7 @@ const RULES: Rule[] = [
   { intent: 'sos_help', confidence: 'high', keywords: SOS_HELP_KW },
   { intent: 'voice_upgrade', confidence: 'high', keywords: VOICE_UPGRADE_KW },
   { intent: 'tirtha_summary', confidence: 'high', keywords: TIRTHA_KW },
+  { intent: 'nearby_temples', confidence: 'high', keywords: NEARBY_KW },
   { intent: 'navigate', confidence: 'medium', keywords: NAVIGATE_KW },
   { intent: 'howto', confidence: 'medium', keywords: HOWTO_KW },
   { intent: 'greeting', confidence: 'low', keywords: GREETING_KW },
@@ -265,6 +276,45 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
   const text = normalise(input);
   const fallback: RouteResult = { intent: 'fallback_unknown', confidence: 'low', slots: {}, evidence: [] };
   if (!text) return fallback;
+
+  // Location first chance: "temples near me" / "nearest temple" asks about
+  // PHYSICAL temples, not app features. Check before navigation_question's
+  // "where" interrogative, which would otherwise claim "where is the
+  // nearest temple?". Requires a proximity keyword + temple context.
+  const nearbyHit = NEARBY_KW.some((kw) => {
+    try {
+      return new RegExp(
+        `(?<!\\p{L})${kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\p{L})`, 'u'
+      ).test(text);
+    } catch { return false; }
+  });
+  if (nearbyHit) {
+    return {
+      intent: 'nearby_temples',
+      confidence: 'high',
+      slots: {},
+      evidence: ['nearby-proximity'],
+    };
+  }
+
+  // Phase 3 first chance: "where is X?" interrogatives. When the devotee
+  // asks WHERE an app feature lives and the navigation corpus answers
+  // with confidence, that wins — even over procedural intents whose
+  // keywords also match (e.g. "দান বিভাগ কোথায়?" contains 'দান' but
+  // asks for a location, not donation guidance). Falls through silently
+  // when the corpus cannot answer ("where is Ekadashi celebrated?"
+  // is a dharma question, not an app-location question).
+  if (isWhereQuestion(input)) {
+    const nav = matchNavigation(input);
+    if (nav && (nav.confidence === 'high' || nav.confidence === 'medium')) {
+      return {
+        intent: 'navigation_question',
+        confidence: nav.confidence,
+        slots: { entryId: nav.entry.id },
+        evidence: nav.evidence,
+      };
+    }
+  }
 
   let result: RouteResult = fallback;
   for (const { rule, res } of MATCHERS) {
