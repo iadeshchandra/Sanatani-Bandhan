@@ -10,6 +10,8 @@ import { SOSFlow } from './crisis/SOSFlow';
 import { NotificationWiring } from './notifications/NotificationWiring';
 import { InstallPrompt } from './components/common/InstallPrompt';
 import { UpdatePrompt } from './components/pwa/UpdatePrompt';
+import { NativeWelcomeSheet } from './components/language/NativeWelcomeSheet';
+import { TravelNudge } from './components/language/TravelNudge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { DeskErrorBoundary } from './components/common/DeskErrorBoundary';
 import { AppInitializer } from './context/AppInitializer';
@@ -1198,6 +1200,12 @@ export default function App() {
                       <NotificationWiring />
                       <InstallPrompt />
                       <UpdatePrompt />
+                      {/* Regional Native Experience (Track 2): detect-once
+                          warm welcome + gentle travel nudge. Mounted with
+                          the other first-run UI; both no-op when the
+                          devotee has already chosen. */}
+                      <NativeWelcomeSheet />
+                      <TravelNudge />
                     </QuickGuideProvider>
                   </MembershipProvider>
                 </DataProvider>
