@@ -419,14 +419,36 @@ export const generateStandardA_AutoLoginQR = async (
 };
 
 /**
- * Standard B: Gate Pass QR URL
+ * Standard B: dynamic, time-limited Gate Pass QR.
+ *
+ * The old payload was a plain `/?action=verify&id=…` URL that verified
+ * nothing (App strips `action=verify` without verification — a scanner had no
+ * way to trust it). The gate pass now mints an HMAC-signed, time-expiring
+ * dynamic token — the same system the self-serve "Dynamic Gate Pass QR" uses
+ * — so door scanners (QRScanner → verifyDynamicToken) can actually verify it
+ * and screenshots expire on their own.
  */
 export const generateStandardB_GatePassQR = async (
-  memberId: string
+  memberId: string,
+  memberName?: string,
+  workspaceId: string = 'default',
+  sevaTier: string = 'Devotee',
+  validitySeconds: number = 300
 ): Promise<string> => {
-  const url = `${APP_BASE_URL}/?action=verify&id=${encodeURIComponent(memberId)}`;
+  const token = generateDynamicToken(
+    {
+      uid: memberId,
+      id: memberId,
+      name: memberName,
+      fullName: memberName,
+      sevaTier,
+      workspaceId,
+      purpose: 'Gate Pass',
+    },
+    validitySeconds
+  );
   try {
-    return await QRCode.toDataURL(url, {
+    return await QRCode.toDataURL(token, {
       width: 400,
       margin: 2,
       color: {
@@ -435,7 +457,7 @@ export const generateStandardB_GatePassQR = async (
       },
     });
   } catch (err) {
-    console.error('Error generating QR', err);
+    console.error('Error generating Standard-B gate pass QR', err);
     return '';
   }
 };

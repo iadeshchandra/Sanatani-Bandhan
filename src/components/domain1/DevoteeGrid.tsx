@@ -175,6 +175,8 @@ export const DevoteeGrid: React.FC = () => {
   const [standardA_QR, setStandardA_QR] = useState<string>('');
   const [standardB_QR, setStandardB_QR] = useState<string>('');
   const [qrTab, setQrTab] = useState<'security' | 'gate'>('security');
+  // Live countdown for the dynamic gate pass token (300s = 5 minutes).
+  const [gatePassSecondsLeft, setGatePassSecondsLeft] = useState<number>(300);
 
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -545,6 +547,24 @@ export const DevoteeGrid: React.FC = () => {
   };
 
 
+  /**
+   * Issues (or re-issues) the Standard-B dynamic gate pass token.
+   * HMAC-signed + 5-minute expiry — door scanners verify it via
+   * verifyDynamicToken, so screenshots stop working on their own.
+   */
+  const issueGatePass = async (d: DevoteeMember) => {
+    const qrB = await generateStandardB_GatePassQR(
+      d.id,
+      d.fullName || d.name,
+      activeWorkspace.id,
+      d.sevaTier
+    );
+    if (qrB) {
+      setStandardB_QR(qrB);
+      setGatePassSecondsLeft(300);
+    }
+  };
+
   const openQrModal = async (devotee: DevoteeMember) => {
     setQrModalDevotee(devotee);
     setQrTab('security');
@@ -569,9 +589,21 @@ export const DevoteeGrid: React.FC = () => {
       setQrModalDevotee(null);
       return;
     }
-    const qrB = await generateStandardB_GatePassQR(devotee.id);
-    setStandardB_QR(qrB);
+    await issueGatePass(devotee);
   };
+
+  // Live gate-pass countdown: tick while the Gate tab is open, and mint a
+  // fresh token the moment the old one lapses so the pass never shows dead.
+  useEffect(() => {
+    if (!qrModalDevotee || qrTab !== 'gate') return;
+    if (gatePassSecondsLeft <= 0) {
+      issueGatePass(qrModalDevotee);
+      return;
+    }
+    const t = setTimeout(() => setGatePassSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrModalDevotee, qrTab, gatePassSecondsLeft]);
 
   const openEditModal = (devotee: DevoteeMember) => {
     setEditingDevotee(devotee);
@@ -1820,7 +1852,12 @@ export const DevoteeGrid: React.FC = () => {
               </button>
               <button
                 className={`flex-1 py-3 text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${qrTab === 'gate' ? 'bg-white text-saffron-600 border-b-2 border-saffron-500' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                onClick={() => setQrTab('gate')}
+                onClick={() => {
+                  setQrTab('gate');
+                  // Fresh token every time the tab is viewed — the countdown
+                  // must never overstate the token's real 5-minute life.
+                  if (qrModalDevotee) issueGatePass(qrModalDevotee);
+                }}
               >
                 <MapPin className="w-4 h-4" />
                 Gate Pass (Standard B)
@@ -1849,8 +1886,9 @@ export const DevoteeGrid: React.FC = () => {
                 <div className="animate-in fade-in slide-in-from-right-4">
                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl mb-6 text-left">
                     <p className="text-[11px] text-emerald-800 font-medium leading-relaxed">
-                      <strong className="block text-emerald-900 mb-1">100% Safe Public Pass</strong>
-                      Contains zero credentials. Used strictly by GuestManager or event scanners for attendance at the door.
+                      <strong className="block text-emerald-900 mb-1">Dynamic Gate Pass</strong>
+                      This QR holds a time-signed token — door scanners verify it, and it
+                      refreshes itself every 5 minutes, so screenshots stop working on their own.
                     </p>
                   </div>
                   {standardB_QR ? (
@@ -1858,8 +1896,22 @@ export const DevoteeGrid: React.FC = () => {
                   ) : (
                     <div className="w-48 h-48 mx-auto bg-slate-100 rounded-xl animate-pulse" />
                   )}
-                  <p className="mt-4 text-xs font-mono text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg inline-block">
-                    Payload: ?action=verify
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg inline-block">
+                      Valid: {Math.floor(gatePassSecondsLeft / 60)}:
+                      {(gatePassSecondsLeft % 60).toString().padStart(2, '0')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => qrModalDevotee && issueGatePass(qrModalDevotee)}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors"
+                      title="Issue a fresh gate pass token now"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  <p className="mt-3 text-xs font-mono text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg inline-block">
+                    Payload: time-signed token (5-min)
                   </p>
                 </div>
               )}
