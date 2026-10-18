@@ -377,6 +377,16 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
       ),
     },
   },
+  darshan_live: {
+    wentLive: {
+      title: t('🛕 {temple} is live', '🛕 {temple} লাইভে আছে', '🛕 {temple} लाइव है'),
+      body: t(
+        'Join the darshan — {temple} is streaming now.',
+        'দর্শনে যোগ দিন — {temple} এখন স্ট্রিম করছে।',
+        'दर्शन में जुड़ें — {temple} अभी स्ट्रीम कर रहा है।',
+      ),
+    },
+  },
 };
 
 /**

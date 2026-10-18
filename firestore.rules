@@ -1256,10 +1256,27 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin();
     }
 
+    // Live Darshan — public live-status cache. Any viewer can read whether
+    // a temple is live. Writes are schema-pinned: the polling client (any
+    // logged-in viewer) may only update the live-status fields; the orgId
+    // must match the document ID. Self-correcting: a wrong "live" flag is
+    // overwritten by the next honest poll.
+    match /orgLiveStatus/{orgId} {
+      allow read: if true;
+      allow create, update: if isLoggedIn()
+        && request.resource.data.get('orgId', '') == orgId
+        && request.resource.data.get('isLive', null) is bool
+        && request.resource.data.get('updatedAt', null) is number
+        && request.resource.data.keys().hasOnly([
+          'orgId', 'isLive', 'videoId', 'title', 'startedAt',
+          'updatedAt', 'nextPollAfter'
+        ]);
+      allow delete: if isSuperAdmin() || isOwner();
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
-    match /chatGroups/{groupId} {
-      allow read: if isSuperAdmin() || (isLoggedIn() &&
+    match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&
         resource.data.get('memberIds', null) is list &&
         request.auth.uid in resource.data.get('memberIds', []));
 

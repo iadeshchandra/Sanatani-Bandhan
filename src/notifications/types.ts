@@ -28,7 +28,8 @@ export type NotifyKind =
   | 'suchana'
   | 'org'
   | 'blessing'
-  | 'security';
+  | 'security'
+  | 'darshan_live';
 
 export type NotifyLang = 'en' | 'bn' | 'hi';
 
