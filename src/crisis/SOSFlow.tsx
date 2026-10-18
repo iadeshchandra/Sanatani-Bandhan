@@ -21,6 +21,7 @@ import { SituationPicker, type SituationSelection } from './SituationPicker';
 import { SOSConfirm } from './SOSConfirm';
 import { SOSTimeline } from './SOSTimeline';
 import { GUIDES, useGuide, TourPill, CoachMark } from '../components/guide';
+import { SOS_OPEN_EVENT } from './sosEntry';
 
 type Step = 'idle' | 'pick' | 'confirm' | 'active';
 
@@ -51,6 +52,15 @@ export const SOSFlow: React.FC = () => {
       document.body.classList.remove('sb-has-sos');
     };
   }, [isAuthenticated]);
+
+  // Programmatic SOS entry (e.g. the AI assistant's `sos` responses call
+  // openSosFlow() from crisis/sosEntry). The flow itself stays the single
+  // implementation — this is just another door into it.
+  useEffect(() => {
+    const onOpen = () => setStep('pick');
+    window.addEventListener(SOS_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(SOS_OPEN_EVENT, onOpen);
+  }, []);
 
   if (!isAuthenticated) return null;
 

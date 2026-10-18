@@ -35,13 +35,13 @@ export const DRAFT_NAMESPACES: Record<SupportedLang, string[]> = {
   en: [],
   hi: [],
   bn: [],
-  sa: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  ta: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  te: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  mr: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  gu: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  kn: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
-  ml: ['guide.devotional', 'guide.vda', 'guide.sevacards'],
+  sa: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  ta: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  te: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  mr: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  gu: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  kn: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  ml: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
 };
 
 /** The draft namespaces across all languages (for the GodMode editor). */

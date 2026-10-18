@@ -7,6 +7,7 @@ import { AuthWorkspaceProvider } from './context/AuthWorkspaceContext';
 import { DataProvider } from './context/DataContext';
 import { GlobalSOSListener } from './components/common/GlobalSOSListener';
 import { SOSFlow } from './crisis/SOSFlow';
+import { AskButton } from './ai/components/AskButton';
 import { NotificationWiring } from './notifications/NotificationWiring';
 import { InstallPrompt } from './components/common/InstallPrompt';
 import { UpdatePrompt } from './components/pwa/UpdatePrompt';
@@ -1197,6 +1198,8 @@ export default function App() {
                       <AppRouter />
                       <GlobalSOSListener />
                       <SOSFlow />
+                      {/* AI assistant (Phase 0) — devotee "🙏 Ask" FAB; solo sessions only. */}
+                      <AskButton />
                       <NotificationWiring />
                       <InstallPrompt />
                       <UpdatePrompt />
