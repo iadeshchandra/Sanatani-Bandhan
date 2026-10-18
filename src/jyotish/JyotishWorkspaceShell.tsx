@@ -96,7 +96,7 @@ const InnerShell: React.FC = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="font-black text-stone-900 truncate">
-                  {profileLoading ? t('jyotish.shell.loading') : profile?.displayName || t('jyotish.shell.title')}
+                  {profileLoading ? t('jyotish.shell.loading') : profile?.displayName || t('jyotish.shell.fallbackName')}
                 </h1>
                 {effectiveTier && <VerificationBadge tier={effectiveTier} subject="Jyotishi" />}
               </div>
@@ -126,7 +126,7 @@ const InnerShell: React.FC = () => {
               type="button"
               onClick={() => enterSoloSession(provisionalSoloProfile())}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black transition-colors min-h-[44px]"
-              title={t('jyotish.shell.personalSpace')}
+              title={t('jyotish.shell.personalSanatani')}
             >
               🪔 <span className="hidden sm:inline">{t('jyotish.shell.personalSanatani')}</span>
             </button>
@@ -156,20 +156,20 @@ const InnerShell: React.FC = () => {
         </div>
         {/* Tab bar */}
         <nav className="max-w-6xl mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto" aria-label={t('jyotish.shell.navLabel')}>
-          {TABS.map((tab) => (
+          {TABS.map((tb) => (
             <button
-              key={tab.id}
+              key={tb.id}
               type="button"
-              onClick={() => setTab(tab.id)}
+              onClick={() => setTab(tb.id)}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] ${
-                tab === tab.id
+                tb.id === tab
                   ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
                   : 'bg-white text-stone-600 border border-stone-200 hover:border-indigo-300 hover:text-indigo-700'
               }`}
             >
-              {tab.icon}
-              {tab.label}
-              {tab.id === 'verification' && effectiveTier !== 'PLATFORM_VERIFIED' && (
+              {tb.icon}
+              {tb.label}
+              {tb.id === 'verification' && effectiveTier !== 'PLATFORM_VERIFIED' && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               )}
             </button>

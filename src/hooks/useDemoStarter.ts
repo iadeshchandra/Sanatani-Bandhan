@@ -82,11 +82,15 @@ export const useDemoStarter = () => {
       const demoRole = DEMO_ROLE_FOR_VIEW[view] || 'Trustee';
       loginAsRole(demoRole, view === 'devotee' ? 'Demo Devotee' : 'Demo User');
       seedDemoData(demoId, type);
-      showToast(
-        `${type} sandbox ready — explore freely, sample records loaded.`,
-        'success',
-        'Demo Sandbox'
-      );
+      // FIX (2026-10-18): the "sandbox ready" toast must only ever render
+      // inside the actual demo context — never on the public landing page.
+      // Stash a handoff flag; DemoBanner (demo-workspace-only) consumes it
+      // and announces the welcome after navigation.
+      try {
+        sessionStorage.setItem('sb_demo_welcome_pending', type);
+      } catch {
+        /* storage unavailable — the banner welcome is best-effort */
+      }
       // '/app' matches no explicit route → MainAppView → AppContent (app shell).
       navigate('/app');
     },

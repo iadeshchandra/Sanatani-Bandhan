@@ -97,17 +97,17 @@ const FindJyotish: React.FC = () => {
 
   return (
     <Card>
-      <SectionTitle>{t('jyotish.findJyotishi')}</SectionTitle>
+      <SectionTitle>{t('jyotish.marketplace.findJyotishi')}</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
-        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('jyotish.city')} className={inputCls} />
+        <input value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('jyotish.marketplace.city')} className={inputCls} />
         <select value={spec} onChange={(e) => setSpec(e.target.value)} className={inputCls}>
-          <option value="">{t('jyotish.anySpecialization')}</option>
+          <option value="">{t('jyotish.marketplace.anySpecialization')}</option>
           {JYOTISH_SPECIALIZATIONS.map((s) => (
             <option key={s}>{s}</option>
           ))}
         </select>
         <input value={lang} onChange={(e) => setLang(e.target.value)} placeholder={t('jyotish.languageSearch')} className={inputCls} />
-        <Btn onClick={search}>{t('jyotish.search')}</Btn>
+        <Btn onClick={search}>{t('jyotish.marketplace.search')}</Btn>
       </div>
       {loading ? (
         <p className="text-sm text-stone-400">Searching…</p>
@@ -218,7 +218,7 @@ const EndorseForm: React.FC<{ jyotishId: string; open: boolean; setOpen: (b: boo
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={t('jyotish.endorseReasonPlaceholder')} className="w-full px-3 py-2 rounded-xl border border-stone-300 text-sm" />
       <div className="flex gap-2">
         <input type="number" min={0} value={count} onChange={(e) => setCount(e.target.value)} placeholder={t('jyotish.consultationsTogether')} className="w-32 px-3 py-2 rounded-xl border border-stone-300 text-sm" />
-        <Btn onClick={submit} disabled={saving || !text.trim()}>{t('jyotish.submitEndorsement')}</Btn>
+        <Btn onClick={submit} disabled={saving || !text.trim()}>{t('jyotish.marketplace.submitEndorsement')}</Btn>
         <Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
       </div>
     </div>
@@ -288,7 +288,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
 
   return (
     <Card>
-      <SectionTitle>{t('jyotish.postRequirement')}</SectionTitle>
+      <SectionTitle>{t('jyotish.marketplace.postRequirement')}</SectionTitle>
       <p className="text-xs text-stone-500 mb-4">
         Any registered jyotishi can accept. Birth details are used only for the chart reading.
       </p>
@@ -318,7 +318,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
               <input type="time" value={form.birthTime} onChange={(e) => setForm({ ...form, birthTime: e.target.value })} className={inputCls} />
             </Field>
             <Field label="Birth place">
-              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('jyotish.city')} className={inputCls} />
+              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('jyotish.marketplace.city')} className={inputCls} />
             </Field>
           </div>
         )}
@@ -331,7 +331,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
               <input type="time" value={form.partnerBirthTime} onChange={(e) => setForm({ ...form, partnerBirthTime: e.target.value })} className={inputCls} />
             </Field>
             <Field label="Partner birth place">
-              <input value={form.partnerBirthPlace} onChange={(e) => setForm({ ...form, partnerBirthPlace: e.target.value })} placeholder={t('jyotish.city')} className={inputCls} />
+              <input value={form.partnerBirthPlace} onChange={(e) => setForm({ ...form, partnerBirthPlace: e.target.value })} placeholder={t('jyotish.marketplace.city')} className={inputCls} />
             </Field>
           </div>
         )}
@@ -355,7 +355,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
           </Field>
         </div>
         <Field label="Notes for the jyotishi">
-          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inputCls} placeholder={t('jyotish.guidancePlaceholder')} />
+          <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inputCls} placeholder={t('jyotish.marketplace.guidancePlaceholder')} />
         </Field>
         <p className="text-[11px] text-stone-400">
           Payments happen directly between you and the jyotishi — no money moves through this app.

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { RotateCcw, Sparkles, LogOut } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DemoBannerProps {
   onRegister: () => void;
@@ -16,6 +18,44 @@ interface DemoBannerProps {
 export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
   const { activeWorkspace, isAuthenticated, exitDemo } = useAuthWorkspace();
   const { getDemoStats, resetDemoWorkspace } = useData();
+  const { showToast } = useToast();
+  const { safeTranslate } = useLanguage();
+  const welcomeAnnouncedRef = useRef(false);
+
+  // FIX (2026-10-18): announce the demo welcome ONLY inside the actual demo
+  // context. useDemoStarter stashes `sb_demo_welcome_pending` instead of
+  // toasting on the public landing page; this effect consumes it here so the
+  // toast can never leak onto the landing page for real users.
+  useEffect(() => {
+    if (welcomeAnnouncedRef.current) return;
+    let pending: string | null = null;
+    try {
+      pending = sessionStorage.getItem('sb_demo_welcome_pending');
+    } catch {
+      /* storage unavailable — the welcome is best-effort */
+    }
+    if (!pending) return;
+    // Gate: only announce once the demo workspace is actually active. The
+    // flag stays parked until then and is consumed exactly once.
+    if (!activeWorkspace?.id?.startsWith('DEMO_')) return;
+    welcomeAnnouncedRef.current = true;
+    try {
+      sessionStorage.removeItem('sb_demo_welcome_pending');
+    } catch {
+      /* storage unavailable */
+    }
+    showToast(
+      safeTranslate(
+        'demo_sandbox_ready_msg',
+        `${pending} sandbox ready — explore freely, sample records loaded.`,
+        `${pending} স্যান্ডবক্স প্রস্তুত — মুক্তভাবে ঘুরে দেখুন, নমুনা রেকর্ড লোড করা আছে।`,
+        `${pending} सैंडबॉक्स तैयार है — खुलकर अन्वेषण करें, नमूना रिकॉर्ड लोड किए गए हैं।`
+      ),
+      'success',
+      safeTranslate('demo_sandbox_title', 'Demo Sandbox', 'ডেমো স্যান্ডবক্স', 'डेमो सैंडबॉक्स')
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspace?.id]);
 
   if (!activeWorkspace?.id?.startsWith('DEMO_')) return null;
 

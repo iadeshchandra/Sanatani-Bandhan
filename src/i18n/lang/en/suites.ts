@@ -443,6 +443,7 @@ export const suites = {
     completed: "Completed",
     planned: "Planned",
     notApplicable: "Not applicable",
+    "not-applicable": "Not applicable",
     posted: "Posted",
     pending: "Pending",
   },

@@ -431,6 +431,7 @@ export const professional: ProfessionalFragment = {
       },
       marketplace: {
         findJyotishi: "Find a Jyotishi",
+        city: "City",
         myConsultations: "My consultations",
         postRequirement: "Post a consultation requirement",
         postNote: "Any registered jyotishi can accept. Birth details are used only for the chart reading.",
