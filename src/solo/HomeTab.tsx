@@ -65,7 +65,7 @@ const TAB_LABELS: Record<SoloTabId, string> = {
   saved: 'Saved',
   giving: 'Giving',
   jyotish: '🔮 Jyotish',
-  marketplace: '🏪 Marketplace',
+  marketplace: '🪔 Seva',
   wallet: '🪔 Seva Wallet',
   samskara: '🪔 Samskara',
   profile: 'Profile',

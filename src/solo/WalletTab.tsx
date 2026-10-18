@@ -3,13 +3,10 @@
  * Balance + top-up (geo-based payment methods) + transaction history.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, ArrowLeftRight, ScanLine } from 'lucide-react';
+import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, HandHeart, ScanLine } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
-import { PersonalWallet } from '../chat/PersonalWallet';
-import { Chat } from '../chat/Chat';
-import type { ChatParticipant } from '../chat/types';
 import { QRScanner } from '../components/common/QRScanner';
 import {
   getWallet, getTransactions, fileTopupClaim, myTopupClaims, ensureWallet, updateTopupClaim,
@@ -21,6 +18,7 @@ import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { getPaymentMethods, methodsForRegionWithFallback, type PaymentMethodDoc } from '../lib/paymentMethods';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
+import { openDanaSheet } from '../lib/danaSheet';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). Local-region methods always first. */
@@ -317,16 +315,6 @@ export const WalletTab: React.FC = () => {
   const [topping, setTopping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingClaim, setEditingClaim] = useState<TopupClaim | null>(null);
-  const [sendOpen, setSendOpen] = useState(false);
-  // sanatani:open-chat wiring (see PersonalWallet): deep-link the Messages
-  // overlay straight into the thread tapped inside the P2P ledger.
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatInitialId, setChatInitialId] = useState<string | null>(null);
-  const selfInfo: ChatParticipant = {
-    uid,
-    displayName: ((firebaseUser as { displayName?: string | null } | null)?.displayName) || 'Sanatani',
-    photoUrl: ((firebaseUser as { photoURL?: string | null } | null)?.photoURL as string) || undefined,
-  };
   const [scanOpen, setScanOpen] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   // Quick Guide: the two-wallet explainer (Seva Wallet vs personal P2P
@@ -373,14 +361,6 @@ export const WalletTab: React.FC = () => {
 
   const scrollToHistory = () => {
     historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const handleObligations = () => {
-    if (uid === 'anon') {
-      showToast(mkt(L, 'signInForObligations'), 'error');
-      return;
-    }
-    setSendOpen(true);
   };
 
   if (topping) {
@@ -435,7 +415,10 @@ export const WalletTab: React.FC = () => {
           {(
             [
               { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => setTopping(true) },
-              { id: 'obligations', icon: ArrowLeftRight, label: mkt(L, 'quickObligations'), fn: handleObligations },
+              // 🪔 Give opens the express dana sheet. P2P obligations never
+              // appear in this tab (two-wallet boundary) — they live only in
+              // their own "🤝 My obligations" card on Home.
+              { id: 'give', icon: HandHeart, label: mkt(L, 'quickGive'), fn: () => openDanaSheet({}) },
               { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
               { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: scrollToHistory },
             ] as const
@@ -444,7 +427,6 @@ export const WalletTab: React.FC = () => {
               key={id}
               type="button"
               onClick={fn}
-              data-guide-anchor={id === 'obligations' ? 'wallet-personal' : undefined}
               className="min-h-[64px] rounded-xl bg-white/15 hover:bg-white/25 text-white flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <Icon className="w-5 h-5" />
@@ -539,32 +521,6 @@ export const WalletTab: React.FC = () => {
           claim={editingClaim}
           onClose={() => setEditingClaim(null)}
           onSaved={() => { setEditingClaim(null); load(); }}
-        />
-      )}
-
-      {/* Obligations — the private P2P obligation ledger (two-wallet architecture:
-          platform money moves only via top-up/bookings; person-to-person
-          moves are IOU records here, never custody). */}
-      {sendOpen && uid !== 'anon' && (
-        <PersonalWallet
-          uid={uid}
-          isOpen={sendOpen}
-          onClose={() => setSendOpen(false)}
-          onOpenChat={(chatId) => {
-            setChatInitialId(chatId);
-            setSendOpen(false);
-            setChatOpen(true);
-          }}
-        />
-      )}
-
-      {/* Messages overlay — opened from the P2P ledger's per-entry chat action. */}
-      {chatOpen && uid !== 'anon' && (
-        <Chat
-          uid={uid}
-          selfInfo={selfInfo}
-          initialChatId={chatInitialId || undefined}
-          onClose={() => { setChatOpen(false); setChatInitialId(null); }}
         />
       )}
 

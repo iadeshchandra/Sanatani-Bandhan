@@ -45,7 +45,7 @@ export const DRAFT_NAMESPACES: Record<SupportedLang, string[]> = {
 };
 
 /** The draft namespaces across all languages (for the GodMode editor). */
-export const ALL_DRAFT_NAMESPACES = ['guide.devotional', 'guide.vda', 'guide.sevacards'] as const;
+export const ALL_DRAFT_NAMESPACES = ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.sevabazar'] as const;
 
 /**
  * Quality status of one dot-delimited key (e.g. 'guide.vda.s1t') in a

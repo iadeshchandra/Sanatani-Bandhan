@@ -20,28 +20,47 @@ import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../c
 import { VdaAliasSection } from './VdaAliasSection';
 import { LanguageRegionSettings } from './LanguageRegionSettings';
 import { AiVoiceSettings } from '../ai/voice/components/AiVoiceSettings';
+import { ASSISTANT_OPEN_EVENT } from '../ai/components/AskButton';
+import { useNativeLanguage } from '../components/language/nativeBridge';
+import { SUPPORTED_LANGUAGES } from '../i18n/translations';
+import { LanguagePickerSheet } from '../components/language/LanguagePickerSheet';
+import { getWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
- * SAN-XXXXXX display (tap to copy), editable personal details, attached
- * role identities, and backup/restore of the device-local personal data.
+ * SAN-XXXXXX display (tap to copy; LONG-PRESS copies the spoken VDA
+ * alias instead), 4-group account structure (design 2026-10-18):
+ *   🪔 Who I am · 📿 My details · 🗣️ How we speak with you ·
+ *   🪔 Giving & system.
  * Gotra stays private — it is never rendered in any public context.
  */
 
+/** Small-caps group header — the 4 account groups. */
+const GroupHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <h2
+    className="text-[12px] font-bold text-stone-400 mt-7 mb-1 px-1 tracking-[0.14em]"
+    style={{ fontVariant: 'small-caps' }}
+  >
+    {children}
+  </h2>
+);
+
 export const ProfileTab: React.FC = () => {
-  // Deep link from the assistant's voice_upgrade intent (#ai-voice):
-  // scroll the on-device voice card into view once the tab paints.
+  // Deep links: the assistant's voice_upgrade intent (#ai-voice) and the
+  // VDA "claim your spoken ID" nudge (#vda-alias) scroll their cards into
+  // view once the tab paints.
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#ai-voice') {
+    if (typeof window !== 'undefined' && (window.location.hash === '#ai-voice' || window.location.hash === '#vda-alias')) {
+      const id = window.location.hash.slice(1);
       const t = setTimeout(() => {
-        document.getElementById('ai-voice')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 350);
       return () => clearTimeout(t);
     }
     return undefined;
   }, []);
   const { profile, updateProfile } = useSolo();
-  const { exportJSON, importJSON } = useSoloStore();
+  const { state: soloState, exportJSON, importJSON } = useSoloStore();
   const { logout, enterPurohitSession, enterJyotishSession, switchWorkspace, exitSoloSession, workspaces, activeWorkspace, firebaseUser } = useAuthWorkspace();
   const { myMemberships, orgMembers, orgJoinRequests } = useMembership();
   const { identity: purohitIdentity } = useMyPurohitIdentity();
@@ -50,10 +69,32 @@ export const ProfileTab: React.FC = () => {
   const { showToast } = useToast();
   const { tr } = useLocaleText();
   const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
+  const { currentLang, changeLanguage, markLanguageChosen } = useNativeLanguage();
+  const [langOpen, setLangOpen] = useState(false);
+  const curLangNative = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang)?.nativeName || currentLang;
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   // Quick Guide: the Sanatani identity explainer — invitational only.
   const profileGuide = useGuide('profile', (firebaseUser as { uid?: string } | null)?.uid || 'anon');
+
+  // 🪔 Dana & wallet glance — lifetime dana (device-local ledger) + Seva
+  // Wallet balance. Read-only glances; the tabs own the detail.
+  const danaTotal = soloState.giving.reduce((s, g) => s + g.amount, 0);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletCurrency, setWalletCurrency] = useState<WalletCurrency>('INR');
+  useEffect(() => {
+    let live = true;
+    getWallet()
+      .then((w) => {
+        if (!live) return;
+        setWalletBalance(w.balance);
+        setWalletCurrency(w.currency);
+      })
+      .catch(() => {
+        /* offline — the card simply shows the dana line */
+      });
+    return () => { live = false; };
+  }, []);
 
   // Profile photo — device-local by design (the solo profile itself is
   // device-local until synced). Downscaled to 256px so it stays tiny in
@@ -104,6 +145,10 @@ export const ProfileTab: React.FC = () => {
     setPhoto(null);
   };
 
+  const scrollToPhoto = () => {
+    document.getElementById('profile-photo')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   // Notification preferences (spec §3) — quiet hours, digest, per-topic
   // toggles. Loads lazily; the engine already honours every value via
   // decideRouting. Failures fall back to calm defaults (offline-safe).
@@ -139,7 +184,6 @@ export const ProfileTab: React.FC = () => {
     city: profile?.city || '',
     gotra: profile?.gotra || '',
     homeRegion: profile?.homeRegion || '',
-    languages: (profile?.languages || []).join(', '),
   });
   const [saving, setSaving] = useState(false);
 
@@ -153,7 +197,6 @@ export const ProfileTab: React.FC = () => {
         city: form.city.trim() || undefined,
         gotra: form.gotra.trim() || undefined,
         homeRegion: form.homeRegion.trim() || undefined,
-        languages: form.languages.split(',').map((s) => s.trim()).filter(Boolean),
       });
       showToast(tr('solo.profile.saved', 'Profile saved', 'প্রোফাইল সংরক্ষিত', 'परिचय सहेजा गया'), 'success');
     } finally {
@@ -167,6 +210,28 @@ export const ProfileTab: React.FC = () => {
       showToast(tr('solo.profile.copied', 'Sanatani ID copied', 'আইডি কপি হয়েছে', 'आईडी कॉपी हुई'), 'success');
     } catch {
       showToast(profile?.id || '', 'info');
+    }
+  };
+
+  // Long-press the SAN number → copies the spoken VDA alias instead
+  // (tap still copies the SAN-XXXXXX). The alias is the human word.
+  const pressTimer = useRef<number | null>(null);
+  const longFired = useRef(false);
+  const copyAlias = async (): Promise<boolean> => {
+    const alias = profile?.vdaAlias;
+    if (!alias) return false;
+    try {
+      await navigator.clipboard.writeText(alias);
+      showToast(tr('solo.profile.aliasCopied', 'Spoken ID copied — say it at any temple counter 🙏', 'কথ্য আইডি কপি হয়েছে 🙏', 'कथ्य आईडी कॉपी हुई 🙏'), 'success');
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const clearPress = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
     }
   };
 
@@ -236,33 +301,68 @@ export const ProfileTab: React.FC = () => {
     showToast(`Switched to Jyotishi Workspace (${jyotishIdentity.id})`, 'success');
   };
 
+  const openAssistant = () => {
+    window.dispatchEvent(new CustomEvent(ASSISTANT_OPEN_EVENT));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end -mb-2">
         <TourLink guide={GUIDES.profile} onRestart={profileGuide.restart} />
       </div>
-      {/* ID card — spec §2 hierarchy starts with the photo */}
+
+      {/* ═══════════ 🪔 Who I am ═══════════ */}
+      <GroupHeader>
+        <T en="🪔 Who I am" bn="🪔 আমি কে" hi="🪔 मैं कौन हूँ" />
+      </GroupHeader>
+
+      {/* ID card — spec §2 hierarchy starts with the photo.
+          Photo taps → scrolls to the upload in Personal details.
+          SAN number: tap copies the ID; LONG-PRESS copies the spoken alias. */}
       <div className="rounded-3xl bg-gradient-to-br from-temple-950 via-stone-900 to-amber-950 text-amber-50 p-6" data-guide-anchor="profile-id">
         <div className="flex items-center gap-4">
-          {avatarSrc ? (
-            <img
-              src={avatarSrc}
-              alt={profile?.displayName || 'Profile photo'}
-              className="w-[84px] h-[84px] rounded-full object-cover border-4 border-amber-400/40 shadow-lg shrink-0"
-            />
-          ) : (
-            <div
-              className="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl font-black text-white shadow-lg shrink-0"
-              aria-hidden
-            >
-              {monogram}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={scrollToPhoto}
+            aria-label={tr('solo.profile.photoJump', 'Go to profile photo settings', 'প্রোফাইল ছবির সেটিংসে যান', 'प्रोफ़ाइल फ़ोटो सेटिंग पर जाएँ')}
+            className="shrink-0 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70"
+          >
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt={profile?.displayName || 'Profile photo'}
+                className="w-[84px] h-[84px] rounded-full object-cover border-4 border-amber-400/40 shadow-lg"
+              />
+            ) : (
+              <div
+                className="w-[84px] h-[84px] rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl font-black text-white shadow-lg"
+                aria-hidden
+              >
+                {monogram}
+              </div>
+            )}
+          </button>
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-widest text-amber-400/80">
               ॥ <T en="Universal Sanatani ID" bn="ইউনিভার্সাল সনাতনী আইডি" hi="यूनिवर्सल सनातनी आईडी" /> ॥
             </div>
-            <button onClick={copyId} className="font-mono text-2xl sm:text-3xl font-black text-amber-300 mt-1 hover:text-amber-200" title={tr('solo.profile.tapCopy', 'Tap to copy', 'কপি করতে চাপুন', 'कॉपी हेतु दबाएँ')}>
+            <button
+              onClick={() => { if (longFired.current) { longFired.current = false; return; } copyId(); }}
+              onTouchStart={() => {
+                longFired.current = false;
+                clearPress();
+                pressTimer.current = window.setTimeout(async () => {
+                  longFired.current = true;
+                  const ok = await copyAlias();
+                  if (!ok) copyId();
+                }, 600);
+              }}
+              onTouchEnd={clearPress}
+              onTouchMove={clearPress}
+              onContextMenu={(e) => { e.preventDefault(); copyAlias().then((ok) => { if (!ok) copyId(); }); }}
+              className="font-mono text-2xl sm:text-3xl font-black text-amber-300 mt-1 hover:text-amber-200 select-none"
+              title={tr('solo.profile.tapCopy', 'Tap to copy · long-press for spoken ID', 'কপি করতে চাপুন · কথ্য আইডির জন্য চেপে ধরুন', 'कॉपी हेतु दबाएँ · कथ्य आईडी हेतु दबाए रखें')}
+            >
               {profile?.id || 'SAN-…'}
             </button>
           </div>
@@ -278,71 +378,62 @@ export const ProfileTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Your spoken ID — VDA-style alias on top of the canonical SAN-XXXXXX (Phase 2) */}
-      <VdaAliasSection />
+      {/* Your spoken ID — VDA-style alias on top of the canonical SAN-XXXXXX.
+          Deep-link target for the "claim your spoken ID" nudge (#vda-alias). */}
+      <div id="vda-alias" style={{ scrollMarginTop: 96 }}>
+        <VdaAliasSection />
+      </div>
 
-      {/* Attached roles */}
+      {/* My roles & workspaces — merged: one row per role, no duplication. */}
       <div data-guide-anchor="profile-identities">
       <Card>
         <h3 className="font-extrabold text-stone-900 mb-3">
-          <T en="Attached identities" bn="সংযুক্ত পরিচয়" hi="संलग্ন पहचान" />
+          <T en="My roles & workspaces" bn="আমার ভূমিকা ও কর্মক্ষেত্র" hi="मेरी भूमिकाएँ व कार्यक्षेत्र" />
         </h3>
         <ul className="space-y-2 text-sm">
-          <li className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+          <li className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-3 py-2 min-h-[56px]">
             <span className="font-bold text-stone-700">🪔 <T en="Sanatani" bn="সনাতনী" hi="सनातनी" /></span>
             <span className="font-mono text-xs text-emerald-700 font-bold">{profile?.id}</span>
           </li>
-          <li className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
-            <span className="font-bold text-stone-700">🕉️ <T en="Purohit" bn="পুরোহিত" hi="पुरोहित" /></span>
-            <span className="font-mono text-xs font-bold text-stone-500">
-              {profile?.roles?.purohitId || purohitIdentity?.id || <T en="Not attached" bn="সংযুক্ত নয়" hi="जुड़ा नहीं" />}
-            </span>
-          </li>
-          <li className="flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
-            <span className="font-bold text-stone-700">🔮 <T en="Jyotishi" bn="জ্যোতিষী" hi="ज्योतिषी" /></span>
-            <span className="font-mono text-xs font-bold text-stone-500">
-              {profile?.roles?.jyotishId || <T en="Coming soon" bn="শীঘ্রই" hi="शीघ्र" />}
-            </span>
-          </li>
-        </ul>
-        <p className="text-[11px] text-stone-400 mt-2">
-          <T en="One account, many roles — your personal data never moves." bn="একটি অ্যাকাউন্ট, অনেক ভূমিকা — ব্যক্তিগত তথ্য কখনও সরবে না।" hi="एक खाता, अनेक भूमिकाएँ — आपका व्यक्तिगत डेटा कभी नहीं हटेगा।" />
-        </p>
-      </Card>
-
-      {/* My Workspaces — session switching migrated from the old ⇄ Switch menu */}
-      <Card>
-        <h3 className="font-extrabold text-stone-900 mb-3">
-          <T en="My workspaces" bn="আমার কর্মক্ষেত্র" hi="मेरे कार्यक्षेत्र" />
-        </h3>
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2 min-h-[56px]">
             <span className="font-bold text-stone-700 min-w-0">
-              🕉️ <T en="Purohit Workspace" bn="পুরোহিত কর্মক্ষেত্র" hi="पुरोहित कार्यक्षेत्र" />
+              🕉️ <T en="Purohit" bn="পুরোহিত" hi="पुरोहित" />
               {!purohitIdentity && (
                 <span className="block text-[11px] font-medium text-stone-400">
                   <T en="Not attached yet" bn="এখনও সংযুক্ত নয়" hi="अभी जुड़ा नहीं" />
                 </span>
               )}
             </span>
-            <Btn variant="ghost" onClick={openPurohitWorkspace} disabled={!purohitIdentity}>
-              <T en="Open" bn="খুলুন" hi="खोलें" />
-            </Btn>
+            {purohitIdentity ? (
+              <Btn variant="ghost" onClick={openPurohitWorkspace}>
+                <T en="Open" bn="খুলুন" hi="खोलें" />
+              </Btn>
+            ) : (
+              <span className="font-mono text-xs font-bold text-stone-400">
+                {profile?.roles?.purohitId || <T en="Not attached" bn="সংযুক্ত নয়" hi="जुड़ा नहीं" />}
+              </span>
+            )}
           </li>
-          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2 min-h-[56px]">
             <span className="font-bold text-stone-700 min-w-0">
-              🔮 <T en="Jyotishi Workspace" bn="জ্যোতিষী কর্মক্ষেত্র" hi="ज्योतिषी कार्यक्षेत्र" />
+              🔮 <T en="Jyotishi" bn="জ্যোতিষী" hi="ज्योतिषी" />
               {!jyotishIdentity && (
                 <span className="block text-[11px] font-medium text-stone-400">
-                  <T en="Not attached yet" bn="এখনও সংযুক্ত নয়" hi="अभी जुड़ा नहीं" />
+                  <T en="Coming soon" bn="শীঘ্রই" hi="शीघ्र" />
                 </span>
               )}
             </span>
-            <Btn variant="ghost" onClick={openJyotishWorkspace} disabled={!jyotishIdentity}>
-              <T en="Open" bn="খুলুন" hi="खोलें" />
-            </Btn>
+            {jyotishIdentity ? (
+              <Btn variant="ghost" onClick={openJyotishWorkspace}>
+                <T en="Open" bn="খুলুন" hi="खोलें" />
+              </Btn>
+            ) : (
+              <span className="font-mono text-xs font-bold text-stone-400">
+                {profile?.roles?.jyotishId || <T en="Coming soon" bn="শীঘ্রই" hi="शीघ्र" />}
+              </span>
+            )}
           </li>
-          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+          <li className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2 min-h-[56px]">
             <span className="font-bold text-stone-700 min-w-0">
               🏛️ <T en="Organisation view" bn="সংগঠন দৃশ্য" hi="संगठन दृश्य" />
             </span>
@@ -351,6 +442,9 @@ export const ProfileTab: React.FC = () => {
             </Btn>
           </li>
         </ul>
+        <p className="text-[11px] text-stone-400 mt-2">
+          <T en="One account, many roles — your personal data never moves." bn="একটি অ্যাকাউন্ট, অনেক ভূমিকা — ব্যক্তিগত তথ্য কখনও সরবে না।" hi="एक खाता, अनेक भूमिकाएँ — आपका व्यक्तिगत डेटा कभी नहीं हटेगा।" />
+        </p>
       </Card>
       </div>
 
@@ -367,6 +461,11 @@ export const ProfileTab: React.FC = () => {
         onJoin={() => navigate('/app/orgs/join')}
       />
 
+      {/* ═══════════ 📿 My details ═══════════ */}
+      <GroupHeader>
+        <T en="📿 My details" bn="📿 আমার তথ্য" hi="📿 मेरा विवरण" />
+      </GroupHeader>
+
       {/* Edit details */}
       <Card>
         <h3 className="font-extrabold text-stone-900 mb-3">
@@ -374,7 +473,7 @@ export const ProfileTab: React.FC = () => {
         </h3>
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-3">
           {/* Profile photo — device-local upload */}
-          <div className="sm:col-span-2 flex items-center gap-4 rounded-2xl bg-stone-50 border border-stone-100 p-3">
+          <div id="profile-photo" className="sm:col-span-2 flex items-center gap-4 rounded-2xl bg-stone-50 border border-stone-100 p-3" style={{ scrollMarginTop: 96 }}>
             {avatarSrc ? (
               <img src={avatarSrc} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-amber-200 shrink-0" />
             ) : (
@@ -431,9 +530,20 @@ export const ProfileTab: React.FC = () => {
           <Field label={<><WhatsThis compact term="gotra" label={tr('solo.profile.gotra', 'Gotra', 'গোত্র', 'गोत्र')} /> <span className="text-stone-400 font-normal"><T en="(private)" bn="(গোপন)" hi="(निजी)" /></span></>}>
             <input className={inputCls} value={form.gotra} onChange={(e) => setForm({ ...form, gotra: e.target.value })} />
           </Field>
-          <Field label={<T en="Languages (comma-separated)" bn="ভাষা" hi="भाषाएँ" />}>
-            <input className={inputCls} value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} />
-          </Field>
+          {/* Language — the proper picker (own-script list), not free text. */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-bold text-stone-600">
+              <T en="Language" bn="ভাষা" hi="भाषा" />
+            </span>
+            <button
+              type="button"
+              onClick={() => setLangOpen(true)}
+              className={`${inputCls} !flex !items-center !justify-between !text-left min-h-[44px]`}
+            >
+              <span className="text-stone-900 font-semibold">{curLangNative}</span>
+              <span className="text-stone-400" aria-hidden>→</span>
+            </button>
+          </div>
           <div className="sm:col-span-2">
             <Btn type="submit" disabled={saving}>
               {saving ? <T en="Saving…" bn="সংরক্ষণ…" hi="सहेज रहे…" /> : <T en="Save details" bn="সংরক্ষণ করুন" hi="सहेजें" />}
@@ -441,24 +551,125 @@ export const ProfileTab: React.FC = () => {
           </div>
         </form>
       </Card>
+      <LanguagePickerSheet
+        open={langOpen}
+        currentLang={currentLang}
+        chromeLang={currentLang}
+        onSelect={(l) => { changeLanguage(l); markLanguageChosen(); setLangOpen(false); }}
+        onClose={() => setLangOpen(false)}
+      />
 
-      {/* Notifications — quiet hours, digest, per-topic toggles (spec §3) */}
+      {/* My Samskaras — tithi anniversaries */}
+      <MySamskaras />
+
+      {/* ═══════════ 🗣️ How we speak with you ═══════════ */}
+      <GroupHeader>
+        <T en="🗣️ How we speak with you" bn="🗣️ আমরা আপনার সঙ্গে কীভাবে কথা বলি" hi="🗣️ हम आपसे कैसे बात करते हैं" />
+      </GroupHeader>
+
+      {/* Language & region — the devotee's words, their choice, never overridden */}
+      <LanguageRegionSettings />
+
+      {/* Assistant — the on-device AI voice, permanent home.
+          The one-time nudge points here ("Profile → 🗣️ How we speak with
+          you"), so a devotee who dismissed it can always come back. */}
+      <div id="ai-voice" style={{ scrollMarginTop: 96 }}>
+        <AiVoiceSettings hideWhenUnsupported />
+      </div>
+
+      {/* 🙏 Ask — the assistant's named door on the account page. */}
       <Card>
-        <h3 className="font-extrabold text-stone-900 mb-1">
-          🔔 <T en="Notifications" bn="বিজ্ঞপ্তি" hi="सूचनाएँ" />
+        <button
+          type="button"
+          onClick={openAssistant}
+          className="w-full flex items-center gap-3 text-left min-h-[64px] px-1"
+        >
+          <span className="text-2xl shrink-0" aria-hidden>🙏</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-extrabold text-stone-900">
+              <T en="Ask — your assistant" bn="জিজ্ঞাসা — আপনার সহকারী" hi="पूछें — आपका सहायक" />
+            </span>
+            <span className="block text-[11px] text-stone-500 mt-0.5">
+              <T
+                en="Questions about the app, tithi, or your sadhana"
+                bn="অ্যাপ, তিথি বা আপনার সাধনা সম্পর্কে প্রশ্ন"
+                hi="ऐप, तिथि या आपकी साधना के बारे में प्रश्न"
+              />
+            </span>
+          </span>
+          <span className="text-amber-700 text-xl shrink-0" aria-hidden>→</span>
+        </button>
+      </Card>
+
+      {/* ═══════════ 🪔 Giving & system ═══════════ */}
+      <GroupHeader>
+        <T en="🪔 Giving & system" bn="🪔 দান ও ব্যবস্থা" hi="🪔 दान व व्यवस्था" />
+      </GroupHeader>
+
+      {/* 🪔 Dana & wallet — the account page's money glance. Read-only;
+          the Giving and Wallet tabs own their detail. */}
+      <Card>
+        <h3 className="font-extrabold text-stone-900 mb-2">
+          <T en="🪔 Dana & wallet" bn="🪔 দান ও ওয়ালেট" hi="🪔 दान व वॉलेट" />
         </h3>
-        <p className="text-sm text-stone-600 leading-relaxed">
-          <T
-            en="Gentle pings only, when you want them. Choose instant, digest, or off for each kind — and keep sacred hours quiet."
-            bn="শুধু কোমল বার্তা, যখন আপনি চান। প্রতিটি ধরনের জন্য তাৎক্ষণিক, সারসংক্ষেপ বা বন্ধ বেছে নিন — এবং পবিত্র সময় শান্ত রাখুন।"
-            hi="केवल कोमल संदेश, जब आप चाहें। प्रत्येक प्रकार हेतु तुरंत, सारांश या बंद चुनें — और पवित्र समय शांत रखें।"
-          />
-        </p>
-        <div className="mt-3">
-          <Btn variant="ghost" onClick={openNotifSettings}>
-            <T en="Manage notifications" bn="বিজ্ঞপ্তি ব্যবস্থাপনা" hi="सूचना प्रबंधन" />
-          </Btn>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/app/home/giving')}
+          className="w-full flex items-center justify-between gap-3 rounded-xl bg-amber-50/60 border border-amber-100 px-3 py-2.5 min-h-[56px] text-left hover:bg-amber-50 transition-colors"
+        >
+          <span className="min-w-0">
+            <span className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest">
+              <T en="Lifetime dana" bn="সর্বমোট দান" hi="कुल दान" />
+            </span>
+            <span className="block text-lg font-extrabold text-stone-900">₹{danaTotal.toLocaleString('en-IN')}</span>
+          </span>
+          <span className="text-amber-700 text-xl shrink-0" aria-hidden>→</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/app/home/wallet')}
+          className="mt-2 w-full flex items-center justify-between gap-3 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2.5 min-h-[56px] text-left hover:bg-stone-100/70 transition-colors"
+        >
+          <span className="min-w-0">
+            <span className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest">
+              <T en="Seva Wallet" bn="সেবা ওয়ালেট" hi="सेवा वॉलेट" />
+            </span>
+            <span className="block text-lg font-extrabold text-stone-900">
+              {walletBalance === null ? '…' : fmtWallet(walletBalance, walletCurrency)}
+            </span>
+          </span>
+          <span className="text-stone-400 text-xl shrink-0" aria-hidden>→</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/app/home/giving')}
+          className="mt-1 w-full text-left text-xs font-bold text-amber-700 hover:underline min-h-[44px] px-1"
+        >
+          <T en="Receipts & 80G →" bn="রসিদ ও 80G →" hi="रसीद व 80G →" />
+        </button>
+      </Card>
+
+      {/* Notifications — one calm row; the sheet is shared with Suchana's ⚙️. */}
+      <Card>
+        <button
+          type="button"
+          onClick={openNotifSettings}
+          className="w-full flex items-center justify-between gap-3 text-left min-h-[60px] px-1"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-extrabold text-stone-900">
+              🔔 <T en="Notifications" bn="বিজ্ঞপ্তি" hi="सूचनाएँ" />
+            </span>
+            <span className="block text-[11px] text-stone-500 mt-0.5">
+              <T
+                en="Gentle pings only, when you want them"
+                bn="শুধু কোমল বার্তা, যখন আপনি চান"
+                hi="केवल कोमल संदेश, जब आप चाहें"
+              />
+            </span>
+          </span>
+          <span className="text-stone-400 text-xl shrink-0" aria-hidden>→</span>
+        </button>
       </Card>
       {notifOpen && (
         <NotificationSettings
@@ -467,19 +678,6 @@ export const ProfileTab: React.FC = () => {
           onClose={() => setNotifOpen(false)}
         />
       )}
-
-      {/* My Samskaras — tithi anniversaries */}
-      <MySamskaras />
-
-      {/* Language & region — the devotee's words, their choice, never overridden */}
-      <LanguageRegionSettings />
-
-      {/* Assistant — the on-device AI voice, permanent home.
-          The one-time nudge points here ("Settings → Assistant"), so a
-          devotee who dismissed it can always come back on their own. */}
-      <div id="ai-voice" style={{ scrollMarginTop: 96 }}>
-        <AiVoiceSettings hideWhenUnsupported />
-      </div>
 
       {/* Preferences — small comforts, the user's own choice */}
       <Card>
