@@ -1,0 +1,33 @@
+/**
+ * Sanatani Bandhan — AI Assistant Phase 0 · task registry
+ * =====================================================================
+ * One executor per intent. Executors are pure functions of TaskCtx —
+ * they never touch UI, and they read only the asker's own data
+ * (device-local stores or the user's authenticated SDK reads).
+ */
+import type { IntentId, TaskExecutor } from '../types';
+import { navigateTask } from './navigate';
+import { howtoTask } from './howto';
+import { tithiTodayTask } from './tithi_today';
+import { festivalNextTask } from './festival_next';
+import { danaHelpTask } from './dana_help';
+import { sadhanaSummaryTask } from './sadhana_summary';
+import { bookingHelpTask } from './booking_help';
+import { languageHelpTask } from './language_help';
+import { sosHelpTask } from './sos_help';
+import { greetingTask } from './greeting';
+import { fallbackUnknownTask } from './fallback_unknown';
+
+export const TASKS: Record<IntentId, TaskExecutor> = {
+  navigate: navigateTask,
+  howto: howtoTask,
+  tithi_today: tithiTodayTask,
+  festival_next: festivalNextTask,
+  dana_help: danaHelpTask,
+  sadhana_summary: sadhanaSummaryTask,
+  booking_help: bookingHelpTask,
+  language_help: languageHelpTask,
+  sos_help: sosHelpTask,
+  greeting: greetingTask,
+  fallback_unknown: fallbackUnknownTask,
+};
