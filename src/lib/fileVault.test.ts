@@ -72,6 +72,7 @@ import {
   getFile,
   deleteFile,
   VAULT_CHUNK_B64,
+  VAULT_MAX_CHUNKED_BYTES,
   __clearVaultCaches,
 } from './fileVault';
 
@@ -89,6 +90,47 @@ function randomBytes(n: number): Uint8Array {
   const b = new Uint8Array(n);
   for (let i = 0; i < n; i++) b[i] = (i * 31 + 7) % 256;
   return b;
+}
+
+/* ---------------------------------------------------------------------------
+ * Rule-shape mirrors — these replicate the `allow create` logic on
+ * `match /fileVault/{fileId}` (+ `/chunks/{n}`) in firestore.rules against the
+ * exact docs the code writes. If these drift, the RULES are the source of
+ * truth; update the mirror, never the other way round.
+ * ------------------------------------------------------------------------- */
+
+const META_KEYS = new Set([
+  'data', 'contentType', 'fileName', 'size', 'hash', 'category', 'visibility',
+  'ownerUid', 'createdAt', 'localOnly', 'chunkCount', 'tenantId',
+]);
+const CHUNK_KEYS = new Set(['i', 'data', 'ownerUid', 'visibility', 'tenantId']);
+
+function metaPassesCreateRule(meta: Record<string, any>, uid: string): boolean {
+  if (meta.ownerUid !== uid) return false;
+  if (!Object.keys(meta).every((k) => META_KEYS.has(k))) return false;
+  const chunkCount = typeof meta.chunkCount === 'number' ? meta.chunkCount : 0;
+  const size = typeof meta.size === 'number' ? meta.size : 99999999;
+  const localOnly = meta.localOnly === true;
+  const singleOk = chunkCount === 0 && !localOnly && size <= 1048576;
+  const chunkedOk =
+    chunkCount > 0 && chunkCount <= 28 && !('data' in meta) && size <= 10485760;
+  return singleOk || chunkedOk || localOnly;
+}
+
+function chunkPassesCreateRule(chunk: Record<string, any>, uid: string): boolean {
+  if (chunk.ownerUid !== uid) return false;
+  if (chunk.visibility !== 'public' && chunk.visibility !== 'crisis') return false;
+  if (typeof chunk.data !== 'string' || chunk.data.length > 512000) return false;
+  if (typeof chunk.i !== 'number' || chunk.i < 0) return false;
+  return Object.keys(chunk).every((k) => CHUNK_KEYS.has(k));
+}
+
+function chunkDocsFor(fileId: string): Array<{ key: string; doc: any }> {
+  const prefix = `fileVault/${fileId}/chunks/`;
+  return [...mockStore.keys()]
+    .filter((k) => k.startsWith(prefix))
+    .sort()
+    .map((key) => ({ key, doc: mockStore.get(key) }));
 }
 
 /* ------------------------- pure helpers ------------------------- */
@@ -205,6 +247,45 @@ describe('uploadFile (public, chunked)', () => {
     expect(meta.chunkCount).toBeGreaterThan(1);
     expect(meta.data).toBeUndefined(); // bytes live in chunks, not metadata
 
+    // The meta doc the code writes must satisfy the new security-rule shape:
+    // chunked arm — no inline bytes, declared total ≤ 10 MiB, sane count.
+    expect(meta.size).toBe(1.5 * 1024 * 1024);
+    expect(metaPassesCreateRule(meta, 'test-uid-1')).toBe(true);
+
+    // Every chunk doc satisfies the chunk create rule (incl. ≤ 500 KB data).
+    const chunks = chunkDocsFor(fileId);
+    expect(chunks.length).toBe(meta.chunkCount);
+    for (const { doc } of chunks) {
+      expect(chunkPassesCreateRule(doc, 'test-uid-1')).toBe(true);
+    }
+
+    const file = await getFile(fileId);
+    expect(file).not.toBeNull();
+    expect(new Uint8Array(await file!.blob.arrayBuffer())).toEqual(original);
+  }, 30000);
+
+  it('rejects a Firestore-backed upload above the 10MB rule cap, before any write', async () => {
+    const blob = new Blob([randomBytes(11 * 1024 * 1024)], { type: 'application/octet-stream' });
+    await expect(
+      uploadFile(blob, { visibility: 'public', category: 'document', ownerUid: 'test-uid-1' })
+    ).rejects.toThrow('filevault/too-large');
+    expect(mockStore.size).toBe(0); // fail-fast: nothing was written
+  }, 30000);
+
+  it('allows a large PRIVATE file (device-local bytes, metadata pointer only)', async () => {
+    const original = randomBytes(11 * 1024 * 1024);
+    const blob = new Blob([original], { type: 'audio/webm' });
+    const { fileId } = await uploadFile(blob, {
+      visibility: 'private',
+      category: 'voice',
+      ownerUid: 'test-uid-1',
+    });
+    const meta = mockStore.get(`fileVault/${fileId}`);
+    expect(meta.localOnly).toBe(true);
+    expect(meta.size).toBe(11 * 1024 * 1024);
+    // The localOnly arm of the rule permits metadata pointers of any size.
+    expect(metaPassesCreateRule(meta, 'test-uid-1')).toBe(true);
+    expect(chunkDocsFor(fileId).length).toBe(0);
     const file = await getFile(fileId);
     expect(file).not.toBeNull();
     expect(new Uint8Array(await file!.blob.arrayBuffer())).toEqual(original);
@@ -316,4 +397,35 @@ describe('uploadFile (crisis)', () => {
       new Uint8Array(await blob.arrayBuffer())
     );
   });
+
+  it('round-trips a 2.5MB crisis voice note through chunks (safety-critical path)', async () => {
+    const original = randomBytes(2.5 * 1024 * 1024);
+    const blob = new Blob([original], { type: 'audio/webm' });
+    const { fileId } = await uploadFile(blob, {
+      visibility: 'crisis',
+      category: 'voice',
+      ownerUid: 'test-uid-1',
+      tenantId: 'ws-test-123',
+      fileName: 'sos-voice-evt2.webm',
+    });
+
+    const meta = mockStore.get(`fileVault/${fileId}`);
+    expect(meta.chunkCount).toBeGreaterThan(1);
+    expect(meta.visibility).toBe('crisis');
+    expect(meta.tenantId).toBe('ws-test-123');
+    expect(meta.data).toBeUndefined();
+    // Chunked arm permits the >1MB declared size; chunk docs stay tenant-gated.
+    expect(metaPassesCreateRule(meta, 'test-uid-1')).toBe(true);
+    const chunks = chunkDocsFor(fileId);
+    expect(chunks.length).toBe(meta.chunkCount);
+    for (const { doc } of chunks) {
+      expect(chunkPassesCreateRule(doc, 'test-uid-1')).toBe(true);
+      expect(doc.visibility).toBe('crisis');
+      expect(doc.tenantId).toBe('ws-test-123');
+    }
+
+    const file = await getFile(fileId);
+    expect(file).not.toBeNull();
+    expect(new Uint8Array(await file!.blob.arrayBuffer())).toEqual(original);
+  }, 30000);
 });

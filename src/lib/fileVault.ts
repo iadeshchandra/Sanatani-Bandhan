@@ -7,7 +7,8 @@
  * Three visibility tiers:
  *
  *   PUBLIC files   → Firestore `fileVault/{fileId}` as base64
- *                    (single doc ≤700KB raw; chunked subcollection above that)
+ *                    (single doc ≤700KB raw; chunked subcollection above that,
+ *                    up to 10MB total — security rules enforce the cap)
  *                    Readable by any signed-in user.
  *   CRISIS files   → Firestore `fileVault/{fileId}` as base64, exactly like
  *                    public — PLUS a `tenantId` field. Security rules gate
@@ -115,6 +116,13 @@ export const VAULT_SINGLE_DOC_MAX = 700 * 1024;
 export const VAULT_CHUNK_B64 = 500 * 1024;
 /** Hard Firestore document cap — mirrored in security rules. */
 export const VAULT_DOC_LIMIT = 1048576;
+/**
+ * Max raw bytes for a Firestore-backed (public/crisis) upload. Single-doc
+ * uploads stay ≤ 1 MiB; a chunked meta doc may declare up to this total when
+ * `chunkCount` is present (mirrored in security rules: ≤ 10 MiB, ≤ 28 chunks
+ * of ≤ 500 KB base64 each). Private files are device-local and exempt.
+ */
+export const VAULT_MAX_CHUNKED_BYTES = 10 * 1048576;
 
 export const VAULT_SCHEME = 'vault://';
 
@@ -360,6 +368,12 @@ export async function uploadFile(
   const contentType = blob.type || 'application/octet-stream';
   const bytes = new Uint8Array(await blob.arrayBuffer());
   if (bytes.length === 0) throw new Error('filevault/empty');
+  // Fail fast before any hashing/encoding work: bytes bound for Firestore
+  // can never exceed what the chunked rules allow (private files are
+  // device-local and exempt).
+  if (visibility !== 'private' && bytes.length > VAULT_MAX_CHUNKED_BYTES) {
+    throw new Error('filevault/too-large');
+  }
 
   const hash = await sha256Hex(bytes);
   // Scope the id: private → owner, crisis → tenant. Without this, the
