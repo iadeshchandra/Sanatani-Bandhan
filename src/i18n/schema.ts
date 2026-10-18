@@ -342,6 +342,16 @@ export interface TranslationSchema {
       s3t: string;
       s3b: string;
     };
+    sevaBooking?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;
