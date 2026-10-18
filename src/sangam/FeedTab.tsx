@@ -3,6 +3,10 @@ import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, SyncLabel, useLocaleText, T } from './ui';
 import type { SangamPost, PostKind, SangamReport } from './types';
 import { uploadFile, resolveVaultUrl } from '../lib/fileVault';
+import { ServiceCardFeedItem } from './ServiceCardFeedItem';
+import { applyServiceCardDensity } from './serviceCard';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
 /* Sangam Feed — the personal home feed.
  * =====================================================================
@@ -19,6 +23,7 @@ const KIND_TABS: Array<{ id: PostKind | 'all'; en: string; bn: string; hi: strin
   { id: 'photo', en: 'Photos', bn: 'ছবি', hi: 'चित्र', icon: '🖼️' },
   { id: 'seva', en: 'Seva', bn: 'সেবা', hi: 'सेवा', icon: '🤲' },
   { id: 'event', en: 'Events', bn: 'অনুষ্ঠান', hi: 'आयोजन', icon: '🎪' },
+  { id: 'service_card', en: 'Seva Notices', bn: 'সেবা বিজ্ঞপ্তি', hi: 'सेवा सूचनाएँ', icon: '🪔' },
 ];
 
 /** Renders a post photo: resolves `vault://` uploads to blob URLs, passes
@@ -370,6 +375,9 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
 
 export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; orgName: string } }> = ({ author, pageContext }) => {
   const { posts, online, lastSyncedAt, follows } = useSangam();
+  const { firebaseUser } = useAuthWorkspace();
+  const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  const sevabazarGuide = useGuide('sevabazar', guideUid);
   const { tr } = useLocaleText();
   const [kindFilter, setKindFilter] = useState<PostKind | 'all'>('all');
   const [followingOnly, setFollowingOnly] = useState(false);
@@ -388,7 +396,10 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
       });
     }
     // Chronological, newest first — no engagement ranking, ever.
-    return [...list].sort((a, b) => b.createdAt - a.createdAt);
+    const sorted = [...list].sort((a, b) => b.createdAt - a.createdAt);
+    // Seva Bazar: service cards are guests — ≤15% of the mixed feed.
+    // (Explicit "Seva Notices" filter shows them all; the cap is for discovery.)
+    return kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
   }, [posts, kindFilter, followingOnly, followedIds, author.uid]);
 
   return (
@@ -424,8 +435,19 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
           />
         </Card>
       ) : (
-        visible.map((p) => <PostCard key={p.id} post={p} author={author} />)
+        visible.map((p) =>
+          p.kind === 'service_card' ? (
+            <ServiceCardFeedItem key={p.id} post={p} author={author} />
+          ) : (
+            <PostCard key={p.id} post={p} author={author} />
+          )
+        )
       )}
+      {/* Quick Guide: Seva Bazar notices — invitational only, never auto-plays. */}
+      {sevabazarGuide.pillVisible && (
+        <TourPill guide={GUIDES.sevabazar} uid={guideUid} onStart={sevabazarGuide.start} onDismiss={sevabazarGuide.dismissPill} />
+      )}
+      {sevabazarGuide.tourActive && <CoachMark guide={GUIDES.sevabazar} onFinish={sevabazarGuide.finish} />}
     </div>
   );
 };

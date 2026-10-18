@@ -19,8 +19,7 @@ import {
   LogOut,
   Bell,
   Store,
-  HandHeart,
-} from 'lucide-react';
+  HandHeart, Megaphone } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { ReferralDashboard } from '../sevaPro/ReferralDashboard';
 import { SevaProTopupModal } from '../sevaPro/SevaProTopupModal';
@@ -36,6 +35,7 @@ import { AvailabilityTab } from './tabs/AvailabilityTab';
 import { VerificationTab } from './tabs/VerificationTab';
 import { ReviewsTab } from './tabs/ReviewsTab';
 import { ProfileTab } from './tabs/ProfileTab';
+import { SevaNoticeTab } from './tabs/SevaNoticeTab';
 import { ProviderMarketplace } from '../../marketplace/ProviderMarketplace';
 
 type PurohitTab =
@@ -48,6 +48,7 @@ type PurohitTab =
   | 'reviews'
   | 'profile'
   | 'marketplace'
+  | 'sevanotice'
   | 'referrals';
 
 const getTabs = (t: (k: string) => string, st: (key: string, en: string, bn?: string, hi?: string) => string): { id: PurohitTab; label: string; icon: React.ReactNode }[] => [
@@ -60,6 +61,7 @@ const getTabs = (t: (k: string) => string, st: (key: string, en: string, bn?: st
   { id: 'reviews', label: t('purohit.shell.tabs.reviews'), icon: <Star className="w-4 h-4" /> },
   { id: 'profile', label: t('purohit.shell.tabs.profile'), icon: <User className="w-4 h-4" /> },
   { id: 'marketplace', label: t('purohit.shell.tabs.marketplace'), icon: <Store className="w-4 h-4" /> },
+  { id: 'sevanotice', label: st('purohit.shell.tabs.sevanotice', '🪔 Seva Notice', '🪔 সেবা বিজ্ঞপ্তি', '🪔 सेवा सूचना'), icon: <Megaphone className="w-4 h-4" /> },
   { id: 'referrals', label: st('purohit.shell.tabs.referrals', 'Referrals', 'রেফারেল', 'रेफ़रल'), icon: <HandHeart className="w-4 h-4" /> },
 ];
 
@@ -184,6 +186,7 @@ const InnerShell: React.FC = () => {
         {tab === 'reviews' && <ReviewsTab />}
         {tab === 'profile' && <ProfileTab />}
         {tab === 'marketplace' && <ProviderMarketplace providerType="purohit" providerName={profile?.displayName || ''} />}
+        {tab === 'sevanotice' && <SevaNoticeTab />}
         {tab === 'referrals' && <ReferralDashboard />}
       </main>
 

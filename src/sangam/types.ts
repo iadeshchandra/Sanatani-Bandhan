@@ -13,7 +13,7 @@
  * No ads, no data selling — stated plainly in the product.
  */
 
-export type PostKind = 'text' | 'photo' | 'event' | 'seva' | 'shloka';
+export type PostKind = 'text' | 'photo' | 'event' | 'seva' | 'shloka' | 'service_card';
 
 export type AuthorKind = 'devotee' | 'purohit' | 'jyotish' | 'org';
 
@@ -38,6 +38,57 @@ export interface SevaDetails {
   contactNote?: string;
 }
 
+/* Seva Bazar Phase 1 — the service_card.
+ * =====================================================================
+ * A service_card is a SEVA NOTICE, not an ad. The provider shares it from
+ * their Purohit/Jyotish desk; it appears in the community feed at ≤15%
+ * density with zero paid placement, ever.
+ *
+ * Anatomy (per Seva Bazar structure §4):
+ * - devotionalText: REQUIRED ≥30 chars — the human before the offer.
+ * - 4:5 photo, provider name 17pt, lineage 13pt + ✓ Verified Sevak badge.
+ * - ONE editorial service line (e.g. "Rudrabhishek at your home, with full samagri").
+ * - Trust row: tier badge, years, blessings received.
+ * - Assurance: "🛡 Dakshina Suraksha · pay after seva".
+ * - Dakshina in neutral ink (never bold red, never a "deal").
+ * - ONE CTA: "🙏 Ask Panditji" → provider chat thread.
+ * - Cheap-signal ban (enforced in composer): no strikethroughs, no
+ *   countdowns, no scarcity ("only 2 left!"), no caps, no "discount".
+ */
+export type ServiceCardMode = 'home' | 'temple' | 'video';
+
+export interface ServiceCardDetails {
+  /** Devotional text — the human before the offer. REQUIRED, ≥30 chars. */
+  devotionalText: string;
+  /** Editorial service line, e.g. "Rudrabhishek at your home, with full samagri". ONE line. */
+  serviceLine: string;
+  /** Suggested dakshina (neutral ink, never a "deal"). */
+  dakshina: number;
+  currency: 'INR' | 'BDT' | 'USD';
+  /** What's included, e.g. "includes samagri, prasad for 4". */
+  includes?: string;
+  /** How the seva is delivered. */
+  modes: ServiceCardMode[];
+  /** Tithi/muhurat availability, e.g. "Available on Ekadashi & weekends". */
+  availability?: string;
+  /** Provider's display name (denormalized at post time). */
+  providerName: string;
+  /** Provider's lineage, e.g. "Kashi Shaiva parampara". */
+  lineage?: string;
+  /** Provider's verification tier at post time (display-only; rules validate). */
+  providerTier: 'REGISTERED' | 'VERIFIED' | 'TRUSTED';
+  /** Provider's role id (PUR-XXXXXX / JYO-XXXXXX). */
+  providerRoleId?: string;
+  /** Provider's uid — the Ask CTA opens a chat thread with this user. */
+  providerUid: string;
+  /** Trust signals (denormalized at post time). */
+  yearsOfSeva?: number;
+  blessingsReceived?: number;
+  trustScore?: number;
+  /** Photo: https:// URL or vault:// File Vault reference. */
+  photoUrl?: string;
+}
+
 export interface SangamPost {
   id: string;
   authorUid: string;
@@ -57,6 +108,7 @@ export interface SangamPost {
   imageUrl?: string; // photo posts: https:// URL or vault:// File Vault reference (public tier)
   shlokaRef?: string; // shloka posts: source reference e.g. "Bhagavad Gita 2.47"
   seva?: SevaDetails; // seva posts: opportunity details
+  serviceCard?: ServiceCardDetails; // service_card posts: Seva Bazar notice
   eventRef?: string; // event posts: link to a sangamEvents doc
   sharedFrom?: SharedAttribution; // shares always carry attribution
   createdAt: number;

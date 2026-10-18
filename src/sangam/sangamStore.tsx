@@ -6,7 +6,7 @@ import {
 import { db } from '../firebase';
 import type {
   SangamPost, SangamComment, SangamCircle, SangamEvent,
-  SangamFollow, SangamReport, PostKind, AuthorKind, VerificationTier,
+  SangamFollow, SangamReport, PostKind, AuthorKind, VerificationTier, ServiceCardDetails,
   SevaDetails,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
@@ -32,6 +32,7 @@ export interface ComposeInput {
   imageUrl?: string;
   shlokaRef?: string;
   seva?: SevaDetails;
+  serviceCard?: ServiceCardDetails;
   eventRef?: string;
 }
 
@@ -217,7 +218,7 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       authorTier: asOrg ? undefined : author.tier,
       orgId: asOrg?.orgId, orgName: asOrg?.orgName, isOfficialPagePost: !!asOrg,
       kind: input.kind, text: input.text.trim(), imageUrl: input.imageUrl, shlokaRef: input.shlokaRef,
-      seva: input.seva, eventRef: input.eventRef,
+      seva: input.seva, serviceCard: input.serviceCard, eventRef: input.eventRef,
       createdAt: now(), ashirvadCount: 0, commentCount: 0, shareCount: 0,
       ashirvadBy: [], volunteers: [], visibility: 'public', status: 'active', localOnly: true,
     };
