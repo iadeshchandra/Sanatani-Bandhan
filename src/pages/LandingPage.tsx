@@ -79,6 +79,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDemoStarter } from '../hooks/useDemoStarter';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { useLanguage } from '../context/LanguageContext';
 import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
 import { whatsappLink, hasWhatsApp } from '../config/contact';
@@ -549,6 +551,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const startDemo = useDemoStarter();
+  const { isAuthenticated } = useAuthWorkspace();
+  const { safeTranslate } = useLanguage();
+
+  // FIX (2026-10-18): demo sandboxes are anonymous-only by design —
+  // useDemoStarter refuses signed-in users to protect their live session
+  // (loginAsRole would clobber it). Signed-in visitors get app deep-links
+  // instead of demo CTAs — no dead ends either way.
+  const openApp = () => navigate('/app');
 
   // Upgrade deep-link: demo/upgrade CTAs across the app send users here via
   // `/?action=signup` (DevoteeGrid, PoojaBookingDesk, PanchayatPollingDesk).
@@ -898,13 +908,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setDemoModalOpen(true)}
+                onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)}
                 className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-white hover:bg-orange-50 border-2 border-stone-200 hover:border-orange-300 text-stone-800 font-black text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all cursor-pointer pressable"
               >
-                <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
-                  <Play className="w-3 h-3 fill-white ml-0.5" />
-                </span>
-                WATCH SYSTEM DEMO
+                {isAuthenticated ? (
+                  <>
+                    <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
+                      <ArrowRight className="w-3 h-3 ml-0.5" />
+                    </span>
+                    {safeTranslate('landing_open_your_app', 'OPEN YOUR APP', 'আপনার অ্যাপ খুলুন', 'आपका ऐप खोलें')}
+                  </>
+                ) : (
+                  <>
+                    <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
+                      <Play className="w-3 h-3 fill-white ml-0.5" />
+                    </span>
+                    WATCH SYSTEM DEMO
+                  </>
+                )}
               </button>
             </div>
 
@@ -1010,10 +1031,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setDemoModalOpen(true)}
+                  onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)}
                   className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-extrabold transition-all cursor-pointer"
                 >
-                  Explore all 12 demo types
+                  {isAuthenticated
+                    ? safeTranslate('landing_explore_your_app', 'Explore your app', 'আপনার অ্যাপ ঘুরে দেখুন', 'अपना ऐप देखें')
+                    : 'Explore all 12 demo types'}
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
@@ -1214,11 +1237,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <p className="text-center mt-8">
               <button
                 type="button"
-                onClick={() => handleStartDemo(activeOrg)}
+                onClick={isAuthenticated ? openApp : () => handleStartDemo(activeOrg)}
                 className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-extrabold transition-all cursor-pointer"
               >
-                <Play className="w-4 h-4 fill-white" />
-                Try {activeShowcase.label} in the {orgProfile.label} demo
+                {isAuthenticated ? (
+                  <>
+                    <ArrowRight className="w-4 h-4" />
+                    {safeTranslate(
+                      'landing_open_in_app',
+                      'Open {label} in your app',
+                      'আপনার অ্যাপে {label} খুলুন',
+                      'आपके ऐप में {label} खोलें'
+                    ).replace('{label}', activeShowcase.label)}
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-white" />
+                    Try {activeShowcase.label} in the {orgProfile.label} demo
+                  </>
+                )}
               </button>
             </p>
           </div>
@@ -1588,11 +1625,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDemoModalOpen(true)}
+                    onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)}
                     className="w-full sm:w-auto min-h-[56px] px-10 rounded-2xl bg-white/15 border-2 border-white/40 text-white font-black text-sm sm:text-base tracking-wide hover:bg-white/25 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Play className="w-4 h-4 fill-white" />
-                    WATCH SYSTEM DEMO
+                    {isAuthenticated ? (
+                      <>
+                        <ArrowRight className="w-4 h-4" />
+                        {safeTranslate('landing_open_your_app', 'OPEN YOUR APP', 'আপনার অ্যাপ খুলুন', 'आपका ऐप खोलें')}
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 fill-white" />
+                        WATCH SYSTEM DEMO
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1653,7 +1699,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <ul className="space-y-2.5 text-sm font-medium">
                 <li><button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Pricing</button></li>
                 <li><button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">FAQ</button></li>
-                <li><button type="button" onClick={() => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Live demo</button></li>
+                <li><button type="button" onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{isAuthenticated ? safeTranslate('landing_footer_open_app', 'Open app', 'অ্যাপ খুলুন', 'ऐप खोलें') : 'Live demo'}</button></li>
                 <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Login</button></li>
                 <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Contact us</button></li>
               </ul>
