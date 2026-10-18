@@ -88,8 +88,10 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
       {/* Main column (offset by sidebar on desktop) */}
       <div className="md:pl-60">
         {header}
-        {/* pb-28 keeps content clear of the mobile bottom bar */}
-        <main className="pb-28 md:pb-10">{children}</main>
+        {/* Bottom clearance for the mobile tab bar AND the SOS FAB comes
+            from the systemic body.sb-has-sos rule (index.css) — it always
+            applies here because this shell only renders authenticated. */}
+        <main>{children}</main>
       </div>
 
       {/* Mobile: fixed bottom tab bar */}

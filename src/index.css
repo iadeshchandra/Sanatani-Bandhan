@@ -211,3 +211,56 @@ body {
     scroll-behavior: auto !important;
   }
 }
+/* ── SOS FAB clearance (FIX 1: systemic overlap guard) ─────────────────
+ * The collapsible SOS button is position:fixed to the viewport bottom-
+ * right on every authenticated screen. These rules reserve matching
+ * bottom clearance on every scroll container, so no tappable element
+ * can ever render underneath the FAB's hit area — in either state.
+ *
+ * Geometry (mobile <768px — FAB at bottom:calc(92px + safe-area)):
+ *   collapsed mini: 48px tall  → top edge 140px → pad 156px
+ *   expanded: 72px + SOS label + first-use hint → top edge ≈224px → pad 240px
+ * Geometry (desktop ≥768px — FAB at bottom:20px):
+ *   collapsed mini → top edge 68px  → pad 84px
+ *   expanded       → top edge ≈152px → pad 168px
+ * Why padding works for every page shape: the FAB is anchored to the
+ * viewport bottom and the padding to the content's bottom edge. With
+ * padding ≥ FAB top edge, the last content row always rests above the
+ * FAB zone — on short pages (no scroll), long pages (scrolled to the
+ * end), and everything between.
+ *
+ * `body.sb-has-sos` is set by SOSFlow only for authenticated sessions
+ * (the only sessions that render the FAB), so logged-out pages —
+ * landing, login, get-app — keep their exact current spacing. The body
+ * rule covers every window-scrolled page (solo/purohit/jyotish shells,
+ * public pages); `.sb-sos-clear` covers inner scrollers (org desk
+ * column), which the body rule cannot reach.
+ */
+body.sb-has-sos {
+  padding-bottom: 156px;
+  transition: padding-bottom 0.25s ease;
+}
+body.sb-has-sos.sb-sos-open {
+  padding-bottom: 240px;
+}
+body.sb-has-sos .sb-sos-clear {
+  padding-bottom: 156px;
+  transition: padding-bottom 0.25s ease;
+}
+body.sb-has-sos.sb-sos-open .sb-sos-clear {
+  padding-bottom: 240px;
+}
+@media (min-width: 768px) {
+  body.sb-has-sos {
+    padding-bottom: 84px;
+  }
+  body.sb-has-sos.sb-sos-open {
+    padding-bottom: 168px;
+  }
+  body.sb-has-sos .sb-sos-clear {
+    padding-bottom: 84px;
+  }
+  body.sb-has-sos.sb-sos-open .sb-sos-clear {
+    padding-bottom: 168px;
+  }
+}

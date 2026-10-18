@@ -14,7 +14,7 @@
  * Only rendered for authenticated users; the PanicButton is the only
  * always-visible element (the modals mount on demand).
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { PanicButton } from './PanicButton';
 import { SituationPicker, type SituationSelection } from './SituationPicker';
@@ -40,11 +40,26 @@ export const SOSFlow: React.FC = () => {
     setEventId(null);
   }, []);
 
+  // FIX 1 (systemic SOS overlap): the FAB only renders for authenticated
+  // sessions. Publish its presence on <body> so global CSS can reserve
+  // matching bottom clearance on every scroll container — logged-out
+  // pages (landing, login) are untouched.
+  useEffect(() => {
+    if (isAuthenticated) document.body.classList.add('sb-has-sos');
+    else document.body.classList.remove('sb-has-sos');
+    return () => {
+      document.body.classList.remove('sb-has-sos');
+    };
+  }, [isAuthenticated]);
+
   if (!isAuthenticated) return null;
 
   return (
     <>
-      <PanicButton onActivate={() => setStep('pick')} />
+      {/* The panic button hides while the SOS flow's own modals are up
+          (pick/confirm/active render at z-[9995], above the FAB) — the
+          flow is already in hand, so the entry point is redundant. */}
+      {step === 'idle' && <PanicButton onActivate={() => setStep('pick')} />}
       {sosGuide.pillVisible && (
         <TourPill
           guide={GUIDES.sos}

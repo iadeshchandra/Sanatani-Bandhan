@@ -34,6 +34,8 @@ export const useCrisisT = (): ((s: TriString) => string) => {
 
 export const crisisCopy = {
   panicLabel: { en: 'SOS — Hold for help', bn: 'SOS — সাহায্যের জন্য চেপে ধরুন', hi: 'SOS — सहायता हेतु दबाकर रखें' } as TriString,
+  panicExpand: { en: 'Show SOS button', bn: 'SOS বোতাম দেখান', hi: 'SOS बटन दिखाएँ' } as TriString,
+  panicCollapse: { en: 'Hide SOS button', bn: 'SOS বোতাম লুকান', hi: 'SOS बटन छिपाएँ' } as TriString,
   panicHoldHint: { en: 'Press and hold 1.5s', bn: '১.৫ সেকেন্ড চেপে ধরুন', hi: '1.5 सेकंड दबाकर रखें' } as TriString,
   releaseToCancel: { en: 'Release to cancel', bn: 'বাতিল করতে ছেড়ে দিন', hi: 'रद्द करने हेतु छोड़ें' } as TriString,
 
