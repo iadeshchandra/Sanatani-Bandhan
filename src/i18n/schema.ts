@@ -328,6 +328,20 @@ export interface TranslationSchema {
       s2t: string;
       s2b: string;
     };
+    /**
+     * Seva Bazar notices guide. Optional: English only for now,
+     * other languages fall back to English until translated.
+     */
+    sevabazar?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;
