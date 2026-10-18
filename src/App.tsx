@@ -94,6 +94,11 @@ const OrgDirectory = lazy(() => import('./components/org/OrgDirectory').then(m =
 // Pillar 3: public org page — the temple's web presence + inbound funnel.
 // Supersedes the social-only OrgPage (follow/join actions live here now).
 const OrgPublicPage = lazy(() => import('./pages/OrgPublicPage').then(m => ({ default: m.OrgPublicPage })));
+// Campus maps (Phase 1): devotee-facing per-org campus view + trustee-only
+// builder. The map program lived unwired in src/campus/ — these routes make
+// it reachable: /org/:orgId/campus (public) and /org/:orgId/campus/manage.
+const CampusPage = lazy(() => import('./pages/CampusPage').then(m => ({ default: m.CampusPage })));
+const CampusManagePage = lazy(() => import('./pages/CampusPage').then(m => ({ default: m.CampusManagePage })));
 // Seva Professional (Phase 1): unified purohit+jyotish public profile — /seva/pro/:uid.
 const UnifiedProfessionalProfile = lazy(() => import('./components/sevaPro/UnifiedProfessionalProfile').then(m => ({ default: m.UnifiedProfessionalProfile })));
 // Seva Professional: occasion-first samskara journey — devotee picks a life
@@ -770,7 +775,10 @@ const AppContent: React.FC = () => {
         {/* Main Content Area — full-bleed in the devotee preview (F-RBAC-1:
             no desktop gutter waste around the phone-width pane). */}
         <main className={`grow flex flex-col gap-6 overflow-hidden ${hideErpChrome ? 'p-0 bg-stone-950' : 'p-6'}`}>
-          <div className="flex flex-col grow overflow-y-auto custom-scrollbar">
+          {/* sb-sos-clear: systemic SOS FAB clearance (see index.css) — the
+              desk scroller is an inner scroller, so the body rule can't
+              reach it; this keeps the last row above the FAB hit area. */}
+          <div className="flex flex-col grow overflow-y-auto custom-scrollbar sb-sos-clear">
             <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-4" />
@@ -1051,10 +1059,9 @@ const AppContentRouter: React.FC = () => {
 
 const AppRouter: React.FC = () => {
   return (
-    <LanguageProvider>
-      {/* basename follows Vite's base so the app also works under a sub-path
-          (e.g. GitHub Pages project sites served at /<repo>/). */}
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+    /* basename follows Vite's base so the app also works under a sub-path
+       (e.g. GitHub Pages project sites served at /<repo>/). */
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
@@ -1119,6 +1126,9 @@ const AppRouter: React.FC = () => {
           <Route path="/orgs" element={<OrgDirectory />} />
           {/* Pillar 3: canonical public org page — accepts orgId or publicSlug. */}
           <Route path="/org/:orgId" element={<OrgPublicPage />} />
+          {/* Campus maps (Phase 1): per-org visitor map + trustee-only builder. */}
+          <Route path="/org/:orgId/campus" element={<CampusPage />} />
+          <Route path="/org/:orgId/campus/manage" element={<CampusManagePage />} />
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
           {/* App Growth (Phase 5): QR smart link + download landing. The page
@@ -1167,7 +1177,6 @@ const AppRouter: React.FC = () => {
         {/* Dev-only role tester: never renders in production builds. */}
         {import.meta.env.DEV && <PersonaSwitcher />}
       </BrowserRouter>
-    </LanguageProvider>
   );
 };
 

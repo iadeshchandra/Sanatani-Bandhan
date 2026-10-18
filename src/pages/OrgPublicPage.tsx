@@ -57,6 +57,7 @@ export interface OrgPublicPageViewProps {
   following: boolean;
   busy: boolean;
   isMember: boolean;
+  isTrustee: boolean;
   onFollow: () => void;
   onJoinClick: () => void;
 }
@@ -67,6 +68,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   following,
   busy,
   isMember,
+  isTrustee,
   onFollow,
   onJoinClick,
 }) => {
@@ -239,6 +241,41 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
         {/* ------------------------- SEVA CARDS ------------------------- */}
         {/* Tangible giving: fixed-amount cards with goal trackers (Phase 2). */}
         <SevaCardsSection orgId={page.orgId} orgName={page.name} />
+
+        {/* ------------------------- CAMPUS MAP ------------------------- */}
+        {/* Entry point to the per-org campus map: devotees explore, trustees draw.
+            Routes: /org/:orgId/campus (visitor) and /org/:orgId/campus/manage. */}
+        <section className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 mt-4">
+          <h2 className="text-sm font-black uppercase tracking-widest text-stone-900 flex items-center gap-2 mb-2">
+            <MapPin size={16} className="text-amber-700" />
+            {T('orgpublic_campus_title', 'Explore the Campus Map 🗺️', 'ক্যাম্পাস মানচিত্র ঘুরে দেখুন 🗺️', 'परिसर का नक्शा देखें 🗺️')}
+          </h2>
+          <p className="text-sm text-stone-600 leading-relaxed">
+            {T('orgpublic_campus_sub',
+              'Walk the sacred grounds before you arrive — prayer halls, prasad counters and quiet corners, all on one map.',
+              'আসার আগেই পবিত্র প্রাঙ্গণ ঘুরে দেখুন — প্রার্থনা হল, প্রসাদ কাউন্টার ও নির্জন কোণ, সব এক মানচিত্রে।',
+              'पहुंचने से पहले पवित्र परिसर घूमें — प्रार्थना हॉल, प्रसाद काउंटर और शांत कोने, सब एक नक्शे में।')}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <button
+              type="button"
+              onClick={() => navigate(`/org/${page.publicSlug || page.orgId}/campus`)}
+              className="min-h-[48px] px-6 rounded-2xl bg-amber-700 text-white font-black text-sm shadow-sm hover:bg-amber-800 active:scale-[0.98] transition flex items-center justify-center gap-2"
+            >
+              <MapPin size={18} />
+              {T('orgpublic_campus_open', 'Open the Map', 'মানচিত্র খুলুন', 'नक्शा खोलें')}
+            </button>
+            {isTrustee && (
+              <button
+                type="button"
+                onClick={() => navigate(`/org/${page.publicSlug || page.orgId}/campus/manage`)}
+                className="min-h-[48px] px-6 rounded-2xl bg-white border border-stone-300 text-stone-800 font-black text-sm shadow-sm hover:bg-stone-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
+              >
+                {T('orgpublic_campus_manage', 'Manage Map', 'মানচিত্র পরিচালনা', 'नक्शा प्रबंधित करें')}
+              </button>
+            )}
+          </div>
+        </section>
 
         {/* ------------------------- DARSHAN TIMINGS ------------------------- */}
         {timings.length > 0 && (
@@ -542,6 +579,9 @@ export const OrgPublicPage: React.FC = () => {
   }, [param]);
 
   const isMember = page ? myMemberships.some((m) => m.workspaceId === page.orgId) : false;
+  const isTrustee = page
+    ? myMemberships.some((m) => m.workspaceId === page.orgId && m.role === 'Trustee')
+    : false;
   const following = page ? isFollowing(page.orgId) : false;
 
   const handleFollow = async () => {
@@ -605,6 +645,7 @@ export const OrgPublicPage: React.FC = () => {
         following={following}
         busy={busy}
         isMember={isMember}
+        isTrustee={isTrustee}
         onFollow={handleFollow}
         onJoinClick={handleJoinClick}
       />
