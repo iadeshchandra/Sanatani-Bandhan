@@ -19,8 +19,17 @@
 
 import { term, termKeys, FORBIDDEN_TRANSLATIONS } from './termbase';
 import type { SupportedLang } from './translationQuality';
+import { REGIONAL_TERMS } from './regionalTerms';
 
 export { term, termKeys, FORBIDDEN_TRANSLATIONS };
+
+/**
+ * Regional vocabulary — the GodMode Translations editor's source of truth
+ * for community terms that vary by (language, region). Re-exported from
+ * `./regionalTerms` (NOT redefined here). Pan-Sanatani sacred terms never
+ * appear here — they never vary.
+ */
+export { REGIONAL_TERMS, REGIONAL_TERM_KEYS, REGIONS } from './regionalTerms';
 
 /** Languages that currently carry draft (unreviewed) guide strings. */
 export type DraftLang = 'sa' | 'ta' | 'te' | 'mr' | 'gu' | 'kn' | 'ml';
@@ -140,6 +149,18 @@ export function approvedTerm(concept: string, lang: string): string {
 /** Guard: every glossary term is keyed by a SupportedLang-safe lookup. */
 export function isDraftLang(lang: string): lang is DraftLang {
   return (DRAFT_LANGS as string[]).includes((lang || '').toLowerCase());
+}
+
+/**
+ * Curator's guidance for a regional term: WHY this word varies by region
+ * plus the review confidence ('high' = certain, 'medium' = curated, wants
+ * a native check). The Translations editor shows these beside each term.
+ * Unknown keys degrade to an empty note — never a crash.
+ */
+export function regionalTermHint(termKey: string): { note: string; confidence: 'high' | 'medium' } {
+  const def = REGIONAL_TERMS[termKey];
+  if (!def) return { note: '', confidence: 'medium' };
+  return { note: def.note, confidence: def.confidence };
 }
 
 export type { SupportedLang };
