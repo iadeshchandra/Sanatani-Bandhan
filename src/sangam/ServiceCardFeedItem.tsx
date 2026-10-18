@@ -14,8 +14,10 @@ import type { SangamPost } from './types';
 import type { AuthorInfo } from './sangamStore';
 import { ServiceCardPost } from './ServiceCardPost';
 import { ServiceCardSheet } from './ServiceCardSheet';
+import { SevaBookingSheet } from './SevaBookingSheet';
 import { isFirstServiceCardThisSession } from './serviceCard';
 import { useServiceCardAsk } from './useServiceCardAsk';
+import { useSevaBooking } from './useSevaBooking';
 
 import type { ChatParticipant } from '../chat/types';
 import { Chat } from '../chat/Chat';
@@ -43,6 +45,8 @@ export const ServiceCardFeedItem: React.FC<Props> = ({ post, author }) => {
   const tierLang = lang;
 
   const { ask, asking, chatId, chatOpen, closeChat } = useServiceCardAsk();
+  // Seva Bazar Phase 2 — booking journey (sheet → thread → receipt).
+  const booking = useSevaBooking({ uid: author.uid, name: author.name }, tierLang);
 
   const handleAsk = () => {
     if (!card) return;
@@ -50,10 +54,11 @@ export const ServiceCardFeedItem: React.FC<Props> = ({ post, author }) => {
   };
 
   const handleRequest = () => {
-    // "Request this seva" → the same warm thread; the provider confirms
-    // tithi, samagri, and dakshina there. No in-card checkout — ever.
+    // "Request this seva" → the Phase 2 booking sheet (mode → muhurat →
+    // sankalpa → dakshina → token advance). No in-card checkout — ever.
+    if (!card) return;
     setSheetOpen(false);
-    handleAsk();
+    booking.openBooking(post);
   };
 
   return (
@@ -86,6 +91,25 @@ export const ServiceCardFeedItem: React.FC<Props> = ({ post, author }) => {
           selfInfo={{ uid: author.uid, displayName: author.name || 'Sanatani' }}
           initialChatId={chatId}
           onClose={closeChat}
+        />
+      )}
+      {booking.bookingPost && (
+        <SevaBookingSheet
+          post={booking.bookingPost}
+          viewer={{ uid: author.uid, name: author.name }}
+          onClose={booking.closeBooking}
+          onBooked={booking.handleBooked}
+        />
+      )}
+      {booking.chatOpen && booking.chatId && (
+        <Chat
+          uid={author.uid}
+          selfInfo={{ uid: author.uid, displayName: author.name || 'Sanatani' }}
+          initialChatId={booking.chatId}
+          onClose={booking.closeChat}
+          onReceiptConfirm={(receipt) =>
+            booking.confirmReceipt(receipt, booking.chatId as string, author.uid)
+          }
         />
       )}
     </div>

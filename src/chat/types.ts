@@ -40,7 +40,21 @@ export interface ChatThread {
   archivedBy?: string[];
 }
 
-export type MessageKind = 'text' | 'blessing' | 'request_card' | 'system';
+export type MessageKind = 'text' | 'blessing' | 'request_card' | 'system' | 'receipt';
+
+/** Seva Bazar Phase 2 — token-advance receipt carried by a chat message.
+ * Messages are immutable (rules), so the provider's "Received ✓" is a
+ * follow-up message + the order's paid→accepted transition — the card
+ * itself never mutates. */
+export interface ReceiptMeta {
+  orderId: string;
+  amount: number;
+  currency: string;
+  trxId: string;
+  rail: string;
+  providerUid: string;
+  providerName: string;
+}
 
 export interface ChatMessage {
   id: string;
@@ -56,6 +70,8 @@ export interface ChatMessage {
   };
   /** For request_card messages: the p2pRequest id */
   requestId?: string;
+  /** For receipt messages: the token-advance receipt */
+  receiptMeta?: ReceiptMeta;
   createdAt: number;
   /** Delivery states */
   deliveredAt?: number;

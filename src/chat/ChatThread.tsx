@@ -23,8 +23,9 @@ import { BlessingCard, BLESSING_OCCASIONS } from "./BlessingCard";
 import { ChatAvatar, VerifiedBadge, formatChatTime } from "./ChatList";
 import RequestModal, { type RequestRecipient } from "./RequestModal";
 import { RequestCardLoader } from "./MoneyRequestCard";
+import { ReceiptCard } from "./ReceiptCard";
 import { getOrgSenderRole } from "./p2pService";
-import type { ChatMessage, ChatParticipant } from "./types";
+import type { ChatMessage, ChatParticipant, ReceiptMeta } from "./types";
 
 /* ------------------------------------------------------------------ */
 /* Message state                                                       */
@@ -151,7 +152,9 @@ export const ChatThread: React.FC<{
   chatId: string;
   thread: ChatThreadLive | null;
   onBack: () => void;
-}> = ({ uid, chatId, thread, onBack }) => {
+  /** Seva Bazar Phase 2 — provider taps "Received ✓" on a receipt. */
+  onReceiptConfirm?: (receipt: ReceiptMeta) => void;
+}> = ({ uid, chatId, thread, onBack, onReceiptConfirm }) => {
   const { lang } = useLocaleText();
   const { messages, loading } = useChatMessages(chatId);
   const [draft, setDraft] = useState("");
@@ -418,6 +421,22 @@ export const ChatThread: React.FC<{
                           </div>
                         </div>
                       )}
+                      <div
+                        className={`text-[10px] text-stone-400 mt-1 ${mine ? "text-right" : ""}`}
+                      >
+                        {formatChatTime(m.createdAt, lang)}{" "}
+                        {mine && (
+                          <StateTicks state={messageState(m, thread, uid)} />
+                        )}
+                      </div>
+                    </div>
+                  ) : m.kind === "receipt" && m.receiptMeta ? (
+                    <div className={`max-w-[85%] ${mine ? "ml-auto" : ""}`}>
+                      <ReceiptCard
+                        receipt={m.receiptMeta}
+                        viewerUid={uid}
+                        onConfirm={onReceiptConfirm}
+                      />
                       <div
                         className={`text-[10px] text-stone-400 mt-1 ${mine ? "text-right" : ""}`}
                       >

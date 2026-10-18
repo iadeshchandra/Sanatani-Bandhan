@@ -103,6 +103,7 @@ function toChatMessage(id: string, chatId: string, data: DocumentData): ChatMess
     text: data.text ?? '',
     blessingMeta: data.blessingMeta,
     requestId: data.requestId,
+    receiptMeta: data.receiptMeta,
     createdAt: toMillis(data.createdAt) ?? Date.now(),
     deliveredAt: toMillis(data.deliveredAt),
     readBy: data.readBy ?? [],
@@ -178,6 +179,8 @@ export async function getOrCreateOrgChat(
 export interface SendMeta {
   blessingMeta?: ChatMessage['blessingMeta'];
   requestId?: string;
+  /** Seva Bazar Phase 2 — token-advance receipt payload. */
+  receiptMeta?: ChatMessage['receiptMeta'];
 }
 
 /**
@@ -202,6 +205,7 @@ export async function sendMessage(
     text: trimmed,
     ...(meta?.blessingMeta ? { blessingMeta: meta.blessingMeta } : {}),
     ...(meta?.requestId ? { requestId: meta.requestId } : {}),
+    ...(meta?.receiptMeta ? { receiptMeta: meta.receiptMeta } : {}),
     createdAt: now,
     deliveredAt: now, // written to cloud/local → at least sent
     readBy: [senderId],

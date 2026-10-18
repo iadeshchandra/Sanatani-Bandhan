@@ -43,7 +43,8 @@ export type GuideId =
   | 'devotional'
   | 'vda'
   | 'sevacards'
-  | 'sevabazar';
+  | 'sevabazar'
+  | 'sevaBooking';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -257,6 +258,28 @@ export const GUIDES: Record<GuideId, GuideDef> = {
         bodyKey: 'guide.sevabazar.s2b',
       },
       { titleKey: 'guide.sevabazar.s3t', bodyKey: 'guide.sevabazar.s3b' },
+    ],
+  },
+  sevaBooking: {
+    id: 'sevaBooking',
+    titleKey: 'guide.sevaBooking.title',
+    pillKey: 'guide.sevaBooking.pill',
+    steps: [
+      {
+        anchor: 'sevabooking-mode',
+        titleKey: 'guide.sevaBooking.s1t',
+        bodyKey: 'guide.sevaBooking.s1b',
+      },
+      {
+        anchor: 'sevabooking-muhurat',
+        titleKey: 'guide.sevaBooking.s2t',
+        bodyKey: 'guide.sevaBooking.s2b',
+      },
+      {
+        anchor: 'sevabooking-suraksha',
+        titleKey: 'guide.sevaBooking.s3t',
+        bodyKey: 'guide.sevaBooking.s3b',
+      },
     ],
   },
 };

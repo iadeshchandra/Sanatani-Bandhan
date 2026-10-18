@@ -21,7 +21,9 @@ export const Chat: React.FC<{
   onClose: () => void;
   /** Deep-link straight into a thread (optional). */
   initialChatId?: string;
-}> = ({ uid, selfInfo, onClose, initialChatId }) => {
+  /** Seva Bazar Phase 2 — provider taps "Received ✓" on a receipt. */
+  onReceiptConfirm?: (receipt: import('./types').ReceiptMeta) => void;
+}> = ({ uid, selfInfo, onClose, initialChatId, onReceiptConfirm }) => {
   const { threads, loading } = useChatThreads(uid);
   const [activeChatId, setActiveChatId] = useState<string | null>(initialChatId ?? null);
   const [backupOpen, setBackupOpen] = useState(false);
@@ -86,6 +88,7 @@ export const Chat: React.FC<{
               chatId={activeChatId}
               thread={activeThread}
               onBack={() => setActiveChatId(null)}
+              onReceiptConfirm={onReceiptConfirm}
             />
           ) : (
             <ChatList
