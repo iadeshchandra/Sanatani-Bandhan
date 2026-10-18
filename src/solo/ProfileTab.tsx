@@ -17,6 +17,7 @@ import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notificati
 import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useSacredSound } from '../lib/sacredAudio';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
+import { TirthaDiarySheet, computeStats, syncTirtha } from '../tirtha';
 import { VdaAliasSection } from './VdaAliasSection';
 import { LanguageRegionSettings } from './LanguageRegionSettings';
 import { AiVoiceSettings } from '../ai/voice/components/AiVoiceSettings';
@@ -71,6 +72,8 @@ export const ProfileTab: React.FC = () => {
   const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
   const { currentLang, changeLanguage, markLanguageChosen } = useNativeLanguage();
   const [langOpen, setLangOpen] = useState(false);
+  const [tirthaOpen, setTirthaOpen] = useState(false);
+  const [tirthaStats, setTirthaStats] = useState({ visitCount: 0, templeCount: 0, yatraCount: 0 });
   const curLangNative = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang)?.nativeName || currentLang;
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -153,6 +156,11 @@ export const ProfileTab: React.FC = () => {
   // toggles. Loads lazily; the engine already honours every value via
   // decideRouting. Failures fall back to calm defaults (offline-safe).
   const prefsUid = profile?.uid || '';
+  const tirthaUid = (firebaseUser as { uid?: string } | null)?.uid || '';
+  useEffect(() => {
+    if (!tirthaUid) return;
+    void syncTirtha(tirthaUid).then(() => setTirthaStats(computeStats(tirthaUid)));
+  }, [tirthaUid]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => ({
     ...DEFAULT_PREFS,
@@ -649,6 +657,33 @@ export const ProfileTab: React.FC = () => {
         </button>
       </Card>
 
+      {/* 🪔 My Tirtha Diary — personal pilgrimage journal. Private: only this devotee. */}
+      <Card>
+        <button
+          type="button"
+          onClick={() => setTirthaOpen(true)}
+          className="w-full flex items-center justify-between gap-3 text-left min-h-[60px] px-1"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm font-extrabold text-stone-900">
+              <T en="🪔 My Tirtha Diary" bn="🪔 আমার তীর্থ ডায়েরি" hi="🪔 मेरी तीर्थ डायरी" />
+            </span>
+            <span className="block text-xs text-stone-500 mt-0.5">
+              {tirthaStats.visitCount === 0 ? (
+                <T en="Your personal pilgrimage journal — only you can see it" bn="আপনার ব্যক্তিগত তীর্থ ডায়েরি — শুধু আপনিই দেখতে পারবেন" hi="आपकी व्यक्तिगत तीर्थ डायरी — केवल आप देख सकते हैं" />
+              ) : (
+                <T
+                  en={`${tirthaStats.templeCount} temples · ${tirthaStats.visitCount} visits`}
+                  bn={`${tirthaStats.templeCount} মন্দির · ${tirthaStats.visitCount} ভ্রমণ`}
+                  hi={`${tirthaStats.templeCount} मंदिर · ${tirthaStats.visitCount} यात्राएँ`}
+                />
+              )}
+            </span>
+          </span>
+          <span className="text-amber-700 text-xl shrink-0" aria-hidden>→</span>
+        </button>
+      </Card>
+
       {/* Notifications — one calm row; the sheet is shared with Suchana's ⚙️. */}
       <Card>
         <button
@@ -746,6 +781,9 @@ export const ProfileTab: React.FC = () => {
         <TourPill guide={GUIDES.profile} uid={(firebaseUser as { uid?: string } | null)?.uid || 'anon'} onStart={profileGuide.start} onDismiss={profileGuide.dismissPill} />
       )}
       {profileGuide.tourActive && <CoachMark guide={GUIDES.profile} onFinish={profileGuide.finish} />}
+      {tirthaOpen && tirthaUid && (
+        <TirthaDiarySheet uid={tirthaUid} onClose={() => { setTirthaOpen(false); setTirthaStats(computeStats(tirthaUid)); }} />
+      )}
     </div>
   );
 };

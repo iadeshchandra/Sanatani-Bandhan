@@ -15,6 +15,8 @@ import { subscribeToCampusMap } from './campusService';
 import { subscribeToZoneReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { RecordVisitButton } from '../tirtha/RecordVisitButton';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 import '../crisis/leaflet.css';
@@ -28,6 +30,8 @@ interface Props {
 
 export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = false }) => {
   const { currentLang } = useLanguage();
+  const { firebaseUser } = useAuthWorkspace();
+  const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
   const [map, setMap] = useState<CampusMap | null>(null);
   const [reports, setReports] = useState<ZoneReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +171,9 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
           <p className="text-[12px] text-stone-500">Find your way around {orgName} 🪔</p>
         </div>
         <TourLink guide={GUIDES.campus} onRestart={campusGuide.restart} />
+        {uid && (
+          <RecordVisitButton uid={uid} templeName={orgName} orgId={orgId} />
+        )}
       </div>
 
       {hasLiveReports && (

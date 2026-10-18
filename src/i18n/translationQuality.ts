@@ -35,17 +35,17 @@ export const DRAFT_NAMESPACES: Record<SupportedLang, string[]> = {
   en: [],
   hi: [],
   bn: [],
-  sa: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  ta: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  te: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  mr: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  gu: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  kn: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
-  ml: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'assistant'],
+  sa: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  ta: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  te: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  mr: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  gu: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  kn: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
+  ml: ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.tirtha', 'assistant'],
 };
 
 /** The draft namespaces across all languages (for the GodMode editor). */
-export const ALL_DRAFT_NAMESPACES = ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.sevabazar'] as const;
+export const ALL_DRAFT_NAMESPACES = ['guide.devotional', 'guide.vda', 'guide.sevacards', 'guide.sevabazar', 'guide.tirtha'] as const;
 
 /**
  * Quality status of one dot-delimited key (e.g. 'guide.vda.s1t') in a

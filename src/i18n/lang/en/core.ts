@@ -329,6 +329,16 @@ export const core: CoreFragment = {
         s3t: "Dakshina Suraksha",
         s3b: "Only a small token advance holds your muhurat — the rest after the seva. We only coordinate; your money moves directly, never through us. 🛡",
       },
+      tirtha: {
+        title: "Your Tirtha Diary",
+        pill: "Your personal pilgrimage diary — take the 20-second tour 🪔",
+        s1t: "Recorded only by you",
+        s1b: "No visit is ever recorded automatically. When you visit a temple, tap \"Record this visit\" — that tap is the only way an entry is born.",
+        s2t: "Private, always",
+        s2b: "Your diary lives in your own space. Never shared, never public — not with family, not with organisations. Only you can see it.",
+        s3t: "Forget in one tap",
+        s3b: "Any visit can be forgotten instantly — as if it never was. Your diary, your rules. 🪔",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",

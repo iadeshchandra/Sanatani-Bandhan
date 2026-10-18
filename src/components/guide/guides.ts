@@ -44,7 +44,8 @@ export type GuideId =
   | 'vda'
   | 'sevacards'
   | 'sevabazar'
-  | 'sevaBooking';
+  | 'sevaBooking'
+  | 'tirtha';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -279,6 +280,26 @@ export const GUIDES: Record<GuideId, GuideDef> = {
         anchor: 'sevabooking-suraksha',
         titleKey: 'guide.sevaBooking.s3t',
         bodyKey: 'guide.sevaBooking.s3b',
+      },
+    ],
+  },
+  tirtha: {
+    id: 'tirtha',
+    titleKey: 'guide.tirtha.title',
+    pillKey: 'guide.tirtha.pill',
+    steps: [
+      {
+        anchor: 'tirtha-visit',
+        titleKey: 'guide.tirtha.s1t',
+        bodyKey: 'guide.tirtha.s1b',
+      },
+      {
+        titleKey: 'guide.tirtha.s2t',
+        bodyKey: 'guide.tirtha.s2b',
+      },
+      {
+        titleKey: 'guide.tirtha.s3t',
+        bodyKey: 'guide.tirtha.s3b',
       },
     ],
   },

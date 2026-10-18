@@ -2540,6 +2540,66 @@ match /fileVault/{fileId} {
       allow delete: if isOwner();
     }
 
+
+    /* =====================================================================
+     * TIRTHA DIARY (Map Phase 2) — personal pilgrimage journal.
+     * ---------------------------------------------------------------------
+     * PRIVACY LAW, ENFORCED AT THE DATABASE LEVEL:
+     *  - Owner-only: {uid} MUST equal request.auth.uid on every op.
+     *  - No public reads. No family/org reads. No sharing at the rules
+     *    level — there is no share path in this phase.
+     *  - Writes are schema-pinned: visits and yatras carry only the
+     *    fields the client needs; uid is immutable after create.
+     *  - Deletes are always allowed for the owner ("forget in one tap").
+     * ===================================================================== */
+    match /tirthaVisits/{uid} {
+      allow read, write: if false; // no collection-level access
+
+      match /visits/{visitId} {
+        allow read: if isLoggedIn() && request.auth.uid == uid;
+        allow create: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.get('templeName', '').size() > 0
+          && request.resource.data.get('templeName', '').size() <= 120
+          && request.resource.data.keys().hasOnly([
+            'id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note',
+            'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'
+          ]);
+        allow update: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.get('templeName', '').size() > 0
+          && request.resource.data.get('templeName', '').size() <= 120
+          && request.resource.data.keys().hasOnly([
+            'id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note',
+            'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'
+          ]);
+        allow delete: if isLoggedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /tirthaYatras/{uid} {
+      allow read, write: if false; // no collection-level access
+
+      match /yatras/{yatraId} {
+        allow read: if isLoggedIn() && request.auth.uid == uid;
+        allow create: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.get('name', '').size() > 0
+          && request.resource.data.get('name', '').size() <= 80
+          && request.resource.data.keys().hasOnly([
+            'id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'
+          ]);
+        allow update: if isLoggedIn() && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.get('name', '').size() > 0
+          && request.resource.data.get('name', '').size() <= 80
+          && request.resource.data.keys().hasOnly([
+            'id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'
+          ]);
+        allow delete: if isLoggedIn() && request.auth.uid == uid;
+      }
+    }
+
     match /translationOverrides/{lang} {
       // UI strings are public by nature — they ship in the client bundle.
       allow read: if true;

@@ -352,6 +352,20 @@ export interface TranslationSchema {
       s3t: string;
       s3b: string;
     };
+    /**
+     * Tirtha Diary guide (Map Phase 2). Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    tirtha?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;

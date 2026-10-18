@@ -219,6 +219,46 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
     },
   },
 
+  /* ---------------- tirtha_summary ---------------- */
+  tirtha_summary: {
+    summary: {
+      en: (p, c) =>
+        `🙏 Your Tirtha Diary, dear ${c.term('devotee')}:\n\n` +
+        `• **Temples visited:** ${p['templeCount']}\n` +
+        `• **Visits recorded:** ${p['visitCount']}\n` +
+        `• **Yatras:** ${p['yatraCount']}\n` +
+        (p['latestTemple'] ? `\nMost recent: **${p['latestTemple']}** (${p['latestAt']})\n` : '') +
+        `\nEvery step a prayer. 🪔`,
+      hi: (p, c) =>
+        `🙏 आपकी तीर्थ डायरी, प्रिय भक्त:\n\n` +
+        `• **मंदिरों के दर्शन:** ${p['templeCount']}\n` +
+        `• **दर्ज यात्राएँ:** ${p['visitCount']}\n` +
+        `• **यात्राएँ:** ${p['yatraCount']}\n` +
+        (p['latestTemple'] ? `\nसबसे हाल की: **${p['latestTemple']}** (${p['latestAt']})\n` : '') +
+        `\nहर कदम एक प्रार्थना। 🪔`,
+      bn: (p, c) =>
+        `🙏 আপনার তীর্থ ডায়েরি, প্রিয় ভক্ত:\n\n` +
+        `• **মন্দির দর্শন:** ${p['templeCount']}\n` +
+        `• **লিপিবদ্ধ ভ্রমণ:** ${p['visitCount']}\n` +
+        `• **যাত্রা:** ${p['yatraCount']}\n` +
+        (p['latestTemple'] ? `\nসবচেয়ে সাম্প্রতিক: **${p['latestTemple']}** (${p['latestAt']})\n` : '') +
+        `\nপ্রতিটি পদক্ষেপ একটি প্রার্থনা। 🪔`,
+    },
+    empty: {
+      en: (p, c) =>
+        `🙏 Your Tirtha Diary is still a blank page — and every pilgrimage begins with a single step.\n\nWhen you visit a temple, tap **🪔 Record this visit** and your diary begins. Only you will ever see it. 🪔`,
+      hi: (p, c) =>
+        `🙏 आपकी तीर्थ डायरी अभी कोरा पृष्ठ है — और हर तीर्थयात्रा एक कदम से शुरू होती है।\n\nजब आप किसी मंदिर जाएँ, **🪔 इस यात्रा को दर्ज करें** दबाएँ — आपकी डायरी शुरू होगी। इसे केवल आप देखेंगे। 🪔`,
+      bn: (p, c) =>
+        `🙏 আপনার তীর্থ ডায়েরি এখনও শূন্য পাতা — আর প্রতিটি তীর্থযাত্রা শুরু হয় একটি পদক্ষেপে।\n\nমন্দিরে গেলে **🪔 এই ভ্রমণটি লিপিবদ্ধ করুন** চাপুন — আপনার ডায়েরি শুরু হবে। এটি শুধু আপনিই দেখবেন। 🪔`,
+    },
+    default: {
+      en: (p, c) => `🙏 Ask me "how many temples have I visited?" and I'll read your diary for you.`,
+      hi: (p, c) => `🙏 पूछिए "मैंने कितने मंदिरों के दर्शन किए?" — मैं आपकी डायरी पढ़कर बताऊँगा।`,
+      bn: (p, c) => `🙏 জিজ্ঞেস করুন "আমি কটি মন্দির দর্শন করেছি?" — আমি আপনার ডায়েরি পড়ে জানাব।`,
+    },
+  },
+
   /* ---------------- booking_help ---------------- */
   booking_help: {
     default: {
@@ -494,6 +534,11 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['What is Ekadashi?', 'What is karma?', 'How to do morning puja?'],
     hi: ['एकादशी क्या है?', 'कर्म क्या है?', 'सुबह पूजा कैसे करें?'],
     bn: ['একাদশী কী?', 'কর্ম কী?', 'সকালের পূজা কীভাবে করব?'],
+  },
+  tirtha_summary: {
+    en: ['My Tirtha Diary', "Today's tithi?", 'Next festival?'],
+    hi: ['मेरी तीर्थ डायरी', 'आज की तिथि?', 'अगला उत्सव?'],
+    bn: ['আমার তীর্থ ডায়েরি', 'আজকের তিথি?', 'পরের উৎসব?'],
   },
   greeting: {
     en: ["Today's tithi?", 'Next festival?', 'How do I give dana?'],

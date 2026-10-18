@@ -102,6 +102,13 @@ const SADHANA_KW = [
   'sankalpa', 'संकल्प', 'সংকল্প', 'my sadhana',
 ];
 
+const TIRTHA_KW = [
+  'tirtha', 'yatra', 'pilgrimage', 'my visits', 'temples visited',
+  'how many temples', 'temples have i visited', 'my diary', 'tirtha diary',
+  'तीर्थ', 'यात्रा', 'मंदिर गए', 'कितने मंदिर', 'तीर्थ डायरी',
+  'তীর্থ', 'যাত্রা', 'মন্দির গেছি', 'কটি মন্দির', 'তীর্থ ডায়েরি',
+];
+
 const BOOKING_VERB_KW = [
   'book a', 'booking', 'book purohit', 'book jyotish', 'appointment',
   'consultation', 'consult', 'বুকিং', 'बुकिंग', 'बुक कर', 'বুক কর',
@@ -191,6 +198,7 @@ const RULES: Rule[] = [
   { intent: 'language_help', confidence: 'high', keywords: LANGUAGE_KW },
   { intent: 'sos_help', confidence: 'high', keywords: SOS_HELP_KW },
   { intent: 'voice_upgrade', confidence: 'high', keywords: VOICE_UPGRADE_KW },
+  { intent: 'tirtha_summary', confidence: 'high', keywords: TIRTHA_KW },
   { intent: 'navigate', confidence: 'medium', keywords: NAVIGATE_KW },
   { intent: 'howto', confidence: 'medium', keywords: HOWTO_KW },
   { intent: 'greeting', confidence: 'low', keywords: GREETING_KW },
