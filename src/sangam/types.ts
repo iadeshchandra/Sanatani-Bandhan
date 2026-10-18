@@ -13,7 +13,8 @@
  * No ads, no data selling — stated plainly in the product.
  */
 
-export type PostKind = 'text' | 'photo' | 'event' | 'seva' | 'shloka' | 'service_card';
+export type PostKind = 'text' | 'photo' | 'event' | 'seva' | 'shloka' | 'service_card'
+  | 'consultation_answer' | 'gratitude' | 'festival_moment';
 
 export type AuthorKind = 'devotee' | 'purohit' | 'jyotish' | 'org';
 
@@ -87,6 +88,8 @@ export interface ServiceCardDetails {
   trustScore?: number;
   /** Photo: https:// URL or vault:// File Vault reference. */
   photoUrl?: string;
+  /** YouTube video ID for the provider's intro demo (Phase 3). */
+  demoVideoId?: string;
 }
 
 export interface SangamPost {
@@ -124,6 +127,14 @@ export interface SangamPost {
   status: 'active' | 'reported' | 'removed';
   /** true when this copy lives only on this device (offline/demo). */
   localOnly?: boolean;
+  /** gratitude posts: the provider being thanked (uid). */
+  providerUid?: string;
+  /** gratitude posts: provider's display name (denormalized). */
+  providerName?: string;
+  /** festival_moment posts: festival id from Panjika (e.g. 'diwali'). */
+  festival?: string;
+  /** consultation_answer posts: always true — devotee identity never stored. */
+  anonymized?: boolean;
 }
 
 export interface SangamComment {

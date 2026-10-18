@@ -56,6 +56,8 @@ export interface SevaBazarOrderInput {
   shradhaExtra: number;
   amountGross: number;
   tokenAdvance: number;
+  /** Optional referrer Sanatani ID from a shared link (?ref=SAN-XXXXXX). */
+  referredBy?: string;
 }
 
 /**
@@ -124,6 +126,8 @@ export async function createSevaBazarOrder(input: SevaBazarOrderInput): Promise<
     },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    // — share-carries-referral (Phase 4): honest attribution, no money —
+    ...(input.referredBy ? { referredBy: input.referredBy } : {}),
   });
   return ref.id;
 }

@@ -2063,7 +2063,10 @@ service cloud.firestore {
           ['authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
            'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
            'seva', 'serviceCard', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount', 'commentCount',
-           'shareCount', 'visibility', 'status'])
+           'shareCount', 'visibility', 'status',
+           // Phase 3+4: gratitude (providerUid/providerName), festival moments (festival),
+           // consultation answers (anonymized)
+           'providerUid', 'providerName', 'festival', 'anonymized'])
         && request.resource.data.get('ashirvadCount', -1) == 0
         && request.resource.data.get('commentCount', -1) == 0
         && request.resource.data.get('shareCount', -1) == 0

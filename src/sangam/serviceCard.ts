@@ -8,6 +8,7 @@
  */
 
 import type { SangamPost, ServiceCardDetails } from './types';
+import { validateDemoVideoUrl } from './sevaBazarVideo';
 
 export interface ServiceCardDraft {
   devotionalText: string;
@@ -19,6 +20,8 @@ export interface ServiceCardDraft {
   availability: string;
   lineage: string;
   photoUrl: string;
+  /** Optional YouTube URL for the provider's intro demo (Phase 3). */
+  demoVideoUrl?: string;
 }
 
 /** Cheap-signal patterns — the language of ads, never of seva. */
@@ -61,6 +64,13 @@ export function validateServiceCard(draft: ServiceCardDraft): CardViolation[] {
   }
   if (draft.modes.length === 0) {
     out.push({ field: 'modes', message: 'How is this seva offered — at home, at the temple, or over video?' });
+  }
+  // Demo video URL (Phase 3) — validated, never blocks the card.
+  if (draft.demoVideoUrl && draft.demoVideoUrl.trim()) {
+    const { error } = validateDemoVideoUrl(draft.demoVideoUrl);
+    if (error) {
+      out.push({ field: 'demoVideoUrl', message: error });
+    }
   }
   // Cheap-signal scan across all free text.
   const freeText = `${dev}\n${line}\n${draft.includes}\n${draft.availability}`;
