@@ -9,8 +9,8 @@
  * honest settings note. Phase 0 works fully regardless.
  */
 
-import { hasModelInCache } from '@mlc-ai/web-llm';
 import { REQUIRED_FREE_BYTES, VOICE_MODEL } from './models';
+import { getWebLlm } from './webllm';
 import {
   getDlPersist,
   reconcileDlOnBoot,
@@ -46,6 +46,10 @@ async function freeStorageBytes(): Promise<number | null> {
 /** True when the model weights are already in the WebLLM cache. */
 export async function isModelCached(): Promise<boolean> {
   try {
+    // Single gateway (./webllm): keeps @mlc-ai/web-llm in ONE async chunk.
+    // Separate dynamic imports per module duplicated the lib (incl. tvmjs)
+    // into the main chunk and broke the PWA precache build (2026-10-18).
+    const { hasModelInCache } = await getWebLlm();
     return await hasModelInCache(VOICE_MODEL.id);
   } catch {
     return false;

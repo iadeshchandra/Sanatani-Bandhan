@@ -16,8 +16,8 @@
  * No Firestore, no rules changes: voice state is device-local.
  */
 
-import { deleteModelInCache } from '@mlc-ai/web-llm';
 import { VOICE_MODEL, modelSizeLabel } from './models';
+import { getWebLlm } from './webllm';
 import { isModelCached } from './capabilities';
 import { getEngine, unloadEngine, warmEngine } from './engine';
 import { setCachedStatus, setDlPersist, getDlPersist } from './storage';
@@ -116,7 +116,8 @@ export async function confirmDownload(onProgress: (p: DownloadProgress) => void)
   // the model must already be cached OR this first creation fetches it.
   // To force a clean fetch path we create directly here instead of the
   // cached singleton (which refuses when not cached).
-  const webllm = await import('@mlc-ai/web-llm');
+  // Single gateway (./webllm): one async chunk for the whole lib.
+  const webllm = await getWebLlm();
   let engine: { unload(): Promise<void> } | null = null;
   try {
     engine = await webllm.CreateMLCEngine(VOICE_MODEL.id, {
@@ -185,7 +186,7 @@ export async function resumeDownload(onProgress: (p: DownloadProgress) => void):
 export async function updateVoice(onProgress: (p: DownloadProgress) => void): Promise<void> {
   await unloadEngine();
   try {
-    await deleteModelInCache(VOICE_MODEL.id);
+    await deleteCachedModel();
   } catch {
     /* already gone */
   }
@@ -193,9 +194,19 @@ export async function updateVoice(onProgress: (p: DownloadProgress) => void): Pr
   return confirmDownload(onProgress);
 }
 
+/**
+ * Single gateway (./webllm): keeps @mlc-ai/web-llm in ONE async chunk.
+ * Separate dynamic imports per module duplicated the lib (incl. tvmjs)
+ * into the main chunk and broke the PWA precache build (2026-10-18).
+ */
+async function deleteCachedModel(): Promise<void> {
+  const { deleteModelInCache } = await getWebLlm();
+  await deleteModelInCache(VOICE_MODEL.id);
+}
+
 async function sweepPartialCache(): Promise<void> {
   try {
-    await deleteModelInCache(VOICE_MODEL.id);
+    await deleteCachedModel();
   } catch {
     /* best-effort */
   }
@@ -208,7 +219,7 @@ async function sweepPartialCache(): Promise<void> {
 export async function removeVoice(): Promise<{ freedLabel: string }> {
   await unloadEngine();
   try {
-    await deleteModelInCache(VOICE_MODEL.id);
+    await deleteCachedModel();
   } catch {
     /* already gone */
   }

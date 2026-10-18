@@ -18,6 +18,7 @@
 import type { MLCEngine } from '@mlc-ai/web-llm';
 import { VOICE_MODEL } from './models';
 import { isModelCached } from './capabilities';
+import { getWebLlm } from './webllm';
 import type { DownloadProgress } from './types';
 
 let enginePromise: Promise<MLCEngine> | null = null;
@@ -26,9 +27,8 @@ let engineFailed = false;
 async function createEngine(
   onProgress?: (p: DownloadProgress) => void
 ): Promise<MLCEngine> {
-  // Dynamic import keeps @mlc-ai/web-llm OUT of the main bundle — it
-  // becomes a separate chunk fetched only when the voice is touched.
-  const webllm = await import('@mlc-ai/web-llm');
+  // Single gateway (./webllm): keeps @mlc-ai/web-llm in ONE async chunk.
+  const webllm = await getWebLlm();
   const engine = await webllm.CreateMLCEngine(VOICE_MODEL.id, {
     initProgressCallback: (report) => {
       // WebLLM reports: "Fetching param cache [x/y]" then "Loading model…".
