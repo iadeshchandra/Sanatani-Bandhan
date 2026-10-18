@@ -2022,6 +2022,38 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    // --- orgPages/{orgId}/sevaCards/{cardId}: tangible giving cards (Phase 2).
+    // Public read (giving cards are public information); trustee write.
+    // Devotees tap a card → Phase 1's express dana sheet opens prefilled.
+    match /orgPages/{orgId}/sevaCards/{cardId} {
+      allow read: if true;
+      allow create, update: if isSuperAdmin()
+        || (isOrgTrustee(orgId)
+          && request.resource.data.keys().hasOnly([
+            'title', 'amount', 'currency', 'outcomeCopy', 'goalTarget',
+            'raisedTotal', 'active', 'sortOrder',
+            'createdAt', 'updatedAt', 'createdBy', 'updatedBy'])
+          && request.resource.data.get('title', '') != ''
+          && request.resource.data.get('amount', 0) is number
+          && request.resource.data.get('amount', 0) > 0);
+      allow delete: if isSuperAdmin() || isOrgTrustee(orgId);
+    }
+
+    // --- vdaAliases/{alias}: speakable devotee-ID claims (Phase 2).
+    // Doc id IS the normalized alias (`aarav@kashi`); first-write-wins.
+    // SAN-XXXXXX stays canonical — this is the friendly layer on top.
+    match /vdaAliases/{aliasId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('alias', '') == aliasId
+        && request.resource.data.keys().hasOnly(['alias', 'uid', 'sanId', 'createdAt']);
+      // Releasing = delete; only the owning uid may release. No updates ever.
+      allow update: if false;
+      allow delete: if isLoggedIn()
+        && resource.data.get('uid', '') == request.auth.uid;
+    }
+
     // --- followers/{orgId}/users/{uid}: public read (counts); owner write.
     match /followers/{orgId}/users/{uid} {
       allow read: if true;
