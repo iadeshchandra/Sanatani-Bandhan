@@ -1903,9 +1903,9 @@ service cloud.firestore {
     // (Blaze-gated — unavailable on the $0 plan).
     function serviceCardOk() {
       let kind = request.resource.data.get('kind', '');
-      if (kind != 'service_card') { return true; }
       let authorKind = request.resource.data.get('authorKind', '');
       let card = request.resource.data.get('serviceCard', {});
+      if (kind != 'service_card') { return true; }
       return (authorKind == 'purohit' || authorKind == 'jyotish')
         && card != null
         && card.get('devotionalText', '').size() >= 30
