@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useSoloStore, uid, todayISO, type GivingRecord } from './soloStore';
 import { Card, Stat, T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ExpressDanaSheet, type DanaPrefill } from './ExpressDanaSheet';
 import {
   registerDanaSheetOpener,
@@ -22,6 +23,11 @@ import { ShareReceiptRow, ReceiptModal, RECEIPT_BLESSING, type ShareLang } from 
 export const GivingTab: React.FC = () => {
   const { state, add, remove } = useSoloStore();
   const { tr, lang } = useLocaleText();
+  const { rt } = useLanguage();
+  // Regional temple word for the example org name — title-cased like the
+  // proper name it completes; native scripts are caseless.
+  const templeWordRaw = rt('temple');
+  const templeTitle = templeWordRaw.charAt(0).toUpperCase() + templeWordRaw.slice(1);
   const { showToast } = useToast();
   const [form, setForm] = useState({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -229,7 +235,7 @@ export const GivingTab: React.FC = () => {
         {offlineOpen && (
         <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3 mt-3">
           <Field label={<T en="Organisation" bn="সংগঠন" hi="संगठन" />}>
-            <input className={inputCls} value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} placeholder="Kashi Vishwanath Mandir" />
+            <input className={inputCls} value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} placeholder={`Kashi Vishwanath ${templeTitle}`} />
           </Field>
           <Field label={<T en="Amount (₹)" bn="পরিমাণ (₹)" hi="राशि (₹)" />}>
             <input type="number" min={1} className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="501" />

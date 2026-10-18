@@ -18,6 +18,7 @@ import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useSacredSound } from '../lib/sacredAudio';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 import { VdaAliasSection } from './VdaAliasSection';
+import { LanguageRegionSettings } from './LanguageRegionSettings';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -457,6 +458,9 @@ export const ProfileTab: React.FC = () => {
 
       {/* My Samskaras — tithi anniversaries */}
       <MySamskaras />
+
+      {/* Language & region — the devotee's words, their choice, never overridden */}
+      <LanguageRegionSettings />
 
       {/* Preferences — small comforts, the user's own choice */}
       <Card>
