@@ -1256,6 +1256,90 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin();
     }
 
+    // Group chats — private by default, invite-code only. No public
+    // discovery, no join-by-search. memberIds is the rules source of truth.
+    match /chatGroups/{groupId} {
+      allow read: if isSuperAdmin() || (isLoggedIn() &&
+        resource.data.get('memberIds', null) is list &&
+        request.auth.uid in resource.data.get('memberIds', []));
+
+      allow create: if isLoggedIn() &&
+        request.resource.data.get('memberIds', null) is list &&
+        request.auth.uid in request.resource.data.get('memberIds', []) &&
+        request.resource.data.get('adminIds', null) is list &&
+        request.auth.uid in request.resource.data.get('adminIds', []) &&
+        request.resource.data.get('name', '') is string &&
+        request.resource.data.get('name', '').size() >= 2 &&
+        request.resource.data.get('name', '').size() <= 60 &&
+        request.resource.data.get('inviteCode', '') is string &&
+        request.resource.data.get('inviteCode', '').size() == 8 &&
+        request.resource.data.get('createdBy', '') == request.auth.uid;
+
+      // Lane A (any member): thread-summary + presence fields only.
+      // Lane B (admin): member management + rename + invite rotation.
+      allow update: if isSuperAdmin() || (isLoggedIn() &&
+        resource.data.get('memberIds', null) is list &&
+        request.auth.uid in resource.data.get('memberIds', []) && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
+             'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy']
+          ) ||
+          (request.auth.uid in resource.data.get('adminIds', []) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+              ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
+               'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy',
+               'name', 'description', 'memberIds', 'adminIds', 'memberInfo', 'inviteCode']
+            ) &&
+            request.resource.data.get('memberIds', null) is list &&
+            request.resource.data.get('adminIds', null) is list &&
+            request.resource.data.get('createdBy', '') == resource.data.get('createdBy', ''))
+        ));
+
+      // Delete: admin, or the last member leaving (group dissolves).
+      allow delete: if isSuperAdmin() || (isLoggedIn() &&
+        resource.data.get('memberIds', null) is list &&
+        request.auth.uid in resource.data.get('memberIds', []) && (
+          request.auth.uid in resource.data.get('adminIds', []) ||
+          resource.data.get('memberIds', []).size() == 1));
+
+      match /messages/{messageId} {
+        allow read: if isSuperAdmin() || (isLoggedIn() &&
+          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
+          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []));
+        allow create: if isSuperAdmin() || (isLoggedIn() &&
+          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
+          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []) &&
+          request.resource.data.get('senderId', '') == request.auth.uid &&
+          (request.resource.data.get('kind', '') != 'system' ||
+            request.resource.data.get('systemKind', '') in
+              ['created', 'joined', 'left', 'added', 'removed', 'renamed', 'promoted']));
+        // Unsend: own message, within 5 minutes. No edits, ever.
+        allow delete: if isSuperAdmin() || (isLoggedIn() &&
+          resource.data.get('senderId', '') == request.auth.uid &&
+          request.time.toMillis() - resource.data.get('createdAt', 0) < 5 * 60 * 1000);
+        allow update: if false;
+      }
+
+      match /members/{uid} {
+        allow read: if isSuperAdmin() || (isLoggedIn() &&
+          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
+          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []));
+        // Create: self-join via code (uid == auth.uid) or admin adding.
+        allow create: if isSuperAdmin() || (isLoggedIn() &&
+          request.resource.data.get('uid', '') == uid &&
+          (uid == request.auth.uid ||
+            request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', [])));
+        // Role change: admin only, role field only.
+        allow update: if isSuperAdmin() || (isLoggedIn() &&
+          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', []) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
+        // Delete: self (leaving) or admin (removing).
+        allow delete: if isSuperAdmin() || (isLoggedIn() &&
+          (uid == request.auth.uid ||
+            request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', [])));
+      }
+    }
+
     // Community subcollections (social feed, vivah, sadhana...)
     match /communities/{communityId}/{collectionName}/{docId} {
       allow read: if isSuperAdmin()

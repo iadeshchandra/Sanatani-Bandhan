@@ -339,6 +339,14 @@ export const core: CoreFragment = {
         s3t: "Forget in one tap",
         s3b: "Any visit can be forgotten instantly — as if it never was. Your diary, your rules. 🪔",
       },
+      groups: {
+        title: "Group conversations",
+        pill: "Chat with your family, satsang & yatra sangha — take the tour 👥",
+        s1t: "Private by invitation",
+        s1b: "Groups are private — only invited members see messages. There is no public listing, no discovery, no strangers. The invite code is the only door.",
+        s2t: "Admins keep it sacred",
+        s2b: "Admins add members, rename the group, and care for the space. Anyone can leave anytime — and rejoin later with the code. 🙏",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",

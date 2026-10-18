@@ -5,7 +5,7 @@
  * tapping a thread slides into the conversation. Full-screen so
  * conversations breathe on mobile; capped width on desktop.
  */
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { X } from 'lucide-react';
 import { T } from '../solo/ui';
 import { ChatList } from './ChatList';
@@ -14,6 +14,16 @@ import { useChatThreads } from './useChat';
 import { BackupSettings } from './backup/BackupSettings';
 import { BackupBoot } from './backup/BackupBoot';
 import type { ChatParticipant } from './types';
+/* Group chats — the thread view is lazy-loaded; sheets are small dialogs. */
+import { CreateGroupSheet } from './groups/CreateGroupSheet';
+import { JoinGroupSheet } from './groups/JoinGroupSheet';
+import { GroupInfoSheet } from './groups/GroupInfoSheet';
+import { GroupList } from './groups/GroupList';
+import { useGroup, useGroupList } from './groups/useGroups';
+
+const GroupThread = lazy(() =>
+  import('./groups/GroupThread').then((m) => ({ default: m.GroupThread })),
+);
 
 export const Chat: React.FC<{
   uid: string;
@@ -28,6 +38,20 @@ export const Chat: React.FC<{
   const [activeChatId, setActiveChatId] = useState<string | null>(initialChatId ?? null);
   const [backupOpen, setBackupOpen] = useState(false);
   const activeThread = activeChatId ? threads.find((t) => t.id === activeChatId) ?? null : null;
+
+  /* Group chats */
+  const [tab, setTab] = useState<'chats' | 'groups'>('chats');
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const { groups, loading: groupsLoading } = useGroupList(uid);
+  const { group: activeGroup } = useGroup(activeGroupId);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  const openGroup = (groupId: string) => {
+    setActiveGroupId(groupId);
+    setTab('groups');
+  };
 
   return (
     <div
@@ -80,15 +104,67 @@ export const Chat: React.FC<{
         {/* Backup lifecycle: nudge, restore offer, due banner */}
         <BackupBoot uid={uid} />
 
+        {/* Chats / Groups tabs */}
+        {!activeChatId && !activeGroupId && (
+          <div className="shrink-0 flex px-4 pt-2 gap-2 bg-[#faf7f2]">
+            {(['chats', 'groups'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                aria-pressed={tab === t}
+                className={`flex-1 rounded-xl font-bold py-2.5 min-h-[44px] text-sm transition-colors ${
+                  tab === t
+                    ? 'bg-amber-700 text-amber-50 shadow-sm'
+                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                }`}
+              >
+                {t === 'chats' ? (
+                  <T en="💬 Chats" bn="💬 কথোপকথন" hi="💬 बातचीत" />
+                ) : (
+                  <T en="👥 Groups" bn="👥 গ্রুপ" hi="👥 समूह" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 min-h-0">
-          {activeChatId ? (
+          {activeGroupId ? (
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-3xl animate-pulse" aria-hidden>
+                    🪔
+                  </div>
+                </div>
+              }
+            >
+              <GroupThread
+                uid={uid}
+                groupId={activeGroupId}
+                group={activeGroup}
+                onBack={() => setActiveGroupId(null)}
+                onInfo={() => setInfoOpen(true)}
+              />
+            </Suspense>
+          ) : activeChatId ? (
             <ChatThread
               uid={uid}
               chatId={activeChatId}
               thread={activeThread}
               onBack={() => setActiveChatId(null)}
               onReceiptConfirm={onReceiptConfirm}
+            />
+          ) : tab === 'groups' ? (
+            <GroupList
+              uid={uid}
+              groups={groups}
+              loading={groupsLoading}
+              onOpen={openGroup}
+              onNewGroup={() => setCreateOpen(true)}
+              onJoinGroup={() => setJoinOpen(true)}
             />
           ) : (
             <ChatList
@@ -136,6 +212,41 @@ export const Chat: React.FC<{
               </div>
             </div>
           </div>
+        )}
+
+        {/* Group chat sheets */}
+        {createOpen && (
+          <CreateGroupSheet
+            uid={uid}
+            selfInfo={selfInfo}
+            onClose={() => setCreateOpen(false)}
+            onCreated={(groupId) => {
+              setCreateOpen(false);
+              openGroup(groupId);
+            }}
+          />
+        )}
+        {joinOpen && (
+          <JoinGroupSheet
+            uid={uid}
+            selfInfo={selfInfo}
+            onClose={() => setJoinOpen(false)}
+            onJoined={(groupId) => {
+              setJoinOpen(false);
+              openGroup(groupId);
+            }}
+          />
+        )}
+        {infoOpen && activeGroup && (
+          <GroupInfoSheet
+            uid={uid}
+            group={activeGroup}
+            onClose={() => setInfoOpen(false)}
+            onLeftOrDeleted={() => {
+              setInfoOpen(false);
+              setActiveGroupId(null);
+            }}
+          />
         )}
       </div>
     </div>

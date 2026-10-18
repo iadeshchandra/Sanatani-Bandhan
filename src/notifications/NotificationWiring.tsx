@@ -21,6 +21,7 @@ import { useEffect } from 'react';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { NotificationCenter } from './NotificationCenter';
 import { useChatNotify } from '../chat/useChat';
+import { useGroupNotify } from '../chat/groups/useGroups';
 import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
@@ -31,6 +32,9 @@ export const NotificationWiring: React.FC = () => {
 
   // Chat arrivals → NotificationCenter (self-listen).
   useChatNotify(uid);
+
+  // Group chat arrivals → NotificationCenter (self-listen).
+  useGroupNotify(uid);
 
   // Singleton configuration for the signed-in user.
   useEffect(() => {

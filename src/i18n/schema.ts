@@ -366,6 +366,18 @@ export interface TranslationSchema {
       s3t: string;
       s3b: string;
     };
+    /**
+     * Group chats guide. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    groups?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;

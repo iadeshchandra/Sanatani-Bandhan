@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, useLocaleText, T } from './ui';
+import { CreateGroupSheet } from '../chat/groups/CreateGroupSheet';
+import type { ChatParticipant } from '../chat/types';
 
 /* Satsang Circles — topic/devotion-based groups.
  * =====================================================================
@@ -26,6 +28,14 @@ export const CirclesTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('bhajan');
   const [desc, setDesc] = useState('');
+  const [groupCircle, setGroupCircle] = useState<{ id: string; name: string } | null>(null);
+
+  const selfInfo: ChatParticipant = {
+    uid: author.uid,
+    displayName: author.name,
+    sanataniId: author.sanId,
+    verificationTier: author.tier,
+  };
 
   const visible = topicFilter === 'all' ? circles : circles.filter((c) => c.topic === topicFilter);
 
@@ -73,13 +83,34 @@ export const CirclesTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
                     👥 {c.memberCount} {tr('members', 'সদস্য', 'सदस्य')} · {tr('by', 'দ্বারা', 'द्वारा')} {c.creatorName}
                   </div>
                 </div>
-                <Btn variant={joined ? 'ghost' : 'primary'} onClick={() => !joined && joinCircle(c.id, author.uid)} disabled={joined} className="!px-3 shrink-0">
-                  {joined ? `✓ ${tr('Joined', 'যোগ দিয়েছেন', 'जुड़े')}` : tr('Join', 'যোগ দিন', 'जुड़ें')}
-                </Btn>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Btn variant={joined ? 'ghost' : 'primary'} onClick={() => !joined && joinCircle(c.id, author.uid)} disabled={joined} className="!px-3">
+                    {joined ? `✓ ${tr('Joined', 'যোগ দিয়েছেন', 'जुड़े')}` : tr('Join', 'যোগ দিন', 'जुड़ें')}
+                  </Btn>
+                  {joined && (
+                    <button
+                      type="button"
+                      onClick={() => setGroupCircle({ id: c.id, name: c.name })}
+                      className="text-[11px] font-bold text-amber-700 hover:text-amber-900 min-h-[36px] px-2 rounded-lg hover:bg-amber-50"
+                    >
+                      💬 {tr('Group chat', 'গ্রুপ চ্যাট', 'समूह चैट')}
+                    </button>
+                  )}
+                </div>
               </div>
             </Card>
           );
         })
+      )}
+
+      {groupCircle && (
+        <CreateGroupSheet
+          uid={author.uid}
+          selfInfo={selfInfo}
+          prefill={{ name: `🪔 ${groupCircle.name}`, type: 'satsang' }}
+          onClose={() => setGroupCircle(null)}
+          onCreated={() => setGroupCircle(null)}
+        />
       )}
 
       {createOpen && (

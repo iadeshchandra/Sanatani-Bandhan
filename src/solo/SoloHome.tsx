@@ -14,6 +14,7 @@ import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
 import { Chat } from '../chat/Chat';
 import { useChatUnreadTotal } from '../chat/useChat';
+import { useGroupUnreadTotal } from '../chat/groups/useGroups';
 import { getWallet, fmtWallet, currencyForRegion, type WalletCurrency } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
@@ -98,7 +99,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   // Deep-link target for the Messages overlay — set when the Personal Wallet
   // "chat" action fires (sanatani:open-chat via PersonalWallet onOpenChat).
   const [chatInitialId, setChatInitialId] = useState<string | null>(null);
-  const unreadTotal = useChatUnreadTotal(uid === 'anon' ? null : uid);
+  const unreadTotal =
+    useChatUnreadTotal(uid === 'anon' ? null : uid) +
+    useGroupUnreadTotal(uid === 'anon' ? null : uid);
   const selfInfo: ChatParticipant = {
     uid,
     displayName: profile?.displayName || tr('solo.sanatani', 'Sanatani', 'সনাতনী', 'सनातनी'),

@@ -14,6 +14,7 @@ import {
 import { tt } from './i18n';
 import type { VisitEntry, Yatra } from './types';
 import { exportYatraPdf } from './yatraExport';
+import { CreateGroupSheet, useSelfParticipant } from '../chat/groups';
 
 export const YatraView: React.FC<{
   uid: string;
@@ -28,6 +29,8 @@ export const YatraView: React.FC<{
   const [exporting, setExporting] = useState(false);
   const [confirmForget, setConfirmForget] = useState(false);
   const [toast, setToast] = useState('');
+  const [groupOpen, setGroupOpen] = useState(false);
+  const selfInfo = useSelfParticipant(uid);
 
   const unassigned = getLocalVisits(uid).filter((v) => !v.yatraId);
 
@@ -90,6 +93,39 @@ export const YatraView: React.FC<{
           {assignMode ? tt(currentLang, 'common.close') : `+ ${tt(currentLang, 'yatra.visits')}`}
         </Btn>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setGroupOpen(true)}
+        className="w-full mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold py-3 min-h-[52px] flex items-center justify-center gap-2"
+      >
+        <span aria-hidden>👥</span>
+        {currentLang === 'bn'
+          ? 'যাত্রা গ্রুপ তৈরি করুন'
+          : currentLang === 'hi'
+            ? 'यात्रा समूह बनाएँ'
+            : 'Create yatra group'}
+      </button>
+
+      {groupOpen && (
+        <CreateGroupSheet
+          uid={uid}
+          selfInfo={selfInfo}
+          prefill={{ name: `🚩 ${yatra.name}`, type: 'yatra' }}
+          onClose={() => setGroupOpen(false)}
+          onCreated={() => {
+            setGroupOpen(false);
+            setToast(
+              currentLang === 'bn'
+                ? 'যাত্রা গ্রুপ তৈরি! বার্তায় খুঁজুন 👥'
+                : currentLang === 'hi'
+                  ? 'यात्रा समूह बन गया! संदेश में देखें 👥'
+                  : 'Yatra group created! Find it in Messages 👥',
+            );
+            setTimeout(() => setToast(''), 3500);
+          }}
+        />
+      )}
 
       {assignMode && (
         <div className="bg-white rounded-2xl border border-stone-200 p-4 mb-5">
