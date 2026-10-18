@@ -66,6 +66,20 @@ export default defineConfig(() => {
       __APP_BUILD_SHA__: JSON.stringify(ver.sha),
       __APP_BUILD_TIME__: JSON.stringify(ver.buildTime),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // @mlc-ai/web-llm is a 6.8MB CJS-only bundle. Its dynamic imports
+          // were NOT splitting it out of the entry chunk (Rollup CJS interop),
+          // which pushed the main chunk past the PWA precache limit and broke
+          // production builds (2026-10-18). Force it into its own chunk —
+          // it only ever loads when the user touches the on-device voice.
+          manualChunks: {
+            'web-llm': ['@mlc-ai/web-llm'],
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       tailwindcss(),
@@ -98,6 +112,10 @@ export default defineConfig(() => {
         ],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          // web-llm is a 5.9MB on-demand chunk (dynamic import only when the
+          // user enables the on-device voice). Precaching it would force every
+          // devotee to download it; it loads lazily via import() instead.
+          globIgnores: ['**/web-llm-*.js'],
           maximumFileSizeToCacheInBytes: 5000000,
           // M-6: base-relative fallback — absolute '/index.html' 404s under
           // the GitHub Pages /Sanatani-Bandhan/ subpath.
