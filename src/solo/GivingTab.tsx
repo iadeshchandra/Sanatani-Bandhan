@@ -11,6 +11,8 @@ import {
   type DanaSheetPrefill,
 } from '../lib/danaSheet';
 import { ShareReceiptRow, ReceiptModal, RECEIPT_BLESSING, type ShareLang } from './ShareReceipt';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
 /* GivingTab — personal dana history across organisations.
  * ============================================================
@@ -75,6 +77,9 @@ export const GivingTab: React.FC = () => {
   // In-app receipt view for any history record (blessing + share row).
   const [viewReceipt, setViewReceipt] = useState<GivingRecord | null>(null);
   const shareLang: ShareLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
+  const { firebaseUser } = useAuthWorkspace();
+  const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  const devotionalGuide = useGuide('devotional', guideUid);
 
   const total = state.giving.reduce((s, g) => s + g.amount, 0);
   const thisYear = new Date().getFullYear().toString();
@@ -257,9 +262,13 @@ export const GivingTab: React.FC = () => {
       </Card>
 
       <Card>
-        <h2 className="text-lg font-extrabold text-stone-900 mb-3">
-          <T en="History" bn="ইতিহাস" hi="इतिहास" />
-        </h2>
+        <div data-guide-anchor="giving-ledger">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h2 className="text-lg font-extrabold text-stone-900 mb-3">
+            <T en="History" bn="ইতিহাস" hi="इतिहास" />
+          </h2>
+          <TourLink guide={GUIDES.devotional} onRestart={devotionalGuide.restart} />
+        </div>
         {state.giving.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-3" aria-hidden>🪔</div>
@@ -291,6 +300,7 @@ export const GivingTab: React.FC = () => {
                   <b className="text-amber-800">₹{g.amount.toLocaleString('en-IN')}</b>
                   <button
                     onClick={() => setViewReceipt(g)}
+                    data-guide-anchor="giving-ledger-share"
                     className="text-xs font-bold text-amber-700 hover:underline px-2 py-1 min-h-[44px] min-w-[44px]"
                     aria-label={tr('solo.giving.share', 'Share receipt', 'রসিদ শেয়ার করুন', 'रसीद साझा करें')}
                   >
@@ -308,12 +318,19 @@ export const GivingTab: React.FC = () => {
             ))}
           </ul>
         )}
+        </div>
       </Card>
 
       <ExpressDanaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} prefill={danaPrefill} />
 
       {/* In-app receipt view — blessing + multi-channel share row. */}
       {viewReceipt && <ReceiptModal record={viewReceipt} onClose={() => setViewReceipt(null)} />}
+
+      {/* Quick Guide: giving-as-sadhana — invitational only, never auto-plays. */}
+      {devotionalGuide.pillVisible && (
+        <TourPill guide={GUIDES.devotional} uid={guideUid} onStart={devotionalGuide.start} onDismiss={devotionalGuide.dismissPill} />
+      )}
+      {devotionalGuide.tourActive && <CoachMark guide={GUIDES.devotional} onFinish={devotionalGuide.finish} />}
     </div>
   );
 };

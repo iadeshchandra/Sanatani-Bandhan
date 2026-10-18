@@ -17,6 +17,7 @@ import { SoloOnboardingTour } from './SoloOnboardingTour';
 import { OnboardingFlow } from './OnboardingFlow';
 import { hasOnboarded } from '../lib/intentProfile';
 import { useNotifications } from '../context/NotificationContext';
+import { useChatUnreadTotal } from '../chat/useChat';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -59,6 +60,9 @@ const SoloRouter: React.FC = () => {
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  // Unread chat badge on the Home tab — the Messages card lives on Home,
+  // and the 4-tab shell is law, so unread needs a shell-level surface.
+  const chatUnread = useChatUnreadTotal(uid === 'anon' ? null : uid);
 
   // Intelligent onboarding — once per user, skippable, non-blocking.
   useEffect(() => {
@@ -121,6 +125,7 @@ const SoloRouter: React.FC = () => {
       onTabChange={(t) => navigate(TAB_PATH[t])}
       header={header}
       suchanaUnread={unreadCount}
+      homeChatUnread={chatUnread}
     >
       <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
         <LocalOnlyBadge />

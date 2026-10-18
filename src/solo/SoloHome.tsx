@@ -17,8 +17,9 @@ import { useChatUnreadTotal } from '../chat/useChat';
 import { getWallet, fmtWallet, currencyForRegion, type WalletCurrency } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
-import { Eye, EyeOff, Plus, ArrowLeftRight, ScanLine, History } from 'lucide-react';
+import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { openDanaSheet } from '../lib/danaSheet';
 import {
   ChatFirstRunHint,
   RequestFirstRunWatcher,
@@ -32,6 +33,52 @@ import type { ChatParticipant } from '../chat/types';
  * reminders, and the progressive-joining cards. Everything here is
  * person-scoped — no organisation data can appear by construction.
  */
+
+/** One-time nudge: claim a spoken VDA alias. Shows only until the devotee
+ *  claims an alias or dismisses it — never a nag. Deep-links to the
+ *  VDA card on the Profile tab (#vda-alias). */
+const VdaHomeNudge: React.FC<{ profile: { vdaAlias?: string } | null; goProfile: () => void }> = ({ profile, goProfile }) => {
+  const [dismissed, setDismissed] = useState<boolean>(() => {
+    try { return window.localStorage.getItem('sb-vda-nudge') === 'dismissed'; } catch { return false; }
+  });
+  if (dismissed || profile?.vdaAlias) return null;
+  const dismiss = () => {
+    try { window.localStorage.setItem('sb-vda-nudge', 'dismissed'); } catch { /* ignore */ }
+    setDismissed(true);
+  };
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-indigo-950 via-purple-950 to-indigo-900 text-indigo-50 p-4 flex items-center gap-3 shadow-sm">
+      <div className="text-3xl shrink-0" aria-hidden>🪔</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-extrabold">
+          <T en="Claim your spoken ID" bn="আপনার কথ্য আইডি নিন" hi="अपनी कथ्य आईडी लें" />
+        </div>
+        <div className="text-[11px] text-indigo-200/80 mt-0.5">
+          <T
+            en="Say it at any temple counter — no numbers to remember."
+            bn="যেকোনো মন্দির কাউন্টারে বলুন — নম্বর মনে রাখতে হবে না।"
+            hi="किसी भी मंदिर काउंटर पर बोलें — नंबर याद रखने की ज़रूरत नहीं।"
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={goProfile}
+        className="shrink-0 min-h-[44px] px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-amber-950 text-xs font-black transition-colors"
+      >
+        <T en="Claim →" bn="নিন →" hi="लें →" />
+      </button>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss"
+        className="shrink-0 min-w-[44px] min-h-[44px] rounded-xl text-indigo-200/60 hover:text-indigo-100 text-lg"
+      >
+        ✕
+      </button>
+    </div>
+  );
+};
 
 export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'profile' | 'marketplace' | 'sangam' | 'wallet') => void }> = ({
   goTab,
@@ -219,7 +266,10 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           {(
             [
               { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => goTab('wallet') },
-              { id: 'obligations', icon: ArrowLeftRight, label: mkt(L, 'quickObligations'), fn: () => { if (uid !== 'anon') setWalletOpen(true); else goTab('wallet'); } },
+              // 🪔 Give opens the express dana sheet — the Seva Wallet card
+              // is platform money; P2P obligations live only in their own
+              // card below (two-wallet boundary).
+              { id: 'give', icon: HandHeart, label: mkt(L, 'quickGive'), fn: () => openDanaSheet({}) },
               { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
               { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: () => goTab('wallet') },
             ] as const
@@ -246,6 +296,10 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           </div>
         </div>
       )}
+
+      {/* 🪔 Claim your spoken ID — one-time Home moment for the VDA alias.
+          Profile placement is correct, but nobody discovers it there. */}
+      <VdaHomeNudge profile={profile} goProfile={() => { goTab('profile'); window.location.hash = 'vda-alias'; }} />
 
       {/* Ajker Suchana — the morning briefing (now merged: panjika + module insights) */}
       <AjkerSuchana goTab={goTab} role="solo" onViewAll={() => setSuchanaOpen(true)} uid={uid} />
@@ -356,13 +410,14 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         <button
           type="button"
           onClick={() => setWalletOpen(true)}
+          data-guide-anchor="wallet-personal"
           className="w-full rounded-2xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800 text-white p-4 text-left shadow-sm min-h-[64px] hover:shadow-md transition-shadow"
         >
           <div className="text-2xl" aria-hidden>
             🪙
           </div>
           <div className="text-sm font-extrabold mt-1">
-            <T en="My Wallet" bn="আমার ওয়ালেট" hi="मेरा वॉलेट" />
+            <T en="🤝 My obligations" bn="🤝 আমার দেনা-পাওনা" hi="🤝 मेरे लेन-देन" />
           </div>
           <div className="text-[11px] text-emerald-100/80">
             <T
@@ -409,12 +464,19 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           sub={<T en="vows" bn="ব্রত" hi="व्रत" />}
           tone="sky"
         />
-        <Stat
-          label={<T en="Total giving" bn="মোট দান" hi="कुल दान" />}
-          value={`₹${givingTotal.toLocaleString('en-IN')}`}
-          sub={<T en="dana" bn="দান" hi="दान" />}
-          tone="amber"
-        />
+        <button
+          type="button"
+          onClick={() => goTab('giving')}
+          className="text-left rounded-2xl focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70 transition-transform active:scale-[0.98]"
+          aria-label={tr('solo.home.givingGo', 'View your dana ledger', 'আপনার দানের খাতা দেখুন', 'आपका दान-खाता देखें')}
+        >
+          <Stat
+            label={<T en="Total giving" bn="মোট দান" hi="कुल दान" />}
+            value={`₹${givingTotal.toLocaleString('en-IN')}`}
+            sub={<T en="dana →" bn="দান →" hi="दान →" />}
+            tone="amber"
+          />
+        </button>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
