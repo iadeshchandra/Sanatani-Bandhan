@@ -243,7 +243,7 @@ export const VdaAliasSection: React.FC = () => {
                   <button
                     key={scope}
                     onClick={() => suggestFor(scope)}
-                    className="px-3 py-1.5 min-h-[36px] rounded-full bg-amber-100/70 hover:bg-amber-200 text-amber-900 text-xs font-bold transition-colors"
+                    className="px-4 py-1.5 min-h-[44px] min-w-[44px] rounded-full bg-amber-100/70 hover:bg-amber-200 text-amber-900 text-xs font-bold transition-colors"
                   >
                     @{scope}
                   </button>

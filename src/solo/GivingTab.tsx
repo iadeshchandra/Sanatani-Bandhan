@@ -1,8 +1,14 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSoloStore, uid, todayISO, type GivingRecord } from './soloStore';
-import { Card, Stat, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
+import { Card, Stat, T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
-import { ExpressDanaSheet } from './ExpressDanaSheet';
+import { ExpressDanaSheet, type DanaPrefill } from './ExpressDanaSheet';
+import {
+  registerDanaSheetOpener,
+  unregisterDanaSheetOpener,
+  DANA_SHEET_EVENT,
+  type DanaSheetPrefill,
+} from '../lib/danaSheet';
 import { ShareReceiptRow, ReceiptModal, RECEIPT_BLESSING, type ShareLang } from './ShareReceipt';
 
 /* GivingTab — personal dana history across organisations.
@@ -19,6 +25,43 @@ export const GivingTab: React.FC = () => {
   const { showToast } = useToast();
   const [form, setForm] = useState({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Prefill carried in from an external opener (e.g. a tangible seva card's
+  // Donate button — see lib/danaSheet.ts). Cleared on manual opens so a
+  // previous card's amount never leaks into a fresh sheet.
+  const [danaPrefill, setDanaPrefill] = useState<DanaPrefill | undefined>(undefined);
+
+  // Dana-sheet bridge: this tab owns the ExpressDanaSheet instance, so it
+  // registers the global opener while mounted. StrictMode-safe — cleanup
+  // unregisters the exact closure this effect registered. The window event
+  // stays as the fallback path (openDanaSheet dispatches it only when no
+  // opener is registered).
+  useEffect(() => {
+    const applyPrefill = (p: DanaSheetPrefill) => {
+      setDanaPrefill({
+        amount: p.initialAmount,
+        orgName: p.initialOrg?.name,
+        purpose: p.initialPurpose,
+      });
+      setSheetOpen(true);
+    };
+    const onEvent = (e: Event) =>
+      applyPrefill((e as CustomEvent<DanaSheetPrefill>).detail || {});
+    registerDanaSheetOpener(applyPrefill);
+    window.addEventListener(DANA_SHEET_EVENT, onEvent);
+    return () => {
+      unregisterDanaSheetOpener(applyPrefill);
+      window.removeEventListener(DANA_SHEET_EVENT, onEvent);
+    };
+  }, []);
+
+  /** Manual open: no prefill — a fresh sheet every time. */
+  const openSheetFresh = () => {
+    setDanaPrefill(undefined);
+    setSheetOpen(true);
+  };
+  // Inline manual form lives behind a disclosure — the ExpressDanaSheet is
+  // the primary path; this records offerings already made (offline/hundi).
+  const [offlineOpen, setOfflineOpen] = useState(false);
   const [againConfirm, setAgainConfirm] = useState(false);
   // Dana confirmation: the record just added, shown with its blessing +
   // multi-channel share row (dismissible; never auto-persists).
@@ -91,7 +134,7 @@ export const GivingTab: React.FC = () => {
         />
       </div>
 
-      <Btn onClick={() => setSheetOpen(true)} className="w-full !py-3.5 !text-base shadow-sm">
+      <Btn onClick={openSheetFresh} className="w-full !py-3.5 !text-base shadow-sm">
         🪔 <T en="Offer dana" bn="দান দিন" hi="दान दें" />
       </Btn>
 
@@ -111,8 +154,8 @@ export const GivingTab: React.FC = () => {
             </div>
             <button
               onClick={() => setJustAdded(null)}
-              className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1 min-h-[32px]"
-              aria-label="Dismiss"
+              className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1 min-h-[44px] min-w-[44px]"
+              aria-label={tr('solo.giving.dismiss', 'Dismiss', 'বন্ধ করুন', 'बंद करें')}
             >
               ✕
             </button>
@@ -162,10 +205,29 @@ export const GivingTab: React.FC = () => {
       )}
 
       <Card>
-        <h2 className="text-lg font-extrabold text-stone-900 mb-3">
-          <T en="Record dana" bn="দান লিখুন" hi="दान दर्ज करें" />
-        </h2>
-        <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3">
+        <button
+          type="button"
+          onClick={() => setOfflineOpen((o) => !o)}
+          aria-expanded={offlineOpen}
+          className="w-full flex items-center justify-between gap-3 text-left min-h-[44px]"
+        >
+          <span className="text-lg font-extrabold text-stone-900">
+            {tr('solo.giving.offlineLabel', '📝 Record an offline offering', '📝 অফলাইন দান সংরক্ষণ করুন', '📝 ऑफ़लाइन भेंट दर्ज करें')}
+          </span>
+          <span className="text-amber-700 text-2xl font-black leading-none shrink-0" aria-hidden>
+            {offlineOpen ? '−' : '+'}
+          </span>
+        </button>
+        <p className="text-xs text-stone-500 mt-1">
+          {tr(
+            'solo.giving.offlineHint',
+            'For offerings already made — hundi counter receipts, festival dana — keep your personal copy here.',
+            'ইতিমধ্যে দেওয়া দানের জন্য — হুন্ডি কাউন্টারের রসিদ, উৎসবের দান — আপনার ব্যক্তিগত কপি এখানে রাখুন।',
+            'पहले से दी गई भेंट हेतु — हुंडी काउंटर की रसीद, उत्सव दान — अपनी निजी प्रति यहाँ रखें।'
+          )}
+        </p>
+        {offlineOpen && (
+        <form onSubmit={submit} className="grid sm:grid-cols-3 gap-3 mt-3">
           <Field label={<T en="Organisation" bn="সংগঠন" hi="संगठन" />}>
             <input className={inputCls} value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} placeholder="Kashi Vishwanath Mandir" />
           </Field>
@@ -185,6 +247,7 @@ export const GivingTab: React.FC = () => {
             <Btn type="submit"><T en="Record" bn="সংরক্ষণ" hi="दर्ज करें" /></Btn>
           </div>
         </form>
+        )}
       </Card>
 
       <Card>
@@ -192,7 +255,22 @@ export const GivingTab: React.FC = () => {
           <T en="History" bn="ইতিহাস" hi="इतिहास" />
         </h2>
         {state.giving.length === 0 ? (
-          <Empty text={tr('solo.giving.none', 'No dana recorded yet.', 'এখনও কোনো দান নেই।', 'अभी कोई दान नहीं।')} />
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3" aria-hidden>🪔</div>
+            <p className="text-sm font-bold text-stone-700">
+              {tr('solo.giving.emptyTitle', 'Your dana ledger is waiting to be blessed.', 'আপনার দানের খাতা আশীর্বাদের অপেক্ষায় রয়েছে।', 'आपका दान-खाता आशीर्वाद की प्रतीक्षा में है।')}
+            </p>
+            <p className="text-xs text-stone-500 mt-1">
+              {tr('solo.giving.emptySub', 'Every generous act is noted here — offer your first dana and light the way.', 'প্রতিটি উদার কাজ এখানে লিপিবদ্ধ হবে — আপনার প্রথম দান দিন, পথ আলোকিত করুন।', 'हर उदार कृत्य यहाँ दर्ज होगा — अपना पहला दान दें, पथ आलोकित करें।')}
+            </p>
+            <button
+              type="button"
+              onClick={openSheetFresh}
+              className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
+            >
+              🪔 <T en="Offer dana" bn="দান দিন" hi="दान दें" />
+            </button>
+          </div>
         ) : (
           <ul className="space-y-1">
             {[...state.giving].sort((a, b) => b.date.localeCompare(a.date)).map((g) => (
@@ -207,12 +285,18 @@ export const GivingTab: React.FC = () => {
                   <b className="text-amber-800">₹{g.amount.toLocaleString('en-IN')}</b>
                   <button
                     onClick={() => setViewReceipt(g)}
-                    className="text-xs font-bold text-amber-700 hover:underline px-2 py-1 min-h-[32px]"
-                    aria-label="Share receipt"
+                    className="text-xs font-bold text-amber-700 hover:underline px-2 py-1 min-h-[44px] min-w-[44px]"
+                    aria-label={tr('solo.giving.share', 'Share receipt', 'রসিদ শেয়ার করুন', 'रसीद साझा करें')}
                   >
                     🪔
                   </button>
-                  <button onClick={() => remove('giving', g.id)} className="text-xs text-red-500 hover:underline px-2 py-1">✕</button>
+                  <button
+                    onClick={() => remove('giving', g.id)}
+                    className="text-xs text-red-500 hover:underline px-2 py-1 min-h-[44px] min-w-[44px]"
+                    aria-label={tr('solo.giving.remove', 'Remove dana record', 'দানের রেকর্ড মুছুন', 'दान रिकॉर्ड हटाएँ')}
+                  >
+                    ✕
+                  </button>
                 </span>
               </li>
             ))}
@@ -220,7 +304,7 @@ export const GivingTab: React.FC = () => {
         )}
       </Card>
 
-      <ExpressDanaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      <ExpressDanaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} prefill={danaPrefill} />
 
       {/* In-app receipt view — blessing + multi-channel share row. */}
       {viewReceipt && <ReceiptModal record={viewReceipt} onClose={() => setViewReceipt(null)} />}
