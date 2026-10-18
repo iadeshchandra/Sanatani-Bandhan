@@ -319,6 +319,16 @@ export const core: CoreFragment = {
         s3t: "Dakshina Suraksha",
         s3b: "Pay after the seva is complete. We only coordinate — your money moves directly, never through us. 🛡",
       },
+      sevaBooking: {
+        title: "Booking a seva — five gentle taps",
+        pill: "Request a seva in five taps — take the 20-second tour 🪔",
+        s1t: "How shall it reach you?",
+        s1b: "At your home, at the temple, or over video — one tap chooses. Then pick a preferred morning; Panditji confirms the exact muhurat with you in chat.",
+        s2t: "Sankalpa, with love",
+        s2b: "Whose name the sankalpa carries — that is all we ask. Gotra stays optional, always.",
+        s3t: "Dakshina Suraksha",
+        s3b: "Only a small token advance holds your muhurat — the rest after the seva. We only coordinate; your money moves directly, never through us. 🛡",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",
