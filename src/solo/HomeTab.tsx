@@ -11,6 +11,7 @@ import { ProfileTab } from './ProfileTab';
 import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
 import { SangamView } from '../sangam/SangamView';
 import { ClientMarketplace } from '../marketplace/ClientMarketplace';
+import { SangamProvider } from '../sangam/sangamStore';
 import { WalletTab } from './WalletTab';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { T } from './ui';
@@ -132,7 +133,11 @@ export const HomeTab: React.FC = () => {
       {tab === 'saved' && <SavedTab />}
       {tab === 'giving' && <GivingTab />}
       {tab === 'jyotish' && <JyotishMarketplace />}
-      {tab === 'marketplace' && <ClientMarketplace />}
+      {tab === 'marketplace' && (
+        <SangamProvider uid={firebaseUser?.uid || 'anon'}>
+          <ClientMarketplace />
+        </SangamProvider>
+      )}
       {tab === 'wallet' && <WalletTab />}
       {tab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
       {tab === 'profile' && <ProfileTab />}
