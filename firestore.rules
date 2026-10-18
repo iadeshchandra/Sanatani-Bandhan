@@ -2469,5 +2469,43 @@ match /fileVault/{fileId} {
       }
     }
 
+    /* ── Translation Quality System ────────────────────────────────────
+     * Devotees suggest better wording for draft strings
+     * (`translationSuggestions`); owner-approved corrections ship as
+     * runtime overrides (`translationOverrides/{lang}`) — live in the app
+     * without a redeploy. UI strings ship in the client bundle anyway, so
+     * override reads are public; writes are owner-only.
+     */
+    match /translationSuggestions/{suggestionId} {
+      allow create: if isLoggedIn()
+        && request.resource.data.get('uid', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.keys().hasOnly(['lang', 'key', 'currentText',
+          'suggestedText', 'uid', 'sanataniId', 'status', 'createdAt'])
+        && request.resource.data.get('lang', '') in
+          ['en', 'hi', 'bn', 'sa', 'ta', 'te', 'mr', 'gu', 'kn', 'ml']
+        && request.resource.data.get('key', '').size() > 0
+        && request.resource.data.get('key', '').size() <= 200
+        && request.resource.data.get('suggestedText', '').size() > 0
+        && request.resource.data.get('suggestedText', '').size() <= 2000
+        && request.resource.data.get('currentText', '').size() <= 2000;
+      // A devotee may read their own suggestions; the owner reads the queue.
+      allow read: if isLoggedIn()
+        && (resource.data.get('uid', '') == request.auth.uid || isOwner());
+      // Owner triage: approve or reject. Records are kept, never edited.
+      allow update: if isOwner()
+        && request.resource.data.get('status', '') in ['approved', 'rejected'];
+      allow delete: if isOwner();
+    }
+
+    match /translationOverrides/{lang} {
+      // UI strings are public by nature — they ship in the client bundle.
+      allow read: if true;
+      // Owner-only corrections; the per-language map stays bounded.
+      allow create, update: if isOwner()
+        && request.resource.data.size() <= 2000;
+      allow delete: if false;
+    }
+
   }
 }
