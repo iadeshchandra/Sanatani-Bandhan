@@ -572,6 +572,21 @@ service cloud.firestore {
       allow create, update: if isOwner();
       allow delete: if false;
     }
+    // Geo payment regions: owner-configured payment rails (BD / IN / INTL +
+    // any custom regions added from GodMode → Geo Payments). Every signed-in
+    // user reads this to pick payment rails; reads that fail or miss fall
+    // back to the hardcoded defaults client-side. Writes are owner-only.
+    match /geoPaymentConfig/config {
+      allow read: if isLoggedIn();
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(
+          ['regions', 'defaultRegion', 'updatedAt', 'updatedBy'])
+        && request.resource.data.get('regions', []) is list
+        && request.resource.data.get('regions', []).size() >= 1
+        && request.resource.data.get('regions', []).size() <= 50
+        && request.resource.data.get('defaultRegion', '') is string;
+      allow delete: if false;
+    }
     // Append-only audit: who changed which key, when. Values never logged.
     match /platformConfig/apiKeysAudit/{auditId} {
       allow read: if isOwner();
@@ -2411,10 +2426,26 @@ match /fileVault/{fileId} {
             && isTenantMember(resource.data.get('tenantId', null))));
       allow create: if isLoggedIn()
         && request.resource.data.get('ownerUid', '') == request.auth.uid
-        && request.resource.data.get('size', 99999999) <= 1048576
         && request.resource.data.keys().hasOnly(['data', 'contentType', 'fileName',
           'size', 'hash', 'category', 'visibility', 'ownerUid', 'createdAt',
-          'localOnly', 'chunkCount', 'tenantId']);
+          'localOnly', 'chunkCount', 'tenantId'])
+        && (
+          // Single-doc upload: the whole file is inline — `size` (the declared
+          // byte count) stays ≤ 1 MiB, and Firestore's own document cap bounds
+          // the actual bytes anyway.
+          (request.resource.data.get('chunkCount', 0) == 0
+            && request.resource.data.get('localOnly', false) != true
+            && request.resource.data.get('size', 99999999) <= 1048576)
+          // Chunked upload: metadata only — bytes live in /chunks, so no
+          // inline `data` key; the declared total may reach 10 MiB across
+          // ≤ 28 chunks (500 KB base64 each, mirroring VAULT_CHUNK_B64).
+          || (request.resource.data.get('chunkCount', 0) > 0
+            && request.resource.data.get('chunkCount', 9999) <= 28
+            && !request.resource.data.keys().hasAny(['data'])
+            && request.resource.data.get('size', 99999999) <= 10485760)
+          // Private files: bytes never leave this device — Firestore holds
+          // only a tiny metadata pointer, so `size` may exceed 1 MiB.
+          || request.resource.data.get('localOnly', false) == true);
       allow update: if false;
       allow delete: if isLoggedIn()
         && resource.data.get('ownerUid', '') == request.auth.uid;
@@ -2428,6 +2459,8 @@ match /fileVault/{fileId} {
         allow create: if isLoggedIn()
           && request.resource.data.get('ownerUid', '') == request.auth.uid
           && request.resource.data.get('visibility', '') in ['public', 'crisis']
+          && request.resource.data.get('data', '').size() <= 512000
+          && request.resource.data.get('i', -1) >= 0
           && request.resource.data.keys().hasOnly(
             ['i', 'data', 'ownerUid', 'visibility', 'tenantId']);
         allow update: if false;
