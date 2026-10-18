@@ -12,6 +12,7 @@
  */
 
 import type { IntentId, LangCode } from './types';
+import { matchDharma } from './dharma';
 
 export interface IntentDef {
   id: IntentId;
@@ -29,6 +30,7 @@ export const INTENTS: IntentDef[] = [
   { id: 'language_help', description: 'How to change the app language' },
   { id: 'sos_help', description: 'Explains the SOS flow (does NOT trigger SOS)' },
   { id: 'voice_upgrade', description: 'Get the warmer on-device AI voice (Settings card)' },
+  { id: 'dharma_question', description: 'Answer from the restricted Dharma corpus (or escalate to Purohitji)' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
 ];
@@ -245,12 +247,18 @@ export function detectDharmaQuery(input: string): boolean {
  * Deterministic keyword router. Pure function — safe to call anywhere.
  * Priority-ordered: first matching rule wins. Greeting is checked last so
  * "namaste, what is today's tithi?" still routes to tithi_today.
+ *
+ * Phase 2: after the keyword rules, a corpus check offers `dharma_question`
+ * as a "second chance" — if the restricted Dharma corpus can answer with
+ * confidence, it wins over greeting/fallback. Specific intents (tithi,
+ * festival, etc.) always keep priority.
  */
 export function routeIntent(input: string, _lang: LangCode): RouteResult {
   const text = normalise(input);
   const fallback: RouteResult = { intent: 'fallback_unknown', confidence: 'low', slots: {}, evidence: [] };
   if (!text) return fallback;
 
+  let result: RouteResult = fallback;
   for (const { rule, res } of MATCHERS) {
     const evidence: string[] = [];
     rule.keywords.forEach((kw, i) => {
@@ -273,9 +281,37 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
     if (rule.intent === 'festival_next' && /ekadashi|एकादशी|একাদশী/.test(text)) {
       slots['festivalQuery'] = 'ekadashi';
     }
-    return { intent: rule.intent, confidence: rule.confidence, slots, evidence };
+    result = { intent: rule.intent, confidence: rule.confidence, slots, evidence };
+    break;
   }
-  return fallback;
+
+  // Phase 2 second chance: if the keyword rules landed on greeting,
+  // fallback, or a slot-less howto/navigate, ask the Dharma corpus.
+  // A confident corpus match upgrades the route to dharma_question;
+  // the task then answers or escalates. Specific intents with useful
+  // slots (tithi, festival dates, etc.) always keep priority.
+  //
+  // Special case: "what is X" definition queries beat festival_next —
+  // the devotee wants meaning, not the next date.
+  const isDefinitionQuery = /what is|what's|meaning of|kya hai|ki hai|की है|কী|মানে/i.test(text);
+  const needsDharmaChance =
+    result.intent === 'greeting' ||
+    result.intent === 'fallback_unknown' ||
+    (result.intent === 'howto' && !result.slots['guideId']) ||
+    (result.intent === 'navigate' && !result.slots['destination']) ||
+    (result.intent === 'festival_next' && isDefinitionQuery);
+  if (needsDharmaChance) {
+    const dharma = matchDharma(input);
+    if (dharma && (dharma.confidence === 'high' || dharma.confidence === 'medium')) {
+      return {
+        intent: 'dharma_question',
+        confidence: dharma.confidence,
+        slots: { entryId: dharma.entry.id },
+        evidence: dharma.evidence,
+      };
+    }
+  }
+  return result;
 }
 
 /** Default Phase-0 router instance. Inject a different implementation to upgrade. */

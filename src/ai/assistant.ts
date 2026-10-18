@@ -38,6 +38,7 @@ import { TASKS } from './tasks/index';
 /** Map an intent (+ executor outcome) to the response type. */
 function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string): ResponseType {
   if (intent === 'fallback_unknown' && variant === 'dharma') return 'escalate';
+  if (intent === 'dharma_question' && variant === 'escalate') return 'escalate';
   if (intent === 'fallback_unknown') return 'clarify';
   if (intent === 'navigate' && !hasAction) return 'clarify';
   if (intent === 'howto' && !hasAction) return 'clarify';

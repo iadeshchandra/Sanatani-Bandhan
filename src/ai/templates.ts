@@ -35,6 +35,7 @@ export const ASSISTANT_TEMPLATE_KEYS: string[] = [
   'assistant.language_help',
   'assistant.sos_help',
   'assistant.voice_upgrade',
+  'assistant.dharma_question',
   'assistant.greeting',
   'assistant.fallback_unknown',
   'assistant.crisis',
@@ -320,6 +321,31 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
     },
   },
 
+  /* ---------------- dharma_question ---------------- */
+  dharma_question: {
+    answer: {
+      en: (p, c) => `${p['answer']}`,
+      hi: (p, c) => `${p['answer']}`,
+      bn: (p, c) => `${p['answer']}`,
+    },
+    escalate: {
+      en: (p, c) =>
+        `🙏 This question deserves a knowledgeable guide — I won't guess at matters of dharma.\n\n` +
+        `**Shall I connect you with Purohitji?** A learned ${c.term('priest')} can give you the careful, personal guidance such questions deserve. 🌼`,
+      hi: (p, c) =>
+        `🙏 यह प्रश्न एक ज्ञानी मार्गदर्शक का हकदार है — धर्म के विषयों पर मैं अनुमान नहीं लगाऊँगा।\n\n` +
+        `**क्या मैं आपको पुरोहितजी से जोड़ दूँ?** एक विद्वान पुरोहित ऐसे प्रश्नों के योग्य स्नेहपूर्ण, व्यक्तिगत मार्गदर्शन देंगे। 🌼`,
+      bn: (p, c) =>
+        `🙏 এই প্রশ্নটি একজন জ্ঞানী পথপ্রদর্শকের যোগ্য — ধর্মের বিষয়ে আমি অনুমান করব না।\n\n` +
+        `**আপনাকে কি পুরোহিতজির সাথে যুক্ত করে দেব?** একজন বিদ্বান পুরোহিত এমন প্রশ্নের যোগ্য স্নেহপূর্ণ, ব্যক্তিগত পথনির্দেশ দেবেন। 🌼`,
+    },
+    default: {
+      en: (p, c) => `🙏 Ask me about tithi, festivals, daily practice, samskaras, or the meaning of dharma — I'll share what our verified texts hold. 🌼`,
+      hi: (p, c) => `🙏 तिथि, उत्सव, दैनिक साधना, संस्कार या धर्म के अर्थ के बारे में पूछिए — हमारे प्रमाणित ग्रंथों में जो है, वही बाँटूँगा। 🌼`,
+      bn: (p, c) => `🙏 তিথি, উৎসব, দৈনিক সাধনা, সংস্কার বা ধর্মের অর্থ নিয়ে জিজ্ঞেস করুন — আমাদের যাচাইকৃত গ্রন্থে যা আছে, তাই ভাগ করব। 🌼`,
+    },
+  },
+
   /* ---------------- fallback_unknown ---------------- */
   fallback_unknown: {
     unknown: {
@@ -463,6 +489,11 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['Where is the voice setting?', 'How big is the download?', 'Namaste'],
     hi: ['वॉयस सेटिंग कहाँ है?', 'डाउनलोड कितना बड़ा है?', 'नमस्ते'],
     bn: ['ভয়েস সেটিং কোথায়?', 'ডাউনলোড কত বড়?', 'নমস্কার'],
+  },
+  dharma_question: {
+    en: ['What is Ekadashi?', 'What is karma?', 'How to do morning puja?'],
+    hi: ['एकादशी क्या है?', 'कर्म क्या है?', 'सुबह पूजा कैसे करें?'],
+    bn: ['একাদশী কী?', 'কর্ম কী?', 'সকালের পূজা কীভাবে করব?'],
   },
   greeting: {
     en: ["Today's tithi?", 'Next festival?', 'How do I give dana?'],
