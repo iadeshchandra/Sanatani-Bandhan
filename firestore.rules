@@ -1301,6 +1301,43 @@ service cloud.firestore {
         || (isLoggedIn() && resource.data.get('sharedBy', '') == request.auth.uid);
     }
 
+    // Sangam Stories — 24h disappearing moments. Ephemeral by design.
+    // read: any authenticated user (community moments, like the feed).
+    // create: author only, schema-pinned, expiresAt must be ~24h out.
+    // update: reportCount increment only. delete: author or superadmin.
+    // Expiry is lazy (queries filter expiresAt > now); a GodMode sweep
+    // deletes long-expired docs.
+    match /sangamStories/{storyId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && request.resource.data.get('authorName', '') is string
+        && request.resource.data.get('authorName', '').size() >= 1
+        && request.resource.data.get('authorName', '').size() <= 60
+        && request.resource.data.get('mediaType', '') in ['photo', 'text']
+        && request.resource.data.get('expiresAt', 0) is number
+        && request.resource.data.get('expiresAt', 0) > request.time.toMillis()
+        && request.resource.data.get('expiresAt', 0) <= request.time.toMillis() + 25 * 60 * 60 * 1000
+        && request.resource.data.keys().hasOnly([
+          'authorUid', 'authorName', 'authorAvatar', 'authorSanId',
+          'mediaType', 'mediaUrl', 'text', 'backgroundId', 'caption',
+          'createdAt', 'expiresAt', 'reportCount'
+        ]);
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
+        && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1;
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+
+      // View tracking: authors see a COUNT; viewer identities are private.
+      // Write own uid only; read author-only.
+      match /viewers/{uid} {
+        allow read: if isSuperAdmin()
+          || (isLoggedIn() && get(/databases/$(database)/documents/sangamStories/$(storyId)).data.get('authorUid', '') == request.auth.uid);
+        allow write: if isLoggedIn() && uid == request.auth.uid;
+      }
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&

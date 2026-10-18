@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, SyncLabel, useLocaleText, T } from './ui';
 import type { SangamPost, PostKind, SangamReport } from './types';
@@ -7,6 +7,10 @@ import { ServiceCardFeedItem } from './ServiceCardFeedItem';
 import { applyServiceCardDensity } from './serviceCard';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { StoriesRail, CreateStorySheet, groupStoriesByAuthor, type Story } from './stories';
+import { subscribeStories } from './stories/storyService';
+
+const StoryViewer = lazy(() => import('./stories/StoryViewer').then((m) => ({ default: m.StoryViewer })));
 
 /* Sangam Feed — the personal home feed.
  * =====================================================================
@@ -378,9 +382,21 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
   const { firebaseUser } = useAuthWorkspace();
   const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   const sevabazarGuide = useGuide('sevabazar', guideUid);
-  const { tr } = useLocaleText();
+  const { tr, lang } = useLocaleText();
   const [kindFilter, setKindFilter] = useState<PostKind | 'all'>('all');
   const [followingOnly, setFollowingOnly] = useState(false);
+
+  // Stories state.
+  const [storyGroups, setStoryGroups] = useState<Array<{ authorUid: string; authorName: string; authorAvatar?: string; stories: Story[] }>>([]);
+  const [viewerAt, setViewerAt] = useState<{ authorUid: string; index: number } | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const storyLang: 'en' | 'hi' | 'bn' = lang === 'hi' ? 'hi' : lang === 'bn' ? 'bn' : 'en';
+
+  useEffect(() => {
+    const unsub = subscribeStories((s) => setStoryGroups(groupStoriesByAuthor(s)));
+    return unsub;
+  }, []);
 
   const followedIds = useMemo(() => new Set(follows.map((f) => `${f.targetType}:${f.targetId}`)), [follows]);
 
@@ -404,6 +420,15 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
 
   return (
     <div className="space-y-4">
+      {/* 🪔 Today's moments — 24h stories */}
+      <StoriesRail
+        uid={author.uid}
+        lang={storyLang}
+        viewedIds={viewedIds}
+        onOpenViewer={(authorUid, index) => setViewerAt({ authorUid, index })}
+        onCreate={() => setCreateOpen(true)}
+      />
+
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <SyncLabel online={online} lastSyncedAt={lastSyncedAt} />
         <label className="flex items-center gap-2 text-xs font-bold text-stone-600 cursor-pointer min-h-[44px]">
@@ -448,6 +473,33 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
         <TourPill guide={GUIDES.sevabazar} uid={guideUid} onStart={sevabazarGuide.start} onDismiss={sevabazarGuide.dismissPill} />
       )}
       {sevabazarGuide.tourActive && <CoachMark guide={GUIDES.sevabazar} onFinish={sevabazarGuide.finish} />}
+
+      {/* Story viewer (lazy) */}
+      {viewerAt && (
+        <Suspense fallback={null}>
+          <StoryViewer
+            groups={storyGroups}
+            startAuthorUid={viewerAt.authorUid}
+            startIndex={viewerAt.index}
+            uid={author.uid}
+            lang={storyLang}
+            onClose={() => setViewerAt(null)}
+            onViewed={(id) => setViewedIds((prev) => new Set(prev).add(id))}
+          />
+        </Suspense>
+      )}
+
+      {/* Story creator */}
+      {createOpen && (
+        <CreateStorySheet
+          uid={author.uid}
+          authorName={author.name}
+          authorSanId={author.sanId}
+          lang={storyLang}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => setCreateOpen(false)}
+        />
+      )}
     </div>
   );
 };
