@@ -29,7 +29,9 @@ export function normalizeLang(code: string | undefined | null): LangCode {
 export const useCrisisT = (): ((s: TriString) => string) => {
   const { currentLang } = useLanguage();
   const lang = normalizeLang(currentLang);
-  return (s: TriString) => s[lang] ?? s.en;
+  // Empty strings are treated as missing ('' is not nullish, so `??`
+  // would leak a blank word into printed sentences) — fall back to English.
+  return (s: TriString) => s[lang] || s.en;
 };
 
 export const crisisCopy = {
@@ -210,7 +212,10 @@ export const crisisCopy = {
   exportReport: { en: 'Print report', bn: 'রিপোর্ট প্রিন্ট', hi: 'रिपोर्ट प्रिंट करें' } as TriString,
   reportTitle: { en: 'Incident Report — Crisis Command', bn: 'ঘটনা রিপোর্ট — ক্রাইসিস কমান্ড', hi: 'घटना रिपोर्ट — क्राइसिस कमांड' } as TriString,
   reportGeneratedBy: { en: 'Prepared by', bn: 'প্রস্তুতকারক', hi: 'तैयारकर्ता' } as TriString,
-  reportOn: { en: 'on', bn: '', hi: '' } as TriString,
+  // "on <date>" in the printed report header ("Prepared by: X · on <date>").
+  // The template prefixes the word before the date, so both languages use
+  // the prefix-style "dated" form — not the 'এ'/'को' postpositions.
+  reportOn: { en: 'on', bn: 'তারিখ', hi: 'दिनांक' } as TriString,
   reportTriggeredAt: { en: 'SOS triggered', bn: 'SOS ট্রিগার', hi: 'SOS ट्रिगर' } as TriString,
   reportResolvedAt: { en: 'Resolved', bn: 'সমাধান', hi: 'समाधान' } as TriString,
   reportLocation: { en: 'Location', bn: 'অবস্থান', hi: 'स्थान' } as TriString,
