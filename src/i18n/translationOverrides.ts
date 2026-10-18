@@ -15,6 +15,20 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { applyTranslationOverrides } from './translations';
 
+/**
+ * Regional override-key codec — pure helpers, re-exported here so the
+ * override layer is the single import site. The codec itself lives in
+ * `./regionalOverrideKeys` (no Firebase imports) so it stays unit-testable
+ * under plain jest.
+ */
+import {
+  regionalOverrideKey,
+  parseRegionalOverrideKey,
+  extractRegionalOverrides,
+} from './regionalOverrideKeys';
+
+export { regionalOverrideKey, parseRegionalOverrideKey, extractRegionalOverrides };
+
 /** Overrides must never hold up the UI — 6 seconds, then give up quietly. */
 const OVERRIDE_TIMEOUT_MS = 6000;
 
@@ -84,4 +98,33 @@ export function fetchTranslationOverrides(lang: string): Promise<boolean> {
 /** Forget a language's fetch state (tests / manual refresh). */
 export function resetOverrideFetch(lang: string): void {
   fetchedLangs.delete((lang || 'en').toLowerCase());
+}
+
+/** Session cache for regional override maps (region → termKey → text). */
+const regionalCache: Record<string, Record<string, Record<string, string>>> = {};
+
+/**
+ * Fetch ONLY the regional overrides for a language, parsed into
+ * region → termKey → text. Used by the regional vocabulary layer
+ * (`rt()` in LanguageContext), which bypasses the string dictionary.
+ * Works for 'en' too (the dict override fetch skips English).
+ * Never throws — fail-open to {}.
+ */
+export async function getRegionalOverrides(
+  lang: string
+): Promise<Record<string, Record<string, string>>> {
+  const normalized = (lang || 'en').toLowerCase();
+  if (regionalCache[normalized]) return regionalCache[normalized];
+  try {
+    const snap = await withTimeout(
+      getDoc(doc(db, 'translationOverrides', normalized)),
+      OVERRIDE_TIMEOUT_MS
+    );
+    const data = snap.exists() ? (snap.data() as Record<string, unknown>) : null;
+    const out = data && typeof data === 'object' ? extractRegionalOverrides(data) : {};
+    regionalCache[normalized] = out;
+    return out;
+  } catch {
+    return {};
+  }
 }
