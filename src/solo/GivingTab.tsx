@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { useSoloStore, uid, todayISO } from './soloStore';
+import { useSoloStore, uid, todayISO, type GivingRecord } from './soloStore';
 import { Card, Stat, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
-import { BlessingMoment } from '../components/common/BlessingMoment';
-import { drikTodayLine } from '../lib/drikPanchang';
-import { getCalendar } from '../lib/regionalCalendars';
+import { ExpressDanaSheet } from './ExpressDanaSheet';
+import { ShareReceiptRow, ReceiptModal, RECEIPT_BLESSING, type ShareLang } from './ShareReceipt';
 
 /* GivingTab — personal dana history across organisations.
  * ============================================================
@@ -16,15 +15,42 @@ import { getCalendar } from '../lib/regionalCalendars';
 
 export const GivingTab: React.FC = () => {
   const { state, add, remove } = useSoloStore();
-  const { tr } = useLocaleText();
+  const { tr, lang } = useLocaleText();
   const { showToast } = useToast();
   const [form, setForm] = useState({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
-  // The blessing moment — the shareable "Dhanyavaad" shown after each dana.
-  const [blessing, setBlessing] = useState<{ orgName: string; amount: number; purpose?: string } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [againConfirm, setAgainConfirm] = useState(false);
+  // Dana confirmation: the record just added, shown with its blessing +
+  // multi-channel share row (dismissible; never auto-persists).
+  const [justAdded, setJustAdded] = useState<GivingRecord | null>(null);
+  // In-app receipt view for any history record (blessing + share row).
+  const [viewReceipt, setViewReceipt] = useState<GivingRecord | null>(null);
+  const shareLang: ShareLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
 
   const total = state.giving.reduce((s, g) => s + g.amount, 0);
   const thisYear = new Date().getFullYear().toString();
   const yearTotal = state.giving.filter((g) => g.date.startsWith(thisYear)).reduce((s, g) => s + g.amount, 0);
+
+  const lastDana = useMemo(
+    () => (state.giving.length ? [...state.giving].sort((a, b) => b.createdAt - a.createdAt)[0] : null),
+    [state.giving]
+  );
+
+  const repeatLast = () => {
+    if (!lastDana) return;
+    const rec: GivingRecord = {
+      id: uid('g'),
+      date: todayISO(),
+      orgName: lastDana.orgName,
+      amount: lastDana.amount,
+      purpose: lastDana.purpose,
+      createdAt: Date.now(),
+    };
+    add('giving', rec);
+    setJustAdded(rec);
+    setAgainConfirm(false);
+    showToast(tr('solo.giving.added', 'Dana recorded — dhanyavaad', 'দান সংরক্ষিত — ধন্যবাদ', 'दान दर्ज — धन्यवाद'), 'success');
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,30 +59,20 @@ export const GivingTab: React.FC = () => {
       showToast(tr('solo.giving.need', 'Enter organisation and amount', 'সংগঠন ও পরিমাণ দিন', 'संगठन और राशि दें'), 'warning');
       return;
     }
-    const orgName = form.orgName.trim();
-    const purpose = form.purpose.trim() || undefined;
-    add('giving', {
+    const rec: GivingRecord = {
       id: uid('g'),
       date: form.date,
-      orgName,
+      orgName: form.orgName.trim(),
       amount,
-      purpose,
+      purpose: form.purpose.trim() || undefined,
       receiptNo: form.receiptNo.trim() || undefined,
       createdAt: Date.now(),
-    });
+    };
+    add('giving', rec);
+    setJustAdded(rec);
     setForm({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
-    // The blessing IS the confirmation — full-screen, shareable, warm.
-    setBlessing({ orgName, amount, purpose });
+    showToast(tr('solo.giving.added', 'Dana recorded — dhanyavaad', 'দান সংরক্ষিত — ধন্যবাদ', 'दान दर्ज — धन्यवाद'), 'success');
   };
-
-  const tithiLine = useMemo(() => {
-    try {
-      const vsYear = getCalendar('vikram').toRegional(new Date()).year;
-      return drikTodayLine(new Date(), vsYear);
-    } catch {
-      return undefined;
-    }
-  }, []);
 
   return (
     <div className="space-y-4">
@@ -74,6 +90,76 @@ export const GivingTab: React.FC = () => {
           tone="emerald"
         />
       </div>
+
+      <Btn onClick={() => setSheetOpen(true)} className="w-full !py-3.5 !text-base shadow-sm">
+        🪔 <T en="Offer dana" bn="দান দিন" hi="दान दें" />
+      </Btn>
+
+      {/* Dana confirmation — blessing + multi-channel receipt share. */}
+      {justAdded && (
+        <Card className="!border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <div className="text-lg font-extrabold text-stone-900">
+                <T en="Dhanyavaad 🙏 — dana recorded" bn="ধন্যবাদ 🙏 — দান সংরক্ষিত" hi="धन्यवाद 🙏 — दान दर्ज" />
+              </div>
+              <div className="text-sm text-stone-600 mt-0.5">
+                ₹{justAdded.amount.toLocaleString('en-IN')} · {justAdded.orgName}
+                {justAdded.purpose && <span className="text-stone-500"> · {justAdded.purpose}</span>}
+              </div>
+              <p className="text-sm italic text-amber-800 mt-1.5">{RECEIPT_BLESSING[shareLang]}</p>
+            </div>
+            <button
+              onClick={() => setJustAdded(null)}
+              className="text-xs text-stone-400 hover:text-stone-700 px-2 py-1 min-h-[32px]"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+          <ShareReceiptRow record={justAdded} />
+        </Card>
+      )}
+
+      {lastDana && (
+        <Card className="!border-amber-300 bg-gradient-to-br from-amber-50 to-white">
+          {!againConfirm ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-black uppercase tracking-widest text-amber-700">
+                  <T en="Your last offering" bn="আপনার শেষ দান" hi="आपकी पिछली भेंट" />
+                </div>
+                <div className="text-sm font-bold text-stone-800 truncate mt-1">
+                  ₹{lastDana.amount.toLocaleString('en-IN')} · {lastDana.orgName}
+                  <span className="text-stone-400 font-normal"> · {lastDana.date}</span>
+                </div>
+              </div>
+              <Btn onClick={() => setAgainConfirm(true)} className="shrink-0">
+                🙏 <T en="Give again" bn="আবার দিন" hi="फिर से दें" />
+              </Btn>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-bold text-stone-800 mb-3">
+                {tr(
+                  'solo.dana.giveAgainLine',
+                  `Offer ₹${lastDana.amount.toLocaleString('en-IN')} to ${lastDana.orgName} again?`,
+                  `আবার ${lastDana.orgName}-কে ₹${lastDana.amount.toLocaleString('en-IN')} দেবেন?`,
+                  `फिर से ${lastDana.orgName} को ₹${lastDana.amount.toLocaleString('en-IN')} देंगे?`
+                )}
+              </p>
+              <div className="flex gap-2">
+                <Btn onClick={repeatLast} className="flex-1">
+                  <T en="Yes, offer again 🙏" bn="হ্যাঁ, আবার দিন 🙏" hi="हाँ, फिर से दें 🙏" />
+                </Btn>
+                <Btn variant="ghost" onClick={() => setAgainConfirm(false)}>
+                  <T en="Not now" bn="এখন না" hi="अभी नहीं" />
+                </Btn>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card>
         <h2 className="text-lg font-extrabold text-stone-900 mb-3">
@@ -117,8 +203,15 @@ export const GivingTab: React.FC = () => {
                   <span className="text-stone-400 text-xs"> · {g.date}</span>
                   {g.receiptNo && <span className="ml-1 text-xs font-mono text-emerald-700">{g.receiptNo}</span>}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-1">
                   <b className="text-amber-800">₹{g.amount.toLocaleString('en-IN')}</b>
+                  <button
+                    onClick={() => setViewReceipt(g)}
+                    className="text-xs font-bold text-amber-700 hover:underline px-2 py-1 min-h-[32px]"
+                    aria-label="Share receipt"
+                  >
+                    🪔
+                  </button>
                   <button onClick={() => remove('giving', g.id)} className="text-xs text-red-500 hover:underline px-2 py-1">✕</button>
                 </span>
               </li>
@@ -127,17 +220,10 @@ export const GivingTab: React.FC = () => {
         )}
       </Card>
 
-      {/* The shareable blessing moment after each dana */}
-      {blessing && (
-        <BlessingMoment
-          open
-          onClose={() => setBlessing(null)}
-          orgName={blessing.orgName}
-          amount={blessing.amount}
-          purpose={blessing.purpose}
-          contextLine={tithiLine}
-        />
-      )}
+      <ExpressDanaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+
+      {/* In-app receipt view — blessing + multi-channel share row. */}
+      {viewReceipt && <ReceiptModal record={viewReceipt} onClose={() => setViewReceipt(null)} />}
     </div>
   );
 };

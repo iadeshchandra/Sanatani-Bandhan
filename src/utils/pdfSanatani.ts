@@ -371,6 +371,29 @@ export const generate80GTaxReceipt = async (
     sectionTitle('DONATION AMOUNT', 'दान राशि'),
     amountBox(amount, amountInWords),
 
+    // Donor-facing gratitude blessing (Phase 3 devotional giving layer):
+    // the statutory footer keeps its mantra; this line speaks to the
+    // donor's heart — "May your generosity return to you manifold 🙏".
+    {
+      stack: [
+        {
+          text: 'May your generosity return to you manifold 🙏',
+          font: SANATANI_FONTS.body, fontSize: 9, italics: true,
+          color: SANATANI_COLORS.umber, alignment: 'center', margin: [0, 8, 0, 0],
+        },
+        {
+          text: 'आपका दान शुभ हो',
+          font: SANATANI_FONTS.devanagari, fontSize: 9,
+          color: SANATANI_COLORS.umber, alignment: 'center', margin: [0, 2, 0, 0],
+        },
+        {
+          text: 'আপনার দান শুভ হোক',
+          font: SANATANI_FONTS.bengali, fontSize: 9,
+          color: SANATANI_COLORS.umber, alignment: 'center', margin: [0, 2, 0, 4],
+        },
+      ],
+    },
+
     ...(cashWarning ? [{
       text: '⚠ Cash donations above ₹2,000 are NOT eligible for 80G tax exemption (Income Tax Act). Please prefer digital payment.',
       font: SANATANI_FONTS.body, fontSize: 8, bold: true, color: SANATANI_COLORS.kumkum,

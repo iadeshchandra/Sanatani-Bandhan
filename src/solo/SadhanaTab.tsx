@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { useSoloStore, uid, todayISO } from './soloStore';
+import { useSoloStore, uid, todayISO, type GivingRecord } from './soloStore';
 import { Card, T, Btn, Field, inputCls, Empty, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { playSoftBell } from '../lib/sacredAudio';
-import { WARM_SUCCESS, pickLang } from '../lib/microcopy';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
+import { ShareReceiptRow, ReceiptModal, blessingForRecord, formatDanaAmount, RECEIPT_BLESSING, type ShareLang } from './ShareReceipt';
 
 /* SadhanaTab — japa counter, vrata observances, personal sankalpa.
  * =====================================================================
@@ -14,13 +16,68 @@ import { WARM_SUCCESS, pickLang } from '../lib/microcopy';
 
 const QUICK_COUNTS = [108, 1008];
 
+/* Dana journal entry — one offering with its own blessing line.
+ * Reads the shared soloStore giving record; presents, never copies.
+ */
+const DanaJournalEntry: React.FC<{ record: GivingRecord; lang: ShareLang; first?: boolean }> = ({ record: g, lang, first = false }) => {
+  const [shareOpen, setShareOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  return (
+    <li className="rounded-2xl bg-gradient-to-br from-amber-50/60 to-orange-50/60 border border-amber-100 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0">
+          <b className="text-stone-800 text-sm block truncate">{g.orgName}</b>
+          <span className="text-xs text-stone-500">
+            {g.purpose ? `${g.purpose} · ` : ''}{g.date}
+            {g.receiptNo && <span className="ml-1 font-mono text-emerald-700">{g.receiptNo}</span>}
+          </span>
+        </span>
+        <b className="text-amber-800 shrink-0">{formatDanaAmount(g.amount)}</b>
+      </div>
+      <p className="text-xs italic text-amber-700 mt-1.5">{blessingForRecord(g, lang)}</p>
+      <div className="mt-2">
+        <button
+          onClick={() => setShareOpen((v) => !v)}
+          {...(first ? { 'data-guide-anchor': 'sadhana-punya-share' } : {})}
+          className="text-xs font-bold text-amber-700 underline min-h-[32px]"
+        >
+          <T en="Share receipt 🪔" bn="রসিদ শেয়ার করুন 🪔" hi="रसीद साझा करें 🪔" />
+        </button>
+        <button onClick={() => setModalOpen(true)} className="ml-3 text-xs font-bold text-stone-500 underline min-h-[32px]">
+          <T en="View" bn="দেখুন" hi="देखें" />
+        </button>
+        {shareOpen && (
+          <div className="mt-2 rounded-xl bg-white border border-amber-100 p-3">
+            <ShareReceiptRow record={g} />
+          </div>
+        )}
+        {modalOpen && <ReceiptModal record={g} onClose={() => setModalOpen(false)} />}
+      </div>
+    </li>
+  );
+};
+
 export const SadhanaTab: React.FC = () => {
-  const { t } = useLanguage();
   const { state, add, remove, update } = useSoloStore();
   const { tr, lang } = useLocaleText();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [mantra, setMantra] = useState('ॐ नमः शिवाय');
   const [customCount, setCustomCount] = useState('');
+
+  // Quick Guide uid (invitational only — never auto-plays on this screen).
+  const { firebaseUser } = useAuthWorkspace();
+  const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  const devotionalGuide = useGuide('devotional', guideUid);
+
+  // Dana journal — devotional presentation of the shared giving records.
+  // PRESENT, don't copy: every number below is read live from state.giving.
+  const danaTotal = useMemo(() => state.giving.reduce((s, g) => s + g.amount, 0), [state.giving]);
+  const danaRecent = useMemo(
+    () => [...state.giving].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5),
+    [state.giving]
+  );
+  const shareLang: ShareLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
 
   const [vrataForm, setVrataForm] = useState({ name: '', date: todayISO(), notes: '' });
   const [sankalpaText, setSankalpaText] = useState('');
@@ -46,11 +103,8 @@ export const SadhanaTab: React.FC = () => {
     const m = mantra.trim() || 'Japa';
     add('japa', { id: uid('j'), date: today, mantra: m, count, createdAt: Date.now() });
     // A full mala (108 / 1008) completes a round — honour it with a soft bell.
-    // The tap IS the user gesture, so autoplay rules are respected; the
-    // bell stays silent when the user muted sacred sounds in Preferences.
     if (count >= 108) playSoftBell();
-    const t = pickLang(lang);
-    showToast(t(WARM_SUCCESS.japaOffered(count.toLocaleString('en-IN'), m)), 'success');
+    showToast(tr('solo.sadhana.logged', `+${count} ${m} recorded`, `+${count} ${m} সংরক্ষিত`, `+${count} ${m} दर्ज`), 'success');
   };
 
   const addVrata = (e: React.FormEvent) => {
@@ -195,9 +249,59 @@ export const SadhanaTab: React.FC = () => {
                 </button>
               </li>
             ))}
-          </ul>
+            </ul>
+          )}
+        </Card>
+
+        {/* Dana journal — "Your punya ledger 🪔". A devotional gathering of
+            the devotee's giving: lifetime total + recent offerings, each with
+            its own blessing. Reads state.giving live — no duplicate data. */}
+        <Card>
+          <div data-guide-anchor="sadhana-punya">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <h2 className="text-lg font-extrabold text-stone-900">
+                <T en="Your punya ledger 🪔" bn="আপনার পুণ্য-খতিয়ান 🪔" hi="आपका पुण्य-लेखा 🪔" />
+              </h2>
+              <TourLink guide={GUIDES.devotional} onRestart={devotionalGuide.restart} />
+            </div>
+            <p className="text-xs text-stone-500 mb-3">
+              <T
+                en="Every dana you have recorded, gathered as devotion — not data."
+                bn="আপনার প্রতিটি দান, ভক্তিরূপে সংগৃহীত — তথ্য নয়।"
+                hi="आपका हर दान, भक्ति के रूप में संजोया — डेटा नहीं।"
+              />
+            </p>
+            <div className="rounded-2xl bg-gradient-to-br from-amber-900 via-amber-800 to-orange-900 text-center p-5 mb-3">
+              <div className="text-amber-200/80 text-xs font-bold uppercase tracking-widest mb-1">
+                <T en="Lifetime dana" bn="সর্বমোট দান" hi="कुल दान" />
+              </div>
+              <div className="text-3xl font-extrabold text-white">{formatDanaAmount(danaTotal)}</div>
+              <div className="text-amber-200/70 text-xs mt-1 font-semibold">
+                <T
+                  en={`${state.giving.length} offerings of love`}
+                  bn={`ভালোবাসার ${state.giving.length}টি অর্পণ`}
+                  hi={`प्रेम के ${state.giving.length} अर्पण`}
+                />
+              </div>
+              <div className="text-amber-200/60 text-xs italic mt-2">{RECEIPT_BLESSING[shareLang]}</div>
+            </div>
+            {danaRecent.length === 0 ? (
+              <Empty text={tr('solo.sadhana.noDana', 'No dana recorded yet — your first offering will bloom here. 🪔', 'এখনও কোনো দান নেই — আপনার প্রথম অর্পণ এখানে ফুটবে। 🪔', 'अभी कोई दान नहीं — आपका पहला अर्पण यहीं खिलेगा। 🪔')} />
+            ) : (
+              <ul className="space-y-2">
+                {danaRecent.map((g, i) => (
+                  <DanaJournalEntry key={g.id} record={g} lang={shareLang} first={i === 0} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </Card>
+
+        {/* Quick Guide: giving-as-sadhana — invitational only, never auto-plays. */}
+        {devotionalGuide.pillVisible && (
+          <TourPill guide={GUIDES.devotional} uid={guideUid} onStart={devotionalGuide.start} onDismiss={devotionalGuide.dismissPill} />
         )}
-      </Card>
-    </div>
-  );
-};
+        {devotionalGuide.tourActive && <CoachMark guide={GUIDES.devotional} onFinish={devotionalGuide.finish} />}
+      </div>
+    );
+  };

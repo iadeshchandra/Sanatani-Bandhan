@@ -28,6 +28,7 @@ import {
   Share2, Link2, Check, Heart, Images, X, ChevronLeft, ChevronRight,
   ShieldCheck, Receipt,
 } from 'lucide-react';
+import { SevaCardsSection } from '../components/org/SevaCards';
 import { useLanguage } from '../context/LanguageContext';
 import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -234,6 +235,10 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
             </div>
           )}
         </div>
+
+        {/* ------------------------- SEVA CARDS ------------------------- */}
+        {/* Tangible giving: fixed-amount cards with goal trackers (Phase 2). */}
+        <SevaCardsSection orgId={page.orgId} orgName={page.name} />
 
         {/* ------------------------- DARSHAN TIMINGS ------------------------- */}
         {timings.length > 0 && (

@@ -274,6 +274,58 @@ export interface TranslationSchema {
       s3t: string;
       s3b: string;
     };
+    dana: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    /**
+     * Devotional giving layer (punya ledger) guide. Optional: ships with
+     * English copy only for now — other languages fall back to English
+     * via the t() lang → en → key chain until translated.
+     */
+    devotional?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    /**
+     * Speakable VDA-style alias guide (Phase 2). Optional: ships with
+     * English copy only for now — other languages fall back to English
+     * via the t() lang → en → key chain until translated.
+     */
+    vda?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+      s3t: string;
+      s3b: string;
+    };
+    /**
+     * Tangible seva cards guide (Phase 2). Optional: English only for now,
+     * other languages fall back to English until translated.
+     */
+    sevacards?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;
