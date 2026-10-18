@@ -13,6 +13,14 @@ import { loadThread, saveThread, clearThread, type ChatMessage } from '../assist
 import { openSosFlow } from '../../crisis/sosEntry';
 import { openDanaSheet } from '../../lib/danaSheet';
 import { GUIDES, getGuide, useGuide, TourPill, CoachMark } from '../../components/guide';
+import { AiVoiceSettings } from '../voice/components/AiVoiceSettings';
+import { probeVoiceCapability } from '../voice/capabilities';
+import {
+  countAssistantUse,
+  dismissNudgeForever,
+  markNudgeShown,
+  shouldShowNudge,
+} from '../voice/storage';
 
 /* ai/components/AssistantSheet.tsx — the devotee's chat with the assistant.
  * =====================================================================
@@ -127,6 +135,8 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [voiceNudge, setVoiceNudge] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // Load this devotee's local thread each time the sheet opens.
@@ -204,6 +214,22 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
       try {
         const res = await ask(text, ctxRef.current);
         pushAssistant(res);
+        // Phase-1 voice: one gentle nudge after 3+ real uses — never on
+        // first launch, never twice, never when the voice can't help.
+        // Fire-and-forget: the answer is already on screen.
+        void (async () => {
+          try {
+            const uses = countAssistantUse();
+            if (uses < 3 || !shouldShowNudge()) return;
+            const cap = await probeVoiceCapability();
+            if (cap.status === 'available') {
+              markNudgeShown();
+              setVoiceNudge(true);
+            }
+          } catch {
+            /* nudge is a courtesy — never an error */
+          }
+        })();
       } catch {
         warmError();
       } finally {
@@ -293,18 +319,43 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
               />
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="p-2 text-stone-400 hover:text-stone-700 rounded-full min-h-[44px] min-w-[44px]"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowVoiceSettings((v) => !v)}
+              aria-label={tr('ai.voice.settings', 'Voice settings', 'ভয়েস সেটিংস', 'वाणी सेटिंग्स')}
+              title={tr('ai.voice.settings', 'Voice settings', 'ভয়েস সেটিংস', 'वाणी सेटिंग्स')}
+              className="p-2 text-stone-400 hover:text-stone-700 rounded-full min-h-[44px] min-w-[44px] text-lg"
+            >
+              ⚙️
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="p-2 text-stone-400 hover:text-stone-700 rounded-full min-h-[44px] min-w-[44px]"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Messages */}
+        {/* Messages — or the on-device voice settings panel */}
         <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {showVoiceSettings ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowVoiceSettings(false)}
+                className="mb-3 min-h-[44px] px-2 text-sm font-bold text-amber-700 hover:text-amber-900"
+              >
+                ←{' '}
+                {tr('ai.voice.back', 'Back to conversation', 'কথোপকথনে ফিরুন', 'वार्तालाप पर वापस जाएँ')}
+              </button>
+              <AiVoiceSettings />
+            </div>
+          ) : (
+            <>
           {messages.length === 0 && !sending && (
             <div className="text-center pt-8 pb-4">
               <div className="text-5xl mb-4">🙏</div>
@@ -425,7 +476,53 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
               </div>
             </div>
           )}
+            </>
+          )}
         </div>
+
+        {/* One-time gentle nudge for the warmer voice — never a nag */}
+        {voiceNudge && !showVoiceSettings && (
+          <div className="shrink-0 mx-4 mb-2 rounded-2xl border border-amber-300 bg-amber-50 p-3.5">
+            <p className="text-[13px] font-bold text-stone-800">
+              {tr(
+                'ai.voice.nudgeTitle',
+                '🙏 Want a warmer voice?',
+                '🙏 উষ্ণতর কণ্ঠ চান?',
+                '🙏 उष्ण वाणी चाहेंगे?'
+              )}
+            </p>
+            <p className="mt-0.5 text-xs text-stone-600">
+              {tr(
+                'ai.voice.nudgeBody',
+                'Your assistant can speak more warmly — entirely on your phone, no internet needed after. No pressure: it lives on in Settings → Assistant whenever you want it. 🙏',
+                'আপনার সহকারী আরও উষ্ণভাবে বলতে পারে — সম্পূর্ণ আপনার ফোনে, পরে ইন্টারনেট ছাড়াই। চাপ নেই: যখনই চান, Settings → Assistant-এ এটি থাকবে। 🙏',
+                'आपका सहायक और भी उष्णता से बोल सकता है — पूरी तरह आपके फ़ोन में, बाद में बिना इंटरनेट। कोई दबाव नहीं: जब चाहें, Settings → Assistant में यह रहेगा। 🙏'
+              )}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setVoiceNudge(false);
+                  setShowVoiceSettings(true);
+                }}
+                className="flex-1 min-h-[44px] rounded-xl bg-amber-600 text-white text-[13px] font-extrabold px-3"
+              >
+                {tr('ai.voice.nudgeYes', 'Tell me more', 'আরও জানুন', 'और जानें')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dismissNudgeForever();
+                  setVoiceNudge(false);
+                }}
+                className="flex-1 min-h-[44px] rounded-xl border border-stone-300 bg-white text-stone-600 text-[13px] font-bold px-3"
+              >
+                {tr('ai.voice.nudgeNo', 'Not now', 'এখন নয়', 'अभी नहीं')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Input */}
         <form

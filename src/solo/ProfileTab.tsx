@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSolo } from './SoloContext';
 import { useSoloStore } from './soloStore';
 import { Card, T, Btn, Field, inputCls, useLocaleText } from './ui';
@@ -19,6 +19,7 @@ import { useSacredSound } from '../lib/sacredAudio';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 import { VdaAliasSection } from './VdaAliasSection';
 import { LanguageRegionSettings } from './LanguageRegionSettings';
+import { AiVoiceSettings } from '../ai/voice/components/AiVoiceSettings';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -28,6 +29,17 @@ import { LanguageRegionSettings } from './LanguageRegionSettings';
  */
 
 export const ProfileTab: React.FC = () => {
+  // Deep link from the assistant's voice_upgrade intent (#ai-voice):
+  // scroll the on-device voice card into view once the tab paints.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#ai-voice') {
+      const t = setTimeout(() => {
+        document.getElementById('ai-voice')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 350);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, []);
   const { profile, updateProfile } = useSolo();
   const { exportJSON, importJSON } = useSoloStore();
   const { logout, enterPurohitSession, enterJyotishSession, switchWorkspace, exitSoloSession, workspaces, activeWorkspace, firebaseUser } = useAuthWorkspace();
@@ -461,6 +473,13 @@ export const ProfileTab: React.FC = () => {
 
       {/* Language & region — the devotee's words, their choice, never overridden */}
       <LanguageRegionSettings />
+
+      {/* Assistant — the on-device AI voice, permanent home.
+          The one-time nudge points here ("Settings → Assistant"), so a
+          devotee who dismissed it can always come back on their own. */}
+      <div id="ai-voice" style={{ scrollMarginTop: 96 }}>
+        <AiVoiceSettings hideWhenUnsupported />
+      </div>
 
       {/* Preferences — small comforts, the user's own choice */}
       <Card>
