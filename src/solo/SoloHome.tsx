@@ -18,6 +18,7 @@ import { getWallet, fmtWallet, currencyForRegion, type WalletCurrency } from '..
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { Eye, EyeOff, Plus, ArrowLeftRight, ScanLine, History } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   ChatFirstRunHint,
   RequestFirstRunWatcher,
@@ -40,6 +41,7 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   const { firebaseUser, activeWorkspace } = useAuthWorkspace();
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   const { tr, lang } = useLocaleText();
+  const { rt } = useLanguage();
   const L = (lang === 'bn' || lang === 'hi' ? lang : 'en') as MktLang;
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   const [guidesOpen, setGuidesOpen] = useState(false);
@@ -124,11 +126,15 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   }, [uid, activeWorkspace]);
 
   const hour = new Date().getHours();
+  // Regional greeting — the afternoon word belongs to the devotee's region:
+  // வணக்கம் in Tamil Nadu, নমস্কার in Bengal, Vanakkam for English UI there.
+  // The tr() key stays for the dictionary; the regional term wins the fallback.
+  const greetingWord = rt('greeting');
   const greeting =
     hour < 12
       ? tr('solo.greet.morning', 'Suprabhat', 'সুপ্রভাত', 'सुप्रभात')
       : hour < 17
-        ? tr('solo.greet.afternoon', 'Namaste', 'নমস্কার', 'नमस्ते')
+        ? tr('solo.greet.afternoon', greetingWord, 'নমস্কার', 'नमस्ते')
         : tr('solo.greet.evening', 'Shubh Sandhya', 'শুভ সন্ধ্যা', 'शुभ संध्या');
 
   // Tithi-aware warmth — the Panjika engine knows today; surface it kindly.

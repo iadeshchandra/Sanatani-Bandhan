@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSoloStore, uid, todayISO } from './soloStore';
 import { T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { GUIDES, useGuide, TourPill, CoachMark } from '../components/guide';
 
@@ -63,6 +64,11 @@ export const ExpressDanaSheet: React.FC<{ open: boolean; onClose: () => void; pr
 }) => {
   const { state, add } = useSoloStore();
   const { tr } = useLocaleText();
+  const { rt } = useLanguage();
+  // Regional temple word for standalone slots (label, placeholder) —
+  // title-cased to match the label's look; native scripts are caseless.
+  const templeWordRaw = rt('temple');
+  const templeTitle = templeWordRaw.charAt(0).toUpperCase() + templeWordRaw.slice(1);
   const { showToast } = useToast();
   const { firebaseUser } = useAuthWorkspace();
   const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
@@ -255,7 +261,7 @@ export const ExpressDanaSheet: React.FC<{ open: boolean; onClose: () => void; pr
                 </Field>
               </div>
 
-              <Field label={<T en="Temple / organisation" bn="মন্দির / সংগঠন" hi="मंदिर / संगठन" />}>
+              <Field label={<T en={`${templeTitle} / organisation`} bn="মন্দির / সংগঠন" hi="मंदिर / संगठन" />}>
                 {recentOrgs.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-2">
                     {recentOrgs.map((o) => (
@@ -284,7 +290,7 @@ export const ExpressDanaSheet: React.FC<{ open: boolean; onClose: () => void; pr
                       if (remembered) setUpiId(remembered);
                     }
                   }}
-                  placeholder="Kashi Vishwanath Mandir"
+                  placeholder={`Kashi Vishwanath ${templeTitle}`}
                 />
               </Field>
 
