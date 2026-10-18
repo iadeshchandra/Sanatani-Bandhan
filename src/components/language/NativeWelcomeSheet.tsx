@@ -271,7 +271,7 @@ export const NativeWelcomeSheet: React.FC = () => {
           )}
 
           {/* Full language list — names in their OWN script */}
-          <p className="mt-5 text-[12px] font-bold uppercase tracking-widest text-stone-400">
+          <p className="mt-5 text-[12px] font-bold tracking-widest text-stone-400">
             {lowConfidence ? copy.changeHint : copy.allLangs}
           </p>
           <ul className="mt-2 space-y-2">

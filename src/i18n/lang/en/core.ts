@@ -309,6 +309,16 @@ export const core: CoreFragment = {
         s2t: "One tap to offer",
         s2b: "Tap any card and the dana sheet opens prefilled — amount, temple and purpose already filled. Just confirm with love.",
       },
+      sevabazar: {
+        title: "Seva notices — from your community",
+        pill: "Sevas your neighbours booked, shared by verified providers — take the 20-second tour 🪔",
+        s1t: "A notice, not an ad",
+        s1b: "Providers share seva notices here — never ads, never paid placement. Each carries their verification, lineage, and blessings received.",
+        s2t: "Ask, don't haggle",
+        s2b: "Tap 🙏 Ask Panditji to open a chat with the provider — a warm pre-filled greeting, so you can ask about tithi, samagri, and suitability.",
+        s3t: "Dakshina Suraksha",
+        s3b: "Pay after the seva is complete. We only coordinate — your money moves directly, never through us. 🛡",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",
