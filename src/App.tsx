@@ -20,10 +20,17 @@ import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { OrgSpaceShell } from './components/shell/OrgSpaceShell';
-import { ProfileOrgHubPreview, JoinOrgScreenPreview, FestivalEventPreview, ChatPreview } from './dev-preview/PreviewHub';
+// Bundle slimming (2026-10-18): dev previews are DEV-only — lazy so they never
+// enter the production initial bundle.
+const ProfileOrgHubPreview = lazy(() => import('./dev-preview/PreviewHub').then(m => ({ default: m.ProfileOrgHubPreview })));
+const JoinOrgScreenPreview = lazy(() => import('./dev-preview/PreviewHub').then(m => ({ default: m.JoinOrgScreenPreview })));
+const FestivalEventPreview = lazy(() => import('./dev-preview/PreviewHub').then(m => ({ default: m.FestivalEventPreview })));
+const ChatPreview = lazy(() => import('./dev-preview/PreviewHub').then(m => ({ default: m.ChatPreview })));
 import { Footer } from './components/common/Footer';
-import { QuickChandaModal } from './components/common/QuickChandaModal';
-import { MySpaceModal } from './components/common/MySpaceModal';
+// Bundle slimming (2026-10-18): QuickChandaModal pulls jspdf + QR libs (~550KB
+// combined with MySpaceModal). Loaded on demand when the modal opens.
+const QuickChandaModal = lazy(() => import('./components/common/QuickChandaModal').then(m => ({ default: m.QuickChandaModal })));
+const MySpaceModal = lazy(() => import('./components/common/MySpaceModal').then(m => ({ default: m.MySpaceModal })));
 import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
 import { SangamProvider } from './sangam/sangamStore';
 import { JyotishWorkspaceShell } from './jyotish/JyotishWorkspaceShell';
@@ -70,7 +77,9 @@ import { useData } from './context/DataContext';
 import { WorkspaceType, WorkspaceConfig } from './types';
 import { AdminLayout } from './admin/AdminLayout';
 import { SuperAdminDashboard } from './admin/SuperAdminDashboard';
-import { GlobalAnalytics } from './admin/GlobalAnalytics';
+// Bundle slimming (2026-10-18): GlobalAnalytics pulls recharts (~300KB).
+// Admin-only page — loads on demand.
+const GlobalAnalytics = lazy(() => import('./admin/GlobalAnalytics'));
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { SystemOverrideGuard } from './components/auth/SystemOverrideGuard';
 import { CommandPalette } from './components/common/CommandPalette';
@@ -842,20 +851,32 @@ const AppContent: React.FC = () => {
       {/* V9 RBAC: Quick Chanda modal is a cash-collection surface — finance
           roles only. Guards every open path (DashboardHome, AppShell, tour). */}
       {checkPermission(['TRUSTEE', 'ACCOUNTANT']) && (
-        <QuickChandaModal
-          isOpen={isQuickChandaOpen}
-          onClose={() => setIsQuickChandaOpen(false)}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" aria-hidden="true">
+            <span className="text-4xl animate-pulse">🪔</span>
+          </div>
+        }>
+          <QuickChandaModal
+            isOpen={isQuickChandaOpen}
+            onClose={() => setIsQuickChandaOpen(false)}
+          />
+        </Suspense>
       )}
 
-      <MySpaceModal
-        isOpen={isMySpaceOpen}
-        onClose={() => setIsMySpaceOpen(false)}
-        onNavigate={(mod) => {
-          setActiveModule(mod);
-          setIsMySpaceOpen(false);
-        }}
-      />
+      <Suspense fallback={
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" aria-hidden="true">
+          <span className="text-4xl animate-pulse">🪔</span>
+        </div>
+      }>
+        <MySpaceModal
+          isOpen={isMySpaceOpen}
+          onClose={() => setIsMySpaceOpen(false)}
+          onNavigate={(mod) => {
+            setActiveModule(mod);
+            setIsMySpaceOpen(false);
+          }}
+        />
+      </Suspense>
 
       <GlobalTelemetryModal
         isOpen={isTelemetryOpen}
@@ -1122,7 +1143,20 @@ const AppRoutes: React.FC = () => {
             path="/admin"
           >
             <Route element={<SuperAdminDashboard />} index />
-            <Route element={<GlobalAnalytics />} path="analytics" />
+            <Route
+              path="analytics"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-screen items-center justify-center bg-[#2b1408] text-orange-50">
+                      <span className="text-5xl animate-pulse" aria-hidden="true">🪔</span>
+                    </div>
+                  }
+                >
+                  <GlobalAnalytics />
+                </Suspense>
+              }
+            />
             {/* Deprecated: old PurohitReviewQueue used unsafe direct client writes to
                 purohitApplications. Verification now lives in the unified console. */}
             <Route element={<PurohitReviewsRedirect />} path="purohit-reviews" />
@@ -1163,16 +1197,16 @@ const AppRoutes: React.FC = () => {
           {/* Phase 2 dev preview: profile org hub with mock data.
               Dev-only, never renders in production builds. */}
           {import.meta.env.DEV && (
-            <Route path="/dev-preview/profile-org-hub" element={<ProfileOrgHubPreview />} />
+            <Route path="/dev-preview/profile-org-hub" element={<Suspense fallback={null}><ProfileOrgHubPreview /></Suspense>} />
           )}
           {import.meta.env.DEV && (
-            <Route path="/dev-preview/join-org" element={<JoinOrgScreenPreview />} />
+            <Route path="/dev-preview/join-org" element={<Suspense fallback={null}><JoinOrgScreenPreview /></Suspense>} />
           )}
           {import.meta.env.DEV && (
-            <Route path="/dev-preview/festival" element={<FestivalEventPreview />} />
+            <Route path="/dev-preview/festival" element={<Suspense fallback={null}><FestivalEventPreview /></Suspense>} />
           )}
           {import.meta.env.DEV && (
-            <Route path="/dev-preview/chat" element={<ChatPreview />} />
+            <Route path="/dev-preview/chat" element={<Suspense fallback={null}><ChatPreview /></Suspense>} />
           )}
           {/* Solo-first progressive flow: an already-authenticated Solo user
               registers their organisation here (the "Grow with Sanatani
