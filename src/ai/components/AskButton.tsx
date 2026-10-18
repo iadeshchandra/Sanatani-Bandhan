@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { AssistantSheet } from './AssistantSheet';
+
+/** Event that opens the assistant sheet from anywhere (e.g. the Profile
+ *  "🙏 Ask" row). The FAB stays the primary entry; this is the named door. */
+export const ASSISTANT_OPEN_EVENT = 'sb:open-assistant';
 
 /**
  * ai/components/AskButton.tsx — the devotee's "🙏 Ask" floating entry.
@@ -27,6 +31,14 @@ import { AssistantSheet } from './AssistantSheet';
 export const AskButton: React.FC = () => {
   const { isAuthenticated, sessionKind } = useAuthWorkspace();
   const [open, setOpen] = useState(false);
+
+  // Named door: Profile's "🙏 Ask" row (and the assistant's own
+  // upgrade intent) can open the sheet without the FAB.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(ASSISTANT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(ASSISTANT_OPEN_EVENT, onOpen);
+  }, []);
 
   // Solo-only: the assistant is a devotee aid, and the solo shell is the only
   // layout whose bottom-left zone has been verified clash-free.

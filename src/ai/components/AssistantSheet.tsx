@@ -494,9 +494,9 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
             <p className="mt-0.5 text-xs text-stone-600">
               {tr(
                 'ai.voice.nudgeBody',
-                'Your assistant can speak more warmly — entirely on your phone, no internet needed after. No pressure: it lives on in Settings → Assistant whenever you want it. 🙏',
-                'আপনার সহকারী আরও উষ্ণভাবে বলতে পারে — সম্পূর্ণ আপনার ফোনে, পরে ইন্টারনেট ছাড়াই। চাপ নেই: যখনই চান, Settings → Assistant-এ এটি থাকবে। 🙏',
-                'आपका सहायक और भी उष्णता से बोल सकता है — पूरी तरह आपके फ़ोन में, बाद में बिना इंटरनेट। कोई दबाव नहीं: जब चाहें, Settings → Assistant में यह रहेगा। 🙏'
+                'Your assistant can speak more warmly — entirely on your phone, no internet needed after. No pressure: it lives on in Profile → 🗣️ How we speak with you whenever you want it. 🙏',
+                'আপনার সহকারী আরও উষ্ণভাবে বলতে পারে — সম্পূর্ণ আপনার ফোনে, পরে ইন্টারনেট ছাড়াই। চাপ নেই: যখনই চান, প্রোফাইল → 🗣️ আমরা আপনার সঙ্গে কীভাবে কথা বলি-তে এটি থাকবে। 🙏',
+                'आपका सहायक और भी उष्णता से बोल सकता है — पूरी तरह आपके फ़ोन में, बाद में बिना इंटरनेट। कोई दबाव नहीं: जब चाहें, परिचय → 🗣️ हम आपसे कैसे बात करते हैं में यह रहेगा। 🙏'
               )}
             </p>
             <div className="mt-2 flex gap-2">
