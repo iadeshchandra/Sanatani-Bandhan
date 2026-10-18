@@ -58,6 +58,15 @@ service cloud.firestore {
       return id != null && id.matches('^DEMO_.*');
     }
 
+    // Regional vocabulary ids (src/i18n/regionalTerms.ts). Devotee
+    // suggestions may omit the field entirely ('' = not regional).
+    function isRegionId(v) {
+      return v == '' || v in ['tamil-nadu', 'karnataka', 'andhra-telangana',
+        'kerala', 'maharashtra', 'gujarat', 'west-bengal', 'bangladesh',
+        'hindi-belt', 'punjab', 'odisha', 'assam', 'northeast',
+        'global-diaspora', 'other'];
+    }
+
     // Task contract: tenant member = logged in AND (own tenant claim |
     function wsMemberPath(tenantId) {
       return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + request.auth.uid);
@@ -2475,20 +2484,28 @@ match /fileVault/{fileId} {
      * runtime overrides (`translationOverrides/{lang}`) — live in the app
      * without a redeploy. UI strings ship in the client bundle anyway, so
      * override reads are public; writes are owner-only.
+     * Regional vocabulary suggestions may carry `region` (a RegionId) and
+     * `termKey` (e.g. 'temple'); the approved text lands verbatim under
+     * `regional.{region}.{termKey}` in the override doc.
      */
     match /translationSuggestions/{suggestionId} {
       allow create: if isLoggedIn()
         && request.resource.data.get('uid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'pending'
         && request.resource.data.keys().hasOnly(['lang', 'key', 'currentText',
-          'suggestedText', 'uid', 'sanataniId', 'status', 'createdAt'])
+          'suggestedText', 'uid', 'sanataniId', 'status', 'createdAt',
+          'region', 'termKey'])
         && request.resource.data.get('lang', '') in
           ['en', 'hi', 'bn', 'sa', 'ta', 'te', 'mr', 'gu', 'kn', 'ml']
         && request.resource.data.get('key', '').size() > 0
         && request.resource.data.get('key', '').size() <= 200
         && request.resource.data.get('suggestedText', '').size() > 0
         && request.resource.data.get('suggestedText', '').size() <= 2000
-        && request.resource.data.get('currentText', '').size() <= 2000;
+        && request.resource.data.get('currentText', '').size() <= 2000
+        && isRegionId(request.resource.data.get('region', ''))
+        && (request.resource.data.get('termKey', '') == ''
+          || (request.resource.data.get('termKey', '').size() <= 40
+            && request.resource.data.get('termKey', '').matches('^[a-zA-Z]+$')));
       // A devotee may read their own suggestions; the owner reads the queue.
       allow read: if isLoggedIn()
         && (resource.data.get('uid', '') == request.auth.uid || isOwner());
