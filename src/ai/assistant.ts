@@ -39,6 +39,7 @@ import { TASKS } from './tasks/index';
 function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string): ResponseType {
   if (intent === 'fallback_unknown' && variant === 'dharma') return 'escalate';
   if (intent === 'dharma_question' && variant === 'escalate') return 'escalate';
+  if (intent === 'nearby_temples' && variant === 'consent') return 'location_consent';
   if (intent === 'fallback_unknown') return 'clarify';
   if (intent === 'navigate' && !hasAction) return 'clarify';
   if (intent === 'howto' && !hasAction) return 'clarify';

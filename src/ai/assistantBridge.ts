@@ -18,7 +18,7 @@
  * re-export the core's types; the UI components only ever import from here.
  */
 
-export type AssistantActionKind = 'navigate' | 'openGuide' | 'openSheet';
+export type AssistantActionKind = 'navigate' | 'openGuide' | 'openSheet' | 'requestLocation';
 
 export interface AssistantAction {
   kind: AssistantActionKind;
@@ -28,7 +28,7 @@ export interface AssistantAction {
   label?: string;
 }
 
-export type AssistantResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos';
+export type AssistantResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent';
 
 export interface AssistantResponse {
   type: AssistantResponseType;

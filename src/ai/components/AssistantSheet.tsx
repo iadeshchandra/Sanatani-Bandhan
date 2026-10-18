@@ -15,6 +15,8 @@ import { openDanaSheet } from '../../lib/danaSheet';
 import { GUIDES, getGuide, useGuide, TourPill, CoachMark } from '../../components/guide';
 import { AiVoiceSettings } from '../voice/components/AiVoiceSettings';
 import { probeVoiceCapability } from '../voice/capabilities';
+import { findNearbyTemples } from '../tasks/nearby';
+import { renderTemplate } from '../templates';
 import {
   countAssistantUse,
   dismissNudgeForever,
@@ -109,6 +111,63 @@ const SuggestionChips: React.FC<{ suggestions: string[]; onPick: (s: string) => 
     ))}
   </div>
 );
+
+/**
+ * LocationConsentCard — explicit one-time location permission.
+ * =====================================================================
+ * Rendered when the assistant returns type 'location_consent'. This is a
+ * proper UI element (never a browser confirm dialog). Coordinates are
+ * requested fresh per query, used once, then discarded — never stored.
+ */
+const LocationConsentCard: React.FC<{
+  lang: string;
+  onAllow: () => void;
+  onDeny: () => void;
+  locating: boolean;
+}> = ({ lang, onAllow, onDeny, locating }) => {
+  const lc = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
+  const allowLabel = lc === 'bn' ? 'অনুমতি দিন' : lc === 'hi' ? 'अनुमति दें' : 'Allow';
+  const denyLabel = lc === 'bn' ? 'এখন নয়' : lc === 'hi' ? 'अभी नहीं' : 'Not now';
+  const locatingLabel =
+    lc === 'bn' ? 'অবস্থান খুঁজছি…' : lc === 'hi' ? 'स्थान खोज रहा हूँ…' : 'Locating…';
+  return (
+    <div className="mt-2.5 rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4">
+      <p className="text-sm font-extrabold text-stone-800 mb-1">
+        🛕{' '}
+        <T
+          en="May I use your location?"
+          bn="আপনার অবস্থান ব্যবহার করতে পারি?"
+          hi="क्या मैं आपका स्थान उपयोग कर सकता हूँ?"
+        />
+      </p>
+      <p className="text-xs text-stone-600 mb-3 leading-relaxed">
+        <T
+          en="Just this once, to find nearby temples. I won't store it — it lives only for this search, then it's gone."
+          bn="শুধু এই একবার, কাছের মন্দির খুঁজতে। আমি এটি সংরক্ষণ করব না — শুধু এই খোঁজার জন্য, তারপর মুছে যাবে।"
+          hi="सिर्फ इस बार, पास के मंदिर खोजने के लिए। मैं इसे सहेजूँगा नहीं — केवल इस खोज के लिए, फिर मिट जाएगा।"
+        />
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onAllow}
+          disabled={locating}
+          className="flex-1 min-h-[48px] rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:opacity-60 text-white text-sm font-extrabold px-4 transition-colors shadow-sm"
+        >
+          {locating ? locatingLabel : `📍 ${allowLabel}`}
+        </button>
+        <button
+          type="button"
+          onClick={onDeny}
+          disabled={locating}
+          className="flex-1 min-h-[48px] rounded-2xl border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-60 text-stone-700 text-sm font-bold px-4 transition-colors"
+        >
+          {denyLabel}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = ({
   open,
@@ -283,6 +342,82 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
     openSosFlow();
   }, [onClose]);
 
+  /* Location consent flow — explicit, one-time, never stored. */
+  const [locatingId, setLocatingId] = useState<string | null>(null);
+
+  const handleLocationDeny = useCallback(() => {
+    const lang = currentLang === 'bn' ? 'bn' : currentLang === 'hi' ? 'hi' : 'en';
+    pushAssistant({
+      type: 'answer',
+      text: renderTemplate('nearby_temples', lang, {}, 'denied') as string,
+    });
+  }, [currentLang, pushAssistant]);
+
+  const handleLocationAllow = useCallback((msgId: string) => {
+    if (!('geolocation' in navigator)) {
+      handleLocationDeny();
+      return;
+    }
+    setLocatingId(msgId);
+    const lang = currentLang === 'bn' ? 'bn' : currentLang === 'hi' ? 'hi' : 'en';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // Coordinates live ONLY in this closure — used once, then discarded.
+        const { latitude, longitude } = pos.coords;
+        void (async () => {
+          try {
+            const result = await findNearbyTemples(latitude, longitude, lang);
+            if (result.empty) {
+              pushAssistant({
+                type: 'answer',
+                text: renderTemplate('nearby_temples', lang, {}, 'empty') as string,
+              });
+            } else {
+              const header =
+                lang === 'bn'
+                  ? `🛕 ${result.temples.length}টি মন্দির পাওয়া গেছে:`
+                  : lang === 'hi'
+                    ? `🛕 ${result.temples.length} मंदिर मिले:`
+                    : `🛕 Found ${result.temples.length} temple${result.temples.length === 1 ? '' : 's'} near you:`;
+              const list = result.temples
+                .map((t) => `• **${t.name}** — ${t.distanceLabel}`)
+                .join('\n');
+              const footer =
+                lang === 'bn'
+                  ? result.fromCurated
+                    ? `প্রধান তীর্থস্থান (অফলাইন তালিকা)। 🪔`
+                    : `আপনার সম্প্রদায়ের ক্যাম্পাস মানচিত্র থেকে। 🪔`
+                  : lang === 'hi'
+                    ? result.fromCurated
+                      ? `प्रमुख तीर्थस्थल (ऑफ़लाइन सूची)। 🪔`
+                      : `आपके समुदाय के परिसर मानचित्रों से। 🪔`
+                    : result.fromCurated
+                      ? `Major pilgrimage sites (offline list). 🪔`
+                      : `From your community's campus maps. 🪔`;
+              pushAssistant({
+                type: 'answer',
+                text: renderTemplate('nearby_temples', lang, { header, list, footer }, 'results') as string,
+              });
+            }
+          } catch {
+            pushAssistant({
+              type: 'answer',
+              text: renderTemplate('nearby_temples', lang, {}, 'empty') as string,
+            });
+          } finally {
+            setLocatingId(null);
+          }
+        })();
+      },
+      () => {
+        // Geolocation denied or failed → graceful fallback.
+        setLocatingId(null);
+        handleLocationDeny();
+      },
+      { timeout: 10000, enableHighAccuracy: false, maximumAge: 0 }
+    );
+  }, [currentLang, pushAssistant, handleLocationDeny]);
+
   const goToPurohitji = useCallback(() => {
     onClose();
     navigate('/seva/journeys');
@@ -448,6 +583,15 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                         />
                       </button>
                     </div>
+                  )}
+
+                  {m.kind === 'location_consent' && (
+                    <LocationConsentCard
+                      lang={currentLang}
+                      locating={locatingId === m.id}
+                      onAllow={() => handleLocationAllow(m.id)}
+                      onDeny={handleLocationDeny}
+                    />
                   )}
 
                   {m.suggestions && m.suggestions.length > 0 && (
