@@ -17,7 +17,7 @@ import { useChatUnreadTotal } from '../chat/useChat';
 import { getWallet, fmtWallet, currencyForRegion, type WalletCurrency } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
-import { Eye, EyeOff, Plus, Send, ScanLine, History } from 'lucide-react';
+import { Eye, EyeOff, Plus, ArrowLeftRight, ScanLine, History } from 'lucide-react';
 import {
   ChatFirstRunHint,
   RequestFirstRunWatcher,
@@ -213,7 +213,7 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           {(
             [
               { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => goTab('wallet') },
-              { id: 'send', icon: Send, label: mkt(L, 'quickSend'), fn: () => { if (uid !== 'anon') setWalletOpen(true); else goTab('wallet'); } },
+              { id: 'obligations', icon: ArrowLeftRight, label: mkt(L, 'quickObligations'), fn: () => { if (uid !== 'anon') setWalletOpen(true); else goTab('wallet'); } },
               { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
               { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: () => goTab('wallet') },
             ] as const

@@ -3,7 +3,7 @@
  * Balance + top-up (geo-based payment methods) + transaction history.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, Send, ScanLine } from 'lucide-react';
+import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, ArrowLeftRight, ScanLine } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
@@ -61,14 +61,24 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
   const [reference, setReference] = useState(() => generateTopupReference());
   const [working, setWorking] = useState(false);
 
+  // FIX 3a: generation counter — a late auto-detect resolution must never
+  // clobber a manual country choice. detectPayRegion() does a Firestore read
+  // plus an IP lookup (up to ~6s), so it can resolve after the user taps a
+  // tab; without this guard the tab snapped back to Intl with only
+  // Payoneer/Wise showing.
+  const regionGen = useRef(0);
+
   const limits = TOPUP_LIMITS[currency];
   const sym = CURRENCY_SYMBOL[currency];
 
   useEffect(() => {
+    const gen = ++regionGen.current;
     detectPayRegion().then((r) => {
+      if (regionGen.current !== gen) return; // user switched manually meanwhile
       setRegion(r);
       setMethods([]);
       getPaymentMethods().then((all) => {
+        if (regionGen.current !== gen) return;
         const list = orderMethods(methodsForRegionWithFallback(all, r), r);
         setMethods(list);
         if (list[0]) setMethodId(list[0].id);
@@ -77,8 +87,11 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
   }, []);
 
   const switchRegion = (r: PayRegion) => {
+    regionGen.current += 1; // manual choice wins over any in-flight auto-detect
+    const gen = regionGen.current;
     setRegion(r);
     getPaymentMethods().then((all) => {
+      if (regionGen.current !== gen) return;
       const list = orderMethods(methodsForRegionWithFallback(all, r), r);
       setMethods(list);
       if (list[0]) setMethodId(list[0].id);
@@ -221,7 +234,9 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
           <input value={trxId} onChange={(e) => setTrxId(e.target.value)} className={inputCls}
             placeholder="e.g. TRX9F8K2P1A — found in your bKash/Nagad/UPI app history" />
           <p className="text-[10px] text-stone-400 mt-1">
-            Copy the TrxID/UTR from your payment app's transaction history. It must match the {fmtWallet(amt || 0, currency)} you sent.
+            {amt > 0
+              ? t('solo.wallet.trxIdMustMatchAmount').replace('{amount}', fmtWallet(amt, currency))
+              : t('solo.wallet.trxIdEnterAmountFirst')}
           </p>
         </Field>
         <Btn variant="primary" className="w-full min-h-[48px]" disabled={working} onClick={submit}>
@@ -360,9 +375,9 @@ export const WalletTab: React.FC = () => {
     historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleSend = () => {
+  const handleObligations = () => {
     if (uid === 'anon') {
-      showToast(mkt(L, 'signInToSend'), 'error');
+      showToast(mkt(L, 'signInForObligations'), 'error');
       return;
     }
     setSendOpen(true);
@@ -420,7 +435,7 @@ export const WalletTab: React.FC = () => {
           {(
             [
               { id: 'topup', icon: Plus, label: mkt(L, 'quickTopUp'), fn: () => setTopping(true) },
-              { id: 'send', icon: Send, label: mkt(L, 'quickSend'), fn: handleSend },
+              { id: 'obligations', icon: ArrowLeftRight, label: mkt(L, 'quickObligations'), fn: handleObligations },
               { id: 'scan', icon: ScanLine, label: mkt(L, 'quickScan'), fn: () => setScanOpen(true) },
               { id: 'history', icon: History, label: mkt(L, 'quickHistory'), fn: scrollToHistory },
             ] as const
@@ -429,7 +444,7 @@ export const WalletTab: React.FC = () => {
               key={id}
               type="button"
               onClick={fn}
-              data-guide-anchor={id === 'send' ? 'wallet-personal' : undefined}
+              data-guide-anchor={id === 'obligations' ? 'wallet-personal' : undefined}
               className="min-h-[64px] rounded-xl bg-white/15 hover:bg-white/25 text-white flex flex-col items-center justify-center gap-1 transition-colors"
             >
               <Icon className="w-5 h-5" />
@@ -527,7 +542,7 @@ export const WalletTab: React.FC = () => {
         />
       )}
 
-      {/* Send — the private P2P obligation ledger (two-wallet architecture:
+      {/* Obligations — the private P2P obligation ledger (two-wallet architecture:
           platform money moves only via top-up/bookings; person-to-person
           moves are IOU records here, never custody). */}
       {sendOpen && uid !== 'anon' && (
