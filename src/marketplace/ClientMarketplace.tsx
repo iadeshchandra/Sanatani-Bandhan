@@ -22,6 +22,9 @@ import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../l
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { GuideButton } from '../components/suchana/GuideButton';
+import { SevaRails } from './SevaRails';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import type { AuthorInfo } from '../sangam/sangamStore';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -322,6 +325,17 @@ export const ClientMarketplace: React.FC = () => {
   const [booking, setBooking] = useState<Gig | null>(null);
   const [bookingRail, setBookingRail] = useState<'rail1' | 'rail2' | null>(null);
   const [detecting, setDetecting] = useState(false);
+  const { firebaseUser } = useAuthWorkspace();
+  const railAuthor: AuthorInfo = {
+    uid: ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string,
+    name: ((firebaseUser as { displayName?: string | null } | null)?.displayName) || 'Sanatani',
+    sanId: '',
+    kind: 'devotee',
+  };
+  const handleRailCategory = (chipId: string) => {
+    if (chipId === 'Kundli') { setCat('all'); setPtype('jyotishi'); }
+    else { setCat(chipId); setPtype('all'); }
+  };
 
   const openBooking = async (g: Gig) => {
     setDetecting(true);
@@ -370,6 +384,9 @@ export const ClientMarketplace: React.FC = () => {
       </div>
       {view === 'bookings' ? <MyBookings /> : (
         <>
+          {/* 🪔 Seva discovery rails — occasion + community notices, never a product grid. */}
+          <SevaRails author={railAuthor} onCategory={handleRailCategory} activeCategory={ptype === 'jyotishi' && cat === 'all' ? 'Kundli' : cat} />
+
           {/* Seva journey planner: occasion-first samskara bundles (counsel + ritual, one view). */}
           <Link
             to="/seva/journeys"

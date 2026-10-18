@@ -25,6 +25,7 @@ import { Footer } from './components/common/Footer';
 import { QuickChandaModal } from './components/common/QuickChandaModal';
 import { MySpaceModal } from './components/common/MySpaceModal';
 import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShell';
+import { SangamProvider } from './sangam/sangamStore';
 import { JyotishWorkspaceShell } from './jyotish/JyotishWorkspaceShell';
 import { Navigate } from 'react-router-dom';
 // Deprecated: PurohitReviewQueue used unsafe direct client writes.
@@ -1040,9 +1041,16 @@ const OrgRegisterRoute: React.FC = () => {
 };
 
 const AppContentRouter: React.FC = () => {
-  const { sessionKind } = useAuthWorkspace();
+  const { sessionKind, firebaseUser } = useAuthWorkspace();
+  const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   if (sessionKind === 'purohit') {
-    return <PurohitWorkspaceShell />;
+    // SangamProvider: the "🪔 Seva Notice" desk tab composes service_cards
+    // into the community feed via useSangam().
+    return (
+      <SangamProvider uid={uid}>
+        <PurohitWorkspaceShell />
+      </SangamProvider>
+    );
   }
   if (sessionKind === 'solo') {
     return <SoloWorkspaceShell />;
