@@ -43,12 +43,14 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { db } from '../../../firebase';
+import { auth, db } from '../../../firebase';
 import {
   ALL_DRAFT_NAMESPACES,
+  SUPPORTED_LANGS,
   countKeysUnder,
   flattenKeys,
   resolveNestedKey,
+  type SupportedLang,
 } from '../../../i18n/translationQuality';
 import {
   applyTranslationOverrides,
@@ -56,13 +58,32 @@ import {
   getOverrideMap,
   loadLanguageDict,
 } from '../../../i18n/translations';
-import { fetchTranslationOverrides } from '../../../i18n/translationOverrides';
+import {
+  extractRegionalOverrides,
+  fetchTranslationOverrides,
+  parseRegionalOverrideKey,
+  regionalOverrideKey,
+} from '../../../i18n/translationOverrides';
 import {
   APPROVED_TERMS,
   DRAFT_LANGS,
   NEVER_TRANSLATE_GUIDANCE,
+  REGIONAL_TERMS,
+  REGIONAL_TERM_KEYS,
+  REGIONS,
+  isDraftLang,
+  regionalTermHint,
   type DraftLang,
 } from '../../../i18n/glossary';
+import {
+  REGION_IDS,
+  effectiveRegionalTerm,
+  isDraftRegionalTerm,
+  type RegionId,
+} from '../../../i18n/regionalTerms';
+import { scoreSuggestion, type TriageResult } from '../../../ai/godmode/triage';
+import { logAiAction } from '../../../ai/audit';
+import { useLanguage } from '../../../context/LanguageContext';
 
 /* ------------------------------------------------------------------ types */
 
@@ -74,11 +95,63 @@ interface Suggestion {
   suggestedText?: string;
   uid?: string;
   sanataniId?: string | null;
+  /** Regional vocabulary context (RegionId), when the suggestion is regional. */
+  region?: string | null;
+  /** Regional term key (e.g. 'temple'), when the suggestion is regional. */
+  termKey?: string | null;
   status?: string;
   createdAt?: { toDate?: () => Date } | null;
 }
 
 type Section = 'dashboard' | 'queue' | 'editor' | 'port';
+
+/** Namespace value that switches the editor/export to the regional layer. */
+const REGIONAL_NS = 'regional';
+
+/**
+ * Trilingual copy for the regional-vocabulary surfaces. The owner
+ * console's older sections are English-hardcoded; the new regional UI
+ * ships EN/HI/BN from day one via the app's safeTranslate.
+ */
+function useRegionalStrings() {
+  const { safeTranslate } = useLanguage();
+  return useMemo(
+    () => ({
+      regionalTitle: safeTranslate(
+        'gm.tr.regionalTitle', 'Regional vocabulary',
+        'আঞ্চলিক শব্দভাণ্ডার', 'क्षेत्रीय शब्दावली'),
+      regionalBlurb: safeTranslate(
+        'gm.tr.regionalBlurb',
+        'Every region keeps its own words for community things — a Tamil devotee reads கோவில், never a northern word in Tamil script. Sacred terms never vary.',
+        'প্রতিটি অঞ্চলের নিজস্ব শব্দ আছে সম্প্রদায়ের বিষয়গুলোর জন্য — তামিল ভক্ত পড়বেন கோவில், তামিল লিপিতে উত্তর ভারতীয় শব্দ নয়। পবিত্র শব্দ কখনো বদলায় না।',
+        'हर क्षेत्र के अपने शब्द हैं सामुदायिक बातों के लिए — तमिल भक्त கோவில் पढ़ेंगे, तमिल लिपि में कोई उत्तर भारतीय शब्द नहीं। पवित्र शब्द कभी नहीं बदलते।'),
+      customized: safeTranslate(
+        'gm.tr.customized', 'customized', 'সংশোধিত', 'अनुकूलित'),
+      draft: safeTranslate(
+        'gm.tr.draft', 'draft', 'খসড়া', 'मसौदा'),
+      verified: safeTranslate(
+        'gm.tr.verified', 'verified', 'যাচাইকৃত', 'सत्यापित'),
+      regionLabel: safeTranslate(
+        'gm.tr.region', 'Region', 'অঞ্চল', 'क्षेत्र'),
+      regionalNs: safeTranslate(
+        'gm.tr.regionalNs', '🗺️ regional — community words by region',
+        '🗺️ আঞ্চলিক — অঞ্চলভেদে সম্প্রদায়ের শব্দ',
+        '🗺️ क्षेत्रीय — क्षेत्र के अनुसार सामुदायिक शब्द'),
+      whyVaries: safeTranslate(
+        'gm.tr.whyVaries', 'Why this word varies',
+        'এই শব্দ কেন বদলায়', 'यह शब्द क्यों बदलता है'),
+      curatorConfidence: safeTranslate(
+        'gm.tr.curatorConfidence', 'Curator confidence',
+        'সংকলকের আস্থা', 'संकलक का विश्वास'),
+      regionalFootnote: safeTranslate(
+        'gm.tr.regionalFootnote',
+        'Overrides land here as you approve suggestions or edit below — live in the app without a redeploy. 🙏',
+        'আপনি পরামর্শ অনুমোদন করলে বা নিচে সম্পাদনা করলে সংশোধন এখানে আসবে — পুনরায় ডিপ্লয় ছাড়াই অ্যাপে সরাসরি। 🙏',
+        'जैसे ही आप सुझाव स्वीकृत करेंगे या नीचे संपादित करेंगे, संशोधन यहाँ दिखेंगे — बिना री-डिप्लॉय के ऐप में सीधे। 🙏'),
+    }),
+    [safeTranslate]
+  );
+}
 
 /* ------------------------------------------------------- quality dashboard */
 
@@ -96,7 +169,8 @@ const Dashboard: React.FC = () => {
     [enDict]
   );
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-5">
+    <>
+      <div className="rounded-2xl border border-stone-200 bg-white p-5">
       <h3 className="flex items-center gap-2 text-[16px] font-bold text-stone-900">
         <Languages className="w-5 h-5 text-amber-700" aria-hidden />
         Translation quality
@@ -139,9 +213,125 @@ const Dashboard: React.FC = () => {
         The bar fills as overrides land — every approved suggestion or direct
         edit moves its key toward verified.
       </p>
+      </div>
+      <RegionalCard />
+    </>
+  );
+};
+
+/* ----------------------------------------------- regional vocabulary card */
+
+const RegionalCard: React.FC = () => {
+  const s = useRegionalStrings();
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      // One public read per language doc; the regional.* keys in each doc's
+      // flat map are the live override layer.
+      const langs = [...new Set(Object.values(REGIONS).map((r) => r.lang))];
+      const out: Record<string, number> = {};
+      await Promise.all(
+        langs.map(async (l) => {
+          try {
+            const snap = await getDoc(doc(db, 'translationOverrides', l));
+            if (!snap.exists()) return;
+            const data = snap.data() as Record<string, unknown>;
+            const flat: Record<string, string> = {};
+            for (const k of Object.keys(data)) {
+              if (typeof data[k] === 'string') flat[k] = data[k] as string;
+            }
+            const byRegion = extractRegionalOverrides(flat);
+            for (const [regionId, terms] of Object.entries(byRegion)) {
+              out[regionId] = (out[regionId] || 0) + Object.keys(terms).length;
+            }
+          } catch {
+            // The card degrades to zeros — never blocks the console.
+          }
+        })
+      );
+      if (alive) {
+        setCounts(out);
+        setLoaded(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const total = REGIONAL_TERM_KEYS.length;
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white p-5 mt-4">
+      <h3 className="flex items-center gap-2 text-[16px] font-bold text-stone-900">
+        <span aria-hidden>🗺️</span> {s.regionalTitle}
+      </h3>
+      <p className="mt-1 text-[13px] text-stone-500 leading-relaxed">{s.regionalBlurb}</p>
+      {!loaded ? (
+        <p className="mt-3 text-[13px] text-stone-500">Loading regional overrides…</p>
+      ) : (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {REGION_IDS.map((id) => {
+            const info = REGIONS[id];
+            const n = counts[id] || 0;
+            // The 7 draft languages' regions start draft; en/hi/bn are verified.
+            const draft = isDraftLang(info.lang);
+            return (
+              <div key={id} className="rounded-xl bg-stone-50 border border-stone-100 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] font-bold text-stone-800">{info.label}</span>
+                  {draft ? (
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                      {s.draft}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">
+                      {s.verified}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-[12px] text-stone-500">{info.blurb}</p>
+                <p className="mt-1 text-[12px] text-stone-500">
+                  <span className="font-bold text-stone-700">
+                    {n} / {total}
+                  </span>{' '}
+                  {s.customized}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="mt-3 text-[12px] text-stone-400">{s.regionalFootnote}</p>
     </div>
   );
 };
+
+/* -------------------------------- AI triage (Phase 0): proposes, owner disposes
+
+   scoreSuggestion (src/ai/godmode/triage.ts) is deterministic and
+   explainable — it only PROPOSES a verdict. The Approve/Reject tap in
+   the queue below stays the owner's, always. */
+
+const TriageBadge: React.FC<{
+  score: number;
+  recommendation: TriageResult['recommendation'];
+}> = ({ score, recommendation }) => (
+  <span
+    title="AI triage score — open ‘AI triage — why?’ below for the reasons. The Approve/Reject tap stays the owner’s."
+    className={`text-[11px] font-black rounded-full px-2 py-0.5 ${
+      recommendation === 'approve'
+        ? 'text-green-700 bg-green-100'
+        : recommendation === 'review'
+          ? 'text-amber-700 bg-amber-100'
+          : 'text-red-700 bg-red-100'
+    }`}
+  >
+    🤖 {score}
+  </span>
+);
 
 /* ------------------------------------------------------- suggestions queue */
 
@@ -149,6 +339,7 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
   const [items, setItems] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const s = useRegionalStrings();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -176,20 +367,47 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
       const batch = writeBatch(db);
       const sugRef = doc(db, 'translationSuggestions', s.id);
       if (approve && s.lang && s.key && s.suggestedText) {
-        // The override goes live for every user without a redeploy.
-        batch.set(
-          doc(db, 'translationOverrides', s.lang),
-          { [s.key]: s.suggestedText },
-          { merge: true }
-        );
-        // …and immediately in this console session too.
-        applyTranslationOverrides(s.lang, { [s.key]: s.suggestedText });
+        // The override is written under the key verbatim. For regional
+        // suggestions the key is already the full
+        // `regional.{region}.{termKey}` — it lands exactly where the
+        // regional layer reads it, live without a redeploy. A malformed
+        // regional key never reaches the override doc (the suggestion is
+        // still marked reviewed so it can't jam the queue).
+        const overrideKey = s.key;
+        const regionalOk =
+          !overrideKey.startsWith('regional.') || parseRegionalOverrideKey(overrideKey);
+        if (regionalOk) {
+          batch.set(
+            doc(db, 'translationOverrides', s.lang),
+            { [overrideKey]: s.suggestedText },
+            { merge: true }
+          );
+          // …and immediately in this console session too.
+          applyTranslationOverrides(s.lang, { [overrideKey]: s.suggestedText });
+        }
       }
       batch.update(sugRef, {
         status: approve ? 'approved' : 'rejected',
         reviewedAt: serverTimestamp(),
       });
       await batch.commit();
+      // AI audit (Phase 0): the triage verdict that informed this decision,
+      // appended to the append-only audit log. Fail-open — never throws.
+      {
+        const t = scoreSuggestion({
+          lang: s.lang || 'en',
+          key: s.key || '',
+          currentText: s.currentText || '',
+          suggestedText: s.suggestedText || '',
+          region: s.region || null,
+          termKey: s.termKey || null,
+        });
+        await logAiAction({
+          actorUid: auth.currentUser?.uid || '',
+          action: approve ? 'translation_triage_approve' : 'translation_triage_reject',
+          detail: `${s.lang}/${s.key} · triage ${t.score}/100 (${t.recommendation}) · ${t.reasons[0] || ''}`,
+        });
+      }
       setItems((prev) => prev.filter((x) => x.id !== s.id));
       onChanged();
     } catch {
@@ -226,11 +444,37 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
         </p>
       ) : (
         <div className="mt-3 space-y-3">
-          {items.map((s) => (
+          {items.map((s) => {
+            // Regional suggestions show WHERE the wording belongs:
+            // prefer the writer's explicit fields, fall back to parsing
+            // the `regional.{region}.{termKey}` key itself.
+            const regional =
+              s.region && s.termKey
+                ? { region: s.region, termKey: s.termKey }
+                : s.key
+                  ? parseRegionalOverrideKey(s.key)
+                  : null;
+            // AI triage (Phase 0): deterministic score + explainable reasons.
+            // The verdict is advisory — the buttons below stay human-only.
+            const t = scoreSuggestion({
+              lang: s.lang || 'en',
+              key: s.key || '',
+              currentText: s.currentText || '',
+              suggestedText: s.suggestedText || '',
+              region: s.region || null,
+              termKey: s.termKey || null,
+            });
+            return (
             <div key={s.id} className="rounded-xl border border-stone-200 p-4">
               <div className="flex flex-wrap items-center gap-2 text-[12px]">
                 <span className="font-black uppercase tracking-widest text-stone-500">{s.lang}</span>
                 <code className="font-mono text-stone-600 bg-stone-100 rounded px-1.5 py-0.5">{s.key}</code>
+                <TriageBadge score={t.score} recommendation={t.recommendation} />
+                {regional && (
+                  <span className="font-bold text-indigo-700 bg-indigo-100 rounded-full px-2 py-0.5">
+                    🗺️ {regional.region} · {regional.termKey}
+                  </span>
+                )}
                 <span className="text-stone-400">
                   from {s.sanataniId || (s.uid ? s.uid.slice(0, 8) + '…' : 'a devotee')}
                 </span>
@@ -245,6 +489,19 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
                   <p className="mt-1 text-[13px] text-stone-800 leading-relaxed">{s.suggestedText}</p>
                 </div>
               </div>
+              <details className="mt-2 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
+                <summary className="cursor-pointer min-h-[44px] flex items-center text-[12px] font-bold text-stone-500">
+                  🤖 AI triage {t.score}/100 · {t.recommendation} — why?
+                </summary>
+                <ul className="pb-1 space-y-1">
+                  {t.reasons.map((r, i) => (
+                    <li key={i} className="text-[12px] text-stone-600">{r}</li>
+                  ))}
+                </ul>
+                <p className="pb-1 text-[11px] text-stone-400">
+                  The AI only proposes — the Approve/Reject tap stays yours. 🙏
+                </p>
+              </details>
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
@@ -252,7 +509,7 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
                   onClick={() => decide(s, true)}
                   className="min-h-[44px] px-5 rounded-xl bg-amber-700 hover:bg-amber-800 disabled:opacity-40 text-amber-50 text-[13px] font-bold flex items-center gap-1.5"
                 >
-                  <CheckCircle2 className="w-4 h-4" aria-hidden /> Approve — goes live
+                  <CheckCircle2 className="w-4 h-4" aria-hidden /> Approve ✓ {t.score} — goes live
                 </button>
                 <button
                   type="button"
@@ -264,7 +521,8 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -274,13 +532,16 @@ const Queue: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
 /* ------------------------------------------------------------ direct editor */
 
 const Editor: React.FC = () => {
-  const [lang, setLang] = useState<DraftLang>('ta');
+  const [lang, setLang] = useState<SupportedLang>('ta');
   const [ns, setNs] = useState<string>(ALL_DRAFT_NAMESPACES[0]);
+  const [region, setRegion] = useState<RegionId>('tamil-nadu');
   const [dictReady, setDictReady] = useState(false);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [, setOvTick] = useState(0);
+  const s = useRegionalStrings();
+  const isRegional = ns === REGIONAL_NS;
 
   useEffect(() => {
     setDictReady(false);
@@ -288,20 +549,37 @@ const Editor: React.FC = () => {
     setSaved({});
     loadLanguageDict(lang).then(() => setDictReady(true)).catch(() => setDictReady(true));
     // Pull this language's override doc so "customized" badges and
-    // effective text are correct on a fresh console load.
+    // effective text are correct on a fresh console load. Regional
+    // overrides live in the same doc under `regional.{region}.{termKey}`.
     fetchTranslationOverrides(lang).then(() => setOvTick((x) => x + 1));
   }, [lang]);
 
+  // Switching region (or layer) re-targets every row's override key —
+  // clear in-progress edits so a Tamil edit can't leak into a Kerala cell.
+  useEffect(() => {
+    setEdits({});
+    setSaved({});
+  }, [region, ns]);
+
   const keys = useMemo(
-    () => flattenKeys(getDict('en')).filter((k) => k === ns || k.startsWith(ns + '.')),
+    () =>
+      isRegional
+        ? REGIONAL_TERM_KEYS
+        : flattenKeys(getDict('en')).filter((k) => k === ns || k.startsWith(ns + '.')),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ns]
+    [ns, isRegional]
   );
   const overrides = getOverrideMap(lang);
   const bundled = getDict(lang);
 
+  /** The override-doc key a row edits: the plain key, or `regional.{region}.{termKey}`. */
+  const editKey = (key: string): string =>
+    isRegional ? regionalOverrideKey(region, key) : key;
+
   const effectiveText = (key: string): string => {
-    if (overrides[key] !== undefined) return overrides[key];
+    const ovKey = editKey(key);
+    if (overrides[ovKey] !== undefined) return overrides[ovKey];
+    if (isRegional) return effectiveRegionalTerm(key, lang, region);
     return resolveNestedKey(bundled, key) || resolveNestedKey(getDict('en'), key) || key;
   };
 
@@ -339,54 +617,98 @@ const Editor: React.FC = () => {
             Language
             <select
               value={lang}
-              onChange={(e) => setLang(e.target.value as DraftLang)}
+              onChange={(e) => setLang(e.target.value as SupportedLang)}
               className="min-h-[44px] rounded-xl border border-stone-200 bg-white px-3 text-[14px] text-stone-800"
             >
-              {DRAFT_LANGS.map((l) => (
+              {(isRegional ? SUPPORTED_LANGS : DRAFT_LANGS).map((l) => (
                 <option key={l} value={l}>{l}</option>
               ))}
             </select>
           </label>
+          {isRegional && (
+            <label className="text-[12px] font-bold text-stone-500 flex items-center gap-2">
+              {s.regionLabel}
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value as RegionId)}
+                className="min-h-[44px] rounded-xl border border-stone-200 bg-white px-3 text-[14px] text-stone-800"
+              >
+                {REGION_IDS.map((id) => (
+                  <option key={id} value={id}>{REGIONS[id].label}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="text-[12px] font-bold text-stone-500 flex items-center gap-2">
             Namespace
             <select
               value={ns}
-              onChange={(e) => setNs(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setNs(v);
+                // The guide namespaces only exist for the draft languages —
+                // snap back when leaving the regional layer.
+                if (v !== REGIONAL_NS && !isDraftLang(lang)) setLang('ta');
+              }}
               className="min-h-[44px] rounded-xl border border-stone-200 bg-white px-3 text-[14px] text-stone-800 font-mono"
             >
+              <option value={REGIONAL_NS}>{s.regionalNs}</option>
               {ALL_DRAFT_NAMESPACES.map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
           </label>
         </div>
+        {isRegional && (
+          <p className="mt-2 text-[13px] text-stone-500">
+            {REGIONS[region].label} · {REGIONS[region].blurb}
+          </p>
+        )}
 
         {!dictReady ? (
           <p className="mt-4 text-[13px] text-stone-500">Loading dictionary…</p>
         ) : (
           <div className="mt-4 space-y-3">
-            {keys.map((key) => (
-              <div key={key} className="rounded-xl border border-stone-200 p-3">
+            {keys.map((key) => {
+              const ovKey = editKey(key);
+              const hint = isRegional ? regionalTermHint(key) : null;
+              const draftTerm = isRegional && isDraftRegionalTerm(lang, key);
+              return (
+              <div key={ovKey} className="rounded-xl border border-stone-200 p-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <code className="font-mono text-[12px] text-stone-600 bg-stone-100 rounded px-1.5 py-0.5">{key}</code>
-                  {overrides[key] !== undefined ? (
-                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✏️ customized</span>
+                  <code className="font-mono text-[12px] text-stone-600 bg-stone-100 rounded px-1.5 py-0.5">
+                    {isRegional ? `${region} · ${key}` : key}
+                  </code>
+                  {overrides[ovKey] !== undefined ? (
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">✏️ {s.customized}</span>
                   ) : (
                     <span className="text-[11px] font-bold text-stone-400 bg-stone-100 rounded-full px-2 py-0.5">bundled</span>
                   )}
-                  {saved[key] && (
+                  {draftTerm && (
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">{s.draft}</span>
+                  )}
+                  {saved[ovKey] && (
                     <span className="text-[11px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">saved ✓</span>
                   )}
                 </div>
-                <p className="mt-1.5 text-[12px] text-stone-400">English: {resolveNestedKey(getDict('en'), key)}</p>
+                <p className="mt-1.5 text-[12px] text-stone-400">
+                  English: {isRegional ? REGIONAL_TERMS[key].en : resolveNestedKey(getDict('en'), key)}
+                </p>
+                {hint && hint.note && (
+                  <p className="mt-1 text-[12px] text-stone-500 leading-relaxed">
+                    <span className="font-bold text-stone-600">💡 {s.whyVaries}:</span> {hint.note}{' '}
+                    <span className="text-stone-400">· {s.curatorConfidence}: {hint.confidence}</span>
+                  </p>
+                )}
                 <textarea
                   rows={2}
-                  value={edits[key] !== undefined ? edits[key] : effectiveText(key)}
-                  onChange={(e) => setEdits((p) => ({ ...p, [key]: e.target.value }))}
+                  value={edits[ovKey] !== undefined ? edits[ovKey] : effectiveText(key)}
+                  onChange={(e) => setEdits((p) => ({ ...p, [ovKey]: e.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-stone-200 px-3 py-2 text-[14px] text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
               </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               onClick={saveAll}
@@ -415,7 +737,9 @@ const Editor: React.FC = () => {
             <div key={t.concept} className="text-[12px] leading-relaxed">
               <span className="font-bold text-stone-700">{t.concept}</span>
               <span className="text-stone-500"> → </span>
-              <span className="text-stone-800">{t.forms[lang]}</span>
+              {/* The aside only shows draft-language forms; the regional
+                  layer carries its own per-term hints inline. */}
+              <span className="text-stone-800">{t.forms[lang as DraftLang] || t.en}</span>
             </div>
           ))}
         </div>
@@ -430,20 +754,49 @@ const Editor: React.FC = () => {
 /* ---------------------------------------------------------- export / import */
 
 const Port: React.FC = () => {
-  const [lang, setLang] = useState<DraftLang>('ta');
+  const [lang, setLang] = useState<SupportedLang>('ta');
   const [ns, setNs] = useState<string>(ALL_DRAFT_NAMESPACES[0]);
   const [importText, setImportText] = useState('');
   const [result, setResult] = useState<string>('');
   const [busy, setBusy] = useState(false);
   const [, setOvTick] = useState(0);
+  const s = useRegionalStrings();
+  const isRegional = ns === REGIONAL_NS;
 
   useEffect(() => {
     // Export should reflect the live override doc, not just this session.
     fetchTranslationOverrides(lang).then(() => setOvTick((x) => x + 1));
   }, [lang]);
 
+  const downloadJson = (fileName: string, obj: Record<string, string>) => {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const doExport = () => {
     const overrides = getOverrideMap(lang);
+    if (isRegional) {
+      // Regional vocabulary: every region × term as EFFECTIVE values (live
+      // override over the curated starter). The `regional.*` keys already in
+      // the flat map are the override layer — nothing is filtered out.
+      const out: Record<string, string> = {};
+      for (const rid of REGION_IDS) {
+        for (const tk of REGIONAL_TERM_KEYS) {
+          const k = regionalOverrideKey(rid, tk);
+          out[k] = overrides[k] !== undefined ? overrides[k] : effectiveRegionalTerm(tk, lang, rid);
+        }
+      }
+      downloadJson(`sanatani-${lang}-regional.json`, out);
+      setResult(
+        `Exported ${Object.keys(out).length} regional keys for ${lang} — overrides over curated starters. Send the file to your reviewer. 🙏`
+      );
+      return;
+    }
     const bundled = getDict(lang);
     const keys = flattenKeys(getDict('en')).filter((k) => k === ns || k.startsWith(ns + '.'));
     const out: Record<string, string> = {};
@@ -453,13 +806,7 @@ const Port: React.FC = () => {
           ? overrides[k]
           : resolveNestedKey(bundled, k) || resolveNestedKey(getDict('en'), k) || k;
     }
-    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sanatani-${lang}-${ns.replace(/\./g, '-')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadJson(`sanatani-${lang}-${ns.replace(/\./g, '-')}.json`, out);
     setResult(`Exported ${keys.length} keys for ${lang} / ${ns}. Send the file to your reviewer. 🙏`);
   };
 
@@ -476,13 +823,16 @@ const Port: React.FC = () => {
       setResult('Expected a JSON object of key → text.');
       return;
     }
-    // Validate: every key must exist in the bundled schema.
+    // Validate: every key must exist in the bundled schema — or be a
+    // well-formed regional key (`regional.{region}.{termKey}`), which the
+    // regional layer reads verbatim from the same override doc.
     const validKeys = new Set(flattenKeys(getDict('en')));
     const payload: Record<string, string> = {};
     const skipped: string[] = [];
     for (const k of Object.keys(parsed as Record<string, unknown>)) {
       const v = (parsed as Record<string, unknown>)[k];
-      if (!validKeys.has(k)) {
+      const isRegionalKey = parseRegionalOverrideKey(k) !== null;
+      if (!validKeys.has(k) && !isRegionalKey) {
         skipped.push(k);
         continue;
       }
@@ -523,10 +873,10 @@ const Port: React.FC = () => {
       <div className="mt-3 flex flex-wrap gap-2 items-center">
         <select
           value={lang}
-          onChange={(e) => setLang(e.target.value as DraftLang)}
+          onChange={(e) => setLang(e.target.value as SupportedLang)}
           className="min-h-[44px] rounded-xl border border-stone-200 bg-white px-3 text-[14px]"
         >
-          {DRAFT_LANGS.map((l) => (
+          {SUPPORTED_LANGS.map((l) => (
             <option key={l} value={l}>{l}</option>
           ))}
         </select>
@@ -535,6 +885,7 @@ const Port: React.FC = () => {
           onChange={(e) => setNs(e.target.value)}
           className="min-h-[44px] rounded-xl border border-stone-200 bg-white px-3 text-[14px] font-mono"
         >
+          <option value={REGIONAL_NS}>{s.regionalNs}</option>
           {ALL_DRAFT_NAMESPACES.map((n) => (
             <option key={n} value={n}>{n}</option>
           ))}
