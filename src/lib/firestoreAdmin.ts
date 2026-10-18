@@ -1198,14 +1198,14 @@ const pmLines = (v: unknown): string[] =>
       ? v.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 20)
       : [];
 
-async function paymentMethodsList(): Promise<NativeResult> {
+export async function paymentMethodsList(): Promise<NativeResult> {
   requireOwner();
   const snap = await getDocs(collection(db, 'paymentMethods'));
   const methods = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
   return { ok: true, data: { ok: true, methods } };
 }
 
-async function paymentMethodSave(id: string, patch: Record<string, any>): Promise<NativeResult> {
+export async function paymentMethodSave(id: string, patch: Record<string, any>): Promise<NativeResult> {
   const uid = requireOwner();
   if (!/^[a-z0-9_]{1,40}$/.test(id)) {
     return { ok: false, error: 'Invalid method id.', code: 'BAD_KEY' };
@@ -1221,6 +1221,18 @@ async function paymentMethodSave(id: string, patch: Record<string, any>): Promis
   if (patch.instructionsBn !== undefined) clean.instructionsBn = pmLines(patch.instructionsBn);
   await setDoc(doc(db, 'paymentMethods', id), clean, { merge: true });
   await writeAudit('settings.paymentMethod.save', { id }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+/** Delete a payment method (owner-only). Id must match the method key format. */
+export async function paymentMethodDelete(id: string): Promise<NativeResult> {
+  requireOwner();
+  if (!/^[a-z0-9_]{1,40}$/.test(id)) {
+    return { ok: false, error: 'Invalid method id.', code: 'BAD_KEY' };
+  }
+  const { deleteDoc } = await import('firebase/firestore');
+  await deleteDoc(doc(db, 'paymentMethods', id));
+  await writeAudit('settings.paymentMethod.delete', { id }, 'warn');
   return { ok: true, data: { ok: true } };
 }
 
