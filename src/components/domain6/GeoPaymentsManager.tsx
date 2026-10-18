@@ -21,7 +21,7 @@ import {
 import { useToast } from '../../context/ToastContext';
 import * as firestoreAdmin from '../../lib/firestoreAdmin';
 import {
-  getGeoPaymentConfig, DEFAULT_GEO_CONFIG,
+  getGeoPaymentConfig, clearGeoConfigCache, DEFAULT_GEO_CONFIG,
   type RegionConfig, type GeoPaymentConfig,
 } from '../../lib/geoDetect';
 import { getPaymentMethods, clearPaymentMethodsCache, type PaymentMethodDoc, type PaymentMethodType } from '../../lib/paymentMethods';
@@ -304,10 +304,11 @@ export const GeoPaymentsManager: React.FC = () => {
 
   const saveConfig = async (next: GeoPaymentConfig) => {
     setWorking(true);
-    const r = await (firestoreAdmin as any).geoConfigSave(next);
+    const r = await firestoreAdmin.geoConfigSave(next);
     setWorking(false);
     if (r?.ok) {
       setConfig(next);
+      clearGeoConfigCache();
       clearPaymentMethodsCache();
       showToast('Region configuration saved.', 'success');
       return true;
