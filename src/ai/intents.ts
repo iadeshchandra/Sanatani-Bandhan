@@ -28,6 +28,7 @@ export const INTENTS: IntentDef[] = [
   { id: 'booking_help', description: 'How to book a Purohit or Jyotishi on Seva Pro' },
   { id: 'language_help', description: 'How to change the app language' },
   { id: 'sos_help', description: 'Explains the SOS flow (does NOT trigger SOS)' },
+  { id: 'voice_upgrade', description: 'Get the warmer on-device AI voice (Settings card)' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
 ];
@@ -120,6 +121,16 @@ const SOS_HELP_KW = [
   'এসওএস', 'एसओएस', 'sos feature', 'about sos',
 ];
 
+const VOICE_UPGRADE_KW = [
+  'warmer voice', 'warm voice', 'warm up your voice', 'on-device ai',
+  'on device ai', 'offline ai', 'ai voice', 'download the ai',
+  'ai download', 'download ai voice', 'voice download', 'voice upgrade',
+  'upgrade the assistant', 'smarter assistant', 'ai ta download korte chai',
+  'ভয়েস ডাউনলোড', 'এআই ডাউনলোড', 'ভয়েস ডাউনলোড করতে চাই', 'উষ্ণ কণ্ঠ',
+  'आवाज़ डाउनलोड', 'एआई डाउनलोड', 'उष्ण वाणी', 'ai download karo',
+  'aawaz download',
+];
+
 const NAVIGATE_KW = [
   'open', 'go to', 'take me to', 'show me', 'navigate', 'launch',
   'खोलो', 'खोलें', 'जाओ', 'খোলো', 'খুলুন', 'যাও',
@@ -177,6 +188,7 @@ const RULES: Rule[] = [
   { intent: 'booking_help', confidence: 'high', keywords: BOOKING_VERB_KW },
   { intent: 'language_help', confidence: 'high', keywords: LANGUAGE_KW },
   { intent: 'sos_help', confidence: 'high', keywords: SOS_HELP_KW },
+  { intent: 'voice_upgrade', confidence: 'high', keywords: VOICE_UPGRADE_KW },
   { intent: 'navigate', confidence: 'medium', keywords: NAVIGATE_KW },
   { intent: 'howto', confidence: 'medium', keywords: HOWTO_KW },
   { intent: 'greeting', confidence: 'low', keywords: GREETING_KW },

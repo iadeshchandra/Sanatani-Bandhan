@@ -19,6 +19,7 @@ const CAPABILITY_LABELS: Partial<Record<IntentId, string>> = {
   howto: 'guides for every part of the app',
   navigate: 'taking you around the app',
   language_help: 'changing language',
+  voice_upgrade: 'a warmer on-device voice',
 };
 
 export function greetingTask(ctx: TaskCtx): TaskOutcome {

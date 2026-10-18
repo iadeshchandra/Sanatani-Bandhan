@@ -15,6 +15,7 @@ import { sadhanaSummaryTask } from './sadhana_summary';
 import { bookingHelpTask } from './booking_help';
 import { languageHelpTask } from './language_help';
 import { sosHelpTask } from './sos_help';
+import { voiceUpgradeTask } from './voice_upgrade';
 import { greetingTask } from './greeting';
 import { fallbackUnknownTask } from './fallback_unknown';
 
@@ -28,6 +29,7 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   booking_help: bookingHelpTask,
   language_help: languageHelpTask,
   sos_help: sosHelpTask,
+  voice_upgrade: voiceUpgradeTask,
   greeting: greetingTask,
   fallback_unknown: fallbackUnknownTask,
 };

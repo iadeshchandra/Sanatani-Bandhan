@@ -34,6 +34,7 @@ export const ASSISTANT_TEMPLATE_KEYS: string[] = [
   'assistant.booking_help',
   'assistant.language_help',
   'assistant.sos_help',
+  'assistant.voice_upgrade',
   'assistant.greeting',
   'assistant.fallback_unknown',
   'assistant.crisis',
@@ -301,6 +302,24 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
     },
   },
 
+  /* ---------------- voice_upgrade ---------------- */
+  voice_upgrade: {
+    default: {
+      en: (p, c) =>
+        `🙏 Ah, you'd like a warmer voice! I can live **entirely on your phone** — no internet needed after, nothing ever leaves your device.\\n\\n` +
+        `It's a ${p['size']} download (WiFi is kinder), and you can remove it anytime. Shall I take you to it?\\n\\n` +
+        `**Profile → 🙏 On-device AI voice** — it's always there, even if you change your mind later. 🌼`,
+      hi: (p, c) =>
+        `🙏 आह, आपको उष्ण वाणी चाहिए! मैं **पूरी तरह आपके फ़ोन में** रह सकता हूँ — बाद में इंटरनेट की ज़रूरत नहीं, कुछ भी डिवाइस नहीं छोड़ता।\\n\\n` +
+        `यह ${p['size']} का डाउनलोड है (WiFi बेहतर), और आप इसे कभी भी हटा सकते हैं। क्या आपको वहाँ ले चलूँ?\\n\\n` +
+        `**प्रोफ़ाइल → 🙏 On-device AI voice** — यह हमेशा वहीं रहेगा, बाद में मन बदले तब भी। 🌼`,
+      bn: (p, c) =>
+        `🙏 আহ, আপনি উষ্ণতর কণ্ঠ চান! আমি **সম্পূর্ণ আপনার ফোনেই** থাকতে পারি — পরে ইন্টারনেট দরকার নেই, কিছুই ডিভাইস ছাড়ে না।\\n\\n` +
+        `এটি ${p['size']} ডাউনলোড (WiFi ভালো), এবং আপনি যেকোনো সময় মুছে ফেলতে পারেন। আপনাকে সেখানে নিয়ে যাব?\\n\\n` +
+        `**প্রোফাইল → 🙏 On-device AI voice** — এটি সবসময় সেখানেই থাকবে, পরে মন বদলালেও। 🌼`,
+    },
+  },
+
   /* ---------------- fallback_unknown ---------------- */
   fallback_unknown: {
     unknown: {
@@ -439,6 +458,11 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['Open Home', 'What is Suchana?', 'Namaste'],
     hi: ['होम खोलो', 'सूचना क्या है?', 'नमस्ते'],
     bn: ['হোম খোলো', 'সূচনা কী?', 'নমস্কার'],
+  },
+  voice_upgrade: {
+    en: ['Where is the voice setting?', 'How big is the download?', 'Namaste'],
+    hi: ['वॉयस सेटिंग कहाँ है?', 'डाउनलोड कितना बड़ा है?', 'नमस्ते'],
+    bn: ['ভয়েস সেটিং কোথায়?', 'ডাউনলোড কত বড়?', 'নমস্কার'],
   },
   greeting: {
     en: ["Today's tithi?", 'Next festival?', 'How do I give dana?'],

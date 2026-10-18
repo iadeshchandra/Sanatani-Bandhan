@@ -6,10 +6,16 @@
  * Pipeline (deterministic, no generative model anywhere):
  *   1. Crisis-keyword scan → { type: 'sos' } immediately, no chit-chat.
  *   2. Intent router (swappable via IntentRouter — default: keyword router).
+ *      Phase 1: when the on-device voice is warm, a high-confidence LLM
+ *      mapping may refine the route; otherwise the deterministic result
+ *      stands byte for byte.
  *   3. Role-capability gate (canOffer) → warm 'role_denied' when the role
  *      may not be offered this intent/guide.
  *   4. Executor (pure, user-scoped reads only).
  *   5. Template renderer (Sanatani vibe, lang → en fallback, never blank).
+ *   6. Phase 1 (optional): the on-device voice may warm the prose of
+ *      `text` only — never `type`, `action`, or `suggestions`. Any
+ *      failure returns the deterministic answer untouched.
  *
  * The "100% accurate" guarantee: every fact in the response comes from an
  * executor reading app data. When nothing can answer, the assistant says so
@@ -37,6 +43,47 @@ function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string)
   if (intent === 'howto' && !hasAction) return 'clarify';
   if (hasAction) return 'action';
   return 'answer';
+}
+
+/**
+ * Phase-1 voice routing refinement. Deterministic result is computed
+ * FIRST and always stands unless the on-device voice is warm AND maps
+ * with high confidence. Injected routers (tests) bypass the voice
+ * entirely — their result is used verbatim.
+ */
+async function routeInput(
+  text: string,
+  lang: string,
+  router: IntentRouter
+): Promise<RouteResult> {
+  const base = router.route(text, lang);
+  if (router !== deterministicRouter) return base;
+  try {
+    const mod = await import('./voice/llmRouter');
+    const refined = await mod.tryLlmRoute(text, lang);
+    if (refined) return refined;
+  } catch {
+    /* voice absent or hiccup — deterministic stands */
+  }
+  return base;
+}
+
+/**
+ * Phase-1 voice prose enhancement. The deterministic response is fully
+ * built FIRST; the LLM may only warm its `text`. Never throws — any
+ * failure returns the base response untouched.
+ */
+async function maybeEnhanceWithVoice(
+  base: AssistantResponse,
+  lang: string,
+  region: string
+): Promise<AssistantResponse> {
+  try {
+    const mod = await import('./voice/enhance');
+    return await mod.enhanceWithVoice(base, lang, region);
+  } catch {
+    return base; // voice module missing/failed — Phase 0 stands alone
+  }
 }
 
 export async function ask(
@@ -69,8 +116,9 @@ export async function ask(
     };
   }
 
-  // 2. Route.
-  const route: RouteResult = router.route(text, lang);
+  // 2. Route — deterministic first; the on-device voice may refine the
+  //    mapping when warm and highly confident (see routeInput).
+  const route: RouteResult = await routeInput(text, lang, router);
 
   // 3. Role-capability gate.
   const guideId = route.slots['guideId'];
@@ -109,10 +157,14 @@ export async function ask(
   );
   const suggestions = outcome.suggestions ?? suggestionsFor(route.intent, lang);
 
-  return {
+  // 6. Optional Phase-1 voice enhancement — the deterministic answer above
+  //    is complete and correct; the LLM may only warm its prose, never its
+  //    type, action, or suggestions. Fail-open to the deterministic text.
+  const base: AssistantResponse = {
     type: responseTypeFor(route.intent, !!outcome.action, outcome.variant),
     text: rendered,
     action: outcome.action,
     suggestions,
   };
+  return maybeEnhanceWithVoice(base, lang, region);
 }
