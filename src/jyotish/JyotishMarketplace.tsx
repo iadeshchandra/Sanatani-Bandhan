@@ -9,6 +9,7 @@
  * call/video are scheduled session links (honest $0 scope).
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { JyotishProvider, useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -143,7 +144,16 @@ const JyotishCard: React.FC<{
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-stone-900">{j.displayName}</span>
+            {j.uid ? (
+              <Link
+                to={`/seva/pro/${j.uid}`}
+                className="font-bold text-stone-900 hover:text-indigo-700 hover:underline"
+              >
+                {j.displayName}
+              </Link>
+            ) : (
+              <span className="font-bold text-stone-900">{j.displayName}</span>
+            )}
             <VerificationBadge tier={j.verificationTier} subject="Jyotishi" size="xs" />
           </div>
           <p className="text-xs text-stone-500 font-mono mt-0.5">{j.id} · {j.city}</p>

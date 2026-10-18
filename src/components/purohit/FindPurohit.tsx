@@ -5,6 +5,7 @@
  * range, and endorsements. Read-only here; booking happens via gig posting.
  */
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePurohit } from '../../context/PurohitContext';
 import { PurohitIdentity, RITUAL_TYPES, PUROHIT_TIER_META } from '../../types/purohit';
 import { Card, SectionTitle, EmptyState, Stars, TierBadge } from './ui';
@@ -160,6 +161,14 @@ export const FindPurohit: React.FC = () => {
                     To book {p.displayName.split(' ')[0]}, post your requirement — they'll see it in
                     their gig feed and can accept directly.
                   </p>
+                  {p.uid && (
+                    <Link
+                      to={`/seva/pro/${p.uid}`}
+                      className="inline-flex items-center gap-1 text-xs font-black text-indigo-700 hover:underline min-h-[44px] py-1"
+                    >
+                      View {p.displayName.split(' ')[0]}'s full profile with reviews →
+                    </Link>
+                  )}
                 </div>
               )}
             </Card>
