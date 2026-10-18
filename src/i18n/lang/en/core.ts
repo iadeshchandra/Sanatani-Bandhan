@@ -363,6 +363,14 @@ export const core: CoreFragment = {
         s2t: "Sacred and private",
         s2b: "Streams use YouTube's privacy-respecting embed. Purohit live sessions need everyone's consent first — and shraddha ceremonies stay private by default. 🙏",
       },
+      watch: {
+        title: "Sangam Watch",
+        pill: "All video in one place — live darshans, shared videos, seva demos 📺",
+        s1t: "Live darshans appear at the top",
+        s1b: "When a temple goes live, it appears in the 🔴 Live Now rail. Tap to join the darshan — no account needed, just presence. 🙏",
+        s2t: "Share videos that uplift",
+        s2b: "Bhajans, discourses, yatra moments — share YouTube videos that nourish the sangha. Tap to play, never auto-plays with sound. 🪔",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",

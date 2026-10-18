@@ -398,6 +398,18 @@ export interface TranslationSchema {
       s2t: string;
       s2b: string;
     };
+    /**
+     * Sangam Watch guide. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    watch?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+      s2t: string;
+      s2b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;

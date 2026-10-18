@@ -1274,6 +1274,33 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || isOwner();
     }
 
+    // Sangam Watch — unified video feed. Shared videos are community
+    // content: public read, authenticated create (schema-pinned), no edits
+    // (delete + re-share). Deletes are author-or-admin; reports are a
+    // counter any logged-in user may increment once per client.
+    match /sangamVideos/{videoId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('youtubeId', '') is string
+        && request.resource.data.get('youtubeId', '').size() == 11
+        && request.resource.data.get('title', '') is string
+        && request.resource.data.get('title', '').size() >= 1
+        && request.resource.data.get('title', '').size() <= 120
+        && request.resource.data.get('sharedBy', '') == request.auth.uid
+        && request.resource.data.get('category', '') in ['shared', 'seva_demo', 'live_event']
+        && request.resource.data.keys().hasOnly([
+          'youtubeId', 'title', 'thumbnailUrl', 'duration', 'sharedBy',
+          'sharedByName', 'sharedBySanId', 'caption', 'category',
+          'providerUid', 'providerTier', 'createdAt', 'reportCount',
+          'serverCreatedAt'
+        ]);
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
+        && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1;
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('sharedBy', '') == request.auth.uid);
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&

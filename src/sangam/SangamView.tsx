@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { SangamProvider, useSangam, type AuthorInfo } from './sangamStore';
 import { useSolo } from '../solo/SoloContext';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
@@ -12,6 +12,9 @@ import { EventsTab } from './EventsTab';
 import { PagesTab } from './PagesTab';
 import { VerificationBadge, useLocaleText, T } from './ui';
 
+// Sangam Watch — lazy-loaded (video UI is heavy, loaded on demand).
+const WatchTab = lazy(() => import('./watch/WatchTab').then((m) => ({ default: m.WatchTab })));
+
 /* Sangam — the Sanatani social layer (personal view).
  * =====================================================================
  * Rendered ONLY inside the Solo (personal) shell — session-kind
@@ -24,7 +27,7 @@ import { VerificationBadge, useLocaleText, T } from './ui';
  * plainly. Chronological feed, honest counts.
  */
 
-type SangamTab = 'feed' | 'circles' | 'seva' | 'events' | 'pages';
+type SangamTab = 'feed' | 'watch' | 'circles' | 'seva' | 'events' | 'pages';
 
 const InnerSangam: React.FC = () => {
   const { profile } = useSolo();
@@ -75,6 +78,7 @@ const InnerSangam: React.FC = () => {
 
   const TABS: Array<{ id: SangamTab; en: string; bn: string; hi: string; icon: string }> = [
     { id: 'feed', en: 'Feed', bn: 'ফিড', hi: 'फ़ीड', icon: '🪔' },
+    { id: 'watch', en: 'Watch', bn: 'দেখুন', hi: 'देखें', icon: '📺' },
     { id: 'circles', en: 'Circles', bn: 'বৃত্ত', hi: 'मंडल', icon: '⭕' },
     { id: 'seva', en: 'Community Board', bn: 'কমিউনিটি বোর্ড', hi: 'सामुदायिक बोर्ड', icon: '🤲' },
     { id: 'events', en: 'Events', bn: 'অনুষ্ঠান', hi: 'आयोजन', icon: '📅' },
@@ -150,6 +154,11 @@ const InnerSangam: React.FC = () => {
       </nav>
 
       {tab === 'feed' && <FeedTab author={author} pageContext={postingAs} />}
+      {tab === 'watch' && (
+        <Suspense fallback={<div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>}>
+          <WatchTab author={author} />
+        </Suspense>
+      )}
       {tab === 'circles' && <CirclesTab author={author} />}
       {tab === 'seva' && <SevaBoardTab author={author} />}
       {tab === 'events' && <EventsTab author={author} />}
