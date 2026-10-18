@@ -1905,14 +1905,16 @@ service cloud.firestore {
       let kind = request.resource.data.get('kind', '');
       let authorKind = request.resource.data.get('authorKind', '');
       let card = request.resource.data.get('serviceCard', {});
-      if (kind != 'service_card') { return true; }
-      return (authorKind == 'purohit' || authorKind == 'jyotish')
-        && card != null
-        && card.get('devotionalText', '').size() >= 30
-        && card.get('serviceLine', '') != ''
-        && card.get('dakshina', 0) > 0
-        && card.get('providerUid', '') == request.auth.uid
-        && card.get('providerTier', '') in ['REGISTERED', 'VERIFIED', 'TRUSTED'];
+      // NOTE: Firestore Rules functions have no imperative `if` — the
+      // early-return is expressed as a ternary/or-chain instead.
+      return kind != 'service_card'
+        || ((authorKind == 'purohit' || authorKind == 'jyotish')
+          && card != null
+          && card.get('devotionalText', '').size() >= 30
+          && card.get('serviceLine', '') != ''
+          && card.get('dakshina', 0) > 0
+          && card.get('providerUid', '') == request.auth.uid
+          && card.get('providerTier', '') in ['REGISTERED', 'VERIFIED', 'TRUSTED']);
     }
 
     // Official page posts: only a trustee of that org may post as the page.
