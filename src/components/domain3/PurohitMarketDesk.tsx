@@ -254,12 +254,12 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
     }
   };
 
-  // 🤝 Book Gig (Checkout with Availability Engine & Escrow Sync)
+  // 🤝 Book Gig (Checkout with Availability Engine & Dakshina Trust Sync)
   const handleBookGigSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGig) return;
-    if (!bookingForm.yajamanaName.trim() || !bookingForm.gotra.trim() || !bookingForm.ceremonyDate) {
-      return showToast(safeTranslate('err_all_fields_req', 'Yajamana Name, Gotra, and Date are required.', 'যজমানের নাম, গোত্র এবং তারিখ আবশ্যক।', 'यजमान का नाम, गोत्र और तिथि आवश्यक हैं।'), "error");
+    if (!bookingForm.yajamanaName.trim() || !bookingForm.ceremonyDate) {
+      return showToast(safeTranslate('err_all_fields_req', 'Yajamana Name and Date are required.', 'যজমানের নাম এবং তারিখ আবশ্যক।', 'यजमान का नाम और तिथि आवश्यक हैं।'), "error");
     }
     
     // Availability Engine Overlap Check
@@ -271,7 +271,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
     );
 
     if (isOverlapping) {
-      return showToast("Availability Matrix Error: This Purohit is already booked at that specific date and time. Please choose another time.", "error");
+      return showToast(safeTranslate('purohit_overlap_err', 'Purohitji is already booked at that time. Please choose another auspicious moment. 🙏', 'পুরোহিতজি সেই সময়ে ইতিমধ্যে বুক আছেন। অনুগ্রহ করে অন্য শুভ মুহূর্ত বেছে নিন। 🙏', 'पुरोहितजी उस समय पहले से बुक हैं। कृपया कोई अन्य शुभ मुहूर्त चुनें। 🙏'), "error");
     }
 
     if (!checkGate('devotees', 9999)) return;
@@ -317,20 +317,20 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
         purohitName: selectedGig.purohitName
       };
 
-      // Escrow Treasury Ledger Link - Holding Dakshina
+      // Dakshina Trust ledger link - holding the Dakshina safely
       const transId = doc(collection(db, `communities/${session.communityId}/logs/Donation`)).id;
       updates[`communities/${session.communityId}/logs/Donation/${transId}`] = {
         id: transId,
-        name: `${bookingForm.yajamanaName.trim()} [Dakshina Escrow - Held]`,
+        name: `${bookingForm.yajamanaName.trim()} [Dakshina Held in Trust]`,
         amount: selectedGig.dakshinaFee,
-        note: `Escrow Hold for Contract: ${conKey} (${selectedGig.title})`,
-        collector: `System Escrow`,
+        note: `Dakshina held in trust for Contract: ${conKey} (${selectedGig.title})`,
+        collector: `Dakshina Trust`,
         timestamp: timestamp,
         category: 'Escrow',
         role: session.role || 'MEMBER'
       };
 
-      await executeSafeUpdate(updates, 'Service successfully booked! Dakshina held in secure Escrow.');
+      await executeSafeUpdate(updates, safeTranslate('purohit_booked_toast', 'Service successfully booked! Your Dakshina is held safely until the ritual is complete. 🙏', 'সেবা সফলভাবে বুক হয়েছে! অনুষ্ঠান সম্পূর্ণ না হওয়া পর্যন্ত আপনার দক্ষিণা নিরাপদে রাখা থাকবে। 🙏', 'सेवा सफलतापूर्वक बुक हो गई! अनुष्ठान पूर्ण होने तक आपकी दक्षिणा सुरक्षित रखी जाएगी। 🙏'));
       logAudit("MARKETPLACE_ORDER", `Contracted service '${selectedGig.title}' with ${selectedGig.purohitName}`);
       
       addNotification({
@@ -358,20 +358,20 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
       // Update Contract Status
       updates[`communities/${session.communityId}/purohit_contracts/${con.contractId}/status`] = 'COMPLETED';
       
-      // Release Escrow -> Creates a payout record for the Purohit
+      // Release Dakshina -> Creates a payout record for the Purohit
       const transId = doc(collection(db, `communities/${session.communityId}/logs/Donation`)).id;
       updates[`communities/${session.communityId}/logs/Donation/${transId}`] = {
         id: transId,
-        name: `${con.purohitName} [Escrow Released]`,
+        name: `${con.purohitName} [Dakshina Released]`,
         amount: -Math.abs(con.paidDakshina), // Negative amount as it leaves treasury to purohit
-        note: `Escrow Released for Completed Contract: ${con.contractId}`,
-        collector: `System Payout`,
+        note: `Dakshina released for Completed Contract: ${con.contractId}`,
+        collector: `Dakshina Trust`,
         timestamp: Date.now(),
         category: 'Escrow Payout',
         role: session.role || 'MEMBER'
       };
 
-      await executeSafeUpdate(updates, 'Order marked as completed and Dakshina Escrow released!');
+      await executeSafeUpdate(updates, safeTranslate('purohit_released_toast', 'Order marked as completed and Dakshina released to Purohitji! 🙏', 'অর্ডার সম্পূর্ণ হিসেবে চিহ্নিত এবং দক্ষিণা পুরোহিতজিকে প্রদান করা হয়েছে! 🙏', 'ऑर्डर पूर्ण चिह्नित हुआ और दक्षिणा पुरोहितजी को प्रदान की गई! 🙏'));
     } catch (e: any) {
       showToast(e.message, 'error');
     } finally {
@@ -421,7 +421,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
             Find the Perfect Vedic Scholar for your Rituals
           </h2>
           <p className="text-sm font-medium text-temple-300 mb-8 max-w-xl leading-relaxed">
-            Hire verified experts with transparent ratings, upfront Dakshina, Escrow protection, and guaranteed Sanatani authenticity.
+            Hire verified experts with transparent ratings, {safeTranslate('purohit_hero_trust', 'upfront Dakshina held in trust', 'বিশ্বাসে রাখা অগ্রিম দক্ষিণা', 'विश्वास में रखी अग्रिम दक्षिणा')} and guaranteed Sanatani authenticity.
           </p>
 
           <div className="relative w-full max-w-2xl flex items-center bg-white rounded-2xl p-1 shadow-2xl">
@@ -541,7 +541,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                     <div className="mt-auto border-t border-temple-100 pt-4 flex justify-between items-center bg-white">
                       <Heart size={18} className="text-temple-300 hover:text-red-500 transition-colors"/>
                       <div className="text-right">
-                        <p className="text-[9px] font-black text-temple-400 uppercase tracking-widest mb-0.5">DAKSHINA ESCROW</p>
+                        <p className="text-[9px] font-black text-temple-400 uppercase tracking-widest mb-0.5">{safeTranslate('purohit_dakshina_held', 'Dakshina Held in Trust', 'সুরক্ষিত দক্ষিণা', 'सुरक्षित दक्षिणा')}</p>
                         <p className="text-xl font-black text-temple-900 tracking-tight">{curSymbol}{gig.dakshinaFee}</p>
                       </div>
                     </div>
@@ -564,7 +564,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
           <div className="flex items-center justify-between border-b border-temple-200 pb-4 px-2">
             <div>
               <h3 className="text-xl font-black text-temple-900 flex items-center gap-2"><FileText className="text-temple-700"/> My Active Orders</h3>
-              <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest mt-1">Track rituals and Escrow Dakshina</p>
+              <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest mt-1">{safeTranslate('purohit_track_sub', 'Track rituals and your Dakshina', 'অনুষ্ঠান ও আপনার দক্ষিণার বিবরণ দেখুন', 'अपने अनुष्ठान और दक्षिणा का विवरण देखें')}</p>
             </div>
             <span className="bg-temple-100 text-temple-600 px-3 py-1 rounded-lg text-xs font-black shadow-inner border border-temple-200">{contracts.length} Orders</span>
           </div>
@@ -595,7 +595,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-temple-500 font-medium bg-temple-50 px-2 py-1 rounded border border-temple-100">
                         <Banknote size={14} className="text-temple-400"/>
-                        Escrow: {curSymbol}{con.paidDakshina}
+                        {safeTranslate('purohit_held_label', 'Held:', 'সুরক্ষিত:', 'सुरक्षित:')} {curSymbol}{con.paidDakshina}
                       </div>
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                     </div>
                     {con.purohitId === session.uid && con.status !== 'COMPLETED' && (
                       <button onClick={() => handleCompleteOrder(con)} disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-4 rounded-xl text-[10px] uppercase tracking-widest shadow-sm transition-all flex items-center gap-1.5">
-                        <CheckCircle2 size={14}/> Complete & Release Escrow
+                        <CheckCircle2 size={14}/> {safeTranslate('purohit_complete_release', 'Complete & Release Dakshina', 'সম্পূর্ণ করুন ও দক্ষিণা প্রদান করুন', 'पूर्ण करें और दक्षिणा प्रदान करें')}
                       </button>
                     )}
                   </div>
@@ -748,9 +748,9 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                 <DirectMessageChat 
                   recipientId={selectedGig.purohitId} 
                   recipientName={selectedGig.purohitName}
-                  recipientPhone={selectedGig.phone || '919876543210'}
+                  recipientPhone={selectedGig.phone || ''}
                   contextType="PUROHIT"
-                  onClose={() => setCheckoutStep('VIEW')}
+                  onClose={() => setCheckoutStep(selectedGig.gigId ? 'DETAILS' : 'VIEW')}
                 />
               </div>
             )}
@@ -795,7 +795,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                          <Clock size={16} className="text-temple-400"/> Approx. {selectedGig.durationHours} Hours Duration
                        </div>
                        <div className="flex items-center gap-3 text-xs font-black text-temple-700">
-                         <Check size={16} className="text-emerald-500"/> Escrow Dakshina Protection
+                         <Check size={16} className="text-emerald-500"/> {safeTranslate('purohit_dakshina_safe', 'Dakshina Held Safely', 'দক্ষিণা নিরাপদে সংরক্ষিত', 'दक्षिणा सुरक्षित रखी गई')}
                        </div>
                        <div className="flex items-center gap-3 text-xs font-black text-temple-700">
                          <Check size={16} className="text-emerald-500"/> Availability Matrix Verified
@@ -813,7 +813,11 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                        <button 
                          onClick={() => {
                            const msg = `Hari Om Pandit ji, I am interested in booking: ${selectedGig.title}. Can we discuss?`;
-                           const phone = selectedGig.phone || '919876543210';
+                           const phone = selectedGig.phone;
+                           if (!phone) {
+                             showToast(safeTranslate('purohit_no_whatsapp', 'Purohitji has not shared a WhatsApp number yet. Please use In-App Chat. 🙏', 'পুরোহিতজি এখনও WhatsApp নম্বর দেননি। অনুগ্রহ করে ইন-অ্যাপ চ্যাট ব্যবহার করুন। 🙏', 'पुरोहितजी ने अभी तक WhatsApp नंबर साझा नहीं किया है। कृपया इन-ऐप चैट का उपयोग करें। 🙏'), 'error');
+                             return;
+                           }
                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                          }}
                          className="flex-1 py-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-2"
@@ -821,10 +825,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                          <Phone size={16}/> WhatsApp
                        </button>
                        <button 
-                         onClick={() => {
-                           showToast(`Opening secure chat with ${selectedGig.purohitName}...`, 'success');
-                           // In a real app, this would route to the in-app chat module
-                         }}
+                         onClick={() => setCheckoutStep('CHAT')}
                          className="flex-1 py-4 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-2"
                        >
                          <MessageSquare size={16}/> In-App Chat
@@ -856,11 +857,12 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-temple-500 uppercase tracking-widest mb-1.5">Yajamana Full Name <span className="text-red-500">*</span></label>
-                      <input type="text" required value={bookingForm.yajamanaName} onChange={e => setBookingForm({...bookingForm, yajamanaName: e.target.value})} className="w-full bg-white border border-temple-200 rounded-xl px-4 py-3 text-sm font-bold text-temple-900 outline-none focus:border-blue-500 shadow-sm" placeholder="Name of primary sponsor" />
+                      <input type="text" required value={bookingForm.yajamanaName} onChange={e => setBookingForm({...bookingForm, yajamanaName: e.target.value})} className="w-full bg-white border border-temple-200 rounded-xl px-4 py-3 text-sm font-bold text-temple-900 outline-none focus:border-blue-500 shadow-sm" placeholder={safeTranslate('purohit_yajamana_ph', "Yajamana's name", 'যজমানের নাম', 'यजमान का नाम')} />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black text-temple-500 uppercase tracking-widest mb-1.5">Gotra <span className="text-red-500">*</span></label>
-                      <input type="text" required value={bookingForm.gotra} onChange={e => setBookingForm({...bookingForm, gotra: e.target.value})} className="w-full bg-white border border-temple-200 rounded-xl px-4 py-3 text-sm font-bold text-temple-900 outline-none focus:border-blue-500 shadow-sm" placeholder="e.g. Kashyapa, Bharadwaja" />
+                      <label className="block text-[10px] font-black text-temple-500 uppercase tracking-widest mb-1.5">Gotra</label>
+                      <input type="text" value={bookingForm.gotra} onChange={e => setBookingForm({...bookingForm, gotra: e.target.value})} className="w-full bg-white border border-temple-200 rounded-xl px-4 py-3 text-sm font-bold text-temple-900 outline-none focus:border-blue-500 shadow-sm" placeholder="e.g. Kashyapa, Bharadwaja" />
+                      <p className="text-[10px] font-bold text-temple-400 mt-1.5">{safeTranslate('purohit_gotra_helper', 'Not sure? Ask Purohitji 🙏', 'জানেন না? পুরোহিতজিকে জিজ্ঞেস করুন 🙏', 'पता नहीं? पुरोहितजी से पूछें 🙏')}</p>
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-[10px] font-black text-temple-500 uppercase tracking-widest mb-1.5">Location / Address</label>
@@ -870,7 +872,7 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
                 </div>
                 
                 <div className="space-y-6">
-                  <h3 className="text-lg font-black text-temple-900 border-b border-temple-200 pb-2">Availability Matrix (Date & Time)</h3>
+                  <h3 className="text-lg font-black text-temple-900 border-b border-temple-200 pb-2">{safeTranslate('purohit_choose_datetime', 'Choose Date & Time', 'তারিখ ও সময় বেছে নিন', 'तिथि और समय चुनें')}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-[10px] font-black text-temple-500 uppercase tracking-widest mb-1.5">Ceremony Date <span className="text-red-500">*</span></label>
@@ -885,21 +887,21 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
 
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-6 rounded-3xl border border-emerald-200 shadow-inner mt-6 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="text-center sm:text-left">
-                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1">Dakshina Escrow</p>
+                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1">{safeTranslate('purohit_dakshina_held', 'Dakshina Held in Trust', 'সুরক্ষিত দক্ষিণা', 'सुरक्षित दक्षिणा')}</p>
                     <p className="text-4xl font-black text-emerald-700 tracking-tight">{curSymbol}{selectedGig.dakshinaFee}</p>
                   </div>
                   <div className="bg-white px-4 py-3 rounded-2xl border border-emerald-100 shadow-sm flex items-center gap-3 w-full sm:w-auto justify-center">
                      <div className="bg-emerald-100 p-1.5 rounded-full"><Shield size={16} className="text-emerald-600"/></div>
                      <div className="text-left">
-                       <p className="text-[9px] font-black text-temple-400 uppercase tracking-widest">Enterprise Security</p>
-                       <p className="text-xs font-black text-temple-800 uppercase tracking-widest">Auto-Syncs to Treasury</p>
+                       <p className="text-[9px] font-black text-temple-400 uppercase tracking-widest">{safeTranslate('purohit_badge_protected', 'Dakshina Protected', 'দক্ষিণা সুরক্ষিত', 'दक्षिणा सुरक्षित')}</p>
+                       <p className="text-xs font-black text-temple-800 uppercase tracking-widest">{safeTranslate('purohit_badge_treasury', 'Recorded in Treasury', 'কোষে লিপিবদ্ধ', 'कोष में दर्ज')}</p>
                      </div>
                   </div>
                 </div>
 
                 <div className="pt-4 shrink-0">
                   <button type="submit" disabled={submitting} className="w-full py-5 bg-temple-900 hover:bg-black text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 flex justify-center items-center gap-2 disabled:opacity-50 disabled:transform-none border border-temple-800">
-                    {submitting ? <Loader2 size={20} className="animate-spin mx-auto"/> : <CheckCircle2 size={20}/>} {submitting ? 'PROCESSING...' : 'Confirm Booking & Lock Escrow'}
+                    {submitting ? <Loader2 size={20} className="animate-spin mx-auto"/> : <CheckCircle2 size={20}/>} {submitting ? 'PROCESSING...' : safeTranslate('purohit_confirm_booking', 'Confirm Booking & Hold Dakshina', 'বুকিং নিশ্চিত করুন ও দক্ষিণা সুরক্ষিত করুন', 'बुकिंग पक्की करें और दक्षिणा सुरक्षित करें')}
                   </button>
                   <p className="text-center text-[10px] font-bold text-temple-400 mt-4 uppercase tracking-widest">By confirming, you agree to the Sanatani Bandhan service terms.</p>
                 </div>
