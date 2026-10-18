@@ -1068,11 +1068,8 @@ const AppContentRouter: React.FC = () => {
   );
 };
 
-const AppRouter: React.FC = () => {
+const AppRoutes: React.FC = () => {
   return (
-    /* basename follows Vite's base so the app also works under a sub-path
-       (e.g. GitHub Pages project sites served at /<repo>/). */
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
@@ -1184,10 +1181,27 @@ const AppRouter: React.FC = () => {
           <Route path="/register-org" element={<OrgRegisterRoute />} />
           <Route element={<MainAppView />} path="*" />
         </Routes>
-        <OfflineIndicator />
-        {/* Dev-only role tester: never renders in production builds. */}
-        {import.meta.env.DEV && <PersonaSwitcher />}
-      </BrowserRouter>
+  );
+};
+
+/**
+ * P0 BUGFIX (2026-10-18): BrowserRouter must wrap ALL global UI, not just
+ * <Routes>. AskButton renders AssistantSheet which calls useNavigate() —
+ * mounted outside a <Router> that crashes the app on boot with
+ * "useNavigate() may be used only in the context of a <Router> component".
+ * Global components arrive as children and render inside the router.
+ */
+const AppRouter: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  return (
+    /* basename follows Vite's base so the app also works under a sub-path
+       (e.g. GitHub Pages project sites served at /<repo>/). */
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <AppRoutes />
+      <OfflineIndicator />
+      {/* Dev-only role tester: never renders in production builds. */}
+      {import.meta.env.DEV && <PersonaSwitcher />}
+      {children}
+    </BrowserRouter>
   );
 };
 
@@ -1203,20 +1217,24 @@ export default function App() {
                 <DataProvider>
                   <MembershipProvider>
                     <QuickGuideProvider>
-                      <AppRouter />
-                      <GlobalSOSListener />
-                      <SOSFlow />
-                      {/* AI assistant (Phase 0) — devotee "🙏 Ask" FAB; solo sessions only. */}
-                      <AskButton />
-                      <NotificationWiring />
-                      <InstallPrompt />
-                      <UpdatePrompt />
-                      {/* Regional Native Experience (Track 2): detect-once
-                          warm welcome + gentle travel nudge. Mounted with
-                          the other first-run UI; both no-op when the
-                          devotee has already chosen. */}
-                      <NativeWelcomeSheet />
-                      <TravelNudge />
+                      {/* All global UI lives INSIDE AppRouter (inside the
+                          BrowserRouter): AssistantSheet calls useNavigate()
+                          and crashes outside a <Router>. */}
+                      <AppRouter>
+                        <GlobalSOSListener />
+                        <SOSFlow />
+                        {/* AI assistant (Phase 0) — devotee "🙏 Ask" FAB; solo sessions only. */}
+                        <AskButton />
+                        <NotificationWiring />
+                        <InstallPrompt />
+                        <UpdatePrompt />
+                        {/* Regional Native Experience (Track 2): detect-once
+                            warm welcome + gentle travel nudge. Mounted with
+                            the other first-run UI; both no-op when the
+                            devotee has already chosen. */}
+                        <NativeWelcomeSheet />
+                        <TravelNudge />
+                      </AppRouter>
                     </QuickGuideProvider>
                   </MembershipProvider>
                 </DataProvider>

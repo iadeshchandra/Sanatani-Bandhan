@@ -287,6 +287,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     setLanguage(l);
     try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
   };
+  // Sync when the global locale changes elsewhere (e.g. the
+  // NativeWelcomeSheet): the local copy above is only the mount value.
+  useEffect(() => {
+    const c = langCtx?.currentLang;
+    if (c === 'hi' || c === 'bn') setLanguage(c);
+    else if (c) setLanguage('en');
+  }, [langCtx?.currentLang]);
   const authLang: AuthLang = language;
 
   // Ambient-scene helpers: transform/opacity only, reduced-motion aware.
