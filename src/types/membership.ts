@@ -67,6 +67,12 @@ export interface OrgPage {
     pinnedAt: number;
     pinnedBy: string;
   };
+  /**
+   * Linked YouTube channel ID (24 chars, starts with "UC") for live-darshan
+   * detection. Validated by parseChannelInput (src/darshan/channel.ts).
+   * When present, OrgPublicPage mounts the live poller.
+   */
+  youtubeChannelId?: string;
 }
 
 /** A follower edge: `followers/{orgId}/users/{uid}`. */

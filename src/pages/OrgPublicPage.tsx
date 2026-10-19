@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
 import { buildPinnedAarti } from '../sangam/liveAarti';
+import { OrgLivePoller } from '../darshan';
 import { useLanguage } from '../context/LanguageContext';
 import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -712,6 +713,16 @@ export const OrgPublicPage: React.FC = () => {
       />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />
+      )}
+      {/* Live-darshan detection loop: when the org linked a YouTube channel,
+          this client's page view may become the poll leader (1 API call per
+          15 min across ALL viewers). Fires a gentle notification on go-live. */}
+      {page.youtubeChannelId && (
+        <OrgLivePoller
+          orgId={page.orgId}
+          channelId={page.youtubeChannelId}
+          templeName={page.name}
+        />
       )}
     </>
   );

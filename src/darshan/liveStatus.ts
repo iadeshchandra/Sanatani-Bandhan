@@ -19,67 +19,95 @@
  *   exhausted, isChannelLive() returns null → no badge, no crash —
  *   devotees simply don't see live status until quota resets.
  *
+ * Rules compliance (orgLiveStatus — verified against firestore.rules):
+ *   - `isLive` must ALWAYS be a bool (never missing).
+ *   - `updatedAt` must ALWAYS be a JS number (never serverTimestamp()).
+ *   - keys ⊆ { orgId, isLive, videoId, title, startedAt, updatedAt, nextPollAfter }.
+ *   buildStatusDoc() in pure.ts guarantees all three; every write here
+ *   goes through it.
+ *
  * This module never throws into UI. All failures → null.
  */
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { isChannelLive } from '../apikeys/youtubeLive';
-import type { LiveCheckResult, OrgLiveStatus } from './types';
+import type { OrgLiveStatus } from './types';
+import { buildStatusDoc, detectWentLive, CACHE_TTL_MS, POLL_GAP_MS } from './pure';
 
-export { shouldShowLiveBadge, nextAartiText } from './pure';
+export {
+  shouldShowLiveBadge,
+  nextAartiText,
+  buildStatusDoc,
+  detectWentLive,
+  checksPerDay,
+  maxOrgsForQuota,
+  ORG_LIVE_STATUS_KEYS,
+  CACHE_TTL_MS,
+  POLL_GAP_MS,
+  YT_QUOTA_UNITS_PER_DAY,
+  YT_UNITS_PER_CHECK,
+} from './pure';
 
-/** How long a cached status is trusted before re-polling (5 min). */
-export const CACHE_TTL_MS = 5 * 60 * 1000;
-/** Minimum gap between API polls for one org (15 min) — quota guard. */
-export const POLL_GAP_MS = 15 * 60 * 1000;
+export interface PollOutcome {
+  status: OrgLiveStatus;
+  /** True on an offline→live transition (or a new live videoId). */
+  wentLive: boolean;
+}
 
 /**
  * Get the live status for an org. Returns the cached Firestore doc when
- * fresh; polls YouTube (once per POLL_GAP_MS across ALL clients) when stale.
+ * fresh; polls YouTube (once per POLL_GAP_MS across ALL clients, via
+ * leader election) when stale.
+ *
+ * Returns the status plus whether this poll observed an offline→live
+ * transition (the caller fires notifyTempleLive on wentLive).
  */
 export async function getLiveStatus(
   orgId: string,
   channelId: string,
-): Promise<OrgLiveStatus | null> {
+): Promise<PollOutcome | null> {
   if (!orgId || !channelId) return null;
   try {
     const ref = doc(db, 'orgLiveStatus', orgId);
     const snap = await getDoc(ref);
     const now = Date.now();
+    const cached = (snap.exists() ? (snap.data() as OrgLiveStatus) : null) as OrgLiveStatus | null;
 
-    if (snap.exists()) {
-      const cached = snap.data() as OrgLiveStatus;
+    if (cached) {
       // Fresh cache → return it, no API call.
       if (cached.updatedAt && now - cached.updatedAt < CACHE_TTL_MS) {
-        return cached;
+        return { status: cached, wentLive: false };
       }
       // Another client is already polling → return stale, don't double-call.
       if (cached.nextPollAfter && now < cached.nextPollAfter) {
-        return cached;
+        return { status: cached, wentLive: false };
       }
     }
 
-    // We are the leader for this round: claim the slot, then poll.
+    // We are the leader for this round: claim the slot (rules-compliant:
+    // isLive bool present, updatedAt numeric), then poll.
     await setDoc(
       ref,
-      { orgId, nextPollAfter: now + POLL_GAP_MS, updatedAt: now } as Partial<OrgLiveStatus>,
+      {
+        orgId,
+        isLive: !!cached?.isLive,
+        updatedAt: now,
+        nextPollAfter: now + POLL_GAP_MS,
+      } as OrgLiveStatus,
       { merge: true },
     );
 
-    const live = await isChannelLive(channelId);
-    const result: OrgLiveStatus = {
-      orgId,
-      isLive: live === true,
-      updatedAt: now,
-      nextPollAfter: now + POLL_GAP_MS,
-    };
-    // When live, we keep the previous videoId/title if the API gave none
-    // (isChannelLive is boolean-only); the viewer resolves the embed lazily.
-    await setDoc(ref, { ...result, updatedAt: serverTimestamp() }, { merge: true });
-    return { ...result };
+    const check = await isChannelLive(channelId);
+    const result = buildStatusDoc(orgId, check, cached, Date.now());
+    const wentLive = detectWentLive(
+      cached ? { isLive: !!cached.isLive, videoId: cached.videoId } : null,
+      { isLive: result.isLive, videoId: result.videoId },
+    );
+    await setDoc(ref, { ...result }, { merge: true });
+    return { status: result, wentLive };
   } catch {
     return null;
   }
 }
 
-export type { LiveCheckResult };
+export type { LiveCheckResult } from './types';

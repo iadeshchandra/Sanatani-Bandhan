@@ -13,18 +13,16 @@
  * opt into live detection, so a missing key can never break the app.
  */
 import { getPublicApiKey } from './apiKeys';
+import type { LiveCheckResult } from '../darshan/types';
+import { parseLiveSearchResponse } from '../darshan/pure';
 
 export const YOUTUBE_KEY_NAME = 'youtubeDataApi';
 
-interface YtSearchResponse {
-  items?: Array<{ id?: { videoId?: string } }>;
-}
-
 /**
  * Is this YouTube channel live right now?
- * @returns true (live) | false (not live) | null (unknown — no key or API error)
+ * @returns LiveCheckResult (with videoId/title when live) | null (unknown — no key or API error)
  */
-export async function isChannelLive(channelId: string): Promise<boolean | null> {
+export async function isChannelLive(channelId: string): Promise<LiveCheckResult | null> {
   const key = await getPublicApiKey(YOUTUBE_KEY_NAME);
   if (!key || !channelId) return null;
   try {
@@ -35,8 +33,8 @@ export async function isChannelLive(channelId: string): Promise<boolean | null> 
       `&key=${encodeURIComponent(key)}`;
     const res = await fetch(url);
     if (!res.ok) return null;
-    const data = (await res.json()) as YtSearchResponse;
-    return Array.isArray(data.items) && data.items.length > 0;
+    const data = await res.json();
+    return parseLiveSearchResponse(data);
   } catch {
     return null;
   }
