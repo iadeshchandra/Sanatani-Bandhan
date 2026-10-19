@@ -31,6 +31,7 @@ The personal home. Mobile bottom nav / desktop sidebar: **Home · Orgs · Suchan
 - `SuchanaPage.tsx` / `AjkerSuchana.tsx` — the guide layer (notifications rendered as *suchana*, warm blessings not badges). **"🪔 From your sangha"** inbox section renders `notifications/{uid}/items` (Audit Fix #5) — the badge finally has an inbox.
 - `ChatRoute.tsx` — `/app/chat` route rendering the Messages overlay; `?with=<chatId>` deep-links straight into a thread (Audit Fix #5).
 - `ExpressDanaSheet.tsx` — dana flow (presets, Shradhā slider, 80G receipts).
+- `DanaSheetHost.tsx` — **single owner** of the ExpressDanaSheet instance, mounted once in SoloWorkspaceShell (Queued #2, 2026-10-19). `openDanaSheet()` works from ANYWHERE in the solo shell (Home "Give" quick-action, Wallet tab, AI assistant, Seva cards) — previously the only handler lived in GivingTab (mounted only on the `giving` sub-tab), making Home's "Give" a silent no-op. Contract: opener registration (preferred) + `sb:open-dana-sheet` window event (fallback); pure `toSheetPrefill()` mapping in `lib/danaSheet.ts` (jest-safe, no prefill leaks).
 - `LanguageRegionSettings.tsx`, `NativeWelcomeSheet` — language + region ("kovil vs mandir, Deepavali vs Diwali, user choice always winning").
 - Solo identity: `SAN-XXXXXX` universal ID (`src/solo/soloSession.ts`).
 

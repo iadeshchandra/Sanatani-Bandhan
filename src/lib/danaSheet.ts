@@ -66,3 +66,26 @@ export function openDanaSheet(prefill: DanaSheetPrefill): void {
   }
   window.dispatchEvent(new CustomEvent<DanaSheetPrefill>(DANA_SHEET_EVENT, { detail: prefill }));
 }
+
+/**
+ * The sheet's own prefill shape (mirrors ExpressDanaSheet's DanaPrefill —
+ * kept structural here so this module stays firebase-free and jest-safe).
+ */
+export interface SheetPrefill {
+  amount?: number;
+  orgName?: string;
+  purpose?: string;
+}
+
+/**
+ * Maps the external contract prefill to the sheet's own prefill shape.
+ * Pure and firebase-free (jest-safe). QUEUED FIX #2: single source of truth —
+ * DanaSheetHost uses this; the old per-tab copy in GivingTab is gone.
+ */
+export function toSheetPrefill(p: DanaSheetPrefill): SheetPrefill {
+  return {
+    amount: p.initialAmount,
+    orgName: p.initialOrg?.name,
+    purpose: p.initialPurpose,
+  };
+}

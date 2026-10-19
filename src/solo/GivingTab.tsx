@@ -1,15 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSoloStore, uid, todayISO, type GivingRecord } from './soloStore';
 import { Card, Stat, T, Btn, Field, inputCls, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ExpressDanaSheet, type DanaPrefill } from './ExpressDanaSheet';
-import {
-  registerDanaSheetOpener,
-  unregisterDanaSheetOpener,
-  DANA_SHEET_EVENT,
-  type DanaSheetPrefill,
-} from '../lib/danaSheet';
+import { openDanaSheet } from '../lib/danaSheet';
 import { ShareReceiptRow, ReceiptModal, RECEIPT_BLESSING, type ShareLang } from './ShareReceipt';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -32,41 +26,10 @@ export const GivingTab: React.FC = () => {
   const templeTitle = templeWordRaw.charAt(0).toUpperCase() + templeWordRaw.slice(1);
   const { showToast } = useToast();
   const [form, setForm] = useState({ orgName: '', amount: '', purpose: '', receiptNo: '', date: todayISO() });
-  const [sheetOpen, setSheetOpen] = useState(false);
-  // Prefill carried in from an external opener (e.g. a tangible seva card's
-  // Donate button — see lib/danaSheet.ts). Cleared on manual opens so a
-  // previous card's amount never leaks into a fresh sheet.
-  const [danaPrefill, setDanaPrefill] = useState<DanaPrefill | undefined>(undefined);
-
-  // Dana-sheet bridge: this tab owns the ExpressDanaSheet instance, so it
-  // registers the global opener while mounted. StrictMode-safe — cleanup
-  // unregisters the exact closure this effect registered. The window event
-  // stays as the fallback path (openDanaSheet dispatches it only when no
-  // opener is registered).
-  useEffect(() => {
-    const applyPrefill = (p: DanaSheetPrefill) => {
-      setDanaPrefill({
-        amount: p.initialAmount,
-        orgName: p.initialOrg?.name,
-        purpose: p.initialPurpose,
-      });
-      setSheetOpen(true);
-    };
-    const onEvent = (e: Event) =>
-      applyPrefill((e as CustomEvent<DanaSheetPrefill>).detail || {});
-    registerDanaSheetOpener(applyPrefill);
-    window.addEventListener(DANA_SHEET_EVENT, onEvent);
-    return () => {
-      unregisterDanaSheetOpener(applyPrefill);
-      window.removeEventListener(DANA_SHEET_EVENT, onEvent);
-    };
-  }, []);
-
-  /** Manual open: no prefill — a fresh sheet every time. */
-  const openSheetFresh = () => {
-    setDanaPrefill(undefined);
-    setSheetOpen(true);
-  };
+  // The ExpressDanaSheet instance is owned by DanaSheetHost (mounted once in
+  // SoloWorkspaceShell), so openDanaSheet() works from every tab — this tab
+  // just calls it. (QUEUED FIX #2: the old per-tab registration was the
+  // reason Home's "Give" quick-action silently did nothing.)
   // Inline manual form lives behind a disclosure — the ExpressDanaSheet is
   // the primary path; this records offerings already made (offline/hundi).
   const [offlineOpen, setOfflineOpen] = useState(false);
@@ -145,7 +108,7 @@ export const GivingTab: React.FC = () => {
         />
       </div>
 
-      <Btn onClick={openSheetFresh} className="w-full !py-3.5 !text-base shadow-sm">
+      <Btn onClick={() => openDanaSheet({})} className="w-full !py-3.5 !text-base shadow-sm">
         🪔 <T en="Offer dana" bn="দান দিন" hi="दान दें" />
       </Btn>
 
@@ -280,7 +243,7 @@ export const GivingTab: React.FC = () => {
             </p>
             <button
               type="button"
-              onClick={openSheetFresh}
+              onClick={() => openDanaSheet({})}
               className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
             >
               🪔 <T en="Offer dana" bn="দান দিন" hi="दान दें" />
@@ -320,8 +283,6 @@ export const GivingTab: React.FC = () => {
         )}
         </div>
       </Card>
-
-      <ExpressDanaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} prefill={danaPrefill} />
 
       {/* In-app receipt view — blessing + multi-channel share row. */}
       {viewReceipt && <ReceiptModal record={viewReceipt} onClose={() => setViewReceipt(null)} />}

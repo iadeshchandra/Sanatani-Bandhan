@@ -15,6 +15,7 @@ import { ChatRoute } from './ChatRoute';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { FirstRunSequence } from './FirstRunSequence';
+import { DanaSheetHost } from './DanaSheetHost';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { SearchButton } from '../search/SearchButton';
@@ -135,6 +136,12 @@ const SoloRouter: React.FC = () => {
         <Route path="*" element={<Navigate to="/app/home" replace />} />
       </Routes>
       </div>
+
+      {/* QUEUED FIX #2: DanaSheetHost owns the single ExpressDanaSheet
+          instance for the whole solo shell — openDanaSheet() now works
+          from Home, Wallet tab, AI assistant, and Seva cards, not just
+          the Giving sub-tab. */}
+      <DanaSheetHost />
 
       {/* First-run sequence — language → setup wizard → tour, exactly one
           surface at a time, each shown once. Replaces the three colliding
