@@ -216,6 +216,7 @@ export const BackupSettings: React.FC<{ uid: string; onClose: () => void }> = ({
         </div>
         <h3 className="text-lg font-extrabold text-stone-900">{tr.title}</h3>
         <p className="text-sm text-stone-600 mt-1 leading-relaxed">{tr.subtitle}</p>
+        <p className="text-xs text-stone-500 mt-2 leading-relaxed">🪔 {tr.includesNote}</p>
       </div>
 
       {/* Drive connection */}

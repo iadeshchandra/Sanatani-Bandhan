@@ -184,7 +184,7 @@ Event bus (`NotificationCenter.ts`): 4 priority tiers (**CRITICAL breaks quiet h
 
 - **File Vault** — WebP compress → SHA-256 dedupe → ≤700KB single Firestore doc, larger chunked (Cloud Storage needs Blaze — unavailable). Three tiers: public / crisis (tenant) / private (IndexedDB only).
 - **Persistence** — Firestore `enableIndexedDbPersistence()`; local-first writes with tombstoned sync queues (tirtha, chat outbox).
-- **Chat backup** — PBKDF2-SHA256 (210k) → AES-GCM-256 to user's own Google Drive `drive.appdata`; 64-char recovery key shown once.
+- **Chat backup** — PBKDF2-SHA256 (210k) → AES-GCM-256 to user's own Google Drive `drive.appdata`; 64-char recovery key shown once. Backs up 1:1 conversations AND group chats (messages, member lists, group metadata); voice notes as vault:// references, never bytes. Pure serialization in `chat/backup/serialize.ts` (jest-safe); `kind: 'direct'|'group'` discriminator with pre-group archives defaulting to direct. Restore lands in a read-only device-local IndexedDB archive, never back into Firestore.
 
 ---
 

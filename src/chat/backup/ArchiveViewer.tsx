@@ -8,6 +8,8 @@ import React, { useEffect, useState } from 'react';
 import { useBackupStrings } from './strings';
 import { listArchivedThreads, getArchivedThread } from './archiveStore';
 import type { SerializedThread } from './backupService';
+import { threadKind } from './backupService';
+import { groupTypeIcon } from '../groups/types';
 import { ChatAvatar } from '../ChatList';
 import { useLocaleText } from '../../solo/ui';
 
@@ -39,8 +41,10 @@ export const ArchiveViewer: React.FC = () => {
   }
 
   if (openThread) {
+    const isGroup = threadKind(openThread) === 'group';
     const otherKey = openThread.participants[0] || '';
     const person = openThread.participantInfo[otherKey] || { uid: otherKey, displayName: 'Sanatani' };
+    const headerName = isGroup ? openThread.groupName || 'Group' : person.displayName;
     return (
       <div className="flex flex-col h-full min-h-0">
         <button
@@ -48,13 +52,23 @@ export const ArchiveViewer: React.FC = () => {
           onClick={() => setOpenId(null)}
           className="shrink-0 text-sm font-bold text-amber-800 min-h-[44px] text-left px-3"
         >
-          ← {person.displayName}
+          ← {isGroup ? `${groupTypeIcon((openThread.groupType as 'family') || 'custom')} ` : ''}
+          {headerName}
         </button>
         <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 space-y-2">
           {openThread.messages.map((m) => {
             return (
               <div key={m.id} className="max-w-[85%] rounded-2xl bg-white border border-stone-200 px-3 py-2 shadow-sm">
-                <p className="text-sm text-stone-800 whitespace-pre-wrap break-words">{m.text}</p>
+                {isGroup && m.senderName && (
+                  <p className="text-[11px] font-extrabold text-amber-800 mb-0.5">{m.senderName}</p>
+                )}
+                {m.voiceMeta ? (
+                  <p className="text-sm text-stone-800">
+                    🎙️ Voice note · {Math.round(m.voiceMeta.durationMs / 1000)}s
+                  </p>
+                ) : (
+                  <p className="text-sm text-stone-800 whitespace-pre-wrap break-words">{m.text}</p>
+                )}
                 <p className="text-[10px] text-stone-400 mt-1">
                   {new Date(m.createdAt).toLocaleString(lang === 'bn' ? 'bn-IN' : lang === 'hi' ? 'hi-IN' : 'en-IN', {
                     day: 'numeric',
@@ -91,9 +105,15 @@ export const ArchiveViewer: React.FC = () => {
       <p className="shrink-0 px-4 pb-2 text-xs text-stone-500 leading-relaxed">{tr.archiveNote}</p>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {threads.map((t) => {
+          const isGroup = threadKind(t) === 'group';
           const otherKey = t.participants[0] || '';
           const person = t.participantInfo[otherKey] || { uid: otherKey, displayName: 'Sanatani' };
           const last = t.messages[t.messages.length - 1];
+          const lastPreview = last
+            ? last.voiceMeta
+              ? `🎙️ Voice note · ${Math.round(last.voiceMeta.durationMs / 1000)}s`
+              : last.text
+            : '';
           return (
             <button
               key={t.id}
@@ -101,11 +121,20 @@ export const ArchiveViewer: React.FC = () => {
               onClick={() => setOpenId(t.id)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-50/60 text-left min-h-[64px] border-b border-stone-100"
             >
-              <ChatAvatar person={person} size={44} />
+              {isGroup ? (
+                <span className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center text-xl shrink-0" aria-hidden>
+                  {groupTypeIcon((t.groupType as 'family') || 'custom')}
+                </span>
+              ) : (
+                <ChatAvatar person={person} size={44} />
+              )}
               <span className="flex-1 min-w-0">
-                <span className="block text-sm font-extrabold text-stone-900 truncate">{person.displayName}</span>
+                <span className="block text-sm font-extrabold text-stone-900 truncate">
+                  {isGroup ? t.groupName || 'Group' : person.displayName}
+                </span>
                 <span className="block text-xs text-stone-500 truncate">
-                  {last ? last.text : ''} · {t.messages.length}
+                  {isGroup && t.members ? `👥 ${t.members.length} · ` : ''}
+                  {lastPreview} · {t.messages.length}
                 </span>
               </span>
               <span aria-hidden className="text-stone-400">

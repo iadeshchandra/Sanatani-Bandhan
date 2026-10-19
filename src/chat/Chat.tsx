@@ -85,11 +85,12 @@ export const Chat: React.FC<{
             onClick={() => setBackupOpen(true)}
             aria-label="Chat backup"
             title="Chat backup — your words are yours"
-            className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+            className="h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center gap-1.5 px-3 transition-colors"
           >
             <span className="text-lg" aria-hidden>
               📦
             </span>
+            <T en="Backup" bn="ব্যাকআপ" hi="बैकअप" className="text-sm" />
           </button>
           <button
             type="button"

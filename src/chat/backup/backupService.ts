@@ -3,28 +3,46 @@
  * ====================================================
  * serialize → seal (passphrase + recovery openers) → upload → prune.
  *
+ * WHAT'S BACKED UP: the user's 1:1 conversations (chats/*) AND their
+ * group chats (chatGroups/*) — messages, member lists, group metadata.
+ * Voice notes are backed up as File Vault `vault://` references, never
+ * audio bytes. The backup never silently skips a conversation family.
+ *
  * PRIVACY CONTRACT:
  *  - The passphrase and recovery code NEVER leave this module's callers'
  *    memory. They are never written to localStorage, Firestore, or logs.
  *  - The Drive file carries two sealed envelopes (openers): one openable
  *    with the user's sealing words, one with the recovery key. Either
  *    opens the same payload.
- *  - Media: chat messages carry no binary today (text/blessing/
- *    request_card/system). If media kinds land later, store File Vault
+ *  - Media: chat messages carry no binary (text/blessing/
+ *    request_card/system/voice). Voice notes store File Vault
  *    `vault://` references here — never bytes.
  */
 
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import type { ChatMessage, ChatThread } from '../types';
+import type { GroupChat } from '../groups/types';
+import {
+  toSerializedMessage,
+  threadKind,
+  isValidBackupFile,
+  type SerializedMessage,
+  type SerializedThread,
+  type SerializedGroupMember,
+  type BackupPayload,
+  type BackupFile,
+} from './serialize';
+
+/** Re-exported for existing consumers (ArchiveViewer, archiveStore, RestorePrompt). */
+export type { SerializedMessage, SerializedThread, SerializedGroupMember, BackupPayload, BackupFile };
+export { toSerializedMessage, threadKind, isValidBackupFile };
 import {
   sealWithPassphrase,
   sealWithRecoveryCode,
   openWithPassphrase,
   openWithRecoveryCode,
   generateRecoveryCode,
-  isValidEnvelope,
-  type BackupEnvelope,
 } from './crypto';
 import {
   requestDriveAccess,
@@ -38,56 +56,8 @@ import {
 } from './driveClient';
 
 /* ------------------------------------------------------------------ */
-/* Payload types                                                       */
+/* Payload types — pure shapes live in ./serialize (jest-safe).        */
 /* ------------------------------------------------------------------ */
-
-export interface SerializedMessage {
-  id: string;
-  senderId: string;
-  kind: string;
-  text: string;
-  blessingMeta?: { occasion: string; occasionBn?: string; occasionHi?: string };
-  requestId?: string;
-  /** Light snapshot of the linked money request, if resolvable. */
-  requestSnapshot?: {
-    amount: number;
-    currency: string;
-    status: string;
-    note: string;
-  };
-  createdAt: number;
-  deliveredAt?: number;
-  readBy?: string[];
-}
-
-export interface SerializedThread {
-  id: string;
-  type: string;
-  participants: string[];
-  participantInfo: Record<string, { uid: string; displayName: string; sanataniId?: string; photoUrl?: string }>;
-  createdAt: number;
-  updatedAt: number;
-  messages: SerializedMessage[];
-}
-
-export interface BackupPayload {
-  v: 1;
-  exportedAt: number;
-  exportedBy: string;
-  threads: SerializedThread[];
-}
-
-/** The file stored in the user's Drive: two openers, one payload. */
-export interface BackupFile {
-  v: 1;
-  createdAt: number;
-  chatCount: number;
-  messageCount: number;
-  openers: {
-    passphrase: BackupEnvelope;
-    recovery: BackupEnvelope;
-  };
-}
 
 /* ------------------------------------------------------------------ */
 /* Local metadata (never the passphrase)                               */
@@ -154,8 +124,28 @@ export function restoredFileId(): string | null {
 }
 
 /* ------------------------------------------------------------------ */
-/* Serialization                                                       */
+/* Serialization — pure shapes in ./serialize; I/O below.             */
 /* ------------------------------------------------------------------ */
+
+/** Best-effort: attach a light snapshot of the linked money request. Never throws. */
+async function enrichRequestSnapshot(sm: SerializedMessage, m: ChatMessage): Promise<void> {
+  if (!m.requestId) return;
+  sm.requestId = m.requestId;
+  try {
+    const rq = await getDoc(doc(db, 'p2pRequests', m.requestId));
+    if (rq.exists()) {
+      const r = rq.data() as Record<string, unknown>;
+      sm.requestSnapshot = {
+        amount: Number(r.amount || 0),
+        currency: String(r.currency || ''),
+        status: String(r.status || ''),
+        note: String(r.note || ''),
+      };
+    }
+  } catch {
+    /* request unreadable — message text still backs up */
+  }
+}
 
 async function serializeChats(uid: string): Promise<{ threads: SerializedThread[]; messageCount: number }> {
   const threadsSnap = await getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', uid)));
@@ -168,34 +158,8 @@ async function serializeChats(uid: string): Promise<{ threads: SerializedThread[
     const messages: SerializedMessage[] = [];
     for (const mDoc of msgsSnap.docs) {
       const m = mDoc.data() as ChatMessage;
-      const sm: SerializedMessage = {
-        id: mDoc.id,
-        senderId: m.senderId,
-        kind: m.kind,
-        text: m.text || '',
-        createdAt: m.createdAt,
-      };
-      if (m.blessingMeta) sm.blessingMeta = m.blessingMeta;
-      if (m.requestId) {
-        sm.requestId = m.requestId;
-        // Best-effort snapshot of the linked money request.
-        try {
-          const rq = await getDoc(doc(db, 'p2pRequests', m.requestId));
-          if (rq.exists()) {
-            const r = rq.data() as Record<string, unknown>;
-            sm.requestSnapshot = {
-              amount: Number(r.amount || 0),
-              currency: String(r.currency || ''),
-              status: String(r.status || ''),
-              note: String(r.note || ''),
-            };
-          }
-        } catch {
-          /* request unreadable — message text still backs up */
-        }
-      }
-      if (m.deliveredAt) sm.deliveredAt = m.deliveredAt;
-      if (m.readBy) sm.readBy = m.readBy;
+      const sm = toSerializedMessage(mDoc.id, m);
+      await enrichRequestSnapshot(sm, m);
       messages.push(sm);
     }
     messages.sort((a, b) => a.createdAt - b.createdAt);
@@ -206,11 +170,67 @@ async function serializeChats(uid: string): Promise<{ threads: SerializedThread[
     }
     threads.push({
       id: tDoc.id,
+      kind: 'direct',
       type: t.type,
       participants: t.participants,
       participantInfo: info,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
+      messages,
+    });
+  }
+  threads.sort((a, b) => b.updatedAt - a.updatedAt);
+  return { threads, messageCount };
+}
+
+/**
+ * Group chats: the user's groups (memberIds array-contains uid) with their
+ * messages, member lists, and group metadata. The doc's denormalized
+ * memberInfo is the backup source — no extra subcollection reads.
+ */
+async function serializeGroups(uid: string): Promise<{ threads: SerializedThread[]; messageCount: number }> {
+  const groupsSnap = await getDocs(query(collection(db, 'chatGroups'), where('memberIds', 'array-contains', uid)));
+  const threads: SerializedThread[] = [];
+  let messageCount = 0;
+
+  for (const gDoc of groupsSnap.docs) {
+    const g = gDoc.data() as GroupChat;
+    const msgsSnap = await getDocs(collection(db, 'chatGroups', gDoc.id, 'messages'));
+    const messages: SerializedMessage[] = [];
+    for (const mDoc of msgsSnap.docs) {
+      const m = mDoc.data() as ChatMessage;
+      const sm = toSerializedMessage(mDoc.id, m);
+      await enrichRequestSnapshot(sm, m);
+      messages.push(sm);
+    }
+    messages.sort((a, b) => a.createdAt - b.createdAt);
+    messageCount += messages.length;
+
+    const memberIds = g.memberIds || [];
+    const adminIds = new Set(g.adminIds || []);
+    const members: SerializedGroupMember[] = memberIds.map((mid) => ({
+      uid: mid,
+      displayName: g.memberInfo?.[mid]?.displayName || 'Sanatani',
+      role: adminIds.has(mid) ? 'admin' : 'member',
+    }));
+    const info: SerializedThread['participantInfo'] = {};
+    for (const mid of memberIds) {
+      const p = g.memberInfo?.[mid];
+      if (p) info[mid] = { uid: p.uid, displayName: p.displayName, sanataniId: p.sanataniId, photoUrl: p.photoUrl };
+    }
+    threads.push({
+      id: gDoc.id,
+      kind: 'group',
+      type: 'group',
+      participants: memberIds,
+      participantInfo: info,
+      groupName: g.name,
+      groupType: g.type,
+      groupDescription: g.description,
+      members,
+      inviteCode: g.inviteCode,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
       messages,
     });
   }
@@ -231,12 +251,15 @@ export interface BackupResult {
 }
 
 /**
- * Full pipeline: serialize → seal with both openers → upload → prune.
+ * Full pipeline: serialize (1:1 + groups) → seal with both openers → upload → prune.
  * The passphrase lives only in this call's memory. A fresh recovery key
  * is minted per backup and returned for one-time display.
  */
 export async function performBackup(uid: string, passphrase: string): Promise<BackupResult> {
-  const { threads, messageCount } = await serializeChats(uid);
+  const [{ threads: chatThreads, messageCount: chatMessages }, { threads: groupThreads, messageCount: groupMessages }] =
+    await Promise.all([serializeChats(uid), serializeGroups(uid)]);
+  const threads = [...chatThreads, ...groupThreads].sort((a, b) => b.updatedAt - a.updatedAt);
+  const messageCount = chatMessages + groupMessages;
   const payload: BackupPayload = { v: 1, exportedAt: Date.now(), exportedBy: uid, threads };
   const meta = { chatCount: threads.length, messageCount };
   const recoveryCode = generateRecoveryCode();
@@ -288,18 +311,6 @@ export async function pruneBackups(token: string, keep = 3): Promise<void> {
 /* ------------------------------------------------------------------ */
 /* Restore                                                             */
 /* ------------------------------------------------------------------ */
-
-export function isValidBackupFile(x: unknown): x is BackupFile {
-  if (!x || typeof x !== 'object') return false;
-  const f = x as Record<string, unknown>;
-  return (
-    f.v === 1 &&
-    !!f.openers &&
-    typeof f.openers === 'object' &&
-    isValidEnvelope((f.openers as Record<string, unknown>).passphrase) &&
-    isValidEnvelope((f.openers as Record<string, unknown>).recovery)
-  );
-}
 
 export interface RestoreInput {
   file: DriveBackupFile;

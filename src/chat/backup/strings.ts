@@ -40,6 +40,12 @@ export const BACKUP_STRINGS = {
   chatsSealed: s('{n} conversations sealed', '{n}টি কথোপকথন সিলমোহর করা হয়েছে', '{n} बातचीत मुहरबंद'),
   backupDone: s('Your words are safe in your Drive.', 'আপনার কথা আপনার Drive-এ নিরাপদ।', 'आपके शब्द आपके Drive में सुरक्षित हैं।'),
   backupFailed: s('The backup could not be sealed. Please try again.', 'ব্যাকআপ সিলমোহর করা যায়নি। আবার চেষ্টা করুন।', 'बैकअप मुहरबंद नहीं हो सका। कृपया पुनः प्रयास करें।'),
+  includesNote: s(
+    'Backs up your 1:1 conversations and your group chats — messages, members, and voice notes (kept as secure references, never audio files). Nothing is silently left out.',
+    'আপনার ১:১ কথোপকথন এবং গ্রুপ চ্যাট ব্যাকআপ করে — বার্তা, সদস্য এবং ভয়েস নোট (নিরাপদ রেফারেন্স হিসেবে, কখনও অডিও ফাইল নয়)। কিছুই নীরবে বাদ পড়ে না।',
+    'आपकी 1:1 बातचीत और समूह चैट का बैकअप लेता है — संदेश, सदस्य और वॉइस नोट (सुरक्षित संदर्भ के रूप में, कभी ऑडियो फ़ाइल नहीं)। कुछ भी चुपचाप छूटता नहीं।'
+  ),
+  backupLabel: s('Backup', 'ব্যাকআপ', 'बैकअप'),
 
   /* Schedule */
   scheduleLabel: s('Automatic backup', 'স্বয়ংক্রিয় ব্যাকআপ', 'स्वचालित बैकअप'),
