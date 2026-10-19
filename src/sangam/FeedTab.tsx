@@ -60,7 +60,7 @@ const FeedImage: React.FC<{ url: string }> = ({ url }) => {
   );
 };
 
-const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online } = useSangam();
+const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online, subscribeComments } = useSangam();
   const { tr } = useLocaleText();
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -73,6 +73,14 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
   const gave = (post.ashirvadBy || []).includes(author.uid);
   const volunteered = (post.volunteers || []).includes(author.uid);
   const postComments = comments[post.id] || [];
+
+  // Live thread: subscribe when the drawer opens, unsubscribe on close.
+  // The subscription merges cloud comments with unsynced local ones by id.
+  useEffect(() => {
+    if (!commentOpen) return;
+    const unsub = subscribeComments(post.id);
+    return unsub;
+  }, [commentOpen, post.id, subscribeComments]);
 
   const doComment = async () => {
     if (!commentText.trim()) return;

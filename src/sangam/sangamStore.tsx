@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  collection, doc, setDoc, getDocs, query, orderBy, limit,
-  serverTimestamp, deleteDoc,
+  collection, doc, setDoc, getDocs, query, orderBy, limit, where,
+  serverTimestamp, deleteDoc, onSnapshot, updateDoc, increment,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type {
@@ -10,6 +10,7 @@ import type {
   SevaDetails,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
+import { toCloudComment, mergeComments } from './comments';
 
 /* Sangam store — the community's shared memory.
  * =====================================================================
@@ -71,6 +72,8 @@ interface SangamContextType extends SangamState {
   reportContent: (reporterUid: string, reporterName: string, targetType: SangamReport['targetType'], targetId: string, reason: SangamReport['reason'], details?: string) => Promise<void>;
   myReports: (uid: string) => SangamReport[];
   refresh: () => Promise<void>;
+  /** Live comment subscription for a post's thread. Returns unsubscribe. */
+  subscribeComments: (postId: string) => () => void;
 }
 
 const Ctx = createContext<SangamContextType | null>(null);
@@ -252,10 +255,52 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       authorSanId: author.sanId, authorKind: author.kind, authorTier: author.tier,
       text: text.trim(), createdAt: now(), localOnly: true,
     };
+    // Optimistic: show immediately, bump the local count.
     setComments((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), c] }));
     setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p)));
-    await pushDoc('sangamComments', c.id, c);
-  }, [pushDoc]);
+    if (!navigator.onLine) return;
+    try {
+      // Cloud write uses ONLY the rules-whitelisted fields — the raw object
+      // (id, localOnly) was rejected, which is why comments never synced.
+      await setDoc(doc(db, 'sangamComments', c.id), toCloudComment(c));
+      // Mark synced; the live subscription will reconcile by id.
+      setComments((prev) => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map((x) => (x.id === c.id ? { ...x, localOnly: false } : x)),
+      }));
+      // Best-effort cloud count bump (rules permit any logged-in user ±1).
+      // Local-only posts have no cloud doc — the write fails silently there.
+      try {
+        await updateDoc(doc(db, 'sangamPosts', postId), { commentCount: increment(1) });
+      } catch { /* local-only post or offline — local count stands */ }
+    } catch { /* stays local, honestly labeled */ }
+  }, []);
+
+  /**
+   * Live comment thread subscription (Step 4: multi-device sync).
+   * Call when a post's comment drawer opens; call the returned function on
+   * close/unmount. Merges cloud comments with unsynced local ones by id.
+   * No composite index needed: filters by postId only, sorts client-side.
+   */
+  const subscribeComments = useCallback((postId: string) => {
+    if (!navigator.onLine) return () => {};
+    try {
+      const q = query(
+        collection(db, 'sangamComments'),
+        where('postId', '==', postId),
+        limit(100),
+      );
+      return onSnapshot(q,
+        (snap) => {
+          const cloud = snap.docs.map((d) => ({ ...(d.data() as SangamComment), id: d.id }));
+          setComments((prev) => ({ ...prev, [postId]: mergeComments(prev[postId] || [], cloud) }));
+        },
+        () => { /* snapshot failed — local comments remain visible */ },
+      );
+    } catch {
+      return () => {};
+    }
+  }, []);
 
   const sharePost = useCallback(async (post: SangamPost, author: AuthorInfo, note: string) => {
     const shared: SangamPost = {
@@ -367,11 +412,11 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     createPost, toggleAshirvad, addComment, sharePost,
     followTarget, unfollowTarget, isFollowing,
     joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
-    reportContent, myReports, refresh,
+    reportContent, myReports, refresh, subscribeComments,
   }), [posts, comments, circles, events, follows, online, lastSyncedAt,
     createPost, toggleAshirvad, addComment, sharePost, followTarget, unfollowTarget,
     isFollowing, joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
-    reportContent, myReports, refresh]);
+    reportContent, myReports, refresh, subscribeComments]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };

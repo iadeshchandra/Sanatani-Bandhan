@@ -2197,7 +2197,15 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl', 'updatedAt'])
-          && request.resource.data.get('authorUid', '') == resource.data.get('authorUid', ''));
+          && request.resource.data.get('authorUid', '') == resource.data.get('authorUid', ''))
+        // Step 4 (comment multi-device sync): any signed-in user may nudge
+        // commentCount by exactly ±1 (never below 0) and touch nothing else.
+        // This lets commenters keep the count honest on posts they don't own.
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+          && request.resource.data.get('commentCount', -1) >= 0
+          && (request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) + 1
+              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1));
       allow delete: if isSuperAdmin();
     }
 
