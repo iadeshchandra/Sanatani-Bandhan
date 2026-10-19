@@ -9,6 +9,8 @@ import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/g
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { StoriesRail, CreateStorySheet, groupStoriesByAuthor, type Story } from './stories';
 import { subscribeStories } from './stories/storyService';
+import { rankFeed, emptyUserSignals, type UserSignals, type FeedWeights, DEFAULT_FEED_WEIGHTS } from '../ranking/feed';
+import { loadUserSignals, loadRankingConfig, trackInteraction } from '../ranking/storage';
 
 const StoryViewer = lazy(() => import('./stories/StoryViewer').then((m) => ({ default: m.StoryViewer })));
 
@@ -140,7 +142,11 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
 
       <div className="mt-2 pt-2 border-t border-stone-100 flex items-center gap-1">
         <button
-          onClick={() => toggleAshirvad(post.id, author.uid)}
+          onClick={() => {
+            toggleAshirvad(post.id, author.uid);
+            // Ranking signal: track locally, never leaves the device.
+            trackInteraction('ashirvad', post.authorUid, post.kind).catch(() => {});
+          }}
           aria-pressed={gave}
           className={`flex-1 py-2.5 rounded-xl text-sm font-bold min-h-[44px] transition-colors ${gave ? 'bg-orange-100 text-orange-700' : 'text-stone-600 hover:bg-orange-50'}`}
         >
@@ -385,6 +391,16 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
   const { tr, lang } = useLocaleText();
   const [kindFilter, setKindFilter] = useState<PostKind | 'all'>('all');
   const [followingOnly, setFollowingOnly] = useState(false);
+  // Ranking: 'ranked' (Facebook-style, Sanatani values) or 'recent' (chronological).
+  const [rankMode, setRankMode] = useState<'ranked' | 'recent'>('ranked');
+  const [userSignals, setUserSignals] = useState<UserSignals>(emptyUserSignals());
+  const [feedWeights, setFeedWeights] = useState<FeedWeights>(DEFAULT_FEED_WEIGHTS);
+
+  // Load ranking signals + weights once.
+  useEffect(() => {
+    loadUserSignals().then(setUserSignals).catch(() => {});
+    loadRankingConfig().then((cfg) => setFeedWeights(cfg.feed)).catch(() => {});
+  }, []);
 
   // Stories state.
   const [storyGroups, setStoryGroups] = useState<Array<{ authorUid: string; authorName: string; authorAvatar?: string; stories: Story[] }>>([]);
@@ -411,12 +427,20 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
         return false;
       });
     }
-    // Chronological, newest first — no engagement ranking, ever.
-    const sorted = [...list].sort((a, b) => b.createdAt - a.createdAt);
+    // Ranking: Facebook-style (meaningful over viral) or chronological.
+    // The owner chose ranked as default; users can switch to Recent anytime.
+    let sorted: SangamPost[];
+    if (rankMode === 'ranked' && kindFilter === 'all' && !followingOnly) {
+      const ranked = rankFeed(list, userSignals, feedWeights);
+      sorted = ranked.map((r) => r.post);
+    } else {
+      // Chronological, newest first.
+      sorted = [...list].sort((a, b) => b.createdAt - a.createdAt);
+    }
     // Seva Bazar: service cards are guests — ≤15% of the mixed feed.
     // (Explicit "Seva Notices" filter shows them all; the cap is for discovery.)
     return kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
-  }, [posts, kindFilter, followingOnly, followedIds, author.uid]);
+  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights]);
 
   return (
     <div className="space-y-4">
@@ -431,10 +455,26 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <SyncLabel online={online} lastSyncedAt={lastSyncedAt} />
-        <label className="flex items-center gap-2 text-xs font-bold text-stone-600 cursor-pointer min-h-[44px]">
-          <input type="checkbox" checked={followingOnly} onChange={(e) => setFollowingOnly(e.target.checked)} className="w-5 h-5 accent-orange-600" />
-          {tr('Following only', 'শুধু অনুসরণ', 'केवल अनुसरण')}
-        </label>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Ranking mode toggle: Ranked (default) or Recent (chronological) */}
+          <div className="flex rounded-xl border border-stone-200 overflow-hidden" role="tablist" aria-label="Feed order">
+            {(['ranked', 'recent'] as const).map((m) => (
+              <button
+                key={m} type="button" role="tab" aria-selected={rankMode === m}
+                onClick={() => setRankMode(m)}
+                className={`px-3 min-h-[44px] text-xs font-bold ${rankMode === m ? 'bg-temple-950 text-amber-200' : 'bg-white text-stone-600'}`}
+              >
+                {m === 'ranked'
+                  ? tr('✨ For You', '✨ আপনার জন্য', '✨ आपके लिए')
+                  : tr('🕐 Recent', '🕐 সাম্প্রতিক', '🕐 हाल के')}
+              </button>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-xs font-bold text-stone-600 cursor-pointer min-h-[44px]">
+            <input type="checkbox" checked={followingOnly} onChange={(e) => setFollowingOnly(e.target.checked)} className="w-5 h-5 accent-orange-600" />
+            {tr('Following only', 'শুধু অনুসরণ', 'केवल अनुसरण')}
+          </label>
+        </div>
       </div>
 
       <Composer author={author} pageContext={pageContext} />
