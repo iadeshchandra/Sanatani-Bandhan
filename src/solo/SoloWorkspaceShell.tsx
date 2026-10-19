@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { SoloProvider, useSolo } from './SoloContext';
@@ -13,9 +13,7 @@ import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
-import { SoloOnboardingTour } from './SoloOnboardingTour';
-import { OnboardingFlow } from './OnboardingFlow';
-import { hasOnboarded } from '../lib/intentProfile';
+import { FirstRunSequence } from './FirstRunSequence';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { SearchButton } from '../search/SearchButton';
@@ -58,31 +56,11 @@ const SoloRouter: React.FC = () => {
   const [suchanaOpen, setSuchanaOpen] = useState(false);
   // Unread badge for the Suchana tab — one calm number, no anxiety (spec §3).
   const { unreadCount } = useNotifications();
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   // Unread chat badge on the Home tab — the Messages card lives on Home,
   // and the 4-tab shell is law, so unread needs a shell-level surface.
   const chatUnread = useChatUnreadTotal(uid === 'anon' ? null : uid);
-
-  // Intelligent onboarding — once per user, skippable, non-blocking.
-  useEffect(() => {
-    let live = true;
-    if (uid === 'anon') {
-      setOnboarded(true);
-      return;
-    }
-    hasOnboarded(uid)
-      .then((done) => {
-        if (live) setOnboarded(done);
-      })
-      .catch(() => {
-        if (live) setOnboarded(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, [uid]);
 
   const activeTab = tabFromPath(location.pathname);
   const subTab = soloSubTabFromPath(location.pathname);
@@ -153,13 +131,14 @@ const SoloRouter: React.FC = () => {
       </Routes>
       </div>
 
-      {/* First-run onboarding tour for brand-new Solo users. */}
-      <SoloOnboardingTour onNavigate={(t) => navigate(`/app/home/${t}`)} />
-
-      {/* Intelligent onboarding — 3 questions, once, skippable. */}
-      {onboarded === false && (
-        <OnboardingFlow uid={uid} onDone={() => setOnboarded(true)} />
-      )}
+      {/* First-run sequence — language → setup wizard → tour, exactly one
+          surface at a time, each shown once. Replaces the three colliding
+          mounts (NativeWelcomeSheet is global in App.tsx; the tour and the
+          retired OnboardingFlow lived here). */}
+      <FirstRunSequence
+        uid={uid}
+        onNavigate={(t) => navigate(`/app/home/${t}`)}
+      />
 
       {/* 🪔 Full Suchana view — calm guidance feed */}
       <SuchanaFullModal

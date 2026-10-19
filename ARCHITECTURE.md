@@ -32,6 +32,8 @@ The personal home. Mobile bottom nav / desktop sidebar: **Home · Orgs · Suchan
 - `LanguageRegionSettings.tsx`, `NativeWelcomeSheet` — language + region ("kovil vs mandir, Deepavali vs Diwali, user choice always winning").
 - Solo identity: `SAN-XXXXXX` universal ID (`src/solo/soloSession.ts`).
 
+**First-run journey (Step 9, 2026-10-19):** `FirstRunSequence.tsx` orchestrates exactly one welcome surface at a time — `NativeWelcomeSheet` (global, language/region) → `SoloSetupWizard` (new: language confirm → intent → "light your first diya" activation) → `SoloOnboardingTour`. Sequencing brain in `firstRun.ts` (pure, 12 tests); dismissal counts as completion, never nags. **Retired:** `OnboardingFlow` (its intent question moved to the wizard; promised Q2/Q3 were dead copy). **Landing hero:** audience toggle — devotees get "Your Sanatani life, beautifully in one place" (default, Solo-first pivot); institutions keep "From paper registers to audit-ready" one tap away.
+
 **STANDING:** Boot-path audit before deploy on architectural changes. App.tsx hosts all global components INSIDE `<BrowserRouter>` (history: `useNavigate()` crash).
 
 ---

@@ -586,6 +586,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [billingAnnual, setBillingAnnual] = useState(false);
   const [activeOrg, setActiveOrg] = useState<WorkspaceType>('Mandir');
+  // Hero audience (Step 9): devotees are the primary audience per the
+  // Solo-first pivot. Institutions keep their full experience one tap away.
+  const [heroAudience, setHeroAudience] = useState<'devotee' | 'institution'>('devotee');
   const orgProfile = ORG_PROFILES.find((o) => o.type === activeOrg) ?? ORG_PROFILES[0];
 
   const panchang = useMemo(() => {
@@ -842,14 +845,89 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="flex items-start justify-center gap-6 sm:gap-14 mb-2">
               <Diya className="float-slow hidden sm:flex" flameDelay="0.3s" />
-              <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
-                From paper registers to{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
-                  audit-ready in 60 seconds.
-                </span>
-              </h1>
+              {heroAudience === 'devotee' ? (
+                <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
+                  Your Sanatani life,{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
+                    beautifully in one place.
+                  </span>
+                </h1>
+              ) : (
+                <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
+                  From paper registers to{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
+                    audit-ready in 60 seconds.
+                  </span>
+                </h1>
+              )}
               <Diya className="float-slow hidden sm:flex" flameDelay="1.1s" />
             </div>
+
+            {/* Hero audience toggle (Step 9) — devotees are the primary
+                audience; institutions keep their full pitch one tap away. */}
+            <div className="mt-5 flex justify-center" role="group" aria-label="Choose your path">
+              <div className="inline-flex rounded-full border border-orange-200 bg-white p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setHeroAudience('devotee')}
+                  aria-pressed={heroAudience === 'devotee'}
+                  className={`min-h-[44px] px-5 rounded-full text-sm font-extrabold transition-all cursor-pointer ${
+                    heroAudience === 'devotee'
+                      ? 'bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow'
+                      : 'text-stone-500 hover:text-orange-700'
+                  }`}
+                >
+                  🙏 For Devotees
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroAudience('institution')}
+                  aria-pressed={heroAudience === 'institution'}
+                  className={`min-h-[44px] px-5 rounded-full text-sm font-extrabold transition-all cursor-pointer ${
+                    heroAudience === 'institution'
+                      ? 'bg-stone-900 text-white shadow'
+                      : 'text-stone-500 hover:text-stone-800'
+                  }`}
+                >
+                  🏛️ For Institutions
+                </button>
+              </div>
+            </div>
+
+            {heroAudience === 'devotee' ? (
+              <>
+                <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
+                  Daily Panjika, live temple darshan, your Tirtha diary, and a
+                  warm community of fellow seekers — your personal sacred space,
+                  free forever.
+                </p>
+                <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+                  <button
+                    type="button"
+                    onClick={handleSignup}
+                    className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    🙏 Join as a Devotee
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)}
+                    className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-white hover:bg-orange-50 border-2 border-stone-200 hover:border-orange-300 text-stone-800 font-black text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all cursor-pointer pressable"
+                  >
+                    <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
+                      <Play className="w-3 h-3 fill-white ml-0.5" />
+                    </span>
+                    {isAuthenticated ? 'OPEN YOUR APP' : 'EXPLORE THE APP'}
+                  </button>
+                </div>
+                <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Free forever · 60-second welcome · No card, no salesman
+                </p>
+              </>
+            ) : (
+              <>
 
             <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
               Scattered donation records. 80G receipt chaos. Donors quietly drifting
@@ -933,26 +1011,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Free forever · 60-second guided setup · No card, no salesman
             </p>
-
-            {/* Third, quiet hero door — the individual devotee's entry.
-                Institutions get the two loud CTAs above; the Solo Sanatani
-                gets a calm doorway to their personal space. */}
-            <div className="mt-7 flex flex-col items-center">
-              <button
-                type="button"
-                onClick={handleSignup}
-                className="group min-h-[48px] px-6 rounded-full border border-amber-200 bg-amber-50/60 hover:bg-amber-50 text-amber-900 text-sm font-bold flex items-center gap-2 transition-colors"
-              >
-                <span aria-hidden>🙏</span>
-                Join as a Devotee
-                <span className="font-medium text-amber-700/80">— your personal Sanatani space</span>
-                <span aria-hidden className="text-amber-400 group-hover:translate-x-0.5 transition-transform">→</span>
-              </button>
-              <p className="mt-3 text-[11px] text-stone-400 font-medium max-w-md text-center leading-relaxed">
-                Built with temples, goshalas, ashrams, gurukuls and sanghas across Bharat and Bangladesh —
-                and the devotees who call them home.
-              </p>
-            </div>
+              </>
+            )}
           </div>
         </section>
 
