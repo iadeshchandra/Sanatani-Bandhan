@@ -20,7 +20,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
   BadgeCheck, MapPin, Users, UserPlus, Bell, BellOff, ArrowLeft,
@@ -29,6 +29,7 @@ import {
   ShieldCheck, Receipt,
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
+import { buildPinnedAarti } from '../sangam/liveAarti';
 import { useLanguage } from '../context/LanguageContext';
 import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -60,6 +61,10 @@ export interface OrgPublicPageViewProps {
   isTrustee: boolean;
   onFollow: () => void;
   onJoinClick: () => void;
+  /** Live-aarti pin state (trustee-only feature). */
+  aartiPinned: boolean;
+  aartiPinBusy: boolean;
+  onToggleAartiPin: () => void;
 }
 
 export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
@@ -71,6 +76,9 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   isTrustee,
   onFollow,
   onJoinClick,
+  aartiPinned,
+  aartiPinBusy,
+  onToggleAartiPin,
 }) => {
   const navigate = useNavigate();
   const { safeTranslate } = useLanguage();
@@ -272,6 +280,19 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                 className="min-h-[48px] px-6 rounded-2xl bg-white border border-stone-300 text-stone-800 font-black text-sm shadow-sm hover:bg-stone-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
                 {T('orgpublic_campus_manage', '🗺️ Map Your Temple', '🗺️ মন্দিরের মানচিত্র', '🗺️ अपना मंदिर मैप करें')}
+              </button>
+            )}
+            {isTrustee && (
+              <button
+                type="button"
+                onClick={onToggleAartiPin}
+                disabled={aartiPinBusy}
+                className="min-h-[48px] px-6 rounded-2xl bg-white border border-red-200 text-red-800 font-black text-sm shadow-sm hover:bg-red-50 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50"
+                title={T('orgpublic_aarti_pin_hint', 'When your temple goes live, a pinned card appears at the top of the Sangam feed.', 'আপনার মন্দির লাইভ হলে সংগম ফিডের শীর্ষে একটি পিন করা কার্ড দেখা যাবে।', 'जब आपका मंदिर लाइव होगा, तो संगम फ़ीड के शीर्ष पर एक पिन किया कार्ड दिखेगा।')}
+              >
+                {aartiPinned
+                  ? T('orgpublic_aarti_unpin', '📌 Unpin live aarti', '📌 লাইভ আরতি আনপিন করুন', '📌 लाइव आरती अनपिन करें')
+                  : T('orgpublic_aarti_pin', '📌 Pin live aarti', '📌 লাইভ আরতি পিন করুন', '📌 लाइव आरती पिन करें')}
               </button>
             )}
           </div>
@@ -532,6 +553,7 @@ export const OrgPublicPage: React.FC = () => {
   const [followers, setFollowers] = useState(0);
   const [busy, setBusy] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [aartiPinBusy, setAartiPinBusy] = useState(false);
 
   useEffect(() => {
     if (!param) {
@@ -609,6 +631,42 @@ export const OrgPublicPage: React.FC = () => {
     setShowJoinModal(true);
   };
 
+  const aartiPinned = !!(page?.pinnedAarti && page.pinnedAarti.enabled);
+
+  const handleToggleAartiPin = async () => {
+    if (!page || !isTrustee || aartiPinBusy || !firebaseUser) return;
+    setAartiPinBusy(true);
+    try {
+      const ref = doc(db, 'orgPages', page.orgId);
+      if (aartiPinned) {
+        await updateDoc(ref, {
+          pinnedAarti: { ...(page.pinnedAarti as object), enabled: false },
+        });
+      } else {
+        await updateDoc(ref, {
+          pinnedAarti: buildPinnedAarti({
+            orgId: page.orgId,
+            orgName: page.name,
+            pinnedBy: firebaseUser.uid,
+          }),
+        });
+      }
+      const snap = await getDoc(ref);
+      if (snap.exists()) setPage(snap.data() as OrgPageType);
+    } catch {
+      alert(
+        T(
+          'orgpublic_aarti_pin_error',
+          'Could not update the aarti pin. Please try again.',
+          'আরতির পিন আপডেট করা যায়নি। আবার চেষ্টা করুন।',
+          'आरती पिन अपडेट नहीं हो सका। कृपया पुनः प्रयास करें।'
+        )
+      );
+    } finally {
+      setAartiPinBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-amber-50">
@@ -648,6 +706,9 @@ export const OrgPublicPage: React.FC = () => {
         isTrustee={isTrustee}
         onFollow={handleFollow}
         onJoinClick={handleJoinClick}
+        aartiPinned={aartiPinned}
+        aartiPinBusy={aartiPinBusy}
+        onToggleAartiPin={handleToggleAartiPin}
       />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />

@@ -32,6 +32,7 @@ import {
   type BookingMode,
 } from './sevaBooking';
 import { createSevaBazarOrder, submitAdvanceProof } from '../lib/sevaBazarOrders';
+import { extractReferrer } from './referrals';
 import { getOrCreateDirectChat, sendMessage } from '../chat/chatService';
 import type { ChatParticipant } from '../chat/types';
 
@@ -124,6 +125,9 @@ export const SevaBookingSheet: React.FC<SevaBookingSheetProps> = ({
     if (!slot || !draft.mode) return;
     setSubmitting(true);
     try {
+      // Referral attribution: if the booker arrived via a shared link (?ref=SAN-XXXXXX),
+      // credit the sharer. Self-referrals are ignored by the validator.
+      const referrer = extractReferrer(window.location.search);
       const id = await createSevaBazarOrder({
         serviceCardPostId: post.id,
         providerUid: card.providerUid,
@@ -141,6 +145,7 @@ export const SevaBookingSheet: React.FC<SevaBookingSheetProps> = ({
         shradhaExtra: totals.extra,
         amountGross: totals.total,
         tokenAdvance: advance,
+        ...(referrer ? { referredBy: referrer } : {}),
       });
       // Lazy chat thread with the booking as context — feed discovers,
       // chat checks out.

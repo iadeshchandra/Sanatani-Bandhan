@@ -1338,6 +1338,55 @@ service cloud.firestore {
       }
     }
 
+    // Sangam Shorts — vertical sacred moments (YouTube Shorts embeds).
+    // read: any authenticated user (community content, like the feed).
+    // create: author only, schema-pinned (11-char youtubeId, title 1-120).
+    // update: counter increments only (view/ashirvad/comment/share/report).
+    // delete: author or superadmin. No edits — delete + re-share.
+    match /sangamShorts/{shortId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn()
+        && request.resource.data.get('youtubeId', '') is string
+        && request.resource.data.get('youtubeId', '').size() == 11
+        && request.resource.data.get('title', '') is string
+        && request.resource.data.get('title', '').size() >= 1
+        && request.resource.data.get('title', '').size() <= 120
+        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && request.resource.data.get('authorName', '') is string
+        && request.resource.data.get('authorName', '').size() >= 1
+        && request.resource.data.get('authorName', '').size() <= 60
+        && request.resource.data.keys().hasOnly([
+          'youtubeId', 'title', 'thumbnailUrl', 'authorUid',
+          'authorName', 'authorAvatar', 'authorSanId', 'caption',
+          'duration', 'createdAt', 'viewCount', 'ashirvadCount',
+          'commentCount', 'shareCount', 'reportCount',
+          'serverCreatedAt'
+        ]);
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'viewCount', 'ashirvadCount', 'commentCount', 'shareCount', 'reportCount'
+        ]);
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+
+      // Comments: community conversation on a short.
+      // read: any authenticated user. create: author-only, schema-pinned.
+      // delete: comment author or superadmin. No edits.
+      match /comments/{commentId} {
+        allow read: if isLoggedIn();
+        allow create: if isLoggedIn()
+          && request.resource.data.get('authorUid', '') == request.auth.uid
+          && request.resource.data.get('text', '') is string
+          && request.resource.data.get('text', '').size() >= 1
+          && request.resource.data.get('text', '').size() <= 300
+          && request.resource.data.keys().hasOnly([
+            'authorUid', 'authorName', 'text', 'createdAt', 'serverCreatedAt'
+          ]);
+        allow delete: if isSuperAdmin()
+          || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+      }
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&
@@ -2242,7 +2291,7 @@ service cloud.firestore {
            'tagline', 'logoUrl', 'coverUrl', 'publicSlug', 'addressLine',
            'pincode', 'phone', 'website', 'darshanTimings', 'galleryUrls',
            'upcomingEvents', 'registrationNo', 'eightyGRegistered',
-           'eightyGURN', 'twelveARegistered', 'verified', 'updatedAt'])
+           'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti', 'updatedAt'])
         && request.resource.data.get('orgId', '') == orgId
       );
       allow delete: if isSuperAdmin();

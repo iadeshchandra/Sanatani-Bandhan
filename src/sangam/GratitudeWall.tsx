@@ -8,13 +8,16 @@
 import React from 'react';
 import { T } from '../solo/ui';
 import { gratitudeCountCopy } from './kritagyata';
+import { ShareButton } from './ShareButton';
 import type { SangamPost } from './types';
 
 export const GratitudeWall: React.FC<{
   posts: SangamPost[];
   lang?: 'en' | 'hi' | 'bn';
   onThank?: () => void;
-}> = ({ posts, lang = 'en', onThank }) => {
+  /** Viewer's Sanatani ID for share-referral attribution. */
+  viewerSanId?: string;
+}> = ({ posts, lang = 'en', onThank, viewerSanId }) => {
   return (
     <section aria-label="Gratitude wall" className="rounded-2xl bg-amber-50/60 border border-amber-100 p-4">
       <div className="flex items-center justify-between mb-3">
@@ -41,9 +44,14 @@ export const GratitudeWall: React.FC<{
               className="rounded-xl bg-white border border-amber-100 px-3 py-2.5 shadow-sm"
             >
               <p className="text-sm text-stone-700 leading-relaxed">{p.text}</p>
-              <p className="text-xs text-stone-400 mt-1.5">
-                — {p.authorName} · <span className="font-mono">{p.authorSanId}</span>
-              </p>
+              <div className="flex items-center justify-between mt-1.5">
+                <p className="text-xs text-stone-400">
+                  — {p.authorName} · <span className="font-mono">{p.authorSanId}</span>
+                </p>
+                {viewerSanId && (
+                  <ShareButton path={`/seva/pro/${p.providerUid}`} sharerSanId={viewerSanId} />
+                )}
+              </div>
             </li>
           ))}
         </ul>

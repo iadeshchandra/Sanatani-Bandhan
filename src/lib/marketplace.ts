@@ -170,6 +170,8 @@ export async function createOrder(input: {
   payWithWallet?: boolean;
   /** Pay the provider directly AFTER the task; commission to platform later. */
   payAfterTask?: boolean;
+  /** Sanatani ID of the sharer, from ?ref= — warm recognition, no money. */
+  referredBy?: string;
 }): Promise<string> {
   const uid = requireUser();
   const gig = await getGig(input.gigId);
@@ -203,6 +205,7 @@ export async function createOrder(input: {
     status: 'pending_payment',
     clientNotes: (input.clientNotes || '').slice(0, 500),
     scheduledAt: input.scheduledAt || '',
+    ...(input.referredBy ? { referredBy: input.referredBy } : {}),
     createdAt: serverTimestamp(),
   });
   // Increment gig order count

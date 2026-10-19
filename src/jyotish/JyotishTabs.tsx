@@ -21,8 +21,8 @@ import {
 } from '../types/jyotish';
 import { Card, StatusPill, Btn, Empty, SectionTitle, Field, inputCls } from './ui';
 import { ConsultationChat } from './ConsultationChat';
+import { ConsultationAnswerComposer } from './ConsultationAnswerComposer';
 import { ReferProfessional } from './RemedyReferral';
-import { ReferralDashboard } from '../components/sevaPro/ReferralDashboard';
 import { calculateDailyPanchang } from '../utils/panchang';
 import { REGIONAL_CALENDARS, formatRegionalDate } from '../lib/regionalCalendars';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
@@ -302,6 +302,9 @@ export const MyConsultationsTab: React.FC = () => {
                   <div className="mt-2 ml-1">
                     <ConsultationChat consultation={c} />
                   </div>
+                )}
+                {(c.status === 'COMPLETED' || c.status === 'DAKSHINA_RELEASED') && (
+                  <ConsultationAnswerComposer consultationId={c.id} />
                 )}
               </div>
             ))}
@@ -623,8 +626,6 @@ export const ReferralsTab: React.FC = () => {
   const pending = myInvites.filter((i) => i.status === 'PENDING');
   return (
     <div className="space-y-4">
-      {/* Seva Pro Phase 4 — remedy → ritual pipeline dashboard (guidance credits) */}
-      <ReferralDashboard />
       <Card>
         <SectionTitle>Remedy referrals you made</SectionTitle>
         <p className="text-xs text-stone-500 mb-3">

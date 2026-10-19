@@ -23,6 +23,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { GuideButton } from '../components/suchana/GuideButton';
 import { SevaRails } from './SevaRails';
+import { KritagyataPrompt } from './KritagyataPrompt';
+import { extractReferrer } from '../sangam/referrals';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { AuthorInfo } from '../sangam/sangamStore';
 
@@ -113,10 +115,14 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const submit = async () => {
     setWorking(true);
     try {
+      // Referral attribution: ?ref=SAN-XXXXXX from shared links.
+      const referrer = extractReferrer(window.location.search);
+      const refField = referrer ? { referredBy: referrer } : {};
       if (payPath === 'wallet') {
         // 1. Create the wallet order, 2. deduct from wallet in a batched write (rules-validated).
         const orderId = await createOrder({
           gigId: gig.id as string, paymentMethodId: 'wallet', clientNotes: notes, scheduledAt, payWithWallet: true,
+          ...refField,
         });
         await spendFromWallet(orderId);
         showToast('Seva requested! Dakshina held securely until completion.', 'success');
@@ -126,12 +132,13 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         // order waits for the platform commission (Path B gate).
         await createOrder({
           gigId: gig.id as string, paymentMethodId: 'pay_after_task', clientNotes: notes, scheduledAt, payAfterTask: true,
+          ...refField,
         });
         showToast('Seva requested! Offer dakshina directly after completion, then the seva contribution.', 'success');
         onDone();
       } else {
         if (!payRef.trim()) { showToast('Enter your payment transaction/reference ID.', 'error'); setWorking(false); return; }
-        await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt });
+        await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt, ...refField });
         showToast('Booking submitted! The provider will accept shortly.', 'success');
         onDone();
       }
@@ -226,6 +233,7 @@ const MyBookings: React.FC = () => {
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [commissionFor, setCommissionFor] = useState<MarketplaceOrder | null>(null);
+  const [gratitudeFor, setGratitudeFor] = useState<MarketplaceOrder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -235,7 +243,12 @@ const MyBookings: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const confirmDone = async (o: MarketplaceOrder) => {
-    try { await orderTransition(o.id as string, 'completed'); showToast(L === 'en' ? 'Seva complete. Dhanyavaad! 🙏' : L === 'bn' ? 'সেবা সম্পূর্ণ। ধন্যবাদ! 🙏' : 'सेवा पूर्ण। धन्यवाद! 🙏', 'success'); load(); }
+    try {
+      await orderTransition(o.id as string, 'completed');
+      showToast(L === 'en' ? 'Seva complete. Dhanyavaad! 🙏' : L === 'bn' ? 'সেবা সম্পূর্ণ। ধন্যবাদ! 🙏' : 'सेवा पूर्ण। धन्यवाद! 🙏', 'success');
+      load();
+      setGratitudeFor({ ...o, status: 'completed' } as MarketplaceOrder);
+    }
     catch (e: any) { showToast(e.message, 'error'); }
   };
   const raise = async () => {
@@ -290,6 +303,9 @@ const MyBookings: React.FC = () => {
               <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Dispute</button>
             )}
           </div>
+          {gratitudeFor && gratitudeFor.id === o.id && (
+            <KritagyataPrompt order={gratitudeFor} onDone={() => setGratitudeFor(null)} />
+          )}
         </div>
       ))}
       {disputeFor && (

@@ -59,6 +59,14 @@ export interface OrgPage {
   eightyGRegistered?: boolean;
   eightyGURN?: string;
   twelveARegistered?: boolean;
+  /** Live-aarti pin (Phase 3) — trustee pins; feed shows it only while org is live. */
+  pinnedAarti?: {
+    orgId: string;
+    orgName: string;
+    enabled: boolean;
+    pinnedAt: number;
+    pinnedBy: string;
+  };
 }
 
 /** A follower edge: `followers/{orgId}/users/{uid}`. */
