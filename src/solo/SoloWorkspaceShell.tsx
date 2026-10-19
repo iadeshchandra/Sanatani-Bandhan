@@ -18,6 +18,7 @@ import { OnboardingFlow } from './OnboardingFlow';
 import { hasOnboarded } from '../lib/intentProfile';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
+import { SearchButton } from '../search/SearchButton';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -100,6 +101,8 @@ const SoloRouter: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* 🔍 Universal search — one bar for temples, people, posts, videos */}
+          <SearchButton />
           {/* 🪔 Suchana — the calm alternative to a notification bell */}
           <button
             type="button"
