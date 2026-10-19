@@ -8,7 +8,7 @@ import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { GuideCenter } from '../components/suchana/GuideCenter';
 import { SuggestionCards } from './SuggestionCards';
 import { PersonalWallet } from '../chat/PersonalWallet';
-import { QRScanner } from '../components/common/QRScanner';
+import P2PScanSheet from '../chat/P2PScanSheet';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
 import { getCalendar } from '../lib/regionalCalendars';
@@ -290,14 +290,15 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         </div>
       </div>
       {scanOpen && (
-        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setScanOpen(false)}>
-          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <QRScanner
-              onClose={() => setScanOpen(false)}
-              onScanSuccess={() => setScanOpen(false)}
-            />
-          </div>
-        </div>
+        <P2PScanSheet
+          open={scanOpen}
+          onClose={() => setScanOpen(false)}
+          currentUser={{
+            uid: selfInfo.uid,
+            displayName: selfInfo.displayName,
+            photoUrl: selfInfo.photoUrl,
+          }}
+        />
       )}
 
       {/* 🪔 Claim your spoken ID — one-time Home moment for the VDA alias.

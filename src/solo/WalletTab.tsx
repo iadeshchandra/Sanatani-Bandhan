@@ -7,7 +7,7 @@ import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
-import { QRScanner } from '../components/common/QRScanner';
+import P2PScanSheet from '../chat/P2PScanSheet';
 import {
   getWallet, getTransactions, fileTopupClaim, myTopupClaims, ensureWallet, updateTopupClaim,
   currencyForRegion, fmtWallet, CURRENCY_SYMBOL, TOPUP_LIMITS, TOPUP_EXPIRY_HOURS,
@@ -524,20 +524,21 @@ export const WalletTab: React.FC = () => {
         />
       )}
 
-      {/* Scan — Sanatani QR codes (gate passes, payment references). */}
+      {/* Scan — Sanatani Bandhan payment codes (SB-P2P). */}
       {scanOpen && (
-        <div className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setScanOpen(false)}>
-          <div className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <QRScanner
-              onClose={() => setScanOpen(false)}
-              onScanSuccess={() => {
-                showToast(mkt(L, 'scanValid'), 'success');
-                setScanOpen(false);
-              }}
-              onScanError={(err) => showToast(err, 'error')}
-            />
-          </div>
-        </div>
+        <P2PScanSheet
+          open={scanOpen}
+          onClose={() => setScanOpen(false)}
+          currentUser={{
+            uid,
+            displayName:
+              (firebaseUser as { displayName?: string } | null)?.displayName ||
+              undefined,
+            photoUrl:
+              (firebaseUser as { photoURL?: string } | null)?.photoURL ||
+              undefined,
+          }}
+        />
       )}
 
       {/* Quick Guide: the two-wallet explainer — invitational only. */}

@@ -44,6 +44,10 @@ export interface RequestModalProps {
   /** Set when a trustee/accountant sends on behalf of an org (org_to_user). */
   asOrg?: { orgId: string; orgName: string; orgLogoUrl?: string } | null;
   onSent?: (requestId: string) => void;
+  /** Prefill from a scanned P2P QR — the sender still reviews and confirms. */
+  initialAmount?: number;
+  initialCurrency?: RequestCurrency;
+  initialNote?: string;
 }
 
 const FIELD =
@@ -57,6 +61,9 @@ export default function RequestModal({
   recipient,
   asOrg,
   onSent,
+  initialAmount,
+  initialCurrency,
+  initialNote,
 }: RequestModalProps) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<RequestCurrency>("BDT");
@@ -66,12 +73,18 @@ export default function RequestModal({
 
   useEffect(() => {
     if (open) {
-      setAmount("");
-      setNote("");
+      // Prefill from a scanned QR when provided; otherwise start blank.
+      setAmount(
+        typeof initialAmount === "number" && initialAmount > 0
+          ? String(initialAmount)
+          : "",
+      );
+      setCurrency(initialCurrency ?? "BDT");
+      setNote(initialNote ?? "");
       setError(null);
       setBusy(false);
     }
-  }, [open]);
+  }, [open, initialAmount, initialCurrency, initialNote]);
 
   const direction: RequestDirection = asOrg
     ? "org_to_user"
