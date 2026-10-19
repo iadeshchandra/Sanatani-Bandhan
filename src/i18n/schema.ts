@@ -430,6 +430,16 @@ export interface TranslationSchema {
       s1t: string;
       s1b: string;
     };
+    /**
+     * Darshan Yatra guide. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    yatra?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;

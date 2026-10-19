@@ -95,6 +95,46 @@ const STRINGS: Record<string, Record<Lang, string>> = {
     hi: 'दर्शन में जुड़ें — {temple} अभी स्ट्रीम कर रहा है।',
     bn: 'দর্শনে যোগ দিন — {temple} এখন স্ট্রিম করছে।',
   },
+  'yatra.title': {
+    en: 'Darshan Yatra',
+    hi: 'दर्शन यात्रा',
+    bn: 'দর্শন যাত্রা',
+  },
+  'yatra.cta': {
+    en: '🛕 Darshan Yatra — visit every live temple',
+    hi: '🛕 दर्शन यात्रा — हर लाइव मंदिर के दर्शन करें',
+    bn: '🛕 দর্শন যাত্রা — প্রতিটি লাইভ মন্দির দর্শন করুন',
+  },
+  'yatra.noLive': {
+    en: 'No temples are live right now. The yatra will begin when the bells ring. 🪔',
+    hi: 'अभी कोई मंदिर लाइव नहीं है। घंटी बजते ही यात्रा शुरू होगी। 🪔',
+    bn: 'এখন কোনো মন্দির লাইভ নেই। ঘণ্টা বাজলেই যাত্রা শুরু হবে। 🪔',
+  },
+  'yatra.close': {
+    en: 'Close yatra',
+    hi: 'यात्रा बंद करें',
+    bn: 'যাত্রা বন্ধ করুন',
+  },
+  'yatra.all': {
+    en: 'All temples',
+    hi: 'सभी मंदिर',
+    bn: 'সব মন্দির',
+  },
+  'yatra.prev': {
+    en: 'Previous temple',
+    hi: 'पिछला मंदिर',
+    bn: 'আগের মন্দির',
+  },
+  'yatra.next': {
+    en: 'Next temple',
+    hi: 'अगला मंदिर',
+    bn: 'পরের মন্দির',
+  },
+  'yatra.streamStarting': {
+    en: 'The stream is beginning — stay a moment. 🪔',
+    hi: 'स्ट्रीम शुरू हो रही है — एक पल ठहरें। 🪔',
+    bn: 'স্ট্রিম শুরু হচ্ছে — একটু থাকুন। 🪔',
+  },
 };
 
 export function dt(key: string, lang: Lang = 'en'): string {

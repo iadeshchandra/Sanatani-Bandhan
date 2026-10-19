@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Card, Btn, EmptyState, useLocaleText } from '../ui';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { LiveBadge, DarshanViewer } from '../../darshan';
+import { YatraButton } from '../../darshan/yatra/YatraButton';
 import { subscribeVideos, subscribeLiveStreams } from './watchService';
 import { VideoCard } from './VideoCard';
 import { ShareVideoSheet } from './ShareVideoSheet';
@@ -61,6 +62,7 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
       {/* 🔴 Live Now */}
       <section aria-label={wt('watch.liveNow', wl)}>
         <h3 className="text-sm font-extrabold text-stone-700 mb-2">{wt('watch.liveNow', wl)}</h3>
+        <YatraButton lang={wl} liveItems={live} />
         {live.length === 0 ? (
           <Card>
             <EmptyState

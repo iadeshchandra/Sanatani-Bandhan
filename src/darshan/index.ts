@@ -10,3 +10,4 @@ export { DarshanViewer } from './DarshanViewer';
 export { ChannelLinkCard } from './ChannelLinkCard';
 export { GoLiveButton } from './GoLiveButton';
 export { notifyTempleLive } from './notify';
+export { YatraButton, YatraViewer, buildYatra } from './yatra';

@@ -51,7 +51,8 @@ export type GuideId =
   | 'maptemple'
   | 'watch'
   | 'shorts'
-  | 'videoguide';
+  | 'videoguide'
+  | 'yatra';
 
 export const GUIDES: Record<GuideId, GuideDef> = {
   sos: {
@@ -373,6 +374,17 @@ export const GUIDES: Record<GuideId, GuideDef> = {
       {
         titleKey: 'guide.videoguide.s1t',
         bodyKey: 'guide.videoguide.s1b',
+      },
+    ],
+  },
+  yatra: {
+    id: 'yatra',
+    titleKey: 'guide.yatra.title',
+    pillKey: 'guide.yatra.pill',
+    steps: [
+      {
+        titleKey: 'guide.yatra.s1t',
+        bodyKey: 'guide.yatra.s1b',
       },
     ],
   },

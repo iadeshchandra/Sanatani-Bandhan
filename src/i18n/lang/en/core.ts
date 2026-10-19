@@ -383,6 +383,12 @@ export const core: CoreFragment = {
         s1t: "Videos live on YouTube — we make them shine here",
         s1b: "To keep Sanatani Bandhan free forever, we don't store videos ourselves. Upload to YouTube (free), paste the link, and your video appears in Watch — beautiful, with no storage cost to anyone. 🙏",
       },
+      yatra: {
+        title: "Darshan Yatra",
+        pill: "Many temples live at once? Take the yatra 🛕",
+        s1t: "Swipe between live temples — your personal yatra",
+        s1b: "When two or more temples are live, the 🛕 Darshan Yatra button appears. Swipe through every live darshan in one flow — Jyotirlingas, Char Dham, Shakti Peethas, or simply all of them. 🙏",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",
