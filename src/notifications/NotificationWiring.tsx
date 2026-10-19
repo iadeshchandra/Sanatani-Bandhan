@@ -22,6 +22,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { NotificationCenter } from './NotificationCenter';
 import { useChatNotify } from '../chat/useChat';
 import { useGroupNotify } from '../chat/groups/useGroups';
+import { useSocialNotify } from './socialNotify';
 import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
@@ -36,6 +37,10 @@ export const NotificationWiring: React.FC = () => {
 
   // Group chat arrivals → NotificationCenter (self-listen).
   useGroupNotify(uid);
+
+  // Social events (Ashirvad, comments, follows, RSVPs) → NotificationCenter
+  // (self-listen). All GENTLE — batched summaries, never pings.
+  useSocialNotify(uid);
 
   // Singleton configuration for the signed-in user.
   useEffect(() => {

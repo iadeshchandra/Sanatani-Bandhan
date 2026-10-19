@@ -241,6 +241,7 @@ const KIND_PLURAL: Record<NotifyKind, { en: string; bn: string; hi: string }> = 
   suchana: { en: 'suchanas', bn: 'সূচনা', hi: 'सूचनाएँ' },
   sos: { en: 'SOS alerts', bn: 'SOS সতর্কতা', hi: 'SOS चेतावनी' },
   darshan_live: { en: 'live darshans', bn: 'লাইভ দর্শন', hi: 'लाइव दर्शन' },
+  social: { en: 'community updates', bn: 'সম্প্রদায়ের খবর', hi: 'समुदाय समाचार' },
 };
 
 /**

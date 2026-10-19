@@ -17,6 +17,7 @@
 import type { EmitResult, NotifyEvent, NotifyKind, NotifyPriority, TriText } from './types';
 import { emitNotify } from './emit';
 import { copyFor, renderCopy } from './warmCopy';
+import { summarizeActors, type SocialSummary } from './socialBatcher';
 
 /* ------------------------------------------------------------------ */
 /* Small utilities                                                     */
@@ -355,4 +356,108 @@ export function notifyOrgAnnouncement(recipientUid: string, a: OrgAnnouncementIn
       payload: { orgId: a.orgId, announcementId: a.announcementId },
     }),
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Social — community warmth. All GENTLE: batched into digests, fed to  */
+/* the Suchana stream, never pings, never breaks quiet hours.          */
+/* ------------------------------------------------------------------ */
+
+/** Batched Ashirvad summary → GENTLE. One card per 90-second window. */
+export function notifySocialAshirvad(recipientUid: string, s: SocialSummary): Promise<EmitResult> {
+  const names = s.actors.map((a) => a.name);
+  const many = names.length > 3;
+  const params = many
+    ? {
+        names: summarizeActors(names, 'en'),
+        // Per-language names are rendered below via explicit title override.
+        count: s.actors.length,
+      }
+    : { names: names.join(', ') };
+  const event = base('social', 'gentle', many ? 'ashirvadMany' : 'ashirvad', params, s.dedupeKey, {
+    actorUid: s.actors[0]?.uid,
+    actorName: s.actors[0]?.name,
+    deepLink: '/sangam',
+    payload: { postId: s.targetId, count: s.actors.length },
+  });
+  if (many) {
+    // The {names} placeholder needs per-language "X and N others" phrasing.
+    event.title = {
+      en: `🪔 ${summarizeActors(names, 'en')} sent Ashirvad`,
+      bn: `🪔 ${summarizeActors(names, 'bn')} আশীর্বাদ পাঠিয়েছেন`,
+      hi: `🪔 ${summarizeActors(names, 'hi')} ने आशीर्वाद भेजा है`,
+    };
+  }
+  return send(recipientUid, event);
+}
+
+export interface SocialCommentInput {
+  commentId: string;
+  postId: string;
+  authorUid: string;
+  authorName: string;
+  preview: string;
+}
+
+/** New comment on your post → GENTLE (individual; center groups same-actor). */
+export function notifySocialComment(recipientUid: string, c: SocialCommentInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base(
+      'social',
+      'gentle',
+      'comment',
+      { name: c.authorName, preview: c.preview.slice(0, 120) },
+      `social:comment:${c.commentId}`,
+      {
+        actorUid: c.authorUid,
+        actorName: c.authorName,
+        deepLink: '/sangam',
+        payload: { postId: c.postId, commentId: c.commentId },
+      },
+    ),
+  );
+}
+
+/** New follower → GENTLE. No name (we only observe the count change). */
+export function notifySocialFollow(recipientUid: string, followerCount: number, dayKey: string): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('social', 'gentle', 'follow', {}, `social:follow:${recipientUid}:${dayKey}:${followerCount}`, {
+      deepLink: `/u/${recipientUid}`,
+    }),
+  );
+}
+
+export interface SocialRsvpInput extends SocialSummary {
+  eventTitle: string;
+}
+
+/** Batched RSVP summary → GENTLE. One card per 90-second window. */
+export function notifySocialRsvp(recipientUid: string, s: SocialRsvpInput): Promise<EmitResult> {
+  const names = s.actors.map((a) => a.name);
+  const many = names.length > 3;
+  const event = base(
+    'social',
+    'gentle',
+    many ? 'rsvpMany' : 'rsvp',
+    many
+      ? { names: summarizeActors(names, 'en'), event: s.eventTitle, count: s.actors.length }
+      : { names: names.join(', '), event: s.eventTitle },
+    s.dedupeKey,
+    {
+      actorUid: s.actors[0]?.uid,
+      actorName: s.actors[0]?.name,
+      deepLink: '/sangam',
+      payload: { eventId: s.targetId, count: s.actors.length },
+    },
+  );
+  if (many) {
+    event.title = {
+      en: `📿 ${summarizeActors(names, 'en')} will join ${s.eventTitle}`,
+      bn: `📿 ${summarizeActors(names, 'bn')} ${s.eventTitle}-এ যোগ দেবেন`,
+      hi: `📿 ${summarizeActors(names, 'hi')} ${s.eventTitle} में शामिल होंगे`,
+    };
+  }
+  return send(recipientUid, event);
 }

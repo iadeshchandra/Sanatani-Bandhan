@@ -387,6 +387,61 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
       ),
     },
   },
+
+  /* ---------------------------------------------------------------- */
+  /* Social — community warmth. All GENTLE: never pings, never breaks   */
+  /* quiet hours. Suchana, not notifications.                          */
+  /* ---------------------------------------------------------------- */
+  social: {
+    ashirvad: {
+      title: t('🪔 {names} sent Ashirvad', '🪔 {names} আশীর্বাদ পাঠিয়েছেন', '🪔 {names} ने आशीर्वाद भेजा है'),
+      body: t(
+        'Your post received blessings. May it bring joy to all who read it.',
+        'আপনার পোস্ট আশীর্বাদ পেয়েছে। যারা পড়বেন সবার জন্য আনন্দ বয়ে আনুক।',
+        'आपकी पोस्ट को आशीर्वाद मिला है। इसे पढ़ने वालों के लिए आनंद लाए।',
+      ),
+    },
+    ashirvadMany: {
+      title: t('🪔 {names} sent Ashirvad', '🪔 {names} আশীর্বাদ পাঠিয়েছেন', '🪔 {names} ने आशीर्वाद भेजा है'),
+      body: t(
+        'Your post is gathering blessings from the sangam. 🙏',
+        'সঙ্গম থেকে আপনার পোস্টে আশীর্বাদ জমছে। 🙏',
+        'संगम से आपकी पोस्ट पर आशीर्वाद जुट रहे हैं। 🙏',
+      ),
+    },
+    comment: {
+      title: t('💬 {name} commented', '💬 {name} মন্তব্য করেছেন', '💬 {name} ने टिप्पणी की है'),
+      body: t(
+        '"{preview}" — on your post.',
+        '"{preview}" — আপনার পোস্টে।',
+        '"{preview}" — आपकी पोस्ट पर।',
+      ),
+    },
+    follow: {
+      title: t('🙏 A new devotee follows you', '🙏 একজন নতুন ভক্ত আপনাকে অনুসরণ করছেন', '🙏 एक नए भक्त ने आपको फॉलो किया है'),
+      body: t(
+        'Your presence in the sangam is growing. Welcome them with warmth.',
+        'সঙ্গমে আপনার উপস্থিতি বাড়ছে। উষ্ণতায় তাদের স্বাগত জানান।',
+        'संगम में आपकी उपस्थिति बढ़ रही है। उन्हें स्नेह से स्वागत करें।',
+      ),
+    },
+    rsvp: {
+      title: t('📿 {names} will join {event}', '📿 {names} {event}-এ যোগ দেবেন', '📿 {names} {event} में शामिल होंगे'),
+      body: t(
+        'Your event is gathering hearts. Prepare with joy.',
+        'আপনার অনুষ্ঠানে হৃদয় জমায়েত হচ্ছে। আনন্দে প্রস্তুতি নিন।',
+        'आपके आयोजन में हृदय जुट रहे हैं। आनंद से तैयारी करें।',
+      ),
+    },
+    rsvpMany: {
+      title: t('📿 {names} will join {event}', '📿 {names} {event}-এ যোগ দেবেন', '📿 {names} {event} में शामिल होंगे'),
+      body: t(
+        '{count} devotees are coming to your event. The sangam gathers. 🙏',
+        'আপনার অনুষ্ঠানে {count} জন ভক্ত আসছেন। সঙ্গম জমায়েত হচ্ছে। 🙏',
+        'आपके आयोजन में {count} भक्त आ रहे हैं। संगम जुट रहा है। 🙏',
+      ),
+    },
+  },
 };
 
 /**

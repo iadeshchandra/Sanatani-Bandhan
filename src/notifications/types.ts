@@ -29,7 +29,8 @@ export type NotifyKind =
   | 'org'
   | 'blessing'
   | 'security'
-  | 'darshan_live';
+  | 'darshan_live'
+  | 'social';
 
 export type NotifyLang = 'en' | 'bn' | 'hi';
 

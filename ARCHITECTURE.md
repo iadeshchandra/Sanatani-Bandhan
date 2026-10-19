@@ -145,6 +145,8 @@ Multi-tenant workspaces (`workspaces/{workspaceId}`, `workspaceMembers/{memberId
 
 Event bus (`NotificationCenter.ts`): 4 priority tiers (**CRITICAL breaks quiet hours**); quiet hours 05:00–07:00 default; per-user `notifications/{uid}/items/{id}`; offline IndexedDB outbox. FCM server consumer needs Blaze (documented, not built). Warm copy in `warmCopy.ts` — blessings, not badges.
 
+**Social notifications (Step 6, 2026-10-19):** self-listen watcher `useSocialNotify` (mounted in `NotificationWiring`) observes shared data and emits to self — Ashirvads on my posts (batched 90s via `SocialBatcher`: "🪔 Meera and 3 others sent Ashirvad"), comments on my posts (individual), new followers (generic, count-based), RSVPs to my events (batched). **All GENTLE: never pings, never breaks quiet hours.** New `social` NotifyKind. Rules: never self-notify, never notify blocked/muted actors, initial snapshots are baselines. Zero new collections, zero rules changes.
+
 ---
 
 ## 11. i18n — 10 Languages + Regional Native (`src/i18n/`)
