@@ -10,6 +10,9 @@ import { uploadFile, resolveVaultUrl } from '../../lib/fileVault';
 import { createStory } from './storyService';
 import { backgroundCss, STORY_BACKGROUNDS, STORY_CAPTION_MAX, STORY_TEXT_MAX, type StoryBackgroundId, type StoryMediaType } from './types';
 import { st, type StoryLang } from './i18n';
+import { isVideoFile } from '../../video/uploadGuidance';
+import { VideoGuidanceSheet } from '../../video/VideoGuidanceSheet';
+import type { AuthorInfo } from '../sangamStore';
 
 interface Props {
   uid: string;
@@ -33,10 +36,16 @@ export const CreateStorySheet: React.FC<Props> = ({
   const [uploading, setUploading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState('');
+  const [showVideoGuide, setShowVideoGuide] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /** Videos are intercepted → warm guidance sheet (we never host video). */
   const pickPhoto = async (f: File | undefined) => {
     if (!f) return;
+    if (isVideoFile(f)) {
+      setShowVideoGuide(true);
+      return;
+    }
     setError('');
     setUploading(true);
     try {
@@ -79,6 +88,7 @@ export const CreateStorySheet: React.FC<Props> = ({
   };
 
   return (
+    <>
     <Modal title={st('stories.title', lang)} onClose={onClose}>
       <p className="text-xs text-stone-500 italic mb-4">{st('stories.vanish', lang)}</p>
 
@@ -183,5 +193,14 @@ export const CreateStorySheet: React.FC<Props> = ({
         {sharing ? st('stories.uploading', lang) : `🪔 ${st('stories.share', lang)}`}
       </button>
     </Modal>
+    {showVideoGuide && (
+      <VideoGuidanceSheet
+        context="stories"
+        author={{ uid, name: authorName, sanId: authorSanId || '', kind: 'devotee' } as AuthorInfo}
+        lang={lang}
+        onClose={() => setShowVideoGuide(false)}
+      />
+    )}
+    </>
   );
 };

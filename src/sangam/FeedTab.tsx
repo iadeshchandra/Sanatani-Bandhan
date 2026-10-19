@@ -15,6 +15,9 @@ import { FestivalMomentsRail } from './FestivalMomentsRail';
 import { activeMomentWindows } from './festivalMoments';
 import { LiveAartiCard } from './LiveAartiCard';
 import { shouldShowPinnedAarti, type PinnedAarti } from './liveAarti';
+import { isVideoFile } from '../video/uploadGuidance';
+import { VideoGuidanceSheet } from '../video/VideoGuidanceSheet';
+import type { VideoGuideLang } from '../video/i18n';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -241,7 +244,8 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
 
 const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; orgName: string } }> = ({ author, pageContext }) => {
   const { createPost } = useSangam();
-  const { tr } = useLocaleText();
+  const { tr, lang } = useLocaleText();
+  const vgl: VideoGuideLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<PostKind>('text');
   const [text, setText] = useState('');
@@ -254,15 +258,21 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showVideoGuide, setShowVideoGuide] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
 
   /** Upload a photo from the device into the public File Vault tier, then
    *  attach the resulting vault:// URL to the post. Images are compressed
-   *  client-side before upload (see lib/fileVault). */
+   *  client-side before upload (see lib/fileVault).
+   *  Videos are intercepted → warm guidance sheet (we never host video). */
   const onPhotoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    if (isVideoFile(file)) {
+      setShowVideoGuide(true);
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
@@ -385,6 +395,14 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
           {busy ? tr('Posting…', 'পোস্ট হচ্ছে…', 'पोस्ट हो रहा…') : `🪔 ${tr('Share to Sangam', 'সঙ্গমে শেয়ার', 'संगम में साझा')}`}
         </Btn>
       </div>
+      {showVideoGuide && (
+        <VideoGuidanceSheet
+          context="feed"
+          author={author}
+          lang={vgl}
+          onClose={() => setShowVideoGuide(false)}
+        />
+      )}
     </Card>
   );
 };

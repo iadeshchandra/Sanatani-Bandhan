@@ -377,6 +377,12 @@ export const core: CoreFragment = {
         s1t: "Moments that uplift, one swipe away",
         s1b: "Short vertical videos from the sangha — bhajan clips, temple glimpses, 60-second thoughts. They start silent; tap for sound. Double-tap to send an Ashirvad. 🪔",
       },
+      videoguide: {
+        title: "Your videos, shining here",
+        pill: "Tried to upload a video? Here's the gentle path 🪔",
+        s1t: "Videos live on YouTube — we make them shine here",
+        s1b: "To keep Sanatani Bandhan free forever, we don't store videos ourselves. Upload to YouTube (free), paste the link, and your video appears in Watch — beautiful, with no storage cost to anyone. 🙏",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",

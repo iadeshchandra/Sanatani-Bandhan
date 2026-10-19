@@ -420,6 +420,16 @@ export interface TranslationSchema {
       s1t: string;
       s1b: string;
     };
+    /**
+     * Gentle video upload guidance. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    videoguide?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;
