@@ -23,7 +23,10 @@ export const T: React.FC<{ en: string; bn: string; hi?: string; sa?: string; cla
   return (
     <span className={className}>
       <span className="font-bold">{primary}</span>
-      {showGloss && <span className="whitespace-nowrap text-stone-500 font-normal text-[0.85em]"> ({en})</span>}
+      {/* Gloss wraps naturally (never overlaps on narrow screens) and uses
+          inherited color at reduced opacity so it stays readable on both
+          light cards and dark gradient headers. */}
+      {showGloss && <span className="font-normal text-[0.85em] opacity-60"> ({en})</span>}
     </span>
   );
 };

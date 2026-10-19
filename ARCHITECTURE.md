@@ -19,6 +19,7 @@
 - **STANDING — Offline-first preserved.** IndexedDB caches, sync queues, lazy expiry.
 - **STANDING — Device spectrum.** The app is premium-first AND floor-proof: buttery on flagships (120Hz animations, rich gradients, full media), fully functional on the floor — **2GB RAM / Android 8+ / 360px wide** (lazy-loaded chunks, ~4MB main bundle, no jank, zero features removed on low-end). One codebase, every device from a $80 Android to a $1,200 flagship to desktop.
 - **STANDING — Privacy:** nothing automatic, nothing permanent, nothing public (map/visit data). Consent cards before any one-time use. Coordinates discarded, never stored.
+- **STANDING — Gloss pattern (2026-10-19 polish):** the `T` translation component's English gloss (`(English)`) wraps naturally (no `whitespace-nowrap`) and uses inherited color at 60% opacity (no hardcoded `text-stone-500`) — readable on light cards AND dark gradients, never overlapping on 360px screens. Applies to `src/solo/ui.tsx` and the org-suite `ui.tsx` primitives (pathshala, goshala, cashcustody, ashram, annakshetra).
 
 ---
 

@@ -369,7 +369,7 @@ export const WalletTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end -mb-1">
+      <div className="flex justify-end -mb-1 pr-2 pt-1">
         <TourLink guide={GUIDES.wallet} onRestart={walletGuide.restart} />
       </div>
       <div data-guide-anchor="wallet-seva">

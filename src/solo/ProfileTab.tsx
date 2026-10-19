@@ -316,7 +316,7 @@ export const ProfileTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end -mb-2">
+      <div className="flex justify-end -mb-2 pr-2 pt-1">
         <TourLink guide={GUIDES.profile} onRestart={profileGuide.restart} />
       </div>
 

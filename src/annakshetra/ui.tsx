@@ -22,7 +22,7 @@ export const T: React.FC<{ en: string; bn: string; hi?: string; sa?: string; cla
   return (
     <span className={className}>
       <span className="font-bold">{primary}</span>
-      {showGloss && <span className="text-stone-500 font-normal text-[0.85em]"> ({en})</span>}
+      {showGloss && <span className="font-normal text-[0.85em] opacity-60"> ({en})</span>}
     </span>
   );
 };
