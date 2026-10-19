@@ -7,11 +7,13 @@
  * the devotee, never detected.
  */
 import React, { useState } from 'react';
+import { QrCode } from 'lucide-react';
 import { Btn, Field } from '../solo/ui';
 import { useLanguage } from '../context/LanguageContext';
 import { uploadFile } from '../lib/fileVault';
 import { recordVisit } from './tirthaStore';
 import { tirthaLangOf, tt } from './i18n';
+import { ZoneQrScanSheet, type ZoneScanSuccess } from '../campus/ZoneQrScanSheet';
 import type { DarshanKind, VisitEntry } from './types';
 
 const DARSHAN_KINDS: DarshanKind[] = [
@@ -41,6 +43,15 @@ export const VisitCheckinSheet: React.FC<{
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [orgId, setOrgId] = useState(initialOrgId || '');
+
+  /** Zone QR verified — pre-fill from the temple's own code. Still editable. */
+  const onQrVerified = (scan: ZoneScanSuccess) => {
+    setScanning(false);
+    setTempleName(`${scan.orgName} · ${scan.zoneName}`);
+    setOrgId(scan.orgId);
+  };
 
   const save = async () => {
     if (!templeName.trim()) {
@@ -62,7 +73,7 @@ export const VisitCheckinSheet: React.FC<{
       }
       const entry = await recordVisit(uid, {
         templeName: templeName.trim(),
-        orgId: initialOrgId,
+        orgId: orgId || undefined,
         visitedAt: new Date(visitedAt).toISOString(),
         darshanKind: darshanKind || undefined,
         note: note.trim() || undefined,
@@ -91,6 +102,22 @@ export const VisitCheckinSheet: React.FC<{
           </button>
         </div>
         <p className="text-xs text-stone-500 mb-5">🔒 {tt(currentLang, 'visit.privacyNote')}</p>
+
+        <button
+          type="button"
+          onClick={() => setScanning(true)}
+          className="mb-4 w-full min-h-[52px] rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-extrabold text-sm flex items-center justify-center gap-2"
+        >
+          <QrCode className="w-5 h-5" />
+          {lang === 'bn'
+            ? '📷 মন্দিরের QR স্ক্যান করুন'
+            : lang === 'hi'
+              ? '📷 मंदिर का QR स्कैन करें'
+              : '📷 Scan temple QR'}
+        </button>
+        {scanning && (
+          <ZoneQrScanSheet onVerified={onQrVerified} onClose={() => setScanning(false)} />
+        )}
 
         <div className="space-y-4">
           <Field label={tt(currentLang, 'visit.templeName')}>

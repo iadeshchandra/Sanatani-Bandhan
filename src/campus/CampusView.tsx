@@ -17,6 +17,7 @@ import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from '
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { RecordVisitButton } from '../tirtha/RecordVisitButton';
+import { ZoneReportButton } from './ZoneReportButton';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 import '../crisis/leaflet.css';
@@ -320,6 +321,16 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
                 Guide me here 🙏
               </a>
             )}
+            {/* Sevadar live reporting — renders only for sevadar-grade roles */}
+            <div className="mt-3">
+              <ZoneReportButton
+                orgId={orgId}
+                zoneId={selected.id}
+                zoneName={zoneLabel(selected, currentLang).name}
+                festivalMode={festivalMode}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       )}

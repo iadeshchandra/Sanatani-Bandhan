@@ -115,6 +115,8 @@ Privacy laws: **nothing automatic, nothing permanent, nothing public.**
 - **Tiles** (`maps/tileProviders.ts`) — Esri World Topo (light) + Esri Dark Gray (dark) primary, OSM fallback. CARTO via managed key.
 - **Tirtha Diary** (`src/tirtha/`) — private visit journal: manual opt-in check-in (never auto-detected), month-grouped timeline, yatra grouping, one-tap forget, local-first with tombstoned sync.
 - **AI location assistance** — consent card → one-time fix → results → coordinates discarded (tested no-storage invariant).
+- **Zone QR check-in loop (Step 10, 2026-10-19)** — `campus/ZoneQrScanSheet.tsx`: dedicated SB-ZONE scanner (deliberately separate from the security-pass QRScanner — different copy, different flows). Two anti-phishing gates (strict `parseZoneQr` + `verifyZoneQr` against the published map); result screen has no payments/links. Verified scan → `VisitCheckinSheet` pre-filled (`orgName · zoneName` + orgId), still editable, recorded only on explicit confirm. "📷 Scan temple QR" button in the check-in sheet.
+- **Sevadar live reporting (Step 10, 2026-10-19)** — `campus/ZoneReportButton.tsx`: 5-second submit (condition chips + optional note → `submitZoneReport`). Mounted in the CampusView zone detail sheet; visible ONLY to sevadar-grade roles (client gate mirrors the `zoneReports` rules; rules enforce server-side). Reports auto-expire (2h / 30min festival). CampusView's "📢 Live from our sevadars" shelf was already subscription-driven and hides when empty — now it finally has a writer.
 
 ---
 

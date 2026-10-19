@@ -96,7 +96,12 @@ export async function submitZoneReport(
   };
   const { festivalMode: _fm, ...doc_data } = report as ZoneReport & { festivalMode?: boolean };
   void _fm;
-  await setDoc(doc(db, COL, id), { ...doc_data, serverAt: serverTimestamp() });
+  // Strip undefined optionals — Firestore rejects undefined values on setDoc.
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(doc_data)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  await setDoc(doc(db, COL, id), { ...clean, serverAt: serverTimestamp() });
   return id;
 }
 
@@ -131,4 +136,22 @@ export function subscribeToZoneReports(
 /** Client refresh cadence: degrades automatically in festival mode. */
 export function reportRefreshMs(festivalMode: boolean): number {
   return festivalMode ? 5 * 60 * 1000 : 60 * 1000;
+}
+
+const REPORTING_ROLES = ['superadmin', 'trustee', 'sevadar', 'coordinator'];
+
+/**
+ * Client-side gate for the sevadar report button — mirrors the
+ * `zoneReports` Firestore rules (courtesy, not security; the rules
+ * enforce the same gate server-side). Kept here (pure, no context
+ * imports) so it stays unit-testable.
+ */
+export function canSubmitZoneReport(
+  membershipRole: string | undefined,
+  email: string | undefined,
+  ownerEmail: string,
+): boolean {
+  if (!membershipRole && !email) return false;
+  if (email && email.toLowerCase() === ownerEmail.toLowerCase()) return true;
+  return REPORTING_ROLES.includes((membershipRole || '').toLowerCase());
 }
