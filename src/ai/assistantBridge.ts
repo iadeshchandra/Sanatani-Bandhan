@@ -48,31 +48,20 @@ export interface AssistantContext {
 
 export type AskFn = (input: string, ctx: AssistantContext) => Promise<AssistantResponse>;
 
-/** The core's module specifier — kept in one place for the loader below. */
-const CORE_SPEC = '../ai/assistant';
-
-let coreAskPromise: Promise<AskFn | null> | null = null;
+/**
+ * The core's module specifier — kept in one place for the loader below. */
+import { ask as coreAsk } from './assistant';
 
 /**
- * Loads the sibling worker's core if it has landed. The `@vite-ignore`
- * comment keeps this a true runtime import: Vite does NOT try to resolve
- * the specifier at build time, so the build stays green whether or not
- * `src/ai/assistant.ts` exists yet. At runtime a missing module simply
- * rejects, and we fall back to the standby.
+ * Loads the assistant core. Previously a `@vite-ignore` dynamic import so the
+ * build stayed green before the core landed. The core has long since landed
+ * at `src/ai/assistant.ts`, and the dynamic import can never resolve at
+ * runtime (Vite bundles everything — there is no separate `../ai/assistant`
+ * URL to fetch). So we import statically now; the standby remains as a
+ * fail-safe if the core ever throws.
  */
 function loadCoreAsk(): Promise<AskFn | null> {
-  if (!coreAskPromise) {
-    coreAskPromise = (async (): Promise<AskFn | null> => {
-      try {
-        const spec: string = CORE_SPEC;
-        const mod = (await import(/* @vite-ignore */ spec)) as { ask?: unknown };
-        return typeof mod?.ask === 'function' ? (mod.ask as AskFn) : null;
-      } catch {
-        return null;
-      }
-    })();
-  }
-  return coreAskPromise;
+  return Promise.resolve(coreAsk as AskFn);
 }
 
 const standbyText = (lang: string): string => {

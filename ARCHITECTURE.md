@@ -43,6 +43,7 @@ The personal home. Mobile bottom nav / desktop sidebar: **Home · Orgs · Suchan
 - `intents.ts` — 16+ intents (greeting, tithi_today, festival_next, dharma_question, navigate, nearby_temples, tirtha_summary, booking_help, dana_help, sos_help, voice_upgrade, language_help, sadhana_summary, howto, fallback_unknown).
 - `tasks/` — pure executors per intent.
 - `rbac.ts` — 8 roles; intents are role-scoped. Owner-only intents hard-gated (`canUseCopilot`).
+- `assistantBridge.ts` — devotee UI entry point. **STANDING FIX (2026-10-19):** was a `@vite-ignore` dynamic import that could never resolve at runtime (Vite bundles everything) — the sheet silently fell back to standby forever. Now a static import of `./assistant` with standby as fail-safe only.
 - `crisisKeywords.ts` — 46 crisis keywords → SOS, bypassing everything.
 - `corpus/` — restricted dharma corpus (tithi, festivals, practice, samskaras, concepts, etiquette) in EN/HI/BN; dharma answers come ONLY from here, escalating to "ask Purohitji" below confidence — never guesses.
 - `navigation.ts` + `corpus/navigation.ts` — navigation brain: "where is X?" → deep-link answers with "Take me there" actions.
