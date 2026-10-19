@@ -16,8 +16,9 @@ export function danaHelpTask(ctx: TaskCtx): TaskOutcome {
   return {
     params: {},
     variant: 'default',
-    // Host shell opens the ExpressDanaSheet bottom sheet (UI wiring pending).
-    action: { kind: 'openSheet', target: 'express-dana' },
+    // Host shell opens the ExpressDanaSheet bottom sheet.
+    // Target 'dana' matches the AssistantSheet openSheet convention.
+    action: { kind: 'openSheet', target: 'dana' },
     suggestions: suggestionsFor('dana_help', ctx.lang),
   };
 }

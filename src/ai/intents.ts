@@ -182,6 +182,14 @@ const DESTINATION_MAP: Array<{ keywords: string[]; path: string; label: string }
   { keywords: ['get app', 'getapp', 'install app', 'download app', 'install', 'app download'], path: '/get-app', label: 'Get the app' },
   { keywords: ['contact', 'support', 'helpdesk', 'contact us'], path: '/contact', label: 'Contact' },
   { keywords: ['seva journeys', 'life events', 'seva catalog'], path: '/seva/journeys', label: 'Seva Journeys' },
+  { keywords: ['sangam', 'feed', 'community feed', 'social'], path: '/app/home', label: 'Sangam Feed' },
+  { keywords: ['watch', 'videos', 'live darshan', 'darshan'], path: '/app/home', label: 'Watch & Live Darshan' },
+  { keywords: ['shorts', 'short videos', 'sacred moments'], path: '/app/home', label: 'Shorts' },
+  { keywords: ['stories', 'today moments', 'daily moments'], path: '/app/home', label: 'Stories' },
+  { keywords: ['tirtha diary', 'my diary', 'visit journal', 'pilgrimage diary'], path: '/app/profile', label: 'Tirtha Diary' },
+  { keywords: ['seva bazar', 'marketplace', 'book seva', 'find panditji'], path: '/app/home', label: 'Seva Bazar' },
+  { keywords: ['chat', 'messages', 'my chats'], path: '/app/chat', label: 'Chat' },
+  { keywords: ['wallet', 'my wallet', 'seva wallet'], path: '/app/profile', label: 'Wallet' },
 ];
 
 /** Module keyword → module guide id (see src/lib/moduleGuides.ts). */

@@ -48,7 +48,8 @@ The personal home. Mobile bottom nav / desktop sidebar: **Home · Orgs · Suchan
 - `tasks/` — pure executors per intent.
 - `rbac.ts` — 8 roles; intents are role-scoped. Owner-only intents hard-gated (`canUseCopilot`).
 - `assistantBridge.ts` — devotee UI entry point. **STANDING FIX (2026-10-19):** was a `@vite-ignore` dynamic import that could never resolve at runtime (Vite bundles everything) — the sheet silently fell back to standby forever. Now a static import of `./assistant` with standby as fail-safe only.
-- `crisisKeywords.ts` — 46 crisis keywords → SOS, bypassing everything.
+- `crisisKeywords.ts` — 46 crisis keywords → SOS, bypassing everything. **Fix (2026-10-19):** soft keywords ('help me', 'save me') no longer fire on procedural requests — "help me with dana" routes to dana_help, not SOS (`isProceduralHelp` guard).
+- **Dead-action fixes (2026-10-19):** dana_help target aligned to `'dana'` (sheet convention); dharma escalation → `/seva/journeys` (was 404 `/seva/pro`); navigation corpus routes fixed; `formatAssistantText()` in templates.ts converts literal `\n` → newlines and strips `**` (sheet is plain-text); dead suggestion chips replaced; DESTINATION_MAP extended (sangam, shorts, chat, wallet, tirtha diary).
 - `corpus/` — restricted dharma corpus (tithi, festivals, practice, samskaras, concepts, etiquette) in EN/HI/BN; dharma answers come ONLY from here, escalating to "ask Purohitji" below confidence — never guesses.
 - `navigation.ts` + `corpus/navigation.ts` — navigation brain: "where is X?" → deep-link answers with "Take me there" actions.
 - `dharma.ts` — deterministic keyword matcher with confidence scoring.

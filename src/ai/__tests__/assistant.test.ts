@@ -117,10 +117,23 @@ describe('crisis keywords → sos', () => {
     expect(c.bn).toBeGreaterThan(5);
   });
 
-  it('ask(): crisis beats the router ("help me with dana" → sos)', async () => {
+  it('ask(): "help me with dana" is procedural, NOT a crisis', async () => {
     const res = await ask('help me with dana', devotee);
+    expect(res.type).not.toBe('sos');
+  });
+  it('ask(): standalone "help me" is still a crisis', async () => {
+    const res = await ask('help me', devotee);
     expect(res.type).toBe('sos');
-    expect(res.text.length).toBeGreaterThan(20);
+  });
+  it('detectCrisis: procedural help is not a crisis', () => {
+    expect(detectCrisis('help me with dana')).toBeNull();
+    expect(detectCrisis('help me find a temple')).toBeNull();
+    expect(detectCrisis('help me book a purohit')).toBeNull();
+  });
+  it('detectCrisis: standalone distress is still a crisis', () => {
+    expect(detectCrisis('help me')).toBeTruthy();
+    expect(detectCrisis('help me, I am in danger')).toBeTruthy();
+    expect(detectCrisis('save me')).toBeTruthy();
   });
   it('ask(): BN crisis → sos with BN text', async () => {
     const res = await ask('বাঁচান আমাকে', bnDevotee);
@@ -194,7 +207,7 @@ describe('executors answer from app data', () => {
   it('dana_help offers the express dana sheet', async () => {
     const res = await ask('how do I donate?', devotee);
     expect(res.type).toBe('action');
-    expect(res.action).toEqual({ kind: 'openSheet', target: 'express-dana' });
+    expect(res.action).toEqual({ kind: 'openSheet', target: 'dana' });
   });
   it('booking_help navigates to Seva Journeys', async () => {
     const res = await ask('book a purohit', devotee);

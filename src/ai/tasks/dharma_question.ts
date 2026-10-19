@@ -49,7 +49,7 @@ export function dharmaQuestionTask(ctx: TaskCtx): TaskOutcome {
     params: { topic: escalatedTopic },
     variant: 'escalate',
     // Human path: find a purohit on Seva Pro.
-    action: { kind: 'navigate', target: '/seva/pro' },
+    action: { kind: 'navigate', target: '/seva/journeys' },
     suggestions: suggestionsFor('dharma_question', ctx.lang),
   };
 }

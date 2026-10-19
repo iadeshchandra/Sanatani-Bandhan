@@ -230,7 +230,7 @@ export const NAVIGATION_CORPUS: NavigationCorpus = [
       'purohit kothay', 'পুরোহিত', 'पुरोहित', 'purohit kahan', 'seva pro',
       'book jyotish', 'find jyotishi', 'jyotish booking',
     ],
-    target: { route: '/seva/pro', section: 'Find a professional' },
+    target: { route: '/seva/journeys', section: 'Find a professional' },
     answer: {
       en: '🙏 Verified Purohits and Jyotishis await on Seva Pro — browse profiles, see their lineage and reviews, and book with Dakshina Suraksha. I\'ll take you there now.',
       hi: '🙏 सत्यापित पुरोहित और ज्योतिषी सेवा प्रो पर हैं — प्रोफ़ाइल देखें, वंशावली और समीक्षाएं पढ़ें, दक्षिणा सुरक्षा के साथ बुक करें।',
@@ -399,7 +399,7 @@ export const NAVIGATION_CORPUS: NavigationCorpus = [
       'jyotish', 'jyotishi', 'astrology', 'horoscope', 'kundli',
       'jyotish kothay', 'জ্যোতিষ', 'ज्योतिष', 'jyotish kahan', 'consult jyotish',
     ],
-    target: { route: '/seva/pro', section: 'Jyotishis' },
+    target: { route: '/seva/journeys', section: 'Jyotishis' },
     answer: {
       en: '🙏 Verified Jyotishis await on Seva Pro — honest consultations with clear dakshina, no fear-selling, ever. I\'ll take you there now.',
       hi: '🙏 सत्यापित ज्योतिषी सेवा प्रो पर हैं — स्पष्ट दक्षिणा के साथ ईमानदार परामर्श, कभी भय नहीं बेचा जाता।',

@@ -39,7 +39,6 @@ const KNOWN_ROUTES = new Set([
   '/app/orgs',
   '/app/suchana',
   '/app/profile',
-  '/seva/pro',
   '/seva/journeys',
   '/contact',
   '/get-app',

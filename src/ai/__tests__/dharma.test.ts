@@ -201,7 +201,7 @@ describe('dharma task', () => {
   test('escalates sensitive topics to Purohitji with a deep link', () => {
     const out = dharmaQuestionTask(taskCtx('teach me sandhya vandanam step by step'));
     expect(out.variant).toBe('escalate');
-    expect(out.action?.target).toBe('/seva/pro');
+    expect(out.action?.target).toBe('/seva/journeys');
   });
 
   test('escalates unknown questions instead of inventing', () => {
@@ -233,7 +233,7 @@ describe('end-to-end ask() — dharma flow', () => {
   test('sensitive question escalates with type "escalate"', async () => {
     const res = await ask('how do I perform my wedding ceremony step by step', devotee);
     expect(res.type).toBe('escalate');
-    expect(res.action?.target).toBe('/seva/pro');
+    expect(res.action?.target).toBe('/seva/journeys');
   });
 
   test('crisis keywords still bypass everything (invariant)', async () => {

@@ -626,9 +626,9 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     bn: ['আজকের তিথি?', 'একাদশী কবে?', 'পঞ্জিকা নির্দেশিকা'],
   },
   dana_help: {
-    en: ['Open the dana sheet', 'What is punya ledger?', 'My giving history'],
-    hi: ['दान पत्र खोलो', 'पुण्य-लेखा क्या है?', 'मेरा दान इतिहास'],
-    bn: ['দান পত্র খোলো', 'পুণ্য-খাতা কী?', 'আমার দানের ইতিহাস'],
+    en: ['Open the dana sheet', 'How do I give dana?', 'What is dakshina?'],
+    hi: ['दान पत्र खोलो', 'दान कैसे दूँ?', 'दक्षिणा क्या है?'],
+    bn: ['দান পত্র খোলো', 'দান কীভাবে দেব?', 'দক্ষিণা কী?'],
   },
   sadhana_summary: {
     en: ['Open Sadhana', 'Guide to Panjika', "Today's tithi?"],
@@ -651,9 +651,9 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     bn: ['হোম খোলো', 'সূচনা কী?', 'নমস্কার'],
   },
   voice_upgrade: {
-    en: ['Where is the voice setting?', 'How big is the download?', 'Namaste'],
-    hi: ['वॉयस सेटिंग कहाँ है?', 'डाउनलोड कितना बड़ा है?', 'नमस्ते'],
-    bn: ['ভয়েস সেটিং কোথায়?', 'ডাউনলোড কত বড়?', 'নমস্কার'],
+    en: ['Download the AI voice', 'How big is the download?', 'Namaste'],
+    hi: ['एआई वॉयस डाउनलोड करो', 'डाउनलोड कितना बड़ा है?', 'नमस्ते'],
+    bn: ['এআই ভয়েস ডাউনলোড করো', 'ডাউনলোড কত বড়?', 'নমস্কার'],
   },
   dharma_question: {
     en: ['What is Ekadashi?', 'What is karma?', 'How to do morning puja?'],
@@ -721,7 +721,16 @@ export function suggestionsFor(intent: IntentId, lang: LangCode): string[] {
 /**
  * Render a template. Fallback chain: variant → 'default' variant →
  * English → hard-coded non-blank line. This function NEVER returns ''.
+ *
+ * Output is passed through formatAssistantText so authored `\\n` and `**`
+ * render correctly in the plain-text sheet.
  */
+export function formatAssistantText(text: string): string {
+  return (text || '')
+    .replace(/\\n/g, '\n')
+    .replace(/\*\*/g, '');
+}
+
 export function renderTemplate(
   key: TemplateKey,
   lang: LangCode,
@@ -742,7 +751,8 @@ export function renderTemplate(
   if (!fn) return hardFallback;
   try {
     const out = fn(params, c);
-    return out && out.trim() ? out : hardFallback;
+    const formatted = formatAssistantText(out && out.trim() ? out : hardFallback);
+    return formatted && formatted.trim() ? formatted : hardFallback;
   } catch {
     return hardFallback;
   }
