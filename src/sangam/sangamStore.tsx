@@ -10,7 +10,7 @@ import type {
   SevaDetails,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
-import { toCloudComment, mergeComments } from './comments';
+import { toCloudComment, toCloudPost, mergeComments } from './comments';
 
 /* Sangam store — the community's shared memory.
  * =====================================================================
@@ -226,7 +226,7 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       ashirvadBy: [], volunteers: [], visibility: 'public', status: 'active', localOnly: true,
     };
     setPosts((prev) => [post, ...prev].slice(0, 120));
-    const ok = await pushDoc('sangamPosts', post.id, { ...post, ashirvadBy: [], volunteers: [] });
+    const ok = await pushDoc('sangamPosts', post.id, toCloudPost(post as unknown as Record<string, unknown>));
     if (ok) setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, localOnly: false } : p)));
     return post;
   }, [pushDoc]);

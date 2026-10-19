@@ -52,3 +52,26 @@ export function mergeComments(
 export function nextCommentCount(current: number, delta: 1 | -1): number {
   return Math.max(0, current + delta);
 }
+
+/**
+ * Builds the exact document the `sangamPosts` Firestore rules whitelist
+ * allows on create. Strips local-only fields (id, localOnly, ashirvadBy,
+ * volunteers) and omits undefined optionals (Firestore rejects undefined).
+ *
+ * Previously `createPost` pushed the raw object, which the rules rejected —
+ * so posts never reached the cloud (same bug as comments, Step 4).
+ */
+export function toCloudPost(p: Record<string, unknown>): Record<string, unknown> {
+  const allowed = [
+    'authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
+    'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
+    'seva', 'serviceCard', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount',
+    'commentCount', 'shareCount', 'visibility', 'status',
+    'providerUid', 'providerName', 'festival', 'anonymized',
+  ];
+  const out: Record<string, unknown> = {};
+  for (const k of allowed) {
+    if (p[k] !== undefined) out[k] = p[k];
+  }
+  return out;
+}

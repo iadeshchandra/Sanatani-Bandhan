@@ -8,7 +8,7 @@ const base: SangamComment = {
   authorName: 'Meera Devi',
   authorSanId: 'SAN-ABC123',
   authorKind: 'devotee',
-  authorTier: 'VERIFIED',
+  authorTier: 'PLATFORM_VERIFIED',
   text: 'Beautiful darshan 🙏',
   createdAt: 1729000000000,
   localOnly: true,

@@ -77,6 +77,7 @@ Facebook-complete, Sanatani-vibed. Store: `sangamStore.tsx` (`SangamProvider`).
 **Moderation:** report buttons everywhere; `sangamReports`; author/admin delete; no edits on videos.
 
 **Comment sync (Step 4, 2026-10-19):** multi-device via live `onSnapshot` subscription per open thread (`subscribeComments` in `sangamStore.tsx`, merged by `mergeComments` in `comments.ts` — cloud wins on id, unsynced locals kept). **Root-cause fix:** `addComment` previously pushed the raw object (`id` + `localOnly` + `updatedAt`), which the `sangamComments` create whitelist rejected — comments never reached the cloud. Writes now use `toCloudComment()` (8 whitelisted fields only). `commentCount` on the post bumps via `FieldValue.increment(1)`; rules permit any signed-in user exactly ±1 on `commentCount` alone (never below 0).
+- **CRITICAL FIX (2026-10-19):** `createPost` had the same bug class — it pushed the raw post object (`id`, `localOnly`, `ashirvadBy`, `volunteers`, `updatedAt`), all rejected by the `sangamPosts` create whitelist. **Posts were never reaching the cloud either.** Now sanitized via `toCloudPost()` in `src/sangam/comments.ts` (exact whitelist mirror).
 
 ---
 
