@@ -13,8 +13,7 @@ import { X, Clock, Languages, ShieldCheck, ChevronLeft, Star } from 'lucide-reac
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { getGigRatings, type Gig, type GigRating } from '../lib/marketplace';
-
-const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+import { formatMoney } from '../lib/money';
 
 const CATEGORY_TILE: Record<string, string> = {
   Puja: '🪔', Havan: '🔥', Katha: '📖', Samskara: '🕉️', Vastu: '🏠',
@@ -99,7 +98,7 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
                 <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 inline-block mb-1">{t('verified')}</span>
               )}
               <p className="text-[11px] text-stone-500 font-bold">{t('suggestedDakshina')}</p>
-              <p className="text-2xl font-black text-amber-700">{fmt(Number(gig.priceAmount))}</p>
+              <p className="text-2xl font-black text-amber-700">{formatMoney(Number(gig.priceAmount), gig.priceCurrency)}</p>
               {avg > 0 && (
                 <p className="text-xs text-stone-600 mt-1 flex items-center gap-1">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" aria-hidden />

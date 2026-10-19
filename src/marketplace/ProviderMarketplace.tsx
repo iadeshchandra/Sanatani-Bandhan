@@ -14,8 +14,9 @@ import {
   listGigs, myGigs, saveGig, setGigActive,
   myOrdersAsProvider, orderTransition, confirmRail1Receipt,
   providerEarningsSummary, requestPayout, listMyPayouts,
-  type Gig, type MarketplaceOrder,
+  type Gig, type MarketplaceOrder, type EarningsByCurrency,
 } from '../lib/marketplace';
+import { formatMoney, currencySymbol } from '../lib/money';
 import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from '../lib/rail2';
 import { ProviderDues } from './ProviderDues';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
@@ -39,7 +40,6 @@ const statusColor: Record<string, string> = {
   disputed: 'bg-red-100 text-red-700', refunded: 'bg-orange-100 text-orange-800',
 };
 
-function fmt(n: number) { return `₹${Math.round(n).toLocaleString('en-IN')}`; }
 
 /* ------------------------------ My Services ------------------------------ */
 
@@ -80,7 +80,7 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
               <p className="text-sm font-black text-stone-900 truncate">{g.title}</p>
               <p className="text-[11px] text-stone-500">{g.category} · {g.durationMinutes} min · ⭐ {Number(g.avgRating || 0).toFixed(1)} ({g.totalOrders || 0} orders)</p>
             </div>
-            <p className="text-sm font-black text-amber-700 shrink-0">{fmt(Number(g.priceAmount))}</p>
+            <p className="text-sm font-black text-amber-700 shrink-0">{formatMoney(Number(g.priceAmount), g.priceCurrency)}</p>
           </div>
           <div className="flex gap-2 mt-2">
             <button type="button" onClick={() => setEditing(g)} className={btnG}><Pencil className="w-3.5 h-3.5 inline mr-1" />Edit</button>
@@ -213,9 +213,9 @@ const ProviderOrders: React.FC = () => {
             <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace('_', ' ')}</span>
           </div>
           <div className="flex gap-3 mt-2 text-[11px]">
-            <span className="text-stone-500">{L === 'en' ? 'Dakshina' : L === 'bn' ? 'দক্ষিণা' : 'दक्षिणा'} <b className="text-stone-800">{fmt(o.amountGross)}</b></span>
-            <span className="text-stone-500">{mkt(L, 'sevaContribution')} <b className="text-amber-700">{fmt(o.commissionAmount)}</b></span>
-            <span className="text-stone-500">{L === 'en' ? 'You receive' : L === 'bn' ? 'আপনি পান' : 'आपको मिलता है'} <b className="text-emerald-700">{fmt(o.providerNet)}</b></span>
+            <span className="text-stone-500">{L === 'en' ? 'Dakshina' : L === 'bn' ? 'দক্ষিণা' : 'दक्षिणा'} <b className="text-stone-800">{formatMoney(o.amountGross, o.currency)}</b></span>
+            <span className="text-stone-500">{mkt(L, 'sevaContribution')} <b className="text-amber-700">{formatMoney(o.commissionAmount, o.currency)}</b></span>
+            <span className="text-stone-500">{L === 'en' ? 'You receive' : L === 'bn' ? 'আপনি পান' : 'आपको मिलता है'} <b className="text-emerald-700">{formatMoney(o.providerNet, o.currency)}</b></span>
           </div>
           {/* AUDIT FIX #4: Rail-1 direct payment — provider confirms receipt.
               Previously these orders sat at pending_payment forever with no
@@ -240,7 +240,7 @@ const ProviderOrders: React.FC = () => {
             <div className="mt-2 bg-sky-50 border border-sky-200 rounded-xl p-3">
               <p className="text-[11px] font-black text-sky-900">💰 Payment proof submitted</p>
               <p className="text-[11px] text-sky-800 mt-1">
-                TrxID: <b className="font-mono">{(o as any).rail2Proof.trxId}</b> · Amount: <b>{fmt((o as any).rail2Proof.amount)}</b>
+                TrxID: <b className="font-mono">{(o as any).rail2Proof.trxId}</b> · Amount: <b>{formatMoney((o as any).rail2Proof.amount, o.currency)}</b>
                 {(o as any).rail2Proof.amountMismatch && <span className="text-amber-700 font-bold"> ⚠️ differs from payable amount</span>}
               </p>
               <div className="flex gap-2 mt-2">
@@ -263,13 +263,13 @@ const ProviderOrders: React.FC = () => {
             </div>
           )}
           {(o as any).rail === 'rail2' && (o as any).orderCode && (
-            <p className="text-[10px] text-stone-400 mt-1.5">Order ref: <b className="font-mono">{(o as any).orderCode}</b> · payable was {fmt((o as any).payableAmount || o.amountGross)}</p>
+            <p className="text-[10px] text-stone-400 mt-1.5">Order ref: <b className="font-mono">{(o as any).orderCode}</b> · payable was {formatMoney((o as any).payableAmount || o.amountGross, o.currency)}</p>
           )}
           {o.status === 'awaiting_commission' && (
             <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-[11px] font-black text-amber-900">⏳ {L === 'en' ? 'Awaiting seva contribution' : L === 'bn' ? 'সেবা অবদানের অপেক্ষায়' : 'सेवा योगदान की प्रतीक्षा'}</p>
               <p className="text-[10px] text-amber-800 mt-0.5">
-                The client pays you directly, then pays the {fmt(Number((o as any).commissionAmount || 0))} commission to the platform.
+                The client pays you directly, then pays the {formatMoney(Number((o as any).commissionAmount || 0), o.currency)} commission to the platform.
                 The order completes after owner verification — then your review unlocks.
               </p>
             </div>
@@ -300,41 +300,50 @@ const ProviderOrders: React.FC = () => {
 
 const ProviderEarnings: React.FC = () => {
   const { showToast } = useToast();
-  const [sum, setSum] = useState<any>(null);
+  const [sums, setSums] = useState<EarningsByCurrency[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reqOpen, setReqOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'bkash' | 'nagad' | 'bank' | 'wise'>('bkash');
   const [acct, setAcct] = useState('');
+  const [payCurrency, setPayCurrency] = useState('INR');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [s, p] = await Promise.all([providerEarningsSummary(), listMyPayouts()]);
-      setSum(s); setPayouts(p);
+      setSums(s); setPayouts(p);
+      if (s.length > 0) setPayCurrency((prev) => s.some((x) => x.currency === prev) ? prev : s[0].currency);
     } catch (e: any) { showToast(e.message, 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
 
+  const activeSum = sums.find((s) => s.currency === payCurrency) || sums[0];
+
   const submit = async () => {
     try {
-      await requestPayout({ amount: Number(amount), method, accountDetails: acct });
+      await requestPayout({ amount: Number(amount), method, accountDetails: acct, currency: payCurrency });
       showToast('Payout requested.', 'success'); setReqOpen(false); setAmount(''); setAcct(''); load();
     } catch (e: any) { showToast(e.message, 'error'); }
   };
 
-  if (loading || !sum) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
+  if (loading || sums.length === 0) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3"><p className="text-[10px] text-emerald-700 font-bold">AVAILABLE</p><p className="text-lg font-black text-emerald-800">{fmt(sum.available)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">LIFETIME EARNED</p><p className="text-lg font-black text-stone-900">{fmt(sum.earned)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">IN PROGRESS</p><p className="text-lg font-black text-stone-900">{fmt(sum.pending)}</p></div>
-        <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">PAID OUT</p><p className="text-lg font-black text-stone-900">{fmt(sum.paidOut)}</p></div>
-      </div>
-      <button type="button" disabled={sum.available <= 0} onClick={() => setReqOpen(true)} className={`${btnP} w-full disabled:opacity-40`}>
+      {sums.map((sum) => (
+        <div key={sum.currency}>
+          {sums.length > 1 && <p className="text-[11px] font-black text-stone-500 uppercase mb-1.5">{sum.currency} earnings</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3"><p className="text-[10px] text-emerald-700 font-bold">AVAILABLE</p><p className="text-lg font-black text-emerald-800">{formatMoney(sum.available, sum.currency)}</p></div>
+            <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">LIFETIME EARNED</p><p className="text-lg font-black text-stone-900">{formatMoney(sum.earned, sum.currency)}</p></div>
+            <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">IN PROGRESS</p><p className="text-lg font-black text-stone-900">{formatMoney(sum.pending, sum.currency)}</p></div>
+            <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">PAID OUT</p><p className="text-lg font-black text-stone-900">{formatMoney(sum.paidOut, sum.currency)}</p></div>
+          </div>
+        </div>
+      ))}
+      <button type="button" disabled={!activeSum || activeSum.available <= 0} onClick={() => setReqOpen(true)} className={`${btnP} w-full disabled:opacity-40`}>
         <Wallet className="w-4 h-4 inline mr-1" /> Request payout
       </button>
       {payouts.length > 0 && (
@@ -342,7 +351,7 @@ const ProviderEarnings: React.FC = () => {
           <p className="text-[11px] font-black text-stone-500 uppercase">Payout history</p>
           {payouts.map((p: any) => (
             <div key={p.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
-              <div><p className="text-xs font-black">{fmt(p.amount)}</p><p className="text-[10px] text-stone-500">{p.method} · {p.requestedAt?.slice?.(0, 10) || ''}</p></div>
+              <div><p className="text-xs font-black">{formatMoney(p.amount, p.currency)}</p><p className="text-[10px] text-stone-500">{p.method} · {p.requestedAt?.slice?.(0, 10) || ''}</p></div>
               <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-stone-100 text-stone-600">{p.status}</span>
             </div>
           ))}
@@ -353,7 +362,13 @@ const ProviderEarnings: React.FC = () => {
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-black mb-3">Request payout</h3>
             <div className="space-y-3">
-              <label className="text-[11px] font-bold text-stone-500">Amount (₹, max {fmt(sum.available)})<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></label>
+              {sums.length > 1 && (
+                <label className="text-[11px] font-bold text-stone-500">Currency
+                  <select value={payCurrency} onChange={(e) => setPayCurrency(e.target.value)} className={inputCls}>
+                    {sums.map((s) => <option key={s.currency} value={s.currency}>{s.currency} — {formatMoney(s.available, s.currency)} available</option>)}
+                  </select></label>
+              )}
+              <label className="text-[11px] font-bold text-stone-500">Amount ({currencySymbol(payCurrency)}, max {activeSum ? formatMoney(activeSum.available, payCurrency) : '—'})<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputCls} /></label>
               <label className="text-[11px] font-bold text-stone-500">Method
                 <select value={method} onChange={(e) => setMethod(e.target.value as any)} className={inputCls}>
                   <option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank transfer</option><option value="wise">Wise</option>

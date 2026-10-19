@@ -11,17 +11,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HandCoins, RefreshCw, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { useLanguage } from '../context/LanguageContext';
 import { myPlatformDues, type PlatformDue } from '../lib/rail2';
 import { contactOwner } from '../lib/providerPayments';
+import { formatMoney } from '../lib/money';
 
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
 const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 text-stone-600';
 
-function fmt(n: number) { return `৳${Math.round(n).toLocaleString('bn-BD')}`; }
+/** Per-currency pending totals — dues carry their own currency; never sum mixed. */
+function totalsByCurrency(dues: PlatformDue[]): { currency: string; total: number }[] {
+  const map = new Map<string, number>();
+  for (const d of dues) {
+    if (d.status !== 'pending') continue;
+    const c = String(d.currency || 'INR').toUpperCase();
+    map.set(c, (map.get(c) || 0) + Number(d.amount || 0));
+  }
+  return [...map.entries()].map(([currency, total]) => ({ currency, total }));
+}
+const fmtTotals = (ts: { currency: string; total: number }[]) =>
+  ts.map((t) => formatMoney(t.total, t.currency)).join(' + ');
 
 export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = ({ providerType }) => {
-  const { t } = useLanguage();
   const { showToast } = useToast();
   const [dues, setDues] = useState<PlatformDue[]>([]);
   const [total, setTotal] = useState(0);
@@ -43,8 +53,8 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
     setSettling(true);
     try {
       await contactOwner({
-        subject: `Settle platform dues — ${fmt(total)}`,
-        message: `I have paid my outstanding platform dues of ${fmt(total)} via bKash to the platform number. Please verify and mark as settled.`,
+        subject: `Settle platform dues — ${fmtTotals(byCur)}`,
+        message: `I have paid my outstanding platform dues of ${fmtTotals(byCur)} via bKash to the platform number. Please verify and mark as settled.`,
         providerType,
       });
       showToast('Settlement request sent. The platform will verify your bKash payment.', 'success');
@@ -56,6 +66,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
   if (loading) return <p className="text-sm text-stone-500 py-6 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading dues…</p>;
 
   const pending = dues.filter((d) => d.status === 'pending');
+  const byCur = totalsByCurrency(dues);
   const history = dues.filter((d) => d.status !== 'pending');
 
   return (
@@ -63,9 +74,9 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
       <div className={`rounded-2xl border p-4 ${total > 0 ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-200'}`}>
         <div className="flex items-center gap-2">
           <HandCoins className={`w-5 h-5 ${total > 0 ? 'text-amber-700' : 'text-emerald-700'}`} />
-          <p className="text-xs font-black uppercase tracking-widest text-stone-700">{t('marketplace.provider.platformDues')}</p>
+          <p className="text-xs font-black uppercase tracking-widest text-stone-700">Platform dues</p>
         </div>
-        <p className="text-2xl font-black mt-1 text-stone-950">{fmt(total)}</p>
+        <p className="text-2xl font-black mt-1 text-stone-950">{fmtTotals(byCur)}</p>
         <p className="text-[11px] text-stone-500 mt-1">
           {total > 0
             ? 'Seva contribution owed on direct bookings. Settle to keep your sevas visible. 🙏'
@@ -80,14 +91,14 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
 
       {pending.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black text-stone-500 uppercase">{t('marketplace.provider.outstanding')}</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase">Outstanding</p>
           {pending.map((d) => (
             <div key={d.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
               <div>
-                <p className="text-xs font-black">{fmt(d.amount)} <span className="font-normal text-stone-400">· {d.orderCode || d.orderId?.slice(0, 8)}</span></p>
+                <p className="text-xs font-black">{formatMoney(d.amount, d.currency)} <span className="font-normal text-stone-400">· {d.orderCode || d.orderId?.slice(0, 8)}</span></p>
                 <p className="text-[10px] text-stone-500">Seva contribution · {String(d.createdAt?.toDate?.()?.toISOString?.() || '').slice(0, 10)}</p>
               </div>
-              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-800">{t('marketplace.provider.pending')}</span>
+              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-amber-100 text-amber-800">PENDING</span>
             </div>
           ))}
         </div>
@@ -95,10 +106,10 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
 
       {history.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black text-stone-500 uppercase">{t('marketplace.provider.history')}</p>
+          <p className="text-[11px] font-black text-stone-500 uppercase">History</p>
           {history.slice(0, 10).map((d) => (
             <div key={d.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center opacity-70">
-              <p className="text-xs font-black">{fmt(d.amount)} <span className="font-normal text-stone-400">· {d.orderCode || ''}</span></p>
+              <p className="text-xs font-black">{formatMoney(d.amount, d.currency)} <span className="font-normal text-stone-400">· {d.orderCode || ''}</span></p>
               <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${d.status === 'settled' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-500'}`}>
                 {d.status.toUpperCase()}
               </span>
@@ -110,10 +121,10 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
       {settleOpen && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setSettleOpen(false)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black text-stone-900 mb-2">Settle {fmt(total)}</h3>
+            <h3 className="font-black text-stone-900 mb-2">Settle {fmtTotals(byCur)}</h3>
             <ol className="text-[11px] text-stone-600 space-y-1.5 list-decimal list-inside bg-stone-50 rounded-xl p-3 border border-stone-200">
               <li>Open bKash → <b>Send Money</b>.</li>
-              <li>Send <b>{fmt(total)}</b> to the platform number (shown in Billing → Payment Methods).</li>
+              <li>Send <b>{fmtTotals(byCur)}</b> to the platform number (shown in Billing → Payment Methods).</li>
               <li>Note the TrxID from the success screen.</li>
               <li>Tap "I've paid" below — include the TrxID so we can verify.</li>
             </ol>
@@ -124,7 +135,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
               <button type="button" disabled={settling} onClick={requestSettle} className={`${btnP} flex-1`}>
                 <CheckCircle2 className="w-4 h-4 inline mr-1" />{settling ? 'Sending…' : "I've paid — notify platform"}
               </button>
-              <button type="button" onClick={() => setSettleOpen(false)} className={`${btnG} flex-1`}>{t('marketplace.provider.cancel')}</button>
+              <button type="button" onClick={() => setSettleOpen(false)} className={`${btnG} flex-1`}>Cancel</button>
             </div>
           </div>
         </div>

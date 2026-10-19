@@ -20,6 +20,7 @@ import { validateRating, nextAvg, canRateStatus } from './gigRatings';
 // Re-export pure rating helpers so UI imports stay on marketplace.ts.
 export { validateRating, nextAvg, canRateStatus };
 import { canConfirmRail1Receipt } from './orderGuards';
+import { formatMoney } from './money';
 export { canConfirmRail1Receipt };
 
 export interface Gig {
@@ -327,20 +328,21 @@ export async function openDispute(orderId: string, reason: string, details: stri
 /* ------------------------------ Payouts ------------------------------ */
 
 export async function requestPayout(input: {
-  amount: number; method: 'bkash' | 'nagad' | 'bank' | 'wise'; accountDetails: string;
+  amount: number; method: 'bkash' | 'nagad' | 'bank' | 'wise'; accountDetails: string; currency?: string;
 }): Promise<string> {
   const uid = requireUser();
   if (!input.amount || input.amount <= 0) throw new Error('Amount must be positive.');
-  // Verify the provider actually has this much available (completed orders net - paid payouts)
+  // Verify the provider actually has this much available in THIS currency.
   const [orders, payouts] = await Promise.all([myOrdersAsProvider(), listMyPayouts()]);
+  const cur = String(input.currency || dominantOrderCurrency(orders)).toUpperCase();
   let earned = 0;
-  for (const o of orders) if (o.status === 'completed') earned += Number(o.providerNet || 0);
+  for (const o of orders) if (o.status === 'completed' && String((o as any).currency || 'INR').toUpperCase() === cur) earned += Number(o.providerNet || 0);
   let paidOut = 0;
-  for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status)) paidOut += Number(p.amount || 0);
+  for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status) && String(p.currency || cur).toUpperCase() === cur) paidOut += Number(p.amount || 0);
   const available = earned - paidOut;
-  if (input.amount > available) throw new Error(`Only ₹${Math.round(available).toLocaleString('en-IN')} available for payout.`);
+  if (input.amount > available) throw new Error(`Only ${formatMoney(available, cur)} available for payout.`);
   const ref = await addDoc(collection(db, 'payouts'), {
-    providerUid: uid, amount: Math.round(input.amount), method: input.method,
+    providerUid: uid, amount: Math.round(input.amount), currency: cur, method: input.method,
     accountDetails: input.accountDetails.slice(0, 300),
     status: 'requested', requestedAt: serverTimestamp(),
   });
@@ -353,15 +355,55 @@ export async function listMyPayouts(): Promise<any[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
 }
 
-export async function providerEarningsSummary(): Promise<{ earned: number; pending: number; paidOut: number; available: number }> {
+/** Earnings broken down per currency. A provider serving both BD and IN
+ * devotees sees honest per-currency cards — never a meaningless mixed sum. */
+export interface EarningsByCurrency {
+  currency: string;
+  earned: number;
+  pending: number;
+  paidOut: number;
+  available: number;
+}
+
+export async function providerEarningsSummary(): Promise<EarningsByCurrency[]> {
   const [orders, payouts] = await Promise.all([myOrdersAsProvider(), listMyPayouts()]);
-  let earned = 0, pending = 0, paidOut = 0;
+  const buckets = new Map<string, { earned: number; pending: number; paidOut: number }>();
+  const bucket = (cur: unknown) => {
+    const c = String(cur || 'INR').toUpperCase();
+    let b = buckets.get(c);
+    if (!b) { b = { earned: 0, pending: 0, paidOut: 0 }; buckets.set(c, b); }
+    return b;
+  };
   for (const o of orders) {
-    if (o.status === 'completed') earned += Number(o.providerNet || 0);
-    else if (['paid', 'accepted', 'in_progress'].includes(o.status)) pending += Number(o.providerNet || 0);
+    const b = bucket((o as any).currency);
+    if (o.status === 'completed') b.earned += Number(o.providerNet || 0);
+    else if (['paid', 'accepted', 'in_progress'].includes(o.status)) b.pending += Number(o.providerNet || 0);
   }
-  for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status)) paidOut += Number(p.amount || 0);
-  return { earned, pending, paidOut, available: Math.max(0, earned - paidOut) };
+  for (const p of payouts) {
+    if (!['requested', 'approved', 'paid'].includes(p.status)) continue;
+    // Legacy payouts carry no currency — attribute to the provider's dominant order currency.
+    const cur = p.currency || dominantOrderCurrency(orders);
+    bucket(cur).paidOut += Number(p.amount || 0);
+  }
+  return [...buckets.entries()].map(([currency, b]) => ({
+    currency,
+    earned: b.earned,
+    pending: b.pending,
+    paidOut: b.paidOut,
+    available: Math.max(0, b.earned - b.paidOut),
+  })).sort((a, b) => b.earned - a.earned);
+}
+
+/** Most-used order currency for this provider — for legacy currency-less payouts. */
+function dominantOrderCurrency(orders: any[]): string {
+  const counts = new Map<string, number>();
+  for (const o of orders) {
+    const c = String((o as any).currency || 'INR').toUpperCase();
+    counts.set(c, (counts.get(c) || 0) + 1);
+  }
+  let best = 'INR', bestN = -1;
+  for (const [c, n] of counts) if (n > bestN) { best = c; bestN = n; }
+  return best;
 }
 
 /* ------------------------------ Ratings (Step 7) ------------------------------ */

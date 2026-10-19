@@ -19,6 +19,7 @@ import { CommissionPayScreen } from './CommissionPayScreen';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { getPaymentMethods, indianPaymentsReady } from '../lib/paymentMethods';
 import { getWallet, spendFromWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
+import { formatMoney } from '../lib/money';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { GuideButton } from '../components/suchana/GuideButton';
@@ -34,7 +35,6 @@ const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
 const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 text-stone-600';
 const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-xs text-stone-500 py-8 text-center">{text}</p>;
-const fmt = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
 const statusColor: Record<string, string> = {
   pending_payment: 'bg-yellow-100 text-yellow-800', paid: 'bg-sky-100 text-sky-800',
@@ -86,7 +86,7 @@ const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) =>
     </div>
     <div className="text-right shrink-0 self-center">
       <p className="text-[9px] text-stone-400 font-bold">{mkt(L, 'suggestedDakshina')}</p>
-      <p className="text-sm font-black text-amber-700">{fmt(Number(gig.priceAmount))}</p>
+      <p className="text-sm font-black text-amber-700">{formatMoney(Number(gig.priceAmount), gig.priceCurrency)}</p>
     </div>
   </button>
   );
@@ -107,10 +107,11 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
   const [working, setWorking] = useState(false);
   const [payPath, setPayPath] = useState<'now' | 'wallet' | 'after'>('now');
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletCurrency, setWalletCurrency] = useState<string>('BDT');
 
   useEffect(() => { detectPayRegion().then(setRegion).catch(() => {}); }, []);
   useEffect(() => { getPaymentMethods().then((all) => setInReady(indianPaymentsReady(all))).catch(() => {}); }, []);
-  useEffect(() => { getWallet().then((w) => setWalletBalance(w.balance)).catch(() => setWalletBalance(0)); }, []);
+  useEffect(() => { getWallet().then((w) => { setWalletBalance(w.balance); setWalletCurrency((w as any).currency || 'BDT'); }).catch(() => setWalletBalance(0)); }, []);
 
   const methodId = region === 'BD' ? 'bd_banglaqr' : region === 'IN' ? (inReady ? 'in_upi' : 'intl_payoneer') : 'intl_wise';
 
@@ -163,7 +164,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <p className="text-sm font-black text-stone-900">{gig.title}</p>
         <p className="text-xs text-stone-500">{gig.providerName} · {gig.durationMinutes} min</p>
         <div className="flex justify-between mt-2 text-sm">
-          <span className="text-stone-500">{mkt(L, 'suggestedDakshina')}</span><b>{fmt(Number(gig.priceAmount))}</b>
+          <span className="text-stone-500">{mkt(L, 'suggestedDakshina')}</span><b>{formatMoney(Number(gig.priceAmount), gig.priceCurrency)}</b>
         </div>
         {/* Escrow trust line — directly under the price, before the Confirm
             CTA (spec §4: trust placed at the moment of money movement). */}
@@ -173,11 +174,11 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <p className="text-[10px] text-stone-400 mt-1">{L === 'en' ? 'Includes a small seva contribution that sustains Sanatani Bandhan — what you see is what you offer.' : L === 'bn' ? 'সনাতনী বন্ধনকে টিকিয়ে রাখে এমন একটি ছোট সেবা অবদান অন্তর্ভুক্ত — যা দেখছেন তাই অর্পণ করুন।' : 'सनातनी बंधन को बनाए रखने वाला एक छोटा सेवा योगदान शामिल — जो दिख रहा है वही अर्पित करें।'}</p>
       </div>
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <p className="text-xs font-bold text-amber-900 mb-2">{mkt(L, 'takeSankalp')} — {L === 'en' ? 'how would you like to offer' : L === 'bn' ? 'আপনি কীভাবে অর্পণ করতে চান' : 'आप कैसे अर्पित करना चाहेंगे'} {fmt(Number(gig.priceAmount))}?</p>
+        <p className="text-xs font-bold text-amber-900 mb-2">{mkt(L, 'takeSankalp')} — {L === 'en' ? 'how would you like to offer' : L === 'bn' ? 'আপনি কীভাবে অর্পণ করতে চান' : 'आप कैसे अर्पित करना चाहेंगे'} {formatMoney(Number(gig.priceAmount), gig.priceCurrency)}?</p>
         <div className="space-y-2">
           <button type="button" onClick={() => setPayPath('wallet')}
             className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'wallet' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
-            <p className="text-xs font-black text-stone-900">🪔 {mkt(L, 'sevaWallet')} {walletBalance !== null && <span className="text-stone-500 font-bold">({fmt(walletBalance)} available)</span>}</p>
+            <p className="text-xs font-black text-stone-900">🪔 {mkt(L, 'sevaWallet')} {walletBalance !== null && <span className="text-stone-500 font-bold">({formatMoney(walletBalance, walletCurrency)} available)</span>}</p>
             <p className="text-[10px] text-stone-500">{L === 'en' ? 'Instant — held safely, released on completion. Recommended.' : L === 'bn' ? 'তাৎক্ষণিক — নিরাপদে রাখা হয়, সম্পন্ন হলে মুক্তি পায়।' : 'तुरंत — सुरक्षित रखा जाता है, पूर्ण होने पर जारी।'}</p>
           </button>
           <button type="button" onClick={() => setPayPath('now')}
@@ -281,7 +282,7 @@ const MyBookings: React.FC = () => {
         <div key={o.id} className="bg-white rounded-2xl border border-stone-200 p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0"><p className="text-sm font-black truncate">{o.gigTitle}</p>
-              <p className="text-[11px] text-stone-500">{fmt(o.amountGross)} · {o.createdAt?.slice(0, 10)}</p></div>
+              <p className="text-[11px] text-stone-500">{formatMoney(o.amountGross, o.currency)} · {o.createdAt?.slice(0, 10)}</p></div>
             <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace(/_/g, ' ')}</span>
           </div>
           {(o as any).walletPaid && (
@@ -300,10 +301,10 @@ const MyBookings: React.FC = () => {
             <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-[11px] font-black text-amber-900">⏳ {L === 'en' ? 'Incomplete — seva contribution pending' : L === 'bn' ? 'অসম্পূর্ণ — সেবা অবদান বাকি' : 'अपूर्ण — सेवा योगदान शेष'}</p>
               <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en'
-                ? `Offer the ${fmt(Number((o as any).commissionAmount || 0))} seva contribution to complete this seva and unlock ashirvad.`
+                ? `Offer the ${formatMoney(Number((o as any).commissionAmount || 0), o.currency)} seva contribution to complete this seva and unlock ashirvad.`
                 : L === 'bn'
-                ? `এই সেবা সম্পূর্ণ করতে ${fmt(Number((o as any).commissionAmount || 0))} সেবা অবদান অর্পণ করুন।`
-                : `इस सेवा को पूर्ण करने के लिए ${fmt(Number((o as any).commissionAmount || 0))} सेवा योगदान अर्पित करें।`}</p>
+                ? `এই সেবা সম্পূর্ণ করতে ${formatMoney(Number((o as any).commissionAmount || 0), o.currency)} সেবা অবদান অর্পণ করুন।`
+                : `इस सेवा को पूर्ण करने के लिए ${formatMoney(Number((o as any).commissionAmount || 0), o.currency)} सेवा योगदान अर्पित करें।`}</p>
               <button type="button" onClick={() => setCommissionFor(o)} className={`${btnP} w-full mt-2`}>{L === 'en' ? 'Offer contribution' : L === 'bn' ? 'অবদান অর্পণ করুন' : 'योगदान अर्पित करें'}</button>
             </div>
           )}
