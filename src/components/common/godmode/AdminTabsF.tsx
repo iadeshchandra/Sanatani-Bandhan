@@ -22,6 +22,7 @@ import { useToast } from '../../../context/ToastContext';
 import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
 import { DuesTab, RiskTab } from './MarketplaceDuesRisk';
 import { CommissionsTab } from './AdminTabsI';
+import { QrIntelTab } from './QrIntelTab';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -622,7 +623,7 @@ export const MarketplaceGigs: React.FC = () => {
 
 /* ------------------------------ Main tab ------------------------------ */
 
-const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
+const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules', 'QR Intel'];
 
 export const MarketplaceTab: React.FC = () => {
   const [sub, setSub] = useState('Dashboard');
@@ -642,6 +643,7 @@ export const MarketplaceTab: React.FC = () => {
       {sub === 'Pay Methods' && <ProviderPaymentsTab />}
       {sub === 'Bypass Flags' && <BypassFlagsTab />}
       {sub === 'Bypass Rules' && <BypassRulesTab />}
+      {sub === 'QR Intel' && <QrIntelTab />}
     </div>
   );
 };

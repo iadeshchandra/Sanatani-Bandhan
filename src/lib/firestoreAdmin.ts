@@ -1899,6 +1899,101 @@ async function paymentMethodStats(period: '7d' | '30d' | '90d' | 'all' = '30d'):
   return { ok: true, data: { ok: true, period, methods } };
 }
 
+/**
+ * QR Intelligence dashboard (Phase 1: aggregate only).
+ * Reads qrScanStats aggregates + recent qrScanEvents for the time trend.
+ * Owner-only. The dashboard never exposes per-user data — aggregates only.
+ */
+async function qrIntelDashboard(period: '7d' | '30d' | 'all' = '30d'): Promise<NativeResult> {
+  requireOwner();
+  const since = periodStart(period);
+  const [statsS, eventsS] = await Promise.all([
+    getDocs(query(collection(db, 'qrScanStats'), limit(500))),
+    getDocs(query(collection(db, 'qrScanEvents'), limit(2000))),
+  ]);
+  const statsList = statsS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const events = eventsS.docs.map((d) => d.data() as any);
+  const inPeriod = since
+    ? events.filter((e) => Number(e.scannedAt || 0) >= since.getTime())
+    : events;
+
+  // KPIs from the event stream (period-bounded).
+  let scans = 0, parsed = 0, completions = 0, failures = 0;
+  const scanners = new Set<string>();
+  const byDay: Record<string, number> = {};
+  for (const e of inPeriod) {
+    scans++;
+    if (e.scannerHash) scanners.add(e.scannerHash);
+    if (e.outcome === 'parsed') parsed++;
+    if (e.outcome === 'payment_completed') completions++;
+    if (e.outcome === 'payment_failed') failures++;
+    const day = new Date(Number(e.scannedAt || 0)).toISOString().slice(0, 10);
+    byDay[day] = (byDay[day] || 0) + 1;
+  }
+
+  // Ranked QR table from aggregates.
+  const ranked = statsList
+    .filter((s) => s.qrId !== 'unknown')
+    .map((s) => {
+      const p = Number(s.parsed || 0);
+      const c = Number(s.completions || 0);
+      return {
+        qrId: String(s.id).slice(0, 12) + '…',
+        qrIdFull: String(s.id),
+        qrType: s.qrType || 'p2p',
+        receiverId: s.receiverId || '—',
+        totalScans: Number(s.totalScans || 0),
+        uniqueScanners: Number(s.uniqueScanners || 0),
+        completions: c,
+        failures: Number(s.failures || 0),
+        conversionRate: p > 0 ? Math.round((c / p) * 100) : 0,
+        lastScannedAt: Number(s.lastScannedAt || 0),
+      };
+    })
+    .sort((a, b) => b.totalScans - a.totalScans)
+    .slice(0, 50);
+
+  // By-type breakdown.
+  const byType: Record<string, { scans: number; completions: number }> = {};
+  for (const s of statsList) {
+    const t = String(s.qrType || 'p2p');
+    const b = byType[t] || { scans: 0, completions: 0 };
+    b.scans += Number(s.totalScans || 0);
+    b.completions += Number(s.completions || 0);
+    byType[t] = b;
+  }
+
+  // Time trend: last 14 days, oldest first.
+  const dayMs = 86_400_000;
+  const todayStart = Math.floor(Date.now() / dayMs) * dayMs;
+  const trend: { day: string; scans: number }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const start = todayStart - i * dayMs;
+    const day = new Date(start).toISOString().slice(0, 10);
+    trend.push({ day, scans: byDay[day] || 0 });
+  }
+
+  return {
+    ok: true,
+    data: {
+      ok: true,
+      period,
+      kpis: {
+        scans,
+        uniqueScanners: scanners.size,
+        parsed,
+        completions,
+        failures,
+        conversionRate: parsed > 0 ? Math.round((completions / parsed) * 100) : 0,
+        activeQrs: ranked.length,
+      },
+      ranked,
+      byType: Object.entries(byType).map(([type, s]) => ({ type, ...s })),
+      trend,
+    },
+  };
+}
+
 async function paymentHistory(filters: { methodId?: string; status?: string; limit?: number } = {}): Promise<NativeResult> {
   requireOwner();
   const [claimsS, upgradesS] = await Promise.all([
@@ -2752,6 +2847,8 @@ export const firestoreAdmin = {
   paymentMethodStats,
   paymentHistory,
   exportPaymentCSV,
+  // QR Intelligence (Phase 1: aggregate scan analytics)
+  qrIntelDashboard,
   // Provider payments + anti-bypass
   providerPaymentQueue,
   providerPaymentReview,

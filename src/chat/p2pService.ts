@@ -36,6 +36,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { logQrScan } from "../qrIntel/qrIntelService";
 import {
   formatMoney,
   type ChatMessage,
@@ -387,6 +388,16 @@ export async function respondToRequest(
     status: action,
     updatedAt: Date.now(),
   });
+  // QR Intelligence (Phase 1): a declined request is a payment that didn't happen.
+  if (action === "declined") {
+    void logQrScan({
+      qrId: requestId,
+      qrType: 'p2p',
+      uid,
+      outcome: 'payment_failed',
+      receiverId: r.receiverId,
+    });
+  }
 }
 
 /**
@@ -492,6 +503,15 @@ export async function markPaid(
     paidAt: now,
     updatedAt: now,
   });
+  // QR Intelligence (Phase 1): payment completed — closes the scan→payment funnel.
+  // Fire-and-forget, fail-open.
+  void logQrScan({
+    qrId: requestId,
+    qrType: 'p2p',
+    uid,
+    outcome: 'payment_completed',
+    receiverId: r.receiverId,
+  });
 }
 
 /** Receiver (payee) confirms the money arrived — request is settled. */
@@ -526,6 +546,14 @@ export async function cancelRequest(
   await updateDoc(doc(db, "p2pRequests", requestId), {
     status: "cancelled",
     updatedAt: Date.now(),
+  });
+  // QR Intelligence (Phase 1): a cancelled request is a payment that didn't happen.
+  void logQrScan({
+    qrId: requestId,
+    qrType: 'p2p',
+    uid,
+    outcome: 'payment_failed',
+    receiverId: r.receiverId,
   });
 }
 

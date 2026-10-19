@@ -42,6 +42,8 @@ import { getDevoteeProfile } from "../social/devoteeService";
 import { formatMoney, type MoneyRequest } from "./types";
 import MoneyRequestCard from "./MoneyRequestCard";
 import RequestModal from "./RequestModal";
+import { logQrScan } from "../qrIntel/qrIntelService";
+import { UNKNOWN_QR_ID } from "../qrIntel/qrIntel";
 
 type TriCopy = { en: string; bn: string; hi: string };
 const tr = (copy: TriCopy): string => {
@@ -118,9 +120,27 @@ export default function P2PScanSheet({
       // Gate 1: strict SB-P2P format parse.
       const parsed = parseRequestQR(decodedText);
       if (!parsed) {
+        // QR Intelligence (Phase 1): log the invalid scan. Fire-and-forget,
+        // fail-open — analytics never blocks the scan flow.
+        void logQrScan({
+          qrId: UNKNOWN_QR_ID,
+          qrType: 'p2p',
+          uid: currentUser.uid,
+          outcome: 'invalid',
+        });
         setState({ kind: "error", reason: "bad_format" });
         return;
       }
+      // QR Intelligence (Phase 1): log the valid scan.
+      void logQrScan({
+        qrId: parsed.requestId,
+        qrType: 'p2p',
+        uid: currentUser.uid,
+        outcome: 'parsed',
+        amount: parsed.amount,
+        currency: parsed.currency,
+        receiverId: parsed.receiverId,
+      });
 
       // Gate 2: try to fetch the live request.
       setState({ kind: "verifying" });
@@ -134,6 +154,16 @@ export default function P2PScanSheet({
       if (req) {
         const status = effectiveStatus(req);
         if (status === "expired") {
+          // QR Intelligence (Phase 1): the QR was valid but the request expired.
+          void logQrScan({
+            qrId: parsed.requestId,
+            qrType: 'p2p',
+            uid: currentUser.uid,
+            outcome: 'expired',
+            amount: parsed.amount,
+            currency: parsed.currency,
+            receiverId: parsed.receiverId,
+          });
           setState({ kind: "error", reason: "expired" });
           return;
         }

@@ -310,6 +310,12 @@ export const adminApi = {
       () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
       () => firestoreAdmin.paymentMethodStats(period)
     ),
+  // QR Intelligence (Phase 1: aggregate scan analytics, Spark-native only)
+  qrIntelDashboard: (period: '7d' | '30d' | 'all' = '30d') =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.qrIntelDashboard(period)
+    ),
   paymentHistory: (filters: { methodId?: string; status?: string; limit?: number } = {}) =>
     withFallback(
       () => Promise.resolve({ ok: false, code: 'backendDown' } as any),

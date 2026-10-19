@@ -2969,5 +2969,50 @@ match /fileVault/{fileId} {
       allow delete: if false;
     }
 
+    // --- QR Intelligence Phase 1: aggregate scan analytics. ---
+    // Privacy law: only the SHA-256 scanner hash leaves the device — the raw
+    // uid is never written. Phase 1 is aggregate-only; the dashboard reads
+    // qrScanStats, never the raw event stream.
+    match /qrScanEvents/{eventId} {
+      // Any signed-in user may append their own scan event. Append-only.
+      allow create: if isLoggedIn()
+        && request.resource.data.keys().hasOnly([
+          'qrId', 'qrType', 'scannerHash', 'outcome', 'scannedAt', 'amount', 'currency'
+        ])
+        && request.resource.data.get('qrType', '') == 'p2p'
+        && request.resource.data.get('outcome', '') in [
+          'parsed', 'invalid', 'expired', 'payment_completed', 'payment_failed'
+        ]
+        && request.resource.data.get('scannerHash', '').matches('^[0-9a-f]{64}$');
+      // Owner-only reads — no per-user browsing, even of hashes.
+      allow read: if isOwner();
+      allow update, delete: if false;
+    }
+
+    match /qrScanStats/{qrId} {
+      // Any signed-in user may create the aggregate doc for a QR they scanned.
+      allow create: if isLoggedIn()
+        && request.resource.data.get('qrId', '') == qrId
+        && request.resource.data.keys().hasOnly([
+          'qrId', 'qrType', 'totalScans', 'uniqueScanners', 'scannerHashes',
+          'parsed', 'invalid', 'expired', 'completions', 'failures',
+          'lastScannedAt', 'firstSeenAt', 'receiverId'
+        ]);
+      // Any signed-in user may fold a scan into the counters. Counters only
+      // move forward; identity and type are immutable after creation.
+      allow update: if isLoggedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'totalScans', 'uniqueScanners', 'scannerHashes',
+          'parsed', 'invalid', 'expired', 'completions', 'failures',
+          'lastScannedAt', 'receiverId'
+        ])
+        && request.resource.data.get('totalScans', 0) >= resource.data.get('totalScans', 0)
+        && request.resource.data.get('qrId', '') == resource.data.get('qrId', '')
+        && request.resource.data.get('qrType', '') == resource.data.get('qrType', '');
+      // Owner-only reads — aggregates contain no PII, but owner-only is safer.
+      allow read: if isOwner();
+      allow delete: if false;
+    }
+
   }
 }
