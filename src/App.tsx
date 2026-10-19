@@ -92,6 +92,7 @@ import { shouldShowWizard } from './components/onboarding/wizardDeskMap';
 
 import { NotificationProvider } from './context/NotificationContext';
 const QRScanner = lazy(() => import('./components/admin/QRScanner').then(m => ({ default: m.QRScanner })));
+const ShortsRoute = lazy(() => import('./sangam/shorts/ShortsRoute').then(m => ({ default: m.ShortsRoute })));
 
 // App Growth (Phase 5): /get-app smart link + download landing — own lazy
 // chunk so the first paint stays under 2s on low-end phones.
@@ -1173,6 +1174,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/org/:orgId/campus/manage" element={<CampusManagePage />} />
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
+          {/* Sangam Shorts: deep-link to a specific short */}
+          <Route path="/shorts/:shortId" element={<Suspense fallback={null}><ShortsRoute /></Suspense>} />
           {/* App Growth (Phase 5): QR smart link + download landing. The page
               owns its own lazy chunk; the below-fold sections lazy-load again
               inside it, so the hero paints in under 2s. */}
