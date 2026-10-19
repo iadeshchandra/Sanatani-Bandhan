@@ -24,6 +24,8 @@ import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { GuideButton } from '../components/suchana/GuideButton';
 import { SevaRails } from './SevaRails';
 import { KritagyataPrompt } from './KritagyataPrompt';
+import { RatingPrompt } from './RatingPrompt';
+import { GigDetail } from './GigDetail';
 import { extractReferrer } from '../sangam/referrals';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { AuthorInfo } from '../sangam/sangamStore';
@@ -234,6 +236,7 @@ const MyBookings: React.FC = () => {
   const [details, setDetails] = useState('');
   const [commissionFor, setCommissionFor] = useState<MarketplaceOrder | null>(null);
   const [gratitudeFor, setGratitudeFor] = useState<MarketplaceOrder | null>(null);
+  const [ratingFor, setRatingFor] = useState<MarketplaceOrder | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -304,7 +307,7 @@ const MyBookings: React.FC = () => {
             )}
           </div>
           {gratitudeFor && gratitudeFor.id === o.id && (
-            <KritagyataPrompt order={gratitudeFor} onDone={() => setGratitudeFor(null)} />
+            <KritagyataPrompt order={gratitudeFor} onDone={() => { setGratitudeFor(null); setRatingFor({ ...gratitudeFor }); }} />
           )}
         </div>
       ))}
@@ -322,6 +325,10 @@ const MyBookings: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {/* Step 7: Blessings prompt after gratitude */}
+      {ratingFor && (
+        <RatingPrompt order={ratingFor} onDone={() => setRatingFor(null)} />
       )}
     </div>
   );
@@ -341,6 +348,7 @@ export const ClientMarketplace: React.FC = () => {
   const [booking, setBooking] = useState<Gig | null>(null);
   const [bookingRail, setBookingRail] = useState<'rail1' | 'rail2' | null>(null);
   const [detecting, setDetecting] = useState(false);
+  const [detailGig, setDetailGig] = useState<Gig | null>(null);
   const { firebaseUser } = useAuthWorkspace();
   const railAuthor: AuthorInfo = {
     uid: ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string,
@@ -448,10 +456,18 @@ export const ClientMarketplace: React.FC = () => {
                   </button>
                 </div>
               )}
-              {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => openBooking(g)} />)}
+              {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => setDetailGig(g)} />)}
             </div>
           )}
         </>
+      )}
+      {/* Step 7: Gig detail (tap card → detail → book) */}
+      {detailGig && !booking && (
+        <GigDetail
+          gig={detailGig}
+          onBack={() => setDetailGig(null)}
+          onBook={() => { const g = detailGig; setDetailGig(null); openBooking(g); }}
+        />
       )}
     </div>
   );

@@ -651,8 +651,33 @@ service cloud.firestore {
       allow update: if isOwner()
         || (isLoggedIn()
           && resource.data.get('providerUid', '') == request.auth.uid
-          && request.resource.data.get('providerUid', '') == request.auth.uid);
+          && request.resource.data.get('providerUid', '') == request.auth.uid)
+        // Step 7 (gig ratings): a devotee submitting blessings may nudge ONLY
+        // avgRating + ratingCount (+ updatedAt), ratingCount exactly +1,
+        // avgRating within 1-5, providerUid untouched. The gigRatings doc
+        // (auditable, one per order) is the source of truth.
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avgRating', 'ratingCount', 'updatedAt'])
+          && request.resource.data.get('providerUid', '') == resource.data.get('providerUid', '')
+          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0) + 1
+          && request.resource.data.get('avgRating', 0) >= 1
+          && request.resource.data.get('avgRating', 0) <= 5);
       allow delete: if isOwner();
+    }
+    // gigRatings: one blessing per completed order (doc ID = orderId).
+    // Public read (trust display); create restricted to the order's client
+    // on a completed order; immutable after (no update/delete).
+    match /gigRatings/{orderId} {
+      allow read: if true;
+      allow create: if isLoggedIn()
+        && request.resource.data.get('clientUid', '') == request.auth.uid
+        && request.resource.data.get('rating', 0) >= 1
+        && request.resource.data.get('rating', 0) <= 5
+        && request.resource.data.keys().hasOnly(
+          ['gigId', 'orderId', 'clientUid', 'providerUid', 'rating', 'review', 'createdAt'])
+        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.status == 'completed'
+        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.clientUid == request.auth.uid;
+      allow update, delete: if false;
     }
     // Orders: client creates (clientUid must match); provider + client read
     match /marketplaceOrders/{orderId} {

@@ -12,10 +12,13 @@
  */
 import {
   collection, doc, getDoc, getDocs, query, where, orderBy, limit,
-  addDoc, setDoc, updateDoc, serverTimestamp,
+  addDoc, setDoc, updateDoc, serverTimestamp, runTransaction,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { resolveCommissionRate, computeCommission, duesCreateForOrder } from './firestoreAdmin';
+import { validateRating, nextAvg, canRateStatus } from './gigRatings';
+// Re-export pure rating helpers so UI imports stay on marketplace.ts.
+export { validateRating, nextAvg, canRateStatus };
 
 export interface Gig {
   id?: string;
@@ -325,4 +328,97 @@ export async function providerEarningsSummary(): Promise<{ earned: number; pendi
   }
   for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status)) paidOut += Number(p.amount || 0);
   return { earned, pending, paidOut, available: Math.max(0, earned - paidOut) };
+}
+
+/* ------------------------------ Ratings (Step 7) ------------------------------ */
+
+/**
+ * A devotee's blessing on a completed seva. Stored at gigRatings/{orderId}
+ * (orderId as doc ID = one rating per order, enforced by construction).
+ * Framed as Kritagyata (gratitude), not e-commerce stars — but the numeric
+ * rating IS trust infrastructure that populates GigCard and GigDetail.
+ */
+export interface GigRating {
+  gigId: string;
+  orderId: string;
+  clientUid: string;
+  providerUid: string;
+  /** 1-5. Displayed as 🪔-warm blessings, never cold stars. */
+  rating: number;
+  /** Optional written blessing, max 500 chars. */
+  review: string;
+  createdAt?: any;
+}
+
+/**
+ * Submit a rating for a completed order. Gated to COMPLETED orders only,
+ * one rating per order (doc ID = orderId). Atomically creates the rating
+ * and updates the gig's avgRating/ratingCount.
+ *
+ * Firestore rules (flagged): gigRatings create requires a completed order
+ * owned by the caller; gig update branch permits ratingCount +1 and
+ * avgRating within 1-5.
+ */
+export async function submitGigRating(orderId: string, rating: number, review: string): Promise<void> {
+  const uid = requireUser();
+  const errors = validateRating(rating, review);
+  if (errors.length > 0) throw new Error(errors[0]);
+
+  const orderRef = doc(db, 'marketplaceOrders', orderId);
+  const ratingRef = doc(db, 'gigRatings', orderId);
+
+  await runTransaction(db, async (tx) => {
+    const orderSnap = await tx.get(orderRef);
+    if (!orderSnap.exists()) throw new Error('Order not found.');
+    const o = orderSnap.data() as any;
+    if (o.clientUid !== uid) throw new Error('Only the devotee who received this seva can share blessings.');
+    if (!canRateStatus(o.status)) throw new Error('Blessings can only be shared after the seva is complete.');
+
+    const existing = await tx.get(ratingRef);
+    if (existing.exists()) throw new Error('You have already shared your blessings for this seva. 🙏');
+
+    const gigRef = doc(db, 'marketplaceGigs', o.gigId);
+    const gigSnap = await tx.get(gigRef);
+    if (!gigSnap.exists()) throw new Error('This seva is no longer available.');
+
+    const g = gigSnap.data() as any;
+    const { avg: newAvg, count: newCount } = nextAvg(
+      Number(g.avgRating || 0), Number(g.ratingCount || 0), rating
+    );
+
+    tx.set(ratingRef, {
+      gigId: o.gigId,
+      orderId,
+      clientUid: uid,
+      providerUid: o.providerUid,
+      rating,
+      review: (review || '').trim().slice(0, 500),
+      createdAt: serverTimestamp(),
+    });
+    tx.update(gigRef, {
+      avgRating: newAvg,
+      ratingCount: newCount,
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+/** List public blessings for a gig (newest first, bounded). */
+export async function getGigRatings(gigId: string, max = 50): Promise<GigRating[]> {
+  const snap = await getDocs(
+    query(collection(db, 'gigRatings'), where('gigId', '==', gigId), limit(max))
+  );
+  return snap.docs
+    .map((d) => ({ ...(d.data() as any) } as GigRating))
+    .sort((a, b) => {
+      const ta = (a.createdAt?.toMillis?.() || 0);
+      const tb = (b.createdAt?.toMillis?.() || 0);
+      return tb - ta;
+    });
+}
+
+/** Has this order already been rated? (for showing/hiding the prompt) */
+export async function hasRated(orderId: string): Promise<boolean> {
+  const s = await getDoc(doc(db, 'gigRatings', orderId));
+  return s.exists();
 }

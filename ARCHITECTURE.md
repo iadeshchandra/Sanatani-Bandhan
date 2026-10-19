@@ -125,6 +125,7 @@ Feed discovers, chat checks out. **No store tab.** Trust is person-shaped.
 - **Trust tiers** — REGISTERED → VERIFIED → TRUSTED; warm trust score display; referral credit from platform margin.
 - **Commission** — Rail-1 8% / Rail-2 12% (GodMode-editable); commission pre-funding, shortfall → guided top-up, dispute freeze via `commission_held`.
 - **Chat + money** (`src/chat/`) — QR `SB-P2P:1:…`; **two-wallet architecture: Platform vs Personal, NEVER mixed**; coordination layer, never custody (Bangladesh Bank e-money regs); bKash/Nagad/UPI. Group chats private; money stays 1:1.
+- **Gig detail + blessings** (Step 7, 2026-10-19) — tapping a GigCard opens `GigDetail.tsx` (full 2000-char description, provider info, blessings list) before booking. After completion, `RatingPrompt.tsx` invites blessings (1–5 + optional message, Kritagyata-framed: "How was your experience? 🙏"). `submitGigRating()` in `lib/marketplace.ts`: gated to COMPLETED orders, one per order (doc ID = orderId), atomic avgRating/ratingCount update via transaction. Pure logic in `lib/gigRatings.ts` (15/15 jest). New collection: `gigRatings/{orderId}` (public read; client-create on own completed order; immutable). Rules: narrow `marketplaceGigs` update branch for ratingCount +1 / avgRating 1–5 only.
 
 ---
 
@@ -188,6 +189,7 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 | `mutes/{muterUid}/muted/{targetUid}` | owner-read only; muter-write; no self-mute |
 | `orgLiveStatus/{orgId}` | public read; trustee/admin write |
 | `marketplaceOrders/{orderId}`, `marketplaceProviders/{uid}`, `marketplaceGigs/{gigId}` | parties + owner; commission fields immutable in rules |
+| `gigRatings/{orderId}` | public read; client-create on own completed order only (rules verify via get()); immutable — no update/delete |
 | `wallets/{uid}`, `walletTransactions/{txnId}` | self + owner; rules-pinned debits |
 | `crisis_events/{eventId}` | alerted responders only; sender + coordinators |
 | `audit_logs/{logId}` | append-only |
