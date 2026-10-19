@@ -5,7 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock } from 'lucide-react';
 import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, type MessageTemplate } from '../../../lib/adminApi';
-import { BackendDownBanner, ConfirmDialog, RequiresBackendBadge } from '../GodModeConsole2';
+import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentInsightsTab } from './AdminTabsG';
 import { TopupsTab, WalletsTab } from './AdminTabsI';
@@ -18,9 +18,8 @@ export const ModerationTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [backendDown, setBackendDown] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{ id: string; action: 'dismiss' | 'hide_content' | 'warn_user' | 'suspend_user' } | null>(null);
+  const [confirm, setConfirm] = useState<{ id: string; targetUid?: string; action: 'dismiss' | 'hide_content' | 'warn_user' | 'suspend_user' | 'unsuspend_user' } | null>(null);
   const [working, setWorking] = useState(false);
-  const [suspendNeedsBackend, setSuspendNeedsBackend] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,14 +36,14 @@ export const ModerationTab: React.FC = () => {
   const doAction = async () => {
     if (!confirm) return;
     setWorking(true);
-    const r = await adminApi.moderationAction(confirm.id, confirm.action);
+    const r = confirm.action === 'unsuspend_user' && confirm.targetUid
+      ? await adminApi.moderationUnsuspend(confirm.targetUid)
+      : await adminApi.moderationAction(confirm.id, confirm.action as 'dismiss' | 'hide_content' | 'warn_user' | 'suspend_user');
     setWorking(false);
     setConfirm(null);
     if (r.ok) {
-      showToast('Action recorded.', 'success');
-      setReports(reports.filter((x) => x.id !== confirm.id));
-    } else if (r.requiresBackend) {
-      setSuspendNeedsBackend(true);
+      showToast(confirm.action === 'unsuspend_user' ? 'Account restored.' : 'Action recorded.', 'success');
+      if (confirm.action !== 'unsuspend_user') setReports(reports.filter((x) => x.id !== confirm.id));
     } else {
       showToast(r.error || 'Action failed.', 'error');
     }
@@ -55,6 +54,7 @@ export const ModerationTab: React.FC = () => {
     hide_content: 'Hide content',
     warn_user: 'Warn user',
     suspend_user: 'Suspend user',
+    unsuspend_user: 'Unsuspend user',
   };
 
   if (loading) return <p className="text-sm text-slate-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading reports…</p>;
@@ -63,9 +63,6 @@ export const ModerationTab: React.FC = () => {
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-500">{reports.length} open report{reports.length === 1 ? '' : 's'}</p>
-      {suspendNeedsBackend && (
-        <div><RequiresBackendBadge label="Suspend needs the backend (Auth Admin API)" /></div>
-      )}
       {reports.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-10 text-center">
           <p className="text-3xl mb-2">🛡️</p>
@@ -97,6 +94,15 @@ export const ModerationTab: React.FC = () => {
                 {actionLabel[a]}
               </button>
             ))}
+            {rep.targetType === 'user' && rep.targetId && (
+              <button
+                type="button"
+                onClick={() => setConfirm({ id: rep.id, targetUid: rep.targetId, action: 'unsuspend_user' })}
+                className="px-3 py-2 min-h-[44px] rounded-xl text-[11px] font-black bg-emerald-600/20 text-emerald-300 border border-emerald-500/40"
+              >
+                {actionLabel['unsuspend_user']}
+              </button>
+            )}
           </div>
         </div>
       ))}
@@ -104,7 +110,9 @@ export const ModerationTab: React.FC = () => {
         <ConfirmDialog
           title={actionLabel[confirm.action] + '?'}
           body={confirm.action === 'suspend_user'
-            ? 'This disables the reported user\'s Firebase account immediately. Reversible via Unsuspend. Logged in the audit trail.'
+            ? 'The reported user will be signed out immediately and see a pause notice. They cannot sign back in until unsuspended. Reversible via Unsuspend. Logged in the audit trail.'
+            : confirm.action === 'unsuspend_user'
+            ? 'The user will be able to sign in again immediately. Logged in the audit trail.'
             : confirm.action === 'hide_content'
             ? 'The reported content will be hidden from all clients. Logged in the audit trail.'
             : 'This resolves the report. Logged in the audit trail.'}

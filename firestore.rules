@@ -196,7 +196,9 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
       allow create: if isLoggedIn() && request.auth.uid == userId
-        && !request.resource.data.keys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId'])
+        && !request.resource.data.keys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId',
+          // Step 8: soft-ban fields are owner-write-only
+          'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
         && (
           // DEMO sandbox: may self-claim a demo workspace + starter role
           isDemoWs(request.resource.data.get('workspaceId', null))
@@ -206,8 +208,14 @@ service cloud.firestore {
       allow update: if isSuperAdmin() || (
         isLoggedIn() && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId', 'role', 'workspaceId', 'defaultWorkspaceId', 'membership'])
-      );
+            .hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId', 'role', 'workspaceId', 'defaultWorkspaceId', 'membership',
+              // Step 8: soft-ban fields are owner-write-only
+              'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
+      )
+        // Step 8: owner-only soft-ban writes — suspension fields and nothing else
+        || (isOwner()
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['suspended', 'suspendReason', 'suspendedAt', 'suspendedBy', 'updatedAt']));
       allow delete: if false;
     }
 

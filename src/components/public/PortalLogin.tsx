@@ -15,6 +15,7 @@ import { AuthDoors, type AuthDoorId } from './AuthDoors';
 import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
 import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { SuspendedNotice } from '../auth/SuspendedNotice';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
 import { smartDefaultModulesFor } from '../../lib/workspaceRegistry';
@@ -273,7 +274,7 @@ interface PortalLoginProps {
 }
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess, orgRegisterOnly = false }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser } = useAuthWorkspace();
+  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   // Locale follows the app-wide LanguageContext (English default). The auth
   // page's own selector also pushes the choice back to the global locale.
@@ -1023,6 +1024,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
   return (
     <div className="auth-scene relative min-h-screen font-sans overflow-x-hidden bg-[#0b0620] text-white">
+      {/* Step 8: soft-ban — a paused account sees dignity, not a login form. */}
+      {accountSuspended && (
+        <div className="relative z-10">
+          <SuspendedNotice info={accountSuspended} onDismiss={clearSuspensionNotice} />
+        </div>
+      )}
+      {!accountSuspended && (<>
       {/* ============ IMMERSIVE DAWN SCENE ============ */}
       <div className="fixed inset-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[linear-gradient(168deg,#08041a_0%,#170d38_30%,#3c1756_50%,#8f3413_70%,#e07f16_88%,#f7b733_100%)]" />
@@ -1533,6 +1541,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
       {/* Hardware Biometric WebAuthn Modal */}
       <BiometricPromptModal />
+      </>)}
     </div>
   );
 };

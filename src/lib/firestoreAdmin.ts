@@ -51,6 +51,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
 
 /** Canonical platform owner. */
 export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
@@ -193,14 +194,41 @@ async function lookupUser(email: string): Promise<NativeResult> {
 const REQUIRES_BACKEND_MSG =
   'Needs the deployed backend (Firebase Auth Admin API). Deploy: firebase deploy --only functions';
 
-async function disableUser(): Promise<NativeResult> {
-  requireOwner();
-  return { ok: false, code: 'REQUIRES_BACKEND', error: REQUIRES_BACKEND_MSG, requiresBackend: true };
+/**
+ * Step 8: Spark-native soft-ban. No backend needed — suspension is a
+ * `users/{uid}` field set; the boot check in AuthWorkspaceContext signs
+ * suspended users out and shows a dignified notice. Fully reversible.
+ */
+async function suspendUser(uid: string, reason: string): Promise<NativeResult> {
+  const ownerUid = requireOwner();
+  const err = validateSuspendReason(reason);
+  if (err) return { ok: false, code: 'INVALID_REASON', error: err };
+  if (!uid || uid === ownerUid)
+    return { ok: false, code: 'INVALID_TARGET', error: 'Cannot suspend this account.' };
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, code: 'NOT_FOUND', error: 'User not found.' };
+  await updateDoc(ref, {
+    ...buildSuspendUpdate(reason, ownerUid),
+    suspendedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  } as any);
+  await writeAudit('user.suspend', { targetUid: uid, reason: reason.trim() }, 'critical');
+  return { ok: true, data: { ok: true, uid } };
 }
 
-async function enableUser(): Promise<NativeResult> {
-  requireOwner();
-  return { ok: false, code: 'REQUIRES_BACKEND', error: REQUIRES_BACKEND_MSG, requiresBackend: true };
+async function unsuspendUser(uid: string): Promise<NativeResult> {
+  const ownerUid = requireOwner();
+  if (!uid) return { ok: false, code: 'INVALID_TARGET', error: 'User not found.' };
+  const ref = doc(db, 'users', uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, code: 'NOT_FOUND', error: 'User not found.' };
+  await updateDoc(ref, {
+    ...buildUnsuspendUpdate(),
+    updatedAt: serverTimestamp(),
+  } as any);
+  await writeAudit('user.unsuspend', { targetUid: uid, actorUid: ownerUid }, 'warn');
+  return { ok: true, data: { ok: true, uid } };
 }
 
 /* ------------------------------- Workspaces ------------------------------ */
@@ -329,14 +357,23 @@ async function moderationAction(
   note?: string
 ): Promise<NativeResult> {
   const uid = requireOwner();
-  if (action === 'suspend_user') {
-    // Disabling a Firebase Auth account requires the Admin SDK.
-    return { ok: false, code: 'REQUIRES_BACKEND', error: REQUIRES_BACKEND_MSG, requiresBackend: true };
-  }
   const ref = doc(db, 'moderationReports', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return { ok: false, error: 'Report not found.', code: 'NOT_FOUND' };
   const rep: any = snap.data();
+
+  if (action === 'suspend_user') {
+    // Step 8: Spark-native soft-ban — suspends via users/{uid} fields.
+    // Only user-target reports can suspend; content reports use hide_content.
+    const targetUid = rep.targetType === 'user' ? String(rep.targetId || '') : '';
+    if (!targetUid)
+      return { ok: false, code: 'INVALID_TARGET', error: 'This report does not target a user — use Hide content instead.' };
+    const r = await suspendUser(targetUid, note || `Suspended from moderation (report ${id}).`);
+    if (r.ok) {
+      await updateDoc(ref, { status: 'actioned', actionedAt: serverTimestamp(), actionedBy: uid } as any);
+    }
+    return r;
+  }
 
   if (action === 'hide_content' && rep.targetId) {
     // Record a hide directive — clients filter hidden content via this collection.
@@ -2539,8 +2576,8 @@ export const firestoreAdmin = {
   overview,
   health,
   lookupUser,
-  disableUser,
-  enableUser,
+  suspendUser,
+  unsuspendUser,
   listWorkspaces,
   setPlan,
   setLimitsBypass,

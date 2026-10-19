@@ -120,7 +120,8 @@ export const ConfirmDialog: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
   working?: boolean;
-}> = ({ title, body, confirmLabel = 'Confirm', onConfirm, onCancel, working }) => (
+  children?: React.ReactNode;
+}> = ({ title, body, confirmLabel = 'Confirm', onConfirm, onCancel, working, children }) => (
   <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={onCancel}>
     <div
       className="bg-slate-900 border border-red-500/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
@@ -133,6 +134,7 @@ export const ConfirmDialog: React.FC<{
         <h3 className="font-bold text-white">{title}</h3>
       </div>
       <p className="text-sm text-slate-400 mb-5">{body}</p>
+      {children}
       <div className="flex gap-2">
         <button
           type="button"

@@ -228,10 +228,10 @@ export const adminApi = {
       () => get<{ success: boolean; user: UserRecord }>(`/api/admin/users/lookup?email=${encodeURIComponent(email)}`),
       () => firestoreAdmin.lookupUser(email)
     ),
-  disableUser: (uid: string) =>
-    withFallback(() => post(`/api/admin/users/${uid}/disable`), () => firestoreAdmin.disableUser()),
+  disableUser: (uid: string, reason?: string) =>
+    withFallback(() => post(`/api/admin/users/${uid}/disable`), () => firestoreAdmin.suspendUser(uid, reason || 'Suspended by platform owner.')),
   enableUser: (uid: string) =>
-    withFallback(() => post(`/api/admin/users/${uid}/enable`), () => firestoreAdmin.enableUser()),
+    withFallback(() => post(`/api/admin/users/${uid}/enable`), () => firestoreAdmin.unsuspendUser(uid)),
 
   // Workspaces
   listWorkspaces: (limit = 50, cursor?: string) =>
@@ -289,9 +289,7 @@ export const adminApi = {
       ok: false, code: 'REQUIRES_BACKEND', error: 'Content hide via collection scan needs the backend.', requiresBackend: true,
     })),
   moderationUnsuspend: (uid: string) =>
-    withFallback(() => post(`/api/moderation/users/${uid}/unsuspend`), async () => ({
-      ok: false, code: 'REQUIRES_BACKEND', error: 'Unsuspend needs the Firebase Auth Admin API.', requiresBackend: true,
-    })),
+    withFallback(() => post(`/api/moderation/users/${uid}/unsuspend`), () => firestoreAdmin.unsuspendUser(uid)),
 
   // Billing
   paymentClaims: (status = 'pending') =>

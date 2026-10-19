@@ -5,7 +5,8 @@
 import React, { useState, useCallback } from 'react';
 import { Search, RefreshCw, Ban, CheckCircle2, XCircle } from 'lucide-react';
 import { adminApi, type UserRecord, type WorkspaceRecord, type VerificationApplication } from '../../../lib/adminApi';
-import { BackendDownBanner, ConfirmDialog, RequiresBackendBadge } from '../GodModeConsole2';
+import { validateSuspendReason } from '../../../lib/softBan';
+import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 
 /* -------------------------------- Users --------------------------------- */
@@ -16,9 +17,10 @@ export const UsersTab: React.FC = () => {
   const [user, setUser] = useState<UserRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [backendDown, setBackendDown] = useState(false);
-  const [confirm, setConfirm] = useState<'disable' | 'enable' | null>(null);
+  const [confirm, setConfirm] = useState<'suspend' | 'unsuspend' | null>(null);
+  const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
-  const [needsBackend, setNeedsBackend] = useState(false);
 
   const search = useCallback(async () => {
     if (!email.trim()) return;
@@ -37,17 +39,22 @@ export const UsersTab: React.FC = () => {
 
   const doToggle = async () => {
     if (!user || !confirm) return;
+    if (confirm === 'suspend') {
+      const err = validateSuspendReason(reason);
+      setReasonError(err);
+      if (err) return;
+    }
     setWorking(true);
-    const r = confirm === 'disable'
-      ? await adminApi.disableUser(user.uid)
+    const r = confirm === 'suspend'
+      ? await adminApi.disableUser(user.uid, reason.trim())
       : await adminApi.enableUser(user.uid);
     setWorking(false);
-    setConfirm(null);
     if (r.ok) {
-      showToast(`User ${confirm}d.`, 'success');
-      setUser({ ...user, disabled: confirm === 'disable' });
-    } else if (r.requiresBackend) {
-      setNeedsBackend(true);
+      showToast(confirm === 'suspend' ? 'Account paused. The user is signed out immediately.' : 'Account restored.', 'success');
+      setUser({ ...user, disabled: confirm === 'suspend' });
+      setConfirm(null);
+      setReason('');
+      setReasonError(null);
     } else {
       showToast(r.error || 'Action failed.', 'error');
     }
@@ -88,7 +95,7 @@ export const UsersTab: React.FC = () => {
               <p className="text-[11px] text-slate-500 font-mono mt-1">UID: {user.uid}</p>
               <div className="flex gap-2 mt-2 text-[11px]">
                 <span className={`px-2 py-0.5 rounded-full font-bold ${user.disabled ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                  {user.disabled ? 'DISABLED' : 'ACTIVE'}
+                  {user.disabled ? 'SUSPENDED' : 'ACTIVE'}
                 </span>
                 {user.emailVerified && <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">email verified</span>}
               </div>
@@ -96,29 +103,44 @@ export const UsersTab: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={() => setConfirm(user.disabled ? 'enable' : 'disable')}
+              onClick={() => { setConfirm(user.disabled ? 'unsuspend' : 'suspend'); setReason(''); setReasonError(null); }}
               className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center gap-2 ${
                 user.disabled ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-red-600/20 text-red-300 border border-red-500/40 hover:bg-red-600/30'
               }`}
             >
-              {user.disabled ? <><CheckCircle2 className="w-4 h-4" /> Enable</> : <><Ban className="w-4 h-4" /> Disable</>}
+              {user.disabled ? <><CheckCircle2 className="w-4 h-4" /> Unsuspend</> : <><Ban className="w-4 h-4" /> Suspend</>}
             </button>
-            {needsBackend && <div className="mt-2"><RequiresBackendBadge label="Disable/enable needs the backend" /></div>}
           </div>
         </div>
       )}
 
       {confirm && (
         <ConfirmDialog
-          title={confirm === 'disable' ? 'Disable this account?' : 'Re-enable this account?'}
-          body={confirm === 'disable'
-            ? `The user ${user?.email} will be signed out immediately and cannot sign back in until re-enabled. This is logged in the audit trail.`
-            : `The user ${user?.email} will be able to sign in again. This is logged in the audit trail.`}
-          confirmLabel={confirm === 'disable' ? 'Disable account' : 'Enable account'}
+          title={confirm === 'suspend' ? 'Suspend this account?' : 'Unsuspend this account?'}
+          body={confirm === 'suspend'
+            ? `The user ${user?.email} will be signed out immediately and see a pause notice with your reason. They cannot sign back in until unsuspended. Logged in the audit trail.`
+            : `The user ${user?.email} will be able to sign in again. Logged in the audit trail.`}
+          confirmLabel={confirm === 'suspend' ? 'Suspend account' : 'Unsuspend account'}
           onConfirm={doToggle}
-          onCancel={() => setConfirm(null)}
+          onCancel={() => { setConfirm(null); setReason(''); setReasonError(null); }}
           working={working}
-        />
+        >
+          {confirm === 'suspend' && (
+            <div className="mt-3">
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">
+                Reason <span className="text-red-400">*</span> <span className="font-normal text-slate-500">(required — shown to the user)</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => { setReason(e.target.value); if (reasonError) setReasonError(validateSuspendReason(e.target.value)); }}
+                rows={3}
+                placeholder="e.g. Repeated spam links in community posts after two warnings…"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 min-h-[44px] text-sm text-slate-200 outline-none focus:ring-2 focus:ring-saffron-500"
+              />
+              {reasonError && <p className="text-[11px] text-red-400 mt-1.5">{reasonError}</p>}
+            </div>
+          )}
+        </ConfirmDialog>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { User, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
+import { isSuspended, readSuspension, saveSuspensionNotice, loadSuspensionNotice, clearSuspensionNotice as clearStoredSuspension, type SuspensionInfo } from '../lib/softBan';
 import { DevoteeMember, UserRole, WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../types';
 import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
@@ -206,6 +207,13 @@ export interface AuthWorkspaceContextType {
     role: UserRole;
   };
   isAuthenticated: boolean;
+  /**
+   * Step 8: Spark-native soft-ban. Set when the boot check finds
+   * `users/{uid}.suspended === true`. The user is signed out and the login
+   * screens render SuspendedNotice instead of the sign-in form.
+   */
+  accountSuspended: SuspensionInfo | null;
+  clearSuspensionNotice: () => void;
   viewMode: 'MANAGER' | 'MEMBER';
   setViewMode: (mode: 'MANAGER' | 'MEMBER') => void;
   /**
@@ -294,6 +302,13 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Cached User Profile Document from Firestore
   const [userDocData, setUserDocData] = useState<any>(null);
+
+  // Step 8: soft-ban. Survives the sign-out cycle via localStorage.
+  const [accountSuspended, setAccountSuspended] = useState<SuspensionInfo | null>(() => loadSuspensionNotice());
+  const clearSuspensionNotice = useCallback(() => {
+    clearStoredSuspension();
+    setAccountSuspended(null);
+  }, []);
 
   // Application Workspaces & View States
   const [workspaces, setWorkspaces] = useState<WorkspaceConfig[]>(() => {
@@ -628,6 +643,20 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
           if (userSnap.exists()) {
             const data = userSnap.data();
             setUserDocData(data);
+
+            // Step 8: Spark-native soft-ban. A suspended account is signed out
+            // immediately and shown a dignified notice with the reason.
+            if (isSuspended(data)) {
+              const info = readSuspension(data) || { suspended: true };
+              saveSuspensionNotice(info);
+              setAccountSuspended(info);
+              try { await signOut(auth); } catch { /* already out */ }
+              setIsLoading(false);
+              return;
+            }
+            // Not suspended — clear any stale notice (e.g. after unsuspend).
+            clearStoredSuspension();
+            setAccountSuspended(null);
 
             // Extract default workspace ID first (needed for creator check)
             // P0-2 FIX: Never inherit a demo workspace on sign-in. If the user
@@ -1420,6 +1449,8 @@ const pinDeniedToast = (
         setCurrentDevotee,
         currentUser,
         isAuthenticated,
+        accountSuspended,
+        clearSuspensionNotice,
         viewMode,
         setViewMode,
         sessionKind,
