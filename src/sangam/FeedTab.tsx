@@ -21,6 +21,7 @@ import type { VideoGuideLang } from '../video/i18n';
 import { SafetySheet } from '../social/SafetySheet';
 import { subscribeSafetyLists } from '../social/safetyService';
 import { filterHiddenAuthors } from '../social/safety';
+import { useModerationHides } from './moderation';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -456,6 +457,8 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
     setMutedUids(m);
   }), [author.uid]);
   const [feedWeights, setFeedWeights] = useState<FeedWeights>(DEFAULT_FEED_WEIGHTS);
+  // AUDIT FIX #9: content hidden by the owner via GodMode → Moderation.
+  const hiddenIds = useModerationHides();
 
   // Load ranking signals + weights once.
   useEffect(() => {
@@ -524,6 +527,8 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
     let list = posts.filter((p) => p.status !== 'removed');
     // Step 5 (safety): hide posts from blocked/muted authors.
     list = filterHiddenAuthors(list, blockedUids, mutedUids);
+    // AUDIT FIX #9: hide content the owner removed via GodMode → Moderation.
+    if (hiddenIds.size > 0) list = list.filter((p) => !hiddenIds.has(p.id));
     if (kindFilter !== 'all') list = list.filter((p) => p.kind === kindFilter);
     if (followingOnly) {
       list = list.filter((p) => {
@@ -546,7 +551,7 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
     // Seva Bazar: service cards are guests — ≤15% of the mixed feed.
     // (Explicit "Seva Notices" filter shows them all; the cap is for discovery.)
     return kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
-  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights, blockedUids, mutedUids]);
+  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights, blockedUids, mutedUids, hiddenIds]);
 
   return (
     <div className="space-y-4">

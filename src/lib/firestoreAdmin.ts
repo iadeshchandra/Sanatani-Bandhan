@@ -53,6 +53,7 @@ import {
 import { db, auth } from '../firebase';
 import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
 import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
+import { warnTargetForReport, shouldThankReporter } from '../sangam/moderation';
 import {
   computeMrr,
   normalizePlanId,
@@ -344,16 +345,20 @@ async function verificationReject(id: string, reason: string): Promise<NativeRes
 
 async function moderationReports(status = 'open'): Promise<NativeResult> {
   requireOwner();
+  // AUDIT FIX #9: reports are filed to `sangamReports` (via reportContent →
+  // toCloudReport). The old `moderationReports` collection was never written
+  // to — reading it kept this queue permanently empty.
   // Client-side sort: avoids the composite index a where+orderBy would need.
   const snap = await getDocs(
-    query(collection(db, 'moderationReports'), where('status', '==', status), limit(100))
+    query(collection(db, 'sangamReports'), where('status', '==', status), limit(100))
   );
   const reports = snap.docs
     .map((d) => {
       const v: any = d.data();
       return {
         id: d.id, targetType: v.targetType, targetId: v.targetId, reason: v.reason,
-        details: v.details, reporterUid: v.reporterUid, status: v.status, createdAt: tsToIso(v.createdAt),
+        details: v.details, reporterUid: v.reporterUid, reporterName: v.reporterName,
+        status: v.status, createdAt: tsToIso(v.createdAt),
       };
     })
     .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -366,7 +371,7 @@ async function moderationAction(
   note?: string
 ): Promise<NativeResult> {
   const uid = requireOwner();
-  const ref = doc(db, 'moderationReports', id);
+  const ref = doc(db, 'sangamReports', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return { ok: false, error: 'Report not found.', code: 'NOT_FOUND' };
   const rep: any = snap.data();
@@ -395,13 +400,17 @@ async function moderationAction(
       note: note || '',
     });
   }
-  if (action === 'warn_user' && rep.targetUid) {
+  // AUDIT FIX #9: the report doc carries `targetId`, not `targetUid` — the old
+  // check silently skipped every warning. Only user-targeted reports warn.
+  const warnTargetUid = warnTargetForReport(rep);
+  if (action === 'warn_user' && warnTargetUid) {
     // Deliver a warning straight to the user's inbox (they can read their own).
+    // Surfaced in Suchana → "Notes from the team" via useModerationInbox.
     await addDoc(collection(db, 'messages'), {
-      targetUid: rep.targetUid,
-      title: 'A gentle note from the Sanatani Bandhan team',
-      body: note || 'Your recent content was reported by the community. Please keep Sangam respectful and dharmic.',
-      type: 'reminder',
+      targetUid: warnTargetUid,
+      title: '🪔 A gentle note from the Sanatani Bandhan team',
+      body: note || 'Your recent content was reported by the community. Please keep Sangam respectful and dharmic — with warmth, always.',
+      type: 'warning',
       createdBy: uid,
       read: false,
       createdAt: serverTimestamp(),
@@ -414,6 +423,21 @@ async function moderationAction(
     resolvedBy: uid,
     resolvedAt: serverTimestamp(),
   });
+  // AUDIT FIX #9: thank the reporter — gently, with no details about the action.
+  // Reporters are sacred trust; they hear back, never what was done.
+  if (shouldThankReporter(action, rep)) {
+    try {
+      await addDoc(collection(db, 'messages'), {
+        targetUid: String(rep.reporterUid),
+        title: '🪔 Thank you for keeping our sangha safe',
+        body: 'We looked into your report with care. Your voice keeps Sangam warm and dharmic for everyone.',
+        type: 'moderation_thanks',
+        createdBy: uid,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch { /* best-effort — the moderation action itself succeeded */ }
+  }
   await writeAudit('moderation.action', { reportId: id, action, targetId: rep.targetId }, action === 'dismiss' ? 'info' : 'warn');
   return { ok: true, data: { ok: true } };
 }

@@ -25,6 +25,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { shortDoc, toShort, type Short } from './types';
+import { fileModerationReport } from '../moderation';
 
 const COL = 'sangamShorts';
 
@@ -98,9 +99,21 @@ export async function ashirvadShort(shortId: string, add: boolean): Promise<void
   await updateDoc(doc(db, COL, shortId), { ashirvadCount: increment(add ? 1 : -1) });
 }
 
-/** Report a short for sevadar review. Soft moderation — increments a counter. */
-export async function reportShort(shortId: string): Promise<void> {
+/**
+ * Report a short for moderator review.
+ * AUDIT FIX #9: was a bare `reportCount` counter no one actioned. Now the
+ * counter still sinks the short in ranking, AND a real report lands in the
+ * `sangamReports` moderation queue (GodMode → Moderation).
+ */
+export async function reportShort(
+  shortId: string,
+  reporter?: { uid: string; name: string },
+  reason: 'spam' | 'impersonation' | 'inappropriate' | 'misinformation' | 'other' = 'inappropriate',
+): Promise<void> {
   await updateDoc(doc(db, COL, shortId), { reportCount: increment(1) });
+  if (reporter?.uid) {
+    await fileModerationReport(reporter, 'short', shortId, reason);
+  }
 }
 
 /** Delete a short (author or admin — enforced by rules). */

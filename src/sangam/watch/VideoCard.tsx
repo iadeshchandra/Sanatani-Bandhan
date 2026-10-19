@@ -16,11 +16,13 @@ interface Props {
   lang: WatchLang;
   /** uid of the viewer — for author/admin delete affordance. */
   viewerUid: string;
+  /** display name of the viewer — recorded as the report filer. */
+  viewerName: string;
   isAdmin: boolean;
   onBook?: (providerUid: string) => void;
 }
 
-export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, isAdmin, onBook }) => {
+export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, viewerName, isAdmin, onBook }) => {
   const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [reported, setReported] = useState(false);
@@ -32,7 +34,8 @@ export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, isAdmin, on
   const doReport = async () => {
     if (reported) return;
     try {
-      await reportVideo(video.id);
+      // AUDIT FIX #9: files a real moderation report (not just a counter).
+      await reportVideo(video.id, { uid: viewerUid, name: viewerName });
       setReported(true);
     } catch {
       /* best-effort */

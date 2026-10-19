@@ -10,6 +10,7 @@ import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notificati
 import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useModerationInbox } from '../notifications/useModerationInbox';
 
 /* SuchanaPage — the full-page Suchana tab at /app/suchana.
  * =====================================================================
@@ -46,6 +47,11 @@ export const SuchanaPage: React.FC = () => {
       }
     }
   };
+
+  // AUDIT FIX #9: "Notes from the team" — owner→user messages (moderation
+  // warnings, report thanks). The `messages` collection was the designed
+  // channel but nothing ever read it. Warm cards, mark-read on tap.
+  const { notes: teamNotes, unreadCount: unreadTeam, markNoteRead } = useModerationInbox();
 
   // ⚙️ — notification prefs at the point of experience. The SAME sheet
   // component Profile's "🔔 Notifications" row opens: one component,
@@ -134,6 +140,55 @@ export const SuchanaPage: React.FC = () => {
           onAction={onAction}
         />
       </div>
+
+      {/* 🛡️ Notes from the team — owner→user messages (moderation warnings,
+          report thanks). AUDIT FIX #9: the `messages` collection was the
+          designed channel but nothing ever surfaced it. Warm, dignified. */}
+      {teamNotes.length > 0 && (
+        <section aria-label="Notes from the team" className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-extrabold text-stone-900 flex items-center gap-2">
+              <span aria-hidden>🛡️</span>
+              <T
+                en="Notes from the team"
+                bn="টিমের বার্তা"
+                hi="टीम के संदेश"
+              />
+              {unreadTeam > 0 && (
+                <span className="min-w-[22px] h-[22px] px-1 rounded-full bg-amber-600 text-white text-[11px] font-bold flex items-center justify-center">
+                  {unreadTeam}
+                </span>
+              )}
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {teamNotes.slice(0, 5).map((n) => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => void markNoteRead(n.id)}
+                className={`w-full text-left rounded-2xl border p-3.5 transition-colors min-h-[44px] ${
+                  n.read
+                    ? 'bg-white border-stone-200 opacity-75'
+                    : 'bg-amber-50 border-amber-300 shadow-sm'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {!n.read && (
+                    <span className="mt-1.5 w-2 h-2 rounded-full bg-amber-600 shrink-0" aria-hidden />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm ${n.read ? 'font-semibold text-stone-600' : 'font-bold text-stone-900'}`}>
+                      {n.title}
+                    </p>
+                    <p className="text-xs text-stone-500 mt-0.5 line-clamp-3">{n.body}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 🪔 From your sangha — the notification inbox for the solo shell.
           AUDIT FIX #5: the Suchana tab badge counts these; previously there

@@ -9,11 +9,12 @@
  * Lazy-loaded. Only the active short mounts an iframe; neighbours render
  * thumbnails (preloaded one ahead).
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { nocookieShortEmbed, type Short } from './types';
 import { st, type ShortsLang } from './i18n';
 import { withReferrer } from '../referrals';
+import { useModerationHides } from '../moderation';
 import {
   ashirvadShort,
   countShortView,
@@ -49,6 +50,7 @@ const ShortItem: React.FC<{
   viewerSanId?: string;
   isAdmin: boolean;
 }> = ({ short, active, preload, lang, viewerUid, viewerName, viewerSanId, isAdmin }) => {
+  const navigate = useNavigate();
   const [muted, setMuted] = useState(true);
   const [ashirvaded, setAshirvaded] = useState(false);
   const [ashirvadCount, setAshirvadCount] = useState(short.ashirvadCount);
@@ -113,7 +115,8 @@ const ShortItem: React.FC<{
   const doReport = async () => {
     if (reported) return;
     try {
-      await reportShort(short.id);
+      // AUDIT FIX #9: files a real moderation report (not just a counter).
+      await reportShort(short.id, { uid: viewerUid, name: viewerName });
       setReported(true);
     } catch {
       /* best-effort */
@@ -311,25 +314,31 @@ export const ShortsViewer: React.FC<Props> = ({
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  // AUDIT FIX #9: filter shorts the owner hid via GodMode → Moderation.
+  const hiddenIds = useModerationHides();
+  const visibleShorts = useMemo(
+    () => (hiddenIds.size > 0 ? shorts.filter((s) => !hiddenIds.has(s.id)) : shorts),
+    [shorts, hiddenIds],
+  );
 
   // Deep-link: scroll to the requested short on mount.
   useEffect(() => {
     if (initialShortId && containerRef.current) {
-      const idx = shorts.findIndex((s) => s.id === initialShortId);
+      const idx = visibleShorts.findIndex((s) => s.id === initialShortId);
       if (idx > 0) {
         const el = containerRef.current;
         el.scrollTop = idx * el.clientHeight;
         setActiveIndex(idx);
       }
     }
-  }, [initialShortId, shorts]);
+  }, [initialShortId, visibleShorts]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el || el.clientHeight === 0) return;
     const idx = Math.round(el.scrollTop / el.clientHeight);
-    setActiveIndex(Math.max(0, Math.min(idx, shorts.length - 1)));
-  }, [shorts.length]);
+    setActiveIndex(Math.max(0, Math.min(idx, visibleShorts.length - 1)));
+  }, [visibleShorts.length]);
 
   // Lock body scroll while viewing.
   useEffect(() => {
@@ -364,7 +373,7 @@ export const ShortsViewer: React.FC<Props> = ({
         className="flex-1 overflow-y-auto snap-y snap-mandatory scrollbar-none"
         style={{ scrollbarWidth: 'none' }}
       >
-        {shorts.map((s, i) => (
+        {visibleShorts.map((s, i) => (
           <ShortItem
             key={s.id}
             short={s}

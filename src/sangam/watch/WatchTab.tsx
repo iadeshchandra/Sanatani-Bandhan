@@ -8,7 +8,7 @@
  *
  * YouTube-nocookie embeds only. Tap-to-play, never auto-play with sound.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, Btn, EmptyState, useLocaleText } from '../ui';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { LiveBadge, DarshanViewer } from '../../darshan';
@@ -19,6 +19,7 @@ import { ShareVideoSheet } from './ShareVideoSheet';
 import { wt, type WatchLang } from './i18n';
 import type { WatchVideo, LiveStreamItem } from './types';
 import type { AuthorInfo } from '../sangamStore';
+import { useModerationHides } from '../moderation';
 
 interface Props {
   author: AuthorInfo;
@@ -43,6 +44,16 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
   useEffect(() => subscribeLiveStreams(setLive), []);
   useEffect(() => subscribeVideos('shared', setShared), []);
   useEffect(() => subscribeVideos('seva_demo', setDemos), []);
+  // AUDIT FIX #9: filter videos the owner hid via GodMode → Moderation.
+  const hiddenIds = useModerationHides();
+  const visibleShared = useMemo(
+    () => (hiddenIds.size > 0 ? shared.filter((v) => !hiddenIds.has(v.id)) : shared),
+    [shared, hiddenIds],
+  );
+  const visibleDemos = useMemo(
+    () => (hiddenIds.size > 0 ? demos.filter((v) => !hiddenIds.has(v.id)) : demos),
+    [demos, hiddenIds],
+  );
 
   const handleBook = useCallback((providerUid: string) => {
     // Deep-link to the provider's Seva Pro profile for booking.
@@ -103,7 +114,7 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
       {/* 🪔 Seva Demos */}
       <section aria-label={wt('watch.sevaDemos', wl)}>
         <h3 className="text-sm font-extrabold text-stone-700 mb-2">{wt('watch.sevaDemos', wl)}</h3>
-        {demos.length === 0 ? (
+        {visibleDemos.length === 0 ? (
           <Card>
             <EmptyState
               icon="🪔"
@@ -113,8 +124,8 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
           </Card>
         ) : (
           <div className="space-y-3">
-            {demos.map((v) => (
-              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} isAdmin={isAdmin} onBook={handleBook} />
+            {visibleDemos.map((v) => (
+              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} onBook={handleBook} />
             ))}
           </div>
         )}
@@ -123,7 +134,7 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
       {/* 🎬 Shared Videos */}
       <section aria-label={wt('watch.shared', wl)}>
         <h3 className="text-sm font-extrabold text-stone-700 mb-2">{wt('watch.shared', wl)}</h3>
-        {shared.length === 0 ? (
+        {visibleShared.length === 0 ? (
           <Card>
             <EmptyState
               icon="🎬"
@@ -133,8 +144,8 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
           </Card>
         ) : (
           <div className="space-y-3">
-            {shared.map((v) => (
-              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} isAdmin={isAdmin} />
+            {visibleShared.map((v) => (
+              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} />
             ))}
           </div>
         )}

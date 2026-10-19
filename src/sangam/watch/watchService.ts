@@ -26,6 +26,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { fileModerationReport } from '../moderation';
 import {
   sanitizeVideo,
   youtubeThumbnail,
@@ -113,9 +114,21 @@ export function subscribeVideos(
   );
 }
 
-/** Report a video for sevadar review. Soft moderation — increments a counter. */
-export async function reportVideo(videoId: string): Promise<void> {
+/**
+ * Report a video for moderator review.
+ * AUDIT FIX #9: was a bare `reportCount` counter no one actioned. Now the
+ * counter still marks the video, AND a real report lands in the
+ * `sangamReports` moderation queue (GodMode → Moderation).
+ */
+export async function reportVideo(
+  videoId: string,
+  reporter?: { uid: string; name: string },
+  reason: 'spam' | 'impersonation' | 'inappropriate' | 'misinformation' | 'other' = 'inappropriate',
+): Promise<void> {
   await updateDoc(doc(db, COL, videoId), { reportCount: increment(1) });
+  if (reporter?.uid) {
+    await fileModerationReport(reporter, 'video', videoId, reason);
+  }
 }
 
 /** Delete a video (author or admin — enforced by rules). */

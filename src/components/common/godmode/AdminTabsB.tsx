@@ -80,7 +80,15 @@ export const ModerationTab: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-2 mt-3 flex-wrap">
-            {(['dismiss', 'hide_content', 'warn_user', 'suspend_user'] as const).map((a) => (
+            {/* AUDIT FIX #9: contextual actions — warn/suspend only for
+                user-targeted reports; hide for content targets. */}
+            {(['dismiss', 'hide_content', 'warn_user', 'suspend_user'] as const)
+              .filter((a) => {
+                if (a === 'warn_user' || a === 'suspend_user') return rep.targetType === 'user';
+                if (a === 'hide_content') return rep.targetType !== 'user';
+                return true;
+              })
+              .map((a) => (
               <button
                 key={a}
                 type="button"
@@ -115,6 +123,8 @@ export const ModerationTab: React.FC = () => {
             ? 'The user will be able to sign in again immediately. Logged in the audit trail.'
             : confirm.action === 'hide_content'
             ? 'The reported content will be hidden from all clients. Logged in the audit trail.'
+            : confirm.action === 'warn_user'
+            ? 'The user will receive a gentle warning in their Suchana inbox. The reporter is never named. Logged in the audit trail.'
             : 'This resolves the report. Logged in the audit trail.'}
           confirmLabel={actionLabel[confirm.action]}
           onConfirm={doAction}
