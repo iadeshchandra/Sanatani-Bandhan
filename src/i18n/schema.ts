@@ -410,6 +410,16 @@ export interface TranslationSchema {
       s2t: string;
       s2b: string;
     };
+    /**
+     * Sangam Shorts guide. Optional: en/hi/bn authored,
+     * other languages fall back to English until translated.
+     */
+    shorts?: {
+      title: string;
+      pill: string;
+      s1t: string;
+      s1b: string;
+    };
     terms: {
       gotra: string;
       tithi: string;

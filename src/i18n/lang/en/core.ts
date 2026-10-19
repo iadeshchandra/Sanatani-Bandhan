@@ -371,6 +371,12 @@ export const core: CoreFragment = {
         s2t: "Share videos that uplift",
         s2b: "Bhajans, discourses, yatra moments — share YouTube videos that nourish the sangha. Tap to play, never auto-plays with sound. 🪔",
       },
+      shorts: {
+        title: "Sacred Moments",
+        pill: "Swipe up for the next moment — tap to hear the sound ⚡",
+        s1t: "Moments that uplift, one swipe away",
+        s1b: "Short vertical videos from the sangha — bhajan clips, temple glimpses, 60-second thoughts. They start silent; tap for sound. Double-tap to send an Ashirvad. 🪔",
+      },
       terms: {
         gotra: "Your ancestral lineage — the rishi family your family descends from. Spoken in sankalpa, and honoured in vivah matching.",
         tithi: "The lunar day of the Hindu calendar. Festivals and pujas are timed by tithi, not the English date.",

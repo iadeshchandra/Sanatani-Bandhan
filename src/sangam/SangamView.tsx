@@ -15,6 +15,9 @@ import { VerificationBadge, useLocaleText, T } from './ui';
 // Sangam Watch — lazy-loaded (video UI is heavy, loaded on demand).
 const WatchTab = lazy(() => import('./watch/WatchTab').then((m) => ({ default: m.WatchTab })));
 
+// Sangam Shorts — lazy-loaded (full-screen viewer is heavy, loaded on demand).
+const ShortsTab = lazy(() => import('./shorts/ShortsTab').then((m) => ({ default: m.ShortsTab })));
+
 /* Sangam — the Sanatani social layer (personal view).
  * =====================================================================
  * Rendered ONLY inside the Solo (personal) shell — session-kind
@@ -27,7 +30,7 @@ const WatchTab = lazy(() => import('./watch/WatchTab').then((m) => ({ default: m
  * plainly. Chronological feed, honest counts.
  */
 
-type SangamTab = 'feed' | 'watch' | 'circles' | 'seva' | 'events' | 'pages';
+type SangamTab = 'feed' | 'watch' | 'shorts' | 'circles' | 'seva' | 'events' | 'pages';
 
 const InnerSangam: React.FC = () => {
   const { profile } = useSolo();
@@ -79,6 +82,7 @@ const InnerSangam: React.FC = () => {
   const TABS: Array<{ id: SangamTab; en: string; bn: string; hi: string; icon: string }> = [
     { id: 'feed', en: 'Feed', bn: 'ফিড', hi: 'फ़ीड', icon: '🪔' },
     { id: 'watch', en: 'Watch', bn: 'দেখুন', hi: 'देखें', icon: '📺' },
+    { id: 'shorts', en: 'Shorts', bn: 'শর্টস', hi: 'शॉर्ट्स', icon: '⚡' },
     { id: 'circles', en: 'Circles', bn: 'বৃত্ত', hi: 'मंडल', icon: '⭕' },
     { id: 'seva', en: 'Community Board', bn: 'কমিউনিটি বোর্ড', hi: 'सामुदायिक बोर्ड', icon: '🤲' },
     { id: 'events', en: 'Events', bn: 'অনুষ্ঠান', hi: 'आयोजन', icon: '📅' },
@@ -157,6 +161,11 @@ const InnerSangam: React.FC = () => {
       {tab === 'watch' && (
         <Suspense fallback={<div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>}>
           <WatchTab author={author} />
+        </Suspense>
+      )}
+      {tab === 'shorts' && (
+        <Suspense fallback={<div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>}>
+          <ShortsTab author={author} />
         </Suspense>
       )}
       {tab === 'circles' && <CirclesTab author={author} />}
