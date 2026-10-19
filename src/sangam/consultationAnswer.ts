@@ -16,11 +16,12 @@ export interface ConsultationAnswerDraft {
   answerText: string;
   /** The devotee explicitly opted in to a public follow-up. */
   devoteeConsented: boolean;
-  /** Jyotishi's uid, name, Sanatani ID, role id. */
+  /** Jyotishi's uid, name, Sanatani ID, role id, verification tier. */
   authorUid: string;
   authorName: string;
   authorSanId: string;
   authorRoleId?: string;
+  authorTier?: string;
 }
 
 /** Patterns that suggest identifying details leaked into the text. */
@@ -64,6 +65,8 @@ export function consultationAnswerPost(input: {
     authorSanId: input.draft.authorSanId,
     authorKind: 'jyotish',
     authorRoleId: input.draft.authorRoleId || '',
+    // AUDIT FIX #1: tier must match the jyotish profile or rules reject the post.
+    ...(input.draft.authorTier ? { authorTier: input.draft.authorTier } : {}),
     isOfficialPagePost: false,
     kind: 'consultation_answer',
     // Framed anonymously by construction — no devotee fields exist.

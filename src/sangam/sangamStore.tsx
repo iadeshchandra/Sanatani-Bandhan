@@ -10,7 +10,8 @@ import type {
   SevaDetails,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
-import { toCloudComment, toCloudPost, mergeComments } from './comments';
+import { toCloudComment, mergeComments } from './comments';
+import { toCloudPost, toCloudFollow, toCloudCircle, toCloudEvent, toCloudReport } from './serializers';
 
 /* Sangam store — the community's shared memory.
  * =====================================================================
@@ -202,11 +203,20 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  /** Best-effort Firestore push — failures stay local, honestly labeled. */
+  /**
+   * Best-effort Firestore push — failures stay local, honestly labeled.
+   *
+   * AUDIT FIX #1: this MUST NOT inject fields. Previously it spread
+   * `{ ...data, updatedAt: serverTimestamp() }`, but NO create whitelist
+   * allows `updatedAt` — so every pushDoc write was silently rejected and
+   * content stayed `localOnly` forever. Writers must pass exactly the
+   * whitelisted fields (see ./serializers.ts); updates that need `updatedAt`
+   * include it explicitly where the rules allow it.
+   */
   const pushDoc = useCallback(async (coll: string, id: string, data: object) => {
     if (!navigator.onLine) return false;
     try {
-      await setDoc(doc(db, coll, id), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(db, coll, id), data, { merge: true });
       return true;
     } catch { return false; }
   }, []);
@@ -241,10 +251,12 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       return { ...p, ashirvadBy: nextBy, ashirvadCount: Math.max(0, p.ashirvadCount + (gave ? 1 : -1)) };
     }));
     // Cloud: deterministic per-user doc = one Ashirvad each, toggle by create/delete.
+    // AUDIT FIX #1: also sync ashirvadCount via ±1 (rules permit exactly ±1 on that field alone).
     if (navigator.onLine) {
       try {
         if (gave) await setDoc(doc(db, 'sangamPosts', postId, 'ashirvad', uid), { uid, at: serverTimestamp() });
         else await deleteDoc(doc(db, 'sangamPosts', postId, 'ashirvad', uid));
+        await updateDoc(doc(db, 'sangamPosts', postId), { ashirvadCount: increment(gave ? 1 : -1) });
       } catch { /* stays local */ }
     }
   }, []);
@@ -316,7 +328,15 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       const bumped = prev.map((p) => (p.id === post.id ? { ...p, shareCount: p.shareCount + 1 } : p));
       return [shared, ...bumped].slice(0, 120);
     });
-    await pushDoc('sangamPosts', shared.id, shared);
+    // AUDIT FIX #1: route through the whitelist-exact serializer (raw `shared`
+    // carries id/localOnly/ashirvadBy which the rules reject).
+    await pushDoc('sangamPosts', shared.id, toCloudPost(shared as unknown as Record<string, unknown>));
+    // Sync the shareCount bump to the cloud (best-effort; rules permit exactly ±1).
+    if (navigator.onLine) {
+      try {
+        await updateDoc(doc(db, 'sangamPosts', post.id), { shareCount: increment(1) });
+      } catch { /* stays local */ }
+    }
   }, [pushDoc]);
 
   const followTarget = useCallback(async (followerUid: string, targetType: 'org' | 'purohit' | 'jyotish', targetId: string, targetName: string) => {
@@ -324,7 +344,8 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       id: `${followerUid}_${targetType}_${targetId}`, followerUid, targetType, targetId, targetName, createdAt: now(),
     };
     setFollows((prev) => (prev.some((x) => x.id === f.id) ? prev : [...prev, f]));
-    await pushDoc('sangamFollows', f.id, f);
+    // AUDIT FIX #1: raw `f` carries `id` which the sangamFollows whitelist rejects.
+    await pushDoc('sangamFollows', f.id, toCloudFollow(f));
   }, [pushDoc]);
 
   const unfollowTarget = useCallback(async (followId: string) => {
@@ -353,7 +374,8 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       creatorUid: uid, creatorName: name, memberCount: 1, members: [uid], createdAt: now(), localOnly: true,
     };
     setCircles((prev) => [c, ...prev]);
-    const ok = await pushDoc('sangamCircles', c.id, { ...c, members: [] });
+    // AUDIT FIX #1: raw circle carries id/members/localOnly which the whitelist rejects.
+    const ok = await pushDoc('sangamCircles', c.id, toCloudCircle(c));
     if (ok) setCircles((prev) => prev.map((x) => (x.id === c.id ? { ...x, localOnly: false } : x)));
     return c;
   }, [pushDoc]);
@@ -377,7 +399,8 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
   const createEvent = useCallback(async (author: AuthorInfo, e: Omit<SangamEvent, 'id' | 'creatorUid' | 'creatorName' | 'rsvpCount' | 'createdAt'>) => {
     const ev: SangamEvent = { ...e, id: rid('event'), creatorUid: author.uid, creatorName: author.name, rsvpCount: 0, rsvps: [], createdAt: now(), localOnly: true };
     setEvents((prev) => [...prev, ev].sort((a, b) => a.startsAt - b.startsAt));
-    const ok = await pushDoc('sangamEvents', ev.id, { ...ev, rsvps: [] });
+    // AUDIT FIX #1: raw event carries id/rsvps/localOnly which the whitelist rejects.
+    const ok = await pushDoc('sangamEvents', ev.id, toCloudEvent(ev));
     if (ok) setEvents((prev) => prev.map((x) => (x.id === ev.id ? { ...x, localOnly: false } : x)));
     return ev;
   }, [pushDoc]);
@@ -402,7 +425,8 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     };
     setReports((prev) => [r, ...prev]);
     setPosts((prev) => prev.map((p) => (targetType === 'post' && p.id === targetId ? { ...p, status: 'reported' } : p)));
-    await pushDoc('sangamReports', r.id, r);
+    // AUDIT FIX #1: raw `r` carries `id` (+ possibly undefined `details`) which the whitelist rejects.
+    await pushDoc('sangamReports', r.id, toCloudReport(r));
   }, [pushDoc]);
 
   const myReports = useCallback((uid: string) => reports.filter((r) => r.reporterUid === uid), [reports]);

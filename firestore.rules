@@ -2265,7 +2265,19 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
           && request.resource.data.get('commentCount', -1) >= 0
           && (request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) + 1
-              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1));
+              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1))
+        // Audit Fix #1: same ±1 pattern for ashirvadCount and shareCount —
+        // any signed-in user may nudge exactly ±1 (never below 0), nothing else.
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ashirvadCount'])
+          && request.resource.data.get('ashirvadCount', -1) >= 0
+          && (request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) + 1
+              || request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) - 1))
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
+          && request.resource.data.get('shareCount', -1) >= 0
+          && (request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) + 1
+              || request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) - 1));
       allow delete: if isSuperAdmin();
     }
 

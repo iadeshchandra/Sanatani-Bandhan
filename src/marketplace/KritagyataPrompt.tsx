@@ -51,7 +51,9 @@ export const KritagyataPrompt: React.FC<Props> = ({ order, onDone }) => {
     try {
       const id = rid('post');
       const fields = gratitudePost({ draft, createdAt: Date.now() });
-      await setDoc(doc(db, 'sangamPosts', id), { ...fields, id });
+      // AUDIT FIX #1: `fields` is already whitelist-exact — spreading `id` in
+      // caused silent rules rejection (id is not whitelisted).
+      await setDoc(doc(db, 'sangamPosts', id), fields);
       setShared(true);
     } catch {
       /* best-effort — gratitude must never block */

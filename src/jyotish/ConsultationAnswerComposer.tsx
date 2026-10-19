@@ -45,6 +45,10 @@ export const ConsultationAnswerComposer: React.FC<{ consultationId: string }> = 
     authorUid: profile.uid,
     authorName: profile.displayName,
     authorSanId: profile.id,
+    // AUDIT FIX #1: rules `sangamAuthorTierOk()` requires jyotish posts to carry
+    // the jyotish profile id + matching verificationTier, else silent rejection.
+    authorRoleId: profile.id,
+    authorTier: profile.verificationTier,
   };
   const violations = validateConsultationAnswer(draft);
   const canPublish = consented && violations.length === 0 && !busy && !shared;
@@ -55,7 +59,9 @@ export const ConsultationAnswerComposer: React.FC<{ consultationId: string }> = 
     try {
       const id = rid('post');
       const fields = consultationAnswerPost({ draft, createdAt: Date.now() });
-      await setDoc(doc(db, 'sangamPosts', id), { ...fields, id });
+      // AUDIT FIX #1: `fields` is already whitelist-exact — spreading `id` in
+      // caused silent rules rejection (id is not whitelisted).
+      await setDoc(doc(db, 'sangamPosts', id), fields);
       setShared(true);
       showToast('Your wisdom is now public — framed anonymously. 🙏', 'success');
     } catch {
