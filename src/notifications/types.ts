@@ -73,7 +73,7 @@ export interface NotifyEvent {
 }
 
 /** Where the item was/will be delivered. */
-export type DeliveryRoute = 'push' | 'inapp' | 'suchana' | 'persistent';
+export type DeliveryRoute = 'push' | 'inapp' | 'persistent';
 
 /**
  * What the priority engine decided for one event — the single source of truth
@@ -84,8 +84,6 @@ export interface RoutingDecision {
   ping: boolean;
   /** Persist to the in-app notification center (Firestore). */
   inApp: boolean;
-  /** Emit into the Suchana feed (gentle items only; never duplicated). */
-  toSuchana: boolean;
   /** Critical banner stays on screen until acknowledged. */
   persistent: boolean;
   /**

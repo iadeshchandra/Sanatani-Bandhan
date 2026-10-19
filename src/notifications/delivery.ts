@@ -1,7 +1,7 @@
 /**
  * notifications/delivery.ts — where a decided notification actually goes.
  * ========================================================================
- * Three rails, one router:
+ * Two rails, one router:
  *
  *   1. IN-APP CENTER — Firestore `notifications/{uid}/items/{id}`. Always
  *      written (except nothing — even silent lands here). This is the
@@ -17,11 +17,13 @@
  *      The payload is already shaped the way FCM expects it, so the server
  *      side is a thin forwarder, not a redesign.
  *
- *   3. SUCHANA FEED — Firestore `notifications/{uid}/suchanaItems/{id}` in
- *      the exact `SuchanaItem` shape from lib/suchanaFeed.ts (source
- *      'module', severity 'nudge'). Gentle items join the calm stream; the
- *      Suchana UI (Phase 3) merges them with mergeSuchana(). We emit here
- *      instead of duplicating Suchana's own intelligence pipeline.
+ * REMOVED (2026-10-19): the third rail — SUCHANA FEED
+ * (`notifications/{uid}/suchanaItems/{id}`) — was written on every gentle
+ * emit but never read by any UI. The actual Suchana feed (useSuchana) is
+ * pure local computation (panjika + app intelligence), and gentle
+ * notifications now surface in the "From your sangha" inbox with read
+ * states and deep-links. Wiring the dead rail would have duplicated every
+ * item in two places. Deleted honestly instead.
  *
  * Critical items additionally get `persistentUntilAck: true` on the in-app
  * doc — Phase 3 UI renders the banner that stays until `acknowledge()` is
@@ -37,18 +39,12 @@ import type {
   RoutingDecision,
   TriText,
 } from './types';
-import type { SuchanaItem } from '../lib/suchanaFeed';
-
-const VIEW_LABEL: TriText = { en: 'View', bn: 'দেখুন', hi: 'देखें' };
 
 function itemsCol(uid: string) {
   return collection(db, 'notifications', uid, 'items');
 }
 function pushCol(uid: string) {
   return collection(db, 'notifications', uid, 'pushRequests');
-}
-function suchanaCol(uid: string) {
-  return collection(db, 'notifications', uid, 'suchanaItems');
 }
 function prefsDoc(uid: string) {
   return doc(db, 'notifications', uid, 'prefs');
@@ -85,7 +81,6 @@ export function toFirestoreDoc(item: NotificationItem): Record<string, unknown> 
     decision: {
       ping: item.decision.ping,
       inApp: item.decision.inApp,
-      toSuchana: item.decision.toSuchana,
       persistent: item.decision.persistent,
       holdUntil: item.decision.holdUntil,
       holdReason: item.decision.holdReason,
@@ -184,29 +179,6 @@ export async function writePushRequest(uid: string, item: NotificationItem): Pro
 }
 
 // ---------------------------------------------------------------------------
-// 3. Suchana feed hook
-// ---------------------------------------------------------------------------
-
-export function buildSuchanaItem(item: NotificationItem): SuchanaItem {
-  return {
-    id: item.id,
-    source: 'module',
-    severity: item.priority === 'important' ? 'attention' : 'nudge',
-    roles: ['all'],
-    title: { en: item.title.en, bn: item.title.bn, hi: item.title.hi },
-    message: { en: item.body.en, bn: item.body.bn, hi: item.body.hi },
-    actionLabel: { ...VIEW_LABEL },
-    actionRoute: item.deepLink ?? '',
-    date: null,
-    dedupeKey: `notify:${item.dedupeKey}`,
-  };
-}
-
-export async function writeSuchanaHook(uid: string, item: NotificationItem): Promise<void> {
-  await setDoc(doc(suchanaCol(uid), item.id), buildSuchanaItem(item));
-}
-
-// ---------------------------------------------------------------------------
 // The router
 // ---------------------------------------------------------------------------
 
@@ -237,13 +209,6 @@ export async function deliver(input: DeliverInput): Promise<{ ok: boolean; error
       await writePushRequest(uid, item);
     } catch (e) {
       errors.push(`push: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-  if (decision.toSuchana) {
-    try {
-      await writeSuchanaHook(uid, item);
-    } catch (e) {
-      errors.push(`suchana: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 

@@ -2701,14 +2701,6 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
-      // --- Suchana feed hook (gentle items; Phase 3 UI mer
-      match /suchanaItems/{suchanaId} {
-        allow read: if isLoggedIn() && request.auth.uid == uid;
-        allow create: if isLoggedIn() && request.auth.uid == uid;
-        allow update: if isLoggedIn() && request.auth.uid == uid;
-        allow delete: if false;
-      }
-
       // --- Owner-only preferences ------------------------
       match /prefs {
         allow read, write: if isLoggedIn() && request.auth.uid == uid;

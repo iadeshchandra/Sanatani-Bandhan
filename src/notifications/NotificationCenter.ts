@@ -49,7 +49,6 @@ import {
   updateInAppItem,
   writeInAppItem,
   writePushRequest,
-  writeSuchanaHook,
   writePrefsDoc,
 } from './delivery';
 import { createOutbox, backoffMs, type OutboxStore } from './outbox';
@@ -254,7 +253,6 @@ class NotificationCenter {
     const routes: NotificationItem['routes'] = [];
     if (decision.inApp) routes.push('inapp');
     if (decision.ping || decision.holdUntil !== null) routes.push('push');
-    if (decision.toSuchana) routes.push('suchana');
     if (decision.persistent) routes.push('persistent');
     return {
       ...event,

@@ -8,7 +8,7 @@
  *   critical  — nothing may delay it. Not quiet hours, not DND, not 'off'.
  *   important — promptly, unless the house is sleeping (quiet hours) or the
  *               devotee asked for stillness (DND): then held, never dropped.
- *   gentle    — batched into digests and the Suchana feed. No pings from a
+ *   gentle    — batched into digests and the in-app center. No pings from a
  *               stale offline queue.
  *   silent    — written to the in-app center and nowhere else.
  */
@@ -58,7 +58,6 @@ export function decideRouting(
     return {
       ping: true,
       inApp: true,
-      toSuchana: false,
       persistent: true,
       holdUntil: null,
       holdReason: null,
@@ -71,7 +70,6 @@ export function decideRouting(
     return {
       ping: false,
       inApp: true,
-      toSuchana: false,
       persistent: false,
       holdUntil: null,
       holdReason: null,
@@ -82,14 +80,11 @@ export function decideRouting(
 
   if (event.priority === 'gentle') {
     // Gentle never pings — that is what makes it gentle. It joins the
-    // digest and the Suchana stream, on the devotee's own time. The
-    // category 'instant' policy only accelerates *important* events;
-    // 'off' still suppresses the Suchana hook for this kind.
-    const allowed = policyAllowsPing(event.kind, prefs);
+    // digest and the in-app center, on the devotee's own time. The
+    // category 'instant' policy only accelerates *important* events.
     return {
       ping: false,
       inApp: true,
-      toSuchana: allowed,
       persistent: false,
       holdUntil: null,
       holdReason: null,
@@ -104,7 +99,6 @@ export function decideRouting(
     return {
       ping: false,
       inApp: true,
-      toSuchana: false,
       persistent: false,
       holdUntil: null,
       holdReason: null,
@@ -117,7 +111,6 @@ export function decideRouting(
     return {
       ping: false,
       inApp: true,
-      toSuchana: false,
       persistent: false,
       holdUntil,
       holdReason: quiet ? 'quiet' : 'dnd',
@@ -128,7 +121,6 @@ export function decideRouting(
   return {
     ping: true,
     inApp: true,
-    toSuchana: false,
     persistent: false,
     holdUntil: null,
     holdReason: null,
@@ -199,7 +191,7 @@ export type ReplayVerdict = 'replay' | 'digest' | 'drop';
  * What to do with one offline-queued event when connectivity returns:
  *   drop   — expired (expiresAt passed). Gone quietly.
  *   digest — gentle and queued > 6h ago. Goes straight to the digest and the
- *            Suchana feed; it NEVER pings. A stale nudge must not buzz.
+ *            in-app center; it NEVER pings. A stale nudge must not buzz.
  *   replay — everything else goes through the normal engine again
  *            (critical still breaks through, even if old).
  */
@@ -209,12 +201,11 @@ export function classifyReplay(item: QueuedEvent, now: number): ReplayVerdict {
   return 'replay';
 }
 
-/** Digest-forced routing: in-app + Suchana, never a ping. */
+/** Digest-forced routing: in-app only, never a ping. */
 export function digestOnlyDecision(window: 'morning' | 'evening' | null): RoutingDecision {
   return {
     ping: false,
     inApp: true,
-    toSuchana: true,
     persistent: false,
     holdUntil: null,
     holdReason: null,

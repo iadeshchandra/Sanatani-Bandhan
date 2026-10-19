@@ -155,11 +155,10 @@ describe('priority engine', () => {
     expect(d.holdUntil).toBeNull();
   });
 
-  it('gentle is a digest candidate: no ping, feeds Suchana', () => {
+  it('gentle is a digest candidate: no ping, in-app only', () => {
     const d = decideRouting(baseEvent({ priority: 'gentle' }), prefs(), at(12, 0));
     expect(d.ping).toBe(false);
     expect(d.digestCandidate).toBe(true);
-    expect(d.toSuchana).toBe(true);
     expect(d.inApp).toBe(true);
   });
 
@@ -173,11 +172,10 @@ describe('priority engine', () => {
     expect(d.digestCandidate).toBe(true);
   });
 
-  it('silent is in-app only: no ping, no Suchana, no digest', () => {
+  it('silent is in-app only: no ping, no digest', () => {
     const d = decideRouting(baseEvent({ priority: 'silent' }), prefs(), at(12, 0));
     expect(d.ping).toBe(false);
     expect(d.inApp).toBe(true);
-    expect(d.toSuchana).toBe(false);
     expect(d.digestCandidate).toBe(false);
     expect(d.persistent).toBe(false);
   });
@@ -311,7 +309,6 @@ describe('offline queue replay', () => {
     expect(v).toBe('digest');
     const d = digestOnlyDecision('morning');
     expect(d.ping).toBe(false);
-    expect(d.toSuchana).toBe(true);
     expect(d.inApp).toBe(true);
   });
 

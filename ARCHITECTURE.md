@@ -169,6 +169,8 @@ Event bus (`NotificationCenter.ts`): 4 priority tiers (**CRITICAL breaks quiet h
 
 **Solo inbox + deep-link repair (Audit Fix #5, 2026-10-19):** the Suchana tab badge counted `notifications/{uid}/items` but the solo shell had no inbox (emit-only). `SuchanaPage` now renders **"🪔 From your sangha"** — tappable cards fed by `NotificationContext`, mark-read on tap, "mark all read". New **`/app/chat` route** (`ChatRoute.tsx`): renders the Messages overlay, `?with=<chatId>` opens straight into a thread — fixes DevoteeProfile's stranded "Message" button. **Deep-link audit:** every emitted link now resolves to a real route — `/chat/*` → `/app/chat?with=*`, `/wallet` → `/app/home/wallet`, `/sangam` → `/app/home/sangam`, `/suchana` → `/app/suchana`, `/marketplace/dues` → `/app/home/marketplace`, `/org/:id/darshan` → `/org/:id`; dead `/safety/*` links removed (GlobalSOSListener renders live SOS UI). Pinned by `deepLinks.test.ts` (19 tests).
 
+**Dead suchanaItems rail removed (Queued #9, 2026-10-19):** `notifications/{uid}/suchanaItems` was written on every gentle emit but **never read by any UI** — the real Suchana feed (`useSuchana`) is pure local computation (panjika + app intelligence), and gentle notifications surface in the "From your sangha" inbox. Wiring it would have duplicated every item. Deleted honestly: `toSuchana` removed from `RoutingDecision`, `DeliveryRoute`, engine, delivery router, and the Firestore rules block. Pinned by `suchanaRemoval.test.ts` (8 tests). Halves gentle-notification write volume.
+
 ---
 
 ## 11. i18n — 10 Languages + Regional Native (`src/i18n/`)

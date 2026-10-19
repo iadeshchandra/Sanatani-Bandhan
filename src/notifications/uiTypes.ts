@@ -234,7 +234,6 @@ function mockItem(
     decision: {
       ping: false,
       inApp: true,
-      toSuchana: false,
       persistent: false,
       holdUntil: null,
       holdReason: null,
@@ -371,7 +370,7 @@ export function mockCenterItems(): NotificationItem[] {
       },
       createdAt: NOW - 5 * 60 * MIN,
       decision: {
-        ping: false, inApp: true, toSuchana: true, persistent: false,
+        ping: false, inApp: true, persistent: false,
         holdUntil: null, holdReason: null, digestCandidate: true, digestWindow: 'morning',
       },
     }),
