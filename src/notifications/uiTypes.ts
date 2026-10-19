@@ -264,7 +264,7 @@ export function mockCenterItems(): NotificationItem[] {
       },
       createdAt: NOW - 4 * MIN,
       routes: ['inapp', 'push', 'persistent'],
-      deepLink: '/crisis/command',
+      deepLink: '/app/suchana',
     }),
     mockItem({
       id: 'm2',
@@ -279,7 +279,7 @@ export function mockCenterItems(): NotificationItem[] {
       },
       createdAt: NOW - 12 * MIN,
       payload: { amount: '1500', currency: 'BDT' },
-      deepLink: '/chat/thread/chat-rahim',
+      deepLink: '/app/chat?with=chat-rahim',
     }),
     mockItem({
       id: 'm3',
@@ -293,7 +293,7 @@ export function mockCenterItems(): NotificationItem[] {
         hi: 'रहीम ने "मंदिर दर्शन — रिक्शा किराया" के लिए ৳800 माँगे हैं।',
       },
       createdAt: NOW - 26 * MIN,
-      deepLink: '/chat/thread/chat-rahim',
+      deepLink: '/app/chat?with=chat-rahim',
     }),
     mockItem({
       id: 'm4',
@@ -307,7 +307,7 @@ export function mockCenterItems(): NotificationItem[] {
         hi: 'मीरा ने "भजन संध्या फूल" के लिए ₹500 माँगे हैं।',
       },
       createdAt: NOW - 47 * MIN,
-      deepLink: '/chat/thread/chat-meera',
+      deepLink: '/app/chat?with=chat-meera',
     }),
     mockItem({
       id: 'm5',
@@ -321,7 +321,7 @@ export function mockCenterItems(): NotificationItem[] {
         hi: '"प्रसाद की सूची तैयार है — क्या समूह के साथ साझा करूँ?"',
       },
       createdAt: NOW - 63 * MIN,
-      deepLink: '/chat/thread/chat-meera',
+      deepLink: '/app/chat?with=chat-meera',
     }),
     mockItem({
       id: 'm6',
@@ -335,7 +335,7 @@ export function mockCenterItems(): NotificationItem[] {
         hi: '"गुरुजी ने रविवार के कीर्तन के समय के बारे में पूछा है।"',
       },
       createdAt: NOW - 71 * MIN,
-      deepLink: '/chat/thread/chat-meera',
+      deepLink: '/app/chat?with=chat-meera',
     }),
     mockItem({
       id: 'm7',
@@ -353,7 +353,7 @@ export function mockCenterItems(): NotificationItem[] {
         hi: 'ट्रस्टियों से मंदिर कार्यालय में दीवाली वॉर-रूम में शामिल होने का अनुरोध है।',
       },
       createdAt: NOW - 3 * 60 * MIN,
-      deepLink: '/org/announcements/diwali-war-room',
+      deepLink: '/org/org-kashi',
     }),
     mockItem({
       id: 'm8',
@@ -391,7 +391,7 @@ export function mockCenterItems(): NotificationItem[] {
       },
       createdAt: NOW - 8 * 60 * MIN,
       read: true,
-      deepLink: '/wallet',
+      deepLink: '/app/home/wallet',
     }),
     mockItem({
       id: 'm10',

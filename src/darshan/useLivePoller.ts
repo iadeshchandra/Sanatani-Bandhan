@@ -64,7 +64,7 @@ export function useLivePoller({
             videoId: outcome.status.videoId,
             startedAt: outcome.status.startedAt,
             lang,
-            deepLink: `/org/${orgId}/darshan`,
+            deepLink: `/org/${orgId}`,
           });
         }
       } catch {

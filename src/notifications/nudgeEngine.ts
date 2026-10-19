@@ -301,7 +301,7 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
       priority: 'gentle',
       title: t(copy.title, lang),
       body: t(copy.body, lang),
-      action: { label: ACTION_COPY.money_reminder, deepLink: `/wallet/requests/${req.id}` },
+      action: { label: ACTION_COPY.money_reminder, deepLink: '/app/home/wallet' },
       dismissable: true,
     });
     store.markShown(key, now.getTime());
@@ -323,7 +323,7 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
         priority: 'gentle',
         title: t(copy.title, lang),
         body: t(copy.body, lang),
-        action: { label: ACTION_COPY.digest_waiting, deepLink: '/suchana' },
+        action: { label: ACTION_COPY.digest_waiting, deepLink: '/app/suchana' },
         dismissable: true,
       });
       store.markShown(key, now.getTime());

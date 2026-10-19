@@ -103,7 +103,7 @@ export function notifyChatMessage(recipientUid: string, m: ChatNotifyInput): Pro
       actorUid: m.senderUid,
       actorName: m.senderName,
       actorPhoto: m.senderPhoto,
-      deepLink: `/chat/${m.chatId}`,
+      deepLink: `/app/chat?with=${m.chatId}`,
       payload: { chatId: m.chatId, messageId: m.messageId, messageKind: m.kind },
     },
   );
@@ -125,7 +125,7 @@ export interface MoneyNotifyInput {
 }
 
 const p2pLink = (chatId?: string, requestId?: string) =>
-  chatId ? `/chat/${chatId}${requestId ? `?request=${requestId}` : ''}` : '/chat';
+  chatId ? `/app/chat?with=${chatId}` : '/app/chat';
 
 /** New request → IMPORTANT to the receiver (payee). */
 export function notifyMoneyRequestReceived(recipientUid: string, m: MoneyNotifyInput): Promise<EmitResult> {
@@ -222,7 +222,6 @@ export function notifySOSSent(recipientUid: string, eventId: string): Promise<Em
   return send(
     recipientUid,
     base('sos', 'critical', 'alertSent', {}, `sos:${eventId}:sent`, {
-      deepLink: `/safety/sos/${eventId}`,
       payload: { eventId },
     }),
   );
@@ -242,7 +241,6 @@ export function notifySOSAlert(recipientUid: string, s: SosAlertInput): Promise<
       {
         actorUid: s.senderUid,
         actorName: s.senderName,
-        deepLink: `/safety/sos/${s.eventId}`,
         payload: { eventId: s.eventId, situation: s.situation },
       },
     ),
@@ -256,7 +254,8 @@ export function notifySOSAcknowledged(recipientUid: string, s: SosAlertInput & {
     base('sos', 'critical', 'ackReceived', { name: s.responderName }, `sos:${s.eventId}:ack:${s.responderUid}`, {
       actorUid: s.responderUid,
       actorName: s.responderName,
-      deepLink: `/safety/sos/${s.eventId}`,
+      // AUDIT FIX #5: no deepLink — /safety/sos/* was a dead route.
+      // GlobalSOSListener renders the live responder UI in real time.
       payload: { eventId: s.eventId },
     }),
   );
@@ -269,7 +268,6 @@ export function notifySOSResolved(recipientUid: string, s: SosAlertInput): Promi
     base('sos', 'important', 'resolved', {}, `sos:${s.eventId}:resolved`, {
       actorUid: s.senderUid,
       actorName: s.senderName,
-      deepLink: `/safety`,
       payload: { eventId: s.eventId },
     }),
   );
@@ -284,7 +282,7 @@ export function notifyTopupApproved(recipientUid: string, amount: string, claimI
   return send(
     recipientUid,
     base('wallet', 'important', 'topupCredited', { amount }, `topup:${claimId}:approved`, {
-      deepLink: '/wallet',
+      deepLink: '/app/home/wallet',
       payload: { claimId },
     }),
   );
@@ -295,7 +293,7 @@ export function notifyTopupRejected(recipientUid: string, amount: string, claimI
   return send(
     recipientUid,
     base('wallet', 'important', 'topupRejected', { amount }, `topup:${claimId}:rejected`, {
-      deepLink: '/wallet',
+      deepLink: '/app/home/wallet',
       payload: { claimId },
     }),
   );
@@ -306,7 +304,7 @@ export function notifyPayoutReceived(recipientUid: string, amount: string, order
   return send(
     recipientUid,
     base('wallet', 'gentle', 'payoutReceived', { amount }, `payout:${orderId}`, {
-      deepLink: '/wallet',
+      deepLink: '/app/home/wallet',
       payload: { orderId },
     }),
   );
@@ -317,7 +315,7 @@ export function notifyCommissionDue(recipientUid: string, amount: string, orderI
   return send(
     recipientUid,
     base('wallet', 'important', 'commissionDue', { amount }, `commissiondue:${orderId}:${dayKey}`, {
-      deepLink: '/marketplace/dues',
+      deepLink: '/app/home/marketplace',
       payload: { orderId },
     }),
   );
@@ -328,7 +326,7 @@ export function notifyLowBalance(recipientUid: string, amount: string, dayKey: s
   return send(
     recipientUid,
     base('wallet', 'important', 'lowBalance', { amount }, `lowbalance:${dayKey}`, {
-      deepLink: '/wallet',
+      deepLink: '/app/home/wallet',
     }),
   );
 }
@@ -377,7 +375,7 @@ export function notifySocialAshirvad(recipientUid: string, s: SocialSummary): Pr
   const event = base('social', 'gentle', many ? 'ashirvadMany' : 'ashirvad', params, s.dedupeKey, {
     actorUid: s.actors[0]?.uid,
     actorName: s.actors[0]?.name,
-    deepLink: '/sangam',
+    deepLink: '/app/home/sangam',
     payload: { postId: s.targetId, count: s.actors.length },
   });
   if (many) {
@@ -412,7 +410,7 @@ export function notifySocialComment(recipientUid: string, c: SocialCommentInput)
       {
         actorUid: c.authorUid,
         actorName: c.authorName,
-        deepLink: '/sangam',
+        deepLink: '/app/home/sangam',
         payload: { postId: c.postId, commentId: c.commentId },
       },
     ),
@@ -448,7 +446,7 @@ export function notifySocialRsvp(recipientUid: string, s: SocialRsvpInput): Prom
     {
       actorUid: s.actors[0]?.uid,
       actorName: s.actors[0]?.name,
-      deepLink: '/sangam',
+      deepLink: '/app/home/sangam',
       payload: { eventId: s.targetId, count: s.actors.length },
     },
   );

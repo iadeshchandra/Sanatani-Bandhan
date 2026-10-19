@@ -28,7 +28,8 @@ The personal home. Mobile bottom nav / desktop sidebar: **Home · Orgs · Suchan
 
 - `SoloWorkspaceShell.tsx` — routes solo sessions by RBAC priority.
 - `HomeTab.tsx` — the solo dashboard with sub-tabs (sadhana, panchang, panjika, jyotish, marketplace, wallet, samskara, profile).
-- `SuchanaPage.tsx` / `AjkerSuchana.tsx` — the guide layer (notifications rendered as *suchana*, warm blessings not badges).
+- `SuchanaPage.tsx` / `AjkerSuchana.tsx` — the guide layer (notifications rendered as *suchana*, warm blessings not badges). **"🪔 From your sangha"** inbox section renders `notifications/{uid}/items` (Audit Fix #5) — the badge finally has an inbox.
+- `ChatRoute.tsx` — `/app/chat` route rendering the Messages overlay; `?with=<chatId>` deep-links straight into a thread (Audit Fix #5).
 - `ExpressDanaSheet.tsx` — dana flow (presets, Shradhā slider, 80G receipts).
 - `LanguageRegionSettings.tsx`, `NativeWelcomeSheet` — language + region ("kovil vs mandir, Deepavali vs Diwali, user choice always winning").
 - Solo identity: `SAN-XXXXXX` universal ID (`src/solo/soloSession.ts`).
@@ -156,6 +157,8 @@ Multi-tenant workspaces (`workspaces/{workspaceId}`, `workspaceMembers/{memberId
 Event bus (`NotificationCenter.ts`): 4 priority tiers (**CRITICAL breaks quiet hours**); quiet hours 05:00–07:00 default; per-user `notifications/{uid}/items/{id}`; offline IndexedDB outbox. FCM server consumer needs Blaze (documented, not built). Warm copy in `warmCopy.ts` — blessings, not badges.
 
 **Social notifications (Step 6, 2026-10-19):** self-listen watcher `useSocialNotify` (mounted in `NotificationWiring`) observes shared data and emits to self — Ashirvads on my posts (batched 90s via `SocialBatcher`: "🪔 Meera and 3 others sent Ashirvad"), comments on my posts (individual), new followers (generic, count-based), RSVPs to my events (batched). **All GENTLE: never pings, never breaks quiet hours.** New `social` NotifyKind. Rules: never self-notify, never notify blocked/muted actors, initial snapshots are baselines. Zero new collections, zero rules changes.
+
+**Solo inbox + deep-link repair (Audit Fix #5, 2026-10-19):** the Suchana tab badge counted `notifications/{uid}/items` but the solo shell had no inbox (emit-only). `SuchanaPage` now renders **"🪔 From your sangha"** — tappable cards fed by `NotificationContext`, mark-read on tap, "mark all read". New **`/app/chat` route** (`ChatRoute.tsx`): renders the Messages overlay, `?with=<chatId>` opens straight into a thread — fixes DevoteeProfile's stranded "Message" button. **Deep-link audit:** every emitted link now resolves to a real route — `/chat/*` → `/app/chat?with=*`, `/wallet` → `/app/home/wallet`, `/sangam` → `/app/home/sangam`, `/suchana` → `/app/suchana`, `/marketplace/dues` → `/app/home/marketplace`, `/org/:id/darshan` → `/org/:id`; dead `/safety/*` links removed (GlobalSOSListener renders live SOS UI). Pinned by `deepLinks.test.ts` (19 tests).
 
 ---
 

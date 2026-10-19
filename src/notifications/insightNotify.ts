@@ -127,7 +127,7 @@ export async function notifyDigest(recipientUid: string, count: number): Promise
       title,
       body,
       dedupeKey: key,
-      deepLink: '/suchana',
+      deepLink: '/app/suchana',
       payload: { count, window: 'morning' },
     });
     if (r.status === 'dropped') return false;

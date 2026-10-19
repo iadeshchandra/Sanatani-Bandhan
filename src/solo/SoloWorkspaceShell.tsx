@@ -11,6 +11,7 @@ import { OrgSwitchRoute } from './OrgSwitchRoute';
 import { JoinOrgScreen } from './JoinOrgScreen';
 import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
+import { ChatRoute } from './ChatRoute';
 import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { FirstRunSequence } from './FirstRunSequence';
@@ -125,6 +126,10 @@ const SoloRouter: React.FC = () => {
         <Route path="/app/org/:orgId" element={<OrgSwitchRoute />} />
         <Route path="/app/suchana" element={<SuchanaPage />} />
         <Route path="/app/profile" element={<ProfileTab />} />
+        {/* AUDIT FIX #5: /app/chat is a real route now — DevoteeProfile's
+            "Message" button and notification deep-links land here instead
+            of a dead route. `?with=<chatId>` opens straight into a thread. */}
+        <Route path="/app/chat" element={<ChatRoute />} />
         {/* Any other path inside a solo session lands on the Solo home —
             e.g. entering the solo session from the demo menu while at `/`. */}
         <Route path="*" element={<Navigate to="/app/home" replace />} />

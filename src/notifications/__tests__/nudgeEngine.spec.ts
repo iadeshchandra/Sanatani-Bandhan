@@ -44,7 +44,7 @@ describe('nudgeEngine — money reminders', () => {
     expect(nudges[0].dismissable).toBe(true);
     expect(nudges[0].body.en).toContain('Rahim');
     expect(nudges[0].body.en).toContain('3 days old');
-    expect(nudges[0].action.deepLink).toBe('/wallet/requests/REQ-1');
+    expect(nudges[0].action.deepLink).toBe('/app/home/wallet');
     // Trilingual: every nudge carries all three languages.
     expect(nudges[0].title.bn).toBeTruthy();
     expect(nudges[0].title.hi).toBeTruthy();
@@ -123,7 +123,7 @@ describe('nudgeEngine — digest waiting', () => {
     expect(nudges).toHaveLength(1);
     expect(nudges[0].kind).toBe('digest_waiting');
     expect(nudges[0].title.en).toContain('3');
-    expect(nudges[0].action.deepLink).toBe('/suchana');
+    expect(nudges[0].action.deepLink).toBe('/app/suchana');
   });
 
   test('does not re-fire within 24h of the last digest nudge', () => {
@@ -180,5 +180,97 @@ describe('nudgeEngine — storage resilience', () => {
       { now: DAYTIME, quietHours: QUIET, store },
     );
     expect(nudges).toHaveLength(1);
+  });
+});
+
+describe('nudgeEngine — tithi-timed giving reminders (Phase 3 devotional layer)', () => {
+  // The signal id is rooted in the observance DATE (like the real
+  // collectUpcomingTithiSignals: `ekadashi-2026-11-04`), so the same
+  // observance keeps one id as daysUntil counts down.
+  const tithi = (t: 'Ekadashi' | 'Purnima' | 'Amavasya', daysUntil: number, dateIso = '2026-10-21') => ({
+    id: `${t.toLowerCase()}-${dateIso}`,
+    tithi: t,
+    daysUntil,
+    dateIso,
+  });
+
+  test('fires gently for Ekadashi 3 days out, trilingual and dismissible', () => {
+    const store = new NudgeStore(memStorage());
+    const nudges = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 3)] },
+      { now: DAYTIME, quietHours: QUIET, store },
+    );
+    expect(nudges).toHaveLength(1);
+    expect(nudges[0].kind).toBe('upcoming_tithi');
+    expect(nudges[0].priority).toBe('gentle');
+    expect(nudges[0].dismissable).toBe(true);
+    expect(nudges[0].body.en).toContain('Ekadashi is in 3 days');
+    expect(nudges[0].body.en).toContain('anna-dana');
+    expect(nudges[0].body.bn).toBeTruthy();
+    expect(nudges[0].body.hi).toBeTruthy();
+    expect(nudges[0].action.deepLink).toBe('/app/home/sadhana');
+  });
+
+  test('stays silent outside the window and on the day itself', () => {
+    const store = new NudgeStore(memStorage());
+    expect(
+      generateNudges(
+        { ...EMPTY, upcomingTithis: [tithi('Purnima', 0)] },
+        { now: DAYTIME, quietHours: QUIET, store },
+      ),
+    ).toHaveLength(0);
+    expect(
+      generateNudges(
+        { ...EMPTY, upcomingTithis: [tithi('Amavasya', 8)] },
+        { now: DAYTIME, quietHours: QUIET, store },
+      ),
+    ).toHaveLength(0);
+  });
+
+  test('waits through quiet hours like every other nudge', () => {
+    const store = new NudgeStore(memStorage());
+    const nudges = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 2)] },
+      { now: NIGHT, quietHours: QUIET, store },
+    );
+    expect(nudges).toHaveLength(0);
+  });
+
+  test('never nags twice for the same observance, even across runs', () => {
+    const storage = memStorage();
+    const first = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 5)] },
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(first).toHaveLength(1);
+    // The next day the same observance (same id) is one day closer —
+    // the ledger must hold, no second nudge.
+    const second = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 4)] },
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(second).toHaveLength(0);
+    // A genuinely different observance (different id) still fires.
+    const other = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Purnima', 6, '2026-10-22')] },
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(other).toHaveLength(1);
+  });
+
+  test('dismissal is permanent for that observance', () => {
+    const storage = memStorage();
+    const store = new NudgeStore(storage);
+    const [nudge] = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Purnima', 6)] },
+      { now: DAYTIME, quietHours: QUIET, store },
+    );
+    expect(nudge).toBeTruthy();
+    dismissNudge(nudge.id, store);
+    const again = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Purnima', 5)] }, // same id — same observance, one day closer
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(again).toHaveLength(0);
   });
 });
