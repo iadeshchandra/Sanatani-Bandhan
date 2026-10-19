@@ -26,6 +26,7 @@ import {
 import { Card, StatusPill, Btn, Empty, SectionTitle, Field, inputCls } from './ui';
 import { ConsultationChat } from './ConsultationChat';
 import { JyotishReferralCard } from '../components/sevaPro/JyotishReferralCard';
+import { DakshinaButton } from './DakshinaSheet';
 
 type MarketTab = 'find' | 'post' | 'mine';
 
@@ -420,15 +421,20 @@ const MyConsultationsDevotee: React.FC = () => {
                   </a>
                 )}
                 {c.status === 'COMPLETED' && (
-                  <Btn
-                    onClick={() => {
-                      if (confirm('Confirm the consultation is complete and release the agreed dakshina? (Workflow record only — pay the jyotishi directly.)')) {
-                        advanceConsultation(c, 'DAKSHINA_RELEASED').catch((e) => showToast(e.message, 'error'));
-                      }
-                    }}
-                  >
-                    Confirm & release dakshina
-                  </Btn>
+                  <>
+                    {/* QUEUED FIX #5: consultation → order bridge — proper rail-1
+                        dakshina order instead of purely informal payment. */}
+                    <DakshinaButton consultation={c} />
+                    <Btn
+                      onClick={() => {
+                        if (confirm('Confirm the consultation is complete and release the agreed dakshina? (Workflow record only — pay the jyotishi directly.)')) {
+                          advanceConsultation(c, 'DAKSHINA_RELEASED').catch((e) => showToast(e.message, 'error'));
+                        }
+                      }}
+                    >
+                      Confirm & release dakshina
+                    </Btn>
+                  </>
                 )}
                 {(c.status === 'COMPLETED' || c.status === 'DAKSHINA_RELEASED') && !hasReviewed(c.id) && (
                   <Btn variant="ghost" onClick={() => setRatingFor(c)}>⭐ Rate</Btn>
