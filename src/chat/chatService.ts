@@ -161,6 +161,9 @@ export async function getOrCreateOrgChat(
     chatDoc(chatId),
     {
       type: 'org',
+      // Explicit orgId for rules scoping (2026-10-19 chat privacy fix).
+      // Legacy docs carry it as participants[1]; the rules handle both.
+      orgId,
       participants: [userUid, orgId],
       participantInfo: { [userUid]: userInfo, [orgId]: { ...orgInfo, orgId } },
       unreadCounts: { [userUid]: 0, [orgId]: 0 },

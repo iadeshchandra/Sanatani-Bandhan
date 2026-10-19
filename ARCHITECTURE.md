@@ -186,7 +186,7 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 | `orgPages/{orgId}` (+ `sevaCards/`) | public read; trustee whitelist writes (`pinnedAarti` included) |
 | `campusMaps/{orgId}`, `zoneReports` | trustee/admin write (org-scoped); public read of published |
 | `tirthaVisits/{uid}/visits`, `tirthaYatras/{uid}/yatras` | owner-only, no sharing |
-| `chats/{chatId}`, `chatGroups/{groupId}` (+`messages/`, `members/`) | member-only; admin-gated writes |
+| `chats/{chatId}`, `chatGroups/{groupId}` (+`messages/`, `members/`) | **Chat privacy law (2026-10-19):** 1:1 chats are participant-only — trustees can NEVER read them. Trustees access ONLY `type:'org'` support threads of their own org (`isChatOrgTrustee` = `isOrgTrustee(chatOrgId)`; explicit `orgId` field, legacy fallback participants[1]). SuperAdmin keeps emergency access. |
 | `sangamPosts/{postId}` (+`ashirvad/`, `volunteers/`) | public read; schema-whitelisted create; report/delete flows |
 | `sangamVideos/{videoId}` | public read; author/admin delete; counter-only updates |
 | `sangamStories/{storyId}` | authenticated read; author-only; lazy expiry (`expiresAt > now`) |

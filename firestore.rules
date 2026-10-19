@@ -104,6 +104,26 @@ service cloud.firestore {
       );
     }
 
+    // Chat privacy (2026-10-19): extract the orgId from an org-type chat doc.
+    // New docs carry an explicit `orgId` field; legacy org chats carry it as
+    // participants[1] (see getOrCreateOrgChat: participants [userUid, orgId]).
+    // Returns '' for anything else — callers MUST check type == 'org' first.
+    function chatOrgId(chatData) {
+      return chatData.get('orgId', '') != '' ? chatData.get('orgId', '') :
+        (chatData.get('participants', null) is list &&
+         chatData.get('participants', []).size() == 2 ?
+         chatData.get('participants', [])[1] : '');
+    }
+
+    // Trustee chat access, scoped (2026-10-19 privacy fix): a trustee may
+    // access ONLY org-type support threads belonging to their own org.
+    // Previously any trustee could read every private 1:1 chat.
+    // SuperAdmin keeps emergency access via the separate isSuperAdmin branch.
+    function isChatOrgTrustee(chatData) {
+      return chatData.get('type', '') == 'org' &&
+        isOrgTrustee(chatOrgId(chatData));
+    }
+
     // Role-grant matrix for invites / member adds. A Trustee may grant
     function grantableRole(orgId, targetRole) {
       return isSuperAdmin() || (
@@ -1257,28 +1277,35 @@ service cloud.firestore {
     }
 
     // Chats â participant-gated.
+    // Chats — 1:1 threads are participant-only. Trustees may access ONLY
+    // org-type support threads of their own org (2026-10-19 privacy fix:
+    // previously any trustee of any org could read every private chat).
     match /chats/{chatId} {
       allow read: if isSuperAdmin() || (isLoggedIn() && (
         (resource == null || (resource.data.get('participants', null) is list && request.auth.uid in resource.data.get('participants', []))) ||
-        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+        isChatOrgTrustee(resource.data)));
       allow create: if isSuperAdmin() || (isLoggedIn() && (
         (request.resource.data.get('participants', null) is list && request.auth.uid in request.resource.data.get('participants', [])) ||
-        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+        (request.resource.data.get('type', '') == 'org' &&
+          request.resource.data.get('participants', null) is list &&
+          request.resource.data.get('participants', []).size() == 2 &&
+          isOrgTrustee(chatOrgId(request.resource.data)))));
       allow update: if isSuperAdmin() || (isLoggedIn() && (
         (resource.data.get('participants', null) is list && request.auth.uid in resource.data.get('participants', []) &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants'])) ||
-        roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+        (isChatOrgTrustee(resource.data) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants', 'type', 'orgId']))));
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() && (
           (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
             request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])) ||
-          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+          isChatOrgTrustee(get(/databases/$(database)/documents/chats/$(chatId)).data)));
         allow create: if isSuperAdmin() || (isLoggedIn() && (
           (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
             request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', []) &&
             request.resource.data.get('senderId', '') == request.auth.uid) ||
-          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])));
+          isChatOrgTrustee(get(/databases/$(database)/documents/chats/$(chatId)).data)));
         allow update, delete: if false;
       }
     }
