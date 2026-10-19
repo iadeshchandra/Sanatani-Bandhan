@@ -22,8 +22,6 @@ import { useToast } from '../../../context/ToastContext';
 import { ProviderPaymentsTab, BypassFlagsTab, BypassRulesTab, ProviderStrikesPanel } from './AdminTabsH';
 import { DuesTab, RiskTab } from './MarketplaceDuesRisk';
 import { CommissionsTab } from './AdminTabsI';
-import { ReferralConfigPanel } from '../../sevaPro/ReferralConfigPanel';
-import { PipelineAnalytics } from '../../sevaPro/PipelineAnalytics';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -307,6 +305,7 @@ export const MarketplaceOrders: React.FC = () => {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<any>(null);
   const [confirm, setConfirm] = useState<any>(null);
+  const [paidNote, setPaidNote] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -316,12 +315,26 @@ export const MarketplaceOrders: React.FC = () => {
   }, [status]);
   useEffect(() => { load(); }, [load]);
 
-  const force = (id: string, s: 'completed' | 'cancelled' | 'refunded') => setConfirm({
-    title: `${s === 'completed' ? 'Force complete' : s === 'cancelled' ? 'Cancel' : 'Refund'} order?`,
-    message: 'This overrides the normal flow and is audit-logged.', confirmText: 'Confirm', isDanger: s !== 'completed',
+  const force = (id: string, s: 'completed' | 'cancelled' | 'refunded' | 'paid', note?: string) => setConfirm({
+    title: `${s === 'completed' ? 'Force complete' : s === 'cancelled' ? 'Cancel' : s === 'refunded' ? 'Refund' : 'Mark paid'} order?`,
+    message: s === 'paid'
+      ? 'Record HOW you verified the payment (TrxID checked, provider confirmed, etc.). This is audit-logged and cannot be empty.'
+      : 'This overrides the normal flow and is audit-logged.',
+    confirmText: 'Confirm', isDanger: s !== 'completed' && s !== 'paid',
+    children: s === 'paid' ? (
+      <input
+        value={paidNote}
+        onChange={(e) => setPaidNote(e.target.value)}
+        placeholder="Payment verification note (required)"
+        maxLength={300}
+        className="w-full mt-2 text-sm bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100"
+      />
+    ) : undefined,
     onConfirm: async () => {
-      const r = await firestoreAdmin.orderForceStatus(id, s);
-      setConfirm(null); setSel(null);
+      const useNote = s === 'paid' ? paidNote : note;
+      if (s === 'paid' && !useNote.trim()) { showToast('A verification note is required.', 'error'); return; }
+      const r = await firestoreAdmin.orderForceStatus(id, s, useNote);
+      setConfirm(null); setSel(null); setPaidNote('');
       if (r.ok) { showToast('Order updated.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
     },
   });
@@ -367,6 +380,9 @@ export const MarketplaceOrders: React.FC = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => force(sel.id, 'completed')} className={btnPrimary}>Force complete</button>
+            {sel.status === 'pending_payment' && (
+              <button type="button" onClick={() => { setPaidNote(''); force(sel.id, 'paid'); }} className={btnPrimary}>Mark paid</button>
+            )}
             <button type="button" onClick={() => force(sel.id, 'cancelled')} className={btnGhost}>Cancel</button>
             <button type="button" onClick={() => force(sel.id, 'refunded')} className={btnGhost}>Refund</button>
             <button type="button" onClick={() => setSel(null)} className={btnGhost}>Close</button>
@@ -606,7 +622,7 @@ export const MarketplaceGigs: React.FC = () => {
 
 /* ------------------------------ Main tab ------------------------------ */
 
-const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Referrals', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
+const MARKETPLACE_SUBTABS = ['Dashboard', 'Commission', 'Revenue', 'Orders', 'Disputes', 'Payouts', 'Dues', 'Risk', 'Providers', 'Gigs', 'Pay Methods', 'Bypass Flags', 'Bypass Rules'];
 
 export const MarketplaceTab: React.FC = () => {
   const [sub, setSub] = useState('Dashboard');
@@ -623,13 +639,6 @@ export const MarketplaceTab: React.FC = () => {
       {sub === 'Risk' && <RiskTab />}
       {sub === 'Providers' && <MarketplaceProviders />}
       {sub === 'Gigs' && <MarketplaceGigs />}
-      {sub === 'Referrals' && (
-        <div className="space-y-4">
-          {/* Seva Pro Phase 4 — remedy→ritual pipeline: config + analytics */}
-          <ReferralConfigPanel />
-          <PipelineAnalytics />
-        </div>
-      )}
       {sub === 'Pay Methods' && <ProviderPaymentsTab />}
       {sub === 'Bypass Flags' && <BypassFlagsTab />}
       {sub === 'Bypass Rules' && <BypassRulesTab />}

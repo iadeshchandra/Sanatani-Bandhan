@@ -13,6 +13,20 @@ export const UPGRADEABLE_TIERS: SubscriptionTier[] = ['STANDARD', 'PREMIUM', 'PU
 export type BillingPeriod = 'monthly' | 'annual';
 export type PayRegionId = 'BD' | 'IN' | 'INTL';
 
+/**
+ * Months of subscription a billing period grants.
+ * ==========================================================================
+ * AUDIT FIX #4 (2026-10-19): `claimApprove` checked `period === 'yearly'`,
+ * but PlanUpgradeFlow writes `BillingPeriod` = 'monthly' | 'annual' — so
+ * annual payers silently received 1-month subscriptions. This is the single
+ * source of truth: 'monthly' → 1, 'annual' → 12, legacy 'yearly' → 12,
+ * anything unrecognized → 1 (conservative — never grant time on bad data).
+ */
+export function subscriptionMonthsForPeriod(period: string | undefined | null): number {
+  if (period === 'annual' || period === 'yearly') return 12;
+  return 1;
+}
+
 /** Resolve the price for a tier + period + region. */
 export function planPrice(tier: SubscriptionTier, period: BillingPeriod, region: string): { amount: number; currency: string; symbol: string } {
   const cfg = PLAN_PRICING[tier];

@@ -287,6 +287,15 @@ const MyBookings: React.FC = () => {
           {(o as any).walletPaid && (
             <p className="text-[10px] font-bold text-sky-700 bg-sky-50 rounded-lg px-2 py-1 mt-2">👛 Paid from wallet — held in escrow</p>
           )}
+          {/* AUDIT FIX #4: rail-1 pending_payment previously showed a dead card
+              with no actions and no explanation. Now the client sees where the
+              order stands. */}
+          {o.status === 'pending_payment' && (o as any).rail === 'rail1' && !(o as any).payWithWallet && (
+            <div className="mt-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2">
+              <p className="text-[11px] font-black text-stone-700">{mkt(L, 'awaitingProviderConfirm')}</p>
+              <p className="text-[10px] text-stone-500 mt-0.5">{mkt(L, 'awaitingProviderConfirmSub')}</p>
+            </div>
+          )}
           {o.status === 'awaiting_commission' && (
             <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-[11px] font-black text-amber-900">⏳ {L === 'en' ? 'Incomplete — seva contribution pending' : L === 'bn' ? 'অসম্পূর্ণ — সেবা অবদান বাকি' : 'अपूर्ण — सेवा योगदान शेष'}</p>

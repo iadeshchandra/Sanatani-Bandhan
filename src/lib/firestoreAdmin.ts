@@ -52,6 +52,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
+import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
 
 /** Canonical platform owner. */
 export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
@@ -446,7 +447,9 @@ async function claimApprove(id: string): Promise<NativeResult> {
   if (claim.status !== 'pending') return { ok: false, error: 'Claim is no longer pending.', code: 'STALE' };
 
   const start = new Date();
-  const end = addMonths(start, claim.period === 'yearly' ? 12 : 1);
+  // AUDIT FIX #4: was `claim.period === 'yearly' ? 12 : 1` — but
+  // PlanUpgradeFlow writes 'annual', so annual payers got 1 month.
+  const end = addMonths(start, subscriptionMonthsForPeriod(claim.period));
   const planId = claim.plan || 'STANDARD';
 
   await updateDoc(ref, { status: 'approved', approvedBy: uid, approvedAt: serverTimestamp() });
@@ -1430,10 +1433,15 @@ async function marketplaceOrders(filters: { status?: string; providerId?: string
   return { ok: true, data: { ok: true, orders } };
 }
 
-async function orderForceStatus(id: string, status: 'completed' | 'cancelled' | 'refunded', note?: string): Promise<NativeResult> {
+async function orderForceStatus(id: string, status: 'completed' | 'cancelled' | 'refunded' | 'paid', note?: string): Promise<NativeResult> {
   const uid = requireOwner();
-  if (!['completed', 'cancelled', 'refunded'].includes(status)) {
+  if (!['completed', 'cancelled', 'refunded', 'paid'].includes(status)) {
     return { ok: false, error: 'Invalid forced status.', code: 'BAD_STATUS' };
+  }
+  // AUDIT FIX #4: 'paid' requires a verification note — never blind.
+  // The note records HOW the owner verified payment (TrxID checked, etc.).
+  if (status === 'paid' && !(note && note.trim())) {
+    return { ok: false, error: 'A payment verification note is required to mark an order paid.', code: 'NOTE_REQUIRED' };
   }
   await updateDoc(doc(db, 'marketplaceOrders', id), {
     status, ownerNote: note || '', resolvedBy: uid,

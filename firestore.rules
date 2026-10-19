@@ -754,6 +754,15 @@ service cloud.firestore {
             && resource.data.get('status', '') == 'pending_payment'
             && request.resource.data.get('status', '') == 'paid'
             && request.resource.data.get('rail2Proof', {}).get('trxId', '') != '')
+          // AUDIT FIX #4 (2026-10-19): Provider (Rail-1): confirm direct
+          // payment received (bKash/Nagad/UPI/cash moved outside the app) --
+          // pending_payment becomes paid. Rail-1 had no paid path at all.
+          || (resource.data.get('providerUid', '') == request.auth.uid
+            && resource.data.get('status', '') == 'pending_payment'
+            && request.resource.data.get('status', '') == 'paid'
+            && resource.data.get('rail', '') == 'rail1'
+            && resource.data.get('payWithWallet', false) == false
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentNote', 'updatedAt']))
           // PHASE 3 â dispute freeze: an order party moves an ACTIVE order to
           || (isLoggedIn()
             && (resource.data.get('providerUid', '') == request.auth.uid

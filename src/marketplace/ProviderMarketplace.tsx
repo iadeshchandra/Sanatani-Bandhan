@@ -5,20 +5,25 @@
  * Subtabs: My Services (gig CRUD) · Orders (accept/complete) · Earnings (payout).
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard, HandCoins } from 'lucide-react';
+import { Plus, Pencil, Power, Star, Wallet, Send, RefreshCw, Package, CreditCard, HandCoins, HeartHandshake } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ProviderPaymentSettings } from './ProviderPaymentSettings';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, contributionNote, type MktLang } from '../lib/marketplaceCopy';
 import {
   listGigs, myGigs, saveGig, setGigActive,
-  myOrdersAsProvider, orderTransition,
+  myOrdersAsProvider, orderTransition, confirmRail1Receipt,
   providerEarningsSummary, requestPayout, listMyPayouts,
   type Gig, type MarketplaceOrder,
 } from '../lib/marketplace';
 import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from '../lib/rail2';
 import { ProviderDues } from './ProviderDues';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
+// Seva Professional Phase 3+4: atomic completion w/ pre-funded commission,
+// earning-wallet coverage banner, provider referral dashboard.
+import { SevaCompletionButton } from '../components/sevaPro/SevaCompletionButton';
+import { WalletCoverageBanner } from '../components/sevaPro/WalletCoverageBanner';
+import { ReferralDashboard } from '../components/sevaPro/ReferralDashboard';
 
 export const GIG_CATEGORIES = ['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'];
 
@@ -130,6 +135,7 @@ const ProviderOrders: React.FC = () => {
   const [working, setWorking] = useState<string | null>(null);
   const [disputeNote, setDisputeNote] = useState('');
   const [disputing, setDisputing] = useState<string | null>(null);
+  const [payNote, setPayNote] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,6 +164,18 @@ const ProviderOrders: React.FC = () => {
     setWorking(null);
   };
 
+  const confirmRail1 = async (o: MarketplaceOrder) => {
+    setWorking(o.id as string);
+    try {
+      await confirmRail1Receipt(o.id as string, payNote[o.id as string] || '');
+      setPayNote((p) => ({ ...p, [o.id as string]: '' }));
+      showToast(mkt(L, 'paymentConfirmedToast'), 'success');
+      load();
+    }
+    catch (e: any) { showToast(e.message, 'error'); }
+    setWorking(null);
+  };
+
   const disputeProof = async (o: MarketplaceOrder) => {
     if (!disputeNote.trim()) { showToast('Explain the issue with the payment.', 'error'); return; }
     setWorking(o.id as string);
@@ -169,12 +187,20 @@ const ProviderOrders: React.FC = () => {
   const nextActions: Record<string, { to: 'accepted' | 'cancelled' | 'in_progress' | 'completed'; label: string }[]> = {
     paid: [{ to: 'accepted', label: 'Accept' }, { to: 'cancelled', label: 'Decline' }],
     accepted: [{ to: 'in_progress', label: 'Start work' }, { to: 'cancelled', label: 'Cancel' }],
-    in_progress: [{ to: 'completed', label: 'Mark complete' }],
+    // in_progress → completed intentionally absent: completion goes through
+    // SevaCompletionButton (Phase 3 atomic batch: order + wallet debit +
+    // platform revenue + counters, commission pre-funded), not the raw
+    // orderTransition used above.
   };
 
   if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
   return (
     <div className="space-y-3">
+      {/* Seva Pro Phase 3: show earning-wallet coverage up front so the
+          provider sees whether the seva contribution is pre-funded before
+          attempting to complete an order. Fail-soft: renders nothing when
+          the wallet is unavailable. */}
+      <WalletCoverageBanner />
       {orders.length === 0 && <Empty text="No orders yet. Share your services to get bookings." />}
       {orders.map((o) => (
         <div key={o.id} className="bg-white rounded-2xl border border-stone-200 p-4">
@@ -191,6 +217,24 @@ const ProviderOrders: React.FC = () => {
             <span className="text-stone-500">{mkt(L, 'sevaContribution')} <b className="text-amber-700">{fmt(o.commissionAmount)}</b></span>
             <span className="text-stone-500">{L === 'en' ? 'You receive' : L === 'bn' ? 'আপনি পান' : 'आपको मिलता है'} <b className="text-emerald-700">{fmt(o.providerNet)}</b></span>
           </div>
+          {/* AUDIT FIX #4: Rail-1 direct payment — provider confirms receipt.
+              Previously these orders sat at pending_payment forever with no
+              action available (the "dead card"). */}
+          {(o as any).rail === 'rail1' && o.status === 'pending_payment' && !(o as any).payWithWallet && (
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-[11px] font-black text-amber-900">{mkt(L, 'confirmPaymentTitle')}</p>
+              <p className="text-[11px] text-amber-800 mt-1">{mkt(L, 'confirmPaymentBody')}</p>
+              <input
+                value={payNote[o.id as string] || ''}
+                onChange={(e) => setPayNote((p) => ({ ...p, [o.id as string]: e.target.value }))}
+                className={inputCls} maxLength={300}
+                placeholder={mkt(L, 'paymentNotePh')}
+              />
+              <button type="button" disabled={working === o.id} onClick={() => confirmRail1(o)} className={`${btnP} w-full mt-2`}>
+                {working === o.id ? '…' : mkt(L, 'confirmPaymentBtn')}
+              </button>
+            </div>
+          )}
           {/* Rail-2: payment proof awaiting confirmation */}
           {(o as any).rail === 'rail2' && o.status === 'paid' && (o as any).rail2Proof && !(o as any).rail2Proof.confirmedAt && (
             <div className="mt-2 bg-sky-50 border border-sky-200 rounded-xl p-3">
@@ -236,6 +280,14 @@ const ProviderOrders: React.FC = () => {
                 <button key={a.to} type="button" disabled={working === o.id} onClick={() => go(o, a.to)}
                   className={`${a.to === 'cancelled' ? btnG : btnP} flex-1`}>{working === o.id ? '…' : a.label}</button>
               ))}
+            </div>
+          )}
+          {/* Seva Pro Phase 3: atomic completion with pre-funded commission.
+              The button checks coverage, confirms, and debits the platform
+              wallet in one batch — it replaces the raw "Mark complete". */}
+          {o.status === 'in_progress' && (
+            <div className="mt-2">
+              <SevaCompletionButton order={o} onCompleted={load} />
             </div>
           )}
         </div>
@@ -324,7 +376,7 @@ const ProviderEarnings: React.FC = () => {
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
-  const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'dues' | 'payments'>('services');
+  const [tab, setTab] = useState<'services' | 'orders' | 'earnings' | 'dues' | 'payments' | 'guidance'>('services');
   return (
     <div className="space-y-3">
       <AgamiSevaCard role={providerType === 'purohit' ? 'purohit' : 'jyotishi'} />
@@ -335,6 +387,7 @@ export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi
           ['earnings', mkt(L, 'dakshinaReceived'), Wallet],
           ['dues', L === 'en' ? 'Dues' : L === 'bn' ? 'বকেয়া' : 'बकाया', HandCoins],
           ['payments', L === 'en' ? 'Payments' : L === 'bn' ? 'পেমেন্ট' : 'भुगतान', CreditCard],
+          ['guidance', L === 'en' ? 'Guidance' : L === 'bn' ? 'নির্দেশনা' : 'मार्गदर्शन', HeartHandshake],
         ] as const).map(([id, label, Icon]) => (
           <button key={id} type="button" onClick={() => setTab(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 whitespace-nowrap ${tab === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>
@@ -347,6 +400,7 @@ export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi
       {tab === 'earnings' && <ProviderEarnings />}
       {tab === 'dues' && <ProviderDues providerType={providerType} />}
       {tab === 'payments' && <ProviderPaymentSettings providerType={providerType} providerName={providerName} />}
+      {tab === 'guidance' && <ReferralDashboard />}
     </div>
   );
 };

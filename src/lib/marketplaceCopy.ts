@@ -58,6 +58,15 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   // Booking trust (spec §4/§8 — at the decision point, never in a help article)
   escrowNote: { en: 'Held securely until your seva is complete', bn: 'সেবা সম্পূর্ণ না হওয়া পর্যন্ত নিরাপদে সংরক্ষিত', hi: 'सेवा पूर्ण होने तक सुरक्षित रखा जाता है' },
 
+  // AUDIT FIX #4 — rail-1 direct payment confirmation
+  confirmPaymentTitle: { en: '💰 Dakshina received?', bn: '💰 দক্ষিণা পেয়েছেন?', hi: '💰 दक्षिणा मिली?' },
+  confirmPaymentBody: { en: 'The yajman paid you directly (bKash / Nagad / UPI / cash). Confirm once the dakshina is in your hands.', bn: 'যজমান সরাসরি আপনাকে দিয়েছেন (বিকাশ / নগদ / UPI / নগদ)। দক্ষিণা হাতে পেলেই নিশ্চিত করুন।', hi: 'यजमान ने आपको सीधे भुगतान किया है (bKash / Nagad / UPI / नकद)। दक्षिणा हाथ में आते ही पुष्टि करें।' },
+  confirmPaymentBtn: { en: '✓ Confirm payment received', bn: '✓ পেমেন্ট পেয়েছি', hi: '✓ भुगतान मिल गया' },
+  paymentNotePh: { en: 'TrxID or note (optional)', bn: 'TrxID বা নোট (ঐচ্ছিক)', hi: 'TrxID या नोट (वैकल्पिक)' },
+  awaitingProviderConfirm: { en: '⏳ Waiting for the provider to confirm your payment…', bn: '⏳ প্রদানকারী আপনার পেমেন্ট নিশ্চিত করার অপেক্ষায়…', hi: '⏳ प्रदाता द्वारा आपके भुगतान की पुष्टि की प्रतीक्षा…' },
+  awaitingProviderConfirmSub: { en: 'You paid directly. Once they confirm receipt, your seva moves forward.', bn: 'আপনি সরাসরি পেমেন্ট করেছেন। তারা প্রাপ্তি নিশ্চিত করলেই আপনার সেবা এগিয়ে যাবে।', hi: 'आपने सीधे भुगतान किया है। उनके प्राप्ति की पुष्टि करते ही आपकी सेवा आगे बढ़ेगी।' },
+  paymentConfirmedToast: { en: 'Payment confirmed. You can start the seva. 🙏', bn: 'পেমেন্ট নিশ্চিত। এবার সেবা শুরু করতে পারেন। 🙏', hi: 'भुगतान की पुष्टि हो गई। अब सेवा आरंभ करें। 🙏' },
+
   // Marketplace empty state (spec §7: acknowledge + bless + guide + action)
   marketEmptyTitle: { en: 'No sevas match — yet.', bn: 'কোনো সেবা মেলেনি — এখনও।', hi: 'कोई सेवा नहीं मिली — अभी।' },
   marketEmptySub: { en: 'Every pandit\u2019s first blessing starts somewhere. Try a different search, or explore a guided journey.', bn: 'প্রতিটি পণ্ডিতের প্রথম আশীর্বাদ কোথাও না কোথাও শুরু হয়। অন্য কিছু খুঁজুন, অথবা একটি নির্দেশিত যাত্রা দেখুন।', hi: 'हर पंडित का पहला आशीर्वाद कहीं न कहीं शुरू होता है। कुछ और खोजें, या निर्देशित यात्रा देखें।' },

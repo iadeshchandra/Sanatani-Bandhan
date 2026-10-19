@@ -19,6 +19,8 @@ import { resolveCommissionRate, computeCommission, duesCreateForOrder } from './
 import { validateRating, nextAvg, canRateStatus } from './gigRatings';
 // Re-export pure rating helpers so UI imports stay on marketplace.ts.
 export { validateRating, nextAvg, canRateStatus };
+import { canConfirmRail1Receipt } from './orderGuards';
+export { canConfirmRail1Receipt };
 
 export interface Gig {
   id?: string;
@@ -273,6 +275,38 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
       await duesCreateForOrder(id);
     } catch { /* non-fatal — owner can backfill from the Risk tab */ }
   }
+}
+
+/**
+ * Pure guard for the rail-1 "confirm payment received" path.
+ * (Moved to orderGuards.ts — kept here as documentation of the contract.
+ * The implementation lives in the pure module so it stays unit-testable.)
+ *
+ * AUDIT FIX #4 (2026-10-19): rail-1 pay-now orders were permanently stuck
+ * at `pending_payment` — no writer moved them to `paid` (wallet and rail-2
+ * proof flows each had their own branch; rail-1 external payments had none).
+ * Returns null when the transition is valid, otherwise a human reason why.
+ */
+
+/**
+ * Provider confirms receipt of a rail-1 direct payment (bKash / Nagad /
+ * UPI / cash — money that moved outside the app). Moves the order
+ * `pending_payment` → `paid` so both sides see a live order instead of a
+ * dead card. The client can dispute if the provider confirms dishonestly.
+ */
+export async function confirmRail1Receipt(orderId: string, note?: string): Promise<void> {
+  const uid = requireUser();
+  const s = await getDoc(doc(db, 'marketplaceOrders', orderId));
+  if (!s.exists()) throw new Error('Order not found.');
+  const o: any = s.data();
+  const blocked = canConfirmRail1Receipt(o, uid);
+  if (blocked) throw new Error(blocked);
+  await updateDoc(doc(db, 'marketplaceOrders', orderId), {
+    status: 'paid',
+    paidAt: serverTimestamp(),
+    ...(note && note.trim() ? { paymentNote: note.trim().slice(0, 300) } : {}),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function openDispute(orderId: string, reason: string, details: string): Promise<string> {
