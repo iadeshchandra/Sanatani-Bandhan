@@ -62,6 +62,7 @@ export const ORG_PUBLIC_FIELDS = [
   'darshanTimings',
   'galleryUrls',
   'upcomingEvents',
+  'autoShareEvents',
   'registrationNo',
   'eightyGRegistered',
   'eightyGURN',

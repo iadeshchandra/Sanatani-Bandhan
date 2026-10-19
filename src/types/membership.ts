@@ -53,7 +53,12 @@ export interface OrgPage {
   /** Public gallery image URLs (Storage `orgGallery/{orgId}/…`). */
   galleryUrls?: string[];
   /** Trustee-published upcoming events (max 10). */
-  upcomingEvents?: { title: string; date: string; time?: string; description?: string }[];
+  upcomingEvents?: { title: string; date: string; time?: string; description?: string; id?: string; sangamEventId?: string }[];
+  /**
+   * When true, newly published org events are shared to Sangam immediately
+   * (trustee opted in; default off — nothing automatic without consent).
+   */
+  autoShareEvents?: boolean;
   /** Trust registration number (public). */
   registrationNo?: string;
   eightyGRegistered?: boolean;

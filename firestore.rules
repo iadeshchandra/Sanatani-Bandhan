@@ -2383,7 +2383,10 @@ service cloud.firestore {
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
             ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt']));
-      allow delete: if isSuperAdmin();
+      // QUEUED FIX #1 (flagged): creators may delete their own events so
+      // trustees can "unshare" an org event bridged to Sangam.
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid);
     }
 
     // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
@@ -2438,7 +2441,7 @@ service cloud.firestore {
           ['orgId', 'name', 'type', 'city', 'state', 'country', 'about',
            'tagline', 'logoUrl', 'coverUrl', 'publicSlug', 'addressLine',
            'pincode', 'phone', 'website', 'darshanTimings', 'galleryUrls',
-           'upcomingEvents', 'registrationNo', 'eightyGRegistered',
+           'upcomingEvents', 'autoShareEvents', 'registrationNo', 'eightyGRegistered',
            'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti', 'updatedAt'])
         && request.resource.data.get('orgId', '') == orgId
       );

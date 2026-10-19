@@ -29,6 +29,8 @@ import {
   ShieldCheck, Receipt,
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
+import { OrgEventManager } from '../org/OrgEventManager';
+import type { OrgEventItem } from '../org/eventBridge';
 import { buildPinnedAarti } from '../sangam/liveAarti';
 import { OrgLivePoller } from '../darshan';
 import { useLanguage } from '../context/LanguageContext';
@@ -66,6 +68,8 @@ export interface OrgPublicPageViewProps {
   aartiPinned: boolean;
   aartiPinBusy: boolean;
   onToggleAartiPin: () => void;
+  /** Trustee event bridge: persist org events + auto-share setting. */
+  onSaveEvents: (events: OrgEventItem[], autoShare: boolean) => Promise<void>;
 }
 
 export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
@@ -80,6 +84,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   aartiPinned,
   aartiPinBusy,
   onToggleAartiPin,
+  onSaveEvents,
 }) => {
   const navigate = useNavigate();
   const { safeTranslate } = useLanguage();
@@ -382,6 +387,16 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
               ))}
             </ul>
           )}
+          {/* Trustee event bridge: manage org events + share to Sangam. */}
+          {isTrustee && (
+            <OrgEventManager
+              orgId={page.orgId}
+              orgName={page.name}
+              events={(page.upcomingEvents || []) as OrgEventItem[]}
+              autoShare={!!page.autoShareEvents}
+              onSave={onSaveEvents}
+            />
+          )}
         </section>
 
         {/* ------------------------------ VISIT ------------------------------ */}
@@ -634,6 +649,19 @@ export const OrgPublicPage: React.FC = () => {
 
   const aartiPinned = !!(page?.pinnedAarti && page.pinnedAarti.enabled);
 
+  /** Trustee event bridge: persist org events + auto-share setting to orgPages. */
+  const handleSaveEvents = async (events: OrgEventItem[], autoShare: boolean) => {
+    if (!page || !isTrustee || !firebaseUser) return;
+    const ref = doc(db, 'orgPages', page.orgId);
+    await updateDoc(ref, {
+      upcomingEvents: events.slice(0, 10),
+      autoShareEvents: autoShare,
+      updatedAt: Date.now(),
+    });
+    const snap = await getDoc(ref);
+    if (snap.exists()) setPage(snap.data() as OrgPageType);
+  };
+
   const handleToggleAartiPin = async () => {
     if (!page || !isTrustee || aartiPinBusy || !firebaseUser) return;
     setAartiPinBusy(true);
@@ -710,6 +738,7 @@ export const OrgPublicPage: React.FC = () => {
         aartiPinned={aartiPinned}
         aartiPinBusy={aartiPinBusy}
         onToggleAartiPin={handleToggleAartiPin}
+        onSaveEvents={handleSaveEvents}
       />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />
