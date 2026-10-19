@@ -3,6 +3,7 @@ import { Vote, Plus, Archive, Timer, CheckCircle2, XCircle, Clock, FileText, Sea
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { TrusteeResolution } from '../../types';
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
@@ -504,7 +505,7 @@ export const PanchayatPollingDesk: React.FC = () => {
       <UpsellModal 
         isOpen={showUpsell}
         onClose={closeUpsell}
-        onUpgrade={() => { window.location.href = '/?action=signup'; }}
+        onUpgrade={() => { openPlanUpgrade(); }}
         module={upsellModule}
       />
     </div>

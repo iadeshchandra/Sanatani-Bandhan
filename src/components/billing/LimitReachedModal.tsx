@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, PartyPopper, ArrowRight, TrendingUp } from 'lucide-react';
 import { UpsellModal } from '../common/UpsellModal';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { METRIC_LABEL, LimitMetric } from '../../lib/planLimits';
 import { LimitModalInfo } from '../../hooks/usePlanLimits';
 
@@ -28,10 +29,11 @@ export const LimitReachedModal: React.FC<Props> = ({ info, onClose }) => {
         isOpen
         onClose={onClose}
         onUpgrade={() => {
-          window.location.href = '/contact';
+          onClose();
+          openPlanUpgrade();
         }}
         module={`${info.metric}_limit`}
-        ctaLabel="Talk to us"
+        ctaLabel="Upgrade now"
       />
     );
   }

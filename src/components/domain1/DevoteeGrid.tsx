@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData, INITIAL_DEVOTEES } from '../../context/DataContext';
 import { useScopedData } from '../../hooks/useScopedData';
@@ -1932,7 +1933,7 @@ export const DevoteeGrid: React.FC = () => {
       <UpsellModal 
         isOpen={showUpsell} 
         onClose={closeUpsell} 
-        onUpgrade={() => { window.location.href = '/?action=signup'; }} 
+        onUpgrade={() => { closeUpsell(); openPlanUpgrade(); }} 
         module={upsellModule} 
       />
       {limitModalInfo && (

@@ -74,6 +74,7 @@ import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
 import { UpsellModal } from './UpsellModal';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 
 export interface NavItem {
   id: string;
@@ -98,6 +99,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'bulkImport', name: 'Bulk CSV Ingestion', domain: 1, domainTitle: 'Core Command & CRM', icon: FileSpreadsheet },
   { id: 'federation', name: 'Federation & Multi-Branch HQ', domain: 1, domainTitle: 'Core Command & CRM', icon: Network, badge: 'HQ Rollup' },
   { id: 'sevadar-roster', name: 'Sevadar HR & Volunteer Roster', domain: 1, domainTitle: 'Core Command & CRM', icon: UserCheck, badge: 'SOP / KYC' },
+  { id: 'crisis-command', name: 'Crisis Command', domain: 1, domainTitle: 'Core Command & CRM', icon: ShieldAlert, badge: 'SOS' },
 
   // Domain 2: Financials & Assets
   { id: 'quick-chanda-pos', name: 'Quick Chanda Counter POS', domain: 2, domainTitle: 'Financials & Assets', icon: Receipt, badge: 'High-Speed' },
@@ -892,19 +894,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isOpen={upgradeModuleId !== null}
         onClose={() => setUpgradeModuleId(null)}
         onUpgrade={() => {
-          const label = upgradeModuleId ? `${upgradeModuleId} (${lockTierLabelFor(upgradeModuleId) || 'PRO'} plan)` : '';
           setUpgradeModuleId(null);
-          if (hasWhatsApp()) {
-            window.open(
-              whatsappLink(`Namaste! I want to upgrade my Sanatani Bandhan workspace to unlock: ${label}`),
-              '_blank', 'noopener'
-            );
-          } else {
-            navigate('/contact');
-          }
+          openPlanUpgrade();
         }}
         module={upgradeModuleId ? `${upgradeModuleId} (${lockTierLabelFor(upgradeModuleId) || 'PRO'} plan)` : ''}
-        ctaLabel="Talk to us"
+        ctaLabel="Upgrade now"
       />
     </>
   );

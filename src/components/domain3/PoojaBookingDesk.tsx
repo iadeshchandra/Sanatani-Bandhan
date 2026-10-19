@@ -30,6 +30,7 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { PoojaBooking, PurohitProfile } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { usePlanGate } from '../../hooks/usePlanGate';
@@ -1329,7 +1330,7 @@ export const PoojaBookingDesk: React.FC = () => {
         isOpen={showUpsell}
         onClose={closeUpsell}
         onUpgrade={() => {
-          window.location.href = '/?action=signup';
+          closeUpsell(); openPlanUpgrade();
         }}
         module={upsellModule}
       />

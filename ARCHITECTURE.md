@@ -132,6 +132,7 @@ Multi-tenant workspaces (`workspaces/{workspaceId}`, `workspaceMembers/{memberId
 - **GodMode** (`src/components/common/GodModeConsole2.tsx`, route `/mysecretlogin`) — owner-only console: Insights, Marketplace, Finance, Professionals, App Growth, Translations, API Keys (managed keys incl. `cartoApiKey`), Ranking, Copilot, Database Explorer, Support Inbox.
 - **Crisis/SOS** (`src/crisis/`) — 3-tap SOS (long-press → 6 tiles → GPS broadcast at SOS moment ONLY); family circle + nearest Sanatanis (2km) + orgs; ACK flow; crowd auto-escalation; Crisis Command Dashboard (offline SVG map). Soft anti-abuse, never hard ban.
 - **Seva Professional** — unified `/seva/pro/:uid` profiles; Pratham Seva tiers; remedy→ritual pipeline (jyotish prescribes → purohit booking, `referredBy` pinned).
+- **Self-serve billing** (`src/billing/PlanUpgradeFlow.tsx`) — 3-step upgrade flow (choose plan → geo-aware pay instructions → TrxID confirm → `paymentClaims`). Reads owner-configured `paymentMethods` (public read); writes user-owned pending claims (rules: `applicantUid == auth.uid`). `PlanUpgradeHost` mounted in `NotificationWiring` (app root); `openPlanUpgrade()` event wires all 5 upsell CTAs (Sidebar, DevoteeGrid, PoojaBookingDesk, PanchayatPollingDesk, LimitReachedModal). Geo pricing via `detectPayRegion()` (BD/IN/INTL). Duplicate-pending-claim guard; amount mismatch is a warning, not a blocker. EN/HI/BN.
 
 ---
 
@@ -181,6 +182,8 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 | `audit_logs/{logId}` | append-only |
 | `translationOverrides/{lang}`, `platformConfig/{configId}` | owner write; public read (fail-open) |
 | `vdaAliases/{aliasId}`, `referralAttributions/{orderId}` | transactional claim; attribution |
+| `paymentMethods/{methodId}` | public read; owner write (owner-configured instructions) |
+| `paymentClaims/{claimId}` | self-create (`applicantUid == auth.uid`, status must be `pending`); owner read/update |
 
 **Rules syntax laws:** functions have NO imperative `if` (ternary/or-chains only); `match` blocks close with `}`, never `};`; `allow` ends with `;`.
 

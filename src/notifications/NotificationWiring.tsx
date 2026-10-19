@@ -25,6 +25,7 @@ import { useGroupNotify } from '../chat/groups/useGroups';
 import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
+import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
   const { firebaseUser } = useAuthWorkspace();
@@ -100,5 +101,5 @@ export const NotificationWiring: React.FC = () => {
     return startTithiNudgeNotify(uid);
   }, [uid]);
 
-  return null;
+  return <PlanUpgradeHost />;
 };
