@@ -230,7 +230,7 @@ const TransactionsView: React.FC = () => {
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0">
               <p className="text-sm font-bold text-white capitalize">{t.serviceType || 'service'}</p>
-              <p className="text-[11px] text-slate-500 font-mono truncate">provider {t.providerId || '—'}</p>
+              <p className="text-[11px] text-slate-500 font-mono truncate">provider {t.providerUid || t.providerId || '—'}</p>
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(t.status)}`}>{t.status}</span>
           </div>
@@ -338,7 +338,7 @@ const PayoutsView: React.FC = () => {
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0">
               <p className="text-lg font-black text-white">₹{Number(p.amount || 0).toLocaleString('en-IN')}</p>
-              <p className="text-[11px] text-slate-500 font-mono truncate">provider {p.providerId || '—'} · {p.method || '—'}</p>
+              <p className="text-[11px] text-slate-500 font-mono truncate">provider {p.providerUid || p.providerId || '—'} · {p.method || '—'}</p>
               {p.accountDetails && <p className="text-[11px] text-slate-500 font-mono truncate">{p.accountDetails}</p>}
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(p.status)}`}>{p.status}</span>

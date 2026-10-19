@@ -62,6 +62,13 @@ import {
   type BillingCadence,
   type PlanPricePair,
 } from './revenueMetrics';
+import {
+  orderProviderUid,
+  isProviderOrder,
+  isProviderTxn,
+  aggregateOrdersByProvider,
+  rankProviders,
+} from './providerAnalytics';
 
 /** Canonical platform owner. */
 export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
@@ -1018,16 +1025,20 @@ async function payoutMarkPaid(id: string): Promise<NativeResult> {
 
 async function providerEarnings(providerId: string): Promise<NativeResult> {
   requireOwner();
-  const snap = await getDocs(query(collection(db, 'marketplaceTransactions'), where('providerId', '==', providerId), limit(500)));
-  let gross = 0, commission = 0, released = 0, pending = 0;
+  // AUDIT FIX #6: marketplaceTransactions is owner-written (no code writer), so the
+  // provider field convention is unknown — match `providerUid` OR legacy `providerId`.
+  const snap = await getDocs(query(collection(db, 'marketplaceTransactions'), limit(500)));
+  let gross = 0, commission = 0, released = 0, pending = 0, txnCount = 0;
   snap.docs.forEach((d) => {
     const v: any = d.data();
+    if (!isProviderTxn(v, providerId)) return;
+    txnCount++;
     gross += Number(v.grossAmount) || 0;
     commission += Number(v.commissionAmount) || 0;
     if (v.status === 'released') released += Number(v.netAmount) || 0;
     else if (v.status === 'pending') pending += Number(v.netAmount) || 0;
   });
-  return { ok: true, data: { ok: true, providerId, gross, commission, netReleased: released, netPending: pending, txnCount: snap.size } };
+  return { ok: true, data: { ok: true, providerId, gross, commission, netReleased: released, netPending: pending, txnCount } };
 }
 
 /* --------------------- Console 3.0: Content Manager ---------------------- */
@@ -1455,9 +1466,12 @@ async function marketplaceDashboard(): Promise<NativeResult> {
     const comm = Number(o.commissionAmount || 0);
     if (['paid', 'accepted', 'in_progress', 'completed'].includes(o.status)) {
       gmv += gross; commissionEarned += comm;
-      const p = byProvider[o.providerId] || { gmv: 0, commission: 0, orders: 0 };
+      // AUDIT FIX #6: orders carry `providerUid`, not `providerId`.
+      const uid = orderProviderUid(o);
+      if (!uid) continue;
+      const p = byProvider[uid] || { gmv: 0, commission: 0, orders: 0 };
       p.gmv += gross; p.commission += comm; p.orders += 1;
-      byProvider[o.providerId] = p;
+      byProvider[uid] = p;
     }
     if (['pending_payment', 'paid', 'accepted', 'in_progress'].includes(o.status)) activeOrders++;
   }
@@ -1511,7 +1525,7 @@ async function marketplaceOrders(filters: { status?: string; providerId?: string
     completedAt: tsToIso((d.data() as any).completedAt),
   }));
   if (filters.status && filters.status !== 'all') orders = orders.filter((o: any) => o.status === filters.status);
-  if (filters.providerId) orders = orders.filter((o: any) => o.providerId === filters.providerId);
+  if (filters.providerId) orders = orders.filter((o: any) => isProviderOrder(o, filters.providerId as string));
   orders.sort((a: any, b: any) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   return { ok: true, data: { ok: true, orders } };
 }
@@ -1792,7 +1806,8 @@ export function computeCommission(gross: number, ratePercent: number, min = 0, m
 async function providerDetail(providerId: string): Promise<NativeResult> {
   requireOwner();
   const [ordersS, payoutsS] = await Promise.all([
-    getDocs(query(collection(db, 'marketplaceOrders'), where('providerId', '==', providerId), limit(500))),
+    // AUDIT FIX #6: orders carry `providerUid`, not `providerId`.
+    getDocs(query(collection(db, 'marketplaceOrders'), where('providerUid', '==', providerId), limit(500))),
     getDocs(query(collection(db, 'payouts'), where('providerUid', '==', providerId), limit(200))),
   ]);
   const orders = ordersS.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
@@ -1811,22 +1826,14 @@ async function providerDetail(providerId: string): Promise<NativeResult> {
 async function marketplaceProviders(): Promise<NativeResult> {
   requireOwner();
   const snap = await getDocs(query(collection(db, 'marketplaceOrders'), limit(1000)));
-  const byProvider: Record<string, { orders: number; gmv: number; commission: number; lastOrder: string }> = {};
-  for (const d of snap.docs) {
-    const o: any = d.data();
-    const p = byProvider[o.providerId] || { orders: 0, gmv: 0, commission: 0, lastOrder: '' };
-    p.orders++;
-    if (['paid', 'accepted', 'in_progress', 'completed'].includes(o.status)) {
-      p.gmv += Number(o.amountGross || 0);
-      p.commission += Number(o.commissionAmount || 0);
-    }
-    const c = tsToIso(o.createdAt) || '';
-    if (c > p.lastOrder) p.lastOrder = c;
-    byProvider[o.providerId] = p;
-  }
-  const providers = Object.entries(byProvider)
-    .map(([providerId, s]) => ({ providerId, providerType: '', ...s }))
-    .sort((a, b) => b.gmv - a.gmv);
+  // AUDIT FIX #6: aggregate by `providerUid` (the field orders actually carry).
+  // Output key stays `providerId` for the GodMode UI contract.
+  const providers = rankProviders(
+    aggregateOrdersByProvider(snap.docs.map((d) => {
+      const v = d.data() as any;
+      return { ...v, createdAt: tsToIso(v.createdAt) || '' };
+    })),
+  ).map((p) => ({ providerId: p.providerUid, providerType: '', orders: p.orders, gmv: p.gmv, commission: p.commission, lastOrder: p.lastOrder }));
   return { ok: true, data: { ok: true, providers } };
 }
 
