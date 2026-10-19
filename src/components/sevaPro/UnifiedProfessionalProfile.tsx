@@ -39,6 +39,7 @@ import {
   Stars,
 } from './sevaProUi';
 import { BookingSheet } from './BookingSheet';
+import { ProviderGratitudeWall } from './ProviderGratitudeWall';
 import { Chat } from '../../chat/Chat';
 import { getOrCreateDirectChat } from '../../chat/chatService';
 import type { ChatParticipant } from '../../chat/types';
@@ -56,7 +57,7 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
 }) => {
   const { uid: routeUid } = useParams<{ uid: string }>();
   const uid = uidOverride || routeUid || '';
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, language } = useLanguage();
   const tx = (en: string, bn: string, hi: string) => safeTranslate('', en, bn, hi);
   const { firebaseUser } = useAuthWorkspace();
   const { showToast } = useToast();
@@ -525,6 +526,14 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
           </ul>
         )}
       </SectionCard>
+
+      {/* ============ KRITAGYATA WALL ============
+          Sacred social proof: families' thanks after completed sevas.
+          "N families shared gratitude" — never star numbers. The wall
+          renders its own warm empty state until the first gratitude. */}
+      <div className="mt-4">
+        <ProviderGratitudeWall providerUid={uid} lang={language} viewerUid={myUid || undefined} />
+      </div>
 
       {/* ============ SINGLE-SPEC UPSELL (gentle cross-discovery) ============ */}
       {!dual && !viewSpec && (
