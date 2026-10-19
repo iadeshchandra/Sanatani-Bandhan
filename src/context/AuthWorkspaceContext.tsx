@@ -23,6 +23,7 @@ import {
   exchangeToken as exchangeFirebaseIdToken,
   refreshCloudToken as refreshCloudJwt,
 } from '../services/cloudApiClient';
+import { MaintenanceGate } from '../components/common/MaintenanceGate';
 
 /** idb-keyval key for the persisted cloud JWT (never localStorage for tokens). */
 const CLOUD_JWT_STORE_KEY = 'sanatani_cloud_jwt';
@@ -1528,7 +1529,7 @@ const pinDeniedToast = (
           `}</style>
         </div>
       ) : (
-        children
+        <MaintenanceGate>{children}</MaintenanceGate>
       )}
     </AuthWorkspaceContext.Provider>
   );

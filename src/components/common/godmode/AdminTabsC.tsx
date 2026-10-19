@@ -132,6 +132,14 @@ export const InsightsTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTa
               <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">{c.label}</p>
             </div>
             <p className="text-2xl font-black text-white mt-1.5">{c.value}</p>
+            {/* AUDIT FIX #8: show the math, not just the number. */}
+            {c.label === 'MRR' && data.mrrBreakdown && data.mrrBreakdown.length > 0 && (
+              <p className="text-[10px] text-slate-500 mt-1 leading-snug">
+                {data.mrrBreakdown.map((l: any) =>
+                  `${l.count}×${l.planId}${l.cadence === 'annual' ? ' (yr÷12)' : ''}`
+                ).join(' + ')}
+              </p>
+            )}
           </Card>
         ))}
       </div>

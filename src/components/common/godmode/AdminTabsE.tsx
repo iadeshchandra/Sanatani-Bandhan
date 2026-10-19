@@ -314,7 +314,7 @@ const MaintenanceView: React.FC = () => {
         <Save className="w-4 h-4" /> {working ? 'Saving…' : 'Save config'}
       </button>
       <p className="text-[11px] text-slate-500 mt-3">
-        Note: the app shell needs a small update to actually read this flag and show the banner — the data model is ready.
+        When ON, every non-owner user sees a warm maintenance screen. The owner stays logged in so this can be turned back OFF.
       </p>
     </Card>
   );

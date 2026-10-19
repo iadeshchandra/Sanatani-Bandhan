@@ -18,6 +18,7 @@ import type { EmitResult, NotifyEvent, NotifyKind, NotifyPriority, TriText } fro
 import { emitNotify } from './emit';
 import { copyFor, renderCopy } from './warmCopy';
 import { summarizeActors, type SocialSummary } from './socialBatcher';
+import { isFlagEnabled } from '../lib/platformGating';
 
 /* ------------------------------------------------------------------ */
 /* Small utilities                                                     */
@@ -347,6 +348,10 @@ export interface OrgAnnouncementInput {
  * module per member uid — the org's own fan-out, one emit per devotee.
  */
 export function notifyOrgAnnouncement(recipientUid: string, a: OrgAnnouncementInput): Promise<EmitResult> {
+  // AUDIT FIX #8: announcements_enabled kill-switch, actually wired.
+  if (!isFlagEnabled('announcements_enabled')) {
+    return Promise.resolve({ status: 'dropped', itemId: '', decision: undefined as never });
+  }
   return send(
     recipientUid,
     base('org', 'important', 'announcement', { orgName: a.orgName, title: a.title }, `organn:${a.announcementId}`, {

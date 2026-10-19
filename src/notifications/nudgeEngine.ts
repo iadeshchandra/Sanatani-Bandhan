@@ -14,6 +14,7 @@
 
 import { isInQuietHours, type QuietHours } from './preferences';
 import type { NotifyLang, TriText } from './types';
+import { isFlagEnabled } from '../lib/platformGating';
 
 /** Nudge kinds — suggestions only, NEVER auto-actions (standing rule). */
 export type NudgeKind = 'money_reminder' | 'digest_waiting' | 'announcement_unread' | 'upcoming_tithi';
@@ -331,7 +332,10 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
   }
 
   /* 3. Org announcement unread after 48h — members only, once per announcement. */
+  // AUDIT FIX #8: announcements_enabled kill-switch, actually wired.
+  const announcementsOn = isFlagEnabled('announcements_enabled');
   for (const ann of signals.unreadAnnouncements) {
+    if (!announcementsOn) break;
     if (!ann.isMember) continue;
     if (ann.ageHours < ANNOUNCEMENT_NUDGE_AFTER_HOURS) continue;
     const key = `ann:${ann.id}`;

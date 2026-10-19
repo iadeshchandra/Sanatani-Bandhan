@@ -15,6 +15,7 @@ import { SangamProvider } from '../sangam/sangamStore';
 import { WalletTab } from './WalletTab';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { T } from './ui';
+import { useFeatureFlag } from '../hooks/usePlatformStatus';
 
 /* HomeTab — the Solo personal space, reached at /app/home[/:subTab].
  * =====================================================================
@@ -84,6 +85,12 @@ export const HomeSubTabBar: React.FC<{ current: SoloTabId; onSelect: (t: SoloTab
   current,
   onSelect,
 }) => {
+  // AUDIT FIX #8: feature-flag kill-switches, actually wired. A flag that is
+  // explicitly OFF hides its tab; everything else fails open.
+  const sangamOn = useFeatureFlag('sangam_enabled');
+  const marketplaceOn = useFeatureFlag('marketplace_enabled');
+  const visible = (id: SoloTabId) =>
+    (id === 'sangam' ? sangamOn : true) && (id === 'marketplace' ? marketplaceOn : true);
   const pill = (id: SoloTabId) => (
     <button
       key={id}
@@ -105,13 +112,13 @@ export const HomeSubTabBar: React.FC<{ current: SoloTabId; onSelect: (t: SoloTab
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="Daily" bn="দৈনিক" hi="दैनिक" />
         </span>
-        {PRIMARY_TABS.map(pill)}
+        {PRIMARY_TABS.filter(visible).map(pill)}
       </div>
       <div className="flex gap-2 overflow-x-auto items-center">
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="More" bn="আরও" hi="और" />
         </span>
-        {SECONDARY_TABS.map(pill)}
+        {SECONDARY_TABS.filter(visible).map(pill)}
       </div>
     </nav>
   );
@@ -122,25 +129,31 @@ export const HomeTab: React.FC = () => {
   const navigate = useNavigate();
   const { firebaseUser } = useAuthWorkspace();
   const tab = soloSubTabFromPath(location.pathname);
+  // AUDIT FIX #8: route-level guard — a deep-link to a killed module lands on
+  // Home instead of a dead tab.
+  const sangamOn = useFeatureFlag('sangam_enabled');
+  const marketplaceOn = useFeatureFlag('marketplace_enabled');
+  const effectiveTab: SoloTabId =
+    (tab === 'sangam' && !sangamOn) || (tab === 'marketplace' && !marketplaceOn) ? 'home' : tab;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5">
-      {tab === 'home' && <SoloHome goTab={(t) => navigate(`/app/home/${t}`)} />}
-      {tab === 'sangam' && <SangamView />}
-      {tab === 'sadhana' && <SadhanaTab />}
-      {tab === 'panchang' && <PanchangTab />}
-      {tab === 'panjika' && <PanjikaTab />}
-      {tab === 'saved' && <SavedTab />}
-      {tab === 'giving' && <GivingTab />}
-      {tab === 'jyotish' && <JyotishMarketplace />}
-      {tab === 'marketplace' && (
+      {effectiveTab === 'home' && <SoloHome goTab={(t) => navigate(`/app/home/${t}`)} />}
+      {effectiveTab === 'sangam' && <SangamView />}
+      {effectiveTab === 'sadhana' && <SadhanaTab />}
+      {effectiveTab === 'panchang' && <PanchangTab />}
+      {effectiveTab === 'panjika' && <PanjikaTab />}
+      {effectiveTab === 'saved' && <SavedTab />}
+      {effectiveTab === 'giving' && <GivingTab />}
+      {effectiveTab === 'jyotish' && <JyotishMarketplace />}
+      {effectiveTab === 'marketplace' && (
         <SangamProvider uid={firebaseUser?.uid || 'anon'}>
           <ClientMarketplace />
         </SangamProvider>
       )}
-      {tab === 'wallet' && <WalletTab />}
-      {tab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
-      {tab === 'profile' && <ProfileTab />}
+      {effectiveTab === 'wallet' && <WalletTab />}
+      {effectiveTab === 'samskara' && <SamskaraDesk scopeId={`solo_${firebaseUser?.uid || 'anon'}`} />}
+      {effectiveTab === 'profile' && <ProfileTab />}
     </div>
   );
 };

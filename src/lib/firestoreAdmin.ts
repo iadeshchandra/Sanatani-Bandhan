@@ -53,6 +53,14 @@ import {
 import { db, auth } from '../firebase';
 import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
 import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
+import {
+  computeMrr,
+  normalizePlanId,
+  monthlyEquivalent,
+  inferCadence,
+  type BillingCadence,
+  type PlanPricePair,
+} from './revenueMetrics';
 
 /** Canonical platform owner. */
 export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
@@ -614,19 +622,47 @@ async function auditLogs(filters: { action?: string; severity?: string; limit?: 
  * no routes for these yet — when it does, add withFallback wrappers in
  * adminApi.ts the same way the 2.0 features do. Nothing here conflicts. */
 
-const PLAN_MONTHLY_FALLBACK: Record<string, number> = { LITE: 0, STANDARD: 1499, ENTERPRISE: 4999 };
+/* AUDIT FIX #8 (2026-10-19): the old fallback was fiction — half-renamed tiers
+ * (LITE/ENTERPRISE), wrong prices (1499/4999). Canonical prices now live in
+ * src/lib/revenueMetrics.ts, derived from locked planPricing. Price pairs
+ * carry both cadences because MRR counts annual plans at annual/12. */
+const PLAN_PRICE_FALLBACK: Record<string, PlanPricePair> = {
+  SEVA: { monthly: 0, annual: 0 },
+  STANDARD: { monthly: 499, annual: 4999 },
+  PREMIUM: { monthly: 1999, annual: 19999 },
+  PUROHIT_PRO: { monthly: 199, annual: 1990 },
+};
 
-async function planPrices(): Promise<Record<string, number>> {
+async function planPrices(): Promise<Record<string, PlanPricePair>> {
   try {
     const snap = await getDocs(collection(db, 'plans'));
-    const prices: Record<string, number> = { ...PLAN_MONTHLY_FALLBACK };
+    const prices: Record<string, PlanPricePair> = { ...PLAN_PRICE_FALLBACK };
     snap.docs.forEach((d) => {
       const v: any = d.data();
-      if (v.id && typeof v.priceMonthly === 'number') prices[v.id] = v.priceMonthly;
+      // AUDIT FIX #8: seeds write priceMonthlyINR/priceYearlyINR (geo fields),
+      // not priceMonthly — and doc IDs are lowercase while subscriptions use
+      // UPPERCASE planIds. Normalize both so the lookup actually hits.
+      const rawId = v.id || d.id;
+      if (!rawId) return;
+      const key = String(rawId).toUpperCase();
+      const pick = (inr: any, plain: any): number | undefined => {
+        if (typeof inr === 'number' && inr >= 0) return inr;
+        if (typeof plain === 'number' && plain >= 0) return plain;
+        return undefined;
+      };
+      const monthly = pick(v.priceMonthlyINR, v.priceMonthly);
+      const annual = pick(v.priceYearlyINR, v.priceYearly);
+      if (monthly !== undefined || annual !== undefined) {
+        const prev = prices[key] ?? { monthly: 0, annual: 0 };
+        prices[key] = {
+          monthly: monthly ?? prev.monthly,
+          annual: annual ?? monthly ?? prev.annual,
+        };
+      }
     });
     return prices;
   } catch {
-    return { ...PLAN_MONTHLY_FALLBACK };
+    return { ...PLAN_PRICE_FALLBACK };
   }
 }
 
@@ -656,16 +692,38 @@ async function insights(): Promise<NativeResult> {
     if (idx >= 0 && idx < 30) buckets[29 - idx]++;
   });
 
-  // MRR from active subscriptions.
-  let mrr = 0;
-  const revByMonth: Record<string, number> = {};
-  subsSnap.docs.forEach((d) => {
+  // MRR from active subscriptions — AUDIT FIX #8: delegated to the pure,
+  // unit-tested computeMrr (yearly plans count at /12; unknown plans excluded
+  // honestly; the returned breakdown powers the dashboard's "show the math").
+  const subLikes = subsSnap.docs.map((d) => {
     const v: any = d.data();
-    const monthly = prices[v.planId] ?? 0;
-    mrr += monthly;
-    const startIso = v.startDate || tsToIso(v.updatedAt);
-    if (startIso) {
-      const key = startIso.slice(0, 7);
+    return {
+      planId: v.planId,
+      startDate: v.startDate || tsToIso(v.updatedAt),
+      endDate: v.endDate,
+      period: v.period,
+    };
+  });
+  const mrrResult = computeMrr(subLikes, prices);
+  const mrr = mrrResult.mrr;
+  const mrrBreakdown = mrrResult.lines;
+  // MRR added per signup-month cohort (monthly-equivalent, so yearly plans
+  // don't spike their signup month).
+  const revByMonth: Record<string, number> = {};
+  subLikes.forEach((s) => {
+    const planId = normalizePlanId(s.planId);
+    if (!planId) return;
+    const periodRaw = String(s.period || '').toLowerCase();
+    const cadence: BillingCadence =
+      periodRaw === 'annual' || periodRaw === 'yearly'
+        ? 'annual'
+        : periodRaw === 'monthly'
+          ? 'monthly'
+          : inferCadence(s.startDate, s.endDate);
+    const pair = prices[planId] ?? { monthly: 0, annual: 0 };
+    const monthly = monthlyEquivalent(cadence === 'annual' ? pair.annual : pair.monthly, cadence);
+    if (s.startDate) {
+      const key = s.startDate.slice(0, 7);
       revByMonth[key] = (revByMonth[key] || 0) + monthly;
     }
   });
@@ -693,6 +751,7 @@ async function insights(): Promise<NativeResult> {
       signupsDated: datedUsers,
       signupsTotal: usersSnap.size,
       revenueByMonth: revByMonth,
+      mrrBreakdown, // AUDIT FIX #8: per-plan lines power the dashboard's "show the math"
       verificationFunnel: funnel,
       pendingClaims: claimSnap.data().count,
       openReports: repSnap.data().count,
