@@ -540,6 +540,64 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
         `🙏 নমস্কার! আমি শুনছি — কী জানতে চান? আজকের তিথি, উৎসব, দান, সাধনা বা পুরোহিত বুকিং নিয়ে জিজ্ঞেস করতে পারেন। 🌼`,
     },
   },
+  /* ---------------- GodMode Copilot ----------------
+   * Copilot executors build their own full text in params; these
+   * templates pass it through. `text` is always set by the executor. */
+  admin_briefing: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_stats: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_moderation_help: {
+    default: {
+      en: (p, c) => {
+        const items = (p['items'] as Array<{ preview: string; authorName: string; reportCount: number; recommendation: string; reasoning: string }> | undefined) || [];
+        if (!items.length) return `${p['text'] || p['headline'] || ''}`;
+        const head = `${p['headline'] || ''}`;
+        const body = items.map((it, i) =>
+          `\n${i + 1}. "${(it.preview || '').slice(0, 100)}" — ${it.authorName} (${it.reportCount} reports)\n   → ${String(it.recommendation).toUpperCase()}: ${it.reasoning}`
+        ).join('\n');
+        return `${head}${body}`;
+      },
+      hi: (p, c) => {
+        const items = (p['items'] as Array<{ preview: string; authorName: string; reportCount: number; recommendation: string; reasoning: string }> | undefined) || [];
+        if (!items.length) return `${p['text'] || p['headline'] || ''}`;
+        return `${p['headline'] || ''}\n` + items.map((it, i) =>
+          `\n${i + 1}. "${(it.preview || '').slice(0, 100)}" — ${it.authorName} (${it.reportCount} रिपोर्ट)\n   → ${String(it.recommendation).toUpperCase()}: ${it.reasoning}`
+        ).join('\n');
+      },
+      bn: (p, c) => {
+        const items = (p['items'] as Array<{ preview: string; authorName: string; reportCount: number; recommendation: string; reasoning: string }> | undefined) || [];
+        if (!items.length) return `${p['text'] || p['headline'] || ''}`;
+        return `${p['headline'] || ''}\n` + items.map((it, i) =>
+          `\n${i + 1}. "${(it.preview || '').slice(0, 100)}" — ${it.authorName} (${it.reportCount} রিপোর্ট)\n   → ${String(it.recommendation).toUpperCase()}: ${it.reasoning}`
+        ).join('\n');
+      },
+    },
+  },
+  admin_anomaly: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_draft: {
+    default: {
+      en: (p, c) => `${p['text']}\n\n${p['note'] || ''}`,
+      hi: (p, c) => `${p['text']}\n\n${p['note'] || ''}`,
+      bn: (p, c) => `${p['text']}\n\n${p['note'] || ''}`,
+    },
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -626,6 +684,31 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ["Today's tithi?", 'Next festival?', 'How do I give dana?'],
     hi: ['आज की तिथि?', 'अगला उत्सव?', 'दान कैसे दूँ?'],
     bn: ['আজকের তিথি?', 'পরের উৎসব?', 'দান কীভাবে দেব?'],
+  },
+  admin_briefing: {
+    en: ['Flagged posts', "This week's numbers", 'Anything unusual?'],
+    hi: ['फ्लैग पोस्ट', 'सप्ताह के आंकड़े', 'कुछ असामान्य?'],
+    bn: ['ফ্ল্যাগ পোস্ট', 'সপ্তাহের সংখ্যা', 'অস্বাভাবিক কিছু?'],
+  },
+  admin_stats: {
+    en: ['Morning briefing', 'Flagged posts', 'Anything unusual?'],
+    hi: ['सुबह की जानकारी', 'फ्लैग पोस्ट', 'कुछ असामान्य?'],
+    bn: ['সকালের ব্রিফিং', 'ফ্ল্যাগ পোস্ট', 'অস্বাভাবিক কিছু?'],
+  },
+  admin_moderation_help: {
+    en: ['Morning briefing', "This week's numbers", 'Anything unusual?'],
+    hi: ['सुबह की जानकारी', 'सप्ताह के आंकड़े', 'कुछ असामान्य?'],
+    bn: ['সকালের ব্রিফিং', 'সপ্তাহের সংখ্যা', 'অস্বাভাবিক কিছু?'],
+  },
+  admin_anomaly: {
+    en: ['Morning briefing', 'Flagged posts', "This week's numbers"],
+    hi: ['सुबह की जानकारी', 'फ्लैग पोस्ट', 'सप्ताह के आंकड़े'],
+    bn: ['সকালের ব্রিফিং', 'ফ্ল্যাগ পোস্ট', 'সপ্তাহের সংখ্যা'],
+  },
+  admin_draft: {
+    en: ['Morning briefing', 'Flagged posts', 'Anything unusual?'],
+    hi: ['सुबह की जानकारी', 'फ्लैग पोस्ट', 'कुछ असामान्य?'],
+    bn: ['সকালের ব্রিফিং', 'ফ্ল্যাগ পোস্ট', 'অস্বাভাবিক কিছু?'],
   },
 };
 

@@ -167,6 +167,7 @@ export async function ask(
     text: rendered,
     action: outcome.action,
     suggestions,
+    data: outcome.params,
   };
   return maybeEnhanceWithVoice(base, lang, region);
 }

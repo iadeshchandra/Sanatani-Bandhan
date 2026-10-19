@@ -16,8 +16,19 @@ import { bookingHelpTask } from './booking_help';
 import { languageHelpTask } from './language_help';
 import { sosHelpTask } from './sos_help';
 import { voiceUpgradeTask } from './voice_upgrade';
+import { dharmaQuestionTask } from './dharma_question';
+import { navigationQuestionTask } from './navigation';
+import { nearbyTask } from './nearby';
+import { tirthaSummaryTask } from './tirtha_summary';
 import { greetingTask } from './greeting';
 import { fallbackUnknownTask } from './fallback_unknown';
+import {
+  adminBriefingTask,
+  adminStatsTask,
+  adminModerationHelpTask,
+  adminAnomalyTask,
+  adminDraftTask,
+} from '../godmode/copilotTasks';
 
 export const TASKS: Record<IntentId, TaskExecutor> = {
   navigate: navigateTask,
@@ -30,6 +41,15 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   language_help: languageHelpTask,
   sos_help: sosHelpTask,
   voice_upgrade: voiceUpgradeTask,
+  dharma_question: dharmaQuestionTask,
+  navigation_question: navigationQuestionTask,
+  nearby_temples: nearbyTask,
+  tirtha_summary: tirthaSummaryTask,
   greeting: greetingTask,
   fallback_unknown: fallbackUnknownTask,
+  admin_briefing: adminBriefingTask,
+  admin_stats: adminStatsTask,
+  admin_moderation_help: adminModerationHelpTask,
+  admin_anomaly: adminAnomalyTask,
+  admin_draft: adminDraftTask,
 };

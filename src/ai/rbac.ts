@@ -83,6 +83,18 @@ const ALL_INTENTS: IntentId[] = [
   'fallback_unknown',
 ];
 
+/**
+ * GodMode Copilot intents — the owner (GodMode operator) ONLY.
+ * Never added to any other role's list; canOffer() is the gate.
+ */
+const OWNER_ONLY_INTENTS: IntentId[] = [
+  'admin_briefing',
+  'admin_stats',
+  'admin_moderation_help',
+  'admin_anomaly',
+  'admin_draft',
+];
+
 export const roleCapabilities: Record<Role, RoleCapability> = {
   devotee: {
     intents: ALL_INTENTS,
@@ -120,7 +132,7 @@ export const roleCapabilities: Record<Role, RoleCapability> = {
     dataScopes: ['self', 'marketplace'],
   },
   owner: {
-    intents: ALL_INTENTS,
+    intents: [...ALL_INTENTS, ...OWNER_ONLY_INTENTS],
     guideIds: [...DEVOTEE_GUIDES, ...ORG_STAFF_GUIDES, 'godmode'],
     dataScopes: ['self', 'org', 'marketplace', 'platform'],
   },

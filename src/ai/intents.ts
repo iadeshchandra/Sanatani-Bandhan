@@ -14,6 +14,7 @@
 import type { IntentId, LangCode } from './types';
 import { matchDharma } from './dharma';
 import { isWhereQuestion, matchNavigation } from './navigation';
+import { routeCopilotIntent } from './godmode/copilot';
 
 export interface IntentDef {
   id: IntentId;
@@ -36,6 +37,11 @@ export const INTENTS: IntentDef[] = [
   { id: 'nearby_temples', description: 'Temples near the devotee — explicit location consent, never stored' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
+  { id: 'admin_briefing', description: 'GodMode: what needs the owner’s attention (owner-only)' },
+  { id: 'admin_stats', description: 'GodMode: platform numbers in plain language (owner-only)' },
+  { id: 'admin_moderation_help', description: 'GodMode: flagged-post recommendations (owner-only)' },
+  { id: 'admin_anomaly', description: 'GodMode: unusual-pattern scan (owner-only)' },
+  { id: 'admin_draft', description: 'GodMode: announcement draft writer (owner-only)' },
 ];
 
 export interface RouteResult {
@@ -294,6 +300,20 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
       confidence: 'high',
       slots: {},
       evidence: ['nearby-proximity'],
+    };
+  }
+
+  // GodMode Copilot first chance: admin-flavoured questions ("morning
+  // briefing", "flagged posts", "write an announcement") are distinctive
+  // enough to claim priority. The canOffer() gate in assistant.ts keeps
+  // these owner-only — non-owners get the warm denial, never data.
+  const copilotHit = routeCopilotIntent(text);
+  if (copilotHit) {
+    return {
+      intent: copilotHit,
+      confidence: 'high',
+      slots: {},
+      evidence: ['copilot-keyword'],
     };
   }
 

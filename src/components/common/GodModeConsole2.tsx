@@ -38,6 +38,8 @@ import { FinanceTab } from './godmode/AdminTabsJ';
 import { AppGrowthTab } from '../../appgrowth/admin/AppGrowthTab';
 import { ApiKeyManager } from '../../apikeys/admin/ApiKeyManager';
 import { TranslationsTab } from './godmode/TranslationsTab';
+import { RankingTab } from './godmode/RankingTab';
+import { CopilotLauncher } from '../../ai/godmode/CopilotPanel';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -47,7 +49,7 @@ interface GodModeConsole2Props {
 type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
   | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace'
-  | 'professionals' | 'growth' | 'apikeys' | 'translations' | 'system';
+  | 'professionals' | 'growth' | 'apikeys' | 'translations' | 'ranking' | 'system';
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Insights', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -63,6 +65,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'growth', label: 'App Growth', icon: <Rocket className="w-4 h-4" /> },
   { id: 'apikeys', label: 'API Keys', icon: <KeyRound className="w-4 h-4" /> },
   { id: 'translations', label: 'Translations', icon: <Languages className="w-4 h-4" /> },
+  { id: 'ranking', label: 'Ranking', icon: <SlidersHorizontal className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
   { id: 'content', label: 'Content', icon: <Megaphone className="w-4 h-4" /> },
@@ -351,6 +354,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'growth': return <AppGrowthTab />;
       case 'apikeys': return <ApiKeyManager />;
       case 'translations': return <TranslationsTab />;
+      case 'ranking': return <RankingTab />;
       case 'messages': return <MessagesTab />;
       case 'database': return <DatabaseExplorerTab />;
       case 'content': return <ContentTab />;
@@ -503,6 +507,14 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               {renderTab()}
             </main>
           </div>
+        )}
+        {/* GodMode Copilot — owner-only AI assistant. Renders only when unlocked. */}
+        {isUnlocked && (
+          <CopilotLauncher
+            uid={(firebaseUser as { uid?: string } | null)?.uid || 'owner'}
+            lang="en"
+            onNavigateToTab={(t) => setTab(t as TabId)}
+          />
         )}
       </div>
     </div>

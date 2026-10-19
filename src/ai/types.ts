@@ -35,7 +35,12 @@ export type IntentId =
   | 'tirtha_summary'
   | 'nearby_temples'
   | 'greeting'
-  | 'fallback_unknown';
+  | 'fallback_unknown'
+  | 'admin_briefing'
+  | 'admin_stats'
+  | 'admin_moderation_help'
+  | 'admin_anomaly'
+  | 'admin_draft';
 
 /** Languages with fully authored assistant templates today. */
 export type TemplateLang = 'en' | 'hi' | 'bn';
@@ -73,6 +78,11 @@ export interface AssistantResponse {
   action?: AssistantAction;
   /** Follow-up chips the UI may render as tappable suggestions. */
   suggestions?: string[];
+  /**
+   * Structured payload from the executor (e.g. moderation item lists).
+   * Optional; UIs that don't understand it ignore it and use `text`.
+   */
+  data?: Record<string, unknown>;
 }
 
 /** What an executor receives. Pure data — no UI handles. */
@@ -87,9 +97,11 @@ export interface TaskCtx {
   slots: Record<string, string>;
 }
 
-/** String/number params handed to the template renderer. */
+/** Params handed to the template renderer. String/number for text
+ * interpolation; structured values (arrays/objects) for UIs that read
+ * `AssistantResponse.data`. Templates must cast before use. */
 export interface TaskParams {
-  [key: string]: string | number;
+  [key: string]: string | number | unknown[] | Record<string, unknown>;
 }
 
 /**
