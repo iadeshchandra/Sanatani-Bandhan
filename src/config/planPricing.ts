@@ -144,6 +144,14 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
       'KarmaLedgerDesk',
       'InventoryDesk',
       'TaxReceiptDesk',
+      // AUDIT FIX #7 (2026-10-19): freemium = ALL features on every plan,
+      // only usage caps differ. These were previously PREMIUM-only in the
+      // list while marketing promised "no gated desks".
+      'WorkspaceSelectorDesk',
+      'TreasuryLedgerDesk',
+      'AuditLogDesk',
+      'CrisisCommandCenter',
+      'UserRolesDesk',
     ],
     highlightedPerks: [
       'Every feature included — no gated desks',
@@ -189,6 +197,12 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
       'KarmaLedgerDesk',
       'InventoryDesk',
       'TaxReceiptDesk',
+      // AUDIT FIX #7 (2026-10-19): freemium = ALL features on every plan.
+      'WorkspaceSelectorDesk',
+      'TreasuryLedgerDesk',
+      'AuditLogDesk',
+      'CrisisCommandCenter',
+      'UserRolesDesk',
     ],
     highlightedPerks: [
       'Everything in Seva Free',

@@ -263,13 +263,98 @@ const BillingClaims: React.FC = () => {
 };
 
 
-/* Billing tab with subtabs: Claims + Top-ups + Wallets + Payment Insights */
+/* --------------------------- Subscriptions ----------------------------- */
+
+/**
+ * AUDIT FIX #7: owner visibility into subscription lifecycle.
+ * Lists subscriptions with expiry status badges (Active / Expiring soon /
+ * Grace / Expired) so the owner can see who's paid, who's lapsing, and who
+ * has been gracefully downgraded to Seva caps.
+ */
+const SubscriptionsTab: React.FC = () => {
+  const { showToast } = useToast();
+  const [subs, setSubs] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { db } = await import('../../../firebase');
+      const { collection, getDocs, query, orderBy, limit } = await import('firebase/firestore');
+      const { getSubscriptionStatus, isExpiringSoon, daysUntilExpiry } = await import('../../../lib/subscriptionExpiry');
+      const snap = await getDocs(query(collection(db, 'subscriptions'), orderBy('updatedAt', 'desc'), limit(200)));
+      const rows = snap.docs.map((d) => {
+        const s: any = { id: d.id, ...d.data() };
+        s._status = getSubscriptionStatus(s);
+        s._expiringSoon = isExpiringSoon(s);
+        s._daysLeft = daysUntilExpiry(s);
+        return s;
+      });
+      // Expired first, then grace, then expiring soon, then the rest.
+      const rank: Record<string, number> = { expired: 0, grace: 1, active: 2, none: 3 };
+      rows.sort((a, b) => (rank[a._status] ?? 3) - (rank[b._status] ?? 3) || (a._expiringSoon ? -1 : 0));
+      setSubs(rows);
+    } catch (e) {
+      showToast('Could not load subscriptions.', 'error');
+    }
+    setLoading(false);
+  }, [showToast]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const badge = (s: any) => {
+    if (s._status === 'expired')
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/15 text-red-300 border border-red-500/30">EXPIRED → Seva caps</span>;
+    if (s._status === 'grace')
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-300 border border-amber-500/30">GRACE · {s._daysLeft != null ? Math.max(0, 7 + s._daysLeft) : '?'}d left</span>;
+    if (s._expiringSoon)
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-500/15 text-sky-300 border border-sky-500/30">EXPIRES IN {s._daysLeft}d</span>;
+    return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">ACTIVE</span>;
+  };
+
+  if (loading) return <p className="text-sm text-slate-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading subscriptions…</p>;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500">{subs.length} subscriptions — expired plans gracefully fall back to Seva (free) caps after a 7-day grace period. Nothing is ever locked out.</p>
+      {subs.length === 0 ? (
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-10 text-center">
+          <p className="text-3xl mb-2">🧾</p>
+          <p className="text-sm font-bold text-slate-300">No subscriptions yet</p>
+          <p className="text-xs text-slate-500 mt-1">Approved payment claims create subscription docs here.</p>
+        </div>
+      ) : subs.map((s) => (
+        <div key={s.id} className="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className="font-bold text-white text-sm">{s.workspaceId}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                <span className="font-black text-saffron-300">{s.planId}</span>
+                <span className="text-slate-500"> · {s.status || 'active'}</span>
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                {s.startDate ? new Date(s.startDate).toLocaleDateString() : '?'} → {s.endDate ? new Date(s.endDate).toLocaleDateString() : 'no expiry'}
+                {s.transactionId ? <span className="ml-2">· {s.transactionId}</span> : null}
+              </p>
+            </div>
+            {badge(s)}
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={load} className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-slate-900 text-slate-300 border border-slate-800">
+        <RefreshCw className="w-3.5 h-3.5 inline mr-1.5" />Refresh
+      </button>
+    </div>
+  );
+};
+
+/* Billing tab with subtabs: Claims + Subscriptions + Top-ups + Wallets + Payment Insights */
 export const BillingTab: React.FC = () => {
   const [sub, setSub] = React.useState('Claims');
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {['Claims', 'Top-ups', 'Wallets', 'Payment Insights'].map((t) => (
+        {['Claims', 'Subscriptions', 'Top-ups', 'Wallets', 'Payment Insights'].map((t) => (
           <button key={t} type="button" onClick={() => setSub(t)}
             className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap shrink-0 ${
               sub === t ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
@@ -277,6 +362,7 @@ export const BillingTab: React.FC = () => {
         ))}
       </div>
       {sub === 'Claims' ? <BillingClaims />
+        : sub === 'Subscriptions' ? <SubscriptionsTab />
         : sub === 'Top-ups' ? <TopupsTab />
         : sub === 'Wallets' ? <WalletsTab />
         : <PaymentInsightsTab />}

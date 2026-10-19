@@ -285,6 +285,45 @@ export async function countUsage(workspaceId: string, metric: LimitMetric, branc
   }
 }
 
+import {
+  effectivePlanId,
+  getSubscriptionStatus,
+  type SubscriptionLike,
+  type SubscriptionStatus,
+} from './subscriptionExpiry';
+
+// ---- Subscription loading (AUDIT FIX #7: expiry enforcement) ----
+
+/**
+ * Cached subscription docs. TTL 5 min — expiry is enforced at check time,
+ * not on a timer, so a session that starts paid stays paid until the next
+ * load ("never surprise-downgrade mid-session"). Fail-open: a failed read
+ * is cached as null (treated as active).
+ */
+const subCache = new Map<string, { sub: SubscriptionLike | null; at: number }>();
+const SUB_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export async function loadWorkspaceSubscription(workspaceId: string): Promise<SubscriptionLike | null> {
+  const cached = subCache.get(workspaceId);
+  if (cached && Date.now() - cached.at < SUB_CACHE_TTL_MS) return cached.sub;
+  try {
+    const snap = await getDoc(doc(db, 'subscriptions', workspaceId));
+    const sub = snap.exists() ? (snap.data() as SubscriptionLike) : null;
+    subCache.set(workspaceId, { sub, at: Date.now() });
+    return sub;
+  } catch (e) {
+    console.warn('[planLimits] subscription read failed, failing open:', e instanceof Error ? e.message : e);
+    subCache.set(workspaceId, { sub: null, at: Date.now() });
+    return null;
+  }
+}
+
+/** Clear the subscription cache (e.g. right after the owner approves a claim). */
+export function clearSubscriptionCache(workspaceId?: string): void {
+  if (workspaceId) subCache.delete(workspaceId);
+  else subCache.clear();
+}
+
 // ---- The check ----
 
 export interface WorkspaceLike {
@@ -293,6 +332,12 @@ export interface WorkspaceLike {
   limitsBypassed?: boolean;
   /** Current branch count (branches live on the workspace doc). */
   branchCount?: number;
+  /**
+   * Pre-loaded subscription doc (subscriptions/{workspaceId}). When omitted,
+   * checkLimit loads it itself (cached, fail-open). Pass `null` to skip the
+   * lookup when you know there is no subscription.
+   */
+  subscription?: SubscriptionLike | null;
 }
 
 export interface LimitCheckResult {
@@ -305,6 +350,10 @@ export interface LimitCheckResult {
   planName: string;
   canonical: CanonicalPlan;
   nextPlan: PlanDoc | null;
+  /** AUDIT FIX #7: subscription lifecycle state driving the effective plan. */
+  subscriptionStatus: SubscriptionStatus;
+  /** True when expiry downgraded this check to Seva caps (drives the warm notice). */
+  downgraded: boolean;
 }
 
 function limitFor(plan: PlanDoc, metric: LimitMetric): number {
@@ -337,6 +386,8 @@ export async function checkLimit(ws: WorkspaceLike, metric: LimitMetric): Promis
       planName: 'Unknown',
       canonical: 'seva',
       nextPlan: null,
+      subscriptionStatus: 'none',
+      downgraded: false,
     };
   };
 
@@ -347,10 +398,16 @@ export async function checkLimit(ws: WorkspaceLike, metric: LimitMetric): Promis
     if (ws.limitsBypassed) {
       return { ...failOpen(''), bypassed: true, metric, planName: 'Bypassed', canonical: normalizePlanId(ws.planId) };
     }
-    const { plan, canonical } = await getPlan(ws.planId);
+    // AUDIT FIX #7: resolve the EFFECTIVE plan — an expired paid subscription
+    // (past the 7-day grace) falls back to Seva caps. Fail-open on read error.
+    const sub = ws.subscription !== undefined ? ws.subscription : await loadWorkspaceSubscription(ws.id);
+    const status = getSubscriptionStatus(sub);
+    const enforcedPlanId = effectivePlanId(ws.planId, sub);
+    const downgraded = status === 'expired' && (ws.planId || '').toUpperCase() !== 'SEVA';
+    const { plan, canonical } = await getPlan(enforcedPlanId);
     const limit = limitFor(plan, metric);
     if (limit === -1) {
-      return { allowed: true, used: 0, limit: -1, percentUsed: 0, bypassed: false, metric, planName: plan.name, canonical, nextPlan: null };
+      return { allowed: true, used: 0, limit: -1, percentUsed: 0, bypassed: false, metric, planName: plan.name, canonical, nextPlan: null, subscriptionStatus: status, downgraded };
     }
     const used = await countUsage(ws.id, metric, ws.branchCount);
     const allowed = used < limit;
@@ -366,6 +423,8 @@ export async function checkLimit(ws: WorkspaceLike, metric: LimitMetric): Promis
       planName: plan.name,
       canonical,
       nextPlan,
+      subscriptionStatus: status,
+      downgraded,
     };
   } catch (e) {
     return failOpen(e instanceof Error ? e.message : String(e));

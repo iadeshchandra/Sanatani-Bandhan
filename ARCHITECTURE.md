@@ -235,6 +235,9 @@ The app began as a Dharmic ERP with 7 domains (`domain1`..`domain7`: People&KYC,
 
 Seva ₹0 · Standard ₹499/৳700/$6/mo · Premium ₹1,999/৳2,800/$24/mo · Purohit/Jyotishi Pro ₹199/৳280/$2.50/mo · marketplace commission 12% (Rail-1 8% / Rail-2 12%) · annual = 2 months free. Geo payments: BD Bangla QR / IN UPI / INTL Payoneer + Wise.
 
+**Freemium law (enforced, not just marketed):** EVERY plan includes ALL features; only usage caps differ (SEVA: 100 devotees / 500 txns-mo / 2 seats / 1 branch; STANDARD: 1,000 / unlimited / 10 / 3; PREMIUM: unlimited). **AUDIT FIX #7 (2026-10-19):** `MODULE_PLAN_TIER` desk locks (treasury/crisis-command → PREMIUM, 16 desks → STANDARD) were REMOVED — they contradicted the canonical freemium story in three places (planPricing header, planLimits header, and PLAN_PRICING's own includedDesks). `src/lib/workspaceRegistry.ts` keeps the (now empty) export for API compat; all desks resolve permissive. The usage caps are the monetization lever, enforced client-side in `src/lib/planLimits.ts` (fail-open).
+**Subscription expiry (AUDIT FIX #7):** `subscriptions/{wsId}.endDate` is now ENFORCED — previously written but never read, so expired paid plans kept full tier forever. Pure logic in `src/lib/subscriptionExpiry.ts`: 7-day grace after endDate (paid caps kept, warm renewal nudge), then graceful fallback to Seva caps — never a lockout, data untouched, no mid-session surprise-downgrades (5-min TTL cache). `checkLimit()` resolves the effective plan; `usePlanLimits` shows a one-time warm "🙏 Your paid plan ended — you're on Seva (free) now" notice. GodMode → Billing → Subscriptions subtab shows Active / Expiring soon / Grace / Expired badges.
+
 ## Appendix C. Contact (single source of truth: `src/contact.ts`)
 
 WhatsApp wa.me/8801608533529 · Sanatanibandhan@gmail.com

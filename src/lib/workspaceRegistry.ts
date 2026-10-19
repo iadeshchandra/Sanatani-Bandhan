@@ -57,40 +57,31 @@ export function resolvePlanId(planId?: string | null): WorkspacePlanId {
 
 /**
  * Sidebar MODULE_CATALOG nav id → minimum required tier.
- * Derived from PLAN_PRICING's includedDesks. Modules NOT listed here are not
- * plan-gated (permissive default — never lock a desk we haven't mapped).
+ *
+ * AUDIT FIX #7 (2026-10-19) — TIER LOCKS REMOVED. This map is now EMPTY by
+ * design. The canonical freemium model (planPricing.ts, locked 2026-10-14)
+ * is: EVERY plan includes ALL features; only usage caps differ. The locks
+ * contradicted that story in three ways:
+ *   1. planPricing.ts header + SEVA marketing ("Every feature included —
+ *      no gated desks") promise all features on every plan.
+ *   2. planLimits.ts header: "every workspace gets ALL features; paid plans
+ *      raise the usage caps."
+ *   3. The map even contradicted PLAN_PRICING's own includedDesks (SEVA's
+ *      list includes AnnadanamKitchenDesk, but the map gated `annadanam`
+ *      to STANDARD).
+ * The usage caps (100 devotees / 500 txns-mo / 2 seats / 1 branch on SEVA)
+ * are the monetization lever — a temple doing real hundi volume outgrows
+ * the free caps and upgrades. That is the designed funnel, not desk locks.
+ *
+ * Kept as an export (empty) so isModuleAllowedForPlan/requiredTierForModule
+ * keep their signatures — every caller now resolves permissive.
  */
-export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {
-  // SEVA — Seva Free core desks
-  poojaBooking: 'SEVA',
-  panchang: 'SEVA',
-  'quick-chanda-pos': 'SEVA',
-  sandeshBroadcast: 'SEVA',
-  // STANDARD — operations suite
-  annadanam: 'STANDARD',
-  dharamshala: 'STANDARD',
-  'ashram-one': 'STANDARD',
-  'annakshetra-one': 'STANDARD',
-  'nyas-one': 'STANDARD',
-  'utsav-one': 'STANDARD',
-  'tirth-one': 'STANDARD',
-  'yoga-one': 'STANDARD',
-  'matha-one': 'STANDARD',
-  'satsang-one': 'STANDARD',
-  'sabha-one': 'STANDARD',
-  goshala: 'STANDARD',
-  campaigns: 'STANDARD',
-  'sevadar-roster': 'STANDARD',
-  karmaLedger: 'STANDARD',
-  inventory: 'STANDARD',
-  taxReceipts: 'STANDARD',
-  // PREMIUM — ERP & governance
-  federation: 'PREMIUM',
-  treasury: 'PREMIUM',
-  'crisis-command': 'PREMIUM',
-};
+export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {};
 
-/** Is a sidebar module (by MODULE_CATALOG nav id) allowed on the plan? */
+/** Is a sidebar module (by MODULE_CATALOG nav id) allowed on the plan?
+ * AUDIT FIX #7: always true now — MODULE_PLAN_TIER is empty by design
+ * (freemium = all features, caps differ). RBAC (isModuleAllowed) is the
+ * remaining gate. */
 export function isModuleAllowedForPlan(moduleId: string, planId?: string | null): boolean {
   const required = MODULE_PLAN_TIER[moduleId];
   if (!required) return true;
@@ -98,7 +89,7 @@ export function isModuleAllowedForPlan(moduleId: string, planId?: string | null)
   return planLevel >= (TIER_LEVELS[required] ?? 1);
 }
 
-/** Minimum tier required for a sidebar module, or null if not plan-gated. */
+/** Minimum tier required for a sidebar module — always null now (no plan-gated desks). Kept for API compat. */
 export function requiredTierForModule(moduleId: string): SubscriptionTier | null {
   return MODULE_PLAN_TIER[moduleId] ?? null;
 }
