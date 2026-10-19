@@ -22,6 +22,10 @@ import { isGroupOpen, markGroupOpen, useGroupMessages, useGroupTypingLabel } fro
 import { MessageListSkeleton } from '../ChatSkeletons';
 import { BlessingCard, BLESSING_OCCASIONS } from '../BlessingCard';
 import { ChatAvatar, formatChatTime } from '../ChatList';
+import { VoicePlayer } from '../VoicePlayer';
+import { VoiceRecorder } from '../VoiceRecorder';
+import { uploadFile } from '../../lib/fileVault';
+import { buildVoiceMeta, isValidVoiceMeta } from '../voice';
 import { groupTypeIcon, typingLabel, type GroupMessage, type GroupType } from './types';
 import { gt } from './i18n';
 
@@ -151,6 +155,7 @@ export const GroupThread: React.FC<{
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [blessingOpen, setBlessingOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -226,6 +231,28 @@ export const GroupThread: React.FC<{
       });
     } catch {
       /* blessing failed — the picker simply closes, nothing lost */
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /** Voice note: blob → File Vault → group message with voiceMeta. */
+  const sendVoice = async (blob: Blob, durationMs: number) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      const { url } = await uploadFile(blob, {
+        visibility: 'public',
+        category: 'voice',
+        ownerUid: uid,
+        fileName: `voice-note-${Date.now()}.webm`,
+      });
+      const voiceMeta = buildVoiceMeta(url, durationMs, blob.type || 'audio/webm');
+      if (!isValidVoiceMeta(voiceMeta)) throw new Error('groups: invalid voice attachment');
+      await sendGroupMessage(groupId, uid, 'voice', '', {
+        voiceMeta,
+        senderAvatar: me?.photoUrl,
+      });
     } finally {
       setSending(false);
     }
@@ -330,7 +357,7 @@ export const GroupThread: React.FC<{
                             alt={m.senderName}
                             className="w-5 h-5 rounded-full object-cover"
                           />
-                        ) : (
+                    ) : (
                           <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-800 text-[9px] font-extrabold flex items-center justify-center">
                             {(m.senderName || '?').slice(0, 1).toUpperCase()}
                           </span>
@@ -348,6 +375,20 @@ export const GroupThread: React.FC<{
                           {mine && <StateTicks state={messageState(m, group, uid)} />}
                         </div>
                       </>
+                    ) : m.kind === 'voice' && m.voiceMeta ? (
+                      <div
+                        className={`px-2.5 py-2 rounded-2xl shadow-sm ${
+                          mine
+                            ? 'bg-gradient-to-br from-amber-600 to-orange-600 rounded-br-md'
+                            : 'bg-white border border-stone-200/70 rounded-bl-md'
+                        }`}
+                      >
+                        <VoicePlayer meta={m.voiceMeta} mine={mine} lang={lang} />
+                        <div className={`text-[10px] mt-1 flex items-center gap-1 ${mine ? 'justify-end text-amber-100/80' : 'text-stone-400'}`}>
+                          {formatChatTime(m.createdAt, lang)}
+                          {mine && <StateTicks state={messageState(m, group, uid)} />}
+                        </div>
+                      </div>
                     ) : (
                       <div
                         className={`px-3.5 py-2.5 rounded-2xl text-[15px] leading-relaxed shadow-sm ${
@@ -390,6 +431,15 @@ export const GroupThread: React.FC<{
         >
           🪔
         </button>
+        <button
+          type="button"
+          onClick={() => setVoiceOpen(true)}
+          aria-label="Record a voice note"
+          title="Voice note"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-100 hover:bg-amber-200 text-xl flex items-center justify-center shrink-0"
+        >
+          🎙️
+        </button>
         <input
           value={draft}
           onChange={(e) => handleDraftChange(e.target.value)}
@@ -414,6 +464,16 @@ export const GroupThread: React.FC<{
       </div>
 
       {blessingOpen && <BlessingPicker onPick={sendBlessing} onClose={() => setBlessingOpen(false)} />}
+
+      {voiceOpen && (
+        <VoiceRecorder
+          chatId={groupId}
+          uid={uid}
+          lang={lang}
+          onSend={sendVoice}
+          onClose={() => setVoiceOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -24,6 +24,10 @@ import { ChatAvatar, VerifiedBadge, formatChatTime } from "./ChatList";
 import RequestModal, { type RequestRecipient } from "./RequestModal";
 import { RequestCardLoader } from "./MoneyRequestCard";
 import { ReceiptCard } from "./ReceiptCard";
+import { VoicePlayer } from "./VoicePlayer";
+import { VoiceRecorder } from "./VoiceRecorder";
+import { uploadFile } from "../lib/fileVault";
+import { buildVoiceMeta, isValidVoiceMeta } from "./voice";
 import { getOrgSenderRole } from "./p2pService";
 import type { ChatMessage, ChatParticipant, ReceiptMeta } from "./types";
 
@@ -161,6 +165,7 @@ export const ChatThread: React.FC<{
   const [sending, setSending] = useState(false);
   const [blessingOpen, setBlessingOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   // Step 5 (safety): for direct chats, either party blocking the other quiets the thread.
   const [chatBlocked, setChatBlocked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -321,6 +326,27 @@ export const ChatThread: React.FC<{
     }
   };
 
+  /** Voice note: blob → File Vault → message with voiceMeta. */
+  const sendVoice = async (blob: Blob, durationMs: number) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      // 'public' visibility: any logged-in user can resolve the pointer,
+      // but the pointer itself travels only inside participant-gated messages.
+      const { url } = await uploadFile(blob, {
+        visibility: 'public',
+        category: 'voice',
+        ownerUid: uid,
+        fileName: `voice-note-${Date.now()}.webm`,
+      });
+      const voiceMeta = buildVoiceMeta(url, durationMs, blob.type || 'audio/webm');
+      if (!isValidVoiceMeta(voiceMeta)) throw new Error('chat: invalid voice attachment');
+      await sendMessage(chatId, uid, 'voice', '', { voiceMeta });
+    } finally {
+      setSending(false);
+    }
+  };
+
   let lastDay = "";
 
   return (
@@ -460,6 +486,26 @@ export const ChatThread: React.FC<{
                         )}
                       </div>
                     </div>
+                  ) : m.kind === "voice" && m.voiceMeta ? (
+                    <div className={`max-w-[85%] ${mine ? "ml-auto" : ""}`}>
+                      <div
+                        className={`px-2.5 py-2 rounded-2xl shadow-sm ${
+                          mine
+                            ? "bg-gradient-to-br from-amber-600 to-orange-600 rounded-br-md"
+                            : "bg-white border border-stone-200/70 rounded-bl-md"
+                        }`}
+                      >
+                        <VoicePlayer meta={m.voiceMeta} mine={mine} lang={lang} />
+                      </div>
+                      <div
+                        className={`text-[10px] text-stone-400 mt-1 ${mine ? "text-right" : ""}`}
+                      >
+                        {formatChatTime(m.createdAt, lang)}{" "}
+                        {mine && (
+                          <StateTicks state={messageState(m, thread, uid)} />
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     <div
                       className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-[15px] leading-relaxed shadow-sm ${
@@ -529,6 +575,15 @@ export const ChatThread: React.FC<{
         >
           🙏
         </button>
+        <button
+          type="button"
+          onClick={() => setVoiceOpen(true)}
+          aria-label={lang === "bn" ? "ভয়েস নোট রেকর্ড করুন" : lang === "hi" ? "वॉइस नोट रिकॉर्ड करें" : "Record a voice note"}
+          title="Voice note"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-100 hover:bg-amber-200 text-xl flex items-center justify-center shrink-0"
+        >
+          🎙️
+        </button>
         <input
           value={draft}
           onChange={(e) => handleDraftChange(e.target.value)}
@@ -563,6 +618,16 @@ export const ChatThread: React.FC<{
         <BlessingPicker
           onPick={sendBlessing}
           onClose={() => setBlessingOpen(false)}
+        />
+      )}
+
+      {voiceOpen && (
+        <VoiceRecorder
+          chatId={chatId}
+          uid={uid}
+          lang={lang}
+          onSend={sendVoice}
+          onClose={() => setVoiceOpen(false)}
         />
       )}
 

@@ -184,6 +184,8 @@ export interface SendMeta {
   requestId?: string;
   /** Seva Bazar Phase 2 — token-advance receipt payload. */
   receiptMeta?: ChatMessage['receiptMeta'];
+  /** Voice-note attachment payload. */
+  voiceMeta?: ChatMessage['voiceMeta'];
 }
 
 /**
@@ -200,6 +202,7 @@ export async function sendMessage(
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed && kind === 'text') throw new Error('chat: empty message');
+  if (kind === 'voice' && !meta?.voiceMeta) throw new Error('chat: voice message needs voiceMeta');
   const now = Date.now();
 
   const msgRef = await addDoc(messagesCol(chatId), {
@@ -209,6 +212,7 @@ export async function sendMessage(
     ...(meta?.blessingMeta ? { blessingMeta: meta.blessingMeta } : {}),
     ...(meta?.requestId ? { requestId: meta.requestId } : {}),
     ...(meta?.receiptMeta ? { receiptMeta: meta.receiptMeta } : {}),
+    ...(meta?.voiceMeta ? { voiceMeta: meta.voiceMeta } : {}),
     createdAt: now,
     deliveredAt: now, // written to cloud/local → at least sent
     readBy: [senderId],
@@ -224,7 +228,7 @@ export async function sendMessage(
     for (const p of participants) {
       if (p !== senderId) unreadBumps[`unreadCounts.${p}`] = increment(1);
     }
-    const preview = kind === 'blessing' ? `🪔 ${trimmed}` : kind === 'request_card' ? `🙏 ${trimmed}` : trimmed;
+    const preview = kind === 'blessing' ? `🪔 ${trimmed}` : kind === 'request_card' ? `🙏 ${trimmed}` : kind === 'voice' ? '🎙️ Voice note' : trimmed;
     await updateDoc(chatDoc(chatId), {
       lastMessage: preview.slice(0, 140),
       lastMessageAt: now,

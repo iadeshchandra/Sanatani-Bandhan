@@ -40,7 +40,7 @@ export interface ChatThread {
   archivedBy?: string[];
 }
 
-export type MessageKind = 'text' | 'blessing' | 'request_card' | 'system' | 'receipt';
+export type MessageKind = 'text' | 'blessing' | 'request_card' | 'system' | 'receipt' | 'voice';
 
 /** Seva Bazar Phase 2 — token-advance receipt carried by a chat message.
  * Messages are immutable (rules), so the provider's "Received ✓" is a
@@ -54,6 +54,16 @@ export interface ReceiptMeta {
   rail: string;
   providerUid: string;
   providerName: string;
+}
+
+/** For voice-note messages: the vault pointer + duration. */
+export interface VoiceMeta {
+  /** `vault://{fileId}` — resolved via resolveVaultUrl(). Never bytes. */
+  vaultUrl: string;
+  /** Recording length in milliseconds. */
+  durationMs: number;
+  /** Recorder's mime type, e.g. 'audio/webm'. */
+  contentType: string;
 }
 
 export interface ChatMessage {
@@ -72,6 +82,8 @@ export interface ChatMessage {
   requestId?: string;
   /** For receipt messages: the token-advance receipt */
   receiptMeta?: ReceiptMeta;
+  /** For voice-note messages: the vault pointer + duration */
+  voiceMeta?: VoiceMeta;
   createdAt: number;
   /** Delivery states */
   deliveredAt?: number;

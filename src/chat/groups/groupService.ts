@@ -444,6 +444,8 @@ export async function deleteGroup(groupId: string, adminUid: string): Promise<vo
 export interface GroupSendMeta {
   blessingMeta?: GroupMessage['blessingMeta'];
   senderAvatar?: string;
+  /** Voice-note attachment payload. */
+  voiceMeta?: GroupMessage['voiceMeta'];
 }
 
 /** Send a group message. Unread bumps for every other member. */
@@ -456,6 +458,7 @@ export async function sendGroupMessage(
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed && kind === 'text') throw new Error('groups: empty message');
+  if (kind === 'voice' && !meta?.voiceMeta) throw new Error('groups: voice message needs voiceMeta');
   if (kind === 'system') throw new Error('groups: system messages are service-born only');
   const now = Date.now();
 
@@ -472,6 +475,7 @@ export async function sendGroupMessage(
     kind,
     text: trimmed,
     ...(meta?.blessingMeta ? { blessingMeta: meta.blessingMeta } : {}),
+    ...(meta?.voiceMeta ? { voiceMeta: meta.voiceMeta } : {}),
     createdAt: now,
     deliveredAt: now,
     readBy: [senderId],
@@ -482,7 +486,7 @@ export async function sendGroupMessage(
     for (const p of group.memberIds) {
       if (p !== senderId) unreadBumps[`unreadCounts.${p}`] = increment(1);
     }
-    const preview = kind === 'blessing' ? `🪔 ${senderName}: ${trimmed}` : `${senderName}: ${trimmed}`;
+    const preview = kind === 'blessing' ? `🪔 ${senderName}: ${trimmed}` : kind === 'voice' ? `🎙️ ${senderName}: Voice note` : `${senderName}: ${trimmed}`;
     await updateDoc(groupDoc(groupId), {
       lastMessage: preview.slice(0, 140),
       lastMessageAt: now,
