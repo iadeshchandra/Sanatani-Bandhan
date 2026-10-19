@@ -7,6 +7,7 @@
  * close. Author sees view count; viewer identities stay private.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { backgroundCss, isStoryLive, storyAge, type Story } from './types';
 import { deleteStory, getViewCount, markViewed, reportStory } from './storyService';
 import { resolveVaultUrl } from '../../lib/fileVault';
@@ -40,6 +41,7 @@ const StoryImage: React.FC<{ url?: string }> = ({ url }) => {
 export const StoryViewer: React.FC<Props> = ({
   groups, startAuthorUid, startIndex, uid, lang, onClose, onViewed,
 }) => {
+  const navigate = useNavigate();
   const [gi, setGi] = useState(() => Math.max(0, groups.findIndex((g) => g.authorUid === startAuthorUid)));
   const [si, setSi] = useState(startIndex);
   const [paused, setPaused] = useState(false);
@@ -182,7 +184,13 @@ export const StoryViewer: React.FC<Props> = ({
           ) : group.authorName.slice(0, 1).toUpperCase()}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm truncate">{group.authorName}</p>
+          <button
+            type="button"
+            onClick={() => navigate(`/u/${group.authorUid}`)}
+            className="text-white font-bold text-sm truncate min-h-[44px] flex items-center"
+          >
+            {group.authorName}
+          </button>
           <p className="text-white/70 text-xs">{storyAge(story.createdAt)}</p>
         </div>
         {isAuthor && viewCount !== null && (

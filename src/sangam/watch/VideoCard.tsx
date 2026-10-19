@@ -5,6 +5,7 @@
  * Seva demo cards carry the provider's verification tier + a Book CTA.
  */
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Btn, VerificationBadge } from '../ui';
 import { nocookieWatchEmbed, type WatchVideo } from './types';
 import { reportVideo, deleteVideo } from './watchService';
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, isAdmin, onBook }) => {
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [reported, setReported] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -89,7 +91,13 @@ export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, isAdmin, on
       <div className="p-4">
         <h3 className="font-extrabold text-stone-800 leading-snug">{video.title}</h3>
         <div className="mt-1.5 flex items-center gap-2 flex-wrap text-xs text-stone-500">
-          <span className="font-bold text-stone-700">{video.sharedByName}</span>
+          <button
+            type="button"
+            onClick={() => navigate(`/u/${video.sharedBy}`)}
+            className="font-bold text-stone-700 min-h-[44px]"
+          >
+            {video.sharedByName}
+          </button>
           {video.sharedBySanId && (
             <span className="font-mono text-[10px] text-stone-400">{video.sharedBySanId}</span>
           )}

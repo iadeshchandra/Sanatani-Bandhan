@@ -72,6 +72,7 @@ Facebook-complete, Sanatani-vibed. Store: `sangamStore.tsx` (`SangamProvider`).
 | Kritagyata | `GratitudeWall.tsx`, `kritagyata.ts` | "🙏 N families shared gratitude" — never ★ numbers. Prompted after booking completion. |
 | Consultation answers | `consultationAnswer.ts` | Anonymized jyotishi wisdom posts; consent-gated; identity-leak validator. |
 | Share-referral | `ShareButton.tsx`, `referrals.ts` | `?ref=SAN-XXXXXX` links; warm "you guided a family" ack; no monetary referral. |
+| Devotee profiles | `src/social/` (`DevoteeProfile.tsx`, `DevoteeRoute.tsx`) | Public identity surface at `/u/:uid` — avatar, SAN id, bio, stats, public posts, follow + message. **Privacy law:** `users/{uid}` is self-read-only, so profiles read ONLY `devoteeProfiles/{uid}` (public, user-controlled) + denormalized public post data. `AuthorLine` tappable everywhere (feed, comments, watch, shorts, stories). New collections: `devoteeProfiles`, `follows/{uid}/following` (asymmetric). |
 
 **Moderation:** report buttons everywhere; `sangamReports`; author/admin delete; no edits on videos.
 
@@ -175,6 +176,8 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 | `sangamVideos/{videoId}` | public read; author/admin delete; counter-only updates |
 | `sangamStories/{storyId}` | authenticated read; author-only; lazy expiry (`expiresAt > now`) |
 | `sangamShorts/{shortId}` (+`comments/`) | authenticated read; author-only create; counter-only updates |
+| `devoteeProfiles/{uid}` | public read; own-uid write only; never exposes `users/{uid}` |
+| `follows/{followerUid}/following/{targetUid}` | follower-read; follower-write; no self-follow |
 | `orgLiveStatus/{orgId}` | public read; trustee/admin write |
 | `marketplaceOrders/{orderId}`, `marketplaceProviders/{uid}`, `marketplaceGigs/{gigId}` | parties + owner; commission fields immutable in rules |
 | `wallets/{uid}`, `walletTransactions/{txnId}` | self + owner; rules-pinned debits |

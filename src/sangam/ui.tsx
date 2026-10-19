@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import type { AuthorKind, VerificationTier } from './types';
 
@@ -121,11 +122,14 @@ export const VerificationBadge: React.FC<{ tier?: VerificationTier; kind?: Autho
   );
 };
 
-/** Author line: name + SAN id + badges. Used on posts, comments, circles. */
+/** Author line: name + SAN id + badges. Used on posts, comments, circles.
+ *  Pass `uid` to make it tappable → navigates to the devotee's public profile. */
 export const AuthorLine: React.FC<{
   name: string; sanId: string; kind: AuthorKind; tier?: VerificationTier; official?: boolean; time?: number;
-}> = ({ name, sanId, kind, tier, official, time }) => {
+  uid?: string;
+}> = ({ name, sanId, kind, tier, official, time, uid }) => {
   const { tr, lang } = useLocaleText();
+  const navigate = useNavigate();
   const ago = (ts?: number) => {
     if (!ts) return '';
     const m = Math.floor((Date.now() - ts) / 60000);
@@ -137,7 +141,7 @@ export const AuthorLine: React.FC<{
     return tr(`${d}d ago`, `${d}দি আগে`, `${d} दि पहले`);
   };
   void lang;
-  return (
+  const inner = (
     <div className="flex items-start gap-2.5 min-w-0">
       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white font-black text-sm shrink-0" aria-hidden>
         {name.charAt(0).toUpperCase()}
@@ -156,6 +160,20 @@ export const AuthorLine: React.FC<{
       </div>
     </div>
   );
+  // Tappable when we know the author's uid → public devotee profile.
+  if (uid) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); navigate(`/u/${uid}`); }}
+        className="block w-full text-left cursor-pointer rounded-xl min-h-[44px]"
+        aria-label={`${name} — view profile`}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return inner;
 };
 
 export const EmptyState: React.FC<{ icon: string; title: React.ReactNode; body: React.ReactNode }> = ({ icon, title, body }) => (

@@ -102,6 +102,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
       <AuthorLine
         name={post.authorName} sanId={post.authorSanId} kind={post.authorKind}
         tier={post.authorTier} official={post.isOfficialPagePost} time={post.createdAt}
+        uid={post.authorUid}
       />
       {post.sharedFrom && (
         <div className="mt-2 text-[11px] text-stone-500 bg-stone-50 border border-stone-100 rounded-xl px-3 py-1.5">
@@ -189,7 +190,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
           )}
           {postComments.map((c) => (
             <div key={c.id} className="py-2 border-b border-stone-50 last:border-0">
-              <AuthorLine name={c.authorName} sanId={c.authorSanId} kind={c.authorKind} tier={c.authorTier} time={c.createdAt} />
+              <AuthorLine name={c.authorName} sanId={c.authorSanId} kind={c.authorKind} tier={c.authorTier} time={c.createdAt} uid={c.authorUid} />
               <p className="text-sm text-stone-700 mt-1 ml-12">{c.text}</p>
             </div>
           ))}

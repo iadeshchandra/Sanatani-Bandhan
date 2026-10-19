@@ -1387,6 +1387,38 @@ service cloud.firestore {
       }
     }
 
+    // --- devoteeProfiles/{uid}: public devotee identity surface.
+    // Public read (anyone can view a profile). Write = own uid only,
+    // schema-pinned. NEVER exposes users/{uid} (self-read-only).
+    match /devoteeProfiles/{uid} {
+      allow read: if true;
+      allow create, update: if isLoggedIn() && request.auth.uid == uid
+        && request.resource.data.get('uid', '') == uid
+        && request.resource.data.get('displayName', '') is string
+        && request.resource.data.get('displayName', '').size() >= 1
+        && request.resource.data.get('displayName', '').size() <= 80
+        && request.resource.data.get('sanId', '') is string
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'sanId', 'avatarUrl', 'bio',
+          'isPublic', 'followerCount', 'followingCount', 'updatedAt'
+        ]);
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == uid);
+    }
+
+    // --- follows/{followerUid}/following/{targetUid}: asymmetric follow.
+    // Read: follower themselves (or superadmin). Write: follower only, no self-follow.
+    match /follows/{followerUid}/following/{targetUid} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == followerUid);
+      allow create: if isLoggedIn()
+        && request.auth.uid == followerUid
+        && followerUid != targetUid
+        && request.resource.data.keys().hasOnly(['followerUid', 'targetUid', 'createdAt']);
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == followerUid);
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&

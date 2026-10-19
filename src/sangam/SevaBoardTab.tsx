@@ -61,7 +61,7 @@ export const SevaBoardTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
           const full = p.seva ? (p.volunteers || []).length >= p.seva.slots : false;
           return (
             <Card key={p.id}>
-              <AuthorLine name={p.authorName} sanId={p.authorSanId} kind={p.authorKind} tier={p.authorTier} official={p.isOfficialPagePost} time={p.createdAt} />
+              <AuthorLine name={p.authorName} sanId={p.authorSanId} kind={p.authorKind} tier={p.authorTier} official={p.isOfficialPagePost} time={p.createdAt} uid={p.authorUid} />
               <p className="mt-2 text-[15px] text-stone-800 whitespace-pre-wrap">{p.text}</p>
               {p.seva && (
                 <div className="mt-2 text-sm text-stone-600 bg-stone-50 rounded-xl px-3 py-2">

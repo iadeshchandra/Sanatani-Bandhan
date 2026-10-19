@@ -10,6 +10,7 @@
  * thumbnails (preloaded one ahead).
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { nocookieShortEmbed, type Short } from './types';
 import { st, type ShortsLang } from './i18n';
 import { withReferrer } from '../referrals';
@@ -194,7 +195,13 @@ const ShortItem: React.FC<{
       {/* Bottom-left: author + caption */}
       <div className="absolute bottom-0 left-0 right-16 p-4 pb-6 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
         <div className="flex items-center gap-2 pointer-events-auto">
-          <span className="font-extrabold text-white text-sm drop-shadow">@{short.authorName}</span>
+          <button
+            type="button"
+            onClick={() => navigate(`/u/${short.authorUid}`)}
+            className="font-extrabold text-white text-sm drop-shadow min-h-[44px] flex items-center"
+          >
+            @{short.authorName}
+          </button>
           {short.authorSanId && (
             <span className="font-mono text-[10px] text-white/70">{short.authorSanId}</span>
           )}
@@ -301,6 +308,7 @@ export const ShortsViewer: React.FC<Props> = ({
   initialShortId,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
