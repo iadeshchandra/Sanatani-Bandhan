@@ -31,6 +31,8 @@ import {
 } from '../../../sangam/serviceCard';
 import type { ServiceCardDraft } from '../../../sangam/serviceCard';
 import { purohitTierToSevaProTier } from '../../../lib/sevaPro/tierMapping';
+import { validateDemoVideoUrl, demoVideoDoc, demoEmbedUrl } from '../../../sangam/sevaBazarVideo';
+import { doc, setDoc } from 'firebase/firestore';
 import { T } from '../../../solo/ui';
 import type { PurohitIdentity, PurohitVerificationTier } from '../../../types/purohit';
 import type { JyotishIdentity } from '../../../types/jyotish';
@@ -79,6 +81,7 @@ const EMPTY_DRAFT: ServiceCardDraft = {
   availability: '',
   lineage: '',
   photoUrl: '',
+  demoVideoUrl: '',
 };
 
 const MODE_META: Array<{ id: ServiceCardMode; en: string; hi: string; bn: string; emoji: string }> = [
@@ -203,7 +206,7 @@ export const SevaNoticeTab: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await createPost(author, {
+      const created = await createPost(author, {
         kind: 'service_card',
         text: draft.devotionalText.trim().slice(0, 140),
         serviceCard: buildServiceCardDetails(draft, {
@@ -215,6 +218,28 @@ export const SevaNoticeTab: React.FC = () => {
           yearsOfSeva: provider.yearsOfSeva,
         }),
       });
+      // Seva Bazar Phase 3: demo video → sangamVideos (Watch picks it up automatically).
+      const { videoId } = validateDemoVideoUrl(draft.demoVideoUrl || '');
+      if (videoId && created?.id) {
+        try {
+          await setDoc(
+            doc(db, 'sangamVideos', `seva_demo_${created.id}`),
+            demoVideoDoc({
+              videoId,
+              providerUid: provider.uid,
+              providerName: provider.name,
+              providerTier: purohitTierToSevaProTier(provider.tier4),
+              sharedBy: provider.uid,
+              sharedByName: provider.name,
+              sharedBySanId: soloProfile?.id || provider.roleId || provider.uid,
+              serviceLine: draft.serviceLine.trim(),
+              postId: created.id,
+            })
+          );
+        } catch {
+          /* demo video write is best-effort — the card itself is live */
+        }
+      }
       setDraft(EMPTY_DRAFT);
       setErrors({});
       showToast(msg('Your seva notice is live in the community feed 🪔', 'आपकी सेवा सूचना समुदाय फ़ीड में प्रसारित हो गई 🪔', 'আপনার সেবা বিজ্ঞপ্তি সম্প্রদায়ের ফিডে প্রকাশিত হয়েছে 🪔'), 'success');
@@ -481,6 +506,51 @@ export const SevaNoticeTab: React.FC = () => {
             placeholder={msg('Paste an image link (https://…)', 'एक छवि लिंक डालें (https://…)', 'একটি ছবির লিঙ্ক দিন (https://…)')}
             className={fieldCls}
           />
+        </div>
+
+        {/* 9. Intro video (optional) — Seva Bazar Phase 3 */}
+        <div>
+          <label htmlFor="seva-video" className={labelCls}>
+            <T en="🎬 Intro video (optional)" hi="🎬 परिचय वीडियो (वैकल्पिक)" bn="🎬 পরিচিতিমূলক ভিডিও (ঐচ্ছিক)" />
+          </label>
+          <input
+            id="seva-video"
+            type="url"
+            inputMode="url"
+            value={draft.demoVideoUrl || ''}
+            onChange={(e) => setField('demoVideoUrl', e.target.value)}
+            placeholder={msg('Paste a YouTube link (https://youtube.com/…)', 'एक YouTube लिंक डालें (https://youtube.com/…)', 'একটি YouTube লিঙ্ক দিন (https://youtube.com/…)')}
+            className={fieldCls}
+          />
+          {(() => {
+            const { videoId, error } = validateDemoVideoUrl(draft.demoVideoUrl || '');
+            if (error) return <p className={errCls}>{error}</p>;
+            if (errors.demoVideoUrl) return <p className={errCls}>{errors.demoVideoUrl}</p>;
+            if (videoId) {
+              return (
+                <div className="mt-2 rounded-xl overflow-hidden border border-stone-200">
+                  <img
+                    src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+                    alt="Video preview"
+                    className="w-full aspect-video object-cover"
+                    loading="lazy"
+                  />
+                  <p className="px-3 py-2 text-xs text-emerald-700 bg-emerald-50 font-medium">
+                    <T en="✓ Video looks good — devotees will see this in your card and in Watch." hi="✓ वीडियो ठीक है — भक्त इसे आपके कार्ड और Watch में देखेंगे।" bn="✓ ভিডিও ঠিক আছে — ভক্তরা এটি আপনার কার্ডে ও Watch-এ দেখবেন।" />
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <p className="text-xs text-stone-400 mt-1.5">
+                <T
+                  en="A short video introducing yourself — it appears on your card and in 🪔 Seva Demos."
+                  hi="अपना परिचय देने वाला एक छोटा वीडियो — यह आपके कार्ड और 🪔 सेवा डेमो में दिखेगा।"
+                  bn="আপনার পরিচয় দেওয়ার একটি ছোট ভিডিও — এটি আপনার কার্ডে ও 🪔 সেবা ডেমোতে দেখাবে।"
+                />
+              </p>
+            );
+          })()}
         </div>
 
         <button

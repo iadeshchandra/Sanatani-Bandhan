@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { SangamPost, ServiceCardDetails } from './types';
 import { T } from '../solo/ui';
 import { useLanguage } from '../context/LanguageContext';
 import { sevaProTierLabel } from '../lib/sevaPro/tierMapping';
+import { demoEmbedUrl } from './sevaBazarVideo';
 
 /* Seva Bazar — the service_card feed card.
  * =====================================================================
@@ -47,6 +48,8 @@ export const ServiceCardPost: React.FC<ServiceCardPostProps> = ({ post, onAsk, o
   const card = post.serviceCard;
   const { currentLang } = useLanguage();
   const tierLang = toTierLang(currentLang);
+  // Seva Bazar Phase 3 — inline demo video player (tap play, no fullscreen takeover).
+  const [playingVideo, setPlayingVideo] = useState(false);
 
   if (!card) return null;
 
@@ -73,16 +76,63 @@ export const ServiceCardPost: React.FC<ServiceCardPostProps> = ({ post, onAsk, o
       onKeyDown={handleCardKey}
       className="bg-white rounded-2xl border border-orange-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-orange-300"
     >
-      {/* 4:5 photo */}
-      {card.photoUrl && (
-        <div className="aspect-[4/5] w-full overflow-hidden bg-stone-100">
-          <img
-            src={card.photoUrl}
-            alt={`${card.providerName}`}
-            className="w-full h-full object-cover"
-            loading="lazy"
+      {/* 4:5 photo — or inline demo video when playing */}
+      {playingVideo && card.demoVideoId ? (
+        <div className="aspect-video w-full overflow-hidden bg-stone-900">
+          <iframe
+            src={demoEmbedUrl(card.demoVideoId)}
+            title={`Intro video — ${card.providerName}`}
+            className="w-full h-full"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
           />
         </div>
+      ) : (
+        card.photoUrl && (
+          <div className="relative aspect-[4/5] w-full overflow-hidden bg-stone-100">
+            <img
+              src={card.photoUrl}
+              alt={`${card.providerName}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            {/* 🎬 Demo video play overlay — Seva Bazar Phase 3 */}
+            {card.demoVideoId && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayingVideo(true);
+                }}
+                aria-label="Play intro video"
+                className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition min-h-[44px]"
+              >
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                  <span className="text-2xl text-amber-700 ml-1" aria-hidden>
+                    ▶
+                  </span>
+                </span>
+                <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white">
+                  <T en="🎬 Watch intro" hi="🎬 परिचय देखें" bn="🎬 পরিচিতি দেখুন" />
+                </span>
+              </button>
+            )}
+          </div>
+        )
+      )}
+      {/* Demo video without photo — compact play button */}
+      {!card.photoUrl && card.demoVideoId && !playingVideo && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPlayingVideo(true);
+          }}
+          className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm font-bold text-stone-700 min-h-[44px] hover:border-amber-300"
+        >
+          <span aria-hidden>🎬</span>
+          <T en="Watch intro video" hi="परिचय वीडियो देखें" bn="পরিচিতিমূলক ভিডিও দেখুন" />
+        </button>
       )}
 
       <div className="p-4 sm:p-5">

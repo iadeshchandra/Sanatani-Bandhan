@@ -15,6 +15,7 @@ import type { AuthorInfo } from './sangamStore';
 import { ServiceCardPost } from './ServiceCardPost';
 import { ServiceCardSheet } from './ServiceCardSheet';
 import { SevaBookingSheet } from './SevaBookingSheet';
+import { ShareButton } from './ShareButton';
 import { isFirstServiceCardThisSession } from './serviceCard';
 import { useServiceCardAsk } from './useServiceCardAsk';
 import { useSevaBooking } from './useSevaBooking';
@@ -74,6 +75,10 @@ export const ServiceCardFeedItem: React.FC<Props> = ({ post, author }) => {
         </div>
       )}
       <ServiceCardPost post={post} onAsk={handleAsk} onOpen={() => setSheetOpen(true)} />
+      {/* Share with referral attribution — Seva Bazar Phase 4 */}
+      <div className="mt-2 flex justify-end">
+        <ShareButton path={`/seva/card/${post.id}`} sharerSanId={author.sanId} />
+      </div>
       {sheetOpen && (
         <ServiceCardSheet
           post={post}

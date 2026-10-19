@@ -134,6 +134,7 @@ export function buildServiceCardDetails(
     trustScore?: number;
   }
 ): ServiceCardDetails {
+  const { videoId } = validateDemoVideoUrl(draft.demoVideoUrl || '');
   return {
     devotionalText: draft.devotionalText.trim(),
     serviceLine: draft.serviceLine.trim(),
@@ -151,6 +152,7 @@ export function buildServiceCardDetails(
     blessingsReceived: provider.blessingsReceived,
     trustScore: provider.trustScore,
     photoUrl: draft.photoUrl.trim() || undefined,
+    demoVideoId: videoId || undefined,
   };
 }
 

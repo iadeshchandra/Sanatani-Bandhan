@@ -11,6 +11,12 @@ import { StoriesRail, CreateStorySheet, groupStoriesByAuthor, type Story } from 
 import { subscribeStories } from './stories/storyService';
 import { rankFeed, emptyUserSignals, type UserSignals, type FeedWeights, DEFAULT_FEED_WEIGHTS } from '../ranking/feed';
 import { loadUserSignals, loadRankingConfig, trackInteraction } from '../ranking/storage';
+import { FestivalMomentsRail } from './FestivalMomentsRail';
+import { activeMomentWindows } from './festivalMoments';
+import { LiveAartiCard } from './LiveAartiCard';
+import { shouldShowPinnedAarti, type PinnedAarti } from './liveAarti';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const StoryViewer = lazy(() => import('./stories/StoryViewer').then((m) => ({ default: m.StoryViewer })));
 
@@ -416,6 +422,49 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
 
   const followedIds = useMemo(() => new Set(follows.map((f) => `${f.targetType}:${f.targetId}`)), [follows]);
 
+  /* Live aarti pinned cards — Seva Bazar Phase 3.
+   * Followed orgs with pinnedAarti.enabled that are currently live. */
+  const [liveAartis, setLiveAartis] = useState<Array<{ orgId: string; orgName: string; videoId: string; title?: string }>>([]);
+  useEffect(() => {
+    let live = true;
+    const run = async () => {
+      try {
+        const followedOrgIds = follows.filter((f) => f.targetType === 'org').map((f) => f.targetId);
+        if (followedOrgIds.length === 0) {
+          if (live) setLiveAartis([]);
+          return;
+        }
+        // Live orgs right now.
+        const liveSnap = await getDocs(query(collection(db, 'orgLiveStatus'), where('isLive', '==', true)));
+        const liveIds = new Set(liveSnap.docs.map((d) => d.id).filter((id) => followedOrgIds.includes(id)));
+        if (liveIds.size === 0) {
+          if (live) setLiveAartis([]);
+          return;
+        }
+        const out: Array<{ orgId: string; orgName: string; videoId: string; title?: string }> = [];
+        for (const orgId of liveIds) {
+          const orgSnap = await getDoc(doc(db, 'orgPages', orgId));
+          const pin = (orgSnap.exists() ? (orgSnap.data() as { pinnedAarti?: PinnedAarti }).pinnedAarti : undefined);
+          const status = liveSnap.docs.find((d) => d.id === orgId)?.data() as { videoId?: string; title?: string } | undefined;
+          if (shouldShowPinnedAarti(pin, { isLive: true, videoId: status?.videoId ?? null })) {
+            out.push({
+              orgId,
+              orgName: pin!.orgName || (orgSnap.data() as { name?: string }).name || 'Temple',
+              videoId: status?.videoId || '',
+              title: status?.title,
+            });
+          }
+        }
+        if (live) setLiveAartis(out.filter((a) => a.videoId));
+      } catch {
+        if (live) setLiveAartis([]);
+      }
+    };
+    run();
+    const t = setInterval(run, 5 * 60 * 1000); // re-check every 5 min
+    return () => { live = false; clearInterval(t); };
+  }, [follows]);
+
   const visible = useMemo(() => {
     let list = posts.filter((p) => p.status !== 'removed');
     if (kindFilter !== 'all') list = list.filter((p) => p.kind === kindFilter);
@@ -452,6 +501,34 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
         onOpenViewer={(authorUid, index) => setViewerAt({ authorUid, index })}
         onCreate={() => setCreateOpen(true)}
       />
+
+      {/* 🪔 Festival Moments — time-bound rail during festivals (Phase 4) */}
+      {activeMomentWindows().map((w) => {
+        const moments = posts.filter(
+          (p) => p.kind === 'festival_moment' && p.status === 'active' && p.festival === w.festival.nameEn
+        );
+        return (
+          <FestivalMomentsRail
+            key={w.festival.nameEn}
+            festivalName={w.festival.nameEn}
+            moments={moments}
+            lang={storyLang}
+          />
+        );
+      })}
+
+      {/* 🔴 Live aarti — pinned when a followed temple is live (Phase 3) */}
+      {liveAartis.map((a) => (
+        <LiveAartiCard
+          key={a.orgId}
+          orgName={a.orgName}
+          videoId={a.videoId}
+          title={a.title}
+          onWatch={(videoId) => {
+            window.open(`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`, '_blank', 'noopener');
+          }}
+        />
+      ))}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <SyncLabel online={online} lastSyncedAt={lastSyncedAt} />
