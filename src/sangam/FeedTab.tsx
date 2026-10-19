@@ -18,6 +18,9 @@ import { shouldShowPinnedAarti, type PinnedAarti } from './liveAarti';
 import { isVideoFile } from '../video/uploadGuidance';
 import { VideoGuidanceSheet } from '../video/VideoGuidanceSheet';
 import type { VideoGuideLang } from '../video/i18n';
+import { SafetySheet } from '../social/SafetySheet';
+import { subscribeSafetyLists } from '../social/safetyService';
+import { filterHiddenAuthors } from '../social/safety';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -69,6 +72,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<SangamReport['reason']>('spam');
   const [reportDetails, setReportDetails] = useState('');
+  const [safetyOpen, setSafetyOpen] = useState(false);
 
   const gave = (post.ashirvadBy || []).includes(author.uid);
   const volunteered = (post.volunteers || []).includes(author.uid);
@@ -183,8 +187,8 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
           🔁 <T en="Share" bn="শেয়ার" hi="साझा" />
         </button>
         <button
-          onClick={() => setReportOpen(true)}
-          aria-label={tr('Report', 'রিপোর্ট', 'रिपोर्ट')}
+          onClick={() => setSafetyOpen(true)}
+          aria-label={tr('More actions', 'আরও', 'अधिक')}
           className="px-3 py-2.5 rounded-xl text-stone-400 hover:bg-stone-50 hover:text-stone-600 min-h-[44px] min-w-[44px]"
         >
           ⋯
@@ -224,6 +228,23 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
             <textarea value={shareNote} onChange={(e) => setShareNote(e.target.value)} rows={3} maxLength={300} className={inputCls} />
           </Field>
           <Btn onClick={doShare} className="w-full mt-3">🔁 <T en="Share now" bn="শেয়ার করুন" hi="साझा करें" /></Btn>
+        </Modal>
+      )}
+
+      {safetyOpen && post.authorUid !== author.uid && (
+        <SafetySheet
+          viewerUid={author.uid}
+          targetUid={post.authorUid}
+          targetName={post.authorName}
+          onClose={() => setSafetyOpen(false)}
+          onReport={() => setReportOpen(true)}
+        />
+      )}
+      {safetyOpen && post.authorUid === author.uid && (
+        <Modal onClose={() => setSafetyOpen(false)} title={<T en="Your post" bn="আপনার পোস্ট" hi="आपकी पोस्ट" />}>
+          <Btn onClick={() => { setSafetyOpen(false); setReportOpen(true); }} className="w-full">
+            ⚠️ <T en="Report this post" bn="এই পোস্ট রিপোর্ট করুন" hi="इस पोस्ट की रिपोर्ट करें" />
+          </Btn>
         </Modal>
       )}
 
@@ -427,6 +448,13 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
   // Ranking: 'ranked' (Facebook-style, Sanatani values) or 'recent' (chronological).
   const [rankMode, setRankMode] = useState<'ranked' | 'recent'>('ranked');
   const [userSignals, setUserSignals] = useState<UserSignals>(emptyUserSignals());
+  // Step 5 (safety): block/mute lists — blocked/muted authors' posts are filtered from the feed.
+  const [blockedUids, setBlockedUids] = useState<Set<string>>(new Set());
+  const [mutedUids, setMutedUids] = useState<Set<string>>(new Set());
+  useEffect(() => subscribeSafetyLists(author.uid, (b, m) => {
+    setBlockedUids(b);
+    setMutedUids(m);
+  }), [author.uid]);
   const [feedWeights, setFeedWeights] = useState<FeedWeights>(DEFAULT_FEED_WEIGHTS);
 
   // Load ranking signals + weights once.
@@ -494,6 +522,8 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
 
   const visible = useMemo(() => {
     let list = posts.filter((p) => p.status !== 'removed');
+    // Step 5 (safety): hide posts from blocked/muted authors.
+    list = filterHiddenAuthors(list, blockedUids, mutedUids);
     if (kindFilter !== 'all') list = list.filter((p) => p.kind === kindFilter);
     if (followingOnly) {
       list = list.filter((p) => {
@@ -516,7 +546,7 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
     // Seva Bazar: service cards are guests — ≤15% of the mixed feed.
     // (Explicit "Seva Notices" filter shows them all; the cap is for discovery.)
     return kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
-  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights]);
+  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights, blockedUids, mutedUids]);
 
   return (
     <div className="space-y-4">

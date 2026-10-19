@@ -10,6 +10,7 @@ import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity
 import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
+import { SafetyList } from '../social/SafetyList';
 import { APP_VERSION, APP_BUILD_SHA } from '../lib/appVersion';
 import { ProfileOrgHub } from './ProfileOrgHub';
 import { NotificationSettings } from '../notifications/NotificationSettings';
@@ -758,6 +759,9 @@ export const ProfileTab: React.FC = () => {
         <h3 className="font-extrabold text-stone-900 mb-3">
           <T en="Data & session" bn="তথ্য ও সেশন" hi="डेटा व सत्र" />
         </h3>
+
+      {/* Step 5 (safety): blocked & muted management */}
+      {tirthaUid && <SafetyList uid={tirthaUid} />}
         <div className="flex flex-wrap gap-2">
           <Btn variant="ghost" onClick={doBackup}>
             ⬇ <T en="Download backup" bn="ব্যাকআপ নিন" hi="बैकअप लें" />

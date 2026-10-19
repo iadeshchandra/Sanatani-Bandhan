@@ -161,6 +161,8 @@ export const ChatThread: React.FC<{
   const [sending, setSending] = useState(false);
   const [blessingOpen, setBlessingOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  // Step 5 (safety): for direct chats, either party blocking the other quiets the thread.
+  const [chatBlocked, setChatBlocked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -170,6 +172,18 @@ export const ChatThread: React.FC<{
   const person: ChatParticipant | undefined =
     thread && otherKey ? thread.participantInfo[otherKey] : undefined;
   const otherTyping = Boolean(otherKey && thread?.typing?.[otherKey]);
+
+  // Step 5 (safety): for direct chats, either party blocking the other quiets the thread.
+  useEffect(() => {
+    if (thread?.type !== 'direct' || !otherKey) { setChatBlocked(false); return; }
+    let alive = true;
+    (async () => {
+      const { hasBlocked } = await import('../social/safetyService');
+      const [a, b] = await Promise.all([hasBlocked(uid, otherKey), hasBlocked(otherKey, uid)]);
+      if (alive) setChatBlocked(a || b);
+    })();
+    return () => { alive = false; };
+  }, [thread?.type, otherKey, uid]);
 
   /* Phase 2 — money request wiring: recipient + org-sender context for RequestModal. */
   const recipient: RequestRecipient | null = useMemo(() => {
@@ -483,7 +497,19 @@ export const ChatThread: React.FC<{
         </div>
       )}
 
-      {/* Input bar */}
+      {/* Input bar — Step 5 (safety): blocked chats show a banner, input disabled. */}
+      {chatBlocked ? (
+        <div className="shrink-0 bg-stone-50 border-t border-stone-200 px-4 py-4 text-center">
+          <div className="text-2xl mb-1" aria-hidden>🕊️</div>
+          <p className="text-sm text-stone-600">
+            {lang === 'bn'
+              ? 'এই কথোপকথনটি শান্ত রাখা হয়েছে।'
+              : lang === 'hi'
+                ? 'यह बातचीत शांत रखी गई है।'
+                : 'This conversation is kept quiet.'}
+          </p>
+        </div>
+      ) : (
       <div className="shrink-0 bg-white border-t border-stone-200 px-2 py-2 flex items-end gap-1.5">
         <button
           type="button"
@@ -531,6 +557,7 @@ export const ChatThread: React.FC<{
           ➤
         </button>
       </div>
+      )}
 
       {blessingOpen && (
         <BlessingPicker

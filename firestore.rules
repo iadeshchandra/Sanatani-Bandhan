@@ -1419,6 +1419,33 @@ service cloud.firestore {
         || (isLoggedIn() && request.auth.uid == followerUid);
     }
 
+    // --- blocks/{blockerUid}/blocked/{targetUid}: user safety (Step 5).
+    // Read: blocker themselves (or superadmin) — blocked users can NEVER
+    // discover they were blocked. Write: blocker only, no self-block.
+    match /blocks/{blockerUid}/blocked/{targetUid} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == blockerUid);
+      allow create: if isLoggedIn()
+        && request.auth.uid == blockerUid
+        && blockerUid != targetUid
+        && request.resource.data.keys().hasOnly(['blockerUid', 'targetUid', 'createdAt']);
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == blockerUid);
+    }
+
+    // --- mutes/{muterUid}/muted/{targetUid}: user safety (Step 5).
+    // Same privacy model as blocks. Mute hides posts; DMs still allowed.
+    match /mutes/{muterUid}/muted/{targetUid} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == muterUid);
+      allow create: if isLoggedIn()
+        && request.auth.uid == muterUid
+        && muterUid != targetUid
+        && request.resource.data.keys().hasOnly(['muterUid', 'targetUid', 'createdAt']);
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && request.auth.uid == muterUid);
+    }
+
     // Group chats — private by default, invite-code only. No public
     // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&

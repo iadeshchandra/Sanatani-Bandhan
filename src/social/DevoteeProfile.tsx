@@ -14,6 +14,8 @@ import {
   getDevoteeProfile, getAuthorPosts, subscribeIsFollowing, setFollowing,
   type AuthorPostSummary,
 } from './devoteeService';
+import { SafetySheet } from './SafetySheet';
+import { hasBlocked } from './safetyService';
 import type { DevoteeProfile as Profile } from './types';
 
 const tr = (en: string, bn: string, hi: string, lang: string) =>
@@ -33,6 +35,8 @@ export const DevoteeProfile: React.FC<{ uid: string }> = ({ uid }) => {
   const [followBusy, setFollowBusy] = useState(false);
   const [msgBusy, setMsgBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
+  const [blockedMsg, setBlockedMsg] = useState(false);
 
   const isSelf = viewerUid === uid;
 
@@ -63,6 +67,15 @@ export const DevoteeProfile: React.FC<{ uid: string }> = ({ uid }) => {
     if (!viewerUid || isSelf || msgBusy) return;
     setMsgBusy(true);
     try {
+      // Step 5 (safety): either direction blocked → don't create the chat.
+      const [iBlocked, theyBlocked] = await Promise.all([
+        hasBlocked(viewerUid, uid),
+        hasBlocked(uid, viewerUid),
+      ]);
+      if (iBlocked || theyBlocked) {
+        setBlockedMsg(true);
+        return;
+      }
       const chatId = await getOrCreateDirectChat(
         viewerUid, uid,
         { uid: viewerUid, displayName: viewerName },
@@ -162,7 +175,32 @@ export const DevoteeProfile: React.FC<{ uid: string }> = ({ uid }) => {
             >
               {tr('💬 Message', '💬 বার্তা', '💬 संदेश', lang)}
             </button>
+            <button
+              onClick={() => setSafetyOpen(true)}
+              aria-label={tr('More actions', 'আরও', 'अधिक', lang)}
+              className="min-w-[44px] min-h-[44px] rounded-2xl bg-white border border-stone-200 text-stone-400 hover:text-stone-600"
+            >
+              ⋯
+            </button>
           </div>
+        )}
+        {blockedMsg && (
+          <div className="mt-4 px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-sm text-stone-600">
+            🕊️ {tr(
+              'Messaging is not available here. Wishing you both peace.',
+              'এখানে বার্তা পাঠানো যাবে না। উভয়ের জন্য শান্তি কামনা করি।',
+              'यहाँ संदेश नहीं भेजा जा सकता। आप दोनों के लिए शांति की कामना।',
+              lang,
+            )}
+          </div>
+        )}
+        {safetyOpen && (
+          <SafetySheet
+            viewerUid={viewerUid}
+            targetUid={uid}
+            targetName={profile.displayName}
+            onClose={() => setSafetyOpen(false)}
+          />
         )}
       </div>
 
