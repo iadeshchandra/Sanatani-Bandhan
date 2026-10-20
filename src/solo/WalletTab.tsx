@@ -8,6 +8,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
 import P2PScanSheet from '../chat/P2PScanSheet';
+import { WalletVdaCard } from './WalletVdaCard';
 import {
   getWallet, getTransactions, fileTopupClaim, myTopupClaims, ensureWallet, updateTopupClaim,
   currencyForRegion, fmtWallet, CURRENCY_SYMBOL, TOPUP_LIMITS, TOPUP_EXPIRY_HOURS,
@@ -437,6 +438,10 @@ export const WalletTab: React.FC = () => {
         </div>
       </Card>
       </div>
+
+      {/* Payment identity (discoverability fix #14): the spoken ID belongs in
+          the Wallet — claiming still happens in exactly one place (Profile). */}
+      <WalletVdaCard />
 
       {claims.filter((c) => claimDisplayStatus(c) === 'pending' || claimDisplayStatus(c) === 'expired').length > 0 && (
         <Card className="border-amber-200 bg-amber-50/60">

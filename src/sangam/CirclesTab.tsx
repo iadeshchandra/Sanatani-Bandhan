@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, useLocaleText, T } from './ui';
 import { CreateGroupSheet } from '../chat/groups/CreateGroupSheet';
+import { JoinGroupSheet } from '../chat/groups/JoinGroupSheet';
+import { useToast } from '../context/ToastContext';
 import type { ChatParticipant } from '../chat/types';
 
 /* Satsang Circles — topic/devotion-based groups.
@@ -23,8 +25,10 @@ const TOPICS = [
 export const CirclesTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
   const { circles, joinCircle, createCircle } = useSangam();
   const { tr } = useLocaleText();
+  const { showToast } = useToast();
   const [topicFilter, setTopicFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('bhajan');
   const [desc, setDesc] = useState('');
@@ -50,7 +54,13 @@ export const CirclesTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-extrabold text-stone-800"><T en="Satsang Circles" bn="সৎসঙ্গ বৃত্ত" hi="सत्संग मंडल" /></h2>
-        <Btn onClick={() => setCreateOpen(true)} className="!px-3">＋ {tr('New circle', 'নতুন বৃত্ত', 'नया मंडल')}</Btn>
+        <div className="flex gap-2 shrink-0">
+          {/* Invite-code door (discoverability fix #13): joining by code used
+              to hide in the chat overflow menu. Same JoinGroupSheet flow —
+              the code remains the only door into a private group. */}
+          <Btn variant="ghost" onClick={() => setJoinOpen(true)} className="!px-3">🔑 {tr('Join with code', 'কোড দিয়ে যোগ দিন', 'कोड से जुड़ें')}</Btn>
+          <Btn onClick={() => setCreateOpen(true)} className="!px-3">＋ {tr('New circle', 'নতুন বৃত্ত', 'नया मंडल')}</Btn>
+        </div>
       </div>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -110,6 +120,18 @@ export const CirclesTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
           prefill={{ name: `🪔 ${groupCircle.name}`, type: 'satsang' }}
           onClose={() => setGroupCircle(null)}
           onCreated={() => setGroupCircle(null)}
+        />
+      )}
+
+      {joinOpen && (
+        <JoinGroupSheet
+          uid={author.uid}
+          selfInfo={selfInfo}
+          onClose={() => setJoinOpen(false)}
+          onJoined={() => {
+            setJoinOpen(false);
+            showToast(tr('Welcome to the circle 🙏 Find your group in 💬 Messages.', 'বৃত্তে স্বাগতম 🙏 💬 বার্তায় আপনার দলটি খুঁজুন।', 'मंडल में स्वागत है 🙏 अपना समूह 💬 संदेशों में पाएँ।'), 'success');
+          }}
         />
       )}
 

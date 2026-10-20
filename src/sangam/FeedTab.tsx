@@ -4,7 +4,8 @@ import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, SyncLabel, u
 import type { SangamPost, PostKind, SangamReport } from './types';
 import { uploadFile, resolveVaultUrl } from '../lib/fileVault';
 import { ServiceCardFeedItem } from './ServiceCardFeedItem';
-import { applyServiceCardDensity } from './serviceCard';
+import { applyServiceCardDensity, serviceCardCooldownRemainingMs, cooldownMessage } from './serviceCard';
+import { SevaNoticeTab } from '../components/purohit/tabs/SevaNoticeTab';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { StoriesRail, CreateStorySheet, groupStoriesByAuthor, type Story } from './stories';
@@ -275,8 +276,9 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
 };
 
 const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; orgName: string } }> = ({ author, pageContext }) => {
-  const { createPost } = useSangam();
+  const { createPost, posts } = useSangam();
   const { tr, lang } = useLocaleText();
+  const [noticeOpen, setNoticeOpen] = useState(false);
   const vgl: VideoGuideLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<PostKind>('text');
@@ -292,6 +294,41 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showVideoGuide, setShowVideoGuide] = useState(false);
   const photoRef = useRef<HTMLInputElement>(null);
+
+  /* Seva Notice door (discoverability fix #11): a service_card is a SEVA
+   * NOTICE by a verified provider. Firestore rules accept service_cards
+   * only from authorKind purohit/jyotish, so the door appears for exactly
+   * those authors — never while posting as an org page. The desk itself
+   * (SevaNoticeTab) re-derives the provider identity, re-checks the
+   * 1-per-72h rhythm and validates the editorial bar — this door is a
+   * relocation of the existing composer, weakening no gate. */
+  const isProvider = !pageContext && (author.kind === 'purohit' || author.kind === 'jyotish');
+  const noticeCooldownMs = isProvider ? serviceCardCooldownRemainingMs(posts, author.uid) : 0;
+  const noticeLang: 'en' | 'hi' | 'bn' = lang === 'hi' ? 'hi' : lang === 'bn' ? 'bn' : 'en';
+  const noticeHrs = Math.ceil(noticeCooldownMs / 3600000);
+  const noticeDoor = isProvider ? (
+    <>
+      <button
+        type="button"
+        onClick={() => setNoticeOpen(true)}
+        className="w-full mt-2 flex items-center justify-between gap-2 px-4 py-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 hover:bg-amber-100 text-left min-h-[48px]"
+      >
+        <span className="text-sm font-bold text-amber-800">
+          🪔 {tr('Seva Notice', 'সেবা বিজ্ঞপ্তি', 'सेवा सूचना')}
+        </span>
+        <span className="text-[11px] font-semibold text-amber-700 text-right">
+          {noticeCooldownMs > 0
+            ? (noticeLang === 'hi' ? `अगली सूचना ~${noticeHrs} घंटे में` : noticeLang === 'bn' ? `পরের বিজ্ঞপ্তি ~${noticeHrs} ঘণ্টা পর` : `Next notice in ~${noticeHrs}h`)
+            : tr('Share a seva offering →', 'সেবার আহ্বান শেয়ার করুন →', 'सेवा प्रस्ताव साझा करें →')}
+        </span>
+      </button>
+      {noticeOpen && (
+        <Modal onClose={() => setNoticeOpen(false)} title={<>🪔 {tr('Seva Notice', 'সেবা বিজ্ঞপ্তি', 'सेवा सूचना')}</>}>
+          <SevaNoticeTab />
+        </Modal>
+      )}
+    </>
+  ) : null;
 
   /** Upload a photo from the device into the public File Vault tier, then
    *  attach the resulting vault:// URL to the post. Images are compressed
@@ -352,6 +389,7 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
         >
           {tr('Share a thought, shloka, or seva appeal…', 'ভাবনা, শ্লোক বা সেবার আবেদন শেয়ার করুন…', 'विचार, श्लोक या सेवा निवेदन साझा करें…')}
         </button>
+        {noticeDoor}
       </Card>
     );
   }
@@ -378,6 +416,7 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
           </button>
         ))}
       </div>
+      {noticeDoor}
       <textarea
         value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={1000}
         placeholder={kind === 'shloka'
