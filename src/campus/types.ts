@@ -40,6 +40,29 @@ export type ZoneCategory =
   | 'garden'         // garden / parikrama path
   | 'other';
 
+/** One daily open–close window, "HH:MM" 24-hour, temple-local time. */
+export interface ZoneTimeRange {
+  /** Opens at, e.g. "05:00". */
+  open: string;
+  /** Closes at, e.g. "21:00". Earlier than `open` = closes after midnight. */
+  close: string;
+}
+
+/**
+ * Structured zone hours — the computable companion to the free-text
+ * `hours` string. Powers the "Open now" badge (campus/openHours.ts).
+ * Absent/invalid = NO badge is ever shown (never a wrong badge).
+ */
+export interface ZoneOpenHours {
+  /**
+   * 1–2 daily ranges. Temples commonly split the day (morning darshan
+   * 5 AM–12 PM, evening 4–9 PM), so two ranges are first-class.
+   */
+  ranges: ZoneTimeRange[];
+  /** Weekdays fully closed: 0 = Sunday … 6 = Saturday (Date.getDay). */
+  closedDays?: number[];
+}
+
 export interface CampusZone {
   /** Stable id — never renamed after creation (Phase 2/3 reference it). */
   id: string;
@@ -62,6 +85,11 @@ export interface CampusZone {
   y?: number;
   /** e.g. "5:00 AM – 12:00 PM, 4:00 PM – 9:00 PM" */
   hours?: string;
+  /**
+   * Structured hours for the computed "Open now" badge. Optional —
+   * the free-text `hours` above stays as the display note / fallback.
+   */
+  openHours?: ZoneOpenHours;
 }
 
 /**

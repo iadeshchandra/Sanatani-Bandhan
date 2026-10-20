@@ -1,4 +1,5 @@
 export * from './types';
+export * from './openHours';
 export * from './campusService';
 export * from './reporting';
 export * from './zoneQr';

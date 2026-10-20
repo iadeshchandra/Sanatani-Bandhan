@@ -23,7 +23,14 @@ import {
   type CampusZone,
   type OrgKind,
   type ZoneCategory,
+  type ZoneOpenHours,
 } from './types';
+import {
+  buildOpenHours,
+  draftRangesFrom,
+  normalizeOpenHours,
+  type RangeDraft,
+} from './openHours';
 import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
 import '../crisis/leaflet.css';
 
@@ -52,6 +59,122 @@ const emptyZone = (): CampusZone => ({
   name: '',
   category: 'other',
 });
+
+const DAY_CHIP_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Structured-hours editor (QUEUED #19) — the trustee side of the
+ * "Open now" badge. Optional in every way: empty = the zone simply
+ * shows its free-text hours note and NO badge. Only complete, valid
+ * ranges persist (buildOpenHours drops half-typed input), so a badge
+ * can never appear from partial data. Mounted with key={zone.id} so
+ * its draft state resets per zone.
+ */
+const ZoneHoursEditor: React.FC<{
+  zone: CampusZone;
+  onChange: (hours: ZoneOpenHours | undefined) => void;
+}> = ({ zone, onChange }) => {
+  const [drafts, setDrafts] = useState<RangeDraft[]>(() => draftRangesFrom(zone.openHours));
+  const [showSecond, setShowSecond] = useState<boolean>(() => {
+    const r = draftRangesFrom(zone.openHours);
+    return Boolean(r[1].open || r[1].close);
+  });
+  const [closedDays, setClosedDays] = useState<number[]>(
+    () => normalizeOpenHours(zone.openHours)?.closedDays ?? [],
+  );
+
+  const emit = (d: RangeDraft[], cd: number[], second: boolean) => {
+    onChange(buildOpenHours(second ? d : [d[0]], cd));
+  };
+  const setRange = (i: number, patch: Partial<RangeDraft>) => {
+    const next = drafts.map((r, j) => (j === i ? { ...r, ...patch } : r));
+    setDrafts(next);
+    emit(next, closedDays, showSecond);
+  };
+  const toggleDay = (d: number) => {
+    const next = closedDays.includes(d)
+      ? closedDays.filter((x) => x !== d)
+      : [...closedDays, d].sort((a, b) => a - b);
+    setClosedDays(next);
+    emit(drafts, next, showSecond);
+  };
+
+  const timeField = (i: number, field: 'open' | 'close', label: string) => (
+    <label className="block">
+      <span className="text-[11px] font-bold text-stone-500 uppercase">{label}</span>
+      <input
+        type="time"
+        value={drafts[i][field]}
+        onChange={(e) => setRange(i, { [field]: e.target.value })}
+        aria-label={`${label} time for ${zone.name || 'zone'}`}
+        className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+      />
+    </label>
+  );
+
+  return (
+    <div className="rounded-xl bg-amber-50/60 border border-amber-100 px-3 py-3">
+      <span className="text-[11px] font-bold text-stone-500 uppercase">
+        Open-now badge (optional)
+      </span>
+      <p className="text-[12px] text-stone-500 mt-1 leading-relaxed">
+        Set the daily hours and devotees see a live “Open now · closes …” badge
+        on the map. Leave empty if timings change often — no badge is better
+        than a wrong one.
+      </p>
+      <div className="grid grid-cols-2 gap-3 mt-2.5">
+        {timeField(0, 'open', 'Opens')}
+        {timeField(0, 'close', 'Closes')}
+      </div>
+      {showSecond ? (
+        <div className="mt-2.5">
+          <div className="grid grid-cols-2 gap-3">
+            {timeField(1, 'open', 'Opens again')}
+            {timeField(1, 'close', 'Closes')}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setShowSecond(false); emit(drafts, closedDays, false); }}
+            className="mt-1.5 text-[12px] font-bold text-red-700 min-h-[36px] px-2"
+          >
+            ✕ Remove second session
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowSecond(true)}
+          className="mt-2 text-[12px] font-bold text-amber-800 min-h-[36px] px-2"
+        >
+          ＋ Add a second session (e.g. evening aarti)
+        </button>
+      )}
+      <div className="mt-2">
+        <span className="text-[11px] font-bold text-stone-500 uppercase">Closed on</span>
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {DAY_CHIP_LABELS.map((label, d) => {
+            const active = closedDays.includes(d);
+            return (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={active}
+                onClick={() => toggleDay(d)}
+                className={`min-h-[40px] px-3 rounded-full text-[12px] font-bold border transition-colors ${
+                  active
+                    ? 'bg-stone-800 text-white border-stone-800'
+                    : 'bg-white text-stone-600 border-stone-300 hover:border-amber-400'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const CampusBuilder: React.FC<Props> = ({ orgId, orgName, orgKind, uid, onSaved }) => {
   const [mode, setMode] = useState<CampusMode>('geo');
@@ -374,6 +497,11 @@ export const CampusBuilder: React.FC<Props> = ({ orgId, orgName, orgKind, uid, o
                       className="mt-1 w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </label>
+                  <ZoneHoursEditor
+                    key={z.id}
+                    zone={z}
+                    onChange={(openHours) => patchZone(z.id, { openHours })}
+                  />
                   {/* 10-language content — optional, falls back to the default name */}
                   <details className="rounded-xl bg-stone-50 border border-stone-200 px-3 py-2.5">
                     <summary className="text-[13px] font-bold text-stone-600 cursor-pointer min-h-[32px] flex items-center">

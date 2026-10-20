@@ -14,6 +14,7 @@ import { MapPin, Navigation, Clock, X, Church, BadgeCheck, QrCode } from 'lucide
 import { subscribeToCampusMap } from './campusService';
 import { subscribeToZoneReports, sweepExpiredReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
+import { normalizeOpenHours, openStatusLabel, zoneOpenStatus } from './openHours';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { RecordVisitButton } from '../tirtha/RecordVisitButton';
@@ -95,6 +96,20 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
     const t = setInterval(() => setNowMs(Date.now()), reportRefreshMs(festivalMode));
     return () => clearInterval(t);
   }, [hasLiveReports, festivalMode]);
+
+  // "Open now" freshness (QUEUED #19): same render-only law as the
+  // sweep above — a 60s local tick re-computes zone open/closed badges
+  // from `nowMs`. It NEVER touches a subscription or Firestore; it
+  // runs only while at least one zone carries structured hours.
+  const anyStructuredHours = useMemo(
+    () => (map?.zones ?? []).some((z) => normalizeOpenHours(z.openHours)),
+    [map],
+  );
+  useEffect(() => {
+    if (!anyStructuredHours) return;
+    const t = setInterval(() => setNowMs(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, [anyStructuredHours]);
 
   const reportsByZone = useMemo(() => {
     const m = new Map<string, ZoneReport[]>();
@@ -179,6 +194,11 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
     z.lat != null && z.lng != null
       ? `https://www.google.com/maps/dir/?api=1&destination=${z.lat},${z.lng}`
       : null;
+
+  // Null when the zone has no valid structured hours → NO badge
+  // (openHours.ts honesty law: never show a guessed open/closed state).
+  const nowDate = new Date(nowMs);
+  const selectedStatus = selected ? zoneOpenStatus(selected.openHours, nowDate) : null;
 
   return (
     <div>
@@ -277,6 +297,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
           const url = dirUrl(z);
           const zReports = reportsByZone.get(z.id) ?? [];
           const topReport = zReports[0];
+          const zStatus = zoneOpenStatus(z.openHours, nowDate);
           return (
             <button
               key={z.id}
@@ -292,6 +313,21 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
                   <span className="inline-flex items-center gap-1 mt-1 text-[12px] font-bold text-amber-800 bg-amber-100 rounded-full px-2.5 py-1">
                     <span aria-hidden>{REPORT_META[topReport.type].icon}</span>
                     {REPORT_META[topReport.type].label}
+                  </span>
+                )}
+                {zStatus && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 mt-1 ml-1 text-[12px] font-bold rounded-full px-2.5 py-1 border ${
+                      zStatus.state === 'open'
+                        ? 'text-emerald-900 bg-emerald-100 border-emerald-200'
+                        : 'text-stone-500 bg-stone-100 border-stone-200'
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className={`w-2 h-2 rounded-full ${zStatus.state === 'open' ? 'bg-emerald-500' : 'bg-stone-400'}`}
+                    />
+                    {openStatusLabel(zStatus, nowDate)}
                   </span>
                 )}
               </span>
@@ -341,6 +377,26 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
             )}
             {zoneLabel(selected, currentLang).description && (
               <p className="text-[15px] text-stone-700 mt-4 leading-relaxed">{zoneLabel(selected, currentLang).description}</p>
+            )}
+            {selectedStatus && (
+              <div className="mt-4">
+                <span
+                  className={`inline-flex items-center gap-2 text-[14px] font-extrabold rounded-full px-3.5 py-2 border ${
+                    selectedStatus.state === 'open'
+                      ? 'text-emerald-900 bg-emerald-100 border-emerald-300'
+                      : 'text-stone-600 bg-stone-200/70 border-stone-300'
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`w-2.5 h-2.5 rounded-full ${selectedStatus.state === 'open' ? 'bg-emerald-500' : 'bg-stone-400'}`}
+                  />
+                  {openStatusLabel(selectedStatus, nowDate)}
+                </span>
+                <p className="text-[11px] text-stone-400 mt-1.5">
+                  Temple times, read on this device's clock.
+                </p>
+              </div>
             )}
             {selected.hours && (
               <p className="flex items-center gap-2 text-[14px] font-semibold text-stone-600 mt-3">
