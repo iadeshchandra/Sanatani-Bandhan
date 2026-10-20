@@ -566,12 +566,16 @@ export const ChatThread: React.FC<{
         >
           🪔
         </button>
+        {/* AUDIT 2026-10-20: disabled while the thread isn't resolved —
+            recipient is null until threads load or when the deep-linked id
+            is unknown; a silent no-op here stranded the money-request CTA. */}
         <button
           type="button"
           onClick={() => setRequestOpen(true)}
+          disabled={!recipient}
           aria-label="Send a money request"
           title="Money request"
-          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-100 hover:bg-amber-200 text-xl flex items-center justify-center shrink-0"
+          className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-amber-100 hover:bg-amber-200 disabled:opacity-40 disabled:hover:bg-amber-100 text-xl flex items-center justify-center shrink-0"
         >
           🙏
         </button>

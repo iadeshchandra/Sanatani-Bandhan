@@ -16,13 +16,23 @@ interface Props {
   onOpenViewer: (authorUid: string, storyIndex: number) => void;
   onCreate: () => void;
   viewedIds: Set<string>;
+  /** Owner-hidden content ids (GodMode → Moderation) — filtered out. */
+  hiddenIds?: Set<string>;
 }
 
 const AVATAR = 60;
 
-export const StoriesRail: React.FC<Props> = ({ uid, lang, onOpenViewer, onCreate, viewedIds }) => {
+export const StoriesRail: React.FC<Props> = ({ uid, lang, onOpenViewer, onCreate, viewedIds, hiddenIds }) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  // Expiry is lazy: the subscription's expiresAt threshold is fixed at
+  // subscribe time, so re-filter every minute — stories that expire
+  // mid-session vanish instead of lingering until new data arrives.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((x) => x + 1), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -33,7 +43,13 @@ export const StoriesRail: React.FC<Props> = ({ uid, lang, onOpenViewer, onCreate
     return unsub;
   }, []);
 
-  const groups = useMemo(() => groupStoriesByAuthor(stories), [stories]);
+  const groups = useMemo(() => {
+    void tick; // re-run as time passes so expired stories vanish mid-session
+    const visible = hiddenIds && hiddenIds.size > 0
+      ? stories.filter((s) => !hiddenIds.has(s.id))
+      : stories;
+    return groupStoriesByAuthor(visible, Date.now());
+  }, [stories, hiddenIds, tick]);
   const mine = groups.find((g) => g.authorUid === uid);
   const others = groups.filter((g) => g.authorUid !== uid);
 

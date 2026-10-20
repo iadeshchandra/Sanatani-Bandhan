@@ -130,15 +130,33 @@ export function sanitizeVideo(input: {
   providerUid?: string;
   providerTier?: string;
 }): Omit<WatchVideo, 'id' | 'createdAt' | 'reportCount' | 'thumbnailUrl'> {
-  return {
+  // AUDIT FIX (Domain 3): Firestore `setDoc` REJECTS `undefined` field values
+  // ("Unsupported field value: undefined"). The old builder spread undefined
+  // optionals (sharedBySanId for devotees without a SAN id, caption when
+  // empty, providerUid/providerTier for non-seva_demo), so sharing a video
+  // threw for most users. Optionals are only set when present.
+  const clean: Omit<WatchVideo, 'id' | 'createdAt' | 'reportCount' | 'thumbnailUrl'> = {
     youtubeId: input.youtubeId,
     title: input.title.trim().slice(0, 120),
-    caption: (input.caption || '').trim().slice(0, 500) || undefined,
     sharedBy: input.sharedBy,
     sharedByName: input.sharedByName.trim().slice(0, 80),
-    sharedBySanId: input.sharedBySanId,
     category: input.category,
-    providerUid: input.providerUid,
-    providerTier: input.providerTier,
   };
+  const caption = (input.caption || '').trim().slice(0, 500);
+  if (caption) clean.caption = caption;
+  if (input.sharedBySanId) clean.sharedBySanId = input.sharedBySanId;
+  if (input.providerUid) clean.providerUid = input.providerUid;
+  if (input.providerTier) clean.providerTier = input.providerTier;
+  return clean;
+}
+
+/**
+ * Newest-first ordering for Watch videos. Pure.
+ * The category query deliberately avoids `orderBy` (a where(category ==)
+ * + orderBy(createdAt) needs a composite index that may not exist on a
+ * fresh project — the failure is silent, so the feed would render empty).
+ * We fetch the bounded window and sort client-side instead.
+ */
+export function sortVideosNewest(videos: WatchVideo[]): WatchVideo[] {
+  return [...videos].sort((a, b) => b.createdAt - a.createdAt);
 }

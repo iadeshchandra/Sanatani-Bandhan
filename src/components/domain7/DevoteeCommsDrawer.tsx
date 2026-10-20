@@ -28,7 +28,7 @@ import { collection, addDoc, query, where, orderBy, limit, onSnapshot, serverTim
 import { db } from '../../firebase';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { useToast } from '../../context/ToastContext';
-import { VisitRecord } from './YatraNetDesk';
+import type { VisitRecord } from './YatraNetDesk';
 import { DevoteeMember } from '../../types';
 
 export interface DevoteeCommsDrawerProps {

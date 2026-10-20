@@ -528,7 +528,11 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                 <div className="max-w-[92%]">
                   <div className="rounded-2xl rounded-bl-md bg-stone-100 border border-stone-200/60 px-4 py-3 text-[15px] text-stone-800 leading-relaxed whitespace-pre-wrap">
                     {m.text}
-                    {m.action && <ActionCta action={m.action} onRun={runAction} />}
+                    {/* requestLocation is a hint, not a CTA — the
+                        location_consent card below already owns that flow. */}
+                    {m.action && m.action.kind !== 'requestLocation' && (
+                      <ActionCta action={m.action} onRun={runAction} />
+                    )}
                   </div>
 
                   {m.kind === 'sos' && (

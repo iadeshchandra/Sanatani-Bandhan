@@ -196,7 +196,7 @@ export interface SangamReport {
   id: string;
   reporterUid: string;
   reporterName: string;
-  targetType: 'post' | 'comment' | 'circle' | 'event' | 'short' | 'video' | 'user';
+  targetType: 'post' | 'comment' | 'circle' | 'event' | 'short' | 'video' | 'story' | 'user';
   targetId: string;
   reason: 'spam' | 'impersonation' | 'inappropriate' | 'misinformation' | 'other';
   details?: string;

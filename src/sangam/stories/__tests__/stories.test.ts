@@ -10,6 +10,7 @@ import {
   toStory,
   backgroundCss,
   storyAge,
+  sortStoriesNewest,
   STORY_TTL_MS,
   STORY_TEXT_MAX,
   type Story,
@@ -146,4 +147,19 @@ describe('storyAge', () => {
   it('now for < 1 min', () => { expect(storyAge(NOW - 30_000, NOW)).toBe('now'); });
   it('minutes', () => { expect(storyAge(NOW - 25 * 60_000, NOW)).toBe('25m'); });
   it('hours', () => { expect(storyAge(NOW - 5 * 3600_000, NOW)).toBe('5h'); });
+});
+
+describe('sortStoriesNewest (Domain 3 audit fix)', () => {
+  it('orders by expiresAt desc, then createdAt desc', () => {
+    const a = mkStory({ id: 'a', expiresAt: NOW + 10, createdAt: NOW - 300 });
+    const b = mkStory({ id: 'b', expiresAt: NOW + 30, createdAt: NOW - 100 });
+    const c = mkStory({ id: 'c', expiresAt: NOW + 30, createdAt: NOW - 50 });
+    const sorted = sortStoriesNewest([a, b, c]);
+    expect(sorted.map((s) => s.id)).toEqual(['c', 'b', 'a']);
+  });
+  it('does not mutate the input', () => {
+    const list = [mkStory({ id: 'a', expiresAt: NOW + 1 }), mkStory({ id: 'b', expiresAt: NOW + 2 })];
+    sortStoriesNewest(list);
+    expect(list[0].id).toBe('a');
+  });
 });

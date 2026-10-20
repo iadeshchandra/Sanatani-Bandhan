@@ -431,6 +431,7 @@ export const professional: ProfessionalFragment = {
       },
       marketplace: {
         findJyotishi: "জ্যোতিষী খুঁজুন",
+        city: "শহর",
         myConsultations: "আমার পরামর্শ",
         postRequirement: "পরামর্শের চাহিদা পোস্ট করুন",
         postNote: "যেকোনো নিবন্ধিত জ্যোতিষী গ্রহণ করতে পারেন। জন্মবিবরণ শুধু কুষ্ঠি পাঠে ব্যবহৃত হয়।",

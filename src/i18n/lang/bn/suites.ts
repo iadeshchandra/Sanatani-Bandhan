@@ -441,6 +441,7 @@ export const suites = {
     completed: "পালিত",
     planned: "পরিকল্পিত",
     notApplicable: "প্রযোজ্য নয়",
+    "not-applicable": "প্রযোজ্য নয়",
     posted: "পোস্ট করা",
     pending: "বিচারাধীন",
   },

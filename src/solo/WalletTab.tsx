@@ -40,9 +40,10 @@ function TxnIcon({ type }: { type: string }) {
   return <History className="w-4 h-4 text-stone-400" />;
 }
 
-const TXN_LABEL: Record<string, string> = {
-  topup: 'Top-up', spend: 'Seva offering', receive: 'Dakshina received', commission: 'Seva contribution',
-  refund: 'Refund', adjustment: 'Adjustment', topup_request: 'Top-up request',
+const TXN_LABEL_KEY: Record<string, string> = {
+  topup: 'solo.wallet.txnTopup', spend: 'solo.wallet.txnSpend', receive: 'solo.wallet.txnReceive',
+  commission: 'solo.wallet.txnCommission', refund: 'solo.wallet.txnRefund',
+  adjustment: 'solo.wallet.txnAdjustment', topup_request: 'solo.wallet.txnTopupRequest',
 };
 
 /** Reused by provider shells (Purohit/Jyotish) as the `seva-pro:open-topup`
@@ -100,52 +101,52 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
   const amt = Math.round(Number(amount));
 
   const submit = async () => {
-    if (!amt || amt <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+    if (!amt || amt <= 0) { showToast(t('solo.wallet.enterAmount'), 'error'); return; }
     if (amt < limits.min || amt > limits.max) {
-      showToast(`Amount must be between ${fmtWallet(limits.min, currency)} and ${fmtWallet(limits.max, currency)}.`, 'error');
+      showToast(t('solo.wallet.amountBetween').replace('{min}', fmtWallet(limits.min, currency)).replace('{max}', fmtWallet(limits.max, currency)), 'error');
       return;
     }
-    if (!methodId) { showToast('Choose a payment method.', 'error'); return; }
-    if (!trxId.trim()) { showToast('Enter the transaction ID from your payment app.', 'error'); return; }
+    if (!methodId) { showToast(t('solo.wallet.chooseMethod'), 'error'); return; }
+    if (!trxId.trim()) { showToast(t('solo.wallet.enterTrxId'), 'error'); return; }
     setWorking(true);
     try {
       const { reference: ref } = await fileTopupClaim({
         amount: amt, currency, paymentMethodId: methodId, trxId: trxId.trim(), reference,
       });
-      showToast(`Top-up request ${ref} submitted! The owner will verify and credit your wallet.`, 'success');
+      showToast(t('solo.wallet.topupSubmitted').replace('{ref}', ref), 'success');
       onDone();
-    } catch (e: any) { showToast(e.message || 'Submission failed.', 'error'); }
+    } catch (e: any) { showToast(e.message || t('solo.wallet.submissionFailed'), 'error'); }
     setWorking(false);
   };
 
-  const copy = (t: string, label = 'Copied') => {
-    navigator.clipboard?.writeText(t).catch(() => {});
-    showToast(`${label}: ${t}`, 'success');
+  const copy = (text: string, label: string) => {
+    navigator.clipboard?.writeText(text).catch(() => {});
+    showToast(`${label}: ${text}`, 'success');
   };
 
   const regenerateRef = () => {
     const ref = generateTopupReference();
     setReference(ref);
-    showToast(`New reference: ${ref}`, 'success');
+    showToast(`${t('solo.wallet.newReference')}: ${ref}`, 'success');
   };
 
   return (
     <div className="space-y-3">
-      <button type="button" onClick={onBack} className={btnG}><ChevronLeft className="w-4 h-4 inline" /> Back</button>
+      <button type="button" onClick={onBack} className={btnG}><ChevronLeft className="w-4 h-4 inline" /> {t('common.back')}</button>
       <Card>
-        <p className="text-sm font-black text-stone-900 mb-1">Top up {sym} wallet</p>
+        <p className="text-sm font-black text-stone-900 mb-1">{t('solo.wallet.topUpTitle').replace('{sym}', sym)}</p>
         <p className="text-[11px] text-stone-500 mb-3">
-          Min {fmtWallet(limits.min, currency)} · Max {fmtWallet(limits.max, currency)}
+          {t('solo.wallet.minMax').replace('{min}', fmtWallet(limits.min, currency)).replace('{max}', fmtWallet(limits.max, currency))}
         </p>
         <div className="flex gap-1.5 mb-3">
           {(['BD', 'IN', 'INTL'] as const).map((r) => (
             <button key={r} type="button" onClick={() => switchRegion(r)}
               className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-stone-100 text-stone-600'}`}>
-              {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
+              {r === 'BD' ? t('solo.wallet.regionBD') : r === 'IN' ? t('solo.wallet.regionIN') : t('solo.wallet.regionINTL')}
             </button>
           ))}
         </div>
-        <Field label={`Amount (${fmtWallet(limits.min, currency)} – ${fmtWallet(limits.max, currency)})`}>
+        <Field label={t('solo.wallet.amountRange').replace('{min}', fmtWallet(limits.min, currency)).replace('{max}', fmtWallet(limits.max, currency))}>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-black text-stone-500">{sym}</span>
             <input
@@ -157,10 +158,10 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
         </Field>
         {amount && (amt < limits.min || amt > limits.max) && (
           <p className="text-[11px] text-red-600 font-bold -mt-2 mb-2">
-            Amount must be between {fmtWallet(limits.min, currency)} and {fmtWallet(limits.max, currency)}.
+            {t('solo.wallet.amountBetween').replace('{min}', fmtWallet(limits.min, currency)).replace('{max}', fmtWallet(limits.max, currency))}
           </p>
         )}
-        <Field label="Payment method">
+        <Field label={t('solo.wallet.paymentMethod')}>
           <select value={methodId} onChange={(e) => setMethodId(e.target.value)} className={inputCls}>
             {methods.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
@@ -169,7 +170,7 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
 
       {method && amt >= limits.min && amt <= limits.max && (
         <Card className="bg-amber-50/60 border-amber-200">
-          <p className="text-xs font-black text-amber-900 mb-2">How to pay — {method.label}</p>
+          <p className="text-xs font-black text-amber-900 mb-2">{t('solo.wallet.howToPay').replace('{label}', method.label)}</p>
 
           <div className="flex items-center justify-between bg-white rounded-xl border border-amber-200 px-3 py-2 mb-2">
             <div>
@@ -177,18 +178,18 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
               <p className="font-mono font-black text-stone-900 tracking-wider">{reference}</p>
             </div>
             <div className="flex gap-1">
-              <button type="button" onClick={() => copy(reference, 'Reference copied')}
-                className="p-2 rounded-lg bg-amber-100 hover:bg-amber-200 min-h-[44px] min-w-[44px] flex items-center justify-center" title="Copy reference">
+              <button type="button" onClick={() => copy(reference, t('solo.wallet.copiedReference'))}
+                className="p-2 rounded-lg bg-amber-100 hover:bg-amber-200 min-h-[44px] min-w-[44px] flex items-center justify-center" title={t('solo.wallet.copyReference')}>
                 <Copy className="w-4 h-4 text-amber-700" />
               </button>
               <button type="button" onClick={regenerateRef}
-                className="p-2 rounded-lg bg-stone-100 hover:bg-stone-200 min-h-[44px] min-w-[44px] flex items-center justify-center" title="New reference">
+                className="p-2 rounded-lg bg-stone-100 hover:bg-stone-200 min-h-[44px] min-w-[44px] flex items-center justify-center" title={t('solo.wallet.newReference')}>
                 <RefreshCw className="w-4 h-4 text-stone-500" />
               </button>
             </div>
           </div>
 
-          <button type="button" onClick={() => copy(String(amt), 'Amount copied')}
+          <button type="button" onClick={() => copy(String(amt), t('solo.wallet.copiedAmount'))}
             className="w-full flex items-center justify-between bg-white rounded-xl border-2 border-amber-300 px-3 py-2.5 mb-2 min-h-[52px]">
             <div className="text-left">
               <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{t('solo.wallet.sendExactly')}</p>
@@ -197,40 +198,40 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
             <Copy className="w-5 h-5 text-amber-600" />
           </button>
           <p className="text-[11px] font-bold text-red-700 bg-red-50 rounded-lg px-2.5 py-1.5 mb-2">
-            ⚠️ The amount you send must match exactly — {fmtWallet(amt, currency)}, not more, not less.
+            ⚠️ {t('solo.wallet.amountMustMatch').replace('{amount}', fmtWallet(amt, currency))}
           </p>
 
           {method.qrImageUrl && (
-            <img src={method.qrImageUrl} alt="Payment QR" className="w-40 h-40 mx-auto rounded-xl border border-amber-200 mb-2"
+            <img src={method.qrImageUrl} alt={t('solo.wallet.paymentQr')} className="w-40 h-40 mx-auto rounded-xl border border-amber-200 mb-2"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           )}
           {method.number && (
-            <button type="button" onClick={() => copy(method.number!, 'Number copied')} className="flex items-center gap-2 mx-auto mb-2 px-3 py-2 bg-white rounded-xl border border-amber-200 min-h-[44px]">
+            <button type="button" onClick={() => copy(method.number!, t('solo.wallet.copiedNumber'))} className="flex items-center gap-2 mx-auto mb-2 px-3 py-2 bg-white rounded-xl border border-amber-200 min-h-[44px]">
               <span className="font-mono font-black text-stone-900">{method.number}</span><Copy className="w-4 h-4 text-stone-400" />
             </button>
           )}
           {method.upiId && (
-            <button type="button" onClick={() => copy(method.upiId!, 'UPI ID copied')} className="flex items-center gap-2 mx-auto mb-2 px-3 py-2 bg-white rounded-xl border border-amber-200 min-h-[44px]">
+            <button type="button" onClick={() => copy(method.upiId!, t('solo.wallet.copiedUpiId'))} className="flex items-center gap-2 mx-auto mb-2 px-3 py-2 bg-white rounded-xl border border-amber-200 min-h-[44px]">
               <span className="font-mono font-black text-stone-900">{method.upiId}</span><Copy className="w-4 h-4 text-stone-400" />
             </button>
           )}
           {method.link && (
-            <a href={method.link} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline mb-2 min-h-[44px] py-3">Open {method.label} →</a>
+            <a href={method.link} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline mb-2 min-h-[44px] py-3">{t('solo.wallet.openMethod').replace('{label}', method.label)}</a>
           )}
           <ol className="text-[11px] text-amber-900 space-y-1 list-decimal list-inside">
             {method.instructionsEn.map((s, i) => <li key={i}>{s}</li>)}
           </ol>
           <p className="text-[10px] text-stone-400 mt-2 text-center">
-            Include reference <span className="font-mono font-bold">{reference}</span> in your payment notes if possible.
-            Request expires in {TOPUP_EXPIRY_HOURS}h.
+            {t('solo.wallet.includeReferenceNote').replace('{reference}', reference)}{' '}
+            {t('solo.wallet.requestExpires').replace('{hours}', String(TOPUP_EXPIRY_HOURS))}
           </p>
         </Card>
       )}
 
       <Card>
-        <Field label="Transaction / reference ID (from your payment app)*">
+        <Field label={t('solo.wallet.trxIdLabel')}>
           <input value={trxId} onChange={(e) => setTrxId(e.target.value)} className={inputCls}
-            placeholder="e.g. TRX9F8K2P1A — found in your bKash/Nagad/UPI app history" />
+            placeholder={t('solo.wallet.trxIdHint')} />
           <p className="text-[10px] text-stone-400 mt-1">
             {amt > 0
               ? t('solo.wallet.trxIdMustMatchAmount').replace('{amount}', fmtWallet(amt, currency))
@@ -238,7 +239,7 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
           </p>
         </Field>
         <Btn variant="primary" className="w-full min-h-[48px]" disabled={working} onClick={submit}>
-          {working ? 'Submitting…' : `Submit top-up request (${reference})`}
+          {working ? t('solo.wallet.submitting') : t('solo.wallet.submitTopUp').replace('{reference}', reference)}
         </Btn>
         <p className="text-[10px] text-stone-400 mt-2 text-center">{t('solo.wallet.creditedNote')}</p>
       </Card>
@@ -267,7 +268,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
       });
       showToast(t('solo.wallet.topUpUpdated'), 'success');
       onSaved();
-    } catch (e: any) { showToast(e.message || 'Update failed.', 'error'); }
+    } catch (e: any) { showToast(e.message || t('solo.wallet.updateFailed'), 'error'); }
     setWorking(false);
   };
 
@@ -276,25 +277,25 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
       <p className="text-sm font-black text-stone-900 mb-1">{t('solo.wallet.editTopUp')}</p>
       <p className="text-[11px] text-stone-500 mb-3 font-mono">{claim.reference || ''} · {fmtWallet(claim.amount, claim.currency)}</p>
       <div className="space-y-3">
-        <Field label={`Amount (${fmtWallet(limits.min, claim.currency)} – ${fmtWallet(limits.max, claim.currency)})`}>
+        <Field label={t('solo.wallet.amountRange').replace('{min}', fmtWallet(limits.min, claim.currency)).replace('{max}', fmtWallet(limits.max, claim.currency))}>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 font-black text-stone-500">{sym}</span>
             <input type="number" min={limits.min} max={limits.max} value={amount}
               onChange={(e) => setAmount(e.target.value)} className={`${inputCls} pl-8`} />
           </div>
         </Field>
-        <Field label="Transaction / reference ID*">
+        <Field label={t('solo.wallet.trxIdLabelShort')}>
           <input value={trxId} onChange={(e) => setTrxId(e.target.value)} className={inputCls}
-            placeholder="Correct TrxID from your payment app" />
+            placeholder={t('solo.wallet.correctTrxId')} />
         </Field>
-        <Field label="Screenshot URL (optional)">
+        <Field label={t('solo.wallet.screenshotUrl')}>
           <input value={screenshotUrl} onChange={(e) => setScreenshotUrl(e.target.value)} className={inputCls}
             placeholder="https://…" />
         </Field>
         <div className="flex gap-2">
           <Btn variant="ghost" className="flex-1" onClick={onClose}>{t('common.cancel')}</Btn>
           <Btn variant="primary" className="flex-1" disabled={working} onClick={save}>
-            {working ? 'Saving…' : 'Resubmit'}
+            {working ? t('solo.wallet.saving') : t('solo.wallet.resubmit')}
           </Btn>
         </div>
       </div>
@@ -404,7 +405,7 @@ export const WalletTab: React.FC = () => {
           <button
             type="button"
             onClick={load}
-            aria-label="Refresh"
+            aria-label={t('solo.wallet.refresh')}
             className="min-h-[48px] px-4 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold self-start"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -439,7 +440,7 @@ export const WalletTab: React.FC = () => {
 
       {claims.filter((c) => claimDisplayStatus(c) === 'pending' || claimDisplayStatus(c) === 'expired').length > 0 && (
         <Card className="border-amber-200 bg-amber-50/60">
-          <p className="text-xs font-black text-amber-900 mb-2 flex items-center gap-1.5"><Clock className="w-4 h-4" /> Top-up requests</p>
+          <p className="text-xs font-black text-amber-900 mb-2 flex items-center gap-1.5"><Clock className="w-4 h-4" /> {t('solo.wallet.topUpRequests')}</p>
           {claims.filter((c) => claimDisplayStatus(c) === 'pending' || claimDisplayStatus(c) === 'expired').map((c) => {
             const ds = claimDisplayStatus(c);
             const expired = ds === 'expired';
@@ -451,17 +452,17 @@ export const WalletTab: React.FC = () => {
                     <p className="text-[10px] text-stone-500 font-mono">{c.reference || '—'} · TrxID {maskTrxId(c.trxId)}</p>
                   </div>
                   <span className={`text-[10px] font-black px-2 py-1 rounded-full shrink-0 ${expired ? 'bg-stone-200 text-stone-600' : 'bg-amber-200 text-amber-800'}`}>
-                    {expired ? 'Expired' : 'Pending'}
+                    {expired ? t('solo.wallet.expired') : t('solo.wallet.pending')}
                   </span>
                 </div>
                 {!expired && (
                   <button type="button" onClick={() => setEditingClaim(c)}
                     className="mt-1.5 text-[11px] font-bold text-amber-700 underline underline-offset-2 min-h-[32px]">
-                    Edit &amp; resubmit TrxID
+                    {t('solo.wallet.editResubmit')}
                   </button>
                 )}
                 {expired && (
-                  <p className="text-[10px] text-stone-400 mt-1">Expired after {TOPUP_EXPIRY_HOURS}h — file a new request to top up.</p>
+                  <p className="text-[10px] text-stone-400 mt-1">{t('solo.wallet.expiredNote').replace('{hours}', String(TOPUP_EXPIRY_HOURS))}</p>
                 )}
               </div>
             );
@@ -470,11 +471,11 @@ export const WalletTab: React.FC = () => {
       )}
       {claims.filter((c) => c.status === 'rejected').length > 0 && (
         <Card className="border-red-200 bg-red-50/60">
-          <p className="text-xs font-black text-red-900 mb-1 flex items-center gap-1.5"><XCircle className="w-4 h-4" /> Rejected top-ups</p>
+          <p className="text-xs font-black text-red-900 mb-1 flex items-center gap-1.5"><XCircle className="w-4 h-4" /> {t('solo.wallet.rejectedTopUps')}</p>
           {claims.filter((c) => c.status === 'rejected').slice(0, 3).map((c) => (
             <div key={c.id} className="py-1.5 border-t border-red-100 first:border-0">
               <p className="text-[11px] font-bold text-red-800">{fmtWallet(c.amount, c.currency)} <span className="font-mono font-normal text-red-600">{c.reference || ''}</span></p>
-              <p className="text-[10px] text-red-600">{c.rejectionReason || 'Not verified'}</p>
+              <p className="text-[10px] text-red-600">{c.rejectionReason || t('solo.wallet.notVerified')}</p>
             </div>
           ))}
         </Card>
@@ -499,15 +500,15 @@ export const WalletTab: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
-            {txns.map((t) => (
-              <div key={t.id} className="flex items-center gap-2.5 py-2.5">
-                <TxnIcon type={t.type} />
+            {txns.map((txn) => (
+              <div key={txn.id} className="flex items-center gap-2.5 py-2.5">
+                <TxnIcon type={txn.type} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-stone-800 truncate">{TXN_LABEL[t.type] || t.type}{t.note ? ` · ${t.note}` : ''}</p>
-                  <p className="text-[10px] text-stone-400">{t.topupClaimId ? 'Top-up claim' : t.orderId ? `Order ${String(t.orderId).slice(0, 8)}…` : ''}</p>
+                  <p className="text-xs font-bold text-stone-800 truncate">{TXN_LABEL_KEY[txn.type] ? t(TXN_LABEL_KEY[txn.type]) : txn.type}{txn.note ? ` · ${txn.note}` : ''}</p>
+                  <p className="text-[10px] text-stone-400">{txn.topupClaimId ? t('solo.wallet.topupClaimLabel') : txn.orderId ? t('solo.wallet.orderLabel').replace('{id}', String(txn.orderId).slice(0, 8)) : ''}</p>
                 </div>
-                <p className={`text-xs font-black ${t.type === 'spend' || t.type === 'commission' ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {t.type === 'spend' || t.type === 'commission' ? '−' : '+'}{fmtWallet(t.amount, (t.currency as WalletCurrency) || currency)}
+                <p className={`text-xs font-black ${txn.type === 'spend' || txn.type === 'commission' ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {txn.type === 'spend' || txn.type === 'commission' ? '−' : '+'}{fmtWallet(txn.amount, (txn.currency as WalletCurrency) || currency)}
                 </p>
               </div>
             ))}

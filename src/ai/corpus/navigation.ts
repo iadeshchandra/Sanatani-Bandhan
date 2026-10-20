@@ -23,7 +23,7 @@ export const NAVIGATION_CORPUS: NavigationCorpus = [
       'donation section', 'donate section', 'giving section', 'where to donate',
       'where is donation', 'where is the donation', 'दान विभाग', 'donation kothay',
       'দান বিভাগ', 'donation kahan', 'दान कहाँ', 'giving', 'daan section',
-      'dakshina section', 'where can i donate', 'donate kothay', 'daan kahan',
+      'dakshina section', 'dana section', 'where can i donate', 'donate kothay', 'daan kahan',
     ],
     target: { route: '/app/profile', section: 'Giving' },
     answer: {
@@ -40,7 +40,7 @@ export const NAVIGATION_CORPUS: NavigationCorpus = [
       'seva wallet kothay', 'सेवा वॉलेट', 'সেবা ওয়ালেট', 'wallet kahan',
       'where is my wallet', 'check balance', 'top up', 'topup', 'recharge wallet',
       'add money', 'wallet topup', 'वॉलेट', 'মেরা ওয়ালেট', 'मेरा वॉलेट',
-      'ওয়ালেট',
+      'ওয়ালেট', 'আমার ওয়ালেট',
     ],
     target: { route: '/app/profile', section: 'Wallet' },
     answer: {

@@ -607,8 +607,8 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
 const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
   navigate: {
     en: ['Open my profile', 'Show Suchana', 'Take me home'],
-    hi: ['मेरी प्रोफ़ाइल खोलो', 'सूचना दिखाओ', 'होम ले चलो'],
-    bn: ['আমার প্রোফাইল খোলো', 'সূচনা দেখাও', 'হোমে নিয়ে চলো'],
+    hi: ['मेरी प्रोफ़ाइल खोलो', 'सूचना खोलो', 'होम ले चलो'],
+    bn: ['আমার প্রোফাইল খোলো', 'সূচনা খোলো', 'হোমে নিয়ে চলো'],
   },
   howto: {
     en: ['Guide to Panjika', 'Guide to Wallet', 'Guide to Sangam'],
@@ -636,9 +636,9 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     bn: ['সাধনা খোলো', 'পঞ্জিকা নির্দেশিকা', 'আজকের তিথি?'],
   },
   booking_help: {
-    en: ['Open Seva Journeys', 'How does payment work?', 'Find a Jyotishi'],
-    hi: ['सेवा यात्राएँ खोलो', 'भुगतान कैसे होता है?', 'ज्योतिषी खोजो'],
-    bn: ['সেবা যাত্রা খোলো', 'পেমেন্ট কীভাবে হয়?', 'জ্যোতিষী খোঁজো'],
+    en: ['Open Seva Journeys', 'How to book?', 'Find a Jyotishi'],
+    hi: ['सेवा यात्रा खोलो', 'पंडित कैसे बुक करूँ?', 'ज्योतिषी बुक करो'],
+    bn: ['সেবা যাত্রা খোলো', 'পুরোহিত কীভাবে বুক করব?', 'জ্যোতিষী বুক করো'],
   },
   language_help: {
     en: ['Open my profile', 'Namaste', 'Help in Hindi'],
@@ -646,14 +646,14 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     bn: ['আমার প্রোফাইল খোলো', 'নমস্কার', 'হিন্দিতে বলো'],
   },
   sos_help: {
-    en: ['Open Home', 'What is Suchana?', 'Namaste'],
-    hi: ['होम खोलो', 'सूचना क्या है?', 'नमस्ते'],
-    bn: ['হোম খোলো', 'সূচনা কী?', 'নমস্কার'],
+    en: ['Open Home', 'Open Suchana', 'Namaste'],
+    hi: ['होम खोलो', 'सूचना खोलो', 'नमस्ते'],
+    bn: ['হোম খোলো', 'সূচনা খোলো', 'নমস্কার'],
   },
   voice_upgrade: {
-    en: ['Download the AI voice', 'How big is the download?', 'Namaste'],
-    hi: ['एआई वॉयस डाउनलोड करो', 'डाउनलोड कितना बड़ा है?', 'नमस्ते'],
-    bn: ['এআই ভয়েস ডাউনলোড করো', 'ডাউনলোড কত বড়?', 'নমস্কার'],
+    en: ['Download the AI voice', 'How big is the voice download?', 'Namaste'],
+    hi: ['एआई वॉयस डाउनलोड करो', 'वॉयस डाउनलोड कितना बड़ा है?', 'नमस्ते'],
+    bn: ['এআই ভয়েস ডাউনলোড করো', 'ভয়েস ডাউনলোড কত বড়?', 'নমস্কার'],
   },
   dharma_question: {
     en: ['What is Ekadashi?', 'What is karma?', 'How to do morning puja?'],

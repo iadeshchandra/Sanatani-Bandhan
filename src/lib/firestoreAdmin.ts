@@ -706,7 +706,11 @@ async function insights(): Promise<NativeResult> {
     getDocs(query(collection(db, 'subscriptions'), where('status', '==', 'active'), limit(500))),
     getDocs(query(collection(db, 'verificationApplications'), limit(500))),
     getCountFromServer(query(collection(db, 'paymentClaims'), where('status', '==', 'pending'))),
-    getCountFromServer(query(collection(db, 'moderationReports'), where('status', '==', 'open'))),
+    // FIX (2026-10-20): reports are filed to `sangamReports` (see firestoreAdmin.
+    // moderationReports) — the old `moderationReports` collection was never written
+    // to, so this count was permanently 0 and the Insights "Needs attention" card
+    // never showed open reports.
+    getCountFromServer(query(collection(db, 'sangamReports'), where('status', '==', 'open'))),
   ]);
 
   // Signups per day, last 30 days (docs without createdAt are ignored honestly).
@@ -2729,6 +2733,27 @@ async function commissionPaymentConfirm(id: string): Promise<NativeResult> {
 
   await updateDoc(ref, { status: 'confirmed', confirmedByUid: uid, confirmedAt: serverTimestamp() });
   await updateDoc(orderRef, { status: 'completed', commissionPaidVia: pay.id, completedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  // AUDIT FIX (2026-10-20, Domain 4): the confirmed payment settles the
+  // platform's commission receivable for this order. Without this, the
+  // platformDue created at task completion would stay 'pending' forever —
+  // the provider would show phantom dues and could be auto-suspended for
+  // money already paid. Idempotent: only pending dues for this order.
+  try {
+    const dueS = await getDocs(query(
+      collection(db, 'platformDues'),
+      where('orderId', '==', pay.orderId),
+      where('status', '==', 'pending'),
+      limit(10),
+    ));
+    for (const d of dueS.docs) {
+      await updateDoc(doc(db, 'platformDues', d.id), {
+        status: 'settled',
+        settledBy: uid,
+        settledAt: serverTimestamp(),
+        settleNote: `Commission payment confirmed (${pay.id}).`,
+      });
+    }
+  } catch { /* non-fatal — due stays visible in the Dues tab for manual settle */ }
   // Platform revenue ledger for the confirmed commission.
   try {
     await setDoc(doc(db, 'platformRevenue', pay.orderId), {

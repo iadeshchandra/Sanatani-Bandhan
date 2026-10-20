@@ -12,6 +12,8 @@ import {
   youtubeThumbnail,
   validateShare,
   sanitizeVideo,
+  sortVideosNewest,
+  type WatchVideo,
   type WatchVideoCategory,
 } from '../types';
 
@@ -125,5 +127,64 @@ describe('sanitizeVideo', () => {
   it('clamps over-long titles', () => {
     const s = sanitizeVideo({ ...base, title: 'x'.repeat(500) });
     expect(s.title.length).toBeLessThanOrEqual(120);
+  });
+});
+
+describe('sanitizeVideo (Domain 3 audit fix: no undefined emissions)', () => {
+  it('emits no undefined values when optionals are absent (Firestore rejects undefined)', () => {
+    const clean = sanitizeVideo({
+      youtubeId: 'dQw4w9WgXcQ',
+      title: 'Evening aarti',
+      sharedBy: 'u1',
+      sharedByName: 'Aarav',
+      category: 'shared',
+    });
+    for (const v of Object.values(clean)) {
+      expect(v).not.toBeUndefined();
+    }
+    expect('caption' in clean).toBe(false);
+    expect('sharedBySanId' in clean).toBe(false);
+    expect('providerUid' in clean).toBe(false);
+    expect('providerTier' in clean).toBe(false);
+  });
+  it('stays within the sangamVideos create whitelist', () => {
+    const allowed = new Set([
+      'youtubeId', 'title', 'thumbnailUrl', 'duration', 'sharedBy',
+      'sharedByName', 'sharedBySanId', 'caption', 'category',
+      'providerUid', 'providerTier', 'createdAt', 'reportCount',
+      'serverCreatedAt', // added by the caller
+    ]);
+    const clean = sanitizeVideo({
+      youtubeId: 'dQw4w9WgXcQ',
+      title: 't',
+      sharedBy: 'u1',
+      sharedByName: 'n',
+      category: 'shared',
+    });
+    for (const k of Object.keys(clean)) expect(allowed.has(k)).toBe(true);
+  });
+});
+
+describe('sortVideosNewest (Domain 3 audit fix)', () => {
+  const NOW = 1_700_000_000_000;
+  const mk = (id: string, createdAt: number): WatchVideo => ({
+    id,
+    youtubeId: 'dQw4w9WgXcQ',
+    title: 't',
+    thumbnailUrl: 'x',
+    sharedBy: 'u1',
+    sharedByName: 'n',
+    category: 'shared',
+    createdAt,
+    reportCount: 0,
+  });
+  it('orders by createdAt desc', () => {
+    const sorted = sortVideosNewest([mk('a', NOW - 300), mk('b', NOW - 100), mk('c', NOW - 200)]);
+    expect(sorted.map((v) => v.id)).toEqual(['b', 'c', 'a']);
+  });
+  it('does not mutate the input', () => {
+    const list = [mk('a', NOW - 1), mk('b', NOW)];
+    sortVideosNewest(list);
+    expect(list[0].id).toBe('a');
   });
 });

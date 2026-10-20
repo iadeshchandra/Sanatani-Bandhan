@@ -16,7 +16,6 @@ import {
   getDocs,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -30,6 +29,7 @@ import { fileModerationReport } from '../moderation';
 import {
   sanitizeVideo,
   youtubeThumbnail,
+  sortVideosNewest,
   type WatchVideo,
   type WatchVideoCategory,
   type LiveStreamItem,
@@ -80,7 +80,13 @@ export async function shareVideo(input: {
   return id;
 }
 
-/** List videos by category, newest first. */
+/** List videos by category, newest first.
+ *
+ * AUDIT FIX (Domain 3): no server-side `orderBy`. A where(category ==) +
+ * orderBy(createdAt desc) needs a composite index; without it the query fails
+ * and the feed silently renders empty. The bounded window is sorted
+ * client-side instead — identical order, no index dependency.
+ */
 export async function listVideos(
   category: WatchVideoCategory,
   max = 50,
@@ -88,14 +94,13 @@ export async function listVideos(
   const q = query(
     collection(db, COL),
     where('category', '==', category),
-    orderBy('createdAt', 'desc'),
     limit(max),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => toWatchVideo(d.id, d.data()));
+  return sortVideosNewest(snap.docs.map((d) => toWatchVideo(d.id, d.data())));
 }
 
-/** Realtime subscription to a category feed. */
+/** Realtime subscription to a category feed. Single-field query (see above). */
 export function subscribeVideos(
   category: WatchVideoCategory,
   cb: (videos: WatchVideo[]) => void,
@@ -104,12 +109,11 @@ export function subscribeVideos(
   const q = query(
     collection(db, COL),
     where('category', '==', category),
-    orderBy('createdAt', 'desc'),
     limit(max),
   );
   return onSnapshot(
     q,
-    (snap) => cb(snap.docs.map((d) => toWatchVideo(d.id, d.data()))),
+    (snap) => cb(sortVideosNewest(snap.docs.map((d) => toWatchVideo(d.id, d.data())))),
     () => cb([]),
   );
 }

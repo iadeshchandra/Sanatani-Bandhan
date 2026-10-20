@@ -68,6 +68,20 @@ export function groupStoriesByAuthor(stories: Story[], now: number = Date.now())
   return [...map.values()].sort((a, b) => b.stories[0].createdAt - a.stories[0].createdAt);
 }
 
+/**
+ * Newest-first ordering for live stories (expiresAt desc, then createdAt
+ * desc). Pure.
+ * AUDIT FIX (Domain 3): the stories query used to be
+ * `where(expiresAt > now) + orderBy(expiresAt desc) + orderBy(createdAt desc)`,
+ * which needs a composite index that a fresh project may not have — the
+ * failure is silent (the subscription error handler returns []), so the
+ * stories rail rendered empty. The query now uses a single orderBy and this
+ * helper applies the secondary sort client-side on the bounded window.
+ */
+export function sortStoriesNewest(stories: Story[]): Story[] {
+  return [...stories].sort((a, b) => b.expiresAt - a.expiresAt || b.createdAt - a.createdAt);
+}
+
 export interface NewStoryInput {
   authorUid: string;
   authorName: string;

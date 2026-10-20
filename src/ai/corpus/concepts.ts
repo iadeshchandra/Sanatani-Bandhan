@@ -29,6 +29,7 @@ export const CONCEPT_CORPUS: DharmaCorpus = [
     question_patterns: [
       'what is karma', 'karma meaning', 'karma definition', 'karma philosophy',
       'कर्म', 'কর্ম', 'karma kya hai', 'karma ki',
+      'कर्म क्या है', 'কর্ম কী',
       'law of karma', 'karma explained',
     ],
     answer: {

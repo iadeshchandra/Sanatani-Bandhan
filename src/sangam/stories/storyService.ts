@@ -30,10 +30,12 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { fileModerationReport } from '../moderation';
 import {
   storyDoc,
   toStory,
   validateStory,
+  sortStoriesNewest,
   type NewStoryInput,
   type Story,
 } from './types';
@@ -54,36 +56,51 @@ export async function deleteStory(storyId: string): Promise<void> {
   await deleteDoc(doc(db, COL, storyId));
 }
 
-/** Report a story (increments counter; moderators review). */
-export async function reportStory(storyId: string): Promise<void> {
+/** Report a story for moderator review.
+ * AUDIT FIX #9 (extended, Domain 3): was a bare `reportCount` counter no one
+ * actioned — shorts and watch videos file a real `sangamReports` doc, stories
+ * did not. Now the counter still marks the story, AND a real report lands in
+ * the `sangamReports` moderation queue (GodMode → Moderation).
+ */
+export async function reportStory(
+  storyId: string,
+  reporter?: { uid: string; name: string },
+  reason: 'spam' | 'impersonation' | 'inappropriate' | 'misinformation' | 'other' = 'inappropriate',
+): Promise<void> {
   await updateDoc(doc(db, COL, storyId), { reportCount: increment(1) });
+  if (reporter?.uid) {
+    await fileModerationReport(reporter, 'story', storyId, reason);
+  }
 }
 
-/** List live stories, newest first. Lazy expiry: filters expiresAt > now. */
+/** List live stories, newest first. Lazy expiry: filters expiresAt > now.
+ *
+ * AUDIT FIX (Domain 3): single `orderBy(expiresAt)` only. A second
+ * orderBy(createdAt) needs a composite index; without it the query fails and
+ * the rail silently renders empty. Secondary ordering is client-side.
+ */
 export async function listStories(max = 50): Promise<Story[]> {
   const q = query(
     collection(db, COL),
     where('expiresAt', '>', Date.now()),
     orderBy('expiresAt', 'desc'),
-    orderBy('createdAt', 'desc'),
     limit(max)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => toStory(d.id, d.data() as Record<string, unknown>));
+  return sortStoriesNewest(snap.docs.map((d) => toStory(d.id, d.data() as Record<string, unknown>)));
 }
 
-/** Realtime subscription to live stories. */
+/** Realtime subscription to live stories. Single-orderBy query (see above). */
 export function subscribeStories(cb: (stories: Story[]) => void, max = 50): Unsubscribe {
   const q = query(
     collection(db, COL),
     where('expiresAt', '>', Date.now()),
     orderBy('expiresAt', 'desc'),
-    orderBy('createdAt', 'desc'),
     limit(max)
   );
   return onSnapshot(
     q,
-    (snap) => cb(snap.docs.map((d) => toStory(d.id, d.data() as Record<string, unknown>))),
+    (snap) => cb(sortStoriesNewest(snap.docs.map((d) => toStory(d.id, d.data() as Record<string, unknown>)))),
     () => cb([])
   );
 }

@@ -276,7 +276,7 @@ export const ProfileTab: React.FC = () => {
       return;
     }
     enterPurohitSession(purohitIdentity as any);
-    showToast(`Switched to Purohit Workspace (${purohitIdentity.id})`, 'success');
+    showToast(tr('solo.profile.switchedPurohit', `Switched to Purohit Workspace (${purohitIdentity.id})`, `পুরোহিত ওয়ার্কস্পেসে স্যুইচ করা হয়েছে (${purohitIdentity.id})`, `पुरोहित कार्यक्षेत्र में स्विच किया गया (${purohitIdentity.id})`), 'success');
   };
 
   // Phase 2: open an organisation — the same flow as the Orgs tab's
@@ -291,7 +291,7 @@ export const ProfileTab: React.FC = () => {
         exitSoloSession();
         showToast(`🙏 ${wsName}`, 'success');
       } else {
-        showToast('Could not open this organisation right now.', 'error');
+        showToast(tr('solo.profile.openOrgFailed', 'Could not open this organisation right now.', 'এই মুহূর্তে এই প্রতিষ্ঠান খোলা যাচ্ছে না।', 'इस समय यह संगठन नहीं खोला जा सका।'), 'error');
       }
     } finally {
       setOpeningOrg(null);
@@ -307,7 +307,7 @@ export const ProfileTab: React.FC = () => {
       return;
     }
     enterJyotishSession(jyotishIdentity as any);
-    showToast(`Switched to Jyotishi Workspace (${jyotishIdentity.id})`, 'success');
+    showToast(tr('solo.profile.switchedJyotish', `Switched to Jyotishi Workspace (${jyotishIdentity.id})`, `জ্যোতিষী ওয়ার্কস্পেসে স্যুইচ করা হয়েছে (${jyotishIdentity.id})`, `ज्योतिषी कार्यक्षेत्र में स्विच किया गया (${jyotishIdentity.id})`), 'success');
   };
 
   const openAssistant = () => {

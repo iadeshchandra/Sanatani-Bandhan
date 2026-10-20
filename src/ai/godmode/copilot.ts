@@ -55,7 +55,7 @@ const STATS_KW = [
 const MODERATION_KW = [
   'flagged posts', 'review flagged', 'flagged content', 'moderation queue',
   'review reports', 'reported posts', 'what was flagged', 'help me moderate',
-  'फ्लैग की गई', 'मॉडरेशन', 'রিপোর্ট করা', 'মডারেশন',
+  'फ्लैग की गई', 'फ्लैग पोस्ट', 'मॉडरेशन', 'রিপোর্ট করা', 'ফ্ল্যাগ পোস্ট', 'মডারেশন',
 ];
 
 const ANOMALY_KW = [

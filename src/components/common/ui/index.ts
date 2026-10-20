@@ -9,4 +9,5 @@ export { PageHeader } from './PageHeader';
 export { Stat } from './Stat';
 export type { StatTone } from './Stat';
 export { ConfirmProvider, confirmDialog } from './ConfirmDialog';
-export { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './deskHistory';
+export { CountUp } from './CountUp';
+export { getPinnedDesks, setPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './deskHistory';

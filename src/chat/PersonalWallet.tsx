@@ -194,8 +194,10 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
   };
 
   const openChat = (chatId: string, requestId: string) => {
-    if (onOpenChat) onOpenChat(chatId, requestId);
-    window.dispatchEvent(new CustomEvent('sanatani:open-chat', { detail: { chatId, requestId } }));
+    // The host's onOpenChat prop is the live path (SoloHome wires it to
+    // the Messages overlay). The legacy 'sanatani:open-chat' window event
+    // was dropped in the 2026-10-20 audit — zero listeners anywhere.
+    onOpenChat?.(chatId, requestId);
   };
 
   const requestById = (id: string) => requests.find((r) => r.id === id);

@@ -128,7 +128,15 @@ export function validateShortShare(url: string, title: string, caption?: string)
   return { ok: true, youtubeId };
 }
 
-/** Build the Firestore doc for a new short. Server timestamps filled by caller. */
+/** Build the Firestore doc for a new short. Server timestamps filled by caller.
+ *
+ * AUDIT FIX (Domain 3): Firestore `setDoc` REJECTS `undefined` field values
+ * outright ("Unsupported field value: undefined"). The old builder emitted
+ * `authorAvatar: undefined` / `authorSanId: undefined` / `caption: undefined`
+ * whenever the sharer had no avatar, so sharing a short threw for most users
+ * (surfaced as a misleading "not a YouTube URL" error). Optionals are now
+ * only set when present — the doc stays exactly within the rules whitelist.
+ */
 export function shortDoc(input: {
   youtubeId: string;
   title: string;
@@ -139,15 +147,12 @@ export function shortDoc(input: {
   authorSanId?: string;
   createdAt: number;
 }): Omit<Short, 'id'> {
-  return {
+  const doc: Omit<Short, 'id'> = {
     youtubeId: input.youtubeId,
     title: input.title.trim(),
     thumbnailUrl: shortThumbnail(input.youtubeId),
     authorUid: input.authorUid,
     authorName: input.authorName,
-    authorAvatar: input.authorAvatar,
-    authorSanId: input.authorSanId,
-    caption: (input.caption || '').trim() || undefined,
     createdAt: input.createdAt,
     viewCount: 0,
     ashirvadCount: 0,
@@ -155,6 +160,11 @@ export function shortDoc(input: {
     shareCount: 0,
     reportCount: 0,
   };
+  if (input.authorAvatar) doc.authorAvatar = input.authorAvatar;
+  if (input.authorSanId) doc.authorSanId = input.authorSanId;
+  const caption = (input.caption || '').trim();
+  if (caption) doc.caption = caption;
+  return doc;
 }
 
 /** Coerce a Firestore doc into a Short. Never throws. */

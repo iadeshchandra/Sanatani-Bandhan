@@ -88,7 +88,7 @@ function buildRuleMatcher(rule: Rule) {
 
 const TITHI_KW = [
   'tithi', "today's tithi", 'todays tithi', 'aaj ki tithi', 'ajker tithi',
-  'आज तिथि', 'আজ তিথি', 'আজকের তিথি', 'what tithi', 'which tithi',
+  'आज तिथि', 'आज की तिथि', 'আজ তিথি', 'আজকের তিথি', 'what tithi', 'which tithi',
   'kon tithi', 'kaun si tithi',
 ];
 
@@ -103,6 +103,7 @@ const DANA_KW = [
   'dana', 'daan', 'donate', 'donation', 'donations', 'give', 'giving',
   'how to donate', 'how do i donate', 'make a donation', 'दाना', 'दान',
   'দান', 'ডোনেট', 'dakshina', 'dakshina dena', 'chanda', 'how to give',
+  'दक्षिणा', 'দক্ষিণা',
 ];
 
 const SADHANA_KW = [
@@ -129,7 +130,7 @@ const BOOKING_VERB_KW = [
   'book a', 'booking', 'book purohit', 'book jyotish', 'appointment',
   'consultation', 'consult', 'বুকিং', 'बुकिंग', 'बुक कर', 'বুক কর',
   'how to book', 'find a purohit', 'find purohit', 'find a jyotishi',
-  'need a purohit', 'need a pandit',
+  'need a purohit', 'need a pandit', 'বুক করব',
 ];
 
 const LANGUAGE_KW = [
@@ -137,12 +138,14 @@ const LANGUAGE_KW = [
   'ভাষা', 'भाषा', 'bhasha change', 'in hindi', 'in bengali', 'in bangla',
   'hindi me', 'hindi mein', 'bangla te', 'বাংলায়', 'हिंदी में',
   'english me', 'tamil', 'telugu', 'marathi', 'gujarati', 'kannada',
-  'malayalam', 'sanskrit',
+  'malayalam', 'sanskrit', 'बांग्ला में', 'हिन्दিতে', 'হিন্দিতে',
 ];
 
 const SOS_HELP_KW = [
   'what is sos', 'how does sos work', 'how to use sos', 'sos button',
   'panic button', 'emergency button', 'how sos', 'sos kaise',
+  'sos kaise kaam karta hai', 'sos कैसे काम करता है',
+  'sos kibhabe kaj kore', 'sos কীভাবে কাজ করে',
   'এসওএস', 'एसओएस', 'sos feature', 'about sos',
 ];
 
@@ -153,23 +156,25 @@ const VOICE_UPGRADE_KW = [
   'upgrade the assistant', 'smarter assistant', 'ai ta download korte chai',
   'ভয়েস ডাউনলোড', 'এআই ডাউনলোড', 'ভয়েস ডাউনলোড করতে চাই', 'উষ্ণ কণ্ঠ',
   'आवाज़ डाउनलोड', 'एआई डाउनलोड', 'उष्ण वाणी', 'ai download karo',
-  'aawaz download',
+  'aawaz download', 'वॉयस डाउनलोड',
 ];
 
 const NAVIGATE_KW = [
-  'open', 'go to', 'take me to', 'show me', 'navigate', 'launch',
+  'open', 'go to', 'take me to', 'take me', 'show me', 'show', 'navigate', 'launch',
   'खोलो', 'खोलें', 'जाओ', 'খোলো', 'খুলুন', 'যাও',
+  'ले चलो', 'নিয়ে চলো',
 ];
 
 const HOWTO_KW = [
   'how to', 'how do i', 'how can i', 'guide', 'tutorial', 'kaise',
   'कैसे', 'কীভাবে', 'কিভাবে', 'কেমনে', 'steps to', 'sikh',
+  'मार्गदर्शक', 'নির্দেশিকা', 'गाइड',
 ];
 
 const GREETING_KW = [
   'namaste', 'namaskar', 'hello', 'hey', 'hi', 'jai shri', 'jai shree',
   'radhe radhe', 'radhe', 'good morning', 'good evening', 'good afternoon',
-  'pranam', 'प्रणाम', 'নমস্কার', '🙏', 'hare krishna', 'om namah',
+  'pranam', 'प्रणाम', 'नमस्ते', 'নমস্কার', '🙏', 'hare krishna', 'om namah',
   'suprabhat', 'shubh prabhat', 'sat sri akal',
 ];
 
@@ -201,7 +206,7 @@ const GUIDE_KEYWORD_MAP: Array<{ keywords: string[]; guideId: string }> = [
   { keywords: ['pathshala', 'school', 'पाठशाला', 'পাঠশালা'], guideId: 'pathshala' },
   { keywords: ['goshala', 'gaushala', 'गोशाला', 'গোশালা', 'cow shelter'], guideId: 'goshala' },
   { keywords: ['matha', 'मठ', 'মঠ', 'sangha'], guideId: 'matha' },
-  { keywords: ['sangam'], guideId: 'sangam' },
+  { keywords: ['sangam', 'संगम', 'সঙ্গম'], guideId: 'sangam' },
   { keywords: ['jyotish', 'jyotishi', 'ज्योतिष', 'জ্যোতিষ'], guideId: 'jyotish' },
   { keywords: ['purohit', 'pandit', 'panda', 'पुरोहित', 'পুরোহিত', 'पंडित'], guideId: 'purohit' },
   { keywords: ['marketplace', 'seva pro', 'gig'], guideId: 'marketplace' },
@@ -311,6 +316,19 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
     };
   }
 
+  // Seva Journeys first chance: the marketplace brand name in EN/HI/BN
+  // ("সেবা যাত্রা খোলো") must beat the tirtha keywords — 'যাত্রা'/'यात्रा'
+  // alone mean pilgrimage and would otherwise claim it. Plain substring
+  // matching (not word-boundaried) so 'सेवा यात्राएँ' still hits.
+  if (/seva journey|सेवा यात्र|সেবা যাত্র/i.test(text)) {
+    return {
+      intent: 'navigate',
+      confidence: 'high',
+      slots: { destination: '/seva/journeys', destinationLabel: 'Seva Journeys' },
+      evidence: ['seva-journeys-brand'],
+    };
+  }
+
   // GodMode Copilot first chance: admin-flavoured questions ("morning
   // briefing", "flagged posts", "write an announcement") are distinctive
   // enough to claim priority. The canOffer() gate in assistant.ts keeps
@@ -379,7 +397,7 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
   //
   // Special case: "what is X" definition queries beat festival_next —
   // the devotee wants meaning, not the next date.
-  const isDefinitionQuery = /what is|what's|meaning of|kya hai|ki hai|की है|কী|মানে/i.test(text);
+  const isDefinitionQuery = /what is|what's|meaning of|kya hai|ki hai|क्या है|की है|কী|মানে/i.test(text);
   const needsDharmaChance =
     result.intent === 'greeting' ||
     result.intent === 'fallback_unknown' ||

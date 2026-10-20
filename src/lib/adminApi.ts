@@ -16,43 +16,16 @@
  */
 import { auth } from '../firebase';
 import { firestoreAdmin } from './firestoreAdmin';
+import { withFallback, type ApiResult } from './apiFallback';
 
-/**
- * Fallback strategy: the HTTP backend is tried FIRST. Only when the fetch
- * fails with backendDown (functions not deployed / unreachable) do we fall
- * back to the Spark-native Firestore implementation. This makes migration
- * automatic: deploy functions + set VITE_BACKEND_URL and the HTTP path wins.
- */
-async function withFallback<T>(
-  httpCall: () => Promise<ApiResult<T>>,
-  nativeCall: () => Promise<ApiResult<T>>
-): Promise<ApiResult<T>> {
-  const r = await httpCall();
-  if (r.backendDown) {
-    try {
-      return await nativeCall();
-    } catch (e: any) {
-      return { ok: false, error: e?.message || 'Spark-native operation failed.', code: 'NATIVE_FAILED' };
-    }
-  }
-  return r;
-}
+/** Re-exported so existing importers of withFallback/ApiResult keep working. */
+export { withFallback, type ApiResult } from './apiFallback';
 
 export const BACKEND_URL =
   (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export const BACKEND_DEPLOYED_HINT =
   'Backend not deployed. Run: firebase deploy --only functions — then set VITE_BACKEND_URL to the deployed URL.';
-
-export interface ApiResult<T = any> {
-  ok: boolean;
-  data?: T;
-  error?: string;
-  code?: string;
-  backendDown?: boolean;
-  /** Set when the op genuinely needs the Express backend (Admin SDK). */
-  requiresBackend?: boolean;
-}
 
 async function authedFetch<T = any>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   try {

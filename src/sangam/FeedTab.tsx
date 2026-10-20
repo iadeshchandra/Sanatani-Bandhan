@@ -467,16 +467,26 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
   }, []);
 
   // Stories state.
-  const [storyGroups, setStoryGroups] = useState<Array<{ authorUid: string; authorName: string; authorAvatar?: string; stories: Story[] }>>([]);
+  const [storyList, setStoryList] = useState<Story[]>([]);
   const [viewerAt, setViewerAt] = useState<{ authorUid: string; index: number } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
   const storyLang: 'en' | 'hi' | 'bn' = lang === 'hi' ? 'hi' : lang === 'bn' ? 'bn' : 'en';
+  // Expiry is lazy: re-filter every minute so stories that expire mid-session
+  // vanish from the viewer instead of lingering (same pattern as StoriesRail).
+  const [storyTick, setStoryTick] = useState(0);
 
   useEffect(() => {
-    const unsub = subscribeStories((s) => setStoryGroups(groupStoriesByAuthor(s)));
-    return unsub;
+    const unsub = subscribeStories((s) => setStoryList(s));
+    const t = window.setInterval(() => setStoryTick((x) => x + 1), 60_000);
+    return () => { unsub(); window.clearInterval(t); };
   }, []);
+
+  const storyGroups = useMemo(() => {
+    void storyTick;
+    const visible = hiddenIds.size > 0 ? storyList.filter((s) => !hiddenIds.has(s.id)) : storyList;
+    return groupStoriesByAuthor(visible, Date.now());
+  }, [storyList, hiddenIds, storyTick]);
 
   const followedIds = useMemo(() => new Set(follows.map((f) => `${f.targetType}:${f.targetId}`)), [follows]);
 
@@ -560,6 +570,7 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
         uid={author.uid}
         lang={storyLang}
         viewedIds={viewedIds}
+        hiddenIds={hiddenIds}
         onOpenViewer={(authorUid, index) => setViewerAt({ authorUid, index })}
         onCreate={() => setCreateOpen(true)}
       />
@@ -661,6 +672,7 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
             startAuthorUid={viewerAt.authorUid}
             startIndex={viewerAt.index}
             uid={author.uid}
+            viewerName={author.name}
             lang={storyLang}
             onClose={() => setViewerAt(null)}
             onViewed={(id) => setViewedIds((prev) => new Set(prev).add(id))}

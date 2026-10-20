@@ -8,7 +8,7 @@
  * This route renders the same Chat overlay SoloHome uses, opened to the
  * thread from `?with=<chatId>` when present. Closing returns to Home.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Chat } from '../chat/Chat';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -30,9 +30,16 @@ export const ChatRoute: React.FC = () => {
     photoUrl: ((firebaseUser as { photoURL?: string } | null)?.photoURL as string) || undefined,
   };
 
+  // Redirect bounce lives in an effect — navigate() is a side effect;
+  // calling it during render risks "Cannot update a component while
+  // rendering a different component" (StrictMode double-render).
+  useEffect(() => {
+    if (closed || uid === 'anon') navigate('/app/home', { replace: true });
+  }, [closed, uid, navigate]);
+
   if (closed || uid === 'anon') {
-    // Not signed in — nothing to show. Bounce home.
-    navigate('/app/home', { replace: true });
+    // Not signed in (or closed) — nothing to show. The effect above
+    // performs the bounce home.
     return null;
   }
 

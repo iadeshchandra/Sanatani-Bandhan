@@ -197,3 +197,39 @@ describe('shorts ranking', () => {
     expect(text.length).toBeGreaterThan(10);
   });
 });
+
+describe('shortDoc (Domain 3 audit fix)', () => {
+  const base = {
+    youtubeId: 'dQw4w9WgXcQ_',
+    title: '  Morning bhajan  ',
+    authorUid: 'u1',
+    authorName: 'Aarav',
+    createdAt: NOW,
+  };
+  it('emits no undefined values when optionals are absent (Firestore rejects undefined)', () => {
+    const doc = shortDoc(base);
+    for (const [k, v] of Object.entries(doc)) {
+      expect(v).not.toBeUndefined();
+    }
+    expect('authorAvatar' in doc).toBe(false);
+    expect('authorSanId' in doc).toBe(false);
+    expect('caption' in doc).toBe(false);
+  });
+  it('keeps provided optionals and trims the title', () => {
+    const doc = shortDoc({ ...base, authorAvatar: 'https://x/y.png', authorSanId: 'SAN-123456', caption: '  Jai  ' });
+    expect(doc.authorAvatar).toBe('https://x/y.png');
+    expect(doc.authorSanId).toBe('SAN-123456');
+    expect(doc.caption).toBe('Jai');
+    expect(doc.title).toBe('Morning bhajan');
+  });
+  it('stays within the sangamShorts create whitelist', () => {
+    const allowed = new Set([
+      'youtubeId', 'title', 'thumbnailUrl', 'authorUid', 'authorName',
+      'authorAvatar', 'authorSanId', 'caption', 'duration', 'createdAt',
+      'viewCount', 'ashirvadCount', 'commentCount', 'shareCount', 'reportCount',
+      'serverCreatedAt', // added by the caller
+    ]);
+    const doc = shortDoc({ ...base, caption: 'hi' });
+    for (const k of Object.keys(doc)) expect(allowed.has(k)).toBe(true);
+  });
+});

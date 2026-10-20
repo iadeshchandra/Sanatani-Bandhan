@@ -431,6 +431,7 @@ export const professional: ProfessionalFragment = {
       },
       marketplace: {
         findJyotishi: "ज्योतिषी खोजें",
+        city: "शहर",
         myConsultations: "मेरे परामर्श",
         postRequirement: "परामर्श आवश्यकता पोस्ट करें",
         postNote: "कोई भी पंजीकृत ज्योतिषी स्वीकार कर सकता है। जन्म विवरण केवल कुंडली पाठ हेतु प्रयुक्त होता है।",

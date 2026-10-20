@@ -18,6 +18,8 @@ interface Props {
   startAuthorUid: string;
   startIndex: number;
   uid: string;
+  /** Viewer's display name — filed with moderation reports. */
+  viewerName?: string;
   lang: StoryLang;
   onClose: () => void;
   onViewed: (storyId: string) => void;
@@ -39,7 +41,7 @@ const StoryImage: React.FC<{ url?: string }> = ({ url }) => {
 };
 
 export const StoryViewer: React.FC<Props> = ({
-  groups, startAuthorUid, startIndex, uid, lang, onClose, onViewed,
+  groups, startAuthorUid, startIndex, uid, viewerName, lang, onClose, onViewed,
 }) => {
   const navigate = useNavigate();
   const [gi, setGi] = useState(() => Math.max(0, groups.findIndex((g) => g.authorUid === startAuthorUid)));
@@ -230,7 +232,7 @@ export const StoryViewer: React.FC<Props> = ({
           ) : (
             <button
               type="button"
-              onClick={async () => { await reportStory(story.id); setMenuOpen(false); }}
+              onClick={async () => { await reportStory(story.id, { uid, name: viewerName || 'A devotee' }); setMenuOpen(false); }}
               className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 min-h-[44px]"
             >
               🚩 {st('stories.report', lang)}

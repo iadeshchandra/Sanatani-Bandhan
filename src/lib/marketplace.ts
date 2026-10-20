@@ -19,9 +19,9 @@ import { resolveCommissionRate, computeCommission, duesCreateForOrder } from './
 import { validateRating, nextAvg, canRateStatus } from './gigRatings';
 // Re-export pure rating helpers so UI imports stay on marketplace.ts.
 export { validateRating, nextAvg, canRateStatus };
-import { canConfirmRail1Receipt } from './orderGuards';
+import { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete } from './orderGuards';
 import { formatMoney } from './money';
-export { canConfirmRail1Receipt };
+export { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete };
 
 export interface Gig {
   id?: string;
@@ -256,12 +256,20 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
   }
   // Pay-after-task orders: provider marking complete moves to
   // awaiting_commission (Path B gate) — NOT completed.
+  // AUDIT FIX (2026-10-20, Domain 4): Path-B orders must ALSO create the
+  // platform's commission receivable. The old early-return skipped
+  // duesCreateForOrder, so owner Dues + auto-suspension missed these dues.
   if (to === 'completed' && o.payAfterTask === true && isProvider) {
     await updateDoc(doc(db, 'marketplaceOrders', id), {
       status: 'awaiting_commission',
       taskCompletedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    if (shouldCreateDuesOnComplete(o, to)) {
+      try {
+        await duesCreateForOrder(id);
+      } catch { /* non-fatal — owner can backfill from the Risk tab */ }
+    }
     return;
   }
   await updateDoc(doc(db, 'marketplaceOrders', id), {
@@ -271,7 +279,7 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
   });
   // Rail-2: completing an order creates the platform's commission receivable.
   // Idempotent (checks for existing due). Fail-open: never blocks completion.
-  if (to === 'completed' && o.rail === 'rail2') {
+  if (shouldCreateDuesOnComplete(o, to)) {
     try {
       await duesCreateForOrder(id);
     } catch { /* non-fatal — owner can backfill from the Risk tab */ }
@@ -333,10 +341,16 @@ export async function requestPayout(input: {
   const uid = requireUser();
   if (!input.amount || input.amount <= 0) throw new Error('Amount must be positive.');
   // Verify the provider actually has this much available in THIS currency.
+  // AUDIT FIX (2026-10-20, Domain 4): only PLATFORM-HELD earnings count —
+  // rail-2 / pay-after-task / wallet / direct orders never touched the
+  // platform's custody, so a payout for them would double-pay or pay from
+  // nothing. isPlatformHeld encodes the custody test.
   const [orders, payouts] = await Promise.all([myOrdersAsProvider(), listMyPayouts()]);
   const cur = String(input.currency || dominantOrderCurrency(orders)).toUpperCase();
   let earned = 0;
-  for (const o of orders) if (o.status === 'completed' && String((o as any).currency || 'INR').toUpperCase() === cur) earned += Number(o.providerNet || 0);
+  for (const o of orders)
+    if (o.status === 'completed' && isPlatformHeld(o as any) && String((o as any).currency || 'INR').toUpperCase() === cur)
+      earned += Number(o.providerNet || 0);
   let paidOut = 0;
   for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status) && String(p.currency || cur).toUpperCase() === cur) paidOut += Number(p.amount || 0);
   const available = earned - paidOut;
@@ -359,24 +373,35 @@ export async function listMyPayouts(): Promise<any[]> {
  * devotees sees honest per-currency cards — never a meaningless mixed sum. */
 export interface EarningsByCurrency {
   currency: string;
+  /** All completed earnings (platform-held + paid-directly). */
   earned: number;
   pending: number;
   paidOut: number;
+  /** Completed earnings the platform actually holds — the payout cap. */
+  payoutEligible: number;
+  /** Completed earnings paid directly to the provider (rail-2 / wallet / direct) — already in hand, never payout-eligible. */
+  direct: number;
   available: number;
 }
 
 export async function providerEarningsSummary(): Promise<EarningsByCurrency[]> {
   const [orders, payouts] = await Promise.all([myOrdersAsProvider(), listMyPayouts()]);
-  const buckets = new Map<string, { earned: number; pending: number; paidOut: number }>();
+  const buckets = new Map<string, { earned: number; pending: number; paidOut: number; payoutEligible: number; direct: number }>();
   const bucket = (cur: unknown) => {
     const c = String(cur || 'INR').toUpperCase();
     let b = buckets.get(c);
-    if (!b) { b = { earned: 0, pending: 0, paidOut: 0 }; buckets.set(c, b); }
+    if (!b) { b = { earned: 0, pending: 0, paidOut: 0, payoutEligible: 0, direct: 0 }; buckets.set(c, b); }
     return b;
   };
   for (const o of orders) {
     const b = bucket((o as any).currency);
-    if (o.status === 'completed') b.earned += Number(o.providerNet || 0);
+    if (o.status === 'completed') {
+      const net = Number(o.providerNet || 0);
+      b.earned += net;
+      // AUDIT FIX (2026-10-20, Domain 4): split held vs direct custody.
+      if (isPlatformHeld(o as any)) b.payoutEligible += net;
+      else b.direct += net;
+    }
     else if (['paid', 'accepted', 'in_progress'].includes(o.status)) b.pending += Number(o.providerNet || 0);
   }
   for (const p of payouts) {
@@ -390,7 +415,10 @@ export async function providerEarningsSummary(): Promise<EarningsByCurrency[]> {
     earned: b.earned,
     pending: b.pending,
     paidOut: b.paidOut,
-    available: Math.max(0, b.earned - b.paidOut),
+    payoutEligible: b.payoutEligible,
+    direct: b.direct,
+    // AVAILABLE = what the platform can actually pay out — never direct earnings.
+    available: Math.max(0, b.payoutEligible - b.paidOut),
   })).sort((a, b) => b.earned - a.earned);
 }
 

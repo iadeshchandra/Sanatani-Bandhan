@@ -6,7 +6,7 @@
  */
 import {
   collection, doc, getDocs, query, where, limit,
-  addDoc, updateDoc, serverTimestamp,
+  updateDoc, serverTimestamp, runTransaction,
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { resolveCommissionRate, computeCommission } from '../lib/firestoreAdmin';
@@ -53,6 +53,16 @@ export async function defaultDakshinaCurrency(): Promise<string> {
  * Creates the dakshina order + links it to the consultation.
  * Never auto-called — the devotee always taps to send.
  * Throws on invalid input or duplicate.
+ *
+ * AUDIT FIX (2026-10-20, Domain 4): the old check-then-act (live order
+ * query, then addDoc, then a best-effort link update) had a double-tap /
+ * double-tab race — two orders could be created for one consultation
+ * before either link write landed. Now the order doc is created INSIDE a
+ * transaction that also claims consultation.dakshinaOrderId: a second
+ * concurrent attempt sees the claim (or loses the transaction) and
+ * throws instead of writing a second order. The order ID is
+ * client-generated so no document exists before the claim succeeds —
+ * there is no partial state.
  */
 export async function createConsultationDakshinaOrder(
   c: Consultation,
@@ -64,7 +74,8 @@ export async function createConsultationDakshinaOrder(
   if (!elig.ok) throw new Error(`Cannot send dakshina: ${elig.reason}`);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Invalid dakshina amount.');
 
-  // Belt-and-suspenders dedupe: eligibility check + live query.
+  // Pre-flight dedupe (friendly error before any heavy work). The
+  // transaction below is the authority — this is just a fast path.
   const existing = await findExistingDakshinaOrder(c.id);
   if (existing) throw new Error('Dakshina already recorded for this consultation.');
 
@@ -85,16 +96,34 @@ export async function createConsultationDakshinaOrder(
     commissionTier: tier,
     createdAt: serverTimestamp(),
   };
-  const ref = await addDoc(collection(db, 'marketplaceOrders'), payload);
 
-  // Link back to the consultation (from==to status update — rules-legal).
+  // Client-generated order ref: created inside the transaction so the
+  // order and the consultation claim land atomically (or not at all).
+  const orderRef = doc(collection(db, 'marketplaceOrders'));
+  const consultationRef = doc(db, 'jyotishConsultations', c.id);
   try {
-    await updateDoc(doc(db, 'jyotishConsultations', c.id), {
-      dakshinaOrderId: ref.id,
-      updatedAt: Date.now(),
+    await runTransaction(db, async (tx) => {
+      const cSnap = await tx.get(consultationRef);
+      if (!cSnap.exists()) throw new Error('Consultation not found.');
+      const fresh = cSnap.data() as any;
+      // Re-verify against the FRESH consultation — the UI's copy may be stale.
+      if (fresh.devoteeUid !== uid) throw new Error('Cannot send dakshina: not_devotee');
+      if (fresh.status !== 'COMPLETED' && fresh.status !== 'DAKSHINA_RELEASED')
+        throw new Error('Cannot send dakshina: not_completed');
+      if (!fresh.assignedJyotishUid) throw new Error('Cannot send dakshina: no_jyotish');
+      if (fresh.dakshinaOrderId)
+        throw new Error('Dakshina already recorded for this consultation.');
+      tx.set(orderRef, payload);
+      // from==to status update adding dakshinaOrderId — rules-legal
+      // (consultationTransitionOk allows from==to; immutable fields pinned).
+      tx.update(consultationRef, {
+        dakshinaOrderId: orderRef.id,
+        updatedAt: Date.now(),
+      });
     });
-  } catch {
-    /* link write failed — the order still exists and is queryable */
+  } catch (e: any) {
+    if (e?.message?.includes('Dakshina already recorded')) throw e;
+    throw new Error(e?.message || 'Could not record dakshina. Please try again.');
   }
-  return ref.id;
+  return orderRef.id;
 }

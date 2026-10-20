@@ -50,6 +50,20 @@ const CATEGORY_TILE: Record<string, string> = {
   Kundli: '🔮', Horoscope: '✨', Remedy: '🌿', Consultation: '💬', Other: '🙏',
 };
 
+/** Order status → marketplaceCopy key (badges never show raw codes). */
+const ORDER_STATUS_KEY: Record<string, string> = {
+  pending_payment: 'bkStatusPendingPayment', paid: 'bkStatusPaid', accepted: 'bkStatusAccepted',
+  in_progress: 'bkStatusInProgress', awaiting_commission: 'bkStatusAwaitingCommission',
+  completed: 'bkStatusCompleted', cancelled: 'bkStatusCancelled', disputed: 'bkStatusDisputed',
+};
+
+/** Gig category → marketplaceCopy key (select options never stay English-only). */
+const CATEGORY_KEY: Record<string, string> = {
+  Puja: 'bkCatPuja', Havan: 'bkCatHavan', Katha: 'bkCatKatha', Samskara: 'bkCatSamskara',
+  Vastu: 'bkCatVastu', Kundli: 'bkCatKundli', Horoscope: 'bkCatHoroscope',
+  Remedy: 'bkCatRemedy', Consultation: 'bkCatConsultation', Other: 'bkCatOther',
+};
+
 /* ------------------------------ Browse ------------------------------ */
 
 const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) => {
@@ -67,7 +81,7 @@ const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) =>
     </div>
     <div className="flex-1 min-w-0">
       <div>
-        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">FEATURED</span>}
+        {gig.featured && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 mb-1 inline-block">{mkt(L, 'bkFeatured')}</span>}
         {(gig as any).providerVerified && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 mb-1 inline-block ml-1">✓ {L === 'en' ? 'VERIFIED' : L === 'bn' ? 'যাচাইকৃত' : 'सत्यापित'}</span>}
         <p className="text-sm font-black text-stone-900 truncate">{gig.title}</p>
         <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
@@ -128,7 +142,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
           ...refField,
         });
         await spendFromWallet(orderId);
-        showToast('Seva requested! Dakshina held securely until completion.', 'success');
+        showToast(mkt(L, 'bkSevaRequestedEscrow'), 'success');
         onDone();
       } else if (payPath === 'after') {
         // No upfront payment. Provider completes → client pays directly →
@@ -137,29 +151,27 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
           gigId: gig.id as string, paymentMethodId: 'pay_after_task', clientNotes: notes, scheduledAt, payAfterTask: true,
           ...refField,
         });
-        showToast('Seva requested! Offer dakshina directly after completion, then the seva contribution.', 'success');
+        showToast(mkt(L, 'bkSevaRequestedDirect'), 'success');
         onDone();
       } else {
-        if (!payRef.trim()) { showToast('Enter your payment transaction/reference ID.', 'error'); setWorking(false); return; }
+        if (!payRef.trim()) { showToast(mkt(L, 'bkEnterPayRef'), 'error'); setWorking(false); return; }
         await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt, ...refField });
-        showToast('Booking submitted! The provider will accept shortly.', 'success');
+        showToast(mkt(L, 'bkBookingSubmitted'), 'success');
         onDone();
       }
-    } catch (e: any) { showToast(e.message || 'Booking failed.', 'error'); }
+    } catch (e: any) { showToast(e.message || mkt(L, 'bkBookingFailed'), 'error'); }
     setWorking(false);
   };
 
   const payHint = region === 'BD'
-    ? 'Pay with bKash / Nagad / Rocket or scan the Bangla QR in the Billing section, then paste the Transaction ID below.'
+    ? mkt(L, 'bkPayHintBD')
     : region === 'IN'
-    ? (inReady
-      ? 'Pay via UPI (see the Billing section for the UPI ID / QR), then paste the UPI reference below.'
-      : 'Pay via Payoneer / Wise (see the Billing section), then paste the transfer reference below.')
-    : 'Pay via Wise / Payoneer (see the Billing section), then paste the transfer reference below.';
+    ? (inReady ? mkt(L, 'bkPayHintINReady') : mkt(L, 'bkPayHintINIntl'))
+    : mkt(L, 'bkPayHintINTL');
 
   return (
     <div className="space-y-3">
-      <button type="button" onClick={onBack} className={btnG}><ChevronLeft className="w-4 h-4 inline" /> Back</button>
+      <button type="button" onClick={onBack} className={btnG}><ChevronLeft className="w-4 h-4 inline" /> {mkt(L, 'bkBack')}</button>
       <div className="bg-white rounded-2xl border border-stone-200 p-4">
         <p className="text-sm font-black text-stone-900">{gig.title}</p>
         <p className="text-xs text-stone-500">{gig.providerName} · {gig.durationMinutes} min</p>
@@ -178,7 +190,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <div className="space-y-2">
           <button type="button" onClick={() => setPayPath('wallet')}
             className={`w-full text-left px-3 py-3 rounded-xl border min-h-[56px] ${payPath === 'wallet' ? 'border-amber-500 bg-white shadow-sm' : 'border-amber-200 bg-white/60'}`}>
-            <p className="text-xs font-black text-stone-900">🪔 {mkt(L, 'sevaWallet')} {walletBalance !== null && <span className="text-stone-500 font-bold">({formatMoney(walletBalance, walletCurrency)} available)</span>}</p>
+            <p className="text-xs font-black text-stone-900">🪔 {mkt(L, 'sevaWallet')} {walletBalance !== null && <span className="text-stone-500 font-bold">({formatMoney(walletBalance, walletCurrency)} {mkt(L, 'bkAvailable')})</span>}</p>
             <p className="text-[10px] text-stone-500">{L === 'en' ? 'Instant — held safely, released on completion. Recommended.' : L === 'bn' ? 'তাৎক্ষণিক — নিরাপদে রাখা হয়, সম্পন্ন হলে মুক্তি পায়।' : 'तुरंत — सुरक्षित रखा जाता है, पूर्ण होने पर जारी।'}</p>
           </button>
           <button type="button" onClick={() => setPayPath('now')}
@@ -198,7 +210,7 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
           {(['BD', 'IN', 'INTL'] as const).map((r) => (
             <button key={r} type="button" onClick={() => setRegion(r)}
               className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
-              {r === 'BD' ? '🇧🇩 BD' : r === 'IN' ? '🇮🇳 India' : '🌍 Intl'}
+              {r === 'BD' ? mkt(L, 'bkRegionBD') : r === 'IN' ? mkt(L, 'bkRegionIN') : mkt(L, 'bkRegionINTL')}
             </button>
           ))}
         </div>
@@ -206,18 +218,18 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
       </div>
       {payPath === 'now' && (
       <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
-        <p className="text-xs font-bold text-stone-800">Step 2 — Submit proof & book</p>
-        <label className="text-[11px] font-bold text-stone-500">Payment transaction / reference ID*
+        <p className="text-xs font-bold text-stone-800">{mkt(L, 'bkStep2')}</p>
+        <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkPayRefLabel')}
           <input value={payRef} onChange={(e) => setPayRef(e.target.value)} className={inputCls} placeholder="e.g. TRX123ABC" /></label>
       </div>
       )}
       <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
-        <label className="text-[11px] font-bold text-stone-500">Preferred date/time (optional)
+        <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkDateLabel')}
           <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className={inputCls} /></label>
-        <label className="text-[11px] font-bold text-stone-500">Notes for provider (optional)
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} rows={2} maxLength={500} placeholder="Gotra, address, special requests…" /></label>
+        <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkNotesLabel')}
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} rows={2} maxLength={500} placeholder={mkt(L, 'bkNotesPh')} /></label>
         <button type="button" disabled={working} onClick={submit} className={`${btnP} w-full`}>
-          {working ? 'Submitting…' : <><CheckCircle2 className="w-4 h-4 inline mr-1" /> {mkt(L, 'takeSankalp')}</>}
+          {working ? mkt(L, 'bkSubmitting') : <><CheckCircle2 className="w-4 h-4 inline mr-1" /> {mkt(L, 'takeSankalp')}</>}
         </button>
       </div>
     </div>
@@ -256,8 +268,8 @@ const MyBookings: React.FC = () => {
     catch (e: any) { showToast(e.message, 'error'); }
   };
   const raise = async () => {
-    if (!disputeFor || !reason.trim()) { showToast('Describe the issue.', 'error'); return; }
-    try { await openDispute(disputeFor, reason, details); showToast('Dispute raised. Our team will review.', 'success'); setDisputeFor(null); setReason(''); setDetails(''); load(); }
+    if (!disputeFor || !reason.trim()) { showToast(mkt(L, 'bkDescribeIssue'), 'error'); return; }
+    try { await openDispute(disputeFor, reason, details); showToast(mkt(L, 'bkDisputeRaised'), 'success'); setDisputeFor(null); setReason(''); setDetails(''); load(); }
     catch (e: any) { showToast(e.message, 'error'); }
   };
 
@@ -274,7 +286,7 @@ const MyBookings: React.FC = () => {
     );
   }
 
-  if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
+  if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> {mkt(L, 'bkLoading')}</p>;
   return (
     <div className="space-y-3">
       {orders.length === 0 && <Empty text={mkt(L, 'noSevasYet')} />}
@@ -283,10 +295,10 @@ const MyBookings: React.FC = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0"><p className="text-sm font-black truncate">{o.gigTitle}</p>
               <p className="text-[11px] text-stone-500">{formatMoney(o.amountGross, o.currency)} · {o.createdAt?.slice(0, 10)}</p></div>
-            <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{o.status.replace(/_/g, ' ')}</span>
+            <span className={`text-[10px] font-black px-2 py-1 rounded-lg shrink-0 ${statusColor[o.status] || ''}`}>{ORDER_STATUS_KEY[o.status] ? mkt(L, ORDER_STATUS_KEY[o.status]) : o.status.replace(/_/g, ' ')}</span>
           </div>
           {(o as any).walletPaid && (
-            <p className="text-[10px] font-bold text-sky-700 bg-sky-50 rounded-lg px-2 py-1 mt-2">👛 Paid from wallet — held in escrow</p>
+            <p className="text-[10px] font-bold text-sky-700 bg-sky-50 rounded-lg px-2 py-1 mt-2">{mkt(L, 'bkPaidFromWallet')}</p>
           )}
           {/* AUDIT FIX #4: rail-1 pending_payment previously showed a dead card
               with no actions and no explanation. Now the client sees where the
@@ -310,10 +322,10 @@ const MyBookings: React.FC = () => {
           )}
           <div className="flex gap-2 mt-2">
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>Confirm completion</button>
+              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>{mkt(L, 'bkConfirmCompletion')}</button>
             )}
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Dispute</button>
+              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{mkt(L, 'bkDispute')}</button>
             )}
           </div>
           {gratitudeFor && gratitudeFor.id === o.id && (
@@ -324,13 +336,13 @@ const MyBookings: React.FC = () => {
       {disputeFor && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setDisputeFor(null)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black mb-3">Raise a dispute</h3>
+            <h3 className="font-black mb-3">{mkt(L, 'bkRaiseDispute')}</h3>
             <div className="space-y-3">
-              <label className="text-[11px] font-bold text-stone-500">Reason*<input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={120} placeholder="e.g. Provider never showed up" /></label>
-              <label className="text-[11px] font-bold text-stone-500">Details<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
+              <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkReason')}<input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={120} placeholder={mkt(L, 'bkReasonPh')} /></label>
+              <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkDetails')}<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
               <div className="flex gap-2">
-                <button type="button" onClick={raise} className={`${btnP} flex-1`}>Submit dispute</button>
-                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>Cancel</button>
+                <button type="button" onClick={raise} className={`${btnP} flex-1`}>{mkt(L, 'bkSubmitDispute')}</button>
+                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>{mkt(L, 'bkCancel')}</button>
               </div>
             </div>
           </div>
@@ -439,18 +451,18 @@ export const ClientMarketplace: React.FC = () => {
           </Link>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search puja, kundli, havan…" className={`${inputCls} pl-9`} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={mkt(L, 'bkSearchPh')} className={`${inputCls} pl-9`} />
           </div>
           <div className="flex gap-2">
             <select value={cat} onChange={(e) => setCat(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">All categories</option>
-              {['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'].map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="all">{mkt(L, 'bkAllCategories')}</option>
+              {['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'].map((c) => <option key={c} value={c}>{mkt(L, CATEGORY_KEY[c])}</option>)}
             </select>
             <select value={ptype} onChange={(e) => setPtype(e.target.value)} className={`${inputCls} w-auto`}>
-              <option value="all">Purohit + Jyotishi</option><option value="purohit">Purohit</option><option value="jyotishi">Jyotishi</option>
+              <option value="all">{mkt(L, 'bkPtypeAll')}</option><option value="purohit">{mkt(L, 'bkPtypePurohit')}</option><option value="jyotishi">{mkt(L, 'bkPtypeJyotishi')}</option>
             </select>
           </div>
-          {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p> : (
+          {loading ? <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> {mkt(L, 'bkLoading')}</p> : (
             <div className="space-y-2.5">
               {filtered.length === 0 && (
                 <div className="text-center py-10">

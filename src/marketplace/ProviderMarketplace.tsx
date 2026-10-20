@@ -341,6 +341,15 @@ const ProviderEarnings: React.FC = () => {
             <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">IN PROGRESS</p><p className="text-lg font-black text-stone-900">{formatMoney(sum.pending, sum.currency)}</p></div>
             <div className="bg-white border border-stone-200 rounded-2xl p-3"><p className="text-[10px] text-stone-500 font-bold">PAID OUT</p><p className="text-lg font-black text-stone-900">{formatMoney(sum.paidOut, sum.currency)}</p></div>
           </div>
+          {/* AUDIT FIX (2026-10-20, Domain 4): AVAILABLE counts only
+              platform-held earnings. Money the devotee paid you directly
+              (rail-2, pay-after-task, wallet escrow, dakshina) is already in
+              your hands — it must not look requestable from the platform. */}
+          {sum.direct > 0 && (
+            <p className="text-[10px] text-stone-500 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 mt-2">
+              🤝 <b className="text-stone-700">{formatMoney(sum.direct, sum.currency)}</b> was paid directly to you (direct / wallet / dakshina) — already yours, not requestable here.
+            </p>
+          )}
         </div>
       ))}
       <button type="button" disabled={!activeSum || activeSum.available <= 0} onClick={() => setReqOpen(true)} className={`${btnP} w-full disabled:opacity-40`}>

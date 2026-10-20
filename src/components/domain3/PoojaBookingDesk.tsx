@@ -33,6 +33,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { PoojaBooking, PurohitProfile } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { GoLiveButton } from '../../darshan/GoLiveButton';
+import { shouldShowGoLive, toDarshanLang } from '../../darshan/goLiveMount';
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
 import { CameraScanner } from '../common/CameraScanner';
@@ -123,10 +125,10 @@ export const checkRahuKaalOverlap = (timeSlotStr: string, rahuKaalStr: string): 
 
 export const PoojaBookingDesk: React.FC = () => {
   const { activeWorkspace, role, currentRole, currentDevotee, user } = useAuthWorkspace();
-  const { puja_bookings, purohits, devotees, addPoojaBooking, updatePoojaStatus } = useData();
+  const { puja_bookings, purohits, devotees, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl } = useData();
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, currentLang } = useLanguage();
 
   // Determine user role
   const effectiveRole = (role || currentRole || 'Devotee') as string;
@@ -1257,6 +1259,14 @@ export const PoojaBookingDesk: React.FC = () => {
                           <Video className="w-3.5 h-3.5" />
                           <span>{t('ritual.pooja.watch')}</span>
                         </a>
+                      )}
+                      {shouldShowGoLive(b, isPriestOrAdmin) && (
+                        <GoLiveButton
+                          bookingId={b.id}
+                          bookingType={b.poojaName}
+                          lang={toDarshanLang(currentLang)}
+                          onStreamLink={(url) => updatePoojaLiveUrl(b.id, url)}
+                        />
                       )}
                     </div>
                   </div>

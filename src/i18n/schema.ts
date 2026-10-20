@@ -157,6 +157,52 @@ export interface TranslationSchema {
       editTopUp: string;
       topUpUpdated: string;
       creditedNote: string;
+      // Top-up flow chrome (added 2026-10-20, i18n audit — was hardcoded English).
+      // Optional so the 7 AI-draft languages keep compiling; t() falls back
+      // to English for them (the "show-don't-hide" contract).
+      topupHistory?: string;
+      topUpTitle?: string;
+      minMax?: string;
+      regionBD?: string;
+      regionIN?: string;
+      regionINTL?: string;
+      amountRange?: string;
+      amountBetween?: string;
+      topupSubmitted?: string;
+      submissionFailed?: string;
+      updateFailed?: string;
+      paymentMethod?: string;
+      howToPay?: string;
+      amountMustMatch?: string;
+      openMethod?: string;
+      includeReferenceNote?: string;
+      requestExpires?: string;
+      trxIdLabel?: string;
+      trxIdLabelShort?: string;
+      screenshotUrl?: string;
+      submitting?: string;
+      submitTopUp?: string;
+      saving?: string;
+      resubmit?: string;
+      refresh?: string;
+      expired?: string;
+      pending?: string;
+      editResubmit?: string;
+      expiredNote?: string;
+      notVerified?: string;
+      copiedReference?: string;
+      copiedAmount?: string;
+      copiedNumber?: string;
+      copiedUpiId?: string;
+      topupClaimLabel?: string;
+      orderLabel?: string;
+      txnTopup?: string;
+      txnSpend?: string;
+      txnReceive?: string;
+      txnCommission?: string;
+      txnRefund?: string;
+      txnAdjustment?: string;
+      txnTopupRequest?: string;
     };
     signup: {
       title: string;
@@ -866,6 +912,7 @@ export interface TranslationSchema {
     };
     marketplace: {
       findJyotishi: string;
+      city?: string;
       myConsultations: string;
       postRequirement: string;
       postNote: string;

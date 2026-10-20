@@ -15,6 +15,23 @@ interface DirectMessageChatProps {
   bypassScan?: { enabled: boolean; orderId?: string };
 }
 
+type TriCopy = { en: string; bn: string; hi: string };
+/** Warm trilingual resolver — reads the active language at call time, falls back to English. */
+const chatLang = (): 'en' | 'bn' | 'hi' => {
+  try {
+    // Canonical key first ('sb-lang'), legacy key second — the app migrates
+    // legacy → canonical at boot, but a mid-session language switch only
+    // writes the canonical key.
+    const lang = localStorage.getItem('sb-lang') || localStorage.getItem('sanatani_lang') || 'en';
+    if (lang === 'bn') return 'bn';
+    if (lang === 'hi') return 'hi';
+  } catch {
+    /* sandboxed iframe — fall through to English */
+  }
+  return 'en';
+};
+const trChat = (copy: TriCopy): string => copy[chatLang()];
+
 export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
   recipientId,
   recipientName,
@@ -190,12 +207,14 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
               <div className="flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${isRecipientOnline ? 'bg-emerald-500 animate-pulse' : 'bg-temple-300'}`}></span>
                 <span className={`text-[9px] font-bold uppercase tracking-widest ${isRecipientOnline ? 'text-emerald-600' : 'text-temple-400'}`}>
-                  {isRecipientOnline ? 'Online' : 'Offline'}
+                  {isRecipientOnline
+                    ? trChat({ en: 'Online', bn: 'অনলাইন', hi: 'ऑनलाइन' })
+                    : trChat({ en: 'Offline', bn: 'অফলাইন', hi: 'ऑफ़लाइन' })}
                 </span>
               </div>
             </div>
             <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 uppercase tracking-widest mt-0.5">
-              <CheckCircle2 size={10} /> Secure End-to-End Chat
+              <CheckCircle2 size={10} /> {trChat({ en: 'Secure End-to-End Chat', bn: 'নিরাপদ এন্ড-টু-এন্ড চ্যাট', hi: 'सुरक्षित एंड-टू-एंड चैट' })}
             </p>
           </div>
         </div>
@@ -232,8 +251,20 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-10 opacity-50">
             <MessageSquare size={32} className="text-temple-300 mb-3" />
-            <p className="text-sm font-bold text-temple-500">No messages yet</p>
-            <p className="text-xs text-temple-400 mt-1">Send a message to start the conversation</p>
+            <p className="text-sm font-bold text-temple-500">
+              {trChat({
+                en: 'No messages yet — begin with a blessing 🙏',
+                bn: 'এখনও কোনো বার্তা নেই — একটি আশীর্বাদ দিয়ে শুরু করুন 🙏',
+                hi: 'अभी कोई संदेश नहीं — एक आशीर्वाद से शुरुआत करें 🙏',
+              })}
+            </p>
+            <p className="text-xs text-temple-400 mt-1">
+              {trChat({
+                en: 'Your words travel safely here.',
+                bn: 'আপনার কথা এখানে নিরাপদে পৌঁছায়।',
+                hi: 'आपकी बात यहाँ सुरक्षित पहुँचती है।',
+              })}
+            </p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -270,8 +301,8 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
       <div className="bg-white border-t border-temple-200 p-3">
         {bypassWarned && (
           <div className="mb-2 bg-amber-50 border border-amber-300 rounded-xl p-2.5 flex gap-2 items-start">
-            <p className="text-[11px] text-amber-900 leading-snug">{bypassWarningMessage('en')}</p>
-            <button type="button" onClick={() => setBypassWarned(false)} className="text-amber-700 shrink-0 p-1" aria-label="Dismiss"><X size={14} /></button>
+            <p className="text-[11px] text-amber-900 leading-snug">{bypassWarningMessage(chatLang() === 'bn' ? 'bn' : 'en')}</p>
+            <button type="button" onClick={() => setBypassWarned(false)} className="text-amber-700 shrink-0 p-1" aria-label={trChat({ en: 'Dismiss', bn: 'বাতিল', hi: 'हटाएँ' })}><X size={14} /></button>
           </div>
         )}
         <form onSubmit={handleSend} className="flex items-center gap-2 relative">
@@ -279,7 +310,7 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
             type="text"
             value={newMessage}
             onChange={handleInputChange}
-            placeholder="Type your message..."
+            placeholder={trChat({ en: 'Type your message...', bn: 'আপনার বার্তা লিখুন…', hi: 'अपना संदेश लिखें…' })}
             className="flex-1 bg-temple-50 border border-temple-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-saffron-500 focus:border-transparent transition-all shadow-inner"
           />
           <button 
