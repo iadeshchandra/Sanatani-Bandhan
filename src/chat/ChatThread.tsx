@@ -8,6 +8,7 @@
  * button whose money-request wiring lands in Phase 2.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Modal, T, useLocaleText } from "../solo/ui";
 import {
   clearTyping,
@@ -29,6 +30,16 @@ import { VoiceRecorder } from "./VoiceRecorder";
 import { uploadFile } from "../lib/fileVault";
 import { buildVoiceMeta, isValidVoiceMeta } from "./voice";
 import { getOrgSenderRole } from "./p2pService";
+import {
+  counterpartSurface,
+  latestOrderContext,
+  orderStageLabel,
+  type ThreadOrderContext,
+} from "./threadProfile";
+import { CounterpartProfileSheet } from "./CounterpartProfileSheet";
+import { sevaOrderStage } from "../sangam/sevaBooking";
+import { getSevaBazarOrder } from "../lib/sevaBazarOrders";
+import { formatMoney } from "./types";
 import type { ChatMessage, ChatParticipant, ReceiptMeta } from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +159,60 @@ const BlessingPicker: React.FC<{
 };
 
 /* ------------------------------------------------------------------ */
+/* Pinned order strip (QUEUED #28)                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Slim context bar under the header when this thread carries a Seva
+ * Bazar order: which booking the conversation belongs to, and where it
+ * stands. The anchor is the receipt message already in the thread
+ * (`latestOrderContext`); the live status is the same single read
+ * ReceiptCard performs. Fails quiet — no receipt, no strip; unknown
+ * stage, no strip. Tap → My Bookings (the marketplace bookings view).
+ */
+const ThreadOrderStrip: React.FC<{
+  ctx: ThreadOrderContext;
+  lang: string;
+  onOpen: () => void;
+}> = ({ ctx, lang, onOpen }) => {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    getSevaBazarOrder(ctx.orderId)
+      .then((o) => {
+        if (!alive) return;
+        setLabel(o ? orderStageLabel(sevaOrderStage(String(o.status ?? '')), lang) : null);
+      })
+      .catch(() => {
+        if (alive) setLabel(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [ctx.orderId, lang]);
+
+  if (!label) return null;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="shrink-0 w-full bg-amber-100/80 hover:bg-amber-100 border-b border-amber-200 px-4 py-2 min-h-[44px] flex items-center gap-2 text-left"
+      aria-label="View this seva booking"
+    >
+      <span aria-hidden>🧾</span>
+      <span className="flex-1 min-w-0 text-xs font-bold text-amber-900 truncate">
+        <T en="Seva booking" bn="সেবা বুকিং" hi="सेवा बुकिंग" />
+        {ctx.providerName ? ` · ${ctx.providerName}` : ''} — {label}
+      </span>
+      <span className="text-xs font-black text-amber-800 shrink-0">
+        {formatMoney(ctx.amount, ctx.currency)} ›
+      </span>
+    </button>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /* ChatThread                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -160,7 +225,10 @@ export const ChatThread: React.FC<{
   onReceiptConfirm?: (receipt: ReceiptMeta) => void;
 }> = ({ uid, chatId, thread, onBack, onReceiptConfirm }) => {
   const { lang } = useLocaleText();
+  const navigate = useNavigate();
   const { messages, loading } = useChatMessages(chatId);
+  // QUEUED #28: in-thread profile + pinned order context.
+  const [profileOpen, setProfileOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [blessingOpen, setBlessingOpen] = useState(false);
@@ -176,6 +244,14 @@ export const ChatThread: React.FC<{
     : null;
   const person: ChatParticipant | undefined =
     thread && otherKey ? thread.participantInfo[otherKey] : undefined;
+  // QUEUED #28: profile surface exists ONLY for direct threads with a
+  // resolved counterpart (org threads keep today's static header), and
+  // the order strip anchors on the latest receipt in this thread.
+  const surface = useMemo(
+    () => counterpartSurface(thread, uid),
+    [thread, uid],
+  );
+  const orderCtx = useMemo(() => latestOrderContext(messages), [messages]);
   const otherTyping = Boolean(otherKey && thread?.typing?.[otherKey]);
 
   // Step 5 (safety): for direct chats, either party blocking the other quiets the thread.
@@ -347,6 +423,48 @@ export const ChatThread: React.FC<{
     }
   };
 
+  /* QUEUED #28: the header identity block — avatar + name + presence.
+   * In direct threads it becomes a ≥44px tap target opening the
+   * counterpart profile sheet; org threads keep it static. */
+  const headerIdentity = (
+    <>
+      {person && <ChatAvatar person={person} size={40} />}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="font-extrabold truncate">
+            {person?.displayName ?? "…"}
+          </span>
+          {person && <VerifiedBadge person={person} compact />}
+        </div>
+        <div className="text-[11px] text-amber-200/80 flex items-center gap-1">
+          {otherTyping ? (
+            <span className="italic">
+              <T en="typing…" bn="লিখছেন…" hi="लिख रहे हैं…" />
+            </span>
+          ) : (
+            <>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${recentlyActive ? "bg-emerald-300" : "bg-amber-200/40"}`}
+                aria-hidden
+              />
+              <span>
+                {recentlyActive ? (
+                  <T
+                    en="Recently active"
+                    bn="সম্প্রতি সক্রিয়"
+                    hi="हाल में सक्रिय"
+                  />
+                ) : (
+                  <T en="Sanatani" bn="সনাতনী" hi="सनातनी" />
+                )}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   let lastDay = "";
 
   return (
@@ -361,41 +479,31 @@ export const ChatThread: React.FC<{
         >
           ←
         </button>
-        {person && <ChatAvatar person={person} size={40} />}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold truncate">
-              {person?.displayName ?? "…"}
-            </span>
-            {person && <VerifiedBadge person={person} compact />}
+        {surface ? (
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            aria-label={`View profile of ${person?.displayName ?? "counterpart"}`}
+            className="flex items-center gap-2 flex-1 min-w-0 min-h-[44px] text-left rounded-xl hover:bg-white/10 px-1 -mx-1"
+          >
+            {headerIdentity}
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0 px-1 -mx-1">
+            {headerIdentity}
           </div>
-          <div className="text-[11px] text-amber-200/80 flex items-center gap-1">
-            {otherTyping ? (
-              <span className="italic">
-                <T en="typing…" bn="লিখছেন…" hi="लिख रहे हैं…" />
-              </span>
-            ) : (
-              <>
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${recentlyActive ? "bg-emerald-300" : "bg-amber-200/40"}`}
-                  aria-hidden
-                />
-                <span>
-                  {recentlyActive ? (
-                    <T
-                      en="Recently active"
-                      bn="সম্প্রতি সক্রিয়"
-                      hi="हाल में सक्रिय"
-                    />
-                  ) : (
-                    <T en="Sanatani" bn="সনাতনী" hi="सनातनी" />
-                  )}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* QUEUED #28: pinned order context — only when this thread's
+          latest receipt names THIS counterpart as the provider. */}
+      {orderCtx && otherKey && orderCtx.providerUid === otherKey && (
+        <ThreadOrderStrip
+          ctx={orderCtx}
+          lang={lang}
+          onOpen={() => navigate("/app/home/marketplace")}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
@@ -647,6 +755,19 @@ export const ChatThread: React.FC<{
           }}
           recipient={recipient}
           asOrg={orgSender}
+        />
+      )}
+
+      {/* QUEUED #28: counterpart profile sheet (direct threads only —
+          `surface` is null for org threads, so this can never mount
+          there). Booking inside is provider-gated by the sheet itself. */}
+      {profileOpen && surface && (
+        <CounterpartProfileSheet
+          viewerUid={uid}
+          viewerName={me?.displayName ?? "Sanatani"}
+          counterpartUid={surface.counterpartUid}
+          person={surface.person}
+          onClose={() => setProfileOpen(false)}
         />
       )}
     </div>

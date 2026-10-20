@@ -118,7 +118,10 @@ const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) =>
 
 /* ------------------------------ Booking ------------------------------ */
 
-const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void; priceNote?: PriceChangeNote | null }> = ({ gig, onDone, onBack, priceNote }) => {
+/* QUEUED #28: exported so GigBookingFlow can mount the SAME booking
+ * screen from chat (book-from-chat) — one booking implementation,
+ * two doors. ClientMarketplace's own usage below is unchanged. */
+export const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void; priceNote?: PriceChangeNote | null }> = ({ gig, onDone, onBack, priceNote }) => {
   const { showToast } = useToast();
   const { firebaseUser } = useAuthWorkspace();
   const bookerUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
