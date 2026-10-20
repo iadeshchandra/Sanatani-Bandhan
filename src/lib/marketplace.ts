@@ -253,6 +253,44 @@ export async function orderTransition(id: string, to: 'accepted' | 'cancelled' |
     (isProvider && ['accepted', 'cancelled', 'in_progress', 'completed'].includes(to)) ||
     (isClient && ['completed', 'cancelled'].includes(to) && (o.status === 'pending_payment' || o.status === 'paid'));
   if (!allowed) throw new Error('You cannot move this order to that status.');
+  // QUEUED #23: paid-seva acceptance gate (pure decision in sevaPro/proGate).
+  // Community (free) providers may hold up to 3 paid sevas in progress —
+  // the same allowance saveGig applies to listings. Pro: unlimited.
+  // This is the single choke point: gig orders AND Seva Bazar orders
+  // (useSevaBooking) both accept through here. Fail-open by design: an
+  // unreadable tier (rules self-read flag pending) or a failed count
+  // never blocks a provider — only a positively-known community tier at
+  // the limit refuses, with warm Pro upsell copy + a PRO_REQUIRED code
+  // so the UI can open the Pro purchase flow instead of dead-ending.
+  if (to === 'accepted' && isProvider && Number(o.amountGross || 0) > 0) {
+    try {
+      const { getProviderTierDetailed } = await import('./firestoreAdmin');
+      const { paidSevaAcceptance, PRO_UPSELL_MESSAGE, PRO_REQUIRED_CODE } = await import('./sevaPro/proGate');
+      const { tier, readable } = await getProviderTierDetailed(uid);
+      let activePaidCount = 0;
+      if (readable && tier !== 'pro') {
+        const mine = await myOrdersAsProvider();
+        activePaidCount = mine.filter((m) =>
+          m.id !== id && Number(m.amountGross || 0) > 0 &&
+          (m.status === 'accepted' || m.status === 'in_progress')
+        ).length;
+      }
+      const decision = paidSevaAcceptance({
+        amountGross: Number(o.amountGross || 0),
+        isPro: tier === 'pro',
+        tierReadable: readable,
+        activePaidCount,
+      });
+      if (!decision.allowed) {
+        const err: any = new Error(PRO_UPSELL_MESSAGE);
+        err.code = PRO_REQUIRED_CODE;
+        throw err;
+      }
+    } catch (e: any) {
+      if (e?.code === 'PRO_REQUIRED') throw e;
+      // fail-open — never block a provider on infra hiccups (saveGig law)
+    }
+  }
   // Wallet-escrow orders: completion releases escrow (provider wallet credit
   // + platform revenue), all in one batched write. Rules validate every leg.
   if (to === 'completed' && o.walletPaid === true && o.payWithWallet === true) {

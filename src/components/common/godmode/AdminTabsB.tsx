@@ -292,9 +292,14 @@ const SubscriptionsTab: React.FC = () => {
       const { db } = await import('../../../firebase');
       const { collection, getDocs, query, orderBy, limit } = await import('firebase/firestore');
       const { getSubscriptionStatus, isExpiringSoon, daysUntilExpiry } = await import('../../../lib/subscriptionExpiry');
+      const { isProSubscriptionDoc, subscriptionKindLabel } = await import('../../../lib/proSubscription');
       const snap = await getDocs(query(collection(db, 'subscriptions'), orderBy('updatedAt', 'desc'), limit(200)));
       const rows = snap.docs.map((d) => {
         const s: any = { id: d.id, ...d.data() };
+        // QUEUED #23: Pro subscriptions are personal (doc id = provider
+        // uid) and must not read as organisation plans in this list.
+        s._isPro = isProSubscriptionDoc(s);
+        s._kindLabel = subscriptionKindLabel(s);
         s._status = getSubscriptionStatus(s);
         s._expiringSoon = isExpiringSoon(s);
         s._daysLeft = daysUntilExpiry(s);
@@ -314,7 +319,7 @@ const SubscriptionsTab: React.FC = () => {
 
   const badge = (s: any) => {
     if (s._status === 'expired')
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/15 text-red-300 border border-red-500/30">EXPIRED → Seva caps</span>;
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500/15 text-red-300 border border-red-500/30">EXPIRED → free caps</span>;
     if (s._status === 'grace')
       return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-300 border border-amber-500/30">GRACE · {s._daysLeft != null ? Math.max(0, 7 + s._daysLeft) : '?'}d left</span>;
     if (s._expiringSoon)
@@ -337,10 +342,13 @@ const SubscriptionsTab: React.FC = () => {
         <div key={s.id} className="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              <p className="font-bold text-white text-sm">{s.workspaceId}</p>
+              <p className="font-bold text-white text-sm">{s._isPro ? (s.providerUid || s.id) : s.workspaceId}</p>
               <p className="text-xs text-slate-400 mt-1">
                 <span className="font-black text-saffron-300">{s.planId}</span>
                 <span className="text-slate-500"> · {s.status || 'active'}</span>
+                <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black ${s._isPro ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-slate-500/15 text-slate-300 border border-slate-500/30'}`}>
+                  {s._isPro ? '🪔 PRO · INDIVIDUAL' : '🏛 ORGANISATION'}
+                </span>
               </p>
               <p className="text-[11px] text-slate-500 mt-1 font-mono">
                 {s.startDate ? new Date(s.startDate).toLocaleDateString() : '?'} → {s.endDate ? new Date(s.endDate).toLocaleDateString() : 'no expiry'}

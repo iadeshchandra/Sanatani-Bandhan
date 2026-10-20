@@ -18,6 +18,8 @@ import {
 } from '../lib/marketplace';
 import { formatMoney, currencySymbol } from '../lib/money';
 import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from '../lib/rail2';
+import { openPlanUpgrade } from '../billing/PlanUpgradeFlow';
+import { PRO_REQUIRED_CODE } from '../lib/sevaPro/proGate';
 import { ProviderDues } from './ProviderDues';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
 // Seva Professional Phase 3+4: atomic completion w/ pre-funded commission,
@@ -63,7 +65,12 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
     try {
       await saveGig({ ...editing, providerType, providerName });
       showToast('Service saved.', 'success'); setEditing(null); load();
-    } catch (e: any) { showToast(e.message || 'Save failed.', 'error'); }
+    } catch (e: any) {
+      showToast(e.message || 'Save failed.', 'error');
+      // QUEUED #23: the free-listing wall is a door, not a dead end —
+      // open the Pro purchase flow (PUROHIT_PRO preselected).
+      if (String(e?.message || '').includes('Community tier')) openPlanUpgrade('PUROHIT_PRO');
+    }
   };
   const toggle = async (g: Gig) => {
     try { await setGigActive(g.id as string, !(g.active !== false)); load(); }
@@ -153,7 +160,12 @@ const ProviderOrders: React.FC = () => {
   const go = async (o: MarketplaceOrder, to: 'accepted' | 'cancelled' | 'in_progress' | 'completed') => {
     setWorking(o.id as string);
     try { await orderTransition(o.id as string, to); showToast('Order updated.', 'success'); load(); }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) {
+      showToast(e.message, 'error');
+      // QUEUED #23: acceptance-gate refusal carries the warm copy in the
+      // toast AND opens the Pro purchase flow — an upsell, never a wall.
+      if ((e as any)?.code === PRO_REQUIRED_CODE) openPlanUpgrade('PUROHIT_PRO');
+    }
     setWorking(null);
   };
 
@@ -395,6 +407,71 @@ const ProviderEarnings: React.FC = () => {
   );
 };
 
+/* ------------------------------ Pro door ------------------------------ */
+
+/**
+ * QUEUED #23: the Pro purchase door on the provider's own surface.
+ * Pro was priced and read (getProviderTier) but reachable from nowhere —
+ * every openPlanUpgrade() CTA lived in org shells. Community providers
+ * see the invitation; Pro providers see a quiet confirmation. Tier read
+ * fails soft to hidden (never a wrong "go Pro" nag for a Pro provider
+ * whose read hiccuped is worse than a missing card — the gig wall and
+ * acceptance gate still open the flow contextually).
+ */
+const ProUpsellCard: React.FC = () => {
+  const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
+  const [tier, setTier] = useState<'pro' | 'community' | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { getAuth } = await import('firebase/auth');
+        const uid = getAuth().currentUser?.uid;
+        if (!uid) return;
+        const { getProviderTier } = await import('../lib/firestoreAdmin');
+        const t = await getProviderTier(uid);
+        if (alive) setTier(t);
+      } catch { /* fail-quiet: no card rather than a wrong card */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  if (tier === null) return null;
+  if (tier === 'pro') {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-2">
+        <span className="text-base" aria-hidden>🌟</span>
+        <p className="text-xs font-bold text-emerald-900">
+          {L === 'en' ? 'You are a Verified Seva Provider (Pro) — unlimited sevas, verified badge, gentler commission. Dhanyavaad for walking with us.' : L === 'bn' ? 'আপনি একজন যাচাইকৃত সেবা প্রদানকারী (Pro) — অসীম সেবা, যাচাইকৃত ব্যাজ, কম কমিশন।' : 'आप एक सत्यापित सेवा प्रदाता (Pro) हैं — असीमित सेवाएँ, सत्यापित बैज, कम कमीशन।'}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <span className="text-xl" aria-hidden>🪔</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-black text-stone-900">
+            {L === 'en' ? 'Become a Verified Seva Provider' : L === 'bn' ? 'যাচাইকৃত সেবা প্রদানকারী হোন' : 'सत्यापित सेवा प्रदाता बनें'}
+          </p>
+          <p className="text-[11px] text-stone-600 mt-0.5">
+            {L === 'en'
+              ? 'Unlimited sevas (free plan: 3 at a time), your verified badge, higher ranking, dispute protection — and 8%/12% commission instead of 15%.'
+              : L === 'bn'
+                ? 'অসীম সেবা (ফ্রি প্ল্যানে একসাথে ৩টি), যাচাইকৃত ব্যাজ, উচ্চতর র‍্যাঙ্কিং, বিরোধ সুরক্ষা — এবং ১৫%-এর বদলে ৮%/১২% কমিশন।'
+                : 'असीमित सेवाएँ (मुफ़्त योजना: एक बार में 3), सत्यापित बैज, उच्च रैंकिंग, विवाद सुरक्षा — और 15% के बजाय 8%/12% कमीशन।'}
+          </p>
+          <button type="button" onClick={() => openPlanUpgrade('PUROHIT_PRO')}
+            className="mt-2 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400">
+            {L === 'en' ? '🌟 Go Pro' : L === 'bn' ? '🌟 Pro নিন' : '🌟 Pro लें'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ------------------------------ Main ------------------------------ */
 
 export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
@@ -404,6 +481,7 @@ export const ProviderMarketplace: React.FC<{ providerType: 'purohit' | 'jyotishi
   return (
     <div className="space-y-3">
       <AgamiSevaCard role={providerType === 'purohit' ? 'purohit' : 'jyotishi'} />
+      <ProUpsellCard />
       <div className="flex gap-1.5 overflow-x-auto">
         {([
           ['services', mkt(L, 'mySevas'), Package],

@@ -53,6 +53,9 @@ import {
 import { db, auth } from '../firebase';
 import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
 import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
+import {
+  isProPlanId, normalizeProPlanId, buildProSubscriptionDoc, providerTierFromSubscription,
+} from './proSubscription';
 import { warnTargetForReport, shouldThankReporter } from '../sangam/moderation';
 import {
   computeMrr,
@@ -492,6 +495,27 @@ async function claimApprove(id: string): Promise<NativeResult> {
   const planId = claim.plan || 'STANDARD';
 
   await updateDoc(ref, { status: 'approved', approvedBy: uid, approvedAt: serverTimestamp() });
+  // QUEUED #23: Pro plans are PERSONAL, not workspace plans. The canonical
+  // doc is subscriptions/{applicantUid} — where getProviderTier reads —
+  // with the planId normalized to 'purohit_pro'. The old path wrote
+  // subscriptions/{workspaceId} with the claim's raw 'PUROHIT_PRO': solo
+  // claims (workspaceId 'personal') all overwrote ONE shared doc, and
+  // the tier reader never matched. A Pro approval must also NOT sync a
+  // workspace planId — the provider's org (if any) keeps its own tier.
+  if (isProPlanId(planId) && claim.applicantUid) {
+    await setDoc(
+      doc(db, 'subscriptions', claim.applicantUid),
+      { ...buildProSubscriptionDoc(claim, start, end), updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+    await writeAudit(
+      'billing.claim.approve',
+      { claimId: id, providerUid: claim.applicantUid, planId: normalizeProPlanId(planId) || 'purohit_pro', startDate: start.toISOString(), endDate: end.toISOString() },
+      'warn',
+      claim.applicantUid
+    );
+    return { ok: true, data: { ok: true } };
+  }
   // Subscription doc id = workspaceId (matches firestore.rules shape).
   await setDoc(
     doc(db, 'subscriptions', claim.workspaceId),
@@ -1622,19 +1646,27 @@ async function commissionOverrideDelete(id: string): Promise<NativeResult> {
   return { ok: true, data: { ok: true } };
 }
 
-/** Provider tier for commission purposes: 'pro' (active purohit_pro subscription) or 'community' (free). */
-export async function getProviderTier(providerUid: string): Promise<'pro' | 'community'> {
+/** Provider tier for commission purposes: 'pro' (active purohit_pro subscription) or 'community' (free).
+ *  QUEUED #23: the verdict logic lives in pure `proSubscription.ts`
+ *  (providerTierFromSubscription) — plan ids match case-insensitively so
+ *  a stored 'PUROHIT_PRO' can no longer silently read as community.
+ *  Canonical storage: subscriptions/{providerUid} (see claimApprove). */
+export async function getProviderTierDetailed(
+  providerUid: string,
+): Promise<{ tier: 'pro' | 'community'; readable: boolean }> {
   try {
     const snap = await getDoc(doc(db, 'subscriptions', providerUid));
-    if (snap.exists()) {
-      const s: any = snap.data();
-      const active = s.status === 'active' && (!s.endDate || new Date(s.endDate) > new Date());
-      if (active && (s.planId === 'purohit_pro' || s.planId === 'jyotishi_pro')) return 'pro';
-    }
-    return 'community';
+    if (!snap.exists()) return { tier: 'community', readable: true };
+    return { tier: providerTierFromSubscription(snap.data() as Record<string, unknown>, providerUid), readable: true };
   } catch {
-    return 'community';
+    // Read denied/failed — callers that gate on this (proGate) fail open
+    // on readable:false instead of punishing a possibly-Pro provider.
+    return { tier: 'community', readable: false };
   }
+}
+
+export async function getProviderTier(providerUid: string): Promise<'pro' | 'community'> {
+  return (await getProviderTierDetailed(providerUid)).tier;
 }
 
 /** Commission rate config: editable from GodMode. Defaults: free 15%, pro rail1 8%, pro rail2 12%. */
@@ -2828,6 +2860,7 @@ export const firestoreAdmin = {
   saveIntelConfig,
   geoConfigSave,
   getProviderTier,
+  getProviderTierDetailed,
   marketplaceTransactions,
   transactionSetStatus,
   payoutQueue,
