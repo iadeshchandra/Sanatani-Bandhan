@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { DataExportButton } from '../common/DataExportButton';
 import { EmptyState } from '../common/EmptyState';
 import { formatINR } from '../../utils/format';
-import { sanitizeName, isValidAmountOrZero, isValidPhoneIN } from '../../utils/validation';
+import { sanitizeName, isValidAmountOrZero, isValidPhone, phoneErrorMessage } from '../../utils/validation';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const GauSevaDesk: React.FC = () => {
@@ -134,8 +134,8 @@ export const GauSevaDesk: React.FC = () => {
       showToast('Guardian name is required for adoption', 'error', 'Missing Details');
       return;
     }
-    if (sponsorPhone.trim() && !isValidPhoneIN(sponsorPhone)) {
-      showToast('Please enter a valid 10-digit Indian mobile number', 'error', 'Invalid Phone');
+    if (sponsorPhone.trim() && !isValidPhone(sponsorPhone)) {
+      showToast(phoneErrorMessage(activeWorkspace?.country), 'error', 'Invalid Phone');
       return;
     }
 

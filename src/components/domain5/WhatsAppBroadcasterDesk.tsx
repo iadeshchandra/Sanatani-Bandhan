@@ -3,7 +3,7 @@ import { Send, Phone, Users, Sparkles, MessageSquare, CheckCheck, Clock, Downloa
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
-import { isValidPhoneIN } from '../../utils/validation';
+import { isValidPhone } from '../../utils/validation';
 
 const WHATSAPP_TEMPLATE_LIMIT = 1024;
 
@@ -38,9 +38,11 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
     return d.sevaTier === targetAudience;
   });
 
-  // Only devotees with a valid Indian mobile can actually receive the Sandesh
+  // Only devotees with a valid mobile (BD, IN or international — QUEUED
+  // #49) can actually receive the Sandesh; the old IN-only filter silently
+  // excluded every Bangladeshi devotee from broadcasts.
   const { reachableDevotees, unreachableCount } = useMemo(() => {
-    const reachable = targetDevotees.filter((d) => isValidPhoneIN(d.phone || ''));
+    const reachable = targetDevotees.filter((d) => isValidPhone(d.phone || ''));
     return { reachableDevotees: reachable, unreachableCount: targetDevotees.length - reachable.length };
   }, [targetDevotees]);
 

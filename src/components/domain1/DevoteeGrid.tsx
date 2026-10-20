@@ -46,7 +46,7 @@ import { WindowedNotice } from '../common/WindowedNotice';
 import { useScopedData } from '../../hooks/useScopedData';
 import { DevoteeMember, SevaTier, UserRole } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
-import { isValidPhoneIN, normalizePhoneIN, sanitizeName } from '../../utils/validation';
+import { isValidPhone, phoneErrorMessage, phoneNationalKey, sanitizeName } from '../../utils/validation';
 import { generateDonationHistoryPDF, generateAnnualDonationSummaryPDF } from '../../utils/pdfGenerator';
 import { generateDevoteeCardPDF } from '../../utils/pdfGenerator';
 import { PdfPreviewModal } from '../common/PdfPreviewModal';
@@ -395,17 +395,22 @@ export const DevoteeGrid: React.FC = () => {
       return;
     }
 
-    // Validate Indian mobile format before any duplicate checks
-    if (!isValidPhoneIN(cleanPhone)) {
-      showToast('Please enter a valid 10-digit Indian mobile number', 'error', 'Invalid Phone');
+    // Geo-aware validation before any duplicate checks (QUEUED #49): BD
+    // mobiles (01…), IN mobiles and +E.164 numbers are all welcome — a
+    // Bangladeshi org's own number must never fail as "not Indian".
+    if (!isValidPhone(cleanPhone)) {
+      showToast(phoneErrorMessage(activeWorkspace?.country), 'error', 'Invalid Phone');
       return;
     }
-    const normPhone = normalizePhoneIN(cleanPhone);
+    const normPhone = phoneNationalKey(cleanPhone);
 
-    // Duplicate detection on normalized 10-digit phone (catches +91/format variants)
-    const phoneExists = devotees.find(
-      (d) => normalizePhoneIN(d.phone || '') === normPhone && d.id !== editingDevotee?.id
-    );
+    // Duplicate detection on the country-insensitive national key (catches
+    // 01… / 880… / +880… and 91… / 0-trunk / +91 format variants alike)
+    const phoneExists = normPhone
+      ? devotees.find(
+          (d) => phoneNationalKey(d.phone || '') === normPhone && d.id !== editingDevotee?.id
+        )
+      : undefined;
     if (phoneExists) {
       showToast(
         `This mobile number is already registered to ${phoneExists.fullName || phoneExists.name || 'another devotee'}.`,

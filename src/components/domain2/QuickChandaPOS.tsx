@@ -36,7 +36,7 @@ import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useToast } from '../../context/ToastContext';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { formatINR } from '../../utils/format';
-import { isValidPAN, isValidPhoneIN, sanitizeName } from '../../utils/validation';
+import { isValidPAN, isValidPhone, parsePhone, phoneErrorMessage, phoneNationalKey, sanitizeName } from '../../utils/validation';
 import { TreasuryTransaction, DevoteeMember } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -308,15 +308,19 @@ export const QuickChandaPOS: React.FC = () => {
     sankalpNote: string;
   } | null>(null);
 
-  // Mobile Auto-Lookup Effect
+  // Mobile Auto-Lookup Effect — fires on any complete BD / IN / E.164
+  // number (QUEUED #49); matching is on the country-insensitive national
+  // key so a devotee registered as 01608… is found by +8801608… too.
   useEffect(() => {
-    const cleanDigits = mobileNumber.replace(/\D/g, '');
-    if (cleanDigits.length === 10) {
+    const parsed = parsePhone(mobileNumber);
+    if (parsed.valid) {
       setIsSearchingDevotee(true);
       // Look up in existing devotees
+      const key = parsed.nationalKey;
       const found = devotees.find((d) => {
+        if (key) return phoneNationalKey(d.phone || '') === key;
         const dDigits = (d.phone || '').replace(/\D/g, '');
-        return dDigits.endsWith(cleanDigits);
+        return dDigits.length >= 7 && parsed.e164.endsWith(dDigits.slice(-10));
       });
 
       const timer = setTimeout(() => {
@@ -468,8 +472,8 @@ export const QuickChandaPOS: React.FC = () => {
       return;
     }
 
-    if (mobileNumber && !isValidPhoneIN(mobileNumber)) {
-      showToast('Please enter a valid 10-digit Indian mobile number', 'error', 'Invalid Mobile');
+    if (mobileNumber && !isValidPhone(mobileNumber)) {
+      showToast(phoneErrorMessage(activeWorkspace?.country), 'error', 'Invalid Mobile');
       return;
     }
 
@@ -799,10 +803,10 @@ export const QuickChandaPOS: React.FC = () => {
                 </div>
                 <input
                   type="tel"
-                  maxLength={10}
+                  maxLength={15}
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 10-Digit Mobile (e.g. 9876511223)"
+                  placeholder="Mobile (e.g. 01608533529 or 9876511223)"
                   className="w-full min-h-[44px] pl-10 pr-10 py-2.5 rounded-xl bg-stone-950 border border-stone-700 text-stone-100 placeholder-stone-500 text-sm font-mono focus:border-amber-400 focus:outline-none transition-colors"
                 />
                 {isSearchingDevotee && (
@@ -810,7 +814,7 @@ export const QuickChandaPOS: React.FC = () => {
                     <RefreshCw className="w-4 h-4 text-amber-400 animate-spin" />
                   </div>
                 )}
-                {!isSearchingDevotee && mobileNumber.length === 10 && matchedDevotee && (
+                {!isSearchingDevotee && isValidPhone(mobileNumber) && matchedDevotee && (
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   </div>

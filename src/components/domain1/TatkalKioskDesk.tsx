@@ -15,7 +15,8 @@ import {
   QrCode,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import { isValidPhoneIN, sanitizeName } from '../../utils/validation';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { parsePhone, phoneErrorMessage, phoneGeoForCountry, sanitizeName } from '../../utils/validation';
 
 const COMMON_GOTRAS = [
   'Kashyapa',
@@ -37,7 +38,16 @@ const COMMON_GOTRAS = [
 
 export const TatkalKioskDesk: React.FC = () => {
   const { showToast } = useToast();
+  const { activeWorkspace } = useAuthWorkspace();
+  // Geo-aware dial code (QUEUED #49): defaults from the org's country,
+  // flippable at the counter for a cross-border pilgrim. BD pilgrims type
+  // their full 01… national number (11 digits); IN pilgrims 10 digits.
+  const [dialCode, setDialCode] = useState<'+91' | '+880'>(() =>
+    phoneGeoForCountry(activeWorkspace?.country) === 'BD' ? '+880' : '+91'
+  );
+  const maxDigits = dialCode === '+880' ? 11 : 10;
   const [phoneNumber, setPhoneNumber] = useState('');
+  const parsedPhone = parsePhone(`${dialCode}${phoneNumber}`);
   const [fullName, setFullName] = useState('');
   const [selectedGotra, setSelectedGotra] = useState('Kashyapa');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,7 +71,7 @@ export const TatkalKioskDesk: React.FC = () => {
   }, []);
 
   const handleNumpadPress = (val: string) => {
-    if (phoneNumber.length < 10) {
+    if (phoneNumber.length < maxDigits) {
       setPhoneNumber((prev) => prev + val);
     }
   };
@@ -77,8 +87,8 @@ export const TatkalKioskDesk: React.FC = () => {
   };
 
   const handleGeneratePass = () => {
-    if (!isValidPhoneIN(phoneNumber)) {
-      showToast('Please enter a valid 10-digit Indian mobile number (starts 6–9).', 'warning', 'Tatkal Kiosk');
+    if (!parsedPhone.valid) {
+      showToast(phoneErrorMessage(activeWorkspace?.country), 'warning', 'Tatkal Kiosk');
       return;
     }
     const cleanName = sanitizeName(fullName);
@@ -93,28 +103,30 @@ export const TatkalKioskDesk: React.FC = () => {
       const passId = `TK-${Math.floor(100000 + Math.random() * 900000)}`;
       const nowStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-      // Duplicate-pass detection: same number within 5 minutes
-      const lastIssued = recentIssuances.current[phoneNumber];
+      // Duplicate-pass detection: same number within 5 minutes (keyed by
+      // E.164 so the same pilgrim is recognised across input formats)
+      const e164 = parsedPhone.e164;
+      const lastIssued = recentIssuances.current[e164];
       const minsAgo = lastIssued ? Math.round((Date.now() - lastIssued) / 60000) : null;
-      recentIssuances.current[phoneNumber] = Date.now();
+      recentIssuances.current[e164] = Date.now();
 
       setLastPrintedPass({
         id: passId,
         name: cleanName,
-        phone: phoneNumber,
+        phone: e164,
         gotra: selectedGotra,
         time: nowStr,
       });
 
       if (lastIssued && Date.now() - lastIssued < 5 * 60 * 1000) {
         showToast(
-          `Pass #${passId} generated — but note a pass was already issued to +91 ${phoneNumber} ${Math.max(1, minsAgo || 1)} min ago. Possible duplicate entry at the kiosk.`,
+          `Pass #${passId} generated — but note a pass was already issued to ${e164} ${Math.max(1, minsAgo || 1)} min ago. Possible duplicate entry at the kiosk.`,
           'warning',
           'Possible Duplicate Pass'
         );
       } else {
         showToast(
-          `Pass #${passId} generated! Thermal slip printed & WhatsApp dispatched to +91 ${phoneNumber}.`,
+          `Pass #${passId} generated! Thermal slip printed & WhatsApp dispatched to ${e164}.`,
           'success',
           'Tatkal Kiosk'
         );
@@ -175,7 +187,7 @@ export const TatkalKioskDesk: React.FC = () => {
                 Step 1: Devotee Identification
               </span>
               <span className="text-xs font-mono font-semibold text-slate-400">
-                Digits: {phoneNumber.length}/10
+                Digits: {phoneNumber.length}/{maxDigits}
               </span>
             </div>
 
@@ -184,9 +196,25 @@ export const TatkalKioskDesk: React.FC = () => {
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                 Pilgrim Mobile Number
               </label>
+              <div className="flex gap-1.5 mb-1.5">
+                {(['+91', '+880'] as const).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setDialCode(code)}
+                    className={`min-h-[36px] px-3 rounded-lg border text-xs font-extrabold transition-colors cursor-pointer ${
+                      dialCode === code
+                        ? 'bg-amber-500/15 border-amber-400 text-amber-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-amber-300'
+                    }`}
+                  >
+                    {code === '+91' ? '🇮🇳 +91' : '🇧🇩 +880'}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <div className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-xl sm:text-2xl font-black font-mono tracking-wider text-slate-900 flex items-center justify-between shadow-inner focus-within:border-amber-500 transition-colors">
-                  <span className="text-slate-400 text-base font-normal">+91</span>
+                  <span className="text-slate-400 text-base font-normal">{dialCode}</span>
                   <span className="tracking-widest flex-1 text-center font-bold">
                     {phoneNumber || <span className="text-slate-300 font-sans text-lg font-medium">Tap numbers below</span>}
                   </span>
@@ -311,7 +339,7 @@ export const TatkalKioskDesk: React.FC = () => {
                   <div className="text-xs text-amber-300 font-mono flex items-center gap-1.5">
                     <span>Gotra: <strong>{selectedGotra}</strong></span>
                     <span>&bull;</span>
-                    <span>Mobile: {phoneNumber ? `+91 ${phoneNumber}` : 'Pending'}</span>
+                    <span>Mobile: {phoneNumber ? (parsedPhone.e164 || `${dialCode} ${phoneNumber}`) : 'Pending'}</span>
                   </div>
                   <div className="text-[11px] text-slate-400 font-mono pt-1">
                     Entry Corridor: <strong className="text-emerald-400">Gate 2 Sugam Sanctum</strong>

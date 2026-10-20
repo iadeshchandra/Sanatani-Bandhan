@@ -25,17 +25,9 @@ import { WorkspaceType } from '../types';
 
 export type OrganizationType = 'Mandir' | 'Ashram' | 'Gurukul' | 'Trust';
 
-export interface TaxonomyMatrix {
-  workspaceLabel: string;
-  directoryName: string;
-  memberTerm: string;
-  fundsTerm: string;
-  assetsTerm: string;
-  inventoryTerm: string;
-  memberNoun?: string;
-  kartaNoun?: string;
-  offeringNoun?: string;
-}
+/** TaxonomyMatrix + TAXONOMY_MAP live in ../i18n/taxonomyMap (pure, tested — QUEUED #49). */
+export type { TaxonomyMatrix } from '../i18n/taxonomyMap';
+import { resolveTaxonomyMatrix } from '../i18n/taxonomyMap';
 
 export interface LanguageContextType {
   // ── Existing API (backward compatible) ──
@@ -79,63 +71,6 @@ export interface LanguageContextType {
   /** Mark the region as explicitly chosen (persists; dismisses the picker). */
   markRegionChosen: () => void;
 }
-
-const TAXONOMY_MAP: Record<string, Record<string, TaxonomyMatrix>> = {
-  en: {
-    MANDIR: {
-      workspaceLabel: 'Mandir / Temple',
-      directoryName: 'Devotee Directory',
-      memberTerm: 'Bhaktas',
-      fundsTerm: 'Chanda / Pranami',
-      assetsTerm: 'Temple Assets',
-      inventoryTerm: 'Bhandara & Store',
-    },
-    GOSHALA: {
-      workspaceLabel: 'Goshala',
-      directoryName: 'Gau Sevak Directory',
-      memberTerm: 'Gau Sevaks',
-      fundsTerm: 'Gau Seva Nidhi',
-      assetsTerm: 'Gomata & Nandi Records',
-      inventoryTerm: 'Fodder & Medicine Store',
-    },
-  },
-  hi: {
-    MANDIR: {
-      workspaceLabel: 'मंदिर',
-      directoryName: 'भक्त नामावली',
-      memberTerm: 'भक्तजन',
-      fundsTerm: 'चंदा / दान',
-      assetsTerm: 'मंदिर संपदा',
-      inventoryTerm: 'भंडार एवं राशन',
-    },
-    GOSHALA: {
-      workspaceLabel: 'गोशाला',
-      directoryName: 'गौ सेवक नामावली',
-      memberTerm: 'गौ सेवक',
-      fundsTerm: 'गौ सेवा निधि',
-      assetsTerm: 'गोमाता एवं नंदी विवरण',
-      inventoryTerm: 'चारा एवं औषधि भंडार',
-    },
-  },
-  bn: {
-    MANDIR: {
-      workspaceLabel: 'মন্দির',
-      directoryName: 'ভক্ত তালিকা',
-      memberTerm: 'ভক্তবৃন্দ',
-      fundsTerm: 'প্রণামী / চাঁদা',
-      assetsTerm: 'মন্দির সম্পদ',
-      inventoryTerm: 'ভাণ্ডার',
-    },
-    GOSHALA: {
-      workspaceLabel: 'গোশালা',
-      directoryName: 'গো সেবক তালিকা',
-      memberTerm: 'গো সেবক',
-      fundsTerm: 'গো সেবা নিধি',
-      assetsTerm: 'গোমাতা ও নন্দীর বিবরণ',
-      inventoryTerm: 'খাদ্য ও ঔষধ ভাণ্ডার',
-    },
-  },
-};
 
 const LANG_KEY = 'sb-lang';
 const LEGACY_LANG_KEY = 'sanatani_lang';
@@ -481,14 +416,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return (dharmicTaxonomy as any)[termKey][organizationType] || termKey;
       }
 
-      // Legacy workspace matrix resolution
+      // Legacy workspace matrix resolution — resolveTaxonomyMatrix covers
+      // every workspace type (own words for the five suites, Mandir matrix
+      // as the never-blank fallback for the rest; QUEUED #49). Non-workspace
+      // strings still pass through verbatim.
       const key = String(termKey || 'MANDIR').toUpperCase();
-      if (TAXONOMY_MAP[currentLang]?.[key] || TAXONOMY_MAP.en[key]) {
-        const matrix =
-          TAXONOMY_MAP[currentLang]?.[key] ||
-          TAXONOMY_MAP.en[key] ||
-          TAXONOMY_MAP.en.MANDIR;
-
+      const matrix = resolveTaxonomyMatrix(currentLang, key);
+      if (matrix) {
         return {
           ...matrix,
           memberNoun: matrix.memberTerm,

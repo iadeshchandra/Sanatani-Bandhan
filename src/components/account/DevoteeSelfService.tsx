@@ -7,6 +7,7 @@ import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { RecaptchaVerifier, signInWithPhoneNumber, verifyBeforeUpdateEmail, signInAnonymously } from 'firebase/auth';
 import { Camera, Check, Shield, AlertCircle, Phone, Mail, User, HeartPulse, Sparkles, Save, X, Loader2, Calendar, FileText, Droplet, ShieldAlert } from 'lucide-react';
 import { compressDevoteeAvatar } from '../../utils/imageCompression';
+import { isValidPhone, parsePhone, phoneErrorMessage } from '../../utils/validation';
 
 declare global {
   interface Window {
@@ -93,14 +94,17 @@ export const DevoteeSelfService: React.FC = () => {
   };
 
   const sendOtp = async () => {
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
-      showToast('Please enter a valid 10-digit phone number', 'error');
+    // Geo-aware (QUEUED #49): BD (01…), IN and +E.164 numbers can all
+    // verify; the old /^\d{10}$/ test + forced +91 prefix made phone
+    // verification impossible for every Bangladeshi devotee.
+    const parsed = parsePhone(formData.phone);
+    if (!parsed.valid) {
+      showToast(phoneErrorMessage(), 'error');
       return;
     }
     try {
       setupRecaptcha();
-      const formattedPhone = formData.phone.startsWith('+91') ? formData.phone : `+91${formData.phone}`;
+      const formattedPhone = parsed.e164;
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
       setConfirmationResult(confirmation);
       setOtpSent(true);
@@ -171,7 +175,7 @@ export const DevoteeSelfService: React.FC = () => {
       showToast('Please verify your new email address', 'error');
       return;
     }
-    if (formData.phone.length < 10) {
+    if (!isValidPhone(formData.phone)) {
       showToast('Invalid phone number format', 'error');
       return;
     }
