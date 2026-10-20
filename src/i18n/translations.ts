@@ -70,16 +70,22 @@ function mergeFragments(
   devoteeNs: Partial<TranslationSchema>,
   orgNs: Partial<TranslationSchema>,
   ritualNs?: Partial<TranslationSchema>,
-  // The suites namespace (seva suggestions catalog, samskara desk) was
-  // never modeled in TranslationSchema — its 79-module catalog is
-  // intentionally schema-free. Type it loosely; deepMerge handles it.
+  // The suites fragment (seva suggestions catalog, samskara, goshala,
+  // matha, pathshala desks) is the one fragment whose export is NOT
+  // self-wrapped in its namespace key — its top-level keys are the
+  // suite names themselves. Callers must therefore pass it wrapped as
+  // `{ suites: <fragment> }` (see enDict / splitLang below); merging the
+  // bare fragment mounts the suites at the dictionary ROOT, no
+  // `dict.suites` node ever exists, and every t('suites.…') lookup falls
+  // back to the raw key (QUEUED #47 — Goshala/Matha/Pathshala desks
+  // rendered raw i18n keys). Type it loosely; deepMerge handles it.
   suitesNs?: Record<string, unknown>
 ): TranslationSchema {
   return deepMerge({}, core, professional, devoteeNs, orgNs, ritualNs, suitesNs) as TranslationSchema;
 }
 
 /** Eagerly merged English dictionary — the sync fallback. */
-const enDict: TranslationSchema = mergeFragments(enCore, enProfessional, enDevotee, enOrg, enRitual, enSuites);
+const enDict: TranslationSchema = mergeFragments(enCore, enProfessional, enDevotee, enOrg, enRitual, { suites: enSuites });
 
 /**
  * Load one namespace fragment for a language, falling back to the
@@ -112,7 +118,7 @@ function splitLang(
       loadFragment(loadOrg(), { orgNs: enOrg }),
       loadRitual ? loadFragment(loadRitual(), { ritual: enRitual }) : Promise.resolve({ ritual: enRitual }),
       loadSuites ? loadFragment(loadSuites(), { suites: enSuites }) : Promise.resolve({ suites: enSuites }),
-    ]).then(([c, p, d, o, r, s]) => ({ default: mergeFragments(c.core, p.professional, d.devoteeNs, o.orgNs, r.ritual, s.suites) }));
+    ]).then(([c, p, d, o, r, s]) => ({ default: mergeFragments(c.core, p.professional, d.devoteeNs, o.orgNs, r.ritual, { suites: s.suites }) }));
 }
 
 /**
