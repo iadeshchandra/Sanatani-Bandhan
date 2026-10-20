@@ -16,6 +16,11 @@
  *   6. Phase 1 (optional): the on-device voice may warm the prose of
  *      `text` only — never `type`, `action`, or `suggestions`. Any
  *      failure returns the deterministic answer untouched.
+ *   6.5 QUEUED #36: self-verification — for owner answers whose
+ *      executor cited figures (claims), every cited figure is
+ *      re-checked against the final text; a mismatch auto-corrects
+ *      the answer to the computed values (metadata records it).
+ *      Provenance (sources) is forwarded for the owner only.
  *   7. QUEUED #32 (H2): the never-surface guard runs LAST for every
  *      non-owner role — if the final text (executor + voice combined)
  *      contains GodMode/platform-internal content, the whole answer is
@@ -27,16 +32,19 @@
  */
 
 import type {
+  AnswerSource,
   AssistantCtx,
   AssistantResponse,
   IntentId,
   ResponseType,
   TaskCtx,
+  VerificationMeta,
 } from './types';
 import { detectCrisis } from './crisisKeywords';
 import { deterministicRouter, type IntentRouter, type RouteResult } from './intents';
 import { canOffer } from './rbac';
 import { guardSurface } from './surfaceGuard';
+import { renderClaimsFallback, verifyFigures } from './godmode/accuracy';
 import { renderTemplate, suggestionsFor, type TemplateKey } from './templates';
 import { TASKS } from './tasks/index';
 
@@ -179,14 +187,52 @@ export async function ask(
   };
   const enhanced = await maybeEnhanceWithVoice(base, lang, region);
 
+  // 6.5 QUEUED #36 — self-verification (owner answers with cited
+  //     figures only). Every figure the executor claimed is re-checked
+  //     against the FINAL text (post-render, post-voice). A mismatch
+  //     auto-corrects: the owner sees the computed figures stated
+  //     plainly, and the failure is recorded in dev-visible metadata.
+  //     Non-owner outcomes never carry claims, so their answers are
+  //     untouched — and provenance is forwarded for the owner only.
+  let verified = enhanced;
+  let verification: VerificationMeta | undefined;
+  let sources: AnswerSource[] | undefined;
+  if (role === 'owner') {
+    if (outcome.sources && outcome.sources.length > 0) sources = outcome.sources;
+    if (outcome.claims && outcome.claims.length > 0) {
+      const v = verifyFigures(enhanced.text, outcome.claims, {
+        strict: outcome.strictNumbers,
+        extraNumbers: outcome.extraNumbers,
+      });
+      verification = {
+        status: v.ok ? 'verified' : 'auto-corrected',
+        figures: outcome.claims.length,
+        ...(v.ok
+          ? {}
+          : {
+              mismatches: [
+                ...v.missing.map((m) => m.id),
+                ...v.stray.map((s) => `stray:${s}`),
+              ],
+            }),
+      };
+      if (!v.ok) {
+        // eslint-disable-next-line no-console
+        console.warn('[copilot] figure verification failed — answer auto-corrected', verification);
+        verified = { ...enhanced, text: renderClaimsFallback(outcome.claims, lang) };
+      }
+    }
+  }
+
   // 7. Never-surface guard (H2) — the final step. For non-owner roles,
   //    any internal-content hit replaces the WHOLE answer (and drops
   //    the data payload); the owner is never guarded.
   if (role !== 'owner') {
-    const guarded = guardSurface(enhanced.text, role, lang);
-    if (guarded !== enhanced.text) {
-      return { ...enhanced, text: guarded, data: undefined };
+    const guarded = guardSurface(verified.text, role, lang);
+    if (guarded !== verified.text) {
+      return { ...verified, text: guarded, data: undefined };
     }
+    return verified;
   }
-  return enhanced;
+  return { ...verified, sources, verification };
 }

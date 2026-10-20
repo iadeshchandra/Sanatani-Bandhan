@@ -21,7 +21,8 @@ import {
   Coins, History, Calculator, Compass, BookOpen,
 } from 'lucide-react';
 import { ask } from '../assistant';
-import type { AssistantCtx } from '../types';
+import type { AnswerSource, AssistantCtx, VerificationMeta } from '../types';
+import { formatSourcesFooter } from './accuracy';
 import { logCopilotAction } from './copilotTasks';
 import { briefSummaryLines } from './ownerBrief';
 import { writeTermsDraft, type TermsDraft } from './termsDraftHandoff';
@@ -44,6 +45,10 @@ interface ChatMessage {
   moderationItems?: ModerationItem[];
   /** Structured terms-change proposal (from admin_draft_change, QUEUED #32). */
   proposal?: TermsDraft & { field: string } | null;
+  /** QUEUED #36 — answer provenance (which reads produced the figures). */
+  sources?: AnswerSource[];
+  /** QUEUED #36 — self-verification outcome for this answer. */
+  verification?: VerificationMeta;
 }
 
 interface ModerationItem {
@@ -107,6 +112,8 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
         createdAt: Date.now(),
         moderationItems: extractModerationItems(res.data),
         proposal: extractProposal(res.data),
+        sources: res.sources,
+        verification: res.verification,
       };
       setMessages((m) => [...m, copilotMsg]);
     } catch {
@@ -226,6 +233,17 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
               }`}
             >
               {m.text}
+              {m.role === 'copilot' && m.sources && m.sources.length > 0 && (
+                <div className="mt-2 text-[11px] text-slate-500">
+                  {formatSourcesFooter(m.sources, Date.now())}
+                  {m.verification?.status === 'verified' && (
+                    <span className="text-emerald-500/80"> · figures verified ✓</span>
+                  )}
+                  {m.verification?.status === 'auto-corrected' && (
+                    <span className="text-amber-500/90"> · figures auto-corrected ✓</span>
+                  )}
+                </div>
+              )}
               {m.moderationItems && m.moderationItems.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {m.moderationItems.map((item) => (

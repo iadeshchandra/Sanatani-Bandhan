@@ -88,6 +88,59 @@ export interface AssistantResponse {
    * Optional; UIs that don't understand it ignore it and use `text`.
    */
   data?: Record<string, unknown>;
+  /**
+   * QUEUED #36 — answer provenance (owner surface only). Forwarded from
+   * the executor ONLY when the asker is the owner; stripped for every
+   * other role so non-owner answers gain no new content.
+   */
+  sources?: AnswerSource[];
+  /**
+   * QUEUED #36 — self-verification outcome for this answer (owner only).
+   * 'verified' = every cited figure re-checked against the raw values;
+   * 'auto-corrected' = a mismatch was found and the displayed text was
+   * replaced with the computed figures.
+   */
+  verification?: VerificationMeta;
+}
+
+/* ------------------------------------------------------------------ */
+/* QUEUED #36 — accuracy hardening: provenance + figure verification   */
+/* ------------------------------------------------------------------ */
+
+/** Where one group of figures in an answer came from, and when it was read. */
+export interface AnswerSource {
+  /** e.g. 'plans/standard', 'platformConfig/commission', 'audit_logs (terms history)', 'collection sangamPosts'. */
+  label: string;
+  /** Epoch ms when the underlying read happened (cache read time counts — honesty). */
+  readAt: number;
+  /** true = live read; false = code-defaults snapshot (live config unreadable). */
+  live: boolean;
+}
+
+/**
+ * One figure an executor cites in its answer. `rendered` is the EXACT
+ * string the figure must appear as in the final text — the pipeline
+ * verifier re-checks every claim after rendering (and after any voice
+ * rephrase) and auto-corrects the answer if one is missing or altered.
+ */
+export interface FigureClaim {
+  /** Stable id, e.g. 'standard.priceMonthlyBDT'. */
+  id: string;
+  /** Human label for the auto-corrected fallback rendering. */
+  label: string;
+  /** The raw computed value. */
+  value: number;
+  /** Exact string the value is rendered as in the answer text. */
+  rendered: string;
+}
+
+/** Dev-visible verification metadata (owner surface only). */
+export interface VerificationMeta {
+  status: 'verified' | 'auto-corrected';
+  /** How many cited figures were re-checked. */
+  figures: number;
+  /** Claim ids that failed the re-check (present when auto-corrected). */
+  mismatches?: string[];
 }
 
 /** What an executor receives. Pure data — no UI handles. */
@@ -119,6 +172,26 @@ export interface TaskOutcome {
   variant?: string;
   action?: AssistantAction;
   suggestions?: string[];
+  /**
+   * QUEUED #36 — provenance for factual answers (see AnswerSource).
+   * Copilot executors set this on every answer that cites figures.
+   * The pipeline forwards it to the response for the owner only.
+   */
+  sources?: AnswerSource[];
+  /**
+   * QUEUED #36 — the figures this answer cites (see FigureClaim). The
+   * pipeline re-verifies them against the final rendered text; a
+   * mismatch auto-corrects the answer to the computed values.
+   */
+  claims?: FigureClaim[];
+  /**
+   * QUEUED #36 — when true, verification ALSO rejects any numeric
+   * token in the final text that no claim or declared extra explains.
+   * Only for fully formatter-controlled answers (admin_simulate).
+   */
+  strictNumbers?: boolean;
+  /** Numeric values allowed in the text beyond the claims (strict mode). */
+  extraNumbers?: number[];
 }
 
 export type TaskExecutor = (ctx: TaskCtx) => TaskOutcome | Promise<TaskOutcome>;

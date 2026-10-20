@@ -13,15 +13,24 @@
  */
 
 import { suggestionsFor } from '../templates';
-import type { TaskCtx, TaskOutcome } from '../types';
+import type { FigureClaim, TaskCtx, TaskOutcome } from '../types';
+import {
+  collectionSource,
+  historySource,
+  numericTokensOf,
+  termsSources,
+} from './accuracy';
 import { checkAgainstBrief } from './ownerBrief';
 import {
   buildProposal,
-  composeAdvice,
+  composeAdviceWithClaims,
   formatSimulation,
   formatTermsHistory,
   formatTermsSummary,
+  historyFigureClaims,
   simulateTermsChange,
+  simulationFigureClaims,
+  termsFigureClaims,
   type TermsHistoryEntryLike,
 } from './termsTools';
 import {
@@ -50,18 +59,23 @@ async function getDb() {
 
 async function countDocs(
   collectionName: string,
-  whereClauses: Array<{ field: string; op: string; value: unknown }> = [],
-  limitN = 500
+  whereClauses: Array<{ field: string; op: string; value: unknown }> = []
 ): Promise<number | null> {
   try {
-    const { collection, getDocs, limit, query, where } = await import('firebase/firestore');
+    // QUEUED #36 — exact server counts. The old getDocs+limit read
+    // silently CAPPED at 500/1000: past the cap the Copilot would have
+    // stated a wrong (too small) figure with full confidence.
+    // getCountFromServer returns the true count; failure → null →
+    // the executors abstain instead of inventing.
+    const { collection, getCountFromServer, query, where } = await import('firebase/firestore');
     const db = await getDb();
     const constraints: unknown[] = whereClauses.map((c) =>
       where(c.field, c.op as never, c.value)
     );
-    constraints.push(limit(limitN));
-    const snap = await getDocs(query(collection(db, collectionName), ...(constraints as never[])));
-    return snap.size;
+    const snap = await getCountFromServer(
+      query(collection(db, collectionName), ...(constraints as never[]))
+    );
+    return snap.data().count;
   } catch {
     return null;
   }
@@ -103,10 +117,25 @@ export async function adminBriefingTask(ctx: TaskCtx): Promise<TaskOutcome> {
   };
   const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const b = formatBriefing(counts, dayName, lang);
+  const now = Date.now();
   return {
     params: { headline: b.headline, lines: b.lines.join('\n'), text: `${b.headline}\n\n${b.lines.join('\n')}` },
     variant: b.calm ? 'calm' : 'busy',
     suggestions: suggestionsFor('admin_briefing', lang),
+    // QUEUED #36 — provenance + cited figures (only when data was read;
+    // the unavailable variant cites nothing and claims nothing).
+    sources: [
+      collectionSource('sevaProfessionals', now),
+      collectionSource('sangamPosts', now),
+      collectionSource('disputes', now),
+    ],
+    claims: counts.dataAvailable
+      ? [
+          { id: 'briefing.pendingVerifications', label: 'Verifications waiting', value: counts.pendingVerifications, rendered: `${counts.pendingVerifications}` },
+          { id: 'briefing.flaggedPosts', label: 'Flagged posts to review', value: counts.flaggedPosts, rendered: `${counts.flaggedPosts}` },
+          { id: 'briefing.openDisputes', label: 'Open disputes', value: counts.openDisputes, rendered: `${counts.openDisputes}` },
+        ]
+      : [],
   };
 }
 
@@ -127,13 +156,16 @@ export async function adminStatsTask(ctx: TaskCtx): Promise<TaskOutcome> {
   const [bookings, signups, temples] = await Promise.all([
     countDocs('marketplaceOrders', [{ field: 'createdAt', op: '>=', value: weekAgo }]),
     countDocs('users', [{ field: 'createdAt', op: '>=', value: weekAgo }]),
-    countDocs('campusMaps', [], 1000),
+    countDocs('campusMaps', []),
   ]);
   // Active users: approximate from recent activity — honest about limits.
   const activeUsers = await countDocs('users', [
     { field: 'lastActiveAt', op: '>=', value: weekAgo },
   ]);
-  const dataAvailable = bookings !== null && signups !== null && temples !== null;
+  // QUEUED #36 — activeUsers is part of availability now: previously a
+  // failed active-users read printed "0 active seekers" as fact.
+  const dataAvailable =
+    bookings !== null && signups !== null && temples !== null && activeUsers !== null;
   const stats: PlatformStats = {
     bookingsWeek: bookings ?? 0,
     activeUsersWeek: activeUsers ?? 0,
@@ -141,10 +173,24 @@ export async function adminStatsTask(ctx: TaskCtx): Promise<TaskOutcome> {
     templesMapped: temples ?? 0,
     dataAvailable,
   };
+  const now = Date.now();
   return {
     params: { text: formatStats(stats, lang) },
     variant: 'default',
     suggestions: suggestionsFor('admin_stats', lang),
+    sources: [
+      collectionSource('marketplaceOrders', now),
+      collectionSource('users', now),
+      collectionSource('campusMaps', now),
+    ],
+    claims: dataAvailable
+      ? [
+          { id: 'stats.bookingsWeek', label: 'Bookings this week', value: stats.bookingsWeek, rendered: `${stats.bookingsWeek}` },
+          { id: 'stats.activeUsersWeek', label: 'Active seekers this week', value: stats.activeUsersWeek, rendered: `${stats.activeUsersWeek}` },
+          { id: 'stats.newSignupsWeek', label: 'New signups this week', value: stats.newSignupsWeek, rendered: `${stats.newSignupsWeek}` },
+          { id: 'stats.templesMapped', label: 'Temples mapped', value: stats.templesMapped, rendered: `${stats.templesMapped}` },
+        ]
+      : [],
   };
 }
 
@@ -260,6 +306,18 @@ export async function adminModerationHelpTask(ctx: TaskCtx): Promise<TaskOutcome
     },
     variant: 'queue',
     suggestions: suggestionsFor('admin_moderation_help', lang),
+    // QUEUED #36 — the template rebuilds this answer from items, so the
+    // pipeline verifier re-checks the counts against the rebuilt text.
+    sources: [collectionSource('sangamPosts', Date.now())],
+    claims: [
+      { id: 'moderation.flaggedCount', label: 'Flagged posts', value: flagged.length, rendered: `${flagged.length}` },
+      ...items.map((i) => ({
+        id: `moderation.${i.doc.id}.reportCount`,
+        label: `Reports on a flagged post`,
+        value: i.doc.reportCount ?? 0,
+        rendered: `${i.doc.reportCount ?? 0}`,
+      })),
+    ],
   };
 }
 
@@ -319,21 +377,44 @@ export async function adminAnomalyTask(ctx: TaskCtx): Promise<TaskOutcome> {
       suggestions: suggestionsFor('admin_anomaly', lang),
     };
   }
-  const avg = (a: number, b: number) => (a - b) / 7; // daily avg over trailing 7d window
+  // QUEUED #36 — the trailing daily average is the PRIOR week's daily
+  // rate: (count14d − count7d) / 7. The old formula computed
+  // (count7d − count14d) / 7, which is never positive (the 14d window
+  // contains the 7d one) and clamped to 0 — so any busy day rendered
+  // as "Infinity× the 7-day average", a wrong figure stated confidently.
+  const priorWeekDailyAvg = (last7: number, last14: number) =>
+    Math.max(0, (last14 - last7) / 7);
   const input: AnomalyInput = {
     reportsLast24h: reports24h ?? 0,
-    reportsAvg7d: Math.max(0, avg(reports7d ?? 0, reports14d ?? 0)),
+    reportsAvg7d: priorWeekDailyAvg(reports7d ?? 0, reports14d ?? 0),
     signupsLast24h: signups24h ?? 0,
-    signupsAvg7d: Math.max(0, avg(signups7d ?? 0, signups14d ?? 0)),
+    signupsAvg7d: priorWeekDailyAvg(signups7d ?? 0, signups14d ?? 0),
     cancellationsLast7d: canc7d ?? 0,
     cancellationsAvg7d: Math.max(0, (canc14d ?? 0) - (canc7d ?? 0)),
     dataAvailable: true,
   };
   const findings = detectAnomalies(input);
+  const text = formatAnomalySummary(findings, lang);
+  // Claims: the raw counts/averages the findings cite. Candidates are
+  // kept only when the summary actually cites them (a calm summary
+  // cites nothing), so the pipeline check pins exactly what was said.
+  const candidates: FigureClaim[] = [
+    { id: 'anomaly.reportsLast24h', label: 'Reports in the last 24h', value: input.reportsLast24h, rendered: `${input.reportsLast24h}` },
+    { id: 'anomaly.reportsAvg7d', label: 'Reports per day (prior-week average)', value: Math.round(input.reportsAvg7d), rendered: `${Math.round(input.reportsAvg7d)}` },
+    { id: 'anomaly.signupsLast24h', label: 'Signups in the last 24h', value: input.signupsLast24h, rendered: `${input.signupsLast24h}` },
+    { id: 'anomaly.signupsAvg7d', label: 'Signups per day (prior-week average)', value: Math.round(input.signupsAvg7d), rendered: `${Math.round(input.signupsAvg7d)}` },
+    { id: 'anomaly.cancellationsLast7d', label: 'Provider cancellations in 7 days', value: input.cancellationsLast7d, rendered: `${input.cancellationsLast7d}` },
+  ];
   return {
-    params: { text: formatAnomalySummary(findings, lang) },
+    params: { text },
     variant: findings.length ? 'findings' : 'calm',
     suggestions: suggestionsFor('admin_anomaly', lang),
+    sources: [
+      collectionSource('sangamPosts', now),
+      collectionSource('users', now),
+      collectionSource('marketplaceOrders', now),
+    ],
+    claims: candidates.filter((cl) => text.includes(cl.rendered)),
   };
 }
 
@@ -438,6 +519,8 @@ export async function adminTermsTask(ctx: TaskCtx): Promise<TaskOutcome> {
       params: { text },
       variant: terms.loadedAt ? 'default' : 'defaults',
       suggestions: suggestionsFor('admin_terms', ctx.lang),
+      sources: termsSources(terms, Date.now()),
+      claims: termsFigureClaims(terms),
     };
   } catch {
     return {
@@ -462,13 +545,26 @@ export async function adminHistoryTask(ctx: TaskCtx): Promise<TaskOutcome> {
   return {
     params: { text: formatTermsHistory(entries, ctx.lang) },
     suggestions: suggestionsFor('admin_history', ctx.lang),
+    sources: [historySource(Date.now())],
+    claims: historyFigureClaims(entries),
   };
 }
 
 /** admin_simulate — pure impact maths. Nothing is written, ever. */
 export async function adminSimulateTask(ctx: TaskCtx): Promise<TaskOutcome> {
   if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
-  const terms = await loadTerms();
+  // QUEUED #36 — a failed terms load abstains; it never escapes as an
+  // unhandled rejection (getTerms fail-opens, but its chunk import can fail).
+  let terms;
+  try {
+    terms = await loadTerms();
+  } catch {
+    return {
+      params: { text: unavailableText('terms', ctx.lang) },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_simulate', ctx.lang),
+    };
+  }
   const verdict = buildProposal(ctx.input, terms);
   if (!verdict) {
     const clarify =
@@ -492,16 +588,54 @@ export async function adminSimulateTask(ctx: TaskCtx): Promise<TaskOutcome> {
     text +=
       '\n⛔ As drafted, this change could NOT be saved:\n' + verdict.errors.map((e) => `· ${e}`).join('\n');
   }
+  if (sim.discrepancy) {
+    // QUEUED #36 — fail-honest: the formatted text already shows neither
+    // figure; the disagreeing values are logged as dev metadata only.
+    // eslint-disable-next-line no-console
+    console.warn('[copilot] dual-computation discrepancy — figures withheld', sim.discrepancy);
+    return {
+      params: { text, discrepancy: sim.discrepancy },
+      variant: 'discrepancy',
+      suggestions: suggestionsFor('admin_simulate', ctx.lang),
+      sources: termsSources(terms, Date.now()),
+      claims: [],
+    };
+  }
   return {
     params: { text },
     suggestions: suggestionsFor('admin_simulate', ctx.lang),
+    sources: termsSources(terms, Date.now()),
+    claims: simulationFigureClaims(terms, sim),
+    // Strict: every number in this answer must trace to a claim or to a
+    // declared extra (law constants + figures inside warning/error copy,
+    // which are quoted from the validators, not computed by the Copilot).
+    strictNumbers: true,
+    extraNumbers: [
+      2,
+      10,
+      ...numericTokensOf(
+        ...verdict.warnings,
+        ...verdict.errors,
+        ...sim.warnings.map((w) => w.message)
+      ),
+    ],
   };
 }
 
 /** admin_draft_change — shape a proposal card. NEVER writes config. */
 export async function adminDraftChangeTask(ctx: TaskCtx): Promise<TaskOutcome> {
   if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
-  const terms = await loadTerms();
+  // QUEUED #36 — same abstention guard as simulate.
+  let terms;
+  try {
+    terms = await loadTerms();
+  } catch {
+    return {
+      params: { text: unavailableText('terms', ctx.lang) },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_draft_change', ctx.lang),
+    };
+  }
   const verdict = buildProposal(ctx.input, terms);
   if (!verdict) {
     const clarify =
@@ -540,6 +674,11 @@ export async function adminDraftChangeTask(ctx: TaskCtx): Promise<TaskOutcome> {
     },
     variant: 'proposal',
     suggestions: suggestionsFor('admin_draft_change', ctx.lang),
+    sources: termsSources(terms, Date.now()),
+    claims: [
+      { id: 'draft.oldValue', label: `${proposal.fieldLabel} · current`, value: proposal.oldValue, rendered: `${proposal.oldValue}` },
+      { id: 'draft.newValue', label: `${proposal.fieldLabel} · proposed`, value: proposal.newValue, rendered: `${proposal.newValue}` },
+    ],
   };
 }
 
@@ -549,10 +688,19 @@ export async function adminAdviseTask(ctx: TaskCtx): Promise<TaskOutcome> {
   try {
     const terms = await loadTerms();
     const recent = await loadTermsHistory(30);
-    const text = composeAdvice(ctx.input, terms, { recentChangeCount: recent?.length ?? 0 }, ctx.lang);
+    // QUEUED #36 — a failed history read passes null (abstain on
+    // momentum), never 0 (which counsel would phrase as fact).
+    const { text, claims } = composeAdviceWithClaims(
+      ctx.input,
+      terms,
+      { recentChangeCount: recent ? recent.length : null },
+      ctx.lang
+    );
     return {
       params: { text },
       suggestions: suggestionsFor('admin_advise', ctx.lang),
+      sources: termsSources(terms, Date.now()),
+      claims,
     };
   } catch {
     return {
