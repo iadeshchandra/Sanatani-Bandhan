@@ -84,7 +84,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
 import { useTerms } from '../hooks/useTerms';
-import { priceFor } from '../lib/termsConfig';
+import type { TermsPlanId } from '../lib/termsConfig';
+import {
+  landingPriceCards,
+  landingCard,
+  cardPerMonthInr,
+  formatUsd,
+  type LandingPriceCard,
+} from '../lib/landingPricing';
 import { whatsappLink, hasWhatsApp } from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
@@ -485,7 +492,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹1,499/month) unlocks kitchens, dharamshala, gau seva, 80G receipts and more — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹499/month) raises the limits — up to 1,000 devotees, 10 staff seats and 3 branches — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -591,8 +598,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // uses the locked defaults — identical to the old constants — then the
   // Firestore terms hydrate in. Copy (names/taglines/perks) stays in code.
   const terms = useTerms();
-  const lp = (id: 'seva' | 'standard' | 'premium') => terms.plans[id];
+  // QUEUED #44: pricing cards come from the pure terms→cards mapping
+  // (lib/landingPricing) — ALL FOUR canonical tiers (Seva, Standard,
+  // Premium, Purohit/Jyotishi Pro), names from code copy, every number
+  // from terms so a GodMode terms edit flows here with no deploy.
+  const priceCards = landingPriceCards(terms);
+  const card = (id: TermsPlanId) => landingCard(priceCards, id);
   const fmtLim = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString('en-IN'));
+  // Secondary price line: the same tier in ৳ (Bangladesh) and $ (international).
+  const altPrices = (c: LandingPriceCard, tone: string) =>
+    c.isFree ? (
+      <p className={`mt-1 text-xs font-bold ${tone}`}>Free in India · Bangladesh · worldwide</p>
+    ) : (
+      <p className={`mt-1 text-xs font-bold ${tone}`}>
+        {billingAnnual
+          ? `Bangladesh ৳${c.bdtAnnual.toLocaleString('en-IN')}/yr · International $${formatUsd(c.usdAnnual)}/yr`
+          : `Bangladesh ৳${c.bdtMonthly.toLocaleString('en-IN')}/mo · International $${formatUsd(c.usdMonthly)}/mo`}
+      </p>
+    );
   const [activeOrg, setActiveOrg] = useState<WorkspaceType>('Mandir');
   // Hero audience (Step 9): devotees are the primary audience per the
   // Solo-first pivot. Institutions keep their full experience one tap away.
@@ -1463,21 +1486,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {/* SEVA FREE — from PLAN_PRICING.SEVA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+            {/* SEVA FREE — canonical tier 'seva' (cards: lib/landingPricing, QUEUED #44) */}
             <Reveal className="h-full">
               <div className="h-full rounded-[2rem] bg-white border border-orange-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-orange-100 transition-all">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.SEVA.badge}
+                  {card('seva').badge}
                 </span>
-                <h3 className="mt-4 text-2xl font-black text-stone-900">Seva Free</h3>
-                <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.SEVA.tagline}</p>
+                <h3 className="mt-4 text-2xl font-black text-stone-900">{card('seva').name}</h3>
+                <p className="mt-1 text-sm text-stone-500">{card('seva').tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}{priceFor(lp('seva'), 'INR', 'monthly').toLocaleString('en-IN')}</span>
-                  <span className="text-stone-500 font-bold">{priceFor(lp('seva'), 'INR', 'monthly') === 0 ? 'forever' : '/ month'}</span>
+                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}{cardPerMonthInr(card('seva'), billingAnnual).toLocaleString('en-IN')}</span>
+                  <span className="text-stone-500 font-bold">{card('seva').isFree ? 'forever' : `/ month${billingAnnual ? ', billed annually' : ''}`}</span>
                 </p>
+                {billingAnnual && !card('seva').isFree && (
+                  <p className="mt-1 text-xs font-bold text-stone-500">
+                    {PLAN_PRICING.SEVA.price.currencySymbol}{card('seva').inrAnnual.toLocaleString('en-IN')}/year — 2 months free
+                  </p>
+                )}
+                {altPrices(card('seva'), 'text-stone-500')}
                 <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
-                  Up to {fmtLim(lp('seva').limits.maxDevotees)} devotees · {fmtLim(lp('seva').limits.maxTransactionsPerMonth)} transactions · {fmtLim(lp('seva').limits.maxSeats)} admin seats
+                  Up to {fmtLim(card('seva').maxDevotees)} devotees · {fmtLim(card('seva').maxTransactionsPerMonth)} transactions · {fmtLim(card('seva').maxSeats)} admin seats
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
                   {['Pooja Booking', 'Panchang & Muhurat', 'Quick Chanda', 'WhatsApp Broadcaster'].map((f) => (
@@ -1497,30 +1526,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </Reveal>
 
-            {/* MANDIR STANDARD — from PLAN_PRICING.STANDARD (highlighted) */}
+            {/* STANDARD — canonical tier 'standard' (highlighted, POPULAR) */}
             <Reveal delay={80} className="h-full">
               <div className="relative h-full rounded-[2rem] bg-gradient-to-br from-orange-600 to-amber-500 p-8 text-white shadow-2xl shadow-orange-500/30 overflow-hidden flex flex-col">
                 <span className="absolute top-4 right-6 text-[11px] font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.STANDARD.badge}
+                  {card('standard').badge}
                 </span>
-                <h3 className="text-2xl font-black">Standard</h3>
-                <p className="mt-1 text-sm text-orange-100">{PLAN_PRICING.STANDARD.tagline}</p>
+                <h3 className="text-2xl font-black">{card('standard').name}</h3>
+                <p className="mt-1 text-sm text-orange-100">{card('standard').tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black">
                     {PLAN_PRICING.STANDARD.price.currencySymbol}
-                    {billingAnnual
-                      ? Math.round(priceFor(lp('standard'), 'INR', 'annual') / 12).toLocaleString('en-IN')
-                      : priceFor(lp('standard'), 'INR', 'monthly').toLocaleString('en-IN')}
+                    {cardPerMonthInr(card('standard'), billingAnnual).toLocaleString('en-IN')}
                   </span>
                   <span className="text-orange-100 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-orange-100">
-                    {PLAN_PRICING.STANDARD.price.currencySymbol}{priceFor(lp('standard'), 'INR', 'annual').toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.STANDARD.price.currencySymbol}{card('standard').inrAnnual.toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
+                {altPrices(card('standard'), 'text-orange-100')}
                 <p className="mt-3 text-xs font-bold text-orange-100 uppercase tracking-wide">
-                  {fmtLim(lp('standard').limits.maxDevotees)} devotees · {fmtLim(lp('standard').limits.maxBranches)} branches · priority support
+                  {fmtLim(card('standard').maxDevotees)} devotees · {fmtLim(card('standard').maxBranches)} branches · priority support
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
                   {['Everything in Seva Free', 'Annadanam Kitchen', 'Dharamshala guest rooms', 'Gau Seva & dairy', '80G tax receipts', 'Fundraising campaigns', 'Inventory & store'].map((f) => (
@@ -1540,28 +1568,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </Reveal>
 
-            {/* ENTERPRISE — from PLAN_PRICING.PREMIUM */}
+            {/* PREMIUM — canonical tier 'premium' (the law name for the top tier) */}
             <Reveal delay={160} className="h-full">
               <div className="h-full rounded-[2rem] bg-stone-900 p-8 text-stone-200 flex flex-col shadow-xl">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-stone-800 text-amber-400 px-3 py-1 rounded-full">
-                  {PLAN_PRICING.PREMIUM.badge}
+                  {card('premium').badge}
                 </span>
-                <h3 className="mt-4 text-2xl font-black text-white">Enterprise</h3>
-                <p className="mt-1 text-sm text-stone-400">{PLAN_PRICING.PREMIUM.tagline}</p>
+                <h3 className="mt-4 text-2xl font-black text-white">{card('premium').name}</h3>
+                <p className="mt-1 text-sm text-stone-400">{card('premium').tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black text-white">
                     {PLAN_PRICING.PREMIUM.price.currencySymbol}
-                    {billingAnnual
-                      ? Math.round(priceFor(lp('premium'), 'INR', 'annual') / 12).toLocaleString('en-IN')
-                      : priceFor(lp('premium'), 'INR', 'monthly').toLocaleString('en-IN')}
+                    {cardPerMonthInr(card('premium'), billingAnnual).toLocaleString('en-IN')}
                   </span>
                   <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-stone-400">
-                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{priceFor(lp('premium'), 'INR', 'annual').toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{card('premium').inrAnnual.toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
+                {altPrices(card('premium'), 'text-stone-400')}
                 <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">
                   Unlimited everything · dedicated SLA
                 </p>
@@ -1579,6 +1606,53 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   className="mt-8 w-full min-h-[52px] rounded-2xl border-2 border-amber-400/60 text-amber-300 font-black text-sm tracking-wide hover:bg-stone-800 transition-all active:scale-[0.98] cursor-pointer"
                 >
                   TALK TO US
+                </button>
+              </div>
+            </Reveal>
+
+            {/* PUROHIT / JYOTISHI PRO — canonical tier 'purohit_pro', the professionals' tier */}
+            <Reveal delay={240} className="h-full">
+              <div className="h-full rounded-[2rem] bg-white border border-indigo-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-indigo-100 transition-all">
+                <span className="self-start text-[11px] font-black tracking-widest uppercase bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+                  {card('purohit_pro').badge}
+                </span>
+                <h3 className="mt-4 text-2xl font-black text-stone-900">{card('purohit_pro').name}</h3>
+                <p className="mt-1 text-sm text-stone-500">{card('purohit_pro').tagline}</p>
+                <p className="mt-4 flex items-baseline gap-2">
+                  <span className="text-5xl font-black text-stone-900">
+                    {PLAN_PRICING.PUROHIT_PRO.price.currencySymbol}
+                    {cardPerMonthInr(card('purohit_pro'), billingAnnual).toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-stone-500 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
+                </p>
+                {billingAnnual && (
+                  <p className="mt-1 text-xs font-bold text-stone-500">
+                    {PLAN_PRICING.PUROHIT_PRO.price.currencySymbol}{card('purohit_pro').inrAnnual.toLocaleString('en-IN')}/year — 2 months free
+                  </p>
+                )}
+                {altPrices(card('purohit_pro'), 'text-stone-500')}
+                <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
+                  For {card('purohit_pro').targetAudience} · {fmtLim(card('purohit_pro').maxSeats)} seat · {fmtLim(card('purohit_pro').maxTransactionsPerMonth)} bookings
+                </p>
+                <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
+                  {[
+                    ...PLAN_PRICING.PUROHIT_PRO.highlightedPerks.slice(0, 3),
+                    ...(card('purohit_pro').commissionPercent !== undefined
+                      ? [`${card('purohit_pro').commissionPercent}% commission per completed booking`]
+                      : []),
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-indigo-600" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={handleSignup}
+                  className="mt-8 w-full min-h-[52px] rounded-2xl border-2 border-indigo-600 text-indigo-700 font-black text-sm tracking-wide hover:bg-indigo-50 transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  GO PRO
                 </button>
               </div>
             </Reveal>
