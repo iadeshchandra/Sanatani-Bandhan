@@ -22,8 +22,20 @@
  * Props: onActivate() — the parent (SOSFlow) opens the SituationPicker.
  */
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Siren, X } from 'lucide-react';
 import { crisisCopy, useCrisisT } from './crisisStrings';
+
+/**
+ * Focused form routes (QUEUED #41): on the auth / org-registration forms
+ * the bottom-right anchor floated over the scrolling form card and
+ * covered the primary CTA's right end. On these routes the button docks
+ * to the top-centre instead — the auth scene's header strip is empty
+ * between the Back pill and the language pill — so it stays fully
+ * reachable (same 48px mini, same tap-to-expand, same hold-to-fire)
+ * while never covering a field or a CTA.
+ */
+const FORM_ROUTES = ['/register-org', '/login', '/signup'];
 
 const HOLD_MS = 1500;
 const SIZE = 72; // ≥64px touch target (expanded)
@@ -34,6 +46,7 @@ const SOS_OPEN_CLASS = 'sb-sos-open';
 
 export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }) => {
   const t = useCrisisT();
+  const { pathname } = useLocation();
   const [holding, setHolding] = useState(false);
   const [progress, setProgress] = useState(0); // 0..1
   // Collapsed by default: a 48px mini that can never swallow a control.
@@ -176,9 +189,12 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
   const circumference = 2 * Math.PI * radius;
 
   /* Mobile: floats ABOVE the fixed bottom tab bar (~64px) + safe-area;
-     desktop keeps the original corner. */
-  const anchorCls =
-    'fixed right-5 z-[9990] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:bottom-5';
+     desktop keeps the original corner. On focused form routes the
+     anchor moves to the top-centre header strip (QUEUED #41) so the
+     button can never cover form fields or the primary CTA. */
+  const anchorCls = FORM_ROUTES.includes(pathname)
+    ? 'fixed left-1/2 -translate-x-1/2 top-[calc(10px+env(safe-area-inset-top))] z-[9990] select-none'
+    : 'fixed right-5 z-[9990] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:bottom-5';
 
   // ── Collapsed: the 48px mini — prominent (warm glow + siren) but with
   // a footprint no control can hide behind. One tap expands the full

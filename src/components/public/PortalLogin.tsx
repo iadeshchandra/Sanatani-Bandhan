@@ -13,6 +13,13 @@ import { AuthArt, type AuthLang } from './AuthArt';
 import { AuthField } from './AuthField';
 import { AuthDoors, type AuthDoorId } from './AuthDoors';
 import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
+import {
+  firstNonBlank,
+  orgRegistrationErrorSummary,
+  orgRegistrationFieldErrorMap,
+  validateOrgRegistration,
+  type OrgRegistrationField,
+} from './orgRegistration';
 import { LanguageContext } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { SuspendedNotice } from '../auth/SuspendedNotice';
@@ -274,7 +281,7 @@ interface PortalLoginProps {
 }
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess, orgRegisterOnly = false }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
+  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, soloProfile, currentDevotee, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   // Locale follows the app-wide LanguageContext (English default). The auth
   // page's own selector also pushes the choice back to the global locale.
@@ -370,6 +377,30 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   }, []);
 
   const clearErrors = () => setError('');
+
+  // QUEUED #41: per-field registration errors (field → message), rendered
+  // under each input by AuthField's error prop + summed in the banner.
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<OrgRegistrationField, string>>>({});
+  const clearFieldError = (field: OrgRegistrationField) =>
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+
+  // Session identity as the register-org form sees it (orgRegisterOnly):
+  // the admin name/email are taken from the live session, and the name
+  // may live ONLY in the app's own profile sources — the Firebase Auth
+  // profile is just one source (see orgRegistration.ts, QUEUED #41).
+  // When the session cannot supply one of them, the form renders that
+  // field so the user can type it — the dead-end cannot recur.
+  const sessionDisplayName = orgRegisterOnly
+    ? firstNonBlank([(firebaseUser as any)?.displayName, soloProfile?.displayName, currentDevotee?.fullName])
+    : '';
+  const sessionEmail = orgRegisterOnly
+    ? firstNonBlank([(firebaseUser as any)?.email, soloProfile?.email, currentDevotee?.email])
+    : '';
 
   // H-11: is this Firebase user the recorded creator of the workspace being
   // entered? Checked against the local workspace registry (populated at
@@ -852,26 +883,57 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
   const handleRegister = async (e: React.FormEvent) => {    e.preventDefault();
     clearErrors();
+    setFieldErrors({});
     if (!navigator.onLine) return setError("Internet connection required to create a new workspace.");
 
     const { commName, type, adminName, email, phone, password, country, state, city, street, currency } = regData;
     // Progressive upgrade (orgRegisterOnly): the user is already signed in —
     // reuse the live session's identity, exactly like the unified Step 1
     // session below.
+    // QUEUED #41 (P0): resolve the session name/email from EVERY identity
+    // source, not only the Firebase Auth profile. The app's own
+    // email/password signup never writes displayName onto the Auth user,
+    // so Auth-only resolution yielded '' here and the validation below
+    // rejected complete forms on a field the form doesn't even render.
     const sessionCreds = orgRegisterOnly && auth.currentUser && firebaseUser && auth.currentUser.uid === (firebaseUser as any).uid
       ? {
           uid: auth.currentUser.uid,
-          displayName: auth.currentUser.displayName || (firebaseUser as any).displayName || '',
-          email: auth.currentUser.email || '',
+          displayName: firstNonBlank([
+            auth.currentUser.displayName,
+            (firebaseUser as any).displayName,
+            soloProfile?.displayName,
+            currentDevotee?.fullName,
+          ]),
+          email: firstNonBlank([
+            auth.currentUser.email,
+            soloProfile?.email,
+            currentDevotee?.email,
+          ]),
         }
       : null;
     // Unified signup (Step 1) already authenticated — reuse those credentials.
     const unifiedCreds = signupCreds || sessionCreds;
     const effAdminName = unifiedCreds?.displayName || adminName;
     const effEmail = unifiedCreds?.email || email;
-    // Google-linked signup skips the password (the Google account is the credential).
-    if (!commName || !effAdminName || !effEmail || !phone || (!password && !googleUser && !unifiedCreds)) return setError("Please fill all core required fields.");
-    if (!country || !state || !city) return setError("Please complete the Location / Address Picker section.");
+    // Field-named validation (pure, unit-tested — orgRegistration.ts):
+    // the banner names every missing field and each field shows its own
+    // message. Google-linked / session signups skip the password (the
+    // linked identity is the credential).
+    const regErrors = validateOrgRegistration({
+      orgName: commName,
+      adminName: effAdminName,
+      email: effEmail,
+      phone,
+      password,
+      country,
+      state,
+      city,
+      hasLinkedIdentity: !!(googleUser || unifiedCreds),
+    });
+    if (regErrors.length > 0) {
+      setFieldErrors(orgRegistrationFieldErrorMap(regErrors));
+      return setError(orgRegistrationErrorSummary(regErrors));
+    }
 
     setLoading(true);
     try {
@@ -957,7 +1019,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       // the personal session so the router lands on the new org dashboard
       // (the Solo identity itself is untouched — one tap back via Personal).
       if (sessionKind === 'solo') exitSoloSession();
-      loginAsRole('Trustee', adminName);
+      loginAsRole('Trustee', effAdminName);
 
       // First-run Setup Wizard: mark this fresh workspace as pending setup so
       // the wizard greets the new owner exactly once on first entry.
@@ -1390,8 +1452,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           label={`${t('reg_org_name')} *`}
                           type="text" required
                           value={regData.commName}
-                          onChange={e=>setRegData({...regData, commName: e.target.value})}
+                          onChange={e=>{setRegData({...regData, commName: e.target.value}); clearFieldError('orgName');}}
                           autoComplete="organization"
+                          error={fieldErrors.orgName}
                         />
 
                         <div className="space-y-4 pt-4 border-t border-white/10">
@@ -1402,7 +1465,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                              <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">Country *</label>
                              <div className="relative">
                                <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
-                               <select required value={regData.country} onChange={handleCountryChange} className="w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
+                               <select required value={regData.country} onChange={e=>{clearFieldError('country'); handleCountryChange(e);}} className={`w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border ${fieldErrors.country ? 'border-red-400/60' : 'border-white/15'} rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900`}>
                                  <option value="" disabled>Select Country...</option>
                                  <option value="India">India (भारत)</option>
                                  <option value="Bangladesh">Bangladesh (বাংলাদেশ)</option>
@@ -1413,10 +1476,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                                  <option value="Other">Other Region</option>
                                </select>
                              </div>
+                             {fieldErrors.country && (
+                               <p className="text-[12px] font-semibold text-red-300 mt-1.5 ml-1">{fieldErrors.country}</p>
+                             )}
                            </div>
                            <div className="grid grid-cols-2 gap-3">
-                             <AuthField label="State / Division *" type="text" required value={regData.state} onChange={e=>setRegData({...regData, state: e.target.value})} autoComplete="address-level1" />
-                             <AuthField label="City / District *" type="text" required value={regData.city} onChange={e=>setRegData({...regData, city: e.target.value})} autoComplete="address-level2" />
+                             <AuthField label="State / Division *" type="text" required value={regData.state} onChange={e=>{setRegData({...regData, state: e.target.value}); clearFieldError('state');}} autoComplete="address-level1" error={fieldErrors.state} />
+                             <AuthField label="City / District *" type="text" required value={regData.city} onChange={e=>{setRegData({...regData, city: e.target.value}); clearFieldError('city');}} autoComplete="address-level2" error={fieldErrors.city} />
                            </div>
                         </div>
 
@@ -1437,26 +1503,34 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
                             <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
                             <p className="text-[12px] font-bold text-emerald-200">
-                              {t('reg_unified_note').replace('{name}', signupCreds?.displayName || (firebaseUser as any)?.displayName || (firebaseUser as any)?.email || '')}
+                              {t('reg_unified_note').replace('{name}', signupCreds?.displayName || sessionDisplayName || (firebaseUser as any)?.email || '')}
                             </p>
                           </div>
                         ) : null}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {!(signupCreds || orgRegisterOnly) && (
-                            <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>setRegData({...regData, adminName: e.target.value})} autoComplete="name" />
+                          {/* QUEUED #41: in org-upgrade mode the name comes
+                              from the session — but if NO identity source
+                              carries one, render the field so the user can
+                              supply it instead of hitting a dead-end. */}
+                          {!signupCreds && (!orgRegisterOnly || !sessionDisplayName) && (
+                            <AuthField label={t('reg_your_name')} type="text" required value={regData.adminName} onChange={e=>{setRegData({...regData, adminName: e.target.value}); clearFieldError('adminName');}} autoComplete="name" error={fieldErrors.adminName} />
                           )}
-                          <AuthField label={t('reg_your_phone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>setRegData({...regData, phone: e.target.value})} autoComplete="tel" />
+                          <AuthField label={t('reg_your_phone')} icon={<Phone size={16} />} type="tel" required value={regData.phone} onChange={e=>{setRegData({...regData, phone: e.target.value}); clearFieldError('phone');}} autoComplete="tel" error={fieldErrors.phone} />
                         </div>
 
-                        {!(signupCreds || orgRegisterOnly) && (
+                        {/* QUEUED #41: same rule as the name field — in
+                            org-upgrade mode the email field appears only
+                            when the session carries no email to reuse. */}
+                        {!signupCreds && (!orgRegisterOnly || !sessionEmail) && (
                           <AuthField
                             label={t('reg_official_email')}
                             icon={<Mail size={17} />}
                             type="email" required
                             value={regData.email}
-                            onChange={e=>setRegData({...regData, email: e.target.value})}
+                            onChange={e=>{setRegData({...regData, email: e.target.value}); clearFieldError('email');}}
                             autoComplete="email"
+                            error={fieldErrors.email}
                           />
                         )}
 
@@ -1466,8 +1540,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                             icon={<Lock size={17} />}
                             type={showRegPassword ? 'text' : 'password'} required
                             value={regData.password}
-                            onChange={e=>setRegData({...regData, password: e.target.value})}
+                            onChange={e=>{setRegData({...regData, password: e.target.value}); clearFieldError('password');}}
                             autoComplete="new-password"
+                            error={fieldErrors.password}
                             rightSlot={
                               <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label="Toggle password visibility" className="min-w-[44px] min-h-[44px] flex items-center justify-center">
                                 {showRegPassword ? <EyeOff size={17} /> : <Eye size={17} />}

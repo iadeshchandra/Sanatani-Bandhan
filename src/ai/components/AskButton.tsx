@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { AssistantSheet } from './AssistantSheet';
 
 /** Event that opens the assistant sheet from anywhere (e.g. the Profile
  *  "🙏 Ask" row). The FAB stays the primary entry; this is the named door. */
 export const ASSISTANT_OPEN_EVENT = 'sb:open-assistant';
+
+/**
+ * Focused form routes (QUEUED #41): on the auth / org-registration forms
+ * the FAB floated over form content (it covered field labels inside the
+ * scrolling form card). The assistant is a shell aid — on these routes
+ * it steps aside entirely; the Profile "🙏 Ask" row remains the door
+ * inside the app.
+ */
+const FORM_ROUTES = ['/register-org', '/login', '/signup'];
 
 /**
  * ai/components/AskButton.tsx — the devotee's "🙏 Ask" floating entry.
@@ -30,6 +40,7 @@ export const ASSISTANT_OPEN_EVENT = 'sb:open-assistant';
  */
 export const AskButton: React.FC = () => {
   const { isAuthenticated, sessionKind } = useAuthWorkspace();
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
   // Named door: Profile's "🙏 Ask" row (and the assistant's own
@@ -42,7 +53,8 @@ export const AskButton: React.FC = () => {
 
   // Solo-only: the assistant is a devotee aid, and the solo shell is the only
   // layout whose bottom-left zone has been verified clash-free.
-  if (!isAuthenticated || sessionKind !== 'solo') return null;
+  // Form routes: never float over a focused form (QUEUED #41).
+  if (!isAuthenticated || sessionKind !== 'solo' || FORM_ROUTES.includes(pathname)) return null;
 
   return (
     <>

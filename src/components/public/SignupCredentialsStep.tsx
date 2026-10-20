@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
@@ -71,6 +71,13 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
     try {
       const cleanEmail = email.trim().toLowerCase();
       const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      // QUEUED #41: persist the typed name onto the Firebase Auth profile
+      // as well. Downstream session-identity resolution (e.g. /register-org)
+      // reads displayName from the Auth user; when it was never written,
+      // org creation dead-ended on the admin name. Best-effort — signup
+      // must not fail if the profile write does (the register-org flow
+      // also falls back to the Sanatani profile name).
+      await updateProfile(cred.user, { displayName: displayName.trim() }).catch(() => {});
       onComplete({
         uid: cred.user.uid,
         displayName: displayName.trim(),
