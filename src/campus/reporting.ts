@@ -15,9 +15,14 @@
  * + 2h; festival mode: +30min). Clients filter expired reports; a cleanup
  * pass deletes them. Live conditions are never permanent.
  *
- * FESTIVAL MODE: when a campus sets festivalMode=true, clients degrade
- * their refresh cadence (60s → 5min) and reports expire faster. This
- * keeps Firestore reads bounded when 100k devotees open the map.
+ * FESTIVAL MODE: when a campus sets festivalMode=true, reports expire
+ * faster (30min) and clients degrade their LOCAL expiry-sweep cadence
+ * (60s → 5min — see reportRefreshMs). The Firestore subscription
+ * itself is created ONCE per org and never re-created on a timer:
+ * onSnapshot reads are change-driven, so re-subscribing would re-bill
+ * the whole result set every tick and INCREASE reads in a festival
+ * crowd — the exact opposite of the intent (audit 2026-10-19 F-L3,
+ * fixed QUEUED #17).
  *
  * ANTI-ABUSE: reports are attributed (reportedBy uid + name). Coordinators
  * can clear bad reports. This is a trusted-role feature, not anonymous.
@@ -83,6 +88,17 @@ export function isReportLive(r: ZoneReport, now = Date.now()): boolean {
   return r.expiresAt > now;
 }
 
+/**
+ * Local expiry sweep — drops reports whose expiresAt has passed.
+ * Pure and render-time only: zero Firestore reads. Callers re-run it
+ * on the reportRefreshMs cadence so an idle map still clears expired
+ * badges with the same freshness the old re-subscribe timer provided
+ * only as a side effect (QUEUED #17).
+ */
+export function sweepExpiredReports(reports: ZoneReport[], now = Date.now()): ZoneReport[] {
+  return reports.filter((r) => isReportLive(r, now));
+}
+
 export async function submitZoneReport(
   input: Omit<ZoneReport, 'id' | 'createdAt' | 'expiresAt'> & { festivalMode?: boolean },
 ): Promise<string> {
@@ -106,9 +122,13 @@ export async function submitZoneReport(
 }
 
 /**
- * Live reports for one org, newest first. Clients MUST filter with
- * isReportLive (expiry is structural). In festival mode, callers should
- * throttle re-subscription (see reportRefreshMs).
+ * Live reports for one org, newest first. SUBSCRIBE ONCE per org —
+ * this is a realtime onSnapshot listener; NEVER tear it down and
+ * re-subscribe on a timer (every re-attach re-reads the full result
+ * set; the timer that used to do this was QUEUED #17's churn bug).
+ * Expiry is filtered here at snapshot time; between snapshots the
+ * caller sweeps locally with sweepExpiredReports on the
+ * reportRefreshMs cadence.
  */
 export function subscribeToZoneReports(
   orgId: string,
@@ -122,18 +142,21 @@ export function subscribeToZoneReports(
   return onSnapshot(
     q,
     (snap) => {
-      const now = Date.now();
       onReports(
-        snap.docs
-          .map((d) => d.data() as ZoneReport)
-          .filter((r) => isReportLive(r, now)),
+        sweepExpiredReports(snap.docs.map((d) => d.data() as ZoneReport)),
       );
     },
     () => onReports([]),
   );
 }
 
-/** Client refresh cadence: degrades automatically in festival mode. */
+/**
+ * Local expiry-sweep cadence (render-only — NOT a re-subscription
+ * interval): how often an open map re-filters expired reports
+ * locally. Degrades in festival mode — fewer re-renders on low-end
+ * devices when crowds open the map; report lifetime is shorter then
+ * anyway, so freshness is unchanged.
+ */
 export function reportRefreshMs(festivalMode: boolean): number {
   return festivalMode ? 5 * 60 * 1000 : 60 * 1000;
 }

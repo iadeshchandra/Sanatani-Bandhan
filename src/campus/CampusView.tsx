@@ -12,7 +12,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Navigation, Clock, X, Church, BadgeCheck, QrCode } from 'lucide-react';
 import { subscribeToCampusMap } from './campusService';
-import { subscribeToZoneReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
+import { subscribeToZoneReports, sweepExpiredReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -28,7 +28,7 @@ import '../crisis/leaflet.css';
 interface Props {
   orgId: string;
   orgName: string;
-  /** When true, report refresh degrades to 5-min cadence (festival load). */
+  /** When true, the local expiry-sweep cadence degrades to 5 min (festival load). */
   festivalMode?: boolean;
 }
 
@@ -71,30 +71,40 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
     return () => { settled = true; clearTimeout(timer); unsub(); };
   }, [orgId]);
 
-  // Sevadar live reports — refresh cadence degrades in festival mode.
+  // Sevadar live reports — ONE realtime subscription per org.
+  // (QUEUED #17: this used to unsubscribe + re-subscribe on a
+  // reportRefreshMs timer, but subscribeToZoneReports is onSnapshot —
+  // already realtime. Every re-attach re-read the whole result set,
+  // churning Firestore reads and battery for zero benefit.)
+  useEffect(() => subscribeToZoneReports(orgId, setReports), [orgId]);
+
+  // Expiry sweep (render-only): the snapshot filter runs only when
+  // Firestore pushes a change, so a lightweight tick re-filters
+  // LOCALLY on the same cadence the old timer used — expired badges
+  // still clear on an idle map, at zero Firestore cost. The tick runs
+  // only while live reports exist and stops itself when the last one
+  // expires. It never touches the subscription.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const liveReports = useMemo(
+    () => sweepExpiredReports(reports, nowMs),
+    [reports, nowMs],
+  );
+  const hasLiveReports = liveReports.length > 0;
   useEffect(() => {
-    let unsub: (() => void) | null = null;
-    let timer: ReturnType<typeof setTimeout>;
-    const subscribe = () => {
-      if (unsub) unsub();
-      unsub = subscribeToZoneReports(orgId, setReports);
-      timer = setTimeout(subscribe, reportRefreshMs(festivalMode));
-    };
-    subscribe();
-    return () => { if (unsub) unsub(); clearTimeout(timer); };
-  }, [orgId, festivalMode]);
+    if (!hasLiveReports) return;
+    const t = setInterval(() => setNowMs(Date.now()), reportRefreshMs(festivalMode));
+    return () => clearInterval(t);
+  }, [hasLiveReports, festivalMode]);
 
   const reportsByZone = useMemo(() => {
     const m = new Map<string, ZoneReport[]>();
-    for (const r of reports) {
+    for (const r of liveReports) {
       const arr = m.get(r.zoneId) ?? [];
       arr.push(r);
       m.set(r.zoneId, arr);
     }
     return m;
-  }, [reports]);
-
-  const hasLiveReports = reports.length > 0;
+  }, [liveReports]);
 
   const geoZones = useMemo(
     () => (map?.zones ?? []).filter((z) => typeof z.lat === 'number' && typeof z.lng === 'number'),
@@ -208,7 +218,7 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
         <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3" aria-live="polite">
           <p className="text-[13px] font-bold text-amber-900">📢 Live from our sevadars</p>
           <div className="mt-1.5 flex flex-wrap gap-2">
-            {reports.slice(0, 4).map((r) => {
+            {liveReports.slice(0, 4).map((r) => {
               const meta = REPORT_META[r.type];
               return (
                 <span key={r.id} className="inline-flex items-center gap-1.5 text-[12px] font-semibold bg-white border border-amber-200 rounded-full px-3 py-1.5">
