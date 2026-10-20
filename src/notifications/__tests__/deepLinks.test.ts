@@ -19,6 +19,10 @@
 const VALID_PATTERNS: RegExp[] = [
   /^\/app\/chat(\?with=[\w-]+)?$/,
   /^\/app\/home(\/[\w-]+)?$/,
+  // Audit #5: Universal Search deep-links into Sangam — the query forms
+  // land on real content (SangamView consumes ?post= / ?video=).
+  /^\/app\/home\/sangam\?post=[\w%.-]+$/,
+  /^\/app\/home\/sangam\?video=[\w%.-]+$/,
   /^\/app\/suchana$/,
   /^\/app\/profile$/,
   /^\/app\/orgs(\/[\w-]+)?$/,
@@ -46,6 +50,8 @@ const EMITTED_LINKS: Array<{ name: string; link: string }> = [
   { name: 'commission due', link: '/app/home/marketplace' },
   { name: 'social ashirvad', link: '/app/home/sangam' },
   { name: 'social comment', link: '/app/home/sangam' },
+  { name: 'search post result', link: '/app/home/sangam?post=post_abc123' },
+  { name: 'search video result', link: '/app/home/sangam?video=vid_abc123' },
   { name: 'suchana digest', link: '/app/suchana' },
   { name: 'devotee profile', link: '/u/user_123' },
   { name: 'org page', link: '/org/org_456' },
@@ -64,6 +70,9 @@ describe('isValidDeepLink', () => {
     expect(isValidDeepLink('/chat')).toBe(false);
     expect(isValidDeepLink('/wallet')).toBe(false);
     expect(isValidDeepLink('/sangam')).toBe(false);
+    // Audit #5: the old search deep-link formats — no such routes existed.
+    expect(isValidDeepLink('/app/sangam?post=post_abc123')).toBe(false);
+    expect(isValidDeepLink('/app/sangam/watch?video=vid_abc123')).toBe(false);
     expect(isValidDeepLink('/suchana')).toBe(false);
     expect(isValidDeepLink('/safety')).toBe(false);
     expect(isValidDeepLink('/safety/sos/evt1')).toBe(false);

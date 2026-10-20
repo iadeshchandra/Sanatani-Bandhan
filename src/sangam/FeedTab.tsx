@@ -438,7 +438,7 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
   );
 };
 
-export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; orgName: string } }> = ({ author, pageContext }) => {
+export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; orgName: string }; highlightPostId?: string }> = ({ author, pageContext, highlightPostId }) => {
   const { posts, online, lastSyncedAt, follows } = useSangam();
   const { firebaseUser } = useAuthWorkspace();
   const guideUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
@@ -560,8 +560,41 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
     }
     // Seva Bazar: service cards are guests — ≤15% of the mixed feed.
     // (Explicit "Seva Notices" filter shows them all; the cap is for discovery.)
-    return kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
-  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights, blockedUids, mutedUids, hiddenIds]);
+    const capped = kindFilter === 'all' ? applyServiceCardDensity(sorted) : sorted;
+    // Search deep-link (?post=): the target must be present even if ranking
+    // or the density cap pushed it out — otherwise the landing scrolls
+    // nowhere. Blocked/muted/moderation-hidden posts stay hidden (safety
+    // wins): they never reach `list`, so they are never re-added here.
+    if (highlightPostId && !capped.some((p) => p.id === highlightPostId)) {
+      const target = list.find((p) => p.id === highlightPostId);
+      if (target) return [target, ...capped];
+    }
+    return capped;
+  }, [posts, kindFilter, followingOnly, followedIds, author.uid, rankMode, userSignals, feedWeights, blockedUids, mutedUids, hiddenIds, highlightPostId]);
+
+  // Search deep-link landing (audit #5): clear filters that could hide the
+  // target, flash a highlight ring on it, and scroll it into view once the
+  // list renders it.
+  const [deepHighlight, setDeepHighlight] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!highlightPostId) return;
+    setKindFilter('all');
+    setFollowingOnly(false);
+    setDeepHighlight(highlightPostId);
+    const t = setTimeout(() => setDeepHighlight(undefined), 4000);
+    return () => clearTimeout(t);
+  }, [highlightPostId]);
+  // Scroll once per target — the live feed re-renders on every snapshot,
+  // and re-scrolling on each update would yank the reader back forever.
+  const scrolledForRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!highlightPostId || scrolledForRef.current === highlightPostId) return;
+    const el = document.getElementById(`sangam-post-${highlightPostId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrolledForRef.current = highlightPostId;
+    }
+  }, [highlightPostId, visible]);
 
   return (
     <div className="space-y-4">
@@ -650,13 +683,20 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
           />
         </Card>
       ) : (
-        visible.map((p) =>
-          p.kind === 'service_card' ? (
-            <ServiceCardFeedItem key={p.id} post={p} author={author} />
-          ) : (
-            <PostCard key={p.id} post={p} author={author} />
-          )
-        )
+        visible.map((p) => (
+          <div
+            key={p.id}
+            id={`sangam-post-${p.id}`}
+            style={{ scrollMarginTop: 96 }}
+            className={deepHighlight === p.id ? 'rounded-3xl ring-2 ring-amber-400 ring-offset-2 shadow-lg transition-shadow' : undefined}
+          >
+            {p.kind === 'service_card' ? (
+              <ServiceCardFeedItem post={p} author={author} />
+            ) : (
+              <PostCard post={p} author={author} />
+            )}
+          </div>
+        ))
       )}
       {/* Quick Guide: Seva Bazar notices — invitational only, never auto-plays. */}
       {sevabazarGuide.pillVisible && (

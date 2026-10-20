@@ -8,7 +8,7 @@
  *
  * YouTube-nocookie embeds only. Tap-to-play, never auto-play with sound.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Btn, EmptyState, useLocaleText } from '../ui';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { LiveBadge, DarshanViewer } from '../../darshan';
@@ -23,13 +23,15 @@ import { useModerationHides } from '../moderation';
 
 interface Props {
   author: AuthorInfo;
+  /** Search deep-link (?video=<id>): scroll to this video and open it. */
+  focusVideoId?: string;
 }
 
 function toWatchLang(lang: string): WatchLang {
   return lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
 }
 
-export const WatchTab: React.FC<Props> = ({ author }) => {
+export const WatchTab: React.FC<Props> = ({ author, focusVideoId }) => {
   const { lang } = useLocaleText();
   const wl = toWatchLang(lang);
   const { currentRole } = useAuthWorkspace();
@@ -54,6 +56,19 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
     () => (hiddenIds.size > 0 ? demos.filter((v) => !hiddenIds.has(v.id)) : demos),
     [demos, hiddenIds],
   );
+
+  // Search deep-link landing (audit #5): scroll the focused video into view
+  // once it has loaded; the matching card opens its player (autoPlay below).
+  // Once per target — live subscriptions re-render often; never re-yank.
+  const scrolledForRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!focusVideoId || scrolledForRef.current === focusVideoId) return;
+    const el = document.getElementById(`sangam-video-${focusVideoId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrolledForRef.current = focusVideoId;
+    }
+  }, [focusVideoId, visibleShared, visibleDemos]);
 
   const handleBook = useCallback((providerUid: string) => {
     // Deep-link to the provider's Seva Pro profile for booking.
@@ -125,7 +140,7 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
         ) : (
           <div className="space-y-3">
             {visibleDemos.map((v) => (
-              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} onBook={handleBook} />
+              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} onBook={handleBook} domId={`sangam-video-${v.id}`} autoPlay={focusVideoId === v.id} />
             ))}
           </div>
         )}
@@ -145,7 +160,7 @@ export const WatchTab: React.FC<Props> = ({ author }) => {
         ) : (
           <div className="space-y-3">
             {visibleShared.map((v) => (
-              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} />
+              <VideoCard key={v.id} video={v} lang={wl} viewerUid={author.uid} viewerName={author.name} isAdmin={isAdmin} domId={`sangam-video-${v.id}`} autoPlay={focusVideoId === v.id} />
             ))}
           </div>
         )}

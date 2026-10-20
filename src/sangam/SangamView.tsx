@@ -1,4 +1,6 @@
-import React, { useMemo, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
+import { parseSangamDeepLink } from '../search/deepLinks';
 import { SangamProvider, useSangam, type AuthorInfo } from './sangamStore';
 import { useSolo } from '../solo/SoloContext';
 import { useMyPurohitIdentity } from '../components/purohit/useMyPurohitIdentity';
@@ -39,7 +41,22 @@ const InnerSangam: React.FC = () => {
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const { showToast } = useToast();
   const { tr } = useLocaleText();
-  const [tab, setTab] = useState<SangamTab>('feed');
+  // Search deep-links (audit #5): /app/home/sangam?post=<id> lands on the
+  // feed scrolled to that post; ?video=<id> lands on Watch with the video
+  // open. The params are also honoured when they arrive while Sangam is
+  // already mounted (a second search tap).
+  const location = useLocation();
+  const deepLink = useMemo(
+    () => parseSangamDeepLink(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
+  const deepPostId = deepLink?.postId;
+  const deepVideoId = deepLink?.videoId;
+  const [tab, setTab] = useState<SangamTab>(() => (deepVideoId ? 'watch' : 'feed'));
+  useEffect(() => {
+    if (deepVideoId) setTab('watch');
+    else if (deepPostId) setTab('feed');
+  }, [deepPostId, deepVideoId]);
   const [postAsPage, setPostAsPage] = useState(false);
 
   const uid = profile?.id ? (profile as unknown as { uid?: string }).uid || 'anon' : 'anon';
@@ -157,10 +174,10 @@ const InnerSangam: React.FC = () => {
         ))}
       </nav>
 
-      {tab === 'feed' && <FeedTab author={author} pageContext={postingAs} />}
+      {tab === 'feed' && <FeedTab author={author} pageContext={postingAs} highlightPostId={deepPostId} />}
       {tab === 'watch' && (
         <Suspense fallback={<div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" /></div>}>
-          <WatchTab author={author} />
+          <WatchTab author={author} focusVideoId={deepVideoId} />
         </Suspense>
       )}
       {tab === 'shorts' && (

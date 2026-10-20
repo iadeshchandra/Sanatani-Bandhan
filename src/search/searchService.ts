@@ -8,6 +8,12 @@
  * Privacy note: `users/` docs are self-read-only by rules, so people search
  * uses denormalized author data from public sangamPosts (only people who
  * chose to post publicly are discoverable). No privilege escalation.
+ *
+ * Deep-links (audit #5): post/service/video results point at the Sangam
+ * sub-tab — /app/home/sangam?post=<id> / ?video=<id> — and SangamView
+ * consumes the param to land on the item (scroll + highlight / open).
+ * The old /app/sangam… paths matched no route; the catch-all silently
+ * dropped users on My Space.
  */
 
 import {
@@ -24,6 +30,7 @@ import {
   type GroupedResults,
   type SearchResult,
 } from './types';
+import { sangamPostPath, sangamVideoPath } from './deepLinks';
 
 const WINDOW = 50;
 
@@ -124,7 +131,7 @@ function buildPostResults(docs: RawDoc[], q: string): SearchResult[] {
       subtitle: str(d.authorName) || undefined,
       imageUrl: str(d.imageUrl).startsWith('http') ? str(d.imageUrl) : undefined,
       score,
-      path: `/app/sangam?post=${encodeURIComponent(id)}`,
+      path: sangamPostPath(id),
     });
   }
   return rankResults(out);
@@ -144,7 +151,7 @@ function buildVideoResults(docs: RawDoc[], q: string): SearchResult[] {
       subtitle: str(d.sharedByName) || undefined,
       imageUrl: str(d.thumbnailUrl) || undefined,
       score,
-      path: `/app/sangam/watch?video=${encodeURIComponent(id)}`,
+      path: sangamVideoPath(id),
     });
   }
   return rankResults(out);
@@ -192,7 +199,7 @@ function buildServiceResults(docs: RawDoc[], q: string): SearchResult[] {
       title: serviceLine || str(d.text).slice(0, 90),
       subtitle: [str(card.providerName), tier].filter(Boolean).join(' · ') || undefined,
       score: score + (verified ? 100 : 0),
-      path: `/app/sangam?post=${encodeURIComponent(id)}`,
+      path: sangamPostPath(id),
       verified,
     });
   }
@@ -249,7 +256,7 @@ export async function trendingPosts(max = 5): Promise<SearchResult[]> {
       title: (str(d.text).length > 90 ? str(d.text).slice(0, 90) + '…' : str(d.text)),
       subtitle: str(d.authorName) || undefined,
       score: num(d.ashirvadCount),
-      path: `/app/sangam?post=${encodeURIComponent(id)}`,
+      path: sangamPostPath(id),
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, max);

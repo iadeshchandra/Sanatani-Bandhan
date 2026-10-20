@@ -28,6 +28,7 @@ import { useNativeLanguage } from '../components/language/nativeBridge';
 import { SUPPORTED_LANGUAGES } from '../i18n/translations';
 import { LanguagePickerSheet } from '../components/language/LanguagePickerSheet';
 import { getWallet, fmtWallet, type WalletCurrency } from '../lib/wallet';
+import { openPlanUpgrade } from '../billing/PlanUpgradeFlow';
 
 /* ProfileTab — the Sanatani ID card.
  * =====================================================================
@@ -655,7 +656,36 @@ export const ProfileTab: React.FC = () => {
           onClick={() => navigate('/app/home/giving')}
           className="mt-1 w-full text-left text-xs font-bold text-amber-700 hover:underline min-h-[44px] px-1"
         >
-          <T en="Receipts & 80G →" bn="রসিদ ও 80G →" hi="रसीद व 80G →" />
+          <T en="Giving history →" bn="দানের ইতিহাস →" hi="दान इतिहास →" />
+        </button>
+      </Card>
+
+      {/* 🌱 Grow with Sanatani Bandhan — the plan-upgrade door for Solo users.
+          Discoverability audit #3: every openPlanUpgrade() CTA lived in the
+          org shell, so a solo devotee had no path to buy a plan. The flow is
+          event-driven — PlanUpgradeHost is mounted globally (App shell via
+          NotificationWiring) — and it files a personal claim
+          (workspaceId falls back to 'personal' for solo accounts). */}
+      <Card className="!p-0 overflow-hidden !border-amber-200">
+        <button
+          type="button"
+          onClick={() => openPlanUpgrade()}
+          className="w-full flex items-center gap-3 text-left min-h-[72px] px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 transition-colors"
+        >
+          <span className="text-2xl shrink-0" aria-hidden>🌱</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-extrabold text-stone-900">
+              <T en="Grow with Sanatani Bandhan" bn="সনাতনী বন্ধনের সঙ্গে এগিয়ে যান" hi="सनातनी बंधन के साथ आगे बढ़ें" />
+            </span>
+            <span className="block text-[11px] text-stone-500 mt-0.5">
+              <T
+                en="Standard, Premium & Purohit Pro — more room for your sadhana, sangha and seva."
+                bn="স্ট্যান্ডার্ড, প্রিমিয়াম ও পুরোহিত প্রো — আপনার সাধনা, সঙ্গ ও সেবার জন্য আরও সুযোগ।"
+                hi="स्टैंडर्ड, प्रीमियम व पुरोहित प्रो — आपकी साधना, संग व सेवा के लिए अधिक अवसर।"
+              />
+            </span>
+          </span>
+          <span className="text-amber-700 text-xl shrink-0" aria-hidden>→</span>
         </button>
       </Card>
 

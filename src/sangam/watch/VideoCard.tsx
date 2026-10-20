@@ -20,11 +20,15 @@ interface Props {
   viewerName: string;
   isAdmin: boolean;
   onBook?: (providerUid: string) => void;
+  /** DOM anchor id (search deep-link landing scrolls here). */
+  domId?: string;
+  /** Start with the player open (search deep-link landing). */
+  autoPlay?: boolean;
 }
 
-export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, viewerName, isAdmin, onBook }) => {
+export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, viewerName, isAdmin, onBook, domId, autoPlay }) => {
   const navigate = useNavigate();
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState<boolean>(!!autoPlay);
   const [reported, setReported] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -52,6 +56,7 @@ export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, viewerName,
   };
 
   return (
+    <div id={domId} style={{ scrollMarginTop: 96 }}>
     <Card className="overflow-hidden !p-0">
       {/* Thumbnail / player */}
       {playing ? (
@@ -153,5 +158,6 @@ export const VideoCard: React.FC<Props> = ({ video, lang, viewerUid, viewerName,
         </div>
       </div>
     </Card>
+    </div>
   );
 };
