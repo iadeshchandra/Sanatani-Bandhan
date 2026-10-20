@@ -226,6 +226,7 @@ const KIND_PLURAL: Record<NotifyKind, { en: string; bn: string; hi: string }> = 
   },
   chat: { en: 'new messages', bn: 'নতুন বার্তা', hi: 'नए संदेश' },
   wallet: { en: 'wallet updates', bn: 'ওয়ালেট খবর', hi: 'वॉलेट समाचार' },
+  seva_order: { en: 'seva updates', bn: 'সেবার খবর', hi: 'सेवा समाचार' },
   org: { en: 'updates', bn: 'আপডেট', hi: 'अपडेट' },
   blessing: { en: 'blessings', bn: 'আশীর্বাদ', hi: 'आशीर्वाद' },
   security: { en: 'security notices', bn: 'নিরাপত্তা বিজ্ঞপ্তি', hi: 'सुरक्षा सूचनाएँ' },

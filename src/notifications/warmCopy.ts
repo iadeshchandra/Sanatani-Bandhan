@@ -464,6 +464,95 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
       ),
     },
   },
+
+  /* ---------------------------------------------------------------- */
+  /* Seva orders — the marketplace journey, told warmly (QUEUED #29).  */
+  /* {seva} is the order's gigTitle; {amount} a formatted dakshina.    */
+  /* Copy never names who cancelled or who raised a concern — the      */
+  /* order doc does not record it, and Suchana does not invent it.     */
+  /* ---------------------------------------------------------------- */
+  seva_order: {
+    newRequest: {
+      title: t('🪔 New seva request', '🪔 নতুন সেবার অনুরোধ', '🪔 नया सेवा अनुरोध'),
+      body: t(
+        'A devotee seeks {seva}. Please review the request and accept when you are ready.',
+        'একজন ভক্ত {seva} চান। অনুগ্রহ করে অনুরোধটি দেখুন এবং প্রস্তুত হলে গ্রহণ করুন।',
+        'एक भक्त {seva} चाहते हैं। कृपया अनुरोध देखें और तैयार होने पर स्वीकार करें।',
+      ),
+    },
+    advanceReceived: {
+      title: t('🙏 Advance offered for your seva', '🙏 আপনার সেবার জন্য অগ্রিম অর্পিত', '🙏 आपकी सेवा के लिए अग्रिम अर्पित'),
+      body: t(
+        'The token advance for {seva} has been offered. Please confirm receipt so the muhurat is held.',
+        '{seva}-এর জন্য টোকেন অগ্রিম অর্পণ করা হয়েছে। মুহূর্ত ধরে রাখতে অনুগ্রহ করে প্রাপ্তি নিশ্চিত করুন।',
+        '{seva} के लिए टोकन अग्रिम अर्पित किया गया है। मुहूर्त सुरक्षित रखने के लिए कृपया प्राप्ति की पुष्टि करें।',
+      ),
+    },
+    dakshinaReceived: {
+      title: t('🙏 Your dakshina was received', '🙏 আপনার দক্ষিণা গৃহীত হয়েছে', '🙏 आपकी दक्षिणा प्राप्त हुई'),
+      body: t(
+        'Your dakshina of {amount} for {seva} has been received with gratitude. The seva now awaits acceptance.',
+        '{seva}-এর জন্য আপনার {amount} দক্ষিণা কৃতজ্ঞতায় গৃহীত হয়েছে। সেবাটি এখন গ্রহণের অপেক্ষায়।',
+        '{seva} के लिए आपकी {amount} दक्षिणा कृतज्ञता से प्राप्त हुई। सेवा अब स्वीकृति की प्रतीक्षा में है।',
+      ),
+    },
+    sevaAccepted: {
+      title: t('🪔 Your seva is confirmed', '🪔 আপনার সেবা নিশ্চিত হয়েছে', '🪔 आपकी सेवा निश्चित हुई'),
+      body: t(
+        '{seva} has been accepted and the muhurat is held. Prepare with a calm heart.',
+        '{seva} গ্রহণ করা হয়েছে এবং মুহূর্ত সংরক্ষিত। শান্ত মনে প্রস্তুতি নিন।',
+        '{seva} स्वीकार कर ली गई है और मुहूर्त सुरक्षित है। शांत हृदय से तैयारी करें।',
+      ),
+    },
+    sevaBegun: {
+      title: t('🪔 The seva has begun', '🪔 সেবা শুরু হয়েছে', '🪔 सेवा आरंभ हुई'),
+      body: t(
+        '{seva} is now underway. May it bring peace to your home.',
+        '{seva} এখন চলমান। আপনার গৃহে শান্তি বর্ষিত হোক।',
+        '{seva} अब चल रही है। आपके घर में शांति बनी रहे।',
+      ),
+    },
+    contributionDue: {
+      title: t('🙏 Seva offered — your contribution awaits', '🙏 সেবা সম্পন্ন — আপনার অবদান বাকি', '🙏 सेवा संपन्न — आपका योगदान शेष'),
+      body: t(
+        '{seva} has been offered. Please complete your seva contribution of {amount} to close the journey with gratitude.',
+        '{seva} সম্পন্ন হয়েছে। কৃতজ্ঞতায় যাত্রা শেষ করতে অনুগ্রহ করে {amount} সেবা অবদান অর্পণ করুন।',
+        '{seva} संपन्न हुई है। कृतज्ञता से यात्रा पूर्ण करने के लिए कृपया {amount} सेवा योगदान अर्पित करें।',
+      ),
+    },
+    sevaComplete: {
+      title: t('🌸 Seva complete', '🌸 সেবা সম্পূর্ণ', '🌸 सेवा पूर्ण'),
+      body: t(
+        '{seva} is complete. Dhanyavaad — may the blessings stay with you.',
+        '{seva} সম্পূর্ণ হয়েছে। ধন্যবাদ — আশীর্বাদ আপনার সঙ্গে থাকুক।',
+        '{seva} पूर्ण हुई। धन्यवाद — आशीर्वाद आपके साथ रहे।',
+      ),
+    },
+    orderCancelled: {
+      title: t('Seva booking cancelled', 'সেবার বুকিং বাতিল হয়েছে', 'सेवा बुकिंग रद्द हुई'),
+      body: t(
+        'The booking for {seva} stands cancelled. If this was unexpected, you can reach out through Messages.',
+        '{seva}-এর বুকিংটি বাতিল হয়েছে। এটি অপ্রত্যাশিত হলে বার্তার মাধ্যমে যোগাযোগ করতে পারেন।',
+        '{seva} की बुकिंग रद्द हो गई है। यदि यह अप्रत्याशित है, तो संदेशों से संपर्क कर सकते हैं।',
+      ),
+    },
+    disputeOpened: {
+      title: t('🙏 A concern was raised', '🙏 একটি উদ্বেগ জানানো হয়েছে', '🙏 एक चिंता व्यक्त की गई'),
+      body: t(
+        'A concern has been raised on {seva}. The Bandhan team will review it with care — nothing moves until it is resolved.',
+        '{seva} নিয়ে একটি উদ্বেগ জানানো হয়েছে। বন্ধন টিম যত্নে এটি পর্যালোচনা করবে — সমাধান না হওয়া পর্যন্ত কিছুই এগোবে না।',
+        '{seva} पर एक चिंता व्यक्त की गई है। बंधन टीम इसे ध्यान से देखेगी — समाधान तक कुछ आगे नहीं बढ़ेगा।',
+      ),
+    },
+    refundSettled: {
+      title: t('🪔 Dakshina returned', '🪔 দক্ষিণা ফেরত দেওয়া হয়েছে', '🪔 दक्षिणा लौटाई गई'),
+      body: t(
+        'The dakshina for {seva} has been returned in full. Dhanyavaad for your understanding.',
+        '{seva}-এর দক্ষিণা পুরোপুরি ফেরত দেওয়া হয়েছে। আপনার বোঝাপড়ার জন্য ধন্যবাদ।',
+        '{seva} की दक्षिणा पूरी लौटा दी गई है। आपकी समझ के लिए धन्यवाद।',
+      ),
+    },
+  },
 };
 
 /**

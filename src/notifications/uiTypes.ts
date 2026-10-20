@@ -27,6 +27,7 @@ export function displayCategoryFor(kind: NotifyKind): DisplayCategory {
   switch (kind) {
     case 'money_request':
     case 'wallet':
+    case 'seva_order':
       return 'money';
     case 'chat':
       return 'chat';

@@ -30,6 +30,7 @@ import { startAartiReminderNotify } from '../darshan/aartiReminders';
 import { startOrgBroadcastNotify } from '../org/broadcastListener';
 import { startReferralThanksNotify } from '../sangam/referralThanksService';
 import { startDueJobsNotify } from '../lib/dueJobsService';
+import { startOrderNotify } from '../lib/orderNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -148,6 +149,19 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startDueJobsNotify(uid);
+  }, [uid]);
+
+  // Marketplace order journey → NotificationCenter (self-listen,
+  // QUEUED #29). My own device reads my orders as client AND provider
+  // (participant reads the rules already allow — zero new collections)
+  // and emits status-transition news to my own inbox: new requests and
+  // acceptances, the payment-due moment, completions, cancellations,
+  // disputes. Baseline law: first check notifies nothing; a per-order
+  // status ledger keeps every bell to once. The provider's
+  // awaiting-commission bell stays with the wallet watcher (dues).
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startOrderNotify(uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;

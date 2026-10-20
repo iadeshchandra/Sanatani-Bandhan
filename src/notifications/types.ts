@@ -25,6 +25,7 @@ export type NotifyKind =
   | 'chat'
   | 'money_request'
   | 'wallet'
+  | 'seva_order'
   | 'suchana'
   | 'org'
   | 'blessing'

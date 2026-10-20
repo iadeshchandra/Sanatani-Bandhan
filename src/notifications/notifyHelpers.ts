@@ -333,6 +333,45 @@ export function notifyLowBalance(recipientUid: string, amount: string, dayKey: s
 }
 
 /* ------------------------------------------------------------------ */
+/* Seva orders (QUEUED #29 — self-listen; see lib/orderNotify.ts)      */
+/* ------------------------------------------------------------------ */
+
+export interface OrderNotifyInput {
+  orderId: string;
+  /** Copy key in the warmCopy `seva_order` section. */
+  copyKey: string;
+  priority: NotifyPriority;
+  /** The seva's name (the order's gigTitle) — the copy's {seva}. */
+  sevaTitle: string;
+  /** Formatted dakshina for the {amount} placeholder. */
+  amountText: string;
+  dedupeKey: string;
+  /** The other party — set only when a name is honestly knowable. */
+  actorUid?: string;
+  actorName?: string;
+  /** Client events land on MyBookings; provider events carry none
+   *  (no URL reaches ProviderOrders — see lib/orderNotify.ts). */
+  deepLink?: string;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * One marketplace-order transition → Suchana. Called ONLY by the
+ * recipient's own device (lib/orderNotifyService.ts, self-listen:
+ * cross-user client writes are dropped by the self-write-only rules).
+ */
+export function notifyOrderEvent(recipientUid: string, o: OrderNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('seva_order', o.priority, o.copyKey, { seva: o.sevaTitle, amount: o.amountText }, o.dedupeKey, {
+      ...(o.actorUid ? { actorUid: o.actorUid, actorName: o.actorName } : {}),
+      ...(o.deepLink ? { deepLink: o.deepLink } : {}),
+      payload: o.payload,
+    }),
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Org announcements                                                   */
 /* ------------------------------------------------------------------ */
 

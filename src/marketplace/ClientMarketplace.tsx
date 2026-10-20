@@ -514,7 +514,15 @@ const MyBookings: React.FC<{
 export const ClientMarketplace: React.FC = () => {
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
-  const [view, setView] = useState<'browse' | 'bookings'>('browse');
+  // QUEUED #29: Suchana order cards deep-link here with ?view=bookings —
+  // land the devotee on MyBookings (their order journey + #26 timeline),
+  // not the browse grid. Read once at mount, like the ?ref= parse above.
+  const [view, setView] = useState<'browse' | 'bookings'>(() =>
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('view') === 'bookings'
+      ? 'bookings'
+      : 'browse',
+  );
   const [gigs, setGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
