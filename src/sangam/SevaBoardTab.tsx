@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, AuthorLine, EmptyState, useLocaleText, T } from './ui';
+import { computeSevaKarmaHours } from './sevaKarma';
 
 /* Seva Board — organisations post seva opportunities; members volunteer.
  * =====================================================================
@@ -19,13 +20,11 @@ export const SevaBoardTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
     [posts]
   );
 
-  const myHours = useMemo(() => {
-    let h = 0;
-    for (const p of posts) {
-      if (p.kind === 'seva' && (p.volunteers || []).includes(author.uid) && p.seva) h += p.seva.hoursEach;
-    }
-    return h;
-  }, [posts, author.uid]);
+  // QUEUED #13 — single source of the displayed total; the same function
+  // powers the karma total after cloud hydration (refresh() re-unions
+  // the viewer's volunteer memberships), so the "recorded to your
+  // Sanatani ID" copy is now true across restarts and devices.
+  const myHours = useMemo(() => computeSevaKarmaHours(posts, author.uid), [posts, author.uid]);
 
   const visible = showMine ? sevaPosts.filter((p) => (p.volunteers || []).includes(author.uid)) : sevaPosts;
 

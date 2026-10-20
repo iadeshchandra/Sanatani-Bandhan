@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  collection, doc, setDoc, getDocs, query, orderBy, limit, where,
+  collection, collectionGroup, doc, setDoc, getDocs, query, orderBy, limit, where,
   serverTimestamp, deleteDoc, onSnapshot, updateDoc, increment,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -13,6 +13,7 @@ import { DEMO_AUTHOR_SUFFIX } from './types';
 import { toCloudComment, mergeComments, nextCommentCount } from './comments';
 import { toCloudPost, toCloudPostEdit, toCloudCommentEdit, toCloudFollow, toCloudCircle, toCloudEvent, toCloudReport } from './serializers';
 import { applyPostEdit, applyCommentEdit, removeComment } from './edits';
+import { applyMyVolunteerships, extractVolunteerPostIds, volunteerPostIdFromRef } from './sevaKarma';
 
 /* Sangam store — the community's shared memory.
  * =====================================================================
@@ -197,16 +198,50 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     try {
       const snap = await getDocs(query(collection(db, 'sangamPosts'), orderBy('createdAt', 'desc'), limit(60)));
       if (!snap.empty) {
-        const cloud = snap.docs.map((d) => ({ ...(d.data() as SangamPost), id: d.id, localOnly: false }));
+        let cloud = snap.docs.map((d) => ({ ...(d.data() as SangamPost), id: d.id, localOnly: false }));
+        // QUEUED #13 — seva-karma hydration. Cloud post docs carry no
+        // `volunteers` field (not in the create whitelist), but every
+        // volunteering writes sangamPosts/{postId}/volunteers/{uid}.
+        // Pull just MY membership docs (one collectionGroup query,
+        // rules allow read) and re-union them into the posts — so
+        // "recorded to your Sanatani ID" survives restarts and follows
+        // the volunteer across devices. Fail-open: on any error the
+        // local cache's volunteer arrays stand.
+        try {
+          const mine = await getDocs(query(collectionGroup(db, 'volunteers'), where('uid', '==', uid)));
+          const postIds = extractVolunteerPostIds(
+            mine.docs.map((d) => ({ postId: volunteerPostIdFromRef(d.ref) ?? '' }))
+          );
+          if (postIds.length > 0) cloud = applyMyVolunteerships(cloud, postIds, uid);
+        } catch { /* local volunteers stand */ }
         setPosts((prev) => {
-          const localOnlyOnes = prev.filter((p) => p.localOnly);
-          const merged = [...localOnlyOnes, ...cloud].sort((a, b) => b.createdAt - a.createdAt);
+          const prevById = new Map(prev.map((p) => [p.id, p]));
+          const merged: SangamPost[] = [];
+          for (const cp of cloud) {
+            const local = prevById.get(cp.id);
+            // Union local volunteer memberships into the cloud copy.
+            // volunteerSeva only ever appends, and there is no
+            // un-volunteer path — so union is monotonic and safe: a
+            // volunteering made on this device is never clobbered by
+            // the (volunteers-less) cloud copy of the same post.
+            if (local?.volunteers && local.volunteers.length > 0) {
+              const union = [...(cp.volunteers || [])];
+              for (const v of local.volunteers) if (!union.includes(v)) union.push(v);
+              merged.push({ ...cp, volunteers: union });
+            } else {
+              merged.push(cp);
+            }
+          }
+          for (const p of prev) {
+            if (p.localOnly && !merged.some((x) => x.id === p.id)) merged.push(p);
+          }
+          merged.sort((a, b) => b.createdAt - a.createdAt);
           return merged.slice(0, 120);
         });
         setLastSyncedAt(now());
       }
     } catch { /* offline or unreachable — local cache is authoritative */ }
-  }, []);
+  }, [uid]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
