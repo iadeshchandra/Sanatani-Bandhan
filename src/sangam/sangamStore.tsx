@@ -12,7 +12,7 @@ import type {
 import { DEMO_AUTHOR_SUFFIX } from './types';
 import { toCloudComment, mergeComments, nextCommentCount } from './comments';
 import { toCloudPost, toCloudPostEdit, toCloudCommentEdit, toCloudFollow, toCloudCircle, toCloudEvent, toCloudReport } from './serializers';
-import { applyPostEdit, applyCommentEdit, removeComment } from './edits';
+import { applyPostEdit, applyCommentEdit, removeComment, removePost } from './edits';
 import { applyMyVolunteerships, extractVolunteerPostIds, volunteerPostIdFromRef } from './sevaKarma';
 
 /* Sangam store — the community's shared memory.
@@ -63,6 +63,8 @@ interface SangamContextType extends SangamState {
   createPost: (author: AuthorInfo, input: ComposeInput, asOrg?: { orgId: string; orgName: string }) => Promise<SangamPost>;
   /** Author edit of own post — rules allow text/imageUrl/updatedAt only. */
   editPost: (postId: string, edits: { text: string; imageUrl?: string }) => Promise<void>;
+  /** Author delete of own post (rules: author may delete own posts; SuperAdmin any). */
+  deletePost: (postId: string) => Promise<void>;
   toggleAshirvad: (postId: string, uid: string) => Promise<void>;
   addComment: (postId: string, author: AuthorInfo, text: string) => Promise<void>;
   /** Author edit of own comment (rules: author may update own comments). */
@@ -335,9 +337,10 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
    * Optimistic: applies locally with an `updatedAt` stamp, then best-effort
    * `updateDoc` with ONLY the rules-approved keys (text/imageUrl/updatedAt)
    * via `toCloudPostEdit`. A localOnly post has no cloud copy — the local
-   * edit IS the truth there. NOTE: there is deliberately no `deletePost`
-   * for authors — rules allow delete only for SuperAdmin, so the UI offers
-   * Edit + a report-for-removal path instead of a fake local "delete".
+   * edit IS the truth there. Authors may also delete their own posts
+   * (see `deletePost` below) since the owner-approved rules fix
+   * (2026-10-20); before that, delete was SuperAdmin-only and the UI
+   * offered Edit + a report-for-removal path instead of a fake delete.
    */
   const editPost = useCallback(async (postId: string, edits: { text: string; imageUrl?: string }) => {
     const at = now();
@@ -352,6 +355,34 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     try {
       await updateDoc(doc(db, 'sangamPosts', postId), toCloudPostEdit({ ...edits, updatedAt: at }));
     } catch { /* stays local, honestly labeled */ }
+  }, []);
+
+  /**
+   * Author delete of own post (follow-up to QUEUED #12; owner-approved
+   * rules fix, 2026-10-20 — sangamPosts delete now allows the author,
+   * and still allows SuperAdmin for moderation).
+   * Optimistic local removal (mirrors deleteComment), then best-effort
+   * cloud `deleteDoc`. A localOnly post has no cloud copy — the local
+   * removal IS the truth there. The post's local comment thread is
+   * dropped with it; cloud comments are not cascaded (same stance as
+   * the moderator delete path — they simply become unreachable).
+   */
+  const deletePost = useCallback(async (postId: string) => {
+    let cloud: SangamPost | undefined;
+    setPosts((prev) => {
+      cloud = prev.find((p) => p.id === postId);
+      return removePost(prev, postId);
+    });
+    setComments((prev) => {
+      if (!(postId in prev)) return prev;
+      const next = { ...prev };
+      delete next[postId];
+      return next;
+    });
+    if (!navigator.onLine || cloud?.localOnly) return;
+    try {
+      await deleteDoc(doc(db, 'sangamPosts', postId));
+    } catch { /* stays removed locally, honestly labeled */ }
   }, []);
 
   /**
@@ -464,12 +495,23 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     follows.some((f) => f.targetType === targetType && f.targetId === targetId), [follows]);
 
   const joinCircle = useCallback(async (circleId: string, uid: string) => {
+    let added = false;
     setCircles((prev) => prev.map((c) => {
       if (c.id !== circleId || (c.members || []).includes(uid)) return c;
+      added = true;
       return { ...c, members: [...(c.members || []), uid], memberCount: c.memberCount + 1 };
     }));
     if (navigator.onLine) {
-      try { await setDoc(doc(db, 'sangamCircles', circleId, 'members', uid), { uid, at: serverTimestamp() }); } catch { /* local */ }
+      try {
+        await setDoc(doc(db, 'sangamCircles', circleId, 'members', uid), { uid, at: serverTimestamp() });
+        // Make memberCount true in the cloud too — only when this join
+        // actually added the member (rules permit exactly +1).
+        if (added) {
+          try {
+            await updateDoc(doc(db, 'sangamCircles', circleId), { memberCount: increment(1) });
+          } catch { /* local-only circle or offline — local count stands */ }
+        }
+      } catch { /* local */ }
     }
   }, []);
 
@@ -497,6 +539,11 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
       try {
         if (added) await setDoc(doc(db, 'sangamEvents', eventId, 'rsvps', uid), { uid, at: serverTimestamp() });
         else await deleteDoc(doc(db, 'sangamEvents', eventId, 'rsvps', uid));
+        // Make rsvpCount true in the cloud too, in step with the toggle
+        // (rules permit exactly ±1 on that field).
+        try {
+          await updateDoc(doc(db, 'sangamEvents', eventId), { rsvpCount: increment(added ? 1 : -1) });
+        } catch { /* local-only event or offline — local count stands */ }
       } catch { /* local */ }
     }
   }, []);
@@ -538,12 +585,12 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
 
   const value = useMemo<SangamContextType>(() => ({
     posts, comments, circles, events, follows, online, lastSyncedAt,
-    createPost, editPost, toggleAshirvad, addComment, editComment, deleteComment, sharePost,
+    createPost, editPost, deletePost, toggleAshirvad, addComment, editComment, deleteComment, sharePost,
     followTarget, unfollowTarget, isFollowing,
     joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments,
   }), [posts, comments, circles, events, follows, online, lastSyncedAt,
-    createPost, editPost, toggleAshirvad, addComment, editComment, deleteComment, sharePost, followTarget, unfollowTarget,
+    createPost, editPost, deletePost, toggleAshirvad, addComment, editComment, deleteComment, sharePost, followTarget, unfollowTarget,
     isFollowing, joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments]);
 

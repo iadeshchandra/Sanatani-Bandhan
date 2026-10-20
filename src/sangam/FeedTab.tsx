@@ -67,7 +67,7 @@ const FeedImage: React.FC<{ url: string }> = ({ url }) => {
   );
 };
 
-const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online, subscribeComments, editPost, editComment, deleteComment } = useSangam();
+const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online, subscribeComments, editPost, deletePost, editComment, deleteComment } = useSangam();
   const { tr } = useLocaleText();
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -84,6 +84,8 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [commentEditText, setCommentEditText] = useState('');
   const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<string | null>(null);
+  // Author post delete (owner-approved rules fix, 2026-10-20): two-tap confirm.
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
 
   const gave = (post.ashirvadBy || []).includes(author.uid);
   const volunteered = (post.volunteers || []).includes(author.uid);
@@ -145,6 +147,12 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
   const doCommentDelete = async (commentId: string) => {
     setConfirmDeleteCommentId(null);
     await deleteComment(post.id, commentId);
+  };
+
+  const doPostDelete = async () => {
+    setConfirmDeletePost(false);
+    setSafetyOpen(false); // close immediately — the post leaves the feed at once
+    await deletePost(post.id);
   };
 
   const sevaFull = post.kind === 'seva' && post.seva && (post.volunteers || []).length >= post.seva.slots;
@@ -329,7 +337,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
         />
       )}
       {safetyOpen && post.authorUid === author.uid && (
-        <Modal onClose={() => setSafetyOpen(false)} title={<T en="Your post" bn="আপনার পোস্ট" hi="आपकी पोस्ट" />}>
+        <Modal onClose={() => { setSafetyOpen(false); setConfirmDeletePost(false); }} title={<T en="Your post" bn="আপনার পোস্ট" hi="आपकी पोस्ट" />}>
           <div className="space-y-2">
             <Btn onClick={openEdit} className="w-full">
               ✏️ <T en="Edit post" bn="পোস্ট সম্পাদনা করুন" hi="पोस्ट संपादित करें" />
@@ -337,15 +345,27 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
             <Btn variant="soft" onClick={() => { setSafetyOpen(false); setReportOpen(true); }} className="w-full">
               ⚠️ <T en="Report this post" bn="এই পোস্ট রিপোর্ট করুন" hi="इस पोस्ट की रिपोर्ट करें" />
             </Btn>
-            {/* Honest removal note (QUEUED #12): only moderators can delete
-                posts (firestore.rules) — we never fake a local "delete". */}
-            <p className="text-xs text-stone-500 leading-relaxed pt-1">
-              {tr(
-                'Only moderators can delete posts. To have this post removed, report it and choose "Other" — the moderation team will take it down.',
-                'শুধুমাত্র মডারেটররাই পোস্ট মুছতে পারেন। এই পোস্টটি সরাতে চাইলে রিপোর্ট করে "অন্যান্য" বেছে নিন — মডারেশন দল এটি সরিয়ে দেবে।',
-                'केवल मॉडरेटर ही पोस्ट हटा सकते हैं। इस पोस्ट को हटवाने के लिए रिपोर्ट करें और "अन्य" चुनें — मॉडरेशन टीम इसे हटा देगी।',
-              )}
-            </p>
+            {/* Author delete (owner-approved rules fix, 2026-10-20): the
+                author may now delete their own post — real cloud delete,
+                two-tap confirm mirroring the comment delete in #12. */}
+            {confirmDeletePost ? (
+              <>
+                <Btn variant="danger" onClick={doPostDelete} className="w-full">
+                  🗑️ {tr('Tap again to delete', 'মুছতে আবার ট্যাপ করুন', 'हटाने के लिए फिर टैप करें')}
+                </Btn>
+                <p className="text-xs text-stone-500 leading-relaxed pt-1">
+                  {tr(
+                    'This removes your post for everyone, right away. This cannot be undone.',
+                    'এটি সবার জন্য আপনার পোস্টটি এখনই সরিয়ে দেবে। এটি ফিরিয়ে আনা যাবে না।',
+                    'यह आपकी पोस्ट सभी के लिए तुरंत हटा देगा। इसे वापस नहीं लाया जा सकता।',
+                  )}
+                </p>
+              </>
+            ) : (
+              <Btn variant="soft" onClick={() => setConfirmDeletePost(true)} className="w-full">
+                🗑️ <T en="Delete post" bn="পোস্ট মুছুন" hi="पोस्ट हटाएँ" />
+              </Btn>
+            )}
           </div>
         </Modal>
       )}

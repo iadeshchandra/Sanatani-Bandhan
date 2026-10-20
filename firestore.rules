@@ -1431,10 +1431,28 @@ service cloud.firestore {
           'commentCount', 'shareCount', 'reportCount',
           'serverCreatedAt'
         ]);
-      allow update: if isLoggedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'viewCount', 'ashirvadCount', 'commentCount', 'shareCount', 'reportCount'
-        ]);
+      // Counters pinned (owner-approved 2026-10-20): one update touches
+      // exactly ONE counter and moves it by exactly one step -- the same
+      // pattern that guards sangamPosts. Views and reports only rise;
+      // toggles may fall but never below 0.
+      allow update: if isLoggedIn() && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+          && request.resource.data.get('viewCount', 0) == resource.data.get('viewCount', 0) + 1)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ashirvadCount'])
+          && request.resource.data.get('ashirvadCount', -1) >= 0
+          && (request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) + 1
+              || request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) - 1))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+          && request.resource.data.get('commentCount', -1) >= 0
+          && (request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) + 1
+              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
+          && request.resource.data.get('shareCount', -1) >= 0
+          && (request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) + 1
+              || request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) - 1))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
+          && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1)
+      );
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
 
@@ -2314,7 +2332,8 @@ service cloud.firestore {
           && request.resource.data.get('shareCount', -1) >= 0
           && (request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) + 1
               || request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) - 1));
-      allow delete: if isSuperAdmin();
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
     }
 
     // --- sangamPosts/{postId}/ashirvad/{uid}: one Ashirvad per user (toggle).
@@ -2356,7 +2375,15 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['name', 'topic', 'description', 'updatedAt']));
+            ['name', 'topic', 'description', 'updatedAt']))
+        // Member count path (owner-approved 2026-10-20): any signed-in
+        // user may nudge memberCount by exactly +-1 (never below 0) and
+        // touch nothing else -- mirrors the sangamPosts pattern.
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+          && request.resource.data.get('memberCount', -1) >= 0
+          && (request.resource.data.get('memberCount', 0) == resource.data.get('memberCount', 0) + 1
+              || request.resource.data.get('memberCount', 0) == resource.data.get('memberCount', 0) - 1));
       allow delete: if isSuperAdmin();
     }
 
@@ -2382,7 +2409,15 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt']));
+            ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt']))
+        // RSVP count path (owner-approved 2026-10-20): any signed-in user
+        // may nudge rsvpCount by exactly +-1 (never below 0) and touch
+        // nothing else -- mirrors the sangamPosts commentCount pattern.
+        || (isLoggedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvpCount'])
+          && request.resource.data.get('rsvpCount', -1) >= 0
+          && (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
+              || request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1));
       // QUEUED FIX #1 (flagged): creators may delete their own events so
       // trustees can "unshare" an org event bridged to Sangam.
       allow delete: if isSuperAdmin()
@@ -2409,7 +2444,7 @@ service cloud.firestore {
 
     // --- sangamReports: reporter create; reporter+admin read; admin triage.
     match /sangamReports/{reportId} {
-      allow read: if isSuperAdmin()
+      allow read: if isSuperAdmin() || isOwner()
         || (isLoggedIn() && resource.data.get('reporterUid', '') == request.auth.uid);
       allow create: if isLoggedIn()
         && request.resource.data.get('reporterUid', '') == request.auth.uid
@@ -2417,7 +2452,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(
           ['reporterUid', 'reporterName', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
         && request.resource.data.get('status', '') == 'open';
-      allow update, delete: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin() || isOwner();
     }
 
     // Membership sprint â Organisation Membership System
@@ -2464,6 +2499,26 @@ service cloud.firestore {
           && request.resource.data.get('amount', 0) is number
           && request.resource.data.get('amount', 0) > 0);
       allow delete: if isSuperAdmin() || isOrgTrustee(orgId);
+    }
+
+    // --- orgBroadcasts/{broadcastId}: org announcements (QUEUED #14,
+    // owner-approved 2026-10-20). Public read (announcements are public);
+    // create only by a trustee of the org named in the doc, schema-pinned,
+    // createdBy == caller, non-empty title; a broadcast is a sent letter --
+    // no updates; delete by superadmin or the org's trustee.
+    match /orgBroadcasts/{broadcastId} {
+      allow read: if true;
+      allow create: if isOrgTrustee(request.resource.data.get('orgId', ''))
+        && request.resource.data.keys().hasOnly(
+          ['orgId', 'orgName', 'title', 'body', 'createdBy', 'createdByName',
+           'audienceCount', 'createdAt'])
+        && request.resource.data.get('createdBy', '') == request.auth.uid
+        && request.resource.data.get('title', '') != ''
+        && request.resource.data.get('audienceCount', 0) is number
+        && request.resource.data.get('createdAt', 0) is number;
+      allow update: if false;
+      allow delete: if isSuperAdmin()
+        || isOrgTrustee(resource.data.get('orgId', ''));
     }
 
     // --- familyLinks/{uid}: family safety circles (crisis module). ---

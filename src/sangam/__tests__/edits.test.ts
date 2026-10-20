@@ -6,17 +6,18 @@ import {
   applyPostEdit,
   applyCommentEdit,
   removeComment,
+  removePost,
   POST_TEXT_MAX,
   COMMENT_TEXT_MAX,
 } from '../edits';
 import type { SangamComment, SangamPost } from '../types';
 
 /**
- * edits.test.ts — QUEUED #12 (author post edit/delete UI).
+ * edits.test.ts — QUEUED #12 (author post edit/delete UI) + follow-up.
  * Pins the rules contract (firestore.rules):
  * - post author-edit diff may touch ONLY text / imageUrl / updatedAt;
- * - post DELETE is SuperAdmin-only (no serializer/function for it here —
- *   the absence is deliberate; removal goes through report → moderation);
+ * - post DELETE: author may delete their own posts (owner-approved rules
+ *   fix, 2026-10-20); SuperAdmin may still delete any post;
  * - comment author may update/delete own comments; count steps stay bounded.
  */
 
@@ -185,5 +186,26 @@ describe('comment edit/delete helpers', () => {
 
   it('removeComment is a no-op for an unknown id', () => {
     expect(removeComment(thread, 'cmt_missing')).toHaveLength(2);
+  });
+});
+
+// --- post delete helper (owner-approved rules fix, 2026-10-20) ---
+
+describe('removePost', () => {
+  const feed = [post(), post({ id: 'post_2', authorUid: 'uid_other', text: 'Hari Om' })];
+
+  it('removePost removes exactly the target post', () => {
+    const next = removePost(feed, 'post_1');
+    expect(next).toHaveLength(1);
+    expect(next[0].id).toBe('post_2');
+  });
+
+  it('removePost is a no-op for an unknown id', () => {
+    expect(removePost(feed, 'post_missing')).toHaveLength(2);
+  });
+
+  it('removePost does not mutate the original list', () => {
+    removePost(feed, 'post_1');
+    expect(feed).toHaveLength(2);
   });
 });

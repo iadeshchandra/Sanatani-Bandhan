@@ -6,10 +6,9 @@ import type { SangamComment, SangamPost } from './types';
  * Kept free of Firebase imports so every function is unit-testable.
  *
  * RULES CONTRACT (firestore.rules, verified 2026-10-20):
- * - sangamPosts: the AUTHOR may update only text / imageUrl / updatedAt.
- *   DELETE is SuperAdmin-only — authors cannot delete their own posts,
- *   so the UI offers Edit + a report-for-removal path, never a fake
- *   "delete" that would only hide the post on this device.
+ * - sangamPosts: the AUTHOR may update only text / imageUrl / updatedAt,
+ *   and may DELETE their own posts (owner-approved rules fix, 2026-10-20);
+ *   moderators may still delete any post via SuperAdmin.
  * - sangamComments: the AUTHOR may update and delete their own comments.
  *
  * Text limits mirror the composers exactly (post 1000, comment 500) so an
@@ -76,4 +75,9 @@ export function applyCommentEdit(
 /** Remove one comment from a thread list (new array; no-op if absent). */
 export function removeComment(list: SangamComment[], commentId: string): SangamComment[] {
   return list.filter((c) => c.id !== commentId);
+}
+
+/** Remove one post from a feed list (new array; no-op if absent). */
+export function removePost(list: SangamPost[], postId: string): SangamPost[] {
+  return list.filter((p) => p.id !== postId);
 }
