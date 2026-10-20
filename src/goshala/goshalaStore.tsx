@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { allowsSeedData } from '../lib/workspaceKind';
+import { purgePersistedSeedState } from '../lib/seedPurge';
 import {
   GoshalaState, Nandi, HealthRecord, MilkRecord, MilkDisposal,
   FodderItem, FodderConsumption, Sponsorship, DutySlot, GrantRecord,
@@ -36,7 +37,12 @@ const daysFrom = (n: number) => {
 function loadState(ws: string): GoshalaState {
   try {
     const raw = localStorage.getItem(storageKey(ws));
-    if (raw) return { ...EMPTY, ...JSON.parse(raw), settings: { ...EMPTY.settings, ...(JSON.parse(raw).settings || {}) } };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // QUEUED #53: one-time purge of pre-law persisted seed residue
+      // (real workspaces only; exact seed-id match — see lib/seedPurge).
+      return purgePersistedSeedState('goshala', ws, { ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
+    }
   } catch { /* corrupted → reseed */ }
   return { ...EMPTY };
 }

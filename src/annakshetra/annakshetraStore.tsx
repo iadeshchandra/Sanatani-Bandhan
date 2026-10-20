@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { allowsSeedData } from '../lib/workspaceKind';
+import { purgePersistedSeedState } from '../lib/seedPurge';
 import {
   AnnakshetraState, AnnakshetraSettings, Bhandara, KitchenItem, MealLog,
   MenuPlan, Purchase, Recipe, Wastage,
@@ -96,7 +97,9 @@ function loadState(ws: string): AnnakshetraState {
     const raw = localStorage.getItem(storageKey(ws));
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } };
+      // QUEUED #53: one-time purge of pre-law persisted seed residue
+      // (real workspaces only; exact seed-id match — see lib/seedPurge).
+      return purgePersistedSeedState('annakshetra', ws, { ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
     }
   } catch { /* corrupted → reseed */ }
   return { ...EMPTY };

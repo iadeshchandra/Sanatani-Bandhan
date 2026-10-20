@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { allowsSeedData } from '../lib/workspaceKind';
+import { purgePersistedSeedState } from '../lib/seedPurge';
 import {
   PathshalaState, Guru, StaffMember, Varga, Subject, UpasthitiRecord, StaffUpasthitiRecord,
   Pariksha, MarksEntry, ExamRoutine, ClassRoutine, ClassPeriod, FeeHead, FeeReceipt, Suchana,
@@ -35,7 +36,11 @@ const storageKey = (ws: string) => `sb_pathshala_${ws}`;
 function loadState(ws: string): PathshalaState {
   try {
     const raw = localStorage.getItem(storageKey(ws));
-    if (raw) return { ...EMPTY, ...JSON.parse(raw) };
+    if (raw) {
+      // QUEUED #53: one-time purge of pre-law persisted seed residue
+      // (real workspaces only; exact seed-id match — see lib/seedPurge).
+      return purgePersistedSeedState('pathshala', ws, { ...EMPTY, ...JSON.parse(raw) });
+    }
   } catch { /* corrupted → reseed */ }
   return { ...EMPTY };
 }
