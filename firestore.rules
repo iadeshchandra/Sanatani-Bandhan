@@ -577,7 +577,9 @@ service cloud.firestore {
 
     // Subscriptions: readable by owner or workspace members; owner activates
     match /subscriptions/{workspaceId} {
-      allow read: if isSuperAdmin() || isOwner() || (isLoggedIn() && isTenantMember(workspaceId));
+      allow read: if isSuperAdmin() || isOwner()
+        || (isLoggedIn() && request.auth.uid == workspaceId)
+        || (isLoggedIn() && isTenantMember(workspaceId));
       allow create, update: if isOwner();
       allow delete: if false;
     }
@@ -2240,6 +2242,29 @@ service cloud.firestore {
           && attributionTerminalOk()
           && attributionPartyOk());
       allow delete: if false;
+    }
+
+    // --- referralClaims/{orderId}: share-referral thanks claims (QUEUED #25).
+    // One row per referred order, written by the BOOKER's device; the sharer
+    // reads their own claims and self-listens for the thanks bell. The create
+    // rule is order-anchored (mirrors referralAttributions): no forged thanks.
+    match /referralClaims/{orderId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('sharerUid', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('orderId', '') == orderId
+        && request.resource.data.get('bookerUid', '') == request.auth.uid
+        && request.resource.data.get('sharerUid', '') != ''
+        && request.resource.data.get('sharerUid', '') != request.auth.uid
+        && request.resource.data.get('sharerSanId', '') != ''
+        && request.resource.data.get('providerName', '') != ''
+        && request.resource.data.get('createdAt', 0) is number
+        && request.resource.data.keys().hasOnly(
+          ['orderId', 'sharerUid', 'sharerSanId', 'bookerUid', 'providerName', 'createdAt'])
+        && exists(/databases/$(database)/documents/marketplaceOrders/$(orderId))
+        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid
+        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('referredBy', '') == request.resource.data.get('sharerSanId', '');
+      allow update, delete: if false;
     }
 
     // --- referralCredits/{creditId}: settled guidance credits.
