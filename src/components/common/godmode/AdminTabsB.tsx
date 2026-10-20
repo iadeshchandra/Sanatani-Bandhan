@@ -371,6 +371,11 @@ export const BillingTab: React.FC = () => {
   const [sub, setSub] = React.useState('Claims');
   return (
     <div className="space-y-4">
+      <p className="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+        💡 Plan <b className="text-slate-300">prices, limits and commission terms</b> are managed in{' '}
+        <b className="text-slate-300">Settings → Plans &amp; Terms</b> (with full change history + revert).
+        This tab operates on individual claims, subscriptions and wallets.
+      </p>
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {['Claims', 'Subscriptions', 'Top-ups', 'Wallets', 'Payment Insights'].map((t) => (
           <button key={t} type="button" onClick={() => setSub(t)}

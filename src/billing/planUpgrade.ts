@@ -2,10 +2,18 @@
  * billing/planUpgrade.ts — pure logic for the self-serve PlanUpgradeFlow.
  * ========================================================================
  * Claim validation, amount matching, duplicate prevention, price resolution.
- * All pure functions — fully testable, zero Firebase imports.
+ *
+ * QUEUED #31: price resolution is CONFIG-FIRST. planPrice() reads the
+ * canonical terms (lib/termsConfig) through its synchronous cache — the
+ * owner-edited Firestore `plans/` values when loaded, the locked
+ * PLAN_PRICING-derived defaults otherwise. The PlanUpgradeFlow warms the
+ * cache when it opens, so a buyer is quoted (and amount-checked against)
+ * the owner's current terms. Worst case is exactly the pre-#31 behaviour:
+ * today's locked prices. Checkout can never break on config.
  */
 
-import { PLAN_PRICING, type SubscriptionTier } from '../config/planPricing';
+import type { SubscriptionTier } from '../config/planPricing';
+import { getTermsSync, planIdForTier, priceFor } from '../lib/termsConfig';
 
 /** Plans a user can upgrade to (SEVA is free — never shown as an upgrade target). */
 export const UPGRADEABLE_TIERS: SubscriptionTier[] = ['STANDARD', 'PREMIUM', 'PUROHIT_PRO'];
@@ -27,17 +35,21 @@ export function subscriptionMonthsForPeriod(period: string | undefined | null): 
   return 1;
 }
 
-/** Resolve the price for a tier + period + region. */
+/**
+ * Resolve the price for a tier + period + region — config-first via the
+ * terms cache (owner-edited `plans/` values win; planPricing-derived
+ * defaults are the fail-open fallback).
+ */
 export function planPrice(tier: SubscriptionTier, period: BillingPeriod, region: string): { amount: number; currency: string; symbol: string } {
-  const cfg = PLAN_PRICING[tier];
+  const plan = getTermsSync().plans[planIdForTier(tier)];
   const r = region.toUpperCase();
   if (r === 'BD') {
-    return { amount: period === 'monthly' ? cfg.regionalPrices.bdt.monthly : cfg.regionalPrices.bdt.annual, currency: 'BDT', symbol: '৳' };
+    return { amount: priceFor(plan, 'BDT', period), currency: 'BDT', symbol: '৳' };
   }
   if (r === 'IN') {
-    return { amount: period === 'monthly' ? cfg.regionalPrices.inr.monthly : cfg.regionalPrices.inr.annual, currency: 'INR', symbol: '₹' };
+    return { amount: priceFor(plan, 'INR', period), currency: 'INR', symbol: '₹' };
   }
-  return { amount: period === 'monthly' ? cfg.regionalPrices.usd.monthly : cfg.regionalPrices.usd.annual, currency: 'USD', symbol: '$' };
+  return { amount: priceFor(plan, 'USD', period), currency: 'USD', symbol: '$' };
 }
 
 /** Format a price for display. */

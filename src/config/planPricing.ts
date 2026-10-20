@@ -1,6 +1,15 @@
 /**
  * planPricing.ts — Canonical pricing model (final, locked 2026-10-14).
  *
+ * QUEUED #31 (2026-10-20): this file is now the DEFAULTS + SEED source.
+ * The live terms store is Firestore `plans/{canonicalId}` (+
+ * `platformConfig/commission`), read config-first via `src/lib/termsConfig.ts`
+ * — the owner can change every price/limit/rate from GodMode → Plans & Terms
+ * without a deploy. These constants remain as (a) the fail-open fallback
+ * when Firestore is missing/corrupt/unreachable (checkout never breaks),
+ * (b) the reset-to-defaults seed, and (c) marketing copy (names, taglines,
+ * perks, feature flags) which is not owner-editable terms data.
+ *
  * Freemium model: EVERY plan includes ALL features; only usage caps differ.
  * Tiers: SEVA (free) / STANDARD / PREMIUM / PUROHIT_PRO (individuals).
  *

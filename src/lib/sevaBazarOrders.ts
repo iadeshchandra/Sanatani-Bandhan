@@ -70,13 +70,14 @@ export async function createSevaBazarOrder(input: SevaBazarOrderInput): Promise<
   if (uid === input.providerUid) throw new Error('You cannot book your own seva notice. 🙏');
   if (!input.amountGross || input.amountGross <= 0) throw new Error('A dakshina above zero keeps things honest.');
 
-  const { ratePercent, source, tier } = await resolveCommissionRate(
+  const { ratePercent, source, tier, minCommission, maxCommission } = await resolveCommissionRate(
     input.providerUid,
     'seva',
     'purohit',
     'rail2'
   );
-  const { commission, net } = computeCommission(input.amountGross, ratePercent);
+  // QUEUED #31: rule/override min/max clamp applies to real orders.
+  const { commission, net } = computeCommission(input.amountGross, ratePercent, minCommission, maxCommission);
 
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
     // — marketplace order shape (shared lifecycle) —

@@ -359,7 +359,7 @@ export const adminApi = {
         return { ok: true, data: cfg } as any;
       }
     ),
-  commissionConfigSave: (cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number }) =>
+  commissionConfigSave: (cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number; freeGigLimit?: number }) =>
     withFallback(
       () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
       () => firestoreAdmin.saveCommissionConfig(cfg)

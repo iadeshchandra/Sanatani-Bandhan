@@ -16,6 +16,9 @@ import {
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { computeCommission } from '../../../lib/firestoreAdmin';
+import {
+  COMMISSION_PRECEDENCE_EXPLAINER, activeRuleShadowsTierRates, shadowedServiceTypes,
+} from '../../../lib/termsConfig';
 import { adminApi } from '../../../lib/adminApi';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
@@ -119,7 +122,7 @@ const CommissionControl: React.FC = () => {
   const [editing, setEditing] = useState<any>(null);
   const [whatIf, setWhatIf] = useState({ gmv: 100000, rate: 12 });
   const [confirm, setConfirm] = useState<any>(null);
-  const [tierRates, setTierRates] = useState({ freeRate: 15, proRail1Rate: 8, proRail2Rate: 12 });
+  const [tierRates, setTierRates] = useState({ freeRate: 15, proRail1Rate: 8, proRail2Rate: 12, freeGigLimit: 3 });
   const [tierEditing, setTierEditing] = useState(false);
 
   const load = useCallback(async () => {
@@ -133,7 +136,7 @@ const CommissionControl: React.FC = () => {
     if (o.ok) setOverrides((o.data as any).overrides || []);
     if (t && (t as any).ok && (t as any).data) {
       const d = (t as any).data;
-      setTierRates({ freeRate: d.freeRate ?? 15, proRail1Rate: d.proRail1Rate ?? 8, proRail2Rate: d.proRail2Rate ?? 12 });
+      setTierRates({ freeRate: d.freeRate ?? 15, proRail1Rate: d.proRail1Rate ?? 8, proRail2Rate: d.proRail2Rate ?? 12, freeGigLimit: d.freeGigLimit ?? 3 });
     }
     setLoading(false);
   }, []);
@@ -166,10 +169,25 @@ const CommissionControl: React.FC = () => {
   const w = computeCommission(whatIf.gmv, whatIf.rate);
 
   if (loading) return <Loading />;
+  const shadowed = activeRuleShadowsTierRates(rules);
   return (
     <div className="space-y-4">
+      <Card>
+        <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">How commission is decided</h4>
+        <p className="text-[11px] text-slate-500">{COMMISSION_PRECEDENCE_EXPLAINER}</p>
+        <p className="text-[11px] text-slate-500 mt-2">
+          Plan prices, limits and these same rates also live in <b className="text-slate-300">Settings → Plans &amp; Terms</b> — one terms store, two doors.
+          Full change history (with revert) is in Plans &amp; Terms → Terms history.
+        </p>
+        {shadowed && (
+          <p className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mt-3 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span><b>Shadowing active:</b> a global rule below currently overrides the tier rates for {shadowedServiceTypes(rules).join(' + ') || 'all'} orders. Editing tier rates alone will not change those orders' fees until the rule is removed or deactivated.</span>
+          </p>
+        )}
+      </Card>
       <Card className="border-amber-500/20">
-        <p className="text-[10px] text-amber-300/80 mb-2 font-bold">Rule changes apply to NEW orders only. Existing orders keep their commission snapshot.</p>
+        <p className="text-[10px] text-amber-300/80 mb-2 font-bold">Rule changes apply to NEW orders only. Existing orders keep their commission snapshot. A rule's min/max (₹) clamp the fee on real orders (QUEUED #31 — no longer preview-only).</p>
         <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3">Global rules</h4>
         {rules.length === 0 && <Empty text="No global rules yet." />}
         <div className="space-y-2">
@@ -213,12 +231,13 @@ const CommissionControl: React.FC = () => {
 
       <Card className="border-emerald-500/20">
         <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-1">Tier & rail rates</h4>
-        <p className="text-[10px] text-slate-500 mb-3">Providers choose Rail-1 (platform-paid, 8%) to save vs Rail-2 (direct, 12%). Community tier pays 15%.</p>
+        <p className="text-[10px] text-slate-500 mb-3">Providers choose Rail-1 (platform-paid, 8%) to save vs Rail-2 (direct, 12%). Community tier pays 15%.{shadowed && <span className="text-amber-300"> ⚠ Shadowed by an active global rule right now — see the note above.</span>}</p>
         <div className="grid grid-cols-3 gap-2">
           <label className="text-[11px] text-slate-500">Community %<input type="number" disabled={!tierEditing} value={tierRates.freeRate} onChange={(e) => setTierRates({ ...tierRates, freeRate: Number(e.target.value) })} className={inputCls} /></label>
           <label className="text-[11px] text-slate-500">Pro · Rail-1 %<input type="number" disabled={!tierEditing} value={tierRates.proRail1Rate} onChange={(e) => setTierRates({ ...tierRates, proRail1Rate: Number(e.target.value) })} className={inputCls} /></label>
           <label className="text-[11px] text-slate-500">Pro · Rail-2 %<input type="number" disabled={!tierEditing} value={tierRates.proRail2Rate} onChange={(e) => setTierRates({ ...tierRates, proRail2Rate: Number(e.target.value) })} className={inputCls} /></label>
         </div>
+        <label className="block text-[11px] text-slate-500 mt-2">Free-tier gig cap (active gigs per community provider)<input type="number" disabled={!tierEditing} value={tierRates.freeGigLimit} onChange={(e) => setTierRates({ ...tierRates, freeGigLimit: Number(e.target.value) })} className={inputCls} /></label>
         <div className="flex gap-2 mt-3">
           {tierEditing ? (<>
             <button type="button" onClick={saveTierRates} className={`${btnPrimary} flex-1`}>Save rates</button>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Lock, ArrowLeft, MessageCircle } from 'lucide-react';
 import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { PLAN_PRICING, SubscriptionTier } from '../../config/planPricing';
+import { useTerms } from '../../hooks/useTerms';
+import { planIdForTier, priceFor } from '../../lib/termsConfig';
 
 interface PlanLockedDeskProps {
   moduleId: string;
@@ -17,8 +19,12 @@ interface PlanLockedDeskProps {
  * Never silently renders the desk; always offers the upgrade path.
  */
 export const PlanLockedDesk: React.FC<PlanLockedDeskProps> = ({ moduleId, requiredTier, onBack }) => {
-  const tierName = PLAN_PRICING[requiredTier]?.name ?? requiredTier;
+  // QUEUED #31: name + price are owner terms (config-first).
+  const terms = useTerms();
+  const termsPlan = terms.plans[planIdForTier(requiredTier)];
+  const tierName = termsPlan?.name ?? PLAN_PRICING[requiredTier]?.name ?? requiredTier;
   const price = PLAN_PRICING[requiredTier]?.price;
+  const monthlyInr = termsPlan ? priceFor(termsPlan, 'INR', 'monthly') : price?.monthly;
 
   const handleTalk = () => {
     if (hasWhatsApp()) {
@@ -43,7 +49,7 @@ export const PlanLockedDesk: React.FC<PlanLockedDeskProps> = ({ moduleId, requir
         <p className="text-sm text-stone-500 leading-relaxed mb-6">
           Your workspace is on a plan that doesn't include <strong>{moduleId}</strong>.
           {price ? (
-            <> Upgrade to <strong>{tierName}</strong> ({price.currencySymbol}{price.monthly.toLocaleString('en-IN')}/month) to unlock it — along with everything else in the tier.</>
+            <> Upgrade to <strong>{tierName}</strong> ({price.currencySymbol}{(monthlyInr ?? price.monthly).toLocaleString('en-IN')}/month) to unlock it — along with everything else in the tier.</>
           ) : (
             <> Talk to us and we'll get you upgraded.</>
           )}

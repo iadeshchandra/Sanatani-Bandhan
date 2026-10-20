@@ -83,6 +83,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { calculatePanchang, getPanchangTodayLine } from '../utils/panchang';
 import { PLAN_PRICING } from '../config/planPricing';
+import { useTerms } from '../hooks/useTerms';
+import { priceFor } from '../lib/termsConfig';
 import { whatsappLink, hasWhatsApp } from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
@@ -585,6 +587,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [activeTab, setActiveTab] = useState('treasury');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [billingAnnual, setBillingAnnual] = useState(false);
+  // QUEUED #31: pricing numbers are owner terms (config-first). First paint
+  // uses the locked defaults — identical to the old constants — then the
+  // Firestore terms hydrate in. Copy (names/taglines/perks) stays in code.
+  const terms = useTerms();
+  const lp = (id: 'seva' | 'standard' | 'premium') => terms.plans[id];
+  const fmtLim = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString('en-IN'));
   const [activeOrg, setActiveOrg] = useState<WorkspaceType>('Mandir');
   // Hero audience (Step 9): devotees are the primary audience per the
   // Solo-first pivot. Institutions keep their full experience one tap away.
@@ -1420,7 +1428,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <ToranDivider />
 
-        {/* PRICING — driven by src/config/planPricing.ts (PLAN_PRICING). Do not hardcode prices here. */}
+        {/* PRICING — numbers are owner terms via lib/termsConfig (QUEUED #31; defaults from planPricing). Do not hardcode prices here. */}
         <section id="pricing" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-8">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
@@ -1465,11 +1473,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <h3 className="mt-4 text-2xl font-black text-stone-900">Seva Free</h3>
                 <p className="mt-1 text-sm text-stone-500">{PLAN_PRICING.SEVA.tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}0</span>
-                  <span className="text-stone-500 font-bold">forever</span>
+                  <span className="text-5xl font-black text-stone-900">{PLAN_PRICING.SEVA.price.currencySymbol}{priceFor(lp('seva'), 'INR', 'monthly').toLocaleString('en-IN')}</span>
+                  <span className="text-stone-500 font-bold">{priceFor(lp('seva'), 'INR', 'monthly') === 0 ? 'forever' : '/ month'}</span>
                 </p>
                 <p className="mt-3 text-xs font-bold text-stone-500 uppercase tracking-wide">
-                  Up to {PLAN_PRICING.SEVA.limits.devotees} devotees · {PLAN_PRICING.SEVA.limits.transactions} transactions · {PLAN_PRICING.SEVA.limits.adminSeats} admin seats
+                  Up to {fmtLim(lp('seva').limits.maxDevotees)} devotees · {fmtLim(lp('seva').limits.maxTransactionsPerMonth)} transactions · {fmtLim(lp('seva').limits.maxSeats)} admin seats
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium text-stone-700 flex-1">
                   {['Pooja Booking', 'Panchang & Muhurat', 'Quick Chanda', 'WhatsApp Broadcaster'].map((f) => (
@@ -1501,18 +1509,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="text-5xl font-black">
                     {PLAN_PRICING.STANDARD.price.currencySymbol}
                     {billingAnnual
-                      ? Math.round(PLAN_PRICING.STANDARD.price.annual / 12).toLocaleString('en-IN')
-                      : PLAN_PRICING.STANDARD.price.monthly.toLocaleString('en-IN')}
+                      ? Math.round(priceFor(lp('standard'), 'INR', 'annual') / 12).toLocaleString('en-IN')
+                      : priceFor(lp('standard'), 'INR', 'monthly').toLocaleString('en-IN')}
                   </span>
                   <span className="text-orange-100 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-orange-100">
-                    {PLAN_PRICING.STANDARD.price.currencySymbol}{PLAN_PRICING.STANDARD.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.STANDARD.price.currencySymbol}{priceFor(lp('standard'), 'INR', 'annual').toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
                 <p className="mt-3 text-xs font-bold text-orange-100 uppercase tracking-wide">
-                  {PLAN_PRICING.STANDARD.limits.devotees.toLocaleString('en-IN')} devotees · {PLAN_PRICING.STANDARD.limits.branches} branches · priority support
+                  {fmtLim(lp('standard').limits.maxDevotees)} devotees · {fmtLim(lp('standard').limits.maxBranches)} branches · priority support
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
                   {['Everything in Seva Free', 'Annadanam Kitchen', 'Dharamshala guest rooms', 'Gau Seva & dairy', '80G tax receipts', 'Fundraising campaigns', 'Inventory & store'].map((f) => (
@@ -1544,14 +1552,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="text-5xl font-black text-white">
                     {PLAN_PRICING.PREMIUM.price.currencySymbol}
                     {billingAnnual
-                      ? Math.round(PLAN_PRICING.PREMIUM.price.annual / 12).toLocaleString('en-IN')
-                      : PLAN_PRICING.PREMIUM.price.monthly.toLocaleString('en-IN')}
+                      ? Math.round(priceFor(lp('premium'), 'INR', 'annual') / 12).toLocaleString('en-IN')
+                      : priceFor(lp('premium'), 'INR', 'monthly').toLocaleString('en-IN')}
                   </span>
                   <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
                   <p className="mt-1 text-xs font-bold text-stone-400">
-                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{PLAN_PRICING.PREMIUM.price.annual.toLocaleString('en-IN')}/year — 2 months free
+                    {PLAN_PRICING.PREMIUM.price.currencySymbol}{priceFor(lp('premium'), 'INR', 'annual').toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
                 <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">

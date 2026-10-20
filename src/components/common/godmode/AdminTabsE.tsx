@@ -8,6 +8,14 @@ import {
   MailOpen, Search, Wrench, CreditCard, AlertTriangle,
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
+import { ConfirmDialog } from '../GodModeConsole2';
+import {
+  TERMS_PLAN_IDS, DEFAULT_TERMS, DEFAULT_COMMISSION,
+  validateTermsSet, validateCommissionTerms,
+  activeRuleShadowsTierRates, shadowedServiceTypes,
+  COMMISSION_PRECEDENCE_EXPLAINER,
+  type TermsPlan, type TermsPlanId, type TermsLimits, type CommissionTerms,
+} from '../../../lib/termsConfig';
 import { useToast } from '../../../context/ToastContext';
 import { optimizeQrImage, type QrOptimizeResult } from '../../../lib/qrOptimizer';
 import { CCard as Card, CEmpty as Empty, CLoading as Loading, CSubTabs as SubTabs, cInputCls as inputCls } from './AdminTabsD';
@@ -140,107 +148,441 @@ const FlagsView: React.FC = () => {
   );
 };
 
+/* ------------------------- Plans & Terms (QUEUED #31) -------------------------
+ * The ONE terms home. Plan prices + enforced limits live in Firestore
+ * `plans/{canonicalId}`; commission tier rates + the free-gig cap live in
+ * `platformConfig/commission`. Every reader (checkout, landing, upsells,
+ * limit enforcement, order commission) reads these config-first via
+ * lib/termsConfig — edits here take effect without a deploy.
+ * The old editor wrote plans/{UPPER_SNAKE} docs with fields no reader
+ * reads (owner edits silently did nothing); this one writes the canonical
+ * schema, shows a diff before saving, audits full before/after values,
+ * and displays the last-updated stamps the docs already carry.
+ */
+
+interface TermsPlanForm extends TermsPlan {
+  exists?: boolean;
+}
+
+const PRICE_FIELDS: { key: keyof TermsPlan; label: string; sym: string }[] = [
+  { key: 'priceMonthlyINR', label: 'Monthly · ₹ INR', sym: '₹' },
+  { key: 'priceYearlyINR', label: 'Yearly · ₹ INR', sym: '₹' },
+  { key: 'priceMonthlyBDT', label: 'Monthly · ৳ BDT', sym: '৳' },
+  { key: 'priceYearlyBDT', label: 'Yearly · ৳ BDT', sym: '৳' },
+  { key: 'priceMonthlyUSD', label: 'Monthly · $ USD', sym: '$' },
+  { key: 'priceYearlyUSD', label: 'Yearly · $ USD', sym: '$' },
+];
+
+const LIMIT_FIELDS: { key: keyof TermsLimits; label: string }[] = [
+  { key: 'maxDevotees', label: 'Max devotees' },
+  { key: 'maxTransactionsPerMonth', label: 'Max transactions / month' },
+  { key: 'maxSeats', label: 'Max staff seats' },
+  { key: 'maxBranches', label: 'Max branches' },
+];
+
+const fmtStamp = (iso?: string | null): string => {
+  if (!iso) return 'never edited (code defaults)';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? 'unknown date' : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+const fmtLimVal = (v: number): string => (v === -1 ? '∞ unlimited' : v.toLocaleString('en-IN'));
+
+function planDiffLines(before: TermsPlan, after: TermsPlan): string[] {
+  const lines: string[] = [];
+  if (before.name !== after.name) lines.push(`Name: ${before.name} → ${after.name}`);
+  if (before.active !== after.active) lines.push(`Active: ${before.active ? 'on' : 'off'} → ${after.active ? 'on' : 'off'}`);
+  for (const f of PRICE_FIELDS) {
+    const b = before[f.key] as number;
+    const a = after[f.key] as number;
+    if (b !== a) lines.push(`${f.label}: ${f.sym}${b.toLocaleString('en-IN')} → ${f.sym}${a.toLocaleString('en-IN')}`);
+  }
+  for (const f of LIMIT_FIELDS) {
+    const b = before.limits[f.key];
+    const a = after.limits[f.key];
+    if (b !== a) lines.push(`${f.label}: ${fmtLimVal(b)} → ${fmtLimVal(a)}`);
+  }
+  if (before.id === 'purohit_pro' && before.commissionPercent !== after.commissionPercent) {
+    lines.push(`Pro commission %: ${before.commissionPercent ?? 12} → ${after.commissionPercent ?? 12}`);
+  }
+  return lines;
+}
+
+function commissionDiffLines(before: CommissionTerms, after: CommissionTerms): string[] {
+  const lines: string[] = [];
+  if (before.freeRate !== after.freeRate) lines.push(`Community rate: ${before.freeRate}% → ${after.freeRate}%`);
+  if (before.proRail1Rate !== after.proRail1Rate) lines.push(`Pro Rail-1 rate: ${before.proRail1Rate}% → ${after.proRail1Rate}%`);
+  if (before.proRail2Rate !== after.proRail2Rate) lines.push(`Pro Rail-2 rate: ${before.proRail2Rate}% → ${after.proRail2Rate}%`);
+  if (before.freeGigLimit !== after.freeGigLimit) lines.push(`Free-tier gig cap: ${before.freeGigLimit} → ${after.freeGigLimit} active gigs`);
+  return lines;
+}
+
 const PlansView: React.FC = () => {
   const { showToast } = useToast();
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<TermsPlanForm[]>([]);
+  const [commission, setCommission] = useState<CommissionTerms>({ ...DEFAULT_COMMISSION });
+  const [commDraft, setCommDraft] = useState<CommissionTerms>({ ...DEFAULT_COMMISSION });
+  const [rules, setRules] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [histFilter, setHistFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<TermsPlanForm | null>(null);
   const [working, setWorking] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    title: string; body: string; confirmLabel: string; lines: string[]; warnings: string[];
+    run: () => Promise<void>;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await firestoreAdmin.plansList();
-    if (r.ok) setPlans(r.data.plans);
-    else showToast(r.error || 'Failed.', 'error');
+    const [p, c, r, h] = await Promise.all([
+      firestoreAdmin.plansList(),
+      firestoreAdmin.getCommissionConfig(),
+      firestoreAdmin.commissionRules(),
+      firestoreAdmin.termsHistory(100),
+    ]);
+    if (p.ok) setPlans((p.data as any).plans || []);
+    else showToast(p.error || 'Failed to load plans.', 'error');
+    if (c) { setCommission(c); setCommDraft(c); }
+    if (r.ok) setRules((r.data as any).rules || []);
+    if (h.ok) setHistory((h.data as any).entries || []);
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
 
-  const blank = { id: '', name: '', priceMonthly: 0, priceYearly: 0, currency: 'INR', limits: {}, active: true };
+  const shadowed = activeRuleShadowsTierRates(rules);
+  const shadowTypes = shadowedServiceTypes(rules);
 
-  const save = async () => {
-    if (!form?.id?.trim() || !form?.name?.trim()) { showToast('Plan ID and name are required.', 'error'); return; }
-    setWorking(true);
-    const r = await firestoreAdmin.planSave({ ...form, id: form.id.trim().toUpperCase() });
-    setWorking(false);
-    if (r.ok) { showToast('Plan saved. Overrides built-in pricing when present.', 'success'); setForm(null); load(); }
-    else showToast(r.error || 'Save failed.', 'error');
+  const askSavePlan = () => {
+    if (!form) return;
+    const before = plans.find((p) => p.id === form.id);
+    if (!before) return;
+    const candidate: TermsPlan = { ...form };
+    const setMap = Object.fromEntries(plans.map((p) => [p.id, p])) as Record<TermsPlanId, TermsPlan>;
+    setMap[form.id] = candidate;
+    const v = validateTermsSet(setMap);
+    if (v.errors.length > 0) { showToast(v.errors.join(' '), 'error'); return; }
+    const lines = planDiffLines(before, candidate);
+    if (lines.length === 0) { showToast('No changes to save.', 'error'); return; }
+    setConfirmState({
+      title: `Save ${candidate.name} terms?`,
+      body: 'These terms apply to NEW checkouts within ~5 minutes. Existing subscriptions never change.',
+      confirmLabel: 'Save terms',
+      lines,
+      warnings: v.warnings,
+      run: async () => {
+        setWorking(true);
+        const r = await firestoreAdmin.planSave(candidate);
+        setWorking(false);
+        setConfirmState(null);
+        if (r.ok) { showToast(`${candidate.name} terms saved.`, 'success'); setForm(null); load(); }
+        else showToast(r.error || 'Save failed.', 'error');
+      },
+    });
   };
 
-  const seedPricing = async () => {
-    setWorking(true);
-    const r = await firestoreAdmin.seedPlans();
-    setWorking(false);
-    if (r.ok) { showToast(`Final pricing seeded (${r.data.seeded} plans).`, 'success'); load(); }
-    else showToast(r.error || 'Seed failed.', 'error');
+  const askSaveCommission = () => {
+    const v = validateCommissionTerms(commDraft);
+    if (v.errors.length > 0) { showToast(v.errors.join(' '), 'error'); return; }
+    const lines = commissionDiffLines(commission, commDraft);
+    if (lines.length === 0) { showToast('No commission changes to save.', 'error'); return; }
+    setConfirmState({
+      title: 'Save commission terms?',
+      body: 'New rates apply to NEW orders only — past orders keep their commission snapshot.',
+      confirmLabel: 'Save rates',
+      lines,
+      warnings: v.warnings,
+      run: async () => {
+        setWorking(true);
+        const r = await firestoreAdmin.saveCommissionConfig(commDraft);
+        setWorking(false);
+        setConfirmState(null);
+        if (r.ok) { showToast('Commission terms saved — apply to new orders.', 'success'); load(); }
+        else showToast(r.error || 'Save failed.', 'error');
+      },
+    });
+  };
+
+  const askResetPlans = () => {
+    setConfirmState({
+      title: 'Reset all plan terms to defaults?',
+      body: 'Every plan price and limit returns to the locked defaults (Seva ₹0 · Standard ₹499 · Premium ₹1,999 · Pro ₹199 + 12%). This overwrites your edits to the four plan docs.',
+      confirmLabel: 'Reset plans',
+      lines: TERMS_PLAN_IDS.map((id) => `${DEFAULT_TERMS.plans[id].name}: ₹${DEFAULT_TERMS.plans[id].priceMonthlyINR.toLocaleString('en-IN')}/mo · limits reset`),
+      warnings: [],
+      run: async () => {
+        setWorking(true);
+        const r = await firestoreAdmin.seedPlans();
+        setWorking(false);
+        setConfirmState(null);
+        if (r.ok) { showToast('Plan terms reset to the locked defaults.', 'success'); load(); }
+        else showToast(r.error || 'Reset failed.', 'error');
+      },
+    });
+  };
+
+  const askResetCommission = () => {
+    setConfirmState({
+      title: 'Reset commission terms to defaults?',
+      body: 'Tier rates return to community 15% · Pro Rail-1 8% · Pro Rail-2 12%, free-tier gig cap 3. Global rules and overrides are NOT touched.',
+      confirmLabel: 'Reset rates',
+      lines: ['Community: 15%', 'Pro Rail-1: 8%', 'Pro Rail-2: 12%', 'Free gig cap: 3'],
+      warnings: [],
+      run: async () => {
+        setWorking(true);
+        const r = await firestoreAdmin.resetCommissionConfig();
+        setWorking(false);
+        setConfirmState(null);
+        if (r.ok) { showToast('Commission terms reset to defaults.', 'success'); load(); }
+        else showToast(r.error || 'Reset failed.', 'error');
+      },
+    });
+  };
+
+  /* Revert = restore an entry's BEFORE values as a NEW save (the revert is
+   * itself recorded — history is append-only and never rewritten). The
+   * confirm shows the diff from CURRENT values to the restored values. */
+  const askRevert = (entry: any) => {
+    if (!entry.before) { showToast('This entry has no earlier values recorded — nothing to revert to.', 'error'); return; }
+    if (entry.kind === 'plan') {
+      const current = plans.find((p) => p.id === entry.planId);
+      if (!current) return;
+      const target = entry.before as TermsPlan;
+      const lines = planDiffLines(current, target);
+      if (lines.length === 0) { showToast('Current terms already match those values.', 'error'); return; }
+      setConfirmState({
+        title: `Revert ${target.name} to the values before ${fmtStamp(entry.at)}?`,
+        body: 'This restores the earlier values as a NEW change (recorded in history). The change you are undoing stays in the history too.',
+        confirmLabel: 'Revert to these values',
+        lines,
+        warnings: [],
+        run: async () => {
+          setWorking(true);
+          const r = await firestoreAdmin.planSave({ ...target, limits: { ...target.limits } });
+          setWorking(false);
+          setConfirmState(null);
+          if (r.ok) { showToast('Reverted — recorded as a new change.', 'success'); load(); }
+          else showToast(r.error || 'Revert failed.', 'error');
+        },
+      });
+    } else {
+      const target = entry.before as CommissionTerms;
+      const lines = commissionDiffLines(commission, target);
+      if (lines.length === 0) { showToast('Current commission terms already match those values.', 'error'); return; }
+      setConfirmState({
+        title: `Revert commission terms to the values before ${fmtStamp(entry.at)}?`,
+        body: 'This restores the earlier rates as a NEW change (recorded in history). Applies to new orders only.',
+        confirmLabel: 'Revert to these values',
+        lines,
+        warnings: [],
+        run: async () => {
+          setWorking(true);
+          const r = await firestoreAdmin.saveCommissionConfig(target);
+          setWorking(false);
+          setConfirmState(null);
+          if (r.ok) { showToast('Commission terms reverted — recorded as a new change.', 'success'); load(); }
+          else showToast(r.error || 'Revert failed.', 'error');
+        },
+      });
+    }
   };
 
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-400">
-        Plans defined here override the built-in pricing. Changing a price affects new subscriptions immediately.
+        Every subscription price, usage limit and commission rate — editable here, live without a deploy.
+        Changes apply to <b className="text-slate-200">new checkouts and new orders</b> within ~5 minutes
+        (open sessions keep cached terms briefly). Existing subscriptions and past orders never change.
       </p>
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={seedPricing} disabled={working}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
-          <RefreshCw className="w-4 h-4" /> Seed final pricing
-        </button>
-        <button type="button" onClick={() => setForm(blank)}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">
-          <Plus className="w-4 h-4" /> New plan
-        </button>
-      </div>
-      {plans.length === 0 && <Empty text="No plan overrides. Built-in pricing (SEVA ₹0 / STANDARD ₹499 / PREMIUM ₹1,999 / PUROHIT_PRO ₹199 + 12%) applies." />}
+
+      {/* Plan cards — the fixed canonical set (enforcement can only read these ids) */}
       {plans.map((p) => (
         <Card key={p.id}>
           <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-bold text-white text-sm">{p.name} <span className="font-mono text-[11px] text-slate-500">{p.id}</span></p>
+            <div className="min-w-0">
+              <p className="font-bold text-white text-sm">{p.name} <span className="font-mono text-[11px] text-slate-500">plans/{p.id}</span></p>
               <p className="text-xs text-slate-400 mt-1">
-                ₹{Number(p.priceMonthly || 0).toLocaleString('en-IN')}/mo · ₹{Number(p.priceYearly || 0).toLocaleString('en-IN')}/yr
+                ₹{p.priceMonthlyINR.toLocaleString('en-IN')}/mo · ₹{p.priceYearlyINR.toLocaleString('en-IN')}/yr
+                {' · '}৳{p.priceMonthlyBDT.toLocaleString('en-IN')}/mo
+                {' · '}${p.priceMonthlyUSD.toLocaleString('en-IN')}/mo
+                {p.id === 'purohit_pro' && <> · commission {p.commissionPercent ?? 12}%</>}
               </p>
-              {p.limits && Object.keys(p.limits).length > 0 && (
-                <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                  {Object.entries(p.limits).map(([k, v]) => `${k}: ${v}`).join(' · ')}
-                </p>
-              )}
+              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                devotees: {fmtLimVal(p.limits.maxDevotees)} · txns/mo: {fmtLimVal(p.limits.maxTransactionsPerMonth)} · seats: {fmtLimVal(p.limits.maxSeats)} · branches: {fmtLimVal(p.limits.maxBranches)}
+              </p>
+              <p className="text-[10px] text-slate-600 mt-1">
+                Last updated {fmtStamp(p.updatedAt)}{p.updatedBy ? ` by ${String(p.updatedBy).slice(0, 12)}…` : ''}
+                {!p.exists && ' · no stored doc yet — code defaults are live'}
+              </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${p.active !== false ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
                 {p.active !== false ? 'active' : 'off'}
               </span>
-              <button type="button" aria-label="Edit plan"
-                onClick={() => setForm({ ...p, limits: p.limits || {} })}
-                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300 hover:bg-slate-700">Edit</button>
+              <button type="button" aria-label={`Edit ${p.name} terms`}
+                onClick={() => setForm({ ...p, limits: { ...p.limits } })}
+                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300 hover:bg-slate-700">Edit terms</button>
             </div>
           </div>
         </Card>
       ))}
+      <div className="flex justify-end">
+        <button type="button" onClick={askResetPlans} disabled={working}
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
+          <RefreshCw className="w-4 h-4" /> Reset plans to defaults
+        </button>
+      </div>
+
+      {/* Commission terms */}
+      <Card className="border-emerald-500/20">
+        <h4 className="text-sm font-bold text-slate-200 mb-1">Commission terms</h4>
+        <p className="text-[11px] text-slate-500 mb-3">{COMMISSION_PRECEDENCE_EXPLAINER}</p>
+        {shadowed && (
+          <p className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-3 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              <b>An active global rule is shadowing these tier rates</b> for {shadowTypes.join(' + ') || 'all'} orders:
+              a matching rule (Marketplace → Commission, or Commission → Rules) wins over the tier rates below.
+              Tier rates apply only when no override or rule matches an order.
+            </span>
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-[11px] text-slate-500">Community %<input type="number" value={commDraft.freeRate}
+            onChange={(e) => setCommDraft({ ...commDraft, freeRate: Number(e.target.value) })} className={inputCls} /></label>
+          <label className="text-[11px] text-slate-500">Pro · Rail-1 %<input type="number" value={commDraft.proRail1Rate}
+            onChange={(e) => setCommDraft({ ...commDraft, proRail1Rate: Number(e.target.value) })} className={inputCls} /></label>
+          <label className="text-[11px] text-slate-500">Pro · Rail-2 %<input type="number" value={commDraft.proRail2Rate}
+            onChange={(e) => setCommDraft({ ...commDraft, proRail2Rate: Number(e.target.value) })} className={inputCls} /></label>
+          <label className="text-[11px] text-slate-500">Free-tier gig cap (active gigs)<input type="number" value={commDraft.freeGigLimit}
+            onChange={(e) => setCommDraft({ ...commDraft, freeGigLimit: Number(e.target.value) })} className={inputCls} /></label>
+        </div>
+        <p className="text-[10px] text-slate-600 mt-2">
+          Rule min/max (₹) on the winning override or rule now clamp real orders too — they are no longer preview-only.
+          Advanced layers: global rules & overrides live in <b className="text-slate-400">Marketplace → Commission</b> (one editor; Commission → Rules edits the same rules).
+        </p>
+        <div className="flex gap-2 mt-3">
+          <button type="button" onClick={askSaveCommission} disabled={working}
+            className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+            {working ? 'Saving…' : 'Save commission terms'}
+          </button>
+          <button type="button" onClick={askResetCommission} disabled={working}
+            className="px-4 py-3 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
+            Reset to defaults
+          </button>
+        </div>
+      </Card>
+
+      {/* Terms history — full change insight (owner requirement) */}
+      <Card>
+        <h4 className="text-sm font-bold text-slate-200 mb-1">Terms history</h4>
+        <p className="text-[11px] text-slate-500 mb-3">
+          Every terms change ever saved — who, when, and the full old → new values per field.
+          History is append-only: a revert restores earlier values as a new recorded change, never by rewriting the past.
+          The same entries appear in the platform Audit view.
+        </p>
+        <div className="flex gap-1.5 overflow-x-auto pb-2">
+          {[{ k: 'all', label: 'All changes' }, ...TERMS_PLAN_IDS.map((id) => ({ k: id, label: DEFAULT_TERMS.plans[id].name })), { k: 'commission', label: 'Commission' }].map((f) => (
+            <button key={f.k} type="button" onClick={() => setHistFilter(f.k)}
+              className={`px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 ${histFilter === f.k ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {(() => {
+          const shown = history.filter((e) =>
+            histFilter === 'all' ? true : histFilter === 'commission' ? e.kind === 'commission' : e.kind === 'plan' && e.planId === histFilter);
+          if (shown.length === 0) return <Empty text="No terms changes recorded yet. Saves, resets and reverts will appear here." />;
+          return (
+            <div className="space-y-2">
+              {shown.map((e) => {
+                const lines = e.before && e.after
+                  ? e.kind === 'plan'
+                    ? planDiffLines(e.before as TermsPlan, e.after as TermsPlan)
+                    : commissionDiffLines(e.before as CommissionTerms, e.after as CommissionTerms)
+                  : [];
+                const title = e.kind === 'commission'
+                  ? 'Commission terms'
+                  : (e.after?.name || e.before?.name || e.planId || 'Plan');
+                return (
+                  <div key={e.id} className="bg-slate-900 rounded-xl px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-200">
+                          {title}
+                          <span className={`ml-2 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${e.action === 'terms.plans.reset' ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-800 text-slate-400'}`}>
+                            {e.action === 'terms.plans.reset' ? 'reset to defaults' : 'edit'}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          {fmtStamp(e.at)} · by {e.actorEmail || (e.actorUid ? `${String(e.actorUid).slice(0, 12)}…` : 'owner')}
+                        </p>
+                      </div>
+                      {e.before && (
+                        <button type="button" onClick={() => askRevert(e)} disabled={working}
+                          className="px-3 py-2 min-h-[36px] rounded-lg bg-slate-800 text-[11px] font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-50 shrink-0">
+                          Revert
+                        </button>
+                      )}
+                    </div>
+                    {lines.length > 0 ? (
+                      <div className="mt-1.5">
+                        {lines.map((l) => <p key={l} className="text-[11px] font-mono text-slate-400 py-px">{l}</p>)}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 mt-1">{e.before ? 'Values saved (no field differences from the previous state).' : 'First recorded state for these terms.'}</p>
+                    )}
+                    {Array.isArray(e.warnings) && e.warnings.length > 0 && (
+                      <p className="text-[10px] text-amber-300/80 mt-1">⚠ Saved with {e.warnings.length} warning(s) acknowledged.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </Card>
+
+      {/* Plan editor modal */}
       {form && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-white mb-4">Plan editor</h3>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-1">Edit terms — <span className="font-mono text-sm text-saffron-300">plans/{form.id}</span></h3>
+            <p className="text-[11px] text-slate-500 mb-4">Annual is normally 10 × monthly ("2 months free"). You will see a diff and confirm before anything saves.</p>
             <div className="space-y-3">
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Display name" className={inputCls} />
               <div className="grid grid-cols-2 gap-2">
-                <input value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value.toUpperCase() })}
-                  placeholder="PLAN_ID" className={inputCls + ' font-mono'} />
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Display name" className={inputCls} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="text-[11px] text-slate-500">₹ / month<input type="number" value={form.priceMonthly}
-                  onChange={(e) => setForm({ ...form, priceMonthly: Number(e.target.value) })} className={inputCls} /></label>
-                <label className="text-[11px] text-slate-500">₹ / year<input type="number" value={form.priceYearly}
-                  onChange={(e) => setForm({ ...form, priceYearly: Number(e.target.value) })} className={inputCls} /></label>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {['devotees', 'transactions', 'seats'].map((k) => (
-                  <label key={k} className="text-[11px] text-slate-500 capitalize">{k}
-                    <input type="number" value={form.limits?.[k] ?? ''}
-                      onChange={(e) => setForm({ ...form, limits: { ...form.limits, [k]: Number(e.target.value) } })}
-                      className={inputCls} /></label>
+                {PRICE_FIELDS.map((f) => (
+                  <label key={f.key} className="text-[11px] text-slate-500">{f.label}
+                    <input type="number" value={(form[f.key] as number) ?? 0}
+                      onChange={(e) => setForm({ ...form, [f.key]: Number(e.target.value) })} className={inputCls} /></label>
                 ))}
+              </div>
+              {form.id === 'purohit_pro' && (
+                <label className="text-[11px] text-slate-500">Pro commission % (advertised on the Pro plan)
+                  <input type="number" value={form.commissionPercent ?? 12}
+                    onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })} className={inputCls} /></label>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                {LIMIT_FIELDS.map((f) => {
+                  const v = form.limits[f.key];
+                  const unlimited = v === -1;
+                  return (
+                    <div key={f.key}>
+                      <label className="text-[11px] text-slate-500">{f.label}
+                        <input type="number" disabled={unlimited} value={unlimited ? '' : v} placeholder={unlimited ? '∞' : '0'}
+                          onChange={(e) => setForm({ ...form, limits: { ...form.limits, [f.key]: Number(e.target.value) } })} className={inputCls} />
+                      </label>
+                      <label className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 min-h-[28px]">
+                        <input type="checkbox" checked={unlimited}
+                          onChange={(e) => setForm({ ...form, limits: { ...form.limits, [f.key]: e.target.checked ? -1 : 0 } })}
+                          className="w-4 h-4 accent-amber-500" /> Unlimited (∞)
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-300 min-h-[44px]">
                 <input type="checkbox" checked={form.active !== false}
@@ -248,18 +590,41 @@ const PlansView: React.FC = () => {
               </label>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
-                <button type="button" onClick={save} disabled={working}
+                <button type="button" onClick={askSavePlan} disabled={working}
                   className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
-                  {working ? 'Saving…' : 'Save plan'}</button>
+                  Review & save
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Diff-confirm dialog */}
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.title}
+          body={confirmState.body}
+          confirmLabel={confirmState.confirmLabel}
+          working={working}
+          onCancel={() => setConfirmState(null)}
+          onConfirm={() => { void confirmState.run(); }}
+        >
+          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3 mb-4 max-h-48 overflow-y-auto">
+            {confirmState.lines.map((l) => (
+              <p key={l} className="text-xs font-mono text-slate-300 py-0.5">{l}</p>
+            ))}
+            {confirmState.warnings.map((w) => (
+              <p key={w} className="text-xs text-amber-300 py-0.5 flex items-start gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {w}
+              </p>
+            ))}
+          </div>
+        </ConfirmDialog>
+      )}
     </div>
   );
 };
-
 const MaintenanceView: React.FC = () => {
   const { showToast } = useToast();
   const [cfg, setCfg] = useState<any>({});
@@ -324,9 +689,9 @@ export const SettingsTab: React.FC = () => {
   const [sub, setSub] = useState('Feature Flags');
   return (
     <div className="space-y-4">
-      <SubTabs tabs={['Feature Flags', 'Plans', 'Payment Methods', 'Maintenance']} active={sub} onChange={setSub} />
+      <SubTabs tabs={['Feature Flags', 'Plans & Terms', 'Payment Methods', 'Maintenance']} active={sub} onChange={setSub} />
       {sub === 'Feature Flags' && <FlagsView />}
-      {sub === 'Plans' && <PlansView />}
+      {sub === 'Plans & Terms' && <PlansView />}
       {sub === 'Payment Methods' && <PaymentsView />}
       {sub === 'Maintenance' && <MaintenanceView />}
     </div>

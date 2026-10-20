@@ -54,6 +54,9 @@ function humanizeAction(action: string, details: any): string {
     case 'content.site.save': return `Updated site content: ${d.key}`;
     case 'settings.flag.set': return `Feature flag ${d.key} → ${d.enabled ? 'ON' : 'OFF'}`;
     case 'settings.plan.save': return `Updated plan: ${d.name}`;
+    case 'terms.plans.save': return `Terms saved: ${d.after?.name || d.planId} (full old → new in Plans & Terms → Terms history)`;
+    case 'terms.plans.reset': return `Terms reset to defaults: ${d.after?.name || d.planId}`;
+    case 'marketplace.commission.config': return `Commission terms: community ${d.after?.freeRate}% · Pro Rail-1 ${d.after?.proRail1Rate}% · Rail-2 ${d.after?.proRail2Rate}%`;
     case 'settings.config.set': return `Platform config updated`;
     case 'support.lead.status': return `Support lead → ${d.status}`;
     case 'support.lead.reply': return `Replied to support lead${d.inboxDelivered ? ' (inbox)' : ''}`;

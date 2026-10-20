@@ -174,8 +174,9 @@ export async function createRail2Order(input: Rail2OrderInput): Promise<{
   const { payableAmount, amountCode, display } = assignPayableAmount(Number(gig.priceAmount), orderSeq, currency);
   const orderCode = generateOrderCode();
 
-  const { ratePercent, source, tier } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType, 'rail2');
-  const { commission, net } = computeCommission(payableAmount, ratePercent);
+  const { ratePercent, source, tier, minCommission, maxCommission } = await resolveCommissionRate(gig.providerUid, gig.category, gig.providerType, 'rail2');
+  // QUEUED #31: rule/override min/max clamp applies to real orders.
+  const { commission, net } = computeCommission(payableAmount, ratePercent, minCommission, maxCommission);
 
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
     gigId: gigSnap.id, gigTitle: gig.title,

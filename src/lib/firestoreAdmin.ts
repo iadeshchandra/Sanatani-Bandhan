@@ -72,6 +72,16 @@ import {
   aggregateOrdersByProvider,
   rankProviders,
 } from './providerAnalytics';
+import {
+  TERMS_PLAN_IDS,
+  DEFAULT_TERMS,
+  sanitizePlanDoc,
+  validatePlanTerms,
+  getTerms,
+  clearTermsCache,
+  type TermsPlan,
+  type TermsPlanId,
+} from './termsConfig';
 
 /** Canonical platform owner. */
 export const OWNER_UID = 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
@@ -680,45 +690,18 @@ async function auditLogs(filters: { action?: string; severity?: string; limit?: 
 /* AUDIT FIX #8 (2026-10-19): the old fallback was fiction — half-renamed tiers
  * (LITE/ENTERPRISE), wrong prices (1499/4999). Canonical prices now live in
  * src/lib/revenueMetrics.ts, derived from locked planPricing. Price pairs
- * carry both cadences because MRR counts annual plans at annual/12. */
-const PLAN_PRICE_FALLBACK: Record<string, PlanPricePair> = {
-  SEVA: { monthly: 0, annual: 0 },
-  STANDARD: { monthly: 499, annual: 4999 },
-  PREMIUM: { monthly: 1999, annual: 19999 },
-  PUROHIT_PRO: { monthly: 199, annual: 1990 },
-};
-
+ * carry both cadences because MRR counts annual plans at annual/12.
+ * QUEUED #31: re-based on the canonical terms reader — MRR now uses the
+ * owner-edited `plans/` terms (sanitized over the same defaults), so the
+ * dashboard follows GodMode term edits like every other consumer. */
 async function planPrices(): Promise<Record<string, PlanPricePair>> {
-  try {
-    const snap = await getDocs(collection(db, 'plans'));
-    const prices: Record<string, PlanPricePair> = { ...PLAN_PRICE_FALLBACK };
-    snap.docs.forEach((d) => {
-      const v: any = d.data();
-      // AUDIT FIX #8: seeds write priceMonthlyINR/priceYearlyINR (geo fields),
-      // not priceMonthly — and doc IDs are lowercase while subscriptions use
-      // UPPERCASE planIds. Normalize both so the lookup actually hits.
-      const rawId = v.id || d.id;
-      if (!rawId) return;
-      const key = String(rawId).toUpperCase();
-      const pick = (inr: any, plain: any): number | undefined => {
-        if (typeof inr === 'number' && inr >= 0) return inr;
-        if (typeof plain === 'number' && plain >= 0) return plain;
-        return undefined;
-      };
-      const monthly = pick(v.priceMonthlyINR, v.priceMonthly);
-      const annual = pick(v.priceYearlyINR, v.priceYearly);
-      if (monthly !== undefined || annual !== undefined) {
-        const prev = prices[key] ?? { monthly: 0, annual: 0 };
-        prices[key] = {
-          monthly: monthly ?? prev.monthly,
-          annual: annual ?? monthly ?? prev.annual,
-        };
-      }
-    });
-    return prices;
-  } catch {
-    return { ...PLAN_PRICE_FALLBACK };
+  const terms = await getTerms();
+  const prices: Record<string, PlanPricePair> = {};
+  for (const id of TERMS_PLAN_IDS) {
+    const p = terms.plans[id];
+    prices[id.toUpperCase()] = { monthly: p.priceMonthlyINR, annual: p.priceYearlyINR };
   }
+  return prices;
 }
 
 async function insights(): Promise<NativeResult> {
@@ -1184,34 +1167,79 @@ async function featureFlagSet(key: string, enabled: boolean, description?: strin
   return { ok: true, data: { ok: true } };
 }
 
+/**
+ * QUEUED #31: the terms list for GodMode → Plans & Terms. Returns the four
+ * CANONICAL plans (seva/standard/premium/purohit_pro), each sanitized over
+ * the code defaults — so the editor always shows the EFFECTIVE terms (the
+ * old raw dump showed seeded plans as ₹0 because it read the wrong fields).
+ * `exists` marks whether a stored doc is present; stamps power the
+ * "last updated by/at" display. Non-canonical junk docs from the old
+ * broken editor are inert (no reader reads them) and are not returned.
+ */
 async function plansList(): Promise<NativeResult> {
   requireOwner();
   const snap = await getDocs(collection(db, 'plans'));
-  const plans = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const byId = new Map(snap.docs.map((d) => [d.id, d.data() as Record<string, unknown>]));
+  const plans = TERMS_PLAN_IDS.map((id) => {
+    const raw = byId.get(id);
+    const plan = sanitizePlanDoc(id, raw);
+    return {
+      ...plan,
+      exists: !!raw,
+      updatedAt: plan.updatedAt ?? (raw ? tsToIso((raw as any).updatedAt) ?? null : null),
+      updatedBy: plan.updatedBy ?? null,
+    };
+  });
   return { ok: true, data: { ok: true, plans } };
 }
 
-async function planSave(p: {
-  id: string; name: string; priceMonthly: number; priceYearly: number;
-  currency?: string; limits?: Record<string, number>; active?: boolean;
-}): Promise<NativeResult> {
+/**
+ * QUEUED #31: save ONE canonical plan's terms in the schema every reader
+ * uses (canonical lowercase id, priceMonthlyINR/BDT/USD …, max* limit keys).
+ * The old editor wrote plans/{UPPER_SNAKE} with priceMonthly/devotees keys
+ * that no reader ever read — owner edits silently did nothing.
+ * Full before/after values go to the audit log (the old settings.plan.save
+ * logged only {id, name}).
+ */
+async function planSave(p: TermsPlan): Promise<NativeResult> {
   const uid = requireOwner();
-  if (!/^[A-Z0-9_]{1,24}$/.test(p.id)) {
-    return { ok: false, error: 'Plan ID must be UPPER_SNAKE_CASE.', code: 'BAD_KEY' };
+  if (!TERMS_PLAN_IDS.includes(p.id as TermsPlanId)) {
+    return { ok: false, error: `Plan ID must be one of: ${TERMS_PLAN_IDS.join(', ')}.`, code: 'BAD_KEY' };
   }
-  const payload = {
-    id: p.id,
-    name: p.name.slice(0, 80),
-    priceMonthly: Math.max(0, Number(p.priceMonthly) || 0),
-    priceYearly: Math.max(0, Number(p.priceYearly) || 0),
-    currency: p.currency || 'INR',
-    limits: p.limits || {},
-    active: p.active !== false,
+  const clean = sanitizePlanDoc(p.id, p as unknown as Record<string, unknown>);
+  const validation = validatePlanTerms(clean);
+  if (validation.errors.length > 0) {
+    return { ok: false, error: validation.errors.join(' '), code: 'BAD_TERMS' };
+  }
+  const ref = doc(db, 'plans', p.id);
+  const beforeSnap = await getDoc(ref);
+  const before = beforeSnap.exists() ? sanitizePlanDoc(p.id, beforeSnap.data()) : null;
+  const payload: Record<string, unknown> = {
+    id: clean.id,
+    name: clean.name,
+    priceMonthlyINR: clean.priceMonthlyINR,
+    priceYearlyINR: clean.priceYearlyINR,
+    priceMonthlyBDT: clean.priceMonthlyBDT,
+    priceYearlyBDT: clean.priceYearlyBDT,
+    priceMonthlyUSD: clean.priceMonthlyUSD,
+    priceYearlyUSD: clean.priceYearlyUSD,
+    limits: { ...clean.limits },
+    active: clean.active,
+    ...(clean.id === 'purohit_pro' ? { commissionPercent: clean.commissionPercent ?? 12 } : {}),
     updatedAt: serverTimestamp(), updatedBy: uid,
   };
-  await setDoc(doc(db, 'plans', p.id), payload, { merge: true });
-  await writeAudit('settings.plan.save', { id: p.id, name: payload.name }, 'warn');
-  return { ok: true, data: { ok: true } };
+  await setDoc(ref, payload, { merge: true });
+  clearTermsCache();
+  // Full before/after values — the Plans & Terms history surface (owner
+  // requirement: see EVERY change, old → new per field, and revert it).
+  await writeAudit('terms.plans.save', {
+    kind: 'plan',
+    planId: clean.id,
+    before: before ? stripPlanStamps(before) : null,
+    after: stripPlanStamps(clean),
+    warnings: validation.warnings,
+  }, 'warn');
+  return { ok: true, data: { ok: true, warnings: validation.warnings } };
 }
 
 async function platformConfigGet(): Promise<NativeResult> {
@@ -1418,53 +1446,95 @@ async function seedPaymentMethods(): Promise<NativeResult> {
 
 /* ------------------------------ Plan seeding ---------------------------- */
 
-/** Final locked pricing — workspace tiers + professional plan. */
-const PLAN_SEED: Record<string, any>[] = [
-  {
-    id: 'seva', name: 'Seva Free',
-    priceMonthlyINR: 0, priceYearlyINR: 0,
-    priceMonthlyBDT: 0, priceYearlyBDT: 0,
-    priceMonthlyUSD: 0, priceYearlyUSD: 0,
-    limits: { maxDevotees: 100, maxTransactionsPerMonth: 500, maxSeats: 2, maxBranches: 1 },
-    active: true,
-  },
-  {
-    id: 'standard', name: 'Standard',
-    priceMonthlyINR: 499, priceYearlyINR: 4999,
-    priceMonthlyBDT: 700, priceYearlyBDT: 7000,
-    priceMonthlyUSD: 6, priceYearlyUSD: 60,
-    limits: { maxDevotees: 1000, maxTransactionsPerMonth: -1, maxSeats: 10, maxBranches: 3 },
-    active: true,
-  },
-  {
-    id: 'premium', name: 'Premium',
-    priceMonthlyINR: 1999, priceYearlyINR: 19999,
-    priceMonthlyBDT: 2800, priceYearlyBDT: 28000,
-    priceMonthlyUSD: 24, priceYearlyUSD: 240,
-    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: -1, maxBranches: -1 },
-    active: true,
-  },
-  {
-    id: 'purohit_pro', name: 'Purohit / Jyotishi Pro',
-    priceMonthlyINR: 199, priceYearlyINR: 1990,
-    priceMonthlyBDT: 280, priceYearlyBDT: 2800,
-    priceMonthlyUSD: 2.5, priceYearlyUSD: 25,
-    commissionPercent: 12,
-    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: 1, maxBranches: 1 },
-    active: true,
-  },
-];
+/**
+ * QUEUED #31: the seed IS the termsConfig defaults (generated from
+ * PLAN_PRICING) — the old third hand-copy of the price table is gone, so
+ * "reset to defaults" can never drift from the code fallback again.
+ */
+const PLAN_SEED: TermsPlan[] = TERMS_PLAN_IDS.map((id) => DEFAULT_TERMS.plans[id]);
 
-/** Seed/refresh the canonical plans (merge — never deletes owner edits to other plans). */
+/** Plain terms values for audit before/after (stamps stripped). */
+function stripPlanStamps(p: TermsPlan): Record<string, unknown> {
+  return {
+    id: p.id, name: p.name, active: p.active,
+    priceMonthlyINR: p.priceMonthlyINR, priceYearlyINR: p.priceYearlyINR,
+    priceMonthlyBDT: p.priceMonthlyBDT, priceYearlyBDT: p.priceYearlyBDT,
+    priceMonthlyUSD: p.priceMonthlyUSD, priceYearlyUSD: p.priceYearlyUSD,
+    limits: { ...p.limits },
+    ...(p.id === 'purohit_pro' ? { commissionPercent: p.commissionPercent ?? 12 } : {}),
+  };
+}
+
+/** Seed/refresh the canonical plans to the locked defaults (merge). This is
+ *  the Plans & Terms "reset to defaults": it rewrites the four canonical
+ *  docs with default values; it never touches other collections. Every
+ *  plan's before/after is audited (terms.plans.reset) so the reset itself
+ *  is visible — and revertible — in Terms history. */
 async function seedPlans(): Promise<NativeResult> {
   const uid = requireOwner();
+  const snap = await getDocs(collection(db, 'plans'));
+  const byId = new Map(snap.docs.map((d) => [d.id, d.data() as Record<string, unknown>]));
   for (const p of PLAN_SEED) {
+    const before = sanitizePlanDoc(p.id, byId.get(p.id));
+    const { updatedAt: _ua, updatedBy: _ub, ...rest } = p;
     await setDoc(doc(db, 'plans', p.id), {
-      ...p, updatedAt: serverTimestamp(), updatedBy: uid,
+      ...rest, updatedAt: serverTimestamp(), updatedBy: uid,
     }, { merge: true });
+    await writeAudit('terms.plans.reset', {
+      kind: 'plan', planId: p.id,
+      before: stripPlanStamps(before),
+      after: stripPlanStamps(p),
+    }, 'warn');
   }
-  await writeAudit('settings.plans.seed', { count: PLAN_SEED.length }, 'warn');
+  clearTermsCache();
   return { ok: true, data: { ok: true, seeded: PLAN_SEED.length } };
+}
+
+/* ------------------------- Terms change history ------------------------- */
+/* Owner requirement (2026-10-20): the FULL history of every terms change —
+ * who, when, old → new per field — with revert. History is the append-only
+ * audit_logs; a revert is itself a NEW save entry (history never rewritten). */
+
+export interface TermsHistoryEntry {
+  id: string;
+  action: string;
+  at: string | null;
+  actorUid: string | null;
+  actorEmail: string | null;
+  kind: 'plan' | 'commission';
+  planId: string | null;
+  before: Record<string, any> | null;
+  after: Record<string, any> | null;
+  warnings: string[];
+}
+
+const TERMS_ACTIONS = new Set(['terms.plans.save', 'terms.plans.reset', 'marketplace.commission.config']);
+
+async function termsHistory(limitN = 100): Promise<NativeResult> {
+  requireOwner();
+  // Newest-first single-field orderBy (no composite index), filter client-side.
+  const snap = await getDocs(query(collection(db, 'audit_logs'), orderBy('createdAt', 'desc'), limit(300)));
+  const entries: TermsHistoryEntry[] = [];
+  for (const d of snap.docs) {
+    const v: any = d.data();
+    if (!TERMS_ACTIONS.has(v.action)) continue;
+    const det = (v.details || {}) as Record<string, any>;
+    const isCommission = v.action === 'marketplace.commission.config' || det.kind === 'commission';
+    entries.push({
+      id: d.id,
+      action: v.action,
+      at: tsToIso(v.createdAt) ?? null,
+      actorUid: v.actorUid ?? null,
+      actorEmail: v.actorEmail ?? null,
+      kind: isCommission ? 'commission' : 'plan',
+      planId: isCommission ? null : (det.planId ?? null),
+      before: det.before ?? null,
+      after: det.after ?? null,
+      warnings: Array.isArray(det.warnings) ? det.warnings : [],
+    });
+    if (entries.length >= limitN) break;
+  }
+  return { ok: true, data: { ok: true, entries } };
 }
 
 /* --------------------- Marketplace (Fiverr-like gigs) -------------------- */
@@ -1669,35 +1739,43 @@ export async function getProviderTier(providerUid: string): Promise<'pro' | 'com
   return (await getProviderTierDetailed(providerUid)).tier;
 }
 
-/** Commission rate config: editable from GodMode. Defaults: free 15%, pro rail1 8%, pro rail2 12%. */
-export async function getCommissionConfig(): Promise<{ freeRate: number; proRail1Rate: number; proRail2Rate: number }> {
-  const defaults = { freeRate: 15, proRail1Rate: 8, proRail2Rate: 12 };
-  try {
-    const snap = await getDoc(doc(db, 'platformConfig', 'commission'));
-    if (snap.exists()) {
-      const c: any = snap.data();
-      return {
-        freeRate: Number(c.freeRate ?? defaults.freeRate),
-        proRail1Rate: Number(c.proRail1Rate ?? defaults.proRail1Rate),
-        proRail2Rate: Number(c.proRail2Rate ?? defaults.proRail2Rate),
-      };
-    }
-  } catch { /* fall through to defaults */ }
-  return defaults;
+/**
+ * Commission terms: editable from GodMode (Plans & Terms + Marketplace →
+ * Commission). Stored at `platformConfig/commission`. Law defaults:
+ * community 15%, Pro Rail-1 8%, Pro Rail-2 12%, free-tier gig cap 3.
+ * QUEUED #31: reads go through the termsConfig cache (sanitize-merge over
+ * defaults, 5-min TTL) — order creation no longer re-reads this doc fresh
+ * on every booking.
+ */
+export async function getCommissionConfig(): Promise<{ freeRate: number; proRail1Rate: number; proRail2Rate: number; freeGigLimit: number }> {
+  const terms = await getTerms();
+  return { ...terms.commission };
 }
 
-export async function saveCommissionConfig(cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number }): Promise<NativeResult> {
+export async function saveCommissionConfig(cfg: { freeRate: number; proRail1Rate: number; proRail2Rate: number; freeGigLimit?: number }): Promise<NativeResult> {
   requireOwner();
+  const before = await getCommissionConfig();
   const clean = {
     freeRate: Math.min(100, Math.max(0, Number(cfg.freeRate) || 0)),
     proRail1Rate: Math.min(100, Math.max(0, Number(cfg.proRail1Rate) || 0)),
     proRail2Rate: Math.min(100, Math.max(0, Number(cfg.proRail2Rate) || 0)),
+    freeGigLimit: Math.max(0, Math.round(Number(cfg.freeGigLimit ?? before.freeGigLimit) || 0)),
     updatedAt: serverTimestamp(),
     updatedBy: requireOwner(),
   };
   await setDoc(doc(db, 'platformConfig', 'commission'), clean, { merge: true });
-  await writeAudit('marketplace.commission.config', clean, 'warn');
+  clearTermsCache();
+  await writeAudit('marketplace.commission.config', {
+    kind: 'commission',
+    before: { freeRate: before.freeRate, proRail1Rate: before.proRail1Rate, proRail2Rate: before.proRail2Rate, freeGigLimit: before.freeGigLimit },
+    after: { freeRate: clean.freeRate, proRail1Rate: clean.proRail1Rate, proRail2Rate: clean.proRail2Rate, freeGigLimit: clean.freeGigLimit },
+  }, 'warn');
   return { ok: true, data: { ok: true } };
+}
+
+/** Reset commission terms to the law defaults (15 / 8 / 12, gig cap 3). Audited. */
+export async function resetCommissionConfig(): Promise<NativeResult> {
+  return saveCommissionConfig({ ...DEFAULT_TERMS.commission });
 }
 
 /** Panjika Intelligence config: owner-editable role-event matrix overrides.
@@ -1801,14 +1879,29 @@ export async function geoConfigSave(cfg: GeoConfigInput): Promise<NativeResult> 
 }
 
 /** Resolve the effective commission for a NEW order.
- *  Resolution order: provider override > category override > tier+rail default > fallback.
- *  Rail-1 (platform-processed) is cheaper to encourage the trackable path. */
+ *  Resolution order: provider override > category override > global rule >
+ *  tier+rail default > hardcoded fallback.
+ *  Rail-1 (platform-processed) is cheaper to encourage the trackable path.
+ *
+ *  QUEUED #31 — precedence truth + min/max wiring:
+ *  - SHADOWING: the global-rule layer matches the provider type OR 'both',
+ *    and falls back to the FIRST active rule — so ANY active rule shadows
+ *    the tier rates for (almost) every order. The GodMode tier editor now
+ *    warns about this explicitly (see termsConfig.activeRuleShadowsTierRates).
+ *  - MIN/MAX: the winning override/rule may carry minCommission /
+ *    maxCommission (₹). They are returned here and EVERY order path passes
+ *    them to computeCommission — before #31 the GodMode previews applied
+ *    them but real orders never did (cosmetic fields). Tier defaults carry
+ *    no min/max (0 = unclamped). The result is snapshotted onto the order
+ *    via commissionAmount — later edits never rewrite history. */
 export async function resolveCommissionRate(
   providerId: string,
   category: string,
   providerType: string,
   rail: 'rail1' | 'rail2' = 'rail1',
-): Promise<{ ratePercent: number; source: string; tier: 'pro' | 'community' }> {
+): Promise<{ ratePercent: number; source: string; tier: 'pro' | 'community'; minCommission: number; maxCommission: number }> {
+  const clampNote = (min: number, max: number) =>
+    `${min > 0 ? ` · min ₹${min}` : ''}${max > 0 ? ` · max ₹${max}` : ''}`;
   try {
     const [overS, ruleS, tier, cfg] = await Promise.all([
       getDocs(query(collection(db, 'commissionOverrides'), where('active', '==', true), limit(100))),
@@ -1818,17 +1911,29 @@ export async function resolveCommissionRate(
     ]);
     const overrides = overS.docs.map((d) => d.data() as any);
     const prov = overrides.find((o) => o.scope === 'provider' && o.targetId === providerId);
-    if (prov) return { ratePercent: Number(prov.ratePercent), source: `provider override (${prov.note || 'custom'})`, tier };
+    if (prov) {
+      const min = Math.max(0, Number(prov.minCommission) || 0);
+      const max = Math.max(0, Number(prov.maxCommission) || 0);
+      return { ratePercent: Number(prov.ratePercent), source: `provider override (${prov.note || 'custom'})${clampNote(min, max)}`, tier, minCommission: min, maxCommission: max };
+    }
     const cat = overrides.find((o) => o.scope === 'category' && o.targetId === category);
-    if (cat) return { ratePercent: Number(cat.ratePercent), source: `category override (${category})`, tier };
+    if (cat) {
+      const min = Math.max(0, Number(cat.minCommission) || 0);
+      const max = Math.max(0, Number(cat.maxCommission) || 0);
+      return { ratePercent: Number(cat.ratePercent), source: `category override (${category})${clampNote(min, max)}`, tier, minCommission: min, maxCommission: max };
+    }
     const rules = ruleS.docs.map((d) => d.data() as any).filter((r) => r.active !== false);
     const rule = rules.find((r) => r.serviceType === providerType || r.serviceType === 'both') || rules[0];
-    if (rule && Number(rule.ratePercent) > 0) return { ratePercent: Number(rule.ratePercent), source: 'global rule', tier };
-    // Tier + rail default
+    if (rule && Number(rule.ratePercent) > 0) {
+      const min = Math.max(0, Number(rule.minCommission) || 0);
+      const max = Math.max(0, Number(rule.maxCommission) || 0);
+      return { ratePercent: Number(rule.ratePercent), source: `global rule${clampNote(min, max)}`, tier, minCommission: min, maxCommission: max };
+    }
+    // Tier + rail default (termsConfig rates; no min/max at this layer)
     const rate = tier === 'pro' ? (rail === 'rail1' ? cfg.proRail1Rate : cfg.proRail2Rate) : cfg.freeRate;
-    return { ratePercent: rate, source: `tier default (${tier}, ${rail})`, tier };
+    return { ratePercent: rate, source: `tier default (${tier}, ${rail})`, tier, minCommission: 0, maxCommission: 0 };
   } catch {
-    return { ratePercent: 12, source: 'platform default (fallback)', tier: 'community' };
+    return { ratePercent: 12, source: 'platform default (fallback)', tier: 'community', minCommission: 0, maxCommission: 0 };
   }
 }
 
@@ -2856,6 +2961,7 @@ export const firestoreAdmin = {
   commissionRuleSave,
   getCommissionConfig,
   saveCommissionConfig,
+  resetCommissionConfig,
   getIntelConfig,
   saveIntelConfig,
   geoConfigSave,
@@ -2888,6 +2994,7 @@ export const firestoreAdmin = {
   paymentMethodSave,
   seedPaymentMethods,
   seedPlans,
+  termsHistory,
   // Marketplace (Fiverr-like gigs)
   marketplaceDashboard,
   marketplaceGigs,

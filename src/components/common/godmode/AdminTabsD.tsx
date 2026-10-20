@@ -84,6 +84,10 @@ const RulesView: React.FC = () => {
           <Plus className="w-4 h-4" /> New rule
         </button>
       </div>
+      <p className="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+        These are the SAME global rules edited in <b className="text-slate-300">Marketplace → Commission</b> — one collection, two doors; edits here appear there.
+        An active rule overrides the tier rates (Settings → Plans &amp; Terms) for matching orders, and its min/max now clamp real orders too (QUEUED #31).
+      </p>
       {rules.length === 0 && <Empty text="No commission rules yet. Create one to define the platform fee." />}
       {rules.map((r) => (
         <Card key={r.id}>

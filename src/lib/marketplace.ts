@@ -127,16 +127,19 @@ export async function saveGig(gig: Partial<Gig> & { id?: string }): Promise<stri
   const uid = requireUser();
   if (!gig.title?.trim()) throw new Error('Title is required.');
   if (!gig.priceAmount || gig.priceAmount <= 0) throw new Error('Price must be positive.');
-  // Community (free) tier: max 3 active sevas. Pro: unlimited.
+  // Community (free) tier: max N active sevas (owner-editable terms —
+  // platformConfig/commission.freeGigLimit, law default 3). Pro: unlimited.
   if (!gig.id) {
     try {
       const { getProviderTier } = await import('./firestoreAdmin');
       const tier = await getProviderTier(uid);
       if (tier !== 'pro') {
+        const { getTerms } = await import('./termsConfig');
+        const cap = (await getTerms()).commission.freeGigLimit;
         const existing = await myGigs();
         const active = existing.filter((g) => g.active !== false);
-        if (active.length >= 3) {
-          throw new Error('Community tier allows 3 active sevas. Upgrade to Verified Seva Provider for unlimited.');
+        if (active.length >= cap) {
+          throw new Error(`Community tier allows ${cap} active sevas. Upgrade to Verified Seva Provider for unlimited.`);
         }
       }
     } catch (e: any) {
@@ -198,11 +201,12 @@ export async function createOrder(input: {
     if (e?.message?.includes('commission payment')) throw e;
     // query errors fail open — never block booking on infra hiccups
   }
-  const { ratePercent, source, tier } = await resolveCommissionRate(
+  const { ratePercent, source, tier, minCommission, maxCommission } = await resolveCommissionRate(
     gig.providerUid, gig.category, gig.providerType,
     input.payAfterTask === true ? 'rail2' : 'rail1',
   );
-  const { commission, net } = computeCommission(Number(gig.priceAmount), ratePercent);
+  // QUEUED #31: the winning rule/override's min/max clamp applies to real orders.
+  const { commission, net } = computeCommission(Number(gig.priceAmount), ratePercent, minCommission, maxCommission);
   const ref = await addDoc(collection(db, 'marketplaceOrders'), {
     gigId: gig.id, gigTitle: gig.title,
     providerUid: gig.providerUid, providerType: gig.providerType,

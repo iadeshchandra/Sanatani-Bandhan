@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X, Sparkles, ShieldCheck, Star, ArrowRight, Zap, CheckCircle2, Building2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { PLAN_PRICING, SubscriptionTier } from '../../config/planPricing';
+import { useTerms } from '../../hooks/useTerms';
+import { planIdForTier, priceFor } from '../../lib/termsConfig';
 
 interface UpsellModalProps {
   isOpen: boolean;
@@ -29,6 +31,9 @@ const DISPLAY_NAMES: Record<SubscriptionTier, string> = {
 export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpgrade, module, ctaLabel }) => {
   const { safeTranslate } = useLanguage();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  // QUEUED #31: displayed prices are owner terms (config-first; locked
+  // defaults on first paint).
+  const terms = useTerms();
 
   if (!isOpen) return null;
 
@@ -100,7 +105,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
             {plans.map((plan) => {
               const isRecommended = plan.tier === 'PREMIUM';
               const isPopular = plan.tier === 'STANDARD';
-              const price = plan.price[billingCycle];
+              const price = priceFor(terms.plans[planIdForTier(plan.tier)], 'INR', billingCycle === 'annual' ? 'annual' : 'monthly');
 
               return (
                 <div 

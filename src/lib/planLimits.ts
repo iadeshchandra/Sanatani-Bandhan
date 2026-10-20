@@ -8,10 +8,11 @@
  * shows a celebratory upgrade prompt (LimitReachedModal), never a dead-end
  * error.
  *
- * PLAN SOURCE:
+ * PLAN SOURCE (QUEUED #31): the canonical terms reader, `lib/termsConfig.ts`.
  * 1. Firestore `plans/{canonicalId}` (owner-editable via GodMode → Settings
- *    → Plan Editor). Lets the owner change prices AND limits without a deploy.
- * 2. Hardcoded PLAN_DEFAULTS below (failover when Firestore is unreachable).
+ *    → Plans & Terms). Lets the owner change prices AND limits without a deploy.
+ * 2. Code defaults generated from `config/planPricing.ts` (failover when
+ *    Firestore is unreachable) — one defaults source for the whole app.
  *
  * SECURITY HONESTY (read before relying on this):
  * - This is CLIENT-SIDE ONLY. A technically savvy user can bypass these
@@ -45,6 +46,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import { DEFAULT_TERMS, getTerms, clearTermsCache, type TermsPlan } from './termsConfig';
 
 export type LimitMetric = 'devotees' | 'transactions' | 'seats' | 'branches';
 export type CanonicalPlan = 'seva' | 'standard' | 'premium' | 'demo';
@@ -69,68 +71,18 @@ export interface PlanDoc {
   active: boolean;
 }
 
-/** Hardcoded failover — matches the approved freemium structure. */
-const PLAN_DEFAULTS: Record<Exclude<CanonicalPlan, 'demo'>, PlanDoc> = {
-  seva: {
-    id: 'seva',
-    name: 'Seva Free',
-    priceMonthlyINR: 0,
-    priceYearlyINR: 0,
-    priceMonthlyBDT: 0,
-    priceYearlyBDT: 0,
-    priceMonthlyUSD: 0,
-    priceYearlyUSD: 0,
-    limits: { maxDevotees: 100, maxTransactionsPerMonth: 500, maxSeats: 2, maxBranches: 1 },
-    active: true,
-  },
-  standard: {
-    id: 'standard',
-    name: 'Standard',
-    priceMonthlyINR: 499,
-    priceYearlyINR: 4999,
-    priceMonthlyBDT: 700,
-    priceYearlyBDT: 7000,
-    priceMonthlyUSD: 6,
-    priceYearlyUSD: 60,
-    limits: { maxDevotees: 1000, maxTransactionsPerMonth: -1, maxSeats: 10, maxBranches: 3 },
-    active: true,
-  },
-  premium: {
-    id: 'premium',
-    name: 'Premium',
-    priceMonthlyINR: 1999,
-    priceYearlyINR: 19999,
-    priceMonthlyBDT: 2800,
-    priceYearlyBDT: 28000,
-    priceMonthlyUSD: 24,
-    priceYearlyUSD: 240,
-    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: -1, maxBranches: -1 },
-    active: true,
-  },
-};
-
 /**
- * Professional plans (Purohit / Jyotishi) — separate from workspace tiers.
- * Commission is the marketplace take-rate applied per completed booking.
+ * Failover defaults — QUEUED #31: generated from `config/planPricing.ts`
+ * via termsConfig (the old hand-copied table here was one of three copies
+ * of the price list; there is now exactly one defaults source).
+ * The professional plan (purohit_pro, incl. its commissionPercent) is read
+ * through termsConfig too — the dead PRO_PLANS map that lived here had
+ * zero consumers and is gone.
  */
-export interface ProPlan extends PlanDoc {
-  commissionPercent: number;
-}
-
-export const PRO_PLANS: Record<string, ProPlan> = {
-  purohit_pro: {
-    id: 'purohit_pro',
-    name: 'Purohit / Jyotishi Pro',
-    priceMonthlyINR: 199,
-    priceYearlyINR: 1990,
-    priceMonthlyBDT: 280,
-    priceYearlyBDT: 2800,
-    priceMonthlyUSD: 2.5,
-    priceYearlyUSD: 25,
-    limits: { maxDevotees: -1, maxTransactionsPerMonth: -1, maxSeats: 1, maxBranches: 1 },
-    commissionPercent: 12,
-    active: true,
-  },
+const PLAN_DEFAULTS: Record<Exclude<CanonicalPlan, 'demo'>, PlanDoc> = {
+  seva: { ...DEFAULT_TERMS.plans.seva },
+  standard: { ...DEFAULT_TERMS.plans.standard },
+  premium: { ...DEFAULT_TERMS.plans.premium },
 };
 
 /** Next paid tier for upgrade prompts. */
@@ -160,39 +112,29 @@ export function normalizePlanId(planId?: string | null): CanonicalPlan {
   return 'seva'; // seva, lite, '', unknown → free tier
 }
 
-// ---- Plan fetching with 5-minute cache ----
+// ---- Plan fetching (QUEUED #31: via the canonical terms reader) ----
 
-interface CacheEntry {
-  plan: PlanDoc;
-  at: number;
-}
-const planCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-function mergeWithDefaults(canonical: Exclude<CanonicalPlan, 'demo'>, data: Record<string, unknown>): PlanDoc {
-  const d = PLAN_DEFAULTS[canonical];
-  const lim = (data.limits || {}) as Partial<PlanLimits>;
+function toPlanDoc(t: TermsPlan): PlanDoc {
   return {
-    id: canonical,
-    name: typeof data.name === 'string' ? data.name : d.name,
-    priceMonthlyINR: typeof data.priceMonthlyINR === 'number' ? data.priceMonthlyINR : d.priceMonthlyINR,
-    priceYearlyINR: typeof data.priceYearlyINR === 'number' ? data.priceYearlyINR : d.priceYearlyINR,
-    priceMonthlyBDT: typeof data.priceMonthlyBDT === 'number' ? data.priceMonthlyBDT : d.priceMonthlyBDT,
-    priceYearlyBDT: typeof data.priceYearlyBDT === 'number' ? data.priceYearlyBDT : d.priceYearlyBDT,
-    priceMonthlyUSD: typeof data.priceMonthlyUSD === 'number' ? data.priceMonthlyUSD : d.priceMonthlyUSD,
-    priceYearlyUSD: typeof data.priceYearlyUSD === 'number' ? data.priceYearlyUSD : d.priceYearlyUSD,
-    limits: {
-      maxDevotees: typeof lim.maxDevotees === 'number' ? lim.maxDevotees : d.limits.maxDevotees,
-      maxTransactionsPerMonth:
-        typeof lim.maxTransactionsPerMonth === 'number' ? lim.maxTransactionsPerMonth : d.limits.maxTransactionsPerMonth,
-      maxSeats: typeof lim.maxSeats === 'number' ? lim.maxSeats : d.limits.maxSeats,
-      maxBranches: typeof lim.maxBranches === 'number' ? lim.maxBranches : d.limits.maxBranches,
-    },
-    active: data.active !== false,
+    id: t.id,
+    name: t.name,
+    priceMonthlyINR: t.priceMonthlyINR,
+    priceYearlyINR: t.priceYearlyINR,
+    priceMonthlyBDT: t.priceMonthlyBDT,
+    priceYearlyBDT: t.priceYearlyBDT,
+    priceMonthlyUSD: t.priceMonthlyUSD,
+    priceYearlyUSD: t.priceYearlyUSD,
+    limits: { ...t.limits },
+    active: t.active,
   };
 }
 
-/** Fetch the effective plan (Firestore `plans/{id}` → hardcoded fallback). Never throws. */
+/**
+ * Fetch the effective plan — Firestore `plans/{id}` sanitized over code
+ * defaults, via termsConfig (5-min cache, never throws, fail-open).
+ * Behaviour is unchanged from the old local reader; there is now ONE
+ * reader for enforcement, checkout, landing and upsells alike.
+ */
 export async function getPlan(rawPlanId?: string | null): Promise<{ plan: PlanDoc; canonical: CanonicalPlan; fromCache: boolean }> {
   const canonical = normalizePlanId(rawPlanId);
   if (canonical === 'demo') {
@@ -203,28 +145,13 @@ export async function getPlan(rawPlanId?: string | null): Promise<{ plan: PlanDo
       fromCache: false,
     };
   }
-  const cached = planCache.get(canonical);
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
-    return { plan: cached.plan, canonical, fromCache: true };
-  }
-  try {
-    const snap = await getDoc(doc(db, 'plans', canonical));
-    if (snap.exists()) {
-      const plan = mergeWithDefaults(canonical, snap.data() as Record<string, unknown>);
-      planCache.set(canonical, { plan, at: Date.now() });
-      return { plan, canonical, fromCache: false };
-    }
-  } catch (e) {
-    console.warn('[planLimits] plan fetch failed, using defaults:', e);
-  }
-  const plan = PLAN_DEFAULTS[canonical];
-  planCache.set(canonical, { plan, at: Date.now() });
-  return { plan, canonical, fromCache: false };
+  const terms = await getTerms();
+  return { plan: toPlanDoc(terms.plans[canonical]), canonical, fromCache: terms.loadedAt !== null };
 }
 
 /** Clear the plan cache (used after the owner edits plans in GodMode). */
 export function clearPlanCache(): void {
-  planCache.clear();
+  clearTermsCache();
 }
 
 // ---- Usage counting (index-safe: single-field where clauses only) ----

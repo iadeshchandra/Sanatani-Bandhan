@@ -79,13 +79,14 @@ export async function createConsultationDakshinaOrder(
   const existing = await findExistingDakshinaOrder(c.id);
   if (existing) throw new Error('Dakshina already recorded for this consultation.');
 
-  const { ratePercent, source, tier } = await resolveCommissionRate(
+  const { ratePercent, source, tier, minCommission, maxCommission } = await resolveCommissionRate(
     c.assignedJyotishUid as string,
     c.consultationType,
     'jyotishi',
     'rail1',
   );
-  const { commission, net } = computeCommission(amount, ratePercent);
+  // QUEUED #31: rule/override min/max clamp applies to real orders.
+  const { commission, net } = computeCommission(amount, ratePercent, minCommission, maxCommission);
 
   const payload = {
     ...buildDakshinaOrderPayload({ consultation: c, amount, currency }),

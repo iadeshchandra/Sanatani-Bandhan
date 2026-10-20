@@ -17,6 +17,7 @@ import { db } from '../firebase';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { PLAN_PRICING, type SubscriptionTier } from '../config/planPricing';
+import { getTerms, getTermsSync, planIdForTier } from '../lib/termsConfig';
 import { detectPayRegion } from '../lib/geoDetect';
 import {
   UPGRADEABLE_TIERS, planPrice, formatPrice, validateClaim, hasDuplicatePendingClaim,
@@ -55,6 +56,9 @@ export const PlanUpgradeFlow: React.FC<Props> = ({ isOpen, onClose, initialTier 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [copied, setCopied] = useState(false);
+  // QUEUED #31: bumped when the Firestore terms land, so every price in
+  // this flow re-reads the owner's current terms (config-first checkout).
+  const [termsTick, setTermsTick] = useState(0);
 
   // Reset when opened
   useEffect(() => {
@@ -88,7 +92,15 @@ export const PlanUpgradeFlow: React.FC<Props> = ({ isOpen, onClose, initialTier 
     })();
   }, [isOpen, firebaseUser]);
 
-  const price = useMemo(() => planPrice(tier, period, region), [tier, period, region]);
+  // Warm the terms cache whenever the flow opens (config-first pricing).
+  useEffect(() => {
+    if (!isOpen) return;
+    let alive = true;
+    getTerms().then(() => { if (alive) setTermsTick((n) => n + 1); }).catch(() => { /* defaults already shown */ });
+    return () => { alive = false; };
+  }, [isOpen]);
+
+  const price = useMemo(() => planPrice(tier, period, region), [tier, period, region, termsTick]);
   const validation = useMemo(() => validateClaim({ ...draft, plan: tier, period, currency: price.currency }, region), [draft, tier, period, price.currency, region]);
   const selectedMethod = useMemo(() => methods.find((m) => m.id === draft.method) || null, [methods, draft.method]);
 
@@ -234,6 +246,8 @@ function StepPlan({ tier, setTier, period, setPeriod, region, lang }: {
       <div className="space-y-3">
         {TIER_ORDER.map((t) => {
           const cfg = PLAN_PRICING[t];
+          // Name + price are owner terms (#31); tagline/perks stay code copy.
+          const planName = getTermsSync().plans[planIdForTier(t)].name || cfg.name;
           const pr = planPrice(t, period, region);
           const active = tier === t;
           return (
@@ -242,7 +256,7 @@ function StepPlan({ tier, setTier, period, setPeriod, region, lang }: {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-900">{cfg.name}</span>
+                    <span className="font-bold text-slate-900">{planName}</span>
                     {cfg.badge && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{cfg.badge}</span>}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">{cfg.tagline}</p>
@@ -336,11 +350,12 @@ function StepConfirm({ draft, set, price, tier, period, region, lang, tried, val
   const field = "w-full px-4 py-3 min-h-[44px] rounded-2xl border-2 border-slate-200 focus:border-orange-500 outline-none text-slate-900";
   const err = "text-xs text-rose-600 mt-1";
   const cfg = PLAN_PRICING[tier];
+  const planName = getTermsSync().plans[planIdForTier(tier)].name || cfg.name;
   return (
     <div className="space-y-4">
       <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
         <div>
-          <div className="font-bold text-slate-900">{cfg.name}</div>
+          <div className="font-bold text-slate-900">{planName}</div>
           <div className="text-xs text-slate-500">{period === 'monthly' ? pu('monthly', lang) : pu('annual', lang)} · {region.toUpperCase()}</div>
         </div>
         <div className="text-xl font-bold text-slate-900">{formatPrice(price.amount, price.symbol)}</div>
