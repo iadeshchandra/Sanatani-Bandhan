@@ -10,9 +10,13 @@
  * - If the backend is unreachable, every tab says so plainly with deploy
  *   instructions instead of failing silently.
  *
- * Access: owner-only. Email+password or Google sign-in, verified email must be
- * on the owner allowlist (src/config/ownerAllowlist.ts). Non-owners are signed
- * straight back out.
+ * Access: the platform owner (allowlisted email / canonical UID) or a
+ * delegated admin holding a platformAdmins/{uid} grant (QUEUED #21).
+ * Email+password or Google sign-in; anyone with neither owner status nor a
+ * grant is signed straight back out. Delegated roles see only their
+ * sections — owner-only tabs (API keys, billing, commission, finance,
+ * database, settings, system, admins) stay hidden — and firestore.rules
+ * remain the real boundary behind every action.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -20,7 +24,7 @@ import {
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
   X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
   Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store, Crown, Rocket,
-  Wallet, Languages,
+  Wallet, Languages, ShieldCheck,
 } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider, sendPasswordResetEmail } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
@@ -42,13 +46,16 @@ import { ApiKeyManager } from '../../apikeys/admin/ApiKeyManager';
 import { TranslationsTab } from './godmode/TranslationsTab';
 import { RankingTab } from './godmode/RankingTab';
 import { CopilotLauncher } from '../../ai/godmode/CopilotPanel';
+import { AdminsTab } from './godmode/AdminsTab';
+import { resolveRoleForUser } from '../../lib/platformAdmins';
+import { canAccessTab, type PlatformRole } from '../../lib/platformAdminRoles';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
+type TabId = 'overview' | 'users' | 'admins' | 'workspaces' | 'verification' | 'moderation'
   | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace'
   | 'professionals' | 'growth' | 'apikeys' | 'translations' | 'ranking' | 'system';
@@ -56,6 +63,7 @@ type TabId = 'overview' | 'users' | 'workspaces' | 'verification' | 'moderation'
 const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'overview', label: 'Insights', icon: <LayoutDashboard className="w-4 h-4" /> },
   { id: 'users', label: 'Users', icon: <Users className="w-4 h-4" /> },
+  { id: 'admins', label: 'Admins', icon: <ShieldCheck className="w-4 h-4" /> },
   { id: 'workspaces', label: 'Workspaces', icon: <Building2 className="w-4 h-4" /> },
   { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
   { id: 'moderation', label: 'Moderation', icon: <ShieldAlert className="w-4 h-4" /> },
@@ -335,15 +343,41 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const { showToast } = useToast();
   const [tab, setTab] = useState<TabId>('overview');
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [adminRole, setAdminRole] = useState<PlatformRole | null>(null);
   const [godEmail, setGodEmail] = useState('');
   const [godAccessKey, setGodAccessKey] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
 
+  // Unlock resolution (QUEUED #21): the owner unlocks from the allowlist
+  // alone — the delegation registry is never consulted for them, so a broken
+  // or empty registry can never lock the owner out. Anyone else must hold a
+  // platformAdmins grant; resolution failure fails safe to locked.
   useEffect(() => {
-    if (isOwnerEmail(firebaseUser?.email)) setIsUnlocked(true);
-  }, [firebaseUser?.email]);
+    if (!firebaseUser) return;
+    if (isOwnerEmail(firebaseUser.email)) {
+      setAdminRole('owner');
+      setIsUnlocked(true);
+      return;
+    }
+    let cancelled = false;
+    void resolveRoleForUser(firebaseUser.uid, firebaseUser.email).then((role) => {
+      if (cancelled || !role) return;
+      setAdminRole(role);
+      setIsUnlocked(true);
+    });
+    return () => { cancelled = true; };
+  }, [firebaseUser?.uid, firebaseUser?.email]);
+
+  // Tabs this role may see; if the open tab falls outside the role (e.g.
+  // role resolved after mount), fall back to the first visible tab.
+  const visibleTabs = TABS.filter((t) => canAccessTab(adminRole, t.id));
+  useEffect(() => {
+    if (isUnlocked && adminRole && !canAccessTab(adminRole, tab)) {
+      setTab((TABS.find((t) => canAccessTab(adminRole, t.id))?.id ?? 'overview') as TabId);
+    }
+  }, [isUnlocked, adminRole, tab]);
 
   if (!isOpen) return null;
 
@@ -384,11 +418,13 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       if (godEmail.trim() !== '') {
         await signInWithEmailAndPassword(auth, godEmail, godAccessKey);
         const signedInEmail = auth.currentUser?.email ?? '';
-        if (!isOwnerEmail(signedInEmail)) {
+        const role = await resolveRoleForUser(auth.currentUser?.uid, signedInEmail);
+        if (!role) {
           await auth.signOut();
           showToast('This Firebase account is not authorized for system override.', 'error');
           return;
         }
+        setAdminRole(role);
         setIsUnlocked(true);
         switchRole('SuperAdmin');
         showToast('Authenticated successfully.', 'success');
@@ -404,11 +440,13 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const signedInEmail = result.user?.email ?? '';
-      if (!isOwnerEmail(signedInEmail)) {
+      const role = await resolveRoleForUser(result.user?.uid, signedInEmail);
+      if (!role) {
         await auth.signOut();
         showToast('This Google account is not authorized for system override.', 'error');
         return;
       }
+      setAdminRole(role);
       setIsUnlocked(true);
       switchRole('SuperAdmin');
       showToast('Authenticated successfully via Google.', 'success');
@@ -420,6 +458,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const handleSignOut = async () => {
     await auth.signOut();
     setIsUnlocked(false);
+    setAdminRole(null);
     onClose();
   };
 
@@ -427,6 +466,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
     switch (tab) {
       case 'overview': return <InsightsTab goToTab={(t: string) => setTab(t as TabId)} />;
       case 'users': return <UsersTab />;
+      case 'admins': return <AdminsTab />;
       case 'workspaces': return <WorkspacesTab />;
       case 'verification': return <VerificationTab />;
       case 'moderation': return <ModerationTab />;
@@ -460,6 +500,11 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold text-saffron-200">Sovereign Console</h2>
                 <span className="px-2 py-0.5 rounded-md bg-saffron-500/20 text-saffron-300 text-[10px] font-mono border border-saffron-500/40 uppercase font-bold">v3.0</span>
+                {isUnlocked && adminRole && (
+                  <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 text-[10px] font-mono border border-sky-500/40 uppercase font-bold">
+                    {adminRole}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 truncate">Platform administration — live backend data</p>
             </div>
@@ -493,13 +538,13 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               <Lock className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Sovereign Access</h3>
-            <p className="text-xs text-slate-400 mb-6">Owner authentication required. Non-owner accounts are signed straight back out.</p>
+            <p className="text-xs text-slate-400 mb-6">Platform admin authentication required. Accounts without owner status or a delegation grant are signed straight back out.</p>
             <form onSubmit={handleUnlockGodMode} className="w-full space-y-4">
               <input
                 type="email"
                 value={godEmail}
                 onChange={(e) => setGodEmail(e.target.value)}
-                placeholder="Owner email"
+                placeholder="Admin email"
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 min-h-[44px] text-sm text-saffron-300 focus:ring-2 focus:ring-saffron-500 outline-none"
               />
               <div className="relative">
@@ -551,7 +596,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
           <div className="flex flex-1 min-h-0">
             {/* Sidebar — desktop */}
             <nav className="hidden md:flex flex-col w-52 shrink-0 border-r border-slate-800 p-3 space-y-1 overflow-y-auto">
-              {TABS.map((t) => (
+              {visibleTabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -568,7 +613,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
 
             {/* Mobile tab bar */}
             <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 bg-slate-950/95 border-t border-slate-800 px-1 py-1 flex overflow-x-auto gap-1">
-              {TABS.map((t) => (
+              {visibleTabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -592,8 +637,9 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
             </main>
           </div>
         )}
-        {/* GodMode Copilot — owner-only AI assistant. Renders only when unlocked. */}
-        {isUnlocked && (
+        {/* GodMode Copilot — owner-only AI assistant (its intents are
+            owner-scoped by design, so delegated admins do not get it). */}
+        {isUnlocked && adminRole === 'owner' && (
           <CopilotLauncher
             uid={(firebaseUser as { uid?: string } | null)?.uid || 'owner'}
             lang="en"
