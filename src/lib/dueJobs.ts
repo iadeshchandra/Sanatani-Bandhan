@@ -160,6 +160,42 @@ export function planDeliveries(
 }
 
 /* ------------------------------------------------------------------ */
+/* Reminder-queue drain — merging the two recipient keys (pure)        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One queued reminder as the drain consumes it. The server scheduler
+ * writes `ownerUid`; the client originally keyed `targetUid`. The
+ * rules (2026-10-20 package) accept EITHER field as the recipient, so
+ * the drain fetches both keys and merges the results here.
+ */
+export interface QueuedReminder {
+  id: string;
+  kind?: string;
+  message?: string;
+}
+
+/**
+ * Merge the per-key result lists into one drain list: stable order
+ * (earlier lists first), deduped by doc id — an item carrying BOTH
+ * recipient keys drains exactly once. Entries without a usable id are
+ * dropped rather than delivered anonymously.
+ */
+export function mergeQueuedReminders(lists: QueuedReminder[][]): QueuedReminder[] {
+  const seen = new Set<string>();
+  const out: QueuedReminder[] = [];
+  for (const list of lists) {
+    for (const item of list) {
+      if (!item || typeof item.id !== 'string' || item.id.length === 0) continue;
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
 /* Ledger + run-log maintenance (pure transforms)                      */
 /* ------------------------------------------------------------------ */
 

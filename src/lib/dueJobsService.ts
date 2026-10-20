@@ -14,9 +14,13 @@
  *   2. reminder-queue drain — the server scheduler's delivery half
  *      (functions/SCHEDULED_JOBS.md: "deliver on read"). If the backend
  *      ever enqueues, this device delivers its own queued reminders.
- *      Rules deny client updates, so items can't be marked `sent`
- *      server-side; the local ledger is the dedupe guard (flagged in
- *      ARCHITECTURE.md).
+ *      The server writes `ownerUid` while the client originally keyed
+ *      `targetUid`; the rules (2026-10-20 package) accept EITHER field
+ *      as the recipient, so the drain fetches both keys and merges.
+ *      After a successful delivery the item is marked `sent`
+ *      server-side (recipient-only, status-pinned rule) so another
+ *      device doesn't re-deliver it; the local ledger remains the
+ *      per-device guard and the mark-sent update fails open.
  *
  * Deliberately NOT jobs: subscription expiry (derived at read — nothing
  * to execute; the owner expire action is its own queue item), P2P request
@@ -34,11 +38,13 @@ import {
   summariseRun,
   appendRunLog,
   shouldAutoRun,
+  mergeQueuedReminders,
   SAMSKARA_KEY_PREFIX,
   MAX_DELIVERIES_PER_RUN,
   type DueJobsLedger,
   type DueJobsRunReport,
   type JobOutcome,
+  type QueuedReminder,
 } from './dueJobs';
 import { samskaraReminders, shraddhaReminders, ceremonyReminders, type Reminder } from '../samskara/samskaraStore';
 import type { SamskaraState } from '../samskara/types';
@@ -238,50 +244,70 @@ async function executeRun(opts: RunDueJobsOptions): Promise<DueJobsRunReport | n
 
   /* ---- Job 4: reminder-queue drain (server scheduler delivery) ---- */
   try {
-    const { collection, query, where, limit, getDocs } = await import('firebase/firestore');
+    const { collection, query, where, limit, getDocs, doc, updateDoc } = await import('firebase/firestore');
     const { db } = await import('./firebase');
-    const snap = await getDocs(
-      query(collection(db, 'reminderQueue'), where('targetUid', '==', uid), where('status', '==', 'queued'), limit(25)),
-    );
+    const queueCol = collection(db, 'reminderQueue');
+    // The rules accept EITHER recipient key (the server writes ownerUid;
+    // the client originally keyed targetUid). Two bounded queries —
+    // 25 per key — merged + deduped by doc id, so an item carrying
+    // both keys still drains exactly once.
+    const fetchKeyed = async (field: 'targetUid' | 'ownerUid'): Promise<QueuedReminder[]> => {
+      const snap = await getDocs(
+        query(queueCol, where(field, '==', uid), where('status', '==', 'queued'), limit(25)),
+      );
+      return snap.docs.map((docSnap) => {
+        const data = (docSnap.data() ?? {}) as { kind?: string; message?: string };
+        return { id: docSnap.id, kind: data.kind, message: data.message };
+      });
+    };
+    const items = mergeQueuedReminders([await fetchKeyed('targetUid'), await fetchKeyed('ownerUid')]);
     let delivered = 0;
     let skipped = 0;
     let failed = 0;
-    for (const docSnap of snap.docs) {
-      const key = `queue:${docSnap.id}`;
+    for (const item of items) {
+      const key = `queue:${item.id}`;
       if (ledger[key]) {
         skipped++;
         continue;
       }
-      const data = (docSnap.data() ?? {}) as { kind?: string; message?: string };
       const title =
-        data.kind === 'shraddha'
+        item.kind === 'shraddha'
           ? { en: '🙏 Shraddha smaran', bn: '🙏 শ্রাদ্ধ স্মরণ', hi: '🙏 श्राद्ध स्मरण' }
           : { en: '🪔 Samskara reminder', bn: '🪔 সংস্কার স্মরণিকা', hi: '🪔 संस्कार स्मरण' };
-      const message = typeof data.message === 'string' && data.message ? data.message : title.en;
+      const message = typeof item.message === 'string' && item.message ? item.message : title.en;
       try {
         await center.emit({
           kind: 'suchana',
           priority: 'gentle',
           title,
           body: { en: message, bn: message, hi: message },
-          dedupeKey: `reminderQueue:${docSnap.id}`,
+          dedupeKey: `reminderQueue:${item.id}`,
           deepLink: '/app/home/samskara',
           expiresAt: now + 7 * 86400000,
         });
         ledger[key] = Date.now();
         delivered++;
+        // Mark sent server-side (recipient-only, status-pinned rule) so
+        // the item doesn't re-deliver on a new device. Fail-open: if the
+        // update is denied or the device is offline, the local ledger
+        // above still prevents repeats on this device.
+        try {
+          await updateDoc(doc(db, 'reminderQueue', item.id), { status: 'sent' });
+        } catch {
+          /* fail-open — ledger remains the guard on this device */
+        }
       } catch {
         failed++;
       }
     }
     outcomes.push({
       job: 'reminder-queue',
-      scanned: snap.size,
-      due: snap.size,
+      scanned: items.length,
+      due: items.length,
       delivered,
       skipped,
       failed,
-      note: 'Server queue items cannot be marked sent from the client (rules) — the local ledger prevents repeats on this device.',
+      note: 'Delivered items are marked sent server-side; the local ledger guards this device if that update is unavailable.',
     });
   } catch {
     outcomes.push({ job: 'reminder-queue', scanned: 0, due: 0, delivered: 0, skipped: 0, failed: 1, note: 'Queue check failed (offline or rules).' });
