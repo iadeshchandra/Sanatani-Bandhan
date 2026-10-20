@@ -21,22 +21,16 @@ export const APP_TABS: Array<{ id: AppTabId; icon: string; en: string; bn: strin
 interface AppShellProps {
   activeTab: AppTabId;
   onTabChange: (tab: AppTabId) => void;
-  /** Sticky top header (My Space + SAN ID + Suchana button). Rendered as-is. */
+  /** Sticky top header (My Space + SAN ID + 💬/🔔 doors). Rendered as-is. */
   header?: React.ReactNode;
   children: React.ReactNode;
-  /** Unread notification count — shown as a quiet badge on the Suchana tab. */
-  suchanaUnread?: number;
-  /** Unread chat count — shown as a quiet badge on the Home tab (the
-      Messages card lives there; the 4-tab shell is law, so unread needs
-      a shell-level surface). */
-  homeChatUnread?: number;
+  /* Proposal A (2026-10-20): tab badges REMOVED. Unread state lives in
+   * exactly one place — the header doors (💬 Messages / 🔔 Suchana in
+   * SoloWorkspaceShell). Three badges for the same counts taught users to
+   * trust none of them. */
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, header, children, suchanaUnread = 0, homeChatUnread = 0 }) => {
-  const showBadge = suchanaUnread > 0;
-  const badgeLabel = suchanaUnread > 9 ? '9+' : String(suchanaUnread);
-  const showHomeBadge = homeChatUnread > 0;
-  const homeBadgeLabel = homeChatUnread > 9 ? '9+' : String(homeChatUnread);
+export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, header, children }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-stone-50">
       {/* Desktop: fixed left sidebar */}
@@ -55,8 +49,6 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
         <nav className="flex-1 px-3 py-2 space-y-1" aria-label="Primary">
           {APP_TABS.map((t) => {
             const isActive = activeTab === t.id;
-            const tabBadge = t.id === 'suchana' && showBadge;
-            const homeBadge = t.id === 'home' && showHomeBadge;
             return (
               <button
                 key={t.id}
@@ -69,30 +61,10 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
                     : 'text-amber-200/80 hover:bg-white/10 hover:text-amber-100'
                 }`}
               >
-                <span className="relative text-xl leading-none" aria-hidden>
+                <span className="text-xl leading-none" aria-hidden>
                   {t.icon}
-                  {tabBadge && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shadow">
-                      {badgeLabel}
-                    </span>
-                  )}
-                  {homeBadge && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow">
-                      {homeBadgeLabel}
-                    </span>
-                  )}
                 </span>
                 <T en={t.en} bn={t.bn} hi={t.hi} />
-                {tabBadge && (
-                  <span className="sr-only">
-                    {suchanaUnread} unread
-                  </span>
-                )}
-                {homeBadge && (
-                  <span className="sr-only">
-                    {homeChatUnread} unread messages
-                  </span>
-                )}
               </button>
             );
           })}
@@ -120,31 +92,19 @@ export const AppShell: React.FC<AppShellProps> = ({ activeTab, onTabChange, head
         <div className="grid grid-cols-4">
           {APP_TABS.map((t) => {
             const isActive = activeTab === t.id;
-            const tabBadge = t.id === 'suchana' && showBadge;
-            const homeBadge = t.id === 'home' && showHomeBadge;
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onTabChange(t.id)}
                 aria-current={isActive ? 'page' : undefined}
-                aria-label={tabBadge ? `${t.en}, ${suchanaUnread} unread` : homeBadge ? `${t.en}, ${homeChatUnread} unread messages` : t.en}
+                aria-label={t.en}
                 className={`relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] transition-colors ${
                   isActive ? 'text-amber-400' : 'text-amber-200/60'
                 }`}
               >
-                <span className="relative text-xl leading-none" aria-hidden>
+                <span className="text-xl leading-none" aria-hidden>
                   {t.icon}
-                  {tabBadge && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shadow">
-                      {badgeLabel}
-                    </span>
-                  )}
-                  {homeBadge && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center shadow">
-                      {homeBadgeLabel}
-                    </span>
-                  )}
                 </span>
                 <span className={`text-[10px] font-bold ${isActive ? 'text-amber-400' : ''}`}>
                   <T en={t.en} bn={t.bn} hi={t.hi} />

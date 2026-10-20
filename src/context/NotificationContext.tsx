@@ -31,6 +31,9 @@ export interface AppNotification {
 interface NotificationContextType {
   notifications: AppNotification[];
   unreadCount: number;
+  /** Unread + unacknowledged CRITICAL items — drives the header bell's
+      red pulse only (Proposal A: red is reserved for SOS, never diluted). */
+  criticalCount: number;
   addNotification: (notification: Omit<AppNotification, 'id' | 'timestamp' | 'isRead'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -70,6 +73,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     () => ({
       notifications,
       unreadCount: live.unreadCount,
+      criticalCount: live.criticalCount,
       // Legacy in-memory adds now emit through the real pipeline, so the
       // bell, the center UI and the Suchana digest all see the same item.
       addNotification: (notification) => {

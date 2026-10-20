@@ -5,20 +5,22 @@ import { SoloProvider, useSolo } from './SoloContext';
 import { SoloStoreProvider } from './soloStore';
 import { PurohitProvider } from '../context/PurohitContext';
 import { AppShell, AppTabId } from '../components/shell/AppShell';
-import { HomeTab, HomeSubTabBar, soloSubTabFromPath, SOLO_TAB_IDS, SoloTabId } from './HomeTab';
+import { HomeTab, HomeSubTabBar, soloSubTabFromPath } from './HomeTab';
 import { OrgsTab } from './OrgsTab';
 import { OrgSwitchRoute } from './OrgSwitchRoute';
 import { JoinOrgScreen } from './JoinOrgScreen';
 import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
 import { ChatRoute } from './ChatRoute';
-import { SuchanaFullModal } from '../components/suchana/SuchanaFullModal';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { FirstRunSequence } from './FirstRunSequence';
 import { DanaSheetHost } from './DanaSheetHost';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { SearchButton } from '../search/SearchButton';
+import { NotificationBell } from '../notifications/NotificationBell';
+import { SuchanaCenter } from './SuchanaCenter';
+import { formatBadgeCount } from './headerBadges';
 
 /* SoloWorkspaceShell — the independent personal workspace.
  * =====================================================================
@@ -33,7 +35,16 @@ import { SearchButton } from '../search/SearchButton';
  *  - "Purohit / Jyotishi Workspace" → Profile tab → "My Workspaces"
  *  - "Sign out"               → Profile tab → "Data & session"
  * The 12 Solo sub-tabs live INSIDE the Home tab as secondary navigation.
- * The 🪔 Suchana header button still opens SuchanaFullModal.
+ *
+ * Proposal A (unified notifications, 2026-10-20): the header carries TWO
+ * doors so one glance answers "did anything happen?" —
+ *   💬 Messages (badge = chat unread) → /app/chat
+ *   🔔 Suchana  (badge = notification unread; red pulse ONLY for CRITICAL)
+ *       → the Suchana Center sheet (sangha inbox + team notes).
+ * The old header 🪔 button opened the guidance modal under the same name
+ * as the inbox tab — retired. Guidance lives on the Suchana tab; the bell
+ * never opens guidance. Header badges are the single source of truth —
+ * the tab badges are gone.
  */
 
 const TAB_PATH: Record<AppTabId, string> = {
@@ -55,14 +66,14 @@ const SoloRouter: React.FC = () => {
   const { profile } = useSolo();
   const location = useLocation();
   const navigate = useNavigate();
-  const [suchanaOpen, setSuchanaOpen] = useState(false);
-  // Unread badge for the Suchana tab — one calm number, no anxiety (spec §3).
-  const { unreadCount } = useNotifications();
+  const [centerOpen, setCenterOpen] = useState(false);
+  // Header-door badges — the single source of truth for unread state.
+  const { unreadCount, criticalCount } = useNotifications();
 
   const uid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
-  // Unread chat badge on the Home tab — the Messages card lives on Home,
-  // and the 4-tab shell is law, so unread needs a shell-level surface.
+  // Unread chat count — shown on the header 💬 Messages door.
   const chatUnread = useChatUnreadTotal(uid === 'anon' ? null : uid);
+  const chatBadge = formatBadgeCount(chatUnread);
 
   const activeTab = tabFromPath(location.pathname);
   const subTab = soloSubTabFromPath(location.pathname);
@@ -83,16 +94,44 @@ const SoloRouter: React.FC = () => {
         <div className="flex items-center gap-2">
           {/* 🔍 Universal search — one bar for temples, people, posts, videos */}
           <SearchButton />
-          {/* 🪔 Suchana — the calm alternative to a notification bell */}
+          {/* 💬 Messages — persistent door to chat; green badge = unread.
+              Vocabulary: messages are people talking to you. */}
           <button
             type="button"
-            onClick={() => setSuchanaOpen(true)}
-            aria-label="Suchana — guidance for your path"
-            title="Suchana"
-            className="w-11 h-11 min-h-[44px] rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center text-xl border border-white/10 transition-colors"
+            onClick={() => navigate('/app/chat')}
+            aria-label="Messages · বার্তা · संदेश"
+            title="Messages"
+            className="relative w-11 h-11 min-h-[44px] rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center text-xl border border-white/10 transition-colors"
           >
-            🪔
+            <span aria-hidden>💬</span>
+            {chatBadge !== null && (
+              <span
+                aria-hidden
+                className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 px-1 rounded-full bg-emerald-500 text-white border-2 border-emerald-600/30 text-[11px] font-black flex items-center justify-center shadow-sm"
+              >
+                {chatBadge}
+              </span>
+            )}
+            {chatUnread > 0 && (
+              <span className="sr-only">
+                {chatUnread} unread message{chatUnread === 1 ? '' : 's'}
+              </span>
+            )}
           </button>
+          {/* 🔔 Suchana — the inbox bell. Warm amber badge; red pulse ONLY
+              when a CRITICAL item is unread. Vocabulary law: the bell is
+              named "🪔 Suchana — from your sangha", never "Notifications". */}
+          <NotificationBell
+            unreadCount={unreadCount}
+            criticalCount={criticalCount}
+            onClick={() => setCenterOpen(true)}
+            className="bg-white/10 hover:bg-white/20 text-amber-200 border border-white/10"
+            label={{
+              en: '🪔 Suchana — from your sangha',
+              bn: '🪔 সূচনা — আপনার সঙ্গ থেকে',
+              hi: '🪔 सूचना — आपके संघ से',
+            }}
+          />
         </div>
       </div>
       {/* Secondary sub-tab navigation — only inside the Home tab */}
@@ -107,8 +146,6 @@ const SoloRouter: React.FC = () => {
       activeTab={activeTab}
       onTabChange={(t) => navigate(TAB_PATH[t])}
       header={header}
-      suchanaUnread={unreadCount}
-      homeChatUnread={chatUnread}
     >
       <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
         <LocalOnlyBadge />
@@ -152,21 +189,19 @@ const SoloRouter: React.FC = () => {
         onNavigate={(t) => navigate(`/app/home/${t}`)}
       />
 
-      {/* 🪔 Full Suchana view — calm guidance feed */}
-      <SuchanaFullModal
-        isOpen={suchanaOpen}
-        onClose={() => setSuchanaOpen(false)}
-        role="solo"
-        onAction={(route) => {
-          setSuchanaOpen(false);
-          const id = route as SoloTabId;
-          navigate(
-            (SOLO_TAB_IDS as readonly string[]).includes(id)
-              ? `/app/home/${id}`
-              : '/app/home/panjika'
-          );
-        }}
-      />
+      {/* 🔔 Suchana Center — the inbox behind the header bell. Mounted
+          only while open so its Firestore listeners don't run pointlessly.
+          Guidance is NOT here: the footer link goes to the Suchana tab. */}
+      {centerOpen && (
+        <SuchanaCenter
+          isOpen={centerOpen}
+          onClose={() => setCenterOpen(false)}
+          onGuidance={() => {
+            setCenterOpen(false);
+            navigate('/app/suchana');
+          }}
+        />
+      )}
     </AppShell>
   );
 };
