@@ -20,6 +20,7 @@ import {
   canAccessTab,
   sanitizeDelegatedRole,
   resolveEffectiveRole,
+  resolveRoleWithReason,
 } from '../platformAdminRoles';
 
 describe('owner role — everything, always', () => {
@@ -124,6 +125,83 @@ describe('resolveEffectiveRole — registry decisions fail safe', () => {
     expect(resolveEffectiveRole({ isOwner: false, grant: { role: 'SuperAdmin' } })).toBeNull();
     expect(resolveEffectiveRole({ isOwner: false, grant: { role: 42 } })).toBeNull();
     expect(resolveEffectiveRole({ isOwner: false, grant: {} })).toBeNull();
+  });
+});
+
+describe('resolveRoleWithReason — every outcome carries its reason (QUEUED #42)', () => {
+  it('owner resolves as owner/owner even when the registry read fails', () => {
+    expect(resolveRoleWithReason({ isOwner: true, lookupFailed: true }))
+      .toEqual({ role: 'owner', reason: 'owner' });
+  });
+
+  it('owner resolves as owner/owner with no registry doc at all', () => {
+    expect(resolveRoleWithReason({ isOwner: true, grant: null }))
+      .toEqual({ role: 'owner', reason: 'owner' });
+    expect(resolveRoleWithReason({ isOwner: true }))
+      .toEqual({ role: 'owner', reason: 'owner' });
+  });
+
+  it('owner wins over a revoked, malformed doc in their name', () => {
+    expect(resolveRoleWithReason({ isOwner: true, grant: { role: 'bogus', active: false } }))
+      .toEqual({ role: 'owner', reason: 'owner' });
+  });
+
+  it('active grants resolve with reason grant', () => {
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 'admin', active: true }, hasUid: true }))
+      .toEqual({ role: 'admin', reason: 'grant' });
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 'moderator' }, hasUid: true }))
+      .toEqual({ role: 'moderator', reason: 'grant' });
+  });
+
+  it('missing doc is no-grant, not a generic null', () => {
+    expect(resolveRoleWithReason({ isOwner: false, grant: null, hasUid: true }))
+      .toEqual({ role: null, reason: 'no-grant' });
+    expect(resolveRoleWithReason({ isOwner: false, hasUid: true }))
+      .toEqual({ role: null, reason: 'no-grant' });
+  });
+
+  it('revoked doc is revoked', () => {
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 'admin', active: false }, hasUid: true }))
+      .toEqual({ role: null, reason: 'revoked' });
+  });
+
+  it('malformed role field is malformed — including a doc claiming owner', () => {
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 'owner' }, hasUid: true }))
+      .toEqual({ role: null, reason: 'malformed' });
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 42 }, hasUid: true }))
+      .toEqual({ role: null, reason: 'malformed' });
+    expect(resolveRoleWithReason({ isOwner: false, grant: {}, hasUid: true }))
+      .toEqual({ role: null, reason: 'malformed' });
+  });
+
+  it('failed lookup is lookup-failed even if a grant shape was supplied', () => {
+    expect(resolveRoleWithReason({ isOwner: false, grant: { role: 'admin' }, lookupFailed: true, hasUid: true }))
+      .toEqual({ role: null, reason: 'lookup-failed' });
+  });
+
+  it('no signed-in user is signed-out', () => {
+    expect(resolveRoleWithReason({ isOwner: false, hasUid: false }))
+      .toEqual({ role: null, reason: 'signed-out' });
+  });
+
+  it('role parity: the detailed resolver never disagrees with resolveEffectiveRole', () => {
+    const inputs = [
+      { isOwner: true },
+      { isOwner: true, lookupFailed: true },
+      { isOwner: true, grant: { role: 'bogus', active: false } },
+      { isOwner: false },
+      { isOwner: false, grant: null },
+      { isOwner: false, grant: { role: 'admin', active: true } },
+      { isOwner: false, grant: { role: 'moderator' } },
+      { isOwner: false, grant: { role: 'admin', active: false } },
+      { isOwner: false, grant: { role: 'owner' } },
+      { isOwner: false, grant: {} },
+      { isOwner: false, lookupFailed: true },
+      { isOwner: false, grant: { role: 'admin' }, lookupFailed: true },
+    ] as const;
+    for (const input of inputs) {
+      expect(resolveRoleWithReason(input).role).toBe(resolveEffectiveRole(input));
+    }
   });
 });
 

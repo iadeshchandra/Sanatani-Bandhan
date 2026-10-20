@@ -113,24 +113,66 @@ export interface PlatformAdminGrant {
 }
 
 /**
- * Resolve the effective console role. The decision order IS the fail-safe:
+ * Why a role resolution ended where it did (QUEUED #42). Until now every
+ * refusal collapsed into one silent `null`, and the GodMode gate showed a
+ * single generic line — a revoked admin, a missing grant, and a failed
+ * registry read were indistinguishable, and the failure was effectively
+ * invisible. Every resolution now carries its reason so the gate can say,
+ * in plain words, WHY access was refused.
+ */
+export type RoleResolutionReason =
+  | 'owner' // implicit owner — the registry was never consulted
+  | 'grant' // an active delegation grant was found
+  | 'signed-out' // no signed-in user to resolve
+  | 'no-grant' // signed in, but no platformAdmins doc exists for them
+  | 'revoked' // grant doc exists but active === false
+  | 'malformed' // grant doc exists but its role field is unusable
+  | 'lookup-failed'; // the registry read itself failed (rules / offline)
+
+export interface RoleResolution {
+  role: PlatformRole | null;
+  reason: RoleResolutionReason;
+}
+
+/**
+ * Resolve the effective console role AND the reason. The decision order
+ * IS the fail-safe:
  *   1. Owner wins immediately — the collection is never consulted, so a
  *      broken/empty registry can never lock the owner out.
- *   2. A failed lookup (rules pending, offline, permission error) → null.
- *   3. No doc → null. Revoked doc (active === false) → null.
- *   4. A doc whose role field is anything unexpected → null.
+ *   2. A failed lookup (rules pending, offline, permission error) →
+ *      null / 'lookup-failed' — never a guess.
+ *   3. No signed-in user → null / 'signed-out'.
+ *   4. No doc → 'no-grant'. Revoked doc (active === false) → 'revoked'.
+ *   5. A doc whose role field is anything unexpected → 'malformed'.
+ */
+export function resolveRoleWithReason(input: {
+  isOwner: boolean;
+  grant?: PlatformAdminGrant | null;
+  lookupFailed?: boolean;
+  hasUid?: boolean;
+}): RoleResolution {
+  if (input.isOwner) return { role: 'owner', reason: 'owner' };
+  if (input.lookupFailed) return { role: null, reason: 'lookup-failed' };
+  if (input.hasUid === false) return { role: null, reason: 'signed-out' };
+  const grant = input.grant;
+  if (!grant) return { role: null, reason: 'no-grant' };
+  if (grant.active === false) return { role: null, reason: 'revoked' };
+  const role = sanitizeDelegatedRole(grant.role);
+  if (!role) return { role: null, reason: 'malformed' };
+  return { role, reason: 'grant' };
+}
+
+/**
+ * Resolve the effective console role. Thin wrapper over
+ * resolveRoleWithReason so there is exactly ONE decision implementation;
+ * callers that need to explain a refusal use the detailed form.
  */
 export function resolveEffectiveRole(input: {
   isOwner: boolean;
   grant?: PlatformAdminGrant | null;
   lookupFailed?: boolean;
 }): PlatformRole | null {
-  if (input.isOwner) return 'owner';
-  if (input.lookupFailed) return null;
-  const grant = input.grant;
-  if (!grant) return null;
-  if (grant.active === false) return null;
-  return sanitizeDelegatedRole(grant.role);
+  return resolveRoleWithReason(input).role;
 }
 
 /** Human-readable capability summary for the Admins tab + toasts. */

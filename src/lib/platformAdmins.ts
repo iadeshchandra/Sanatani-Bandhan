@@ -39,11 +39,12 @@ import { db, auth } from '../firebase';
 import { isOwnerEmail } from '../config/ownerAllowlist';
 import { OWNER_UID, OWNER_EMAIL, isOwnerUid } from './firestoreAdmin';
 import {
-  resolveEffectiveRole,
+  resolveRoleWithReason,
   sanitizeDelegatedRole,
   type DelegatedAdminRole,
   type PlatformAdminGrant,
   type PlatformRole,
+  type RoleResolution,
 } from './platformAdminRoles';
 
 export const PLATFORM_ADMINS_COLLECTION = 'platformAdmins';
@@ -107,6 +108,34 @@ async function writeAdminAudit(
 }
 
 /**
+ * Resolve the effective GodMode role for a signed-in user, WITH the
+ * reason (QUEUED #42). NEVER throws and NEVER locks the owner out:
+ *   - owner (hardcoded UID or allowlisted email) → 'owner' / 'owner',
+ *     resolved before any Firestore read — the registry is not consulted,
+ *     so an empty/unreadable/deleted registry cannot lock the owner out;
+ *   - anyone else → their platformAdmins doc decides; the reason says
+ *     which refusal it was ('no-grant' | 'revoked' | 'malformed' |
+ *     'lookup-failed'), so the gate can explain itself instead of failing
+ *     silently behind one generic "not authorized" line.
+ */
+export async function resolveRoleForUserDetailed(
+  uid: string | null | undefined,
+  email: string | null | undefined,
+): Promise<RoleResolution> {
+  const isOwner = isOwnerUid(uid) || isOwnerEmail(email);
+  if (isOwner) return { role: 'owner', reason: 'owner' };
+  if (!uid) return { role: null, reason: 'signed-out' };
+  try {
+    const snap = await getDoc(doc(db, PLATFORM_ADMINS_COLLECTION, uid));
+    if (!snap.exists()) return resolveRoleWithReason({ isOwner: false, grant: null, hasUid: true });
+    const data = snap.data() as PlatformAdminGrant;
+    return resolveRoleWithReason({ isOwner: false, grant: data, hasUid: true });
+  } catch {
+    return resolveRoleWithReason({ isOwner: false, lookupFailed: true, hasUid: true });
+  }
+}
+
+/**
  * Resolve the effective GodMode role for a signed-in user.
  * NEVER throws and NEVER locks the owner out:
  *   - owner (hardcoded UID or allowlisted email) → 'owner', resolved
@@ -118,17 +147,7 @@ export async function resolveRoleForUser(
   uid: string | null | undefined,
   email: string | null | undefined,
 ): Promise<PlatformRole | null> {
-  const isOwner = isOwnerUid(uid) || isOwnerEmail(email);
-  if (isOwner) return 'owner';
-  if (!uid) return null;
-  try {
-    const snap = await getDoc(doc(db, PLATFORM_ADMINS_COLLECTION, uid));
-    if (!snap.exists()) return resolveEffectiveRole({ isOwner: false, grant: null });
-    const data = snap.data() as PlatformAdminGrant;
-    return resolveEffectiveRole({ isOwner: false, grant: data });
-  } catch {
-    return resolveEffectiveRole({ isOwner: false, lookupFailed: true });
-  }
+  return (await resolveRoleForUserDetailed(uid, email)).role;
 }
 
 /** Owner-only: list every delegation record. */

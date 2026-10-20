@@ -12,11 +12,16 @@
  *
  * Access: the platform owner (allowlisted email / canonical UID) or a
  * delegated admin holding a platformAdmins/{uid} grant (QUEUED #21).
- * Email+password or Google sign-in; anyone with neither owner status nor a
- * grant is signed straight back out. Delegated roles see only their
- * sections — owner-only tabs (API keys, billing, commission, finance,
- * database, settings, system, admins) stay hidden — and firestore.rules
- * remain the real boundary behind every action.
+ * Email+password or Google sign-in. A refused attempt NEVER signs the
+ * user out of the main app (QUEUED #42): this console gates ITSELF, not
+ * the app session — the old "signed straight back out" behaviour meant
+ * one mistyped gate attempt destroyed the owner's app session, and the
+ * refusal itself was invisible (a transient corner toast was the only
+ * signal). Refusals now state their reason in plain words ON the gate.
+ * Delegated roles see only their sections — owner-only tabs (API keys,
+ * billing, commission, finance, database, settings, system, admins)
+ * stay hidden — and firestore.rules remain the real boundary behind
+ * every action.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -51,8 +56,8 @@ import { ConsoleHeader } from './godmode/ConsoleHeader';
 import { NeedsAttention } from './godmode/NeedsAttention';
 import { useConsoleStatus } from './godmode/useConsoleStatus';
 import { buildHandItems, identityFor } from './godmode/consoleChrome';
-import { resolveRoleForUser } from '../../lib/platformAdmins';
-import { canAccessTab, type PlatformRole } from '../../lib/platformAdminRoles';
+import { resolveRoleForUserDetailed } from '../../lib/platformAdmins';
+import { canAccessTab, type PlatformRole, type RoleResolutionReason } from '../../lib/platformAdminRoles';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -88,6 +93,74 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'audit', label: 'Audit Log', icon: <ScrollText className="w-4 h-4" /> },
   { id: 'system', label: 'System', icon: <Server className="w-4 h-4" /> },
 ];
+
+/* --------------------- Gate refusal language (QUEUED #42) -------------------- */
+
+/**
+ * Plain-words reason for a refused unlock, rendered ON the gate itself.
+ * The gate previously reported every outcome only through a transient
+ * corner toast — in a modal flow that is effectively silence, which is
+ * how a refused attempt could look like "nothing happened". These lines
+ * are persistent, specific, and name the signed-in account so a
+ * wrong-account state is obvious at a glance.
+ */
+function gateReasonText(reason: RoleResolutionReason, email: string | null | undefined): string {
+  const who = email ? ` (${email})` : '';
+  switch (reason) {
+    case 'no-grant':
+      return `This account${who} has no platform admin access. Only the platform owner or a delegated admin can open this console — if this should be the owner, check that the email above is the owner email.`;
+    case 'revoked':
+      return `This account's admin access has been revoked${who}. The platform owner can restore it from the Admins tab inside the console.`;
+    case 'malformed':
+      return `This account's admin grant could not be read (its stored role is damaged)${who}. The platform owner can repair it from the Admins tab inside the console.`;
+    case 'lookup-failed':
+      return 'Your admin access could not be verified — the admin registry could not be read (connection or permissions problem). Nothing was changed and you have NOT been signed out of the app. Check your connection and try again.';
+    case 'signed-out':
+      return 'You are not signed in. Enter the owner or delegated-admin email and password below.';
+    default:
+      return 'This account is not authorized for system override.';
+  }
+}
+
+/** Plain-words translation of the Firebase sign-in errors the gate can hit. */
+function authErrorText(err: any): string {
+  const code = typeof err?.code === 'string' ? err.code : '';
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'That email and password do not match a Firebase account. If the owner account was created with Google sign-in it may have no password at all — use "Continue with Google" below instead. You have NOT been signed out of the app.';
+    case 'auth/invalid-email':
+      return 'That email address does not look valid.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled in Firebase Authentication.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts — Firebase has paused sign-ins for this account for a while. Wait a few minutes, then try again.';
+    case 'auth/network-request-failed':
+      return 'Network problem — the sign-in request never reached Firebase. Check your connection and try again.';
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return 'The Google sign-in window was closed before it finished. Nothing was changed.';
+    default:
+      return err?.message || 'Authentication failed.';
+  }
+}
+
+/**
+ * Session note for a refused gate attempt (QUEUED #42). A refused attempt
+ * NEVER signs the user out — but if the attempt itself signed in as a
+ * DIFFERENT account than the one the app was using, Firebase has already
+ * replaced the session and it cannot be silently restored (that would
+ * need the old account's credentials). Say so plainly instead of letting
+ * the user discover it later at a bounced /app/home.
+ */
+function sessionNote(priorUid: string | null, priorEmail: string | null, nowUid: string | null): string {
+  if (priorUid && nowUid && priorUid !== nowUid) {
+    return ` Note: this attempt signed the app in as a different account, replacing your previous session (${priorEmail || 'a different account'}). It cannot be restored without that account's credentials — sign in again from the main login if you need it back.`;
+  }
+  if (priorUid) return ' Your main app session has NOT been signed out.';
+  return '';
+}
 
 /** Shared: honest backend-down banner shown inside any tab. */
 export const BackendDownBanner: React.FC<{ onRetry?: () => void }> = ({ onRetry }) => (
@@ -351,6 +424,10 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const [godEmail, setGodEmail] = useState('');
   const [godAccessKey, setGodAccessKey] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Persistent on-gate notice (QUEUED #42): every refusal or sign-in
+  // failure explains itself HERE, in the gate card — never only via a
+  // transient toast the user may never see.
+  const [gateNotice, setGateNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
   const [resetSent, setResetSent] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
 
@@ -364,18 +441,20 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   // alone — the delegation registry is never consulted for them, so a broken
   // or empty registry can never lock the owner out. Anyone else must hold a
   // platformAdmins grant; resolution failure fails safe to locked.
+  // (QUEUED #42): resolution is DETAILED — a signed-in user who is refused
+  // gets the reason on the gate itself, instead of a locked gate in silence.
   useEffect(() => {
     if (!firebaseUser) return;
-    if (isOwnerEmail(firebaseUser.email)) {
-      setAdminRole('owner');
-      setIsUnlocked(true);
-      return;
-    }
     let cancelled = false;
-    void resolveRoleForUser(firebaseUser.uid, firebaseUser.email).then((role) => {
-      if (cancelled || !role) return;
-      setAdminRole(role);
-      setIsUnlocked(true);
+    void resolveRoleForUserDetailed(firebaseUser.uid, firebaseUser.email).then((res) => {
+      if (cancelled) return;
+      if (res.role) {
+        setAdminRole(res.role);
+        setIsUnlocked(true);
+        setGateNotice(null);
+      } else {
+        setGateNotice({ kind: 'error', text: gateReasonText(res.reason, firebaseUser.email) });
+      }
     });
     return () => { cancelled = true; };
   }, [firebaseUser?.uid, firebaseUser?.email]);
@@ -430,44 +509,60 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
 
   const handleUnlockGodMode = async (e: React.FormEvent) => {
     e.preventDefault();
+    const email = godEmail.trim();
+    if (!email) {
+      setGateNotice({ kind: 'error', text: 'Please enter your administrator email and password.' });
+      return;
+    }
+    // The session that was live BEFORE this attempt (QUEUED #42): a
+    // refused attempt must never destroy it, so this handler NEVER calls
+    // auth.signOut() — the console gates itself, not the app.
+    const priorUid = auth.currentUser?.uid ?? null;
+    const priorEmail = auth.currentUser?.email ?? null;
     try {
-      if (godEmail.trim() !== '') {
-        await signInWithEmailAndPassword(auth, godEmail, godAccessKey);
-        const signedInEmail = auth.currentUser?.email ?? '';
-        const role = await resolveRoleForUser(auth.currentUser?.uid, signedInEmail);
-        if (!role) {
-          await auth.signOut();
-          showToast('This Firebase account is not authorized for system override.', 'error');
-          return;
-        }
-        setAdminRole(role);
-        setIsUnlocked(true);
-        switchRole('SuperAdmin');
-        showToast('Authenticated successfully.', 'success');
-      } else {
-        showToast('Please enter your administrator email and password.', 'error');
+      await signInWithEmailAndPassword(auth, email, godAccessKey);
+      const res = await resolveRoleForUserDetailed(auth.currentUser?.uid, auth.currentUser?.email);
+      if (!res.role) {
+        setGateNotice({
+          kind: 'error',
+          text: gateReasonText(res.reason, auth.currentUser?.email ?? email)
+            + sessionNote(priorUid, priorEmail, auth.currentUser?.uid ?? null),
+        });
+        return;
       }
+      setGateNotice(null);
+      setAdminRole(res.role);
+      setIsUnlocked(true);
+      switchRole('SuperAdmin');
+      showToast('Authenticated successfully.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Authentication failed.', 'error');
+      setGateNotice({ kind: 'error', text: authErrorText(err) });
     }
   };
 
   const handleGoogleGodMode = async () => {
+    // Same law as the password path (QUEUED #42): never sign out on a
+    // refusal; the reason is stated on the gate.
+    const priorUid = auth.currentUser?.uid ?? null;
+    const priorEmail = auth.currentUser?.email ?? null;
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const signedInEmail = result.user?.email ?? '';
-      const role = await resolveRoleForUser(result.user?.uid, signedInEmail);
-      if (!role) {
-        await auth.signOut();
-        showToast('This Google account is not authorized for system override.', 'error');
+      const res = await resolveRoleForUserDetailed(result.user?.uid, result.user?.email);
+      if (!res.role) {
+        setGateNotice({
+          kind: 'error',
+          text: gateReasonText(res.reason, result.user?.email)
+            + sessionNote(priorUid, priorEmail, result.user?.uid ?? null),
+        });
         return;
       }
-      setAdminRole(role);
+      setGateNotice(null);
+      setAdminRole(res.role);
       setIsUnlocked(true);
       switchRole('SuperAdmin');
       showToast('Authenticated successfully via Google.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Google authentication failed.', 'error');
+      setGateNotice({ kind: 'error', text: authErrorText(err) });
     }
   };
 
@@ -532,7 +627,25 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               <Lock className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-bold text-white mb-1">Sovereign Access</h3>
-            <p className="text-xs text-slate-400 mb-6">Platform admin authentication required. Accounts without owner status or a delegation grant are signed straight back out.</p>
+            <p className="text-xs text-slate-400 mb-6">Platform admin authentication required. The console stays locked for accounts without owner status or a delegation grant — and a refused attempt never signs you out of the app.</p>
+            {firebaseUser && (
+              <p className="text-[11px] text-slate-500 -mt-4 mb-4">
+                Signed in to the app as{' '}
+                <span className="text-slate-300 font-semibold">{firebaseUser.email ?? firebaseUser.uid}</span>
+              </p>
+            )}
+            {gateNotice && (
+              <div
+                role="alert"
+                className={`w-full rounded-xl border px-4 py-3 mb-5 text-left text-xs leading-relaxed ${
+                  gateNotice.kind === 'error'
+                    ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                    : 'border-sky-500/40 bg-sky-500/10 text-sky-200'
+                }`}
+              >
+                {gateNotice.text}
+              </div>
+            )}
             <form onSubmit={handleUnlockGodMode} className="w-full space-y-4">
               <input
                 type="email"
