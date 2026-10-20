@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { allowsSeedData } from '../lib/workspaceKind';
 import {
   NyasState, NyasSettings, Registration, ComplianceItem, ApplicationEntry,
   VaultDoc, Meeting,
@@ -198,7 +199,13 @@ export const NyasProvider: React.FC<{ workspaceId: string; children: React.React
       [key]: (s[key] as Array<{ id: string }>).filter((r) => r.id !== id),
     })),
     setSettings: (patch) => setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
-    ensureSeeded: () => setState((s) => (s.compliance.length ? s : buildSeed())),
+    ensureSeeded: () => {
+      // QUEUED #45 seed law: fictitious seed data hydrates ONLY in an
+      // explicit demo context. In a real workspace an empty store
+      // stays EMPTY — no phantom herds, rooms, meals or members.
+      if (!allowsSeedData(workspaceId)) return;
+      setState((s) => (s.compliance.length ? s : buildSeed()));
+    },
     exportJSON: () => JSON.stringify(state, null, 2),
     importJSON: (json) => {
       try {
@@ -208,7 +215,7 @@ export const NyasProvider: React.FC<{ workspaceId: string; children: React.React
         return true;
       } catch { return false; }
     },
-    resetAll: () => setState(buildSeed()),
+    resetAll: () => setState(allowsSeedData(workspaceId) ? buildSeed() : EMPTY),
   }), [state, workspaceId]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

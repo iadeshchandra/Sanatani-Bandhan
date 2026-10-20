@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { allowsSeedData } from '../lib/workspaceKind';
 import {
   PathshalaState, Guru, StaffMember, Varga, Subject, UpasthitiRecord, StaffUpasthitiRecord,
   Pariksha, MarksEntry, ExamRoutine, ClassRoutine, ClassPeriod, FeeHead, FeeReceipt, Suchana,
@@ -232,7 +233,13 @@ export const PathshalaProvider: React.FC<{ workspaceId: string; children: React.
           : [...s.shishyaMeta, { studentId, ...patch }],
       };
     }),
-    ensureSeeded: (shishyaIds) => setState((s) => {
+    ensureSeeded: (shishyaIds) => {
+      // QUEUED #45 seed law: this seeder fabricates seed classes AND
+      // 'present' attendance rows — in a real workspace that is fictitious
+      // data masquerading as real (incl. attendance for real children).
+      // Demo contexts only; a real gurukul's register starts EMPTY.
+      if (!allowsSeedData(workspaceId)) return;
+      setState((s) => {
       if (s.seededAt) {
         // Top-up: seed attendance/marks for shishyas never seen before.
         const known = new Set(s.upasthiti.map((u) => u.studentId));
@@ -245,7 +252,8 @@ export const PathshalaProvider: React.FC<{ workspaceId: string; children: React.
         return { ...s, upasthiti: [...s.upasthiti, ...extra] };
       }
       return buildSeed(shishyaIds);
-    }),
+      });
+    },
     exportJSON: () => JSON.stringify({ exportedAt: new Date().toISOString(), workspaceId, state }, null, 2),
     importJSON: (json) => {
       try {

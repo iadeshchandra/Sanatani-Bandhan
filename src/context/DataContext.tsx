@@ -48,7 +48,6 @@ import {
   query,
   where,
   getDocs,
-  addDoc,
   serverTimestamp,
   getCountFromServer,
   getAggregateFromServer,
@@ -65,6 +64,8 @@ import {
   type CollectionWindowState,
   type CoreCollectionKey,
 } from './data/windowing';
+import { stripUndefinedDeep } from './data/firestoreDoc';
+import { allowsSeedData } from '../lib/workspaceKind';
 
 
 // Master Initial Datasets
@@ -1153,63 +1154,83 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// QUEUED #45: the honest zero for the lineage tree in a real workspace —
+// no fictitious ancestors.
+const EMPTY_VANSHAVALI: VanshavaliNode = {
+  id: 'root-empty',
+  name: '',
+  generation: 0,
+  gotra: '',
+  relation: '',
+  children: [],
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeWorkspaceId, activeWorkspace, currentRole, isAuthenticated, firebaseUser, currentUser } = useAuthWorkspace();
   const { showToast } = useToast();
   const initialData = useInitialData();
 
+  // QUEUED #45 seed law: the hard-coded INITIAL_* fixture datasets may
+  // hydrate provider state ONLY in an explicit demo context (DEMO_* or a
+  // legacy fixture workspace). In a real workspace, no cached copy means
+  // EMPTY — never fictitious people, vouchers, herds, rooms or lineage.
+  // The four cloud-synced core collections ignore fixtures entirely: their
+  // re-entry snapshot is the truth, and the demo flow seeds explicitly
+  // (seedDemoData, records tagged isDemoSeed) instead.
+  const seedFixturesOk = allowsSeedData(activeWorkspaceId);
+
   const [allDevotees, setAllDevotees] = useState<DevoteeMember[]>(() => {
     const s = initialData.sb_devotees;
-    return s ? s : INITIAL_DEVOTEES;
+    return s ? s : [];
   });
 
   const [allFamilies, setAllFamilies] = useState<FamilyHousehold[]>(() => {
     const s = initialData.sb_families;
-    return s ? s : INITIAL_FAMILIES;
+    return s ? s : seedFixturesOk ? INITIAL_FAMILIES : [];
   });
 
   const [vanshavali, setVanshavali] = useState<VanshavaliNode>(() => {
     const s = initialData.sb_vanshavali;
-    return s ? s : INITIAL_VANSHAVALI;
+    return s ? s : seedFixturesOk ? INITIAL_VANSHAVALI : EMPTY_VANSHAVALI;
   });
 
   const [allGuests, setAllGuests] = useState<GuestRecord[]>(() => {
     const s = initialData.sb_guests;
-    return s ? s : INITIAL_GUESTS;
+    return s ? s : seedFixturesOk ? INITIAL_GUESTS : [];
   });
 
   const [allTreasury, setAllTreasury] = useState<TreasuryTransaction[]>(() => {
     const s = initialData.sb_treasury;
-    return s ? s : INITIAL_TREASURY;
+    return s ? s : [];
   });
 
   const [allAssets, setAllAssets] = useState<AssetRecord[]>(() => {
     const s = initialData.sb_assets;
-    return s ? s : INITIAL_ASSETS;
+    return s ? s : seedFixturesOk ? INITIAL_ASSETS : [];
   });
 
   const [allInventory, setAllInventory] = useState<InventoryItem[]>(() => {
     const s = initialData.sb_inventory;
-    return s ? s : INITIAL_INVENTORY;
+    return s ? s : [];
   });
 
   const [allPoojaBookings, setAllPoojaBookings] = useState<PoojaBooking[]>(() => {
     const s = initialData.sb_pooja_bookings;
-    return s ? s : INITIAL_POOJA_BOOKINGS;
+    return s ? s : [];
   });
 
-  const [allResidentPujas, setAllResidentPujas] = useState<ResidentPujaSchedule[]>(() => { const s = (initialData as any).sb_residentPujas; return s ? s : INITIAL_RESIDENT_PUJAS; });
+  const [allResidentPujas, setAllResidentPujas] = useState<ResidentPujaSchedule[]>(() => { const s = (initialData as any).sb_residentPujas; return s ? s : seedFixturesOk ? INITIAL_RESIDENT_PUJAS : []; });
   const [allPurohits] = useState<PurohitProfile[]>(INITIAL_PUROHIT_MARKET);
-  const [allPitruRecords, setAllPitruRecords] = useState<PitruRecord[]>(() => { const s = (initialData as any).sb_pitruRecords; return s ? s : INITIAL_PITRU_RECORDS; });
-  const [allCows, setAllCows] = useState<GoshalaCowRecord[]>(() => { const s = (initialData as any).sb_cows; return s ? s : INITIAL_COWS; });
-  const [allAnnadanamList, setAllAnnadanamList] = useState<AnnadanamSponsorship[]>(() => { const s = (initialData as any).sb_annadanam; return s ? s : INITIAL_ANNADANAM; });
-  const [allRooms] = useState<AshramKutirRoom[]>(INITIAL_ROOMS);
-  const [allGurukulStudents, setAllGurukulStudents] = useState<GurukulStudent[]>(() => { const s = (initialData as any).sb_students; return s ? s : INITIAL_GURUKUL_STUDENTS; });
-  const [allCampaigns, setAllCampaigns] = useState<CampaignCrowdfund[]>(() => { const s = (initialData as any).sb_campaigns; return s ? s : INITIAL_CAMPAIGNS; });
+  const [allPitruRecords, setAllPitruRecords] = useState<PitruRecord[]>(() => { const s = (initialData as any).sb_pitruRecords; return s ? s : seedFixturesOk ? INITIAL_PITRU_RECORDS : []; });
+  const [allCows, setAllCows] = useState<GoshalaCowRecord[]>(() => { const s = (initialData as any).sb_cows; return s ? s : seedFixturesOk ? INITIAL_COWS : []; });
+  const [allAnnadanamList, setAllAnnadanamList] = useState<AnnadanamSponsorship[]>(() => { const s = (initialData as any).sb_annadanam; return s ? s : seedFixturesOk ? INITIAL_ANNADANAM : []; });
+  const [allRooms] = useState<AshramKutirRoom[]>(() => (seedFixturesOk ? INITIAL_ROOMS : []));
+  const [allGurukulStudents, setAllGurukulStudents] = useState<GurukulStudent[]>(() => { const s = (initialData as any).sb_students; return s ? s : seedFixturesOk ? INITIAL_GURUKUL_STUDENTS : []; });
+  const [allCampaigns, setAllCampaigns] = useState<CampaignCrowdfund[]>(() => { const s = (initialData as any).sb_campaigns; return s ? s : seedFixturesOk ? INITIAL_CAMPAIGNS : []; });
   const [allMatrimonyProfiles] = useState<MatrimonyProfile[]>(INITIAL_MATRIMONY);
   const [allShlokas] = useState<ShlokaCardItem[]>(INITIAL_SHLOKAS);
-  const [allResolutions, setAllResolutions] = useState<TrusteeResolution[]>(INITIAL_RESOLUTIONS);
-  const [allShifts, setAllShifts] = useState<SevadarDutyShift[]>(INITIAL_SHIFTS);
+  const [allResolutions, setAllResolutions] = useState<TrusteeResolution[]>(() => (seedFixturesOk ? INITIAL_RESOLUTIONS : []));
+  const [allShifts, setAllShifts] = useState<SevadarDutyShift[]>(() => (seedFixturesOk ? INITIAL_SHIFTS : []));
   const [allBhoomiProperties, setAllBhoomiProperties] = useState<BhoomiProperty[]>(() => { const s = (initialData as any).sb_bhoomiProperties; return s ? s : []; });
   const [allRentReceipts, setAllRentReceipts] = useState<BhoomiRentReceipt[]>(() => { const s = (initialData as any).sb_rentReceipts; return s ? s : []; });
   const [allFleetVehicles, setAllFleetVehicles] = useState<FleetVehicle[]>(() => { const s = (initialData as any).sb_fleetVehicles; return s ? s : []; });
@@ -1530,10 +1551,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [activeWorkspaceId, isAuthenticated, windowLimits]);
 
-  // Helper to push to firestore
-  const pushToFirestore = (colName: string, id: string, data: any) => {
-    setDoc(doc(db, colName, id), data, { merge: true }).catch((err: any) => {
+  // Helper to push to firestore. QUEUED #45: payloads pass through
+  // stripUndefinedDeep — Firestore is initialized WITHOUT
+  // ignoreUndefinedProperties, so any undefined field value makes the SDK
+  // reject the write outright. Callers may pass onError to surface the
+  // failure honestly instead of celebrating a write that never landed.
+  const pushToFirestore = (colName: string, id: string, data: any, onError?: (err: any) => void) => {
+    setDoc(doc(db, colName, id), stripUndefinedDeep(data), { merge: true }).catch((err: any) => {
       console.warn(`[Firestore sync] ${colName} offline or restricted:`, err?.message || err);
+      onError?.(err);
     });
   };
 
@@ -2505,6 +2531,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setAllDevotees((prev) => [newMember, ...prev]);
+
+    // QUEUED #45: actually persist. This mutator previously updated local
+    // state ONLY, so the member vanished the moment the re-entry snapshot
+    // replaced state with cloud truth. Same app id, sanitized payload (form
+    // data carries undefined optionals, which the SDK rejects), and a
+    // rejected write rolls the optimistic record back with an honest error.
+    // The legacy plaintext `pin` field is NEVER persisted (C-7) — only the
+    // hash/salt ever leave the device.
+    const persistableMember: Record<string, unknown> = { ...(newMember as any) };
+    delete persistableMember.pin;
+    setDoc(doc(db, 'devotees', id), stripUndefinedDeep(persistableMember)).catch((err: any) => {
+      console.warn('[Firestore sync] devotee write rejected — rolling back:', err?.message || err);
+      setAllDevotees((prev) => prev.filter((d) => d.id !== id));
+      showToast(`${newMember.fullName} could NOT be saved — please check the connection and try again.`, 'error', 'Not Saved');
+    });
+
     trackSignUp({ memberId: newMember.id, gotra: newMember.gotra || '', sevaTier: 'Devotee', workspaceType: activeWorkspace.type, workspaceId: activeWorkspace.id });
     // SECURITY (C-4): the auto-purge note is shown ONLY for demo sandboxes —
     // real workspaces never expire records.
@@ -2522,6 +2564,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAllDevotees((prev) =>
       prev.map((d, idx) => (d.id === id ? { ...d, ...updates } : d))
     );
+    // QUEUED #45: persist the edit — previously local-only, so the re-entry
+    // snapshot silently reverted it. Plaintext `pin` never persists (C-7).
+    const safeUpdates: Record<string, unknown> = { ...(updates as any) };
+    delete safeUpdates.pin;
+    pushToFirestore('devotees', id, safeUpdates, () => {
+      showToast('Devotee update could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
+    });
     showToast('Devotee record updated', 'success');
   };
 
@@ -2663,17 +2712,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Optimistic UI Update
     setAllTreasury((prev) => [newTx, ...prev]);
     
-    // Firestore DB Write
-    try {
-      addDoc(collection(db, 'treasury'), {
-        ...newTx,
-        timestamp: serverTimestamp()
-      }).catch((err: any) => {
-        console.warn("Firebase Treasury Write Notice:", err?.message || err);
-      });
-    } catch(e: any) {
-      console.warn("Firebase Treasury local fallback notice:", e?.message || e);
-    }
+    // Firestore DB Write — QUEUED #45: this previously used addDoc with a
+    // payload that routinely carried undefined fields (taxReceiptNumber is
+    // undefined for every non-80G voucher; desk payloads add undefined
+    // devoteeName / vendorName / referenceNo / memoImageUrl). With no
+    // ignoreUndefinedProperties the SDK rejected those writes before they
+    // left the device, and the .catch swallowed the rejection behind the
+    // success toast — the voucher vanished on re-entry. Now: written under
+    // the SAME app id via setDoc (the snapshot maps docSnap.id, so write
+    // and read identities agree), payload sanitized, and a rejection rolls
+    // the optimistic record back with an honest error toast.
+    setDoc(doc(db, 'treasury', id), stripUndefinedDeep({ ...newTx, timestamp: serverTimestamp() })).catch((err: any) => {
+      console.warn('[Firestore sync] treasury write rejected — rolling back:', err?.message || err);
+      setAllTreasury((prev) => prev.filter((t) => t.id !== id));
+      showToast('That voucher could NOT be saved — it has been removed from the ledger. Please retry.', 'error', 'Not Saved');
+    });
 
     if (tx.type === 'Income') {
       trackTreasuryPurchase({
@@ -2715,6 +2768,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               : d
           )
         );
+
+        // QUEUED #45: persist the devotee's new lifetime total too — else
+        // the re-entry snapshot reverts it while the voucher itself survives.
+        if (devotee) {
+          pushToFirestore('devotees', devotee.id, {
+            totalDonated: (devotee.totalDonated || 0) + tx.amount,
+            sevaIndex: Math.min(1000, (devotee.sevaIndex || 0) + Math.floor(tx.amount / 100)),
+          });
+        }
       }
     }
 
@@ -2752,7 +2814,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // M-1: 'treasury' is the canonical collection (reads and writes).
       // The legacy duplicate write to 'donations' was removed.
-      setDoc(doc(db, 'treasury', id), { ...updates, updatedAt: serverTimestamp() }, { merge: true }).catch(console.warn);
+      setDoc(doc(db, 'treasury', id), stripUndefinedDeep({ ...updates, updatedAt: serverTimestamp() }), { merge: true }).catch(console.warn);
     } catch (e) {
       console.warn('Update treasury transaction error:', e);
     }
@@ -2832,6 +2894,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setAllPoojaBookings((prev) => [newBooking, ...prev]);
 
+    // QUEUED #45: persist the booking — previously local-only, so it
+    // vanished on re-entry while its auto-posted dakshina voucher (which
+    // goes through addTreasuryTransaction) survived. Same id, sanitized;
+    // a rejection rolls the optimistic record back honestly.
+    setDoc(doc(db, 'puja_bookings', id), stripUndefinedDeep(newBooking)).catch((err: any) => {
+      console.warn('[Firestore sync] pooja booking write rejected — rolling back:', err?.message || err);
+      setAllPoojaBookings((prev) => prev.filter((b) => b.id !== id));
+      showToast('That booking could NOT be saved — please retry.', 'error', 'Not Saved');
+    });
+
     // Automatically log to treasury ledger
     addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
@@ -2855,6 +2927,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAllPoojaBookings((prev) =>
       prev.map((b, idx) => (b.id === id ? { ...b, status, ...additionalUpdates } : b))
     );
+    // QUEUED #45: persist — previously local-only (reverted on re-entry).
+    pushToFirestore('puja_bookings', id, { status, ...(additionalUpdates || {}) }, () => {
+      showToast('Pooja status could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
+    });
     showToast(`Pooja status updated to ${status}`, 'success');
   };
 
@@ -2862,6 +2938,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAllPoojaBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, liveStreamUrl: url } : b))
     );
+    // QUEUED #45: persist — previously local-only (reverted on re-entry).
+    pushToFirestore('puja_bookings', id, { liveStreamUrl: url }, () => {
+      showToast('Live stream link could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
+    });
     showToast('🔴 Live stream link saved — devotees can now watch.', 'success');
   };
 

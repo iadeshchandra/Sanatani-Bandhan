@@ -41,7 +41,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
-import { useData, INITIAL_DEVOTEES } from '../../context/DataContext';
+import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
 import { useScopedData } from '../../hooks/useScopedData';
 import { DevoteeMember, SevaTier, UserRole } from '../../types';
@@ -61,7 +61,7 @@ import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { UpsellModal } from '../common/UpsellModal';
 import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { QuickChandaModal } from '../common/QuickChandaModal';
-import { addDevotee, getDevotees } from '../../services/devoteeService';
+import { getDevotees } from '../../services/devoteeService';
 
 export const DevoteeGrid: React.FC = () => {
   const { activeWorkspace, activeWorkspaceId, currentRole, currentDevotee, checkPermission } = useAuthWorkspace();
@@ -74,7 +74,7 @@ export const DevoteeGrid: React.FC = () => {
   const canViewFinancials = checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
   const canRegister = checkPermission(['TRUSTEE', 'MANAGER', 'ACCOUNTANT', 'PUROHIT', 'VOLUNTEER', 'SUPER_ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN']);
 
-  const { treasury, poojas, updateDevotee, deleteDevotee, recordsForBranch, activeBranchId, devotees: ctxDevotees } = useData();
+  const { treasury, poojas, addDevotee: addDevoteeCtx, updateDevotee, deleteDevotee, recordsForBranch, activeBranchId, devotees: ctxDevotees } = useData();
   const [devotees, setDevotees] = useState<DevoteeMember[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -97,11 +97,15 @@ export const DevoteeGrid: React.FC = () => {
       if (records && records.length > 0) {
         setDevotees(records as DevoteeMember[]);
       } else {
-        setDevotees(INITIAL_DEVOTEES || []);
+        // QUEUED #45 seed law: an empty directory means EMPTY. This used to
+        // fall back to the hard-coded INITIAL_DEVOTEES fixtures, so every
+        // real org booted with the same five fictitious people (incl. a
+        // ₹500,000 "SUPER_ADMIN") — none labelled sample.
+        setDevotees([]);
       }
     } catch (err: any) {
-      console.warn('Notice: Falling back to local devotee records. Firestore unavailable:', err?.message || err);
-      setDevotees(INITIAL_DEVOTEES || []);
+      console.warn('Notice: devotee fetch failed — showing the honest empty directory:', err?.message || err);
+      setDevotees([]);
     } finally {
       setLoading(false);
     }
@@ -499,27 +503,30 @@ export const DevoteeGrid: React.FC = () => {
       };
 
       try {
-        const res = await addDevotee(workspaceId, newDevoteeData);
-        showToast('Devotee registered successfully in Firestore!', 'success');
-
-        // Instantly refresh the grid state so the new devotee appears
-        const freshList = await getDevotees(workspaceId);
-        if (freshList && freshList.length > 0) {
-          setDevotees(freshList as DevoteeMember[]);
+        // QUEUED #45: register through DataContext — the ledger of record.
+        // The legacy tenant service wrote to tenants/{id}/devotees (a store
+        // no re-entry read uses) and fabricated a success record whenever
+        // Firestore rejected the write — the form data's undefined optional
+        // fields made the SDK reject it every time — so the desk toasted
+        // "registered successfully in Firestore!" for a member who was
+        // never persisted and vanished on re-entry. DataContext persists to
+        // the root `devotees` collection under the same id, sanitizes the
+        // payload, and rolls back + reports honestly on rejection.
+        const newId = addDevoteeCtx(newDevoteeData);
+        if (!newId) {
+          showToast('Devotee could NOT be registered — the member limit for this workspace is reached.', 'error');
         } else {
-          setDevotees(prev => [{ id: res.id, ...newDevoteeData } as DevoteeMember, ...prev]);
+          const newDevotee = {
+            id: newId as string,
+            ...newDevoteeData,
+          };
+          // Auto-generate the account creation PDF (ID Card)
+          setTimeout(() => {
+            handlePrintCard(newDevotee as unknown as DevoteeMember);
+          }, 500);
         }
-
-        const newDevotee = {
-          id: res.id,
-          ...newDevoteeData,
-        };
-        // Auto-generate the account creation PDF (ID Card)
-        setTimeout(() => {
-          handlePrintCard(newDevotee as unknown as DevoteeMember);
-        }, 500);
       } catch (err: any) {
-        console.error('Error adding devotee to Firestore:', err);
+        console.error('Error adding devotee:', err);
         showToast('Failed to register devotee in database.', 'error');
       }
     }

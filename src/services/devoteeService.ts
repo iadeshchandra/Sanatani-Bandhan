@@ -17,12 +17,14 @@ export const addDevotee = async (tenantId: string, devoteeData: any) => {
       ...devoteeData,
     };
   } catch (error: any) {
-    console.warn('Notice: Unable to persist devotee to Firestore, using local fallback:', error?.message || error);
-    return {
-      id: `local-dev-${Date.now()}`,
-      ...devoteeData,
-      createdAt: new Date().toISOString(),
-    };
+    // QUEUED #45: honest failure. This used to FABRICATE a `local-dev-*`
+    // record and return it as if the write had succeeded — callers then
+    // toasted "registered successfully in Firestore!" for a member that was
+    // never persisted and vanished on re-entry. The rejection now
+    // propagates. (Member registration itself flows through DataContext —
+    // the root `devotees` collection the re-entry snapshot reads.)
+    console.warn('Unable to persist devotee to Firestore:', error?.message || error);
+    throw error;
   }
 };
 

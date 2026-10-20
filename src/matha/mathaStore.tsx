@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { allowsSeedData } from '../lib/workspaceKind';
 import {
   MathaState, MathaSettings, Sannyasi, BranchMatha, DinacharyaItem,
   GurukulStudent, SevaAssignment, Observance, DakshinaRecord,
@@ -169,7 +170,13 @@ export const MathaProvider: React.FC<{ workspaceId: string; children: React.Reac
     })),
     setSettings: (patch) => setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
     // Seed guard: only seed when the registry is empty (never clobber user data).
-    ensureSeeded: () => setState((s) => (s.sannyasis.length ? s : buildSeed())),
+    ensureSeeded: () => {
+      // QUEUED #45 seed law: fictitious seed data hydrates ONLY in an
+      // explicit demo context. In a real workspace an empty store
+      // stays EMPTY — no phantom herds, rooms, meals or members.
+      if (!allowsSeedData(workspaceId)) return;
+      setState((s) => (s.sannyasis.length ? s : buildSeed()));
+    },
     exportJSON: () => JSON.stringify(state, null, 2),
     importJSON: (json) => {
       try {
@@ -179,7 +186,7 @@ export const MathaProvider: React.FC<{ workspaceId: string; children: React.Reac
         return true;
       } catch { return false; }
     },
-    resetAll: () => setState(buildSeed()),
+    resetAll: () => setState(allowsSeedData(workspaceId) ? buildSeed() : EMPTY),
   }), [state, workspaceId]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Building, Users, Clock, CheckCircle2, Plus, Calendar as CalendarIcon, MapPin, Tag, X, Phone } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
-import { isValidPhoneIN, isValidDateRange, rangesOverlap, sanitizeName } from '../../utils/validation';
+import { isValidPhone, phoneErrorMessage, phoneNationalKey, isValidDateRange, rangesOverlap, sanitizeName } from '../../utils/validation';
 import { formatDateIST } from '../../utils/format';
 import { EmptyState } from '../common/EmptyState';
 import { DataExportButton } from '../common/DataExportButton';
@@ -31,13 +31,10 @@ interface Booking {
   createdAt: number;
 }
 
-const INITIAL_ROOMS: Room[] = [
-  { id: '101', type: 'Standard (Non-AC)', capacity: 2, price: 500, floor: 'Ground', status: 'AVAILABLE' },
-  { id: '102', type: 'Standard (Non-AC)', capacity: 2, price: 500, floor: 'Ground', status: 'OCCUPIED' },
-  { id: '201', type: 'Deluxe (AC)', capacity: 4, price: 1200, floor: '1st Floor', status: 'CLEANING' },
-  { id: '202', type: 'Deluxe (AC)', capacity: 4, price: 1200, floor: '1st Floor', status: 'AVAILABLE' },
-  { id: '301', type: 'Dormitory', capacity: 10, price: 150, floor: '2nd Floor', status: 'AVAILABLE' },
-];
+// QUEUED #45 seed law: this desk previously booted EVERY workspace with
+// five fixture rooms and a fictitious checked-in guest ("Rahul Sharma") —
+// none of it labelled sample. A real dharamshala starts with no rooms and
+// no stays until its own sevaks add them. Empty means empty.
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -46,19 +43,8 @@ export const DharamshalaDesk: React.FC = () => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'rooms' | 'bookings'>('rooms');
 
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 'bk-seed-1',
-      roomId: '102',
-      guestName: 'Rahul Sharma',
-      phone: '9876543210',
-      checkIn: todayStr(),
-      checkOut: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-      status: 'CheckedIn',
-      createdAt: Date.now() - 86400000,
-    },
-  ]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // Booking modal state
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -105,8 +91,8 @@ export const DharamshalaDesk: React.FC = () => {
       showToast('Guest name is required', 'error', 'Missing Details');
       return;
     }
-    if (!isValidPhoneIN(bkPhone)) {
-      showToast('Please enter a valid 10-digit Indian mobile number', 'error', 'Invalid Phone');
+    if (!isValidPhone(bkPhone)) {
+      showToast(phoneErrorMessage(), 'error', 'Invalid Phone');
       return;
     }
     if (!bkRoomId) {
@@ -144,7 +130,10 @@ export const DharamshalaDesk: React.FC = () => {
       id: `bk-${Date.now()}`,
       roomId: bkRoomId,
       guestName: guest,
-      phone: bkPhone.replace(/\D/g, '').replace(/^(91|0)/, ''),
+      // Store the country-insensitive national key (QUEUED #49): the old
+      // strip-(91|0) mangled BD numbers (01608… → 1608… lost its trunk 0
+      // semantics); the key keeps BD 1608… and IN 98765… both dialable-back.
+      phone: phoneNationalKey(bkPhone) || bkPhone.replace(/\D/g, ''),
       checkIn: bkCheckIn,
       checkOut: bkCheckOut,
       status: bkCheckIn === todayStr() ? 'CheckedIn' : 'Confirmed',

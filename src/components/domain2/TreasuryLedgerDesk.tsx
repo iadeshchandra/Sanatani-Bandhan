@@ -54,7 +54,7 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { OrgRequestLedger, canViewOrgLedger } from '../../chat/OrgRequestLedger';
-import { useData, INITIAL_TREASURY } from '../../context/DataContext';
+import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
 import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF, generateTreasuryLedgerPDF } from '../../utils/pdfGenerator';
@@ -251,11 +251,15 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
       if (records && records.length > 0) {
         setTreasury(records as TreasuryTransaction[]);
       } else {
-        setTreasury(INITIAL_TREASURY || []);
+        // QUEUED #45 seed law: an empty legacy store means EMPTY. This used
+        // to fall back to the hard-coded INITIAL_TREASURY fixtures, so every
+        // real org "hydrated" six fictitious Aug-2026 vouchers (NET ₹97,600)
+        // on first interaction. Empty means empty.
+        setTreasury([]);
       }
     } catch (err: any) {
-      console.warn('Notice: Falling back to local treasury transactions ledger:', err?.message || err);
-      setTreasury(INITIAL_TREASURY || []);
+      console.warn('Notice: treasury fetch failed — showing the honest empty ledger:', err?.message || err);
+      setTreasury([]);
     } finally {
       setLoading(false);
     }

@@ -27,7 +27,6 @@ import { LimitReachedModal } from '../billing/LimitReachedModal';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { generate80GTaxReceipt } from '../../utils/pdfGenerator';
 import { TreasuryTransaction } from '../../types';
-import { addTransaction } from '../../services/treasuryService';
 import { OrgLogo } from './OrgLogo';
 import { BlessingMoment } from './BlessingMoment';
 import { WARM_SUCCESS, humanizeError, pickLang } from '../../lib/microcopy';
@@ -190,11 +189,14 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       auditVerified: true,
     };
 
-    // Save to Firestore via tenant treasury service
+    // Save via DataContext — the ledger of record (root `treasury`, the
+    // collection the re-entry snapshot reads). QUEUED #45: the legacy
+    // tenant-service double-write is removed — it wrote a ghost copy to
+    // tenants/{id}/treasury that no read path treats as truth, and its
+    // service fabricated a success record whenever Firestore rejected it.
     try {
       // Freemium monthly-transaction-limit enforcement.
       if (!(await guardPlanLimit('transactions'))) return;
-      await addTransaction(workspaceId, newTx);
       if (addTreasuryTransaction) {
         addTreasuryTransaction(newTx);
       }

@@ -17,12 +17,13 @@ export const addTransaction = async (tenantId: string, transactionData: any) => 
       ...transactionData,
     };
   } catch (error: any) {
-    console.warn('Notice: Unable to persist transaction to Firestore, using local fallback:', error?.message || error);
-    return {
-      id: `local-tx-${Date.now()}`,
-      ...transactionData,
-      createdAt: new Date().toISOString(),
-    };
+    // QUEUED #45: honest failure. This used to FABRICATE a `local-tx-*`
+    // record and return it as if the write had succeeded — money that was
+    // never persisted appeared on the ledger and vanished on re-entry. The
+    // rejection now propagates. (Vouchers themselves flow through
+    // DataContext — the root `treasury` collection re-entry reads.)
+    console.warn('Unable to persist transaction to Firestore:', error?.message || error);
+    throw error;
   }
 };
 

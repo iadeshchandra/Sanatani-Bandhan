@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { allowsSeedData } from '../lib/workspaceKind';
 import {
   AnnakshetraState, AnnakshetraSettings, Bhandara, KitchenItem, MealLog,
   MenuPlan, Purchase, Recipe, Wastage,
@@ -236,7 +237,13 @@ export const AnnakshetraProvider: React.FC<{ workspaceId: string; children: Reac
       }));
       return rec;
     },
-    ensureSeeded: () => setState((s) => (s.items.length ? s : buildSeed())),
+    ensureSeeded: () => {
+      // QUEUED #45 seed law: fictitious seed data hydrates ONLY in an
+      // explicit demo context. In a real workspace an empty store
+      // stays EMPTY — no phantom herds, rooms, meals or members.
+      if (!allowsSeedData(workspaceId)) return;
+      setState((s) => (s.items.length ? s : buildSeed()));
+    },
     exportJSON: () => JSON.stringify(state, null, 2),
     importJSON: (json) => {
       try {
@@ -246,7 +253,7 @@ export const AnnakshetraProvider: React.FC<{ workspaceId: string; children: Reac
         return true;
       } catch { return false; }
     },
-    resetAll: () => setState(buildSeed()),
+    resetAll: () => setState(allowsSeedData(workspaceId) ? buildSeed() : EMPTY),
   }), [state, workspaceId]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
