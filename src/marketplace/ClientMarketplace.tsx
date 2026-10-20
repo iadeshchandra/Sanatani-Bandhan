@@ -27,7 +27,8 @@ import { SevaRails } from './SevaRails';
 import { KritagyataPrompt } from './KritagyataPrompt';
 import { RatingPrompt } from './RatingPrompt';
 import { GigDetail } from './GigDetail';
-import { extractReferrer } from '../sangam/referrals';
+import { extractReferrer, resolveReferralAttribution } from '../sangam/referrals';
+import { fetchOwnSanId, recordReferralClaim } from '../sangam/referralThanksService';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { AuthorInfo } from '../sangam/sangamStore';
 
@@ -110,6 +111,8 @@ const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) =>
 
 const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = ({ gig, onDone, onBack }) => {
   const { showToast } = useToast();
+  const { firebaseUser } = useAuthWorkspace();
+  const bookerUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
   const { currentLang } = useLanguage();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [region, setRegion] = useState<PayRegion>('BD');
@@ -133,21 +136,29 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
     setWorking(true);
     try {
       // Referral attribution: ?ref=SAN-XXXXXX from shared links.
-      const referrer = extractReferrer(window.location.search);
+      // QUEUED #25: the self-guard is wired — the booker's own SAN-ID is
+      // resolved and resolveReferralAttribution drops self-referrals and
+      // unverifiable attributions silently (booking proceeds untouched).
+      const rawRef = extractReferrer(window.location.search);
+      const referrer = rawRef
+        ? resolveReferralAttribution(rawRef, await fetchOwnSanId(bookerUid))
+        : null;
       const refField = referrer ? { referredBy: referrer } : {};
+      let createdOrderId: string | null = null;
       if (payPath === 'wallet') {
         // 1. Create the wallet order, 2. deduct from wallet in a batched write (rules-validated).
         const orderId = await createOrder({
           gigId: gig.id as string, paymentMethodId: 'wallet', clientNotes: notes, scheduledAt, payWithWallet: true,
           ...refField,
         });
+        createdOrderId = orderId;
         await spendFromWallet(orderId);
         showToast(mkt(L, 'bkSevaRequestedEscrow'), 'success');
         onDone();
       } else if (payPath === 'after') {
         // No upfront payment. Provider completes → client pays directly →
         // order waits for the platform commission (Path B gate).
-        await createOrder({
+        createdOrderId = await createOrder({
           gigId: gig.id as string, paymentMethodId: 'pay_after_task', clientNotes: notes, scheduledAt, payAfterTask: true,
           ...refField,
         });
@@ -155,9 +166,19 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         onDone();
       } else {
         if (!payRef.trim()) { showToast(mkt(L, 'bkEnterPayRef'), 'error'); setWorking(false); return; }
-        await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt, ...refField });
+        createdOrderId = await createOrder({ gigId: gig.id as string, paymentMethodId: methodId, paymentRef: payRef.trim(), clientNotes: notes, scheduledAt, ...refField });
         showToast(mkt(L, 'bkBookingSubmitted'), 'success');
         onDone();
+      }
+      // Sharer thanks claim (QUEUED #25): the row the sharer's own
+      // device self-listens for. Fire-and-forget — never fails a booking.
+      if (referrer && createdOrderId) {
+        void recordReferralClaim({
+          orderId: createdOrderId,
+          sharerSanId: referrer,
+          providerName: gig.providerName || '',
+          bookerUid,
+        });
       }
     } catch (e: any) { showToast(e.message || mkt(L, 'bkBookingFailed'), 'error'); }
     setWorking(false);

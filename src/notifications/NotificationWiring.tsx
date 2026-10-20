@@ -28,6 +28,7 @@ import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
 import { startAartiReminderNotify } from '../darshan/aartiReminders';
 import { startOrgBroadcastNotify } from '../org/broadcastListener';
+import { startReferralThanksNotify } from '../sangam/referralThanksService';
 import { startDueJobsNotify } from '../lib/dueJobsService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
@@ -127,6 +128,16 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startOrgBroadcastNotify(uid);
+  }, [uid]);
+
+  // Sharer thanks → NotificationCenter (self-listen, QUEUED #25).
+  // When a booking lands via a devotee's shared link (?ref=SAN-XXXXXX),
+  // the booker's device leaves a referralClaims row; the sharer's own
+  // device observes claims naming it and emits ONE gentle thanks per
+  // booking to its own inbox. Baseline law: first check notifies nothing.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startReferralThanksNotify(uid);
   }, [uid]);
 
   // Due-jobs runner → NotificationCenter (self-listen, QUEUED #15).

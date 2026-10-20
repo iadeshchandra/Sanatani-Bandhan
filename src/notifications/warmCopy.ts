@@ -431,6 +431,14 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
         '"{preview}" — आपकी पोस्ट पर।',
       ),
     },
+    referralThanks: {
+      title: t('🪔 You guided a family', '🪔 আপনি একটি পরিবারকে পথ দেখিয়েছেন', '🪔 आपने एक परिवार का मार्गदर्शन किया'),
+      body: t(
+        'A family booked seva with {provider} from your share. Sadhu!',
+        '{provider}-এর কাছে আপনার শেয়ার থেকে একটি পরিবার সেবা নিল। সাধু!',
+        'आपके शेयर से एक परिवार ने {provider} से सेवा ली। साधु!',
+      ),
+    },
     follow: {
       title: t('🙏 A new devotee follows you', '🙏 একজন নতুন ভক্ত আপনাকে অনুসরণ করছেন', '🙏 एक नए भक्त ने आपको फॉलो किया है'),
       body: t(

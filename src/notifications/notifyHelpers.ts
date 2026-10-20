@@ -409,6 +409,35 @@ export function notifySocialAshirvad(recipientUid: string, s: SocialSummary): Pr
   return send(recipientUid, event);
 }
 
+export interface ReferralThanksInput {
+  /** Provider the referred family booked with — the only name used. */
+  providerName: string;
+  /** Claim doc id (== order id) — dedupe anchor, one bell per booking. */
+  claimId: string;
+}
+
+/**
+ * Share-carries-referral thanks → GENTLE (QUEUED #25). Called ONLY by
+ * the sharer's own device (src/sangam/referralThanksService.ts,
+ * self-listen: cross-user client writes are dropped by the
+ * self-write-only rules). Copy mirrors sangam/referrals.ts
+ * referralThanksCopy — the booker is never named; gratitude flows to
+ * the act of sharing, not to a person.
+ */
+export function notifyReferralThanks(recipientUid: string, r: ReferralThanksInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base(
+      'social',
+      'gentle',
+      'referralThanks',
+      { provider: r.providerName },
+      `refthanks:${r.claimId}`,
+      { deepLink: '/app/home/sangam', payload: { claimId: r.claimId } },
+    ),
+  );
+}
+
 export interface SocialCommentInput {
   commentId: string;
   postId: string;

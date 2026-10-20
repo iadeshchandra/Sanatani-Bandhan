@@ -101,7 +101,7 @@ export const ServiceCardFeedItem: React.FC<Props> = ({ post, author }) => {
       {booking.bookingPost && (
         <SevaBookingSheet
           post={booking.bookingPost}
-          viewer={{ uid: author.uid, name: author.name }}
+          viewer={{ uid: author.uid, name: author.name, sanId: author.sanId }}
           onClose={booking.closeBooking}
           onBooked={booking.handleBooked}
         />

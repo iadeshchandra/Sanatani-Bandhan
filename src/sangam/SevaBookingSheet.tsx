@@ -32,13 +32,14 @@ import {
   type BookingMode,
 } from './sevaBooking';
 import { createSevaBazarOrder, submitAdvanceProof } from '../lib/sevaBazarOrders';
-import { extractReferrer } from './referrals';
+import { extractReferrer, resolveReferralAttribution } from './referrals';
+import { recordReferralClaim } from './referralThanksService';
 import { getOrCreateDirectChat, sendMessage } from '../chat/chatService';
 import type { ChatParticipant } from '../chat/types';
 
 export interface SevaBookingSheetProps {
   post: SangamPost;
-  viewer: { uid: string; name: string };
+  viewer: { uid: string; name: string; sanId?: string };
   onClose: () => void;
   /** Order created and thread ready — parent opens the Chat UI. */
   onBooked: (orderId: string, chatId: string) => void;
@@ -126,8 +127,13 @@ export const SevaBookingSheet: React.FC<SevaBookingSheetProps> = ({
     setSubmitting(true);
     try {
       // Referral attribution: if the booker arrived via a shared link (?ref=SAN-XXXXXX),
-      // credit the sharer. Self-referrals are ignored by the validator.
-      const referrer = extractReferrer(window.location.search);
+      // credit the sharer. QUEUED #25: the self-guard is actually wired now —
+      // resolveReferralAttribution drops self-referrals and unverifiable
+      // attributions silently (the booking proceeds untouched either way).
+      const referrer = resolveReferralAttribution(
+        extractReferrer(window.location.search),
+        viewer.sanId,
+      );
       const id = await createSevaBazarOrder({
         serviceCardPostId: post.id,
         providerUid: card.providerUid,
@@ -147,6 +153,17 @@ export const SevaBookingSheet: React.FC<SevaBookingSheetProps> = ({
         tokenAdvance: advance,
         ...(referrer ? { referredBy: referrer } : {}),
       });
+      // Sharer thanks claim (QUEUED #25): leave the small claim row the
+      // sharer's own device self-listens for. Fire-and-forget — it can
+      // never fail or delay the booking.
+      if (referrer) {
+        void recordReferralClaim({
+          orderId: id,
+          sharerSanId: referrer,
+          providerName: card.providerName,
+          bookerUid: viewer.uid,
+        });
+      }
       // Lazy chat thread with the booking as context — feed discovers,
       // chat checks out.
       const selfInfo: ChatParticipant = { uid: viewer.uid, displayName: viewer.name || 'Sanatani' };
