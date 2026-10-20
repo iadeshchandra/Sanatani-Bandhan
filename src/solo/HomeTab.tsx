@@ -7,6 +7,7 @@ import { PanchangTab } from './PanchangTab';
 import { PanjikaTab } from './PanjikaTab';
 import { SavedTab } from './SavedTab';
 import { GivingTab } from './GivingTab';
+import { ReceiptsView } from './ReceiptsView';
 import { ProfileTab } from './ProfileTab';
 import { JyotishMarketplace } from '../jyotish/JyotishMarketplace';
 import { SangamView } from '../sangam/SangamView';
@@ -34,6 +35,7 @@ export const SOLO_TAB_IDS = [
   'panjika',
   'saved',
   'giving',
+  'receipts',
   'jyotish',
   'marketplace',
   'wallet',
@@ -66,6 +68,7 @@ const TAB_LABELS: Record<SoloTabId, string> = {
   panjika: '🗓️ Panjika',
   saved: 'Saved',
   giving: 'Giving',
+  receipts: '🧾 Receipts',
   jyotish: '🔮 Jyotish',
   marketplace: '🪔 Seva',
   wallet: '🪔 Seva Wallet',
@@ -145,6 +148,7 @@ export const HomeTab: React.FC = () => {
       {effectiveTab === 'panjika' && <PanjikaTab />}
       {effectiveTab === 'saved' && <SavedTab />}
       {effectiveTab === 'giving' && <GivingTab />}
+      {effectiveTab === 'receipts' && <ReceiptsView />}
       {effectiveTab === 'jyotish' && <JyotishMarketplace />}
       {effectiveTab === 'marketplace' && (
         <SangamProvider uid={firebaseUser?.uid || 'anon'}>

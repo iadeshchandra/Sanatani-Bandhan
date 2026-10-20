@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSolo } from './SoloContext';
 import { useSoloStore, todayISO } from './soloStore';
+import { currentPeriod } from './receipts';
 import { Card, Stat, T, useLocaleText } from './ui';
 import { JoinUpgrade } from './JoinUpgrade';
 import { AjkerSuchana } from './AjkerSuchana';
@@ -81,7 +82,7 @@ const VdaHomeNudge: React.FC<{ profile: { vdaAlias?: string } | null; goProfile:
   );
 };
 
-export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'profile' | 'marketplace' | 'sangam' | 'wallet') => void }> = ({
+export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'receipts' | 'profile' | 'marketplace' | 'sangam' | 'wallet') => void }> = ({
   goTab,
 }) => {
   const { profile } = useSolo();
@@ -129,6 +130,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4);
   const givingTotal = state.giving.reduce((s, g) => s + g.amount, 0);
+  // 🧾 Receipts door headline — the CURRENT Indian financial year's truthful
+  // total (donors think in FY at tax time; invalid rows never counted).
+  const givingThisFY = useMemo(() => currentPeriod(state.giving, 'fy'), [state.giving]);
 
   // Home wallet glance — spec §1: the balance card sits DIRECTLY below the
   // home header. One Big Number + 4 quick actions; whole card taps → Wallet.
@@ -483,6 +487,45 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           />
         </button>
       </div>
+
+      {/* 🧾 My giving & receipts — one tap from Home to tax-time proof
+          (QUEUED #30; discoverability #12's solo answer). The door shows the
+          CURRENT Indian FY total; the view itself groups by FY / calendar
+          year over the devotee's own personal ledger only. */}
+      <button
+        type="button"
+        onClick={() => goTab('receipts')}
+        data-guide-anchor="giving-receipts"
+        className="w-full rounded-2xl bg-white border border-amber-200 p-4 flex items-center gap-4 text-left shadow-sm hover:border-amber-400 hover:shadow-md transition-all min-h-[76px]"
+        aria-label={tr('solo.home.receiptsGo', 'My giving and receipts', 'আমার দান ও রসিদ', 'मेरा दान और रसीदें')}
+      >
+        <div className="text-3xl shrink-0" aria-hidden>
+          🧾
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-extrabold text-stone-800">
+            <T en="My giving & receipts" bn="আমার দান ও রসিদ" hi="मेरा दान और रसीदें" />
+          </div>
+          <div className="text-[11px] text-stone-500 mt-0.5">
+            {givingThisFY.count > 0 ? (
+              <T
+                en={`₹${givingThisFY.total.toLocaleString('en-IN')} given in ${givingThisFY.label} · ${givingThisFY.count} offering${givingThisFY.count === 1 ? '' : 's'} — receipts ready for tax time`}
+                bn={`${givingThisFY.label}-এ ₹${givingThisFY.total.toLocaleString('en-IN')} দান · ${givingThisFY.count}টি দান — করের সময়ের জন্য রসিদ প্রস্তুত`}
+                hi={`${givingThisFY.label} में ₹${givingThisFY.total.toLocaleString('en-IN')} दान · ${givingThisFY.count} भेंटें — कर के समय हेतु रसीदें तैयार`}
+              />
+            ) : (
+              <T
+                en="Your dana receipts will gather here — ready for tax time"
+                bn="আপনার দানের রসিদ এখানে জমা হবে — করের সময়ের জন্য প্রস্তুত"
+                hi="आपकी दान रसीदें यहाँ एकत्र होंगी — कर के समय हेतु तैयार"
+              />
+            )}
+          </div>
+        </div>
+        <div className="text-amber-600 text-xl shrink-0" aria-hidden>
+          →
+        </div>
+      </button>
 
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Upcoming reminders */}
