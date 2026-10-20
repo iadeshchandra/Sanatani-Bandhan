@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { isCacheFresh as isFresh } from './apiHealth';
 
 export interface PublicApiKeyConfig {
   keys: Record<string, string>;
@@ -28,8 +29,40 @@ const DOC_PATH = 'platformConfig/public';
 const LS_KEYS = 'sb.publicApiKeys.v1';
 const LS_VERSION = 'sb.publicApiKeys.version';
 
+/**
+ * Hot-activation law (QUEUED #35 addendum): keys are resolved at CALL TIME
+ * from platform config, never baked into a build. The in-memory copy is a
+ * cache with a hard 60-second TTL — after it lapses, the next call returns
+ * the cached value immediately AND refreshes in the background, so a key
+ * the owner saves/rotates in GodMode goes live everywhere within ≤60s
+ * with no redeploy and no restart. Saving also calls clearApiKeyCache()
+ * (ApiKeyManager), which makes the owner's own device instant.
+ */
+export const MEM_TTL_MS = 60_000;
+
 let memCache: PublicApiKeyConfig | null = null;
+let memCacheAt = 0;
 let inflight: Promise<PublicApiKeyConfig> | null = null;
+
+/** Freshness test for the memory cache, bound to MEM_TTL_MS. */
+export function isCacheFresh(cachedAt: number, nowMs: number): boolean {
+  return isFresh(cachedAt, nowMs, MEM_TTL_MS);
+}
+
+function adoptRemote(remote: PublicApiKeyConfig): void {
+  const cur = memCache;
+  const changed =
+    !cur ||
+    remote.configVersion !== cur.configVersion ||
+    JSON.stringify(remote.keys) !== JSON.stringify(cur.keys);
+  if (changed) {
+    memCache = remote;
+    memCacheAt = Date.now();
+    writeLocalCache(remote);
+  } else {
+    memCacheAt = Date.now(); // confirmed current — restart the TTL window
+  }
+}
 
 const EMPTY: PublicApiKeyConfig = { keys: {}, configVersion: 0, updatedAt: null };
 
@@ -77,25 +110,26 @@ async function fetchRemote(): Promise<PublicApiKeyConfig> {
 
 /** Load (and cache) the published key set. Never throws — returns {} on failure. */
 export async function loadPublicApiKeys(): Promise<PublicApiKeyConfig> {
-  if (memCache) return memCache;
+  if (memCache) {
+    if (isCacheFresh(memCacheAt, Date.now())) return memCache;
+    // Stale-while-revalidate: answer with the cached set now, refresh in
+    // the background — the NEXT call (≤ one call later) sees a rotated key.
+    void fetchRemote().then(adoptRemote).catch(() => undefined);
+    return memCache;
+  }
   const local = readLocalCache();
   if (local) {
     memCache = local;
+    memCacheAt = Date.now();
     // Refresh in background so a newly published key arrives without a reload.
-    void fetchRemote()
-      .then((remote) => {
-        if (remote.configVersion > (memCache?.configVersion ?? 0)) {
-          memCache = remote;
-          writeLocalCache(remote);
-        }
-      })
-      .catch(() => undefined);
+    void fetchRemote().then(adoptRemote).catch(() => undefined);
     return memCache;
   }
   if (!inflight) {
     inflight = fetchRemote()
       .then((remote) => {
         memCache = remote;
+        memCacheAt = Date.now();
         writeLocalCache(remote);
         return remote;
       })
@@ -132,6 +166,7 @@ export function getCachedApiKeySync(name: string): string | null {
     const local = readLocalCache();
     if (local) {
       memCache = local; // warm the memory cache from disk
+      memCacheAt = Date.now();
       const v = local.keys[name];
       return typeof v === 'string' && v.length > 0 ? v : null;
     }
@@ -159,6 +194,7 @@ export function useApiKey(name: string): string | null {
 /** Drop caches (e.g. after the owner rotates a key and wants it picked up now). */
 export function clearApiKeyCache(): void {
   memCache = null;
+  memCacheAt = 0;
   try {
     localStorage.removeItem(LS_KEYS);
     localStorage.removeItem(LS_VERSION);

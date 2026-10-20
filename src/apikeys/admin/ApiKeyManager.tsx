@@ -44,6 +44,8 @@ import {
   X,
 } from 'lucide-react';
 import { db } from '../../firebase';
+import { clearApiKeyCache } from '../apiKeys';
+import { ApiHealthDesk } from './ApiHealthDesk';
 
 /* ------------------------------------------------------------------ types */
 
@@ -357,6 +359,11 @@ export const ApiKeyManager: React.FC = () => {
         batch.set(pubRef, { configVersion: ver + 1 }, { merge: true });
       }
       await batch.commit();
+      // Hot activation (#35): drop the key caches so this device resolves
+      // the new key on the very next call; other devices follow within
+      // the 60s cache TTL. The Health desk above sees the changed key
+      // tail on reload and re-probes the API automatically.
+      clearApiKeyCache();
       setShowForm(false);
       setMsg(publish ? 'Saved and published — the app picks it up within a minute.' : 'Saved.');
       await load();
@@ -395,6 +402,7 @@ export const ApiKeyManager: React.FC = () => {
         );
       }
       await batch.commit();
+      clearApiKeyCache();
       await load();
     } catch {
       setMsg('Update failed.');
@@ -405,6 +413,7 @@ export const ApiKeyManager: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      <ApiHealthDesk entries={keys} ready={!loading} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-black text-white flex items-center gap-2">

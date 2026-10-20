@@ -13,6 +13,8 @@
  * opt into live detection, so a missing key can never break the app.
  */
 import { getPublicApiKey } from './apiKeys';
+import { recordApiUse } from './apiUsage';
+import { YT_SEARCH_UNITS } from './apiHealth';
 import type { LiveCheckResult } from '../darshan/types';
 import { parseLiveSearchResponse } from '../darshan/pure';
 
@@ -32,6 +34,10 @@ export async function isChannelLive(channelId: string): Promise<LiveCheckResult 
       '&eventType=live&type=video&maxResults=1' +
       `&key=${encodeURIComponent(key)}`;
     const res = await fetch(url);
+    // Quota ledger (#35): the provider answered, so the 100 units were
+    // spent — success or error. Network failures never reach this line
+    // and are not counted (no quota was burned).
+    recordApiUse('youtube', 1, YT_SEARCH_UNITS);
     if (!res.ok) return null;
     const data = await res.json();
     return parseLiveSearchResponse(data);

@@ -75,6 +75,12 @@ export async function callGeminiDirect(
         signal: controller.signal,
       }
     );
+    // Quota ledger (#35): count every request Google answered, success or
+    // error (errors still consume rate-limit budget). Loaded lazily so
+    // this module keeps its zero-dependency character; fully fail-silent.
+    void import('../apikeys/apiUsage')
+      .then((m) => m.recordApiUse('gemini', 1, 1))
+      .catch(() => undefined);
     if (!resp.ok) throw new Error(`GEMINI_HTTP_${resp.status}`);
     const data: any = await resp.json().catch(() => null);
     const out: string =
