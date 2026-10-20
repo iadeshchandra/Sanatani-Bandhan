@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock } from 'lucide-react';
+import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock, CalendarCheck2, Home } from 'lucide-react';
 import { MODULE_CATALOG, NavItem } from './Sidebar';
 import { isModuleAllowed } from '../../lib/workspaceRegistry';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -141,33 +141,75 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
   );
 
   const quickActions: PaletteItem[] = useMemo(
-    () => [
-      {
-        key: 'qa-treasury',
-        kind: 'action',
-        label: 'Open Treasury Ledger',
-        sub: 'Financials & Assets · new voucher',
-        icon: Landmark,
-        run: () => onSelectModule('treasury'),
-      },
-      {
-        key: 'qa-pos',
-        kind: 'action',
-        label: 'Quick Chanda POS',
-        sub: 'Financials & Assets · counter collection',
-        icon: Receipt,
-        run: () => onSelectModule('quick-chanda-pos'),
-      },
-      {
-        key: 'qa-personal',
-        kind: 'action',
-        label: 'Switch to Personal View',
-        sub: 'Devotee space',
-        icon: UserCircle,
-        run: () => setViewMode('MEMBER'),
-      },
-    ],
-    [onSelectModule, setViewMode]
+    () => {
+      const actions: PaletteItem[] = [
+        {
+          key: 'qa-treasury',
+          kind: 'action',
+          label: 'Open Treasury Ledger',
+          sub: 'Financials & Assets · new voucher',
+          icon: Landmark,
+          run: () => onSelectModule('treasury'),
+        },
+        {
+          key: 'qa-pos',
+          kind: 'action',
+          label: 'Quick Chanda POS',
+          sub: 'Financials & Assets · counter collection',
+          icon: Receipt,
+          run: () => onSelectModule('quick-chanda-pos'),
+        },
+        {
+          key: 'qa-personal',
+          kind: 'action',
+          label: 'Switch to Personal View',
+          sub: 'Devotee space',
+          icon: UserCircle,
+          run: () => setViewMode('MEMBER'),
+        },
+      ];
+      // QUEUED #48 — deep-link actions for desks that live INSIDE a
+      // suite. Attendance is the Upasthiti tab of Pathshala One: the
+      // palette action primes the suite's initial tab (sessionStorage
+      // hand-off read once by PathshalaDesk) and opens the suite, so
+      // "attendance" is reachable without hunting through tabs.
+      if (activeWorkspace && isModuleAllowed(activeWorkspace, 'pathshala')) {
+        actions.push({
+          key: 'qa-attendance',
+          kind: 'action',
+          label: 'Attendance (Upasthiti) — mark today’s register',
+          sub: 'Pathshala One · attendance tab',
+          icon: CalendarCheck2,
+          run: () => {
+            try {
+              sessionStorage.setItem('sb_pathshala_open_tab', 'upasthiti');
+            } catch {
+              /* storage unavailable — suite opens on its dashboard */
+            }
+            onSelectModule('pathshala');
+          },
+        });
+      }
+      // QUEUED #48 — Ashram residents as their own palette entry. The
+      // residents live on the Kutirs tab of the Ashram Kutir desk
+      // (rooms + occupied stays), which is that desk's default tab.
+      if (
+        activeWorkspace &&
+        (activeWorkspace.type === 'Ashram' || activeWorkspace.type === 'Yoga') &&
+        isModuleAllowed(activeWorkspace, 'ashramKutir')
+      ) {
+        actions.push({
+          key: 'qa-residents',
+          kind: 'action',
+          label: 'Ashram Residents & Kutir Stays',
+          sub: 'Ashram Kutir desk · residents, rooms & stay passes',
+          icon: Home,
+          run: () => onSelectModule('ashramKutir'),
+        });
+      }
+      return actions;
+    },
+    [onSelectModule, setViewMode, activeWorkspace]
   );
 
   const items: PaletteItem[] = useMemo(() => {
@@ -192,7 +234,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
         s: Math.max(
           fuzzyScore(q, d.name),
           fuzzyScore(q, d.id),
-          fuzzyScore(q, d.domainTitle)
+          fuzzyScore(q, d.domainTitle),
+          fuzzyScore(q, d.keywords ?? '')
         ),
       }))
       .filter((x) => x.s >= 0)
@@ -216,7 +259,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
         s: Math.max(
           fuzzyScore(q, d.name),
           fuzzyScore(q, d.id),
-          fuzzyScore(q, d.domainTitle)
+          fuzzyScore(q, d.domainTitle),
+          fuzzyScore(q, d.keywords ?? '')
         ),
       }))
       .filter((x) => x.s >= 0)

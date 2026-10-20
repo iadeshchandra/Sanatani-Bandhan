@@ -4,6 +4,10 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { resolveShikshaDeskSurface } from '../../lib/deskSurfaceGuard';
+import { SanghaMobilizationSurface } from './SanghaMobilizationSurface';
+import { DeskOrgMismatchNotice } from './DeskOrgMismatchNotice';
+import { SatsangDesk } from '../../satsang/SatsangDesk';
 
 interface Vidyarthi {
   id: string;
@@ -17,7 +21,7 @@ interface Vidyarthi {
   sponsorName?: string;
 }
 
-export const VedicSevaShikshaDesk: React.FC = () => {
+const GurukulShishyaDeskInner: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
 
@@ -161,7 +165,27 @@ export const VedicSevaShikshaDesk: React.FC = () => {
         </button>
       </div>
 
-      {/* Vidyarthi Grid */}
+      {/* Vidyarthi Grid — with a warm empty state (QUEUED #48: a fresh
+          gurukul previously got a completely blank body here). */}
+      {students.length === 0 ? (
+        <div className="bg-temple-900/90 border border-dashed border-temple-700 rounded-3xl p-10 text-center shadow-lg">
+          <GraduationCap className="w-10 h-10 text-saffron-500/70 mx-auto mb-3" />
+          <h3 className="text-base font-extrabold text-temple-100">No shishya enrolled yet</h3>
+          <p className="text-xs text-temple-400 mt-1 max-w-md mx-auto">
+            The registry is empty. When the first brahmachari joins the gurukul, enroll them
+            here — their Veda Shakha, current Kanda, Acharya, Vidya Danam sponsorship and
+            samskara journey will live on this page.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="mt-4 px-4 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Enroll New Shishya</span>
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {students.map((st, idx) => (
           <div
@@ -263,6 +287,7 @@ export const VedicSevaShikshaDesk: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
 
       {/* Add Modal */}
       {isAddModalOpen && (
@@ -405,4 +430,39 @@ export const VedicSevaShikshaDesk: React.FC = () => {
       )}
     </div>
   );
+};
+
+/**
+ * VedicSevaShikshaDesk — org-surface dispatcher (QUEUED #48).
+ *
+ * App.tsx's switch mounts THIS component for a whole family of module
+ * ids ('gurukul', 'gurukulAcademy', 'vidyalaya', 'satsang',
+ * 'sanghaDrills', 'sevaTrust'), but the inner desk above is the Gurukul
+ * shishya registry. Serving it to a Sangha opening "Sangha & Shakha
+ * Mobilization" was the live-audit P-defect. The surface is resolved
+ * from the workspace type via the org-surface guard
+ * (src/lib/deskSurfaceGuard.ts) so each org family gets its own correct
+ * surface — never another organisation's desk:
+ *   Gurukul / Vidyalaya            → the Gurukul shishya registry (above)
+ *   Sangha / Samaj / MahotsavSamiti → SanghaMobilizationSurface
+ *   Satsang / Ashram / Yoga / KashiKshetra → SatsangDesk (Satsang One)
+ *   anything else                   → an honest mismatch notice
+ * (The mount guard in workspaceRegistry denies 'restricted' mounts
+ * before this renders; this dispatcher is the second line of defence.)
+ */
+export const VedicSevaShikshaDesk: React.FC = () => {
+  const { activeWorkspace } = useAuthWorkspace();
+  const surface = resolveShikshaDeskSurface(activeWorkspace?.type);
+
+  if (surface === 'sangha-mobilization') return <SanghaMobilizationSurface />;
+  if (surface === 'satsang') return <SatsangDesk />;
+  if (surface === 'restricted') {
+    return (
+      <DeskOrgMismatchNotice
+        deskLabel="The Gurukul & Shastra Education desk"
+        orgType={activeWorkspace?.type}
+      />
+    );
+  }
+  return <GurukulShishyaDeskInner />;
 };

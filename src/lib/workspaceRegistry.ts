@@ -1,5 +1,6 @@
 import { WorkspaceType } from '../types';
 import { SubscriptionTier, TIER_LEVELS } from '../config/planPricing';
+import { isShikshaFamilyMountAllowed } from './deskSurfaceGuard';
 
 /**
  * RBAC VOCABULARY — single canonical reference (H-2 reconciliation).
@@ -531,6 +532,17 @@ export function isModuleAllowedForOrgMount(workspace: any, moduleId: string): bo
   if (!workspace) return true;
   const canonical = resolveOrgModuleId(moduleId);
   if (ORG_AGNOSTIC_MODULES.has(canonical) || ORG_AGNOSTIC_MODULES.has(moduleId)) return true;
+  // QUEUED #48 — shared-component family guard. App.tsx's switch mounts
+  // ONE component (VedicSevaShikshaDesk) for a family of module ids
+  // across org families ('gurukul', 'satsang', 'sanghaDrills',
+  // 'sevaTrust', …). The registry check below validates the ID, but the
+  // mounted COMPONENT can still belong to another org family — that is
+  // how a Sangha opening 'sanghaDrills' received the Gurukul desk.
+  // When the component family excludes this org type (surface resolves
+  // to 'restricted' in deskSurfaceGuard), deny the mount so the
+  // designed OrgTypeRestrictedDesk shows instead of a wrong desk.
+  const workspaceType = typeof workspace === 'string' ? workspace : workspace.type;
+  if (!isShikshaFamilyMountAllowed(workspaceType, canonical, moduleId)) return false;
   return isModuleAllowed(workspace, canonical);
 }
 
@@ -590,7 +602,7 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
   rakthaSeva:
     'Raktha Seva desks belong to humanitarian Trust workspaces.',
   sevaTrust:
-    'Humanitarian Seva desks belong to Trust workspaces.',
+    'The Humanitarian Seva Trust desk is not available in this build yet. Trust seva work runs through the Treasury, Campaigns and Annadanam desks for now.',
   'hundi-audit':
     'Hundi & Golak audit desks belong to donation-receiving Mandir / Tirth workspaces.',
   vahan:

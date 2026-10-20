@@ -83,6 +83,13 @@ export interface NavItem {
   domainTitle: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  /**
+   * Extra search terms for the command palette (QUEUED #48). Desks are
+   * found by what users actually type — "shishya", "attendance",
+   * "residents" — not only by their catalog name. Scored by
+   * CommandPalette alongside name/id/domainTitle.
+   */
+  keywords?: string;
 }
 
 export const MODULE_CATALOG: NavItem[] = [
@@ -142,16 +149,16 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'satsang-one', name: 'Satsang One — Mandali Management', domain: 4, domainTitle: 'Specialized Desks', icon: Music, badge: 'New' },
   { id: 'sabha-one', name: 'Sabha One — Purohit Sabha Management', domain: 4, domainTitle: 'Specialized Desks', icon: Landmark, badge: 'New' },
   { id: 'samskara-one', name: 'Samskara One — Family Lifecycle', domain: 4, domainTitle: 'Specialized Desks', icon: HeartHandshake, badge: 'New' },
-  { id: 'ashramKutir', name: 'Ashram Kutir & Sadhana Stays', domain: 4, domainTitle: 'Specialized Desks', icon: Moon },
-  { id: 'dharamshala', name: 'Dharamshala Yatri Bhavan', domain: 4, domainTitle: 'Specialized Desks', icon: Home },
-  { id: 'gurukul', name: 'Gurukul Residential Monitoring', domain: 4, domainTitle: 'Specialized Desks', icon: GraduationCap },
-  { id: 'gurukulAcademy', name: 'Shastric Academy & Grading', domain: 4, domainTitle: 'Specialized Desks', icon: Award },
-  { id: 'vidyalaya', name: 'Weekend Heritage School', domain: 4, domainTitle: 'Specialized Desks', icon: BookMarked },
-  { id: 'pathshala', name: 'Pathshala — Complete School Management', domain: 4, domainTitle: 'Specialized Desks', icon: BookOpen, badge: 'New' },
+  { id: 'ashramKutir', name: 'Ashram Kutir, Residents & Stays', domain: 4, domainTitle: 'Specialized Desks', icon: Moon, keywords: 'residents resident register kutir stays rooms yatri accommodation occupants' },
+  { id: 'dharamshala', name: 'Dharamshala Yatri Bhavan', domain: 4, domainTitle: 'Specialized Desks', icon: Home, keywords: 'residents yatri stays rooms accommodation guests' },
+  { id: 'gurukul', name: 'Gurukul — Shishya Registry & Residential Monitoring', domain: 4, domainTitle: 'Specialized Desks', icon: GraduationCap, keywords: 'shishya registry students brahmachari vidyarthi enroll enrollment residential monitoring' },
+  { id: 'gurukulAcademy', name: 'Shastric Academy & Grading', domain: 4, domainTitle: 'Specialized Desks', icon: Award, keywords: 'shastric academy grading varga pariksha exams shishya' },
+  { id: 'vidyalaya', name: 'Weekend Heritage School', domain: 4, domainTitle: 'Specialized Desks', icon: BookMarked, keywords: 'heritage school students shishya weekend classes' },
+  { id: 'pathshala', name: 'Pathshala — Complete School Management', domain: 4, domainTitle: 'Specialized Desks', icon: BookOpen, badge: 'New', keywords: 'attendance upasthiti shishya students school fees pariksha exams routine varga certificates' },
   { id: 'goshala-one', name: 'Goshala One — Complete Goshala Operations', domain: 4, domainTitle: 'Specialized Desks', icon: Heart, badge: 'New' },
-  { id: 'ashram-one', name: 'Ashram One — Complete Yatri Stay Management', domain: 4, domainTitle: 'Specialized Desks', icon: Home, badge: 'New' },
+  { id: 'ashram-one', name: 'Ashram One — Complete Yatri Stay Management', domain: 4, domainTitle: 'Specialized Desks', icon: Home, badge: 'New', keywords: 'residents resident yatri stays rooms bookings guest register' },
   { id: 'satsang', name: 'Satsang, Kirtan & Discourse', domain: 4, domainTitle: 'Specialized Desks', icon: Radio },
-  { id: 'sanghaDrills', name: 'Sangha & Shakha Mobilization', domain: 4, domainTitle: 'Specialized Desks', icon: Swords },
+  { id: 'sanghaDrills', name: 'Sangha & Shakha Mobilization', domain: 4, domainTitle: 'Specialized Desks', icon: Swords, keywords: 'sangha shakha mobilization mobilisation members sangh shakha units' },
   { id: 'sevaTrust', name: 'Humanitarian Seva Trust', domain: 4, domainTitle: 'Specialized Desks', icon: Cross },
   { id: 'granthLibrary', name: 'Sacred Granth & Manuscript Library', domain: 4, domainTitle: 'Specialized Desks', icon: Library },
 

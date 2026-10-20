@@ -42,7 +42,21 @@ const TABS = [
 ];
 
 const PathshalaInner: React.FC = () => {
-  const [tab, setTab] = useState('dashboard');
+  // QUEUED #48 — deep-link hand-off: the command palette's Attendance
+  // action primes 'sb_pathshala_open_tab' in sessionStorage so the suite
+  // opens directly on the requested tab (read once, then cleared).
+  const [tab, setTab] = useState<string>(() => {
+    try {
+      const wanted = sessionStorage.getItem('sb_pathshala_open_tab');
+      if (wanted) {
+        sessionStorage.removeItem('sb_pathshala_open_tab');
+        if (TABS.some((t) => t.id === wanted)) return wanted;
+      }
+    } catch {
+      /* storage unavailable — open on the dashboard */
+    }
+    return 'dashboard';
+  });
   const { ensureSeeded } = usePathshala();
   const { gurukulStudents } = useData();
   const { activeWorkspace } = useAuthWorkspace();
