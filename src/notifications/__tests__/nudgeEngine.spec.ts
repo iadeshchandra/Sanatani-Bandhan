@@ -236,20 +236,39 @@ describe('nudgeEngine — tithi-timed giving reminders (Phase 3 devotional layer
     expect(nudges).toHaveLength(0);
   });
 
-  test('never nags twice for the same observance, even across runs', () => {
+  test('fires once per lead-time bucket — the SAME bucket never repeats, even across runs (QUEUED #43)', () => {
     const storage = memStorage();
     const first = generateNudges(
       { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 5)] },
       { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
     );
     expect(first).toHaveLength(1);
-    // The next day the same observance (same id) is one day closer —
-    // the ledger must hold, no second nudge.
-    const second = generateNudges(
+    // The nudge id carries the bucket, so the center dedupeKey (and the
+    // read-time collapse keyed on it) is per-bucket too.
+    expect(first[0].id).toBe('nudge-tithi-ekadashi-2026-10-21-d5');
+
+    // Same bucket again — a fresh store over the same storage, the
+    // relaunch case from the audit: the ledger must hold, no repeat.
+    const repeat = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 5)] },
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(repeat).toHaveLength(0);
+
+    // A different bucket is a different notice ("in 4 days" ≠ "in 5
+    // days" — the copy itself differs), so it may fire — once.
+    const nextBucket = generateNudges(
       { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 4)] },
       { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
     );
-    expect(second).toHaveLength(0);
+    expect(nextBucket).toHaveLength(1);
+    expect(nextBucket[0].body.en).toContain('Ekadashi is in 4 days');
+    const repeatBucket = generateNudges(
+      { ...EMPTY, upcomingTithis: [tithi('Ekadashi', 4)] },
+      { now: DAYTIME, quietHours: QUIET, store: new NudgeStore(storage) },
+    );
+    expect(repeatBucket).toHaveLength(0);
+
     // A genuinely different observance (different id) still fires.
     const other = generateNudges(
       { ...EMPTY, upcomingTithis: [tithi('Purnima', 6, '2026-10-22')] },

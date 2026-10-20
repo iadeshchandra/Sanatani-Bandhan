@@ -357,15 +357,26 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
   }
 
   /* 4. Tithi-timed giving reminder — Ekadashi / Purnima / Amavasya within
-   * the window. One gentle suggestion per observance (dedupe-keyed), never
-   * pushy, never streak-shaming. Deep link opens the punya ledger. */
+   * the window. Never pushy, never streak-shaming. Deep link opens the
+   * punya ledger.
+   *
+   * QUEUED #43 — the fired-ledger is keyed per LEAD-TIME BUCKET:
+   * "Ekadashi is in 4 days" and "Ekadashi is in 2 days" are DIFFERENT
+   * notices (the copy itself differs), so each bucket may fire once;
+   * the SAME bucket must never fire twice — that repeat was the spam
+   * the live audit found. The nudge id (and therefore the center
+   * dedupeKey) carries the bucket, so stored rows collapse per bucket
+   * at read time too. Dismissal stays observance-wide: a devotee who
+   * waves one bucket away is never chased by the next one. */
   for (const ts of signals.upcomingTithis ?? []) {
     if (ts.daysUntil < 1 || ts.daysUntil > UPCOMING_TITHI_WITHIN_DAYS) continue;
-    const key = `tithi:${ts.id}`;
-    if (store.wasShown(key) || store.wasDismissed(key)) continue;
+    const bucketKey = `tithi:${ts.id}:${ts.daysUntil}`;
+    const observanceKey = `tithi:${ts.id}`;
+    if (store.wasShown(bucketKey)) continue;
+    if (store.wasDismissed(bucketKey) || store.wasDismissed(observanceKey)) continue;
     const copy = tithiNudge(ts.tithi, ts.daysUntil);
     nudges.push({
-      id: `nudge-tithi-${ts.id}`,
+      id: `nudge-tithi-${ts.id}-d${ts.daysUntil}`,
       kind: 'upcoming_tithi',
       priority: 'gentle',
       title: t(copy.title, lang),
@@ -373,7 +384,7 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
       action: { label: ACTION_COPY.upcoming_tithi, deepLink: '/app/home/sadhana' },
       dismissable: true,
     });
-    store.markShown(key, now.getTime());
+    store.markShown(bucketKey, now.getTime());
   }
 
   return nudges;
@@ -381,6 +392,16 @@ export function generateNudges(signals: NudgeSignals, opts: NudgeOptions = {}): 
 
 /** The devotee dismissed a nudge — record it so it never returns. */
 export function dismissNudge(nudgeId: string, store: NudgeStore): void {
+  // Tithi ids carry their lead-time bucket (`nudge-tithi-<obs>-d<days>`,
+  // QUEUED #43). Dismissal is observance-wide: record BOTH the bucket
+  // key and the observance key, so no later bucket of the same
+  // observance can chase a devotee who already waved it away.
+  const tithi = /^nudge-tithi-(.+)-d(\d+)$/.exec(nudgeId);
+  if (tithi) {
+    store.markDismissed(`tithi:${tithi[1]}:${tithi[2]}`);
+    store.markDismissed(`tithi:${tithi[1]}`);
+    return;
+  }
   // Map the public nudge id back to its ledger key.
   const key = nudgeId
     .replace(/^nudge-money-/, 'money:')

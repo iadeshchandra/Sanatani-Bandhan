@@ -32,7 +32,12 @@ import { db } from '../firebase';
 import { markItemRead, acknowledgeItem, readPrefsDoc, writePrefsDoc } from './delivery';
 import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from './preferences';
 import type { NotificationItem } from './types';
-import { summarizeForHeader, groupCenterItems } from './uiTypes';
+import {
+  summarizeForHeader,
+  groupCenterItems,
+  collapseDuplicateItems,
+  collapseSiblingIds,
+} from './uiTypes';
 
 export { NotificationBell } from './NotificationBell';
 export { NotificationCenterUI } from './NotificationCenterUI';
@@ -51,6 +56,9 @@ export {
   timeAgo,
   displayCategoryFor,
   FILTER_LABELS,
+  collapseKeyFor,
+  collapseDuplicateItems,
+  collapseSiblingIds,
   mockCenterItems,
   mockDigestItems,
 } from './uiTypes';
@@ -107,14 +115,14 @@ export interface NotificationCenterHandle {
  *   )}
  */
 export function useNotificationCenter(uid: string | null | undefined): NotificationCenterHandle {
-  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [rawItems, setRawItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [prefs, setPrefsState] = useState<NotificationPrefs>({ ...DEFAULT_PREFS });
 
   /* Live items — newest first. */
   useEffect(() => {
     if (!uid) {
-      setItems([]);
+      setRawItems([]);
       setLoading(false);
       return;
     }
@@ -126,13 +134,19 @@ export function useNotificationCenter(uid: string | null | undefined): Notificat
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setItems(snap.docs.map((d) => d.data() as NotificationItem));
+        setRawItems(snap.docs.map((d) => d.data() as NotificationItem));
         setLoading(false);
       },
       () => setLoading(false) // calm: a denied read shows an empty center, never a crash
     );
     return unsub;
   }, [uid]);
+
+  /* QUEUED #43 — the exposed list folds stored duplicates of one
+   * logical notice into a single row, and every count in this handle
+   * (the header badge, the summary) derives from that same list:
+   * badge == list, on this shell exactly as on the solo shell. */
+  const items = useMemo(() => collapseDuplicateItems(rawItems), [rawItems]);
 
   /* Prefs — loaded once, saved through Phase 1's owner-only doc. */
   useEffect(() => {
@@ -168,24 +182,25 @@ export function useNotificationCenter(uid: string | null | undefined): Notificat
     await setPrefs({ ...DEFAULT_PREFS, quietHours: { ...DEFAULT_PREFS.quietHours } });
   }, [setPrefs]);
 
-  const markRead = useCallback(
-    async (itemId: string) => {
-      if (!uid) return;
-      try {
-        await markItemRead(uid, itemId);
-      } catch {
-        /* calm */
-      }
-    },
-    [uid]
-  );
-
   const markGroupRead = useCallback(
     async (itemIds: string[]) => {
       if (!uid || itemIds.length === 0) return;
+      // QUEUED #43 — ids arriving from the UI are collapsed
+      // representatives; expand each to every stored copy sharing its
+      // logical-notice key, or the folded copies resurrect the row as
+      // unread on the next snapshot. Raw ids expand to their own set,
+      // so internal callers (markAllRead) are unaffected.
+      const expanded = new Set<string>();
+      for (const id of itemIds) {
+        for (const sid of collapseSiblingIds(rawItems, id)) expanded.add(sid);
+      }
+      const unread = [...expanded].filter(
+        (id) => !rawItems.find((i) => i.id === id)?.read,
+      );
+      if (unread.length === 0) return;
       try {
         const batch = writeBatch(db);
-        for (const id of itemIds) {
+        for (const id of unread) {
           batch.update(doc(db, 'notifications', uid, 'items', id), { read: true });
         }
         await batch.commit();
@@ -193,7 +208,24 @@ export function useNotificationCenter(uid: string | null | undefined): Notificat
         /* calm */
       }
     },
-    [uid]
+    [uid, rawItems]
+  );
+
+  const markRead = useCallback(
+    async (itemId: string) => {
+      if (!uid) return;
+      try {
+        const siblings = collapseSiblingIds(rawItems, itemId).filter(
+          (id) => !rawItems.find((i) => i.id === id)?.read,
+        );
+        if (siblings.length === 0) return;
+        if (siblings.length === 1) await markItemRead(uid, siblings[0]);
+        else await markGroupRead(siblings);
+      } catch {
+        /* calm */
+      }
+    },
+    [uid, rawItems, markGroupRead]
   );
 
   const acknowledge = useCallback(

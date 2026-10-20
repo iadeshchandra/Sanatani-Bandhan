@@ -27,6 +27,12 @@ import {
 } from "../notifications/notifyHelpers";
 import { db, auth } from './firebase';
 import { startPollLoop } from './pollCadence';
+import {
+  decideLowBalance,
+  loadLowBalanceState,
+  saveLowBalanceState,
+  type LowBalanceState,
+} from './walletLowBalance';
 
 export type WalletCurrency = 'BDT' | 'INR' | 'USD';
 
@@ -506,7 +512,8 @@ export async function awaitingCommissionWith(providerUid: string): Promise<numbe
 /*   top-up claim rejected  → IMPORTANT (wallet/topupRejected)                 */
 /*   escrow payout received → GENTLE (wallet/payoutReceived)                   */
 /*   seva contribution due  → IMPORTANT (wallet/commissionDue, once per day)   */
-/*   wallet running low     → IMPORTANT (wallet/lowBalance, once per day)      */
+/*   wallet running low     → IMPORTANT (wallet/lowBalance, once per episode, */
+/*                            ≤1 per 24h while low — persisted ledger, #43)    */
 /* Start once per session (see notifications/NotificationWiring).             */
 /* --------------------------------------------------------------------------- */
 
@@ -633,19 +640,24 @@ export function startWalletNotify(uid: string): () => void {
     })
   );
 
-  // --- Low balance: transition into "low" -----------------------------------
-  let wasLow: boolean | null = null;
-  let lowNotifiedDay = "";
+  // --- Low balance: once per low-episode (QUEUED #43) -----------------------
+  // The fired-state is a PERSISTED per-uid ledger (lib/walletLowBalance),
+  // never session memory: the old in-RAM `wasLow`/`lowNotifiedDay` reset
+  // on every relaunch/remount and re-fired the bell each session for a
+  // wallet sitting at ৳0 (~21 identical bells in the live audit). The
+  // ledger decides per snapshot: entering low fires once, continuously
+  // low re-fires at most once per 24h, recovery re-arms, and the first
+  // sighting on a device baselines silently (#29 baseline law).
+  let lowState: LowBalanceState = loadLowBalanceState(uid);
   cleanups.push(
     subscribeMyWallet((w) => {
       if (!w) return;
-      const low = w.balance < LOW_BALANCE_THRESHOLD;
-      const today = dayKey();
-      if (low && wasLow !== true && lowNotifiedDay !== today) {
-        lowNotifiedDay = today;
-        void notifyLowBalance(uid, fmtWallet(w.balance, w.currency), today);
+      const verdict = decideLowBalance(lowState, w.balance, LOW_BALANCE_THRESHOLD, Date.now());
+      lowState = verdict.next;
+      saveLowBalanceState(uid, lowState);
+      if (verdict.fire) {
+        void notifyLowBalance(uid, fmtWallet(w.balance, w.currency), dayKey());
       }
-      wasLow = low;
     })
   );
 

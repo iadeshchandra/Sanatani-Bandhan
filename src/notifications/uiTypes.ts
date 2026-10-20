@@ -183,6 +183,89 @@ export function groupCenterItems(items: NotificationItem[]): CenterGroup[] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Duplicate collapse (QUEUED #43)                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The logical-notice key: two stored rows sharing it are THE SAME
+ * notice that landed twice (a watcher re-fired after a relaunch, a
+ * second device with its own ledger rang the same bell, storage was
+ * wiped and re-armed an emitter…). The live audit found ~21 stored
+ * copies of one "wallet running low" bell; they must render — and
+ * count — as one.
+ *
+ * Primary key: the item's `dedupeKey`, the emit contract's "stable per
+ * logical event" id (wallet `lowbalance:<day>`, orders
+ * `order:<id>:<status>`, tithi `nudge-tithi-<obs>-d<days>`, insights
+ * date-scoped…). This mirrors the center's own grouping intent
+ * (findGroupTarget exact-matches dedupeKey) extended past its 30-min
+ * unread-only window to the read path, where history lives.
+ *
+ * Fallback (no dedupeKey — legacy rows): kind + subject (a payload id)
+ * + rendered title + civil day of creation.
+ */
+export function collapseKeyFor(item: NotificationItem): string {
+  if (item.dedupeKey) return `dk:${item.dedupeKey}`;
+  const p = (item.payload ?? {}) as Record<string, unknown>;
+  const subject = [p.orderId, p.claimId, p.chatId, p.announcementId, p.requestId].find(
+    (v) => typeof v === 'string' && v,
+  ) as string | undefined;
+  const d = new Date(item.createdAt || 0);
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+  return `fb:${item.kind}:${subject ?? ''}:${item.title?.en ?? ''}:${day}`;
+}
+
+/**
+ * Fold stored duplicates into one representative row per logical
+ * notice. The representative is the NEWEST copy; its `groupedCount`
+ * becomes the sum across copies (the honest "this rang N times"),
+ * and it counts as read ONLY when every copy is read — so the badge
+ * derived from the collapsed list equals the unread the devotee
+ * actually sees, and a collapsed row can never hide an unread copy.
+ * Pure; newest-first order is preserved.
+ */
+export function collapseDuplicateItems(items: NotificationItem[]): NotificationItem[] {
+  const byKey = new Map<string, NotificationItem[]>();
+  for (const item of items ?? []) {
+    if (!item) continue;
+    const key = collapseKeyFor(item);
+    const list = byKey.get(key) ?? [];
+    list.push(item);
+    byKey.set(key, list);
+  }
+  const out: NotificationItem[] = [];
+  for (const siblings of byKey.values()) {
+    if (siblings.length === 1) {
+      out.push(siblings[0]);
+      continue;
+    }
+    const sorted = [...siblings].sort((a, b) => b.createdAt - a.createdAt);
+    const rep = sorted[0];
+    out.push({
+      ...rep,
+      read: sorted.every((s) => s.read === true),
+      acknowledged: sorted.every((s) => s.acknowledged === true),
+      groupedCount: sorted.reduce((acc, s) => acc + Math.max(1, s.groupedCount || 1), 0),
+    });
+  }
+  return out.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/**
+ * Every raw row id that collapses into the row `itemId` — marking a
+ * collapsed row read must mark its folded copies too, or the next
+ * snapshot resurrects it as unread.
+ */
+export function collapseSiblingIds(items: NotificationItem[], itemId: string): string[] {
+  const target = (items ?? []).find((i) => i.id === itemId);
+  if (!target) return [itemId];
+  const key = collapseKeyFor(target);
+  return items.filter((i) => collapseKeyFor(i) === key).map((i) => i.id);
+}
+
+/* ------------------------------------------------------------------ */
 /* Relative time (trilingual)                                         */
 /* ------------------------------------------------------------------ */
 

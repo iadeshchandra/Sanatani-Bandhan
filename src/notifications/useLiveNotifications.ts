@@ -9,6 +9,13 @@
  * - Read failures (rules, offline) → empty list, never fake data.
  * - "Clear" never deletes: the rules deny deletes on items, so clearing
  *   marks everything read (the badge empties; history stays).
+ * - QUEUED #43: stored duplicates of one logical notice (a watcher
+ *   re-fired into the store — e.g. ~21 copies of one wallet-low bell)
+ *   are collapsed at read time (uiTypes.collapseDuplicateItems), and
+ *   the unread/critical counts are derived from THAT collapsed list —
+ *   so the header badge always equals the unread in the list the
+ *   devotee sees. Marking a collapsed row read marks its folded
+ *   copies too, or the next snapshot would resurrect it.
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -23,7 +30,11 @@ import {
 import { db } from '../firebase';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { acknowledgeItem, markItemRead } from './delivery';
-import type { CenterGroup } from './uiTypes';
+import {
+  collapseDuplicateItems,
+  collapseSiblingIds,
+  type CenterGroup,
+} from './uiTypes';
 import type { NotificationItem } from './types';
 
 export interface LiveNotifications {
@@ -49,11 +60,11 @@ function toItem(id: string, data: unknown): NotificationItem {
 export function useLiveNotifications(): LiveNotifications {
   const { firebaseUser } = useAuthWorkspace();
   const uid = firebaseUser?.uid ?? null;
-  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [rawItems, setRawItems] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     if (!uid) {
-      setItems([]);
+      setRawItems([]);
       return undefined;
     }
     const q = query(
@@ -64,27 +75,24 @@ export function useLiveNotifications(): LiveNotifications {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setItems(snap.docs.map((d) => toItem(d.id, d.data())));
+        setRawItems(snap.docs.map((d) => toItem(d.id, d.data())));
       },
       () => {
         // Read denied / offline: show nothing, never fake data.
-        setItems([]);
+        setRawItems([]);
       },
     );
     return () => unsub();
   }, [uid]);
 
+  // The list every surface renders — stored duplicates folded (#43).
+  const items = useMemo(() => collapseDuplicateItems(rawItems), [rawItems]);
+
+  // Badge math derives from the SAME collapsed list — badge == list.
   const unreadCount = useMemo(() => items.filter((i) => !i.read).length, [items]);
   const criticalCount = useMemo(
     () => items.filter((i) => i.priority === 'critical' && !i.read && !i.acknowledged).length,
     [items],
-  );
-
-  const markRead = useMemo(
-    () => async (itemId: string) => {
-      if (uid) await markItemRead(uid, itemId);
-    },
-    [uid],
   );
 
   const markIdsRead = useMemo(
@@ -102,18 +110,43 @@ export function useLiveNotifications(): LiveNotifications {
     [uid],
   );
 
+  const markRead = useMemo(
+    () => async (itemId: string) => {
+      if (!uid) return;
+      // A collapsed row stands for every stored copy — mark them all,
+      // or the unread copies resurrect the row on the next snapshot.
+      const siblings = collapseSiblingIds(rawItems, itemId).filter(
+        (id) => !rawItems.find((i) => i.id === id)?.read,
+      );
+      if (siblings.length === 0) return;
+      if (siblings.length === 1) await markItemRead(uid, siblings[0]);
+      else await markIdsRead(siblings);
+    },
+    [uid, rawItems, markIdsRead],
+  );
+
   const markAllRead = useMemo(
     () => async () => {
-      await markIdsRead(items.filter((i) => !i.read).map((i) => i.id));
+      // Raw rows, not collapsed representatives — every stored copy.
+      await markIdsRead(rawItems.filter((i) => !i.read).map((i) => i.id));
     },
-    [items, markIdsRead],
+    [rawItems, markIdsRead],
   );
 
   const markGroupRead = useMemo(
     () => async (group: CenterGroup) => {
-      await markIdsRead(group.items.filter((i) => !i.read).map((i) => i.id));
+      // Group items are collapsed representatives — expand each to its
+      // stored copies before marking, same law as markRead.
+      const ids = new Set<string>();
+      for (const rep of group.items) {
+        if (rep.read) continue;
+        for (const id of collapseSiblingIds(rawItems, rep.id)) ids.add(id);
+      }
+      await markIdsRead(
+        [...ids].filter((id) => !rawItems.find((i) => i.id === id)?.read),
+      );
     },
-    [markIdsRead],
+    [rawItems, markIdsRead],
   );
 
   // Deletes are denied by the rules — clearing the tray means everything
