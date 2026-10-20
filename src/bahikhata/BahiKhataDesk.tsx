@@ -9,6 +9,12 @@ import { executeCommit } from './commit';
 import { RegisterMode } from './RegisterMode';
 import { CsvImport } from './CsvImport';
 import { BatchReview } from './BatchReview';
+import { ScanImport } from './scan/ScanImport';
+import { createManifestRecorder, manifestHasWrites } from './commitManifest';
+import { checkUndoGuards, executeUndo, type UndoResult } from './undo';
+import { isClosedVocabField } from './scan/corrections';
+import { learnPair, noteFieldOutcome } from './scan/registerProfile';
+import { phoneKey } from './normalize';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -29,12 +35,16 @@ interface Props {
   existingHerd?: Nandi[];
   /** Herd commit sink (Goshala mount, from useGoshala). */
   herdCommitter?: (nandis: Nandi[]) => void;
+  /** Herd removal sink (Goshala mount) — batch undo for herd rows.
+   *  Absent = herd undo not offered in this mount. */
+  herdRemover?: (ids: string[]) => void;
 }
 
 type View =
   | { kind: 'home' }
   | { kind: 'register'; batchId: string }
   | { kind: 'csv' }
+  | { kind: 'scan' }
   | { kind: 'review'; batchId: string };
 
 const TARGET_LABEL_KEY: Record<BahiTarget, 'targetHerd' | 'targetMembers' | 'targetDonors'> = {
@@ -43,18 +53,19 @@ const TARGET_LABEL_KEY: Record<BahiTarget, 'targetHerd' | 'targetMembers' | 'tar
   donors: 'targetDonors',
 };
 
-const STATE_KEY: Record<ImportBatch['state'], 'stateDraft' | 'statePending' | 'stateApproved' | 'stateRejected' | 'stateCommitted'> = {
+const STATE_KEY: Record<ImportBatch['state'], 'stateDraft' | 'statePending' | 'stateApproved' | 'stateRejected' | 'stateCommitted' | 'stateUndone'> = {
   draft: 'stateDraft',
   pending: 'statePending',
   approved: 'stateApproved',
   rejected: 'stateRejected',
   committed: 'stateCommitted',
+  undone: 'stateUndone',
 };
 
-export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdCommitter }) => {
+export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdCommitter, herdRemover }) => {
   const offered = targets && targets.length ? targets : (['herd', 'members', 'donors'] as BahiTarget[]);
   const { activeWorkspace, currentUser, firebaseUser, effectiveRole } = useAuthWorkspace();
-  const { devotees, addDevotee, updateDevotee, addTreasuryTransaction } = useData();
+  const { devotees, addDevotee, updateDevotee, deleteDevotee, addTreasuryTransaction, treasury, donations } = useData();
   const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const lang: BkLang = bkLangOf(currentLang);
@@ -111,6 +122,9 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
 
   const handleCommit = (batch: ImportBatch): BatchCommitSummary => {
     const approved = applyTransition(batch, 'approve', actor);
+    // Phase 2 trust system: record exactly what the commit writes,
+    // so the batch can later be undone precisely (undo.ts).
+    const recorder = createManifestRecorder(approved.id, actor);
     const summary = executeCommit(approved, {
       workspaceId: ws,
       existingDevotees: devotees,
@@ -118,13 +132,83 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
       updateDevotee,
       addTreasuryTransaction,
       addNandi: herdCommitter ? (n) => herdCommitter([n]) : undefined,
+      record: recorder.record,
     });
+    const manifest = recorder.build();
     const committed = {
       ...applyTransition(approved, 'commit', actor),
       commitSummary: summary,
+      ...(manifestHasWrites(manifest) ? { manifest } : {}),
     };
     store.updateBatch(committed);
     return summary;
+  };
+
+  /** Phase 2: precise batch undo. Guards run against LIVE records —
+   *  anything that gained a life since import blocks its own
+   *  reversal and is reported, never silently corrupted. The batch
+   *  only becomes 'undone' when nothing blocked. */
+  const handleUndo = (batch: ImportBatch): UndoResult | null => {
+    if (!batch.manifest) return null;
+    const resolved: string[] = [];
+    for (const u of batch.manifest.createdUnresolved || []) {
+      const byPhone = u.phone
+        ? devotees.filter((d) => phoneKey(d.phone) === phoneKey(u.phone))
+        : [];
+      const pool = byPhone.length === 1
+        ? byPhone
+        : devotees.filter(
+            (d) => (d.fullName || '').trim().toLowerCase() === u.fullName.trim().toLowerCase()
+          );
+      if (pool.length === 1) resolved.push(pool[0].id);
+    }
+    const guard = checkUndoGuards({
+      manifest: batch.manifest,
+      devotees: devotees.map((d) => ({ id: d.id, totalDonated: d.totalDonated })),
+      herdIds: herd.map((n) => n.id),
+      donationRefs: (donations || []).map((dn) => ({
+        devoteeId: (dn as { devoteeId?: string }).devoteeId,
+        donorId: (dn as { donorId?: string }).donorId,
+      })),
+      resolvedUnresolvedIds: resolved,
+    });
+    const result = executeUndo(batch, guard, {
+      workspaceId: ws,
+      removeNandi: herdRemover ? (id) => herdRemover([id]) : undefined,
+      deleteDevotee,
+      updateDevotee,
+      addTreasuryTransaction,
+      treasury: treasury || [],
+    });
+    if (result.blocked.length === 0) {
+      store.updateBatch(applyTransition(batch, 'undo', actor));
+    }
+    return result;
+  };
+
+  /** The org's own word-lists per target — grown from its data, used
+   *  by the scan validators, dictionary proposals and AI re-check. */
+  const dictionariesFor = (target: BahiTarget): Record<string, string[]> => {
+    if (target === 'herd') return { breed: picklists.breeds };
+    return {
+      gotra: picklists.gotras,
+      address: Array.from(new Set(devotees.map((d) => d.address).filter(Boolean))) as string[],
+    };
+  };
+
+  /** Persist a reviewer outcome onto the batch's register profile:
+   *  field accept-rates + recurring raw→fixed pairs (closed vocabs). */
+  const handleCellLearned = (batch: ImportBatch) => (
+    field: string, readText: string, finalText: string, acceptedAsRead: boolean
+  ) => {
+    if (!batch.profileId) return;
+    const prof = store.registerProfiles.find((p) => p.id === batch.profileId);
+    if (!prof) return;
+    let next = noteFieldOutcome(prof, field, acceptedAsRead);
+    if (!acceptedAsRead && isClosedVocabField(batch.target, field)) {
+      next = learnPair(next, field, readText, finalText);
+    }
+    if (next !== prof) store.updateProfile(next);
   };
 
   const openBatch = (batch: ImportBatch) => {
@@ -182,8 +266,33 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
         canApprove={canApproveBahi(role, activeBatch.target)}
         existingMembers={devotees}
         existingHerd={herd}
+        dictionaries={dictionariesFor(activeBatch.target)}
+        profile={store.registerProfiles.find((p) => p.id === activeBatch.profileId) || null}
+        onCellLearned={handleCellLearned(activeBatch)}
+        onUndo={handleUndo}
         onUpdate={store.updateBatch}
         onCommit={handleCommit}
+        onBack={() => setView({ kind: 'home' })}
+      />
+    );
+  }
+
+  if (view.kind === 'scan') {
+    return (
+      <ScanImport
+        lang={lang}
+        workspaceId={ws}
+        actor={actor}
+        target={selectedTarget}
+        batches={store.batches}
+        profiles={store.registerProfiles}
+        existingMembers={devotees}
+        existingHerd={herd}
+        dictionaries={dictionariesFor(selectedTarget)}
+        onAddBatch={store.addBatch}
+        onUpdateBatch={store.updateBatch}
+        onAddProfile={store.addProfile}
+        onOpenReview={(batchId) => setView({ kind: 'review', batchId })}
         onBack={() => setView({ kind: 'home' })}
       />
     );
@@ -238,9 +347,9 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
             <button type="button" onClick={() => setView({ kind: 'csv' })} className={`${modeCard} bg-white border-stone-300 text-stone-800 hover:border-amber-400`}>
               <FileSpreadsheet className="w-6 h-6 shrink-0 text-emerald-600" /> {bk(lang, 'modeCsv')}
             </button>
-            <div className={`${modeCard} bg-stone-50 border-stone-200 text-stone-400`} aria-disabled="true">
-              <Camera className="w-6 h-6 shrink-0" /> {bk(lang, 'modePhotoSoon')}
-            </div>
+            <button type="button" onClick={() => setView({ kind: 'scan' })} className={`${modeCard} bg-white border-stone-300 text-stone-800 hover:border-amber-400`}>
+              <Camera className="w-6 h-6 shrink-0 text-amber-600" /> {bk(lang, 'modePhoto')}
+            </button>
             <div className={`${modeCard} bg-stone-50 border-stone-200 text-stone-400`} aria-disabled="true">
               <Mic className="w-6 h-6 shrink-0" /> {bk(lang, 'modeVoiceSoon')}
             </div>
@@ -298,6 +407,7 @@ const BatchListRow: React.FC<{
     <span
       className={`px-2.5 py-1 rounded-full text-[11px] font-black ${
         batch.state === 'committed' ? 'bg-emerald-100 text-emerald-800'
+        : batch.state === 'undone' ? 'bg-stone-300 text-stone-600'
         : batch.state === 'pending' ? 'bg-amber-100 text-amber-800'
         : batch.state === 'rejected' ? 'bg-rose-100 text-rose-800'
         : 'bg-stone-200 text-stone-700'

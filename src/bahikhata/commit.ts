@@ -20,6 +20,7 @@ import type { DevoteeMember, SevaTier, TreasuryTransaction } from '../types';
 import type { Nandi } from '../goshala/types';
 import type { BatchCommitSummary, ImportBatch, ImportRow } from './types';
 import { phoneKey, isUsablePhoneKey } from './normalize';
+import type { ManifestEvent } from './commitManifest';
 
 export type AddDevoteeFn = (
   d: Omit<DevoteeMember, 'id' | 'qrCodeRef' | 'joinedDate'>
@@ -40,6 +41,10 @@ export interface CommitDeps {
    *  report a clear error instead of writing nowhere. */
   addNandi?: (n: Nandi) => void;
   now?: Date;
+  /** Phase 2 manifest hook: fired at every successful write so the
+   *  batch records exactly what commit did (undo.ts consumes it).
+   *  Optional — Phase 1 callers behave exactly as before without it. */
+  record?: (e: ManifestEvent) => void;
 }
 
 const HANDLED_BY_REGISTER = 'Bahi-Khata (paper register)';
@@ -183,8 +188,10 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
       throw new Error('herd-commit-unavailable');
     }
     rows.forEach((row, i) => {
-      deps.addNandi!(buildNandiRecord(row, nowMs + i, todayISO));
+      const rec = buildNandiRecord(row, nowMs + i, todayISO);
+      deps.addNandi!(rec);
       summary.added++;
+      deps.record?.({ kind: 'nandi-created', id: rec.id });
     });
     return summary;
   }
@@ -194,7 +201,15 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
       const res = deps.addDevotee(buildMemberRecord(row, deps.workspaceId, nowMs));
       // Count ACTUAL successes only (addDevotee returns false when a
       // demo quota blocks the create — the BulkImportDesk honesty rule).
-      if (res !== false) summary.added++;
+      if (res !== false) {
+        summary.added++;
+        if (typeof res === 'string') deps.record?.({ kind: 'devotee-created', id: res });
+        else deps.record?.({
+          kind: 'devotee-created-unresolved',
+          fullName: String(row.mapped.fullName || ''),
+          phone: row.mapped.phone ? String(row.mapped.phone) : undefined,
+        });
+      }
     }
     return summary;
   }
@@ -222,6 +237,7 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
     }
     const res = deps.addDevotee(buildMemberRecord(row, deps.workspaceId, nowMs));
     if (res === false || typeof res !== 'string') return { created: false };
+    deps.record?.({ kind: 'devotee-created', id: res });
     const fresh: DevoteeMember = {
       ...(buildMemberRecord(row, deps.workspaceId, nowMs) as DevoteeMember),
       id: res,
@@ -236,6 +252,10 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
     return { id: res, created: true };
   };
 
+  // Manifest bookkeeping: the total each person had BEFORE this batch
+  // first touched them (undo restores exactly this).
+  const originalTotals = new Map<string, number>();
+
   for (const row of rows) {
     const m = row.mapped;
     const lifetime = typeof m.lifetimeDonated === 'number' ? m.lifetimeDonated : 0;
@@ -247,18 +267,40 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
     if (id) {
       const addToTotal = lifetime + lineAmount;
       if (addToTotal > 0) {
+        if (!originalTotals.has(id)) {
+          originalTotals.set(id, byId.get(id)?.totalDonated || 0);
+        }
         const base =
           donatedSoFar.get(id) ??
           (byId.get(id)?.totalDonated || 0);
         const next = base + addToTotal;
         donatedSoFar.set(id, next);
         deps.updateDevotee(id, { totalDonated: next });
+        deps.record?.({
+          kind: 'devotee-total',
+          devoteeId: id,
+          before: originalTotals.get(id)!,
+          after: next,
+        });
       }
     }
 
     if (lineAmount > 0) {
-      const ok = deps.addTreasuryTransaction(buildDonationLineTx(row, id, deps.workspaceId));
-      if (ok) summary.treasuryLines++;
+      const tx = buildDonationLineTx(row, id, deps.workspaceId);
+      const ok = deps.addTreasuryTransaction(tx);
+      if (ok) {
+        summary.treasuryLines++;
+        deps.record?.({
+          kind: 'donation-line',
+          line: {
+            amount: tx.amount,
+            date: tx.date,
+            devoteeId: tx.devoteeId,
+            devoteeName: tx.devoteeName || '',
+            referenceNo: tx.referenceNo,
+          },
+        });
+      }
     }
   }
 
@@ -268,6 +310,12 @@ export function executeCommit(batch: ImportBatch, deps: CommitDeps): BatchCommit
     if (ok) {
       summary.openingBalanceWritten = true;
       summary.treasuryLines++;
+      deps.record?.({
+        kind: 'opening-balance',
+        amount: opening.amount,
+        date: opening.date,
+        fundLabel: batch.openingBalance?.fundLabel || '',
+      });
     }
   }
 

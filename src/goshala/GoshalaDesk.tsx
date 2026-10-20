@@ -21,12 +21,13 @@ import './print.css';
    so herd dedupe sees the live herd and commit writes through the
    store's own mutator. */
 const GoshalaBahiKhata: React.FC = () => {
-  const { state, add } = useGoshala();
+  const { state, add, remove } = useGoshala();
   return (
     <BahiKhataDesk
       targets={['herd']}
       existingHerd={state.nandis}
       herdCommitter={(nandis: Nandi[]) => nandis.forEach((n) => add('nandis', n))}
+      herdRemover={(ids: string[]) => ids.forEach((id) => remove('nandis', id))}
     />
   );
 };

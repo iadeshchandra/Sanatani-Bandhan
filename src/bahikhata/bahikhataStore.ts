@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   BahiKhataData, BahiTarget, BatchActor, BatchSource, BatchState, ImportBatch,
+  RegisterProfile,
 } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -14,7 +15,7 @@ import type {
 
 const storageKey = (ws: string) => `sb_bahikhata_${ws}`;
 
-const EMPTY: BahiKhataData = { batches: [], columnMaps: {} };
+const EMPTY: BahiKhataData = { batches: [], columnMaps: {}, registerProfiles: [] };
 
 export function loadBahiData(ws: string): BahiKhataData {
   try {
@@ -22,11 +23,16 @@ export function loadBahiData(ws: string): BahiKhataData {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.batches)) {
-        return { batches: parsed.batches, columnMaps: parsed.columnMaps || {} };
+        return {
+          batches: parsed.batches,
+          columnMaps: parsed.columnMaps || {},
+          // Phase 1 stores predate profiles — default, never crash.
+          registerProfiles: Array.isArray(parsed.registerProfiles) ? parsed.registerProfiles : [],
+        };
       }
     }
   } catch { /* corrupted → start clean; paper is the backup */ }
-  return { batches: [], columnMaps: {} };
+  return { batches: [], columnMaps: {}, registerProfiles: [] };
 }
 
 export function saveBahiData(ws: string, data: BahiKhataData): void {
@@ -68,14 +74,18 @@ export function createBatch(args: {
 /* surface agrees on what is legal.                                    */
 
 export type BatchAction =
-  | 'submit' | 'withdraw' | 'approve' | 'reject' | 'reopen' | 'commit';
+  | 'submit' | 'withdraw' | 'approve' | 'reject' | 'reopen' | 'commit' | 'undo';
 
 const LEGAL: Record<BatchState, BatchAction[]> = {
   draft: ['submit'],
   pending: ['withdraw', 'approve', 'reject'],
   approved: ['commit'],
   rejected: ['reopen'],
-  committed: [],
+  // A committed batch is immutable to every action EXCEPT undo —
+  // and undo never edits history: it writes compensating entries
+  // (undo.ts) and lands here, manifest intact, fully auditable.
+  committed: ['undo'],
+  undone: [],
 };
 
 export function canTransition(state: BatchState, action: BatchAction): boolean {
@@ -119,6 +129,11 @@ export function applyTransition(
     case 'commit':
       next.state = 'committed';
       break;
+    case 'undo':
+      next.state = 'undone';
+      next.undoneBy = actor;
+      next.undoneAt = now;
+      break;
   }
   return next;
 }
@@ -128,10 +143,14 @@ export function applyTransition(
 export interface BahiStore {
   data: BahiKhataData;
   batches: ImportBatch[];
+  registerProfiles: RegisterProfile[];
   addBatch: (b: ImportBatch) => void;
   updateBatch: (b: ImportBatch) => void;
   deleteBatch: (id: string) => void;
   rememberColumnMap: (target: BahiTarget, map: Record<string, string>) => void;
+  addProfile: (p: RegisterProfile) => void;
+  updateProfile: (p: RegisterProfile) => void;
+  deleteProfile: (id: string) => void;
 }
 
 export function useBahiKhata(workspaceId: string): BahiStore {
@@ -168,5 +187,26 @@ export function useBahiKhata(workspaceId: string): BahiStore {
     setData((d) => ({ ...d, columnMaps: { ...d.columnMaps, [target]: map } }));
   }, []);
 
-  return { data, batches: data.batches, addBatch, updateBatch, deleteBatch, rememberColumnMap };
+  const addProfile = useCallback((p: RegisterProfile) => {
+    setData((d) => ({ ...d, registerProfiles: [p, ...d.registerProfiles] }));
+  }, []);
+
+  const updateProfile = useCallback((p: RegisterProfile) => {
+    setData((d) => ({
+      ...d,
+      registerProfiles: d.registerProfiles.map((x) =>
+        x.id === p.id ? { ...p, updatedAt: Date.now() } : x
+      ),
+    }));
+  }, []);
+
+  const deleteProfile = useCallback((id: string) => {
+    setData((d) => ({ ...d, registerProfiles: d.registerProfiles.filter((x) => x.id !== id) }));
+  }, []);
+
+  return {
+    data, batches: data.batches, registerProfiles: data.registerProfiles,
+    addBatch, updateBatch, deleteBatch, rememberColumnMap,
+    addProfile, updateProfile, deleteProfile,
+  };
 }

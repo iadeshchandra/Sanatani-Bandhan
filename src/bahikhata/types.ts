@@ -15,8 +15,9 @@
 /* ------------------------------------------------------------------ */
 
 export type BahiTarget = 'herd' | 'members' | 'donors';
-export type BatchSource = 'register' | 'csv';
-export type BatchState = 'draft' | 'pending' | 'approved' | 'rejected' | 'committed';
+export type BatchSource = 'register' | 'csv' | 'photo';
+export type BatchState =
+  | 'draft' | 'pending' | 'approved' | 'rejected' | 'committed' | 'undone';
 export type RowState = 'ok' | 'duplicate' | 'needs_fix' | 'excluded';
 
 export interface BatchActor {
@@ -35,6 +36,36 @@ export interface OpeningBalanceInput {
   verified: boolean;
 }
 
+/** One OCR-read field of a scanned row (Phase 2). Fractions are
+ *  relative to the page photo (0..1) so the review screen can draw the
+ *  highlight box over any rendering of the page. */
+export interface ScanCellBox { x0: number; y0: number; x1: number; y1: number }
+
+export interface ScanCell {
+  /** The text the machine read, before any human correction. */
+  text: string;
+  /** 0..100 — blended OCR confidence (see scan/cellConfidence.ts). */
+  confidence: number;
+  cls: 'green' | 'amber' | 'red';
+  /** Why this colour, in plain words (EN — the review translates the
+   *  stable reason keys; free-text reasons stay as written). */
+  reasons: string[];
+  /** Where on the page photo this cell was read from. */
+  bbox?: ScanCellBox;
+  /** A human has looked at this cell and vouched for its value. Red
+   *  cells must be confirmed before the row can commit. */
+  confirmed?: boolean;
+  /** Dictionary proposal awaiting one tap (closed vocabularies only). */
+  proposal?: string;
+  /** On-device AI (WebLLM) proposal awaiting the reviewer's tap —
+   *  rendered diff-style beside `proposal`; never auto-applied. */
+  llmProposal?: string;
+  /** A human touched this cell (confirmed / corrected / accepted a
+   *  proposal). Feeds the verification report's honest accuracy
+   *  numbers: auto-green vs human-touched. */
+  touched?: boolean;
+}
+
 export interface ImportRow {
   rowId: string;
   /** Register page this row was read from (1-based). */
@@ -50,6 +81,9 @@ export interface ImportRow {
   defaultedFields: string[];
   /** Per-row approval. Defaults true when state is 'ok'. */
   approved: boolean;
+  /** Phase 2: per-field OCR provenance for scanned rows. Absent for
+   *  typed/CSV rows. */
+  cells?: Record<string, ScanCell>;
 }
 
 export interface BatchCommitSummary {
@@ -58,6 +92,66 @@ export interface BatchCommitSummary {
   treasuryLines: number;
   openingBalanceWritten: boolean;
   at: number;
+}
+
+/* --------------------- commit manifest & undo ----------------------- */
+/* Phase 2 trust system: every commit records EXACTLY what it wrote,   */
+/* so a mistaken batch can be undone precisely — herd/member rows are  */
+/* removed by id, money is corrected by a visible compensating entry   */
+/* (the treasury ledger is append-only and never lies by erasure).     */
+
+export interface ManifestDevoteeChange {
+  devoteeId: string;
+  /** totalDonated before this batch touched the person. */
+  beforeTotalDonated: number;
+  /** totalDonated after the batch's writes settled. */
+  afterTotalDonated: number;
+}
+
+export interface ManifestDonationLine {
+  amount: number;
+  date: string;
+  devoteeId?: string;
+  devoteeName: string;
+  referenceNo?: string;
+}
+
+export interface CommitManifest {
+  batchId: string;
+  committedAt: number;
+  committedBy: BatchActor;
+  /** Herd rows created (goshalaStore ids). */
+  createdNandiIds: string[];
+  /** Devotee records created (members + donor persons). */
+  createdDevoteeIds: string[];
+  /** Creates whose id the write path did not return (defensive — the
+   *  undo guard resolves these by name+phone against live records). */
+  createdUnresolved?: { fullName: string; phone?: string }[];
+  /** Pre-existing people whose lifetime giving this batch raised. */
+  devoteeChanges: ManifestDevoteeChange[];
+  /** Treasury gift lines written (reversed by counter-entry on undo). */
+  donationLines: ManifestDonationLine[];
+  /** The opening-balance line, when the approver verified one. */
+  openingBalance?: { amount: number; date: string; fundLabel: string };
+}
+
+/* ---------------------- verification report ------------------------- */
+
+export interface SpotCheck {
+  rowId: string;
+  pageNo: number;
+  /** The trustee has compared this row against the paper photo. */
+  ok: boolean;
+}
+
+export interface BatchVerification {
+  sealedBy: BatchActor;
+  sealedAt: number;
+  spotChecks: SpotCheck[];
+  /** Keyed page totals matched the approved rows' sums. */
+  totalsMatch: boolean;
+  /** Pages whose keyed total disagrees — shown, never hidden. */
+  mismatchedPages: number[];
 }
 
 export interface ImportBatch {
@@ -83,12 +177,60 @@ export interface ImportBatch {
   openingBalance?: OpeningBalanceInput;
   rows: ImportRow[];
   commitSummary?: BatchCommitSummary;
+  /* ---- Phase 2 (scan) ---- */
+  /** Register profile used to read this batch's pages, if any. */
+  profileId?: string;
+  /** Donation total the entrant keyed from each page's own footer —
+   *  the double-key control the verification report checks against. */
+  pageTotals?: Record<number, number>;
+  /** What the commit wrote (Phase 2 trust system — enables undo). */
+  manifest?: CommitManifest;
+  /** The closing verification report, sealed by the approver. */
+  verification?: BatchVerification;
+  undoneBy?: BatchActor;
+  undoneAt?: number;
+}
+
+/* ----------------------- register profiles -------------------------- */
+/* Phase 2 layout learning: a register's columns are mapped ONCE from  */
+/* page 1 and reused for every later page of the same book. Profiles   */
+/* live in the same device-local store as the batches.                  */
+
+export type ScanScript = 'ben' | 'hin' | 'eng' | 'mixed';
+
+export interface ColumnRegion {
+  /** App field key from TARGET_FIELDS; '' while unmapped. */
+  field: string;
+  /** Fractions of page width. */
+  x0: number;
+  x1: number;
+}
+
+export interface RegisterProfile {
+  id: string;
+  workspaceId: string;
+  target: BahiTarget;
+  /** Entrant-given name: "Gai khata — old book". */
+  label: string;
+  script: ScanScript;
+  columns: ColumnRegion[];
+  /** Fraction of page height occupied by the header (skipped). */
+  headerRowSkip: number;
+  writerStyle: 'print' | 'neat-hand' | 'mixed-hand';
+  createdAt: number;
+  updatedAt: number;
+  /** Learning: per-field accept counters from reviewer outcomes. */
+  fieldStats: Record<string, { seen: number; accepted: number }>;
+  /** Recurring raw→fixed pairs for closed vocabularies, per field. */
+  learnedPairs: Record<string, Record<string, string>>;
 }
 
 export interface BahiKhataData {
   batches: ImportBatch[];
   /** Remembered CSV column mappings per target: appField ← csvHeader. */
   columnMaps: Partial<Record<BahiTarget, Record<string, string>>>;
+  /** Phase 2: learned register layouts per workspace. */
+  registerProfiles: RegisterProfile[];
 }
 
 /* ------------------------- field descriptors ------------------------ */

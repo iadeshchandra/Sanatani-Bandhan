@@ -131,6 +131,26 @@ export default defineConfig(() => {
               handler: 'NetworkOnly',
             },
             {
+              // Bahi-Khata Seva Phase 2: the OCR "Reading Pack" (engine
+              // core + ben/hin/eng data, ~10 MB one-time) lives under
+              // /ocr/*. CacheFirst so a goshala courtyard with no signal
+              // can still scan register pages fully offline. Must come
+              // BEFORE the same-origin NetworkFirst rule below.
+              urlPattern: ({ url }: { url: URL }) =>
+                url.origin === self.origin && url.pathname.includes('/ocr/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'ocr-reading-pack',
+                expiration: {
+                  maxEntries: 16,
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
