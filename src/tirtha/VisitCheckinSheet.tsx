@@ -14,6 +14,7 @@ import { uploadFile } from '../lib/fileVault';
 import { recordVisit } from './tirthaStore';
 import { tirthaLangOf, tt } from './i18n';
 import { ZoneQrScanSheet, type ZoneScanSuccess } from '../campus/ZoneQrScanSheet';
+import { checkinPrefillFromScan } from '../campus/scanCheckin';
 import type { DarshanKind, VisitEntry } from './types';
 
 const DARSHAN_KINDS: DarshanKind[] = [
@@ -49,8 +50,12 @@ export const VisitCheckinSheet: React.FC<{
   /** Zone QR verified — pre-fill from the temple's own code. Still editable. */
   const onQrVerified = (scan: ZoneScanSuccess) => {
     setScanning(false);
-    setTempleName(`${scan.orgName} · ${scan.zoneName}`);
-    setOrgId(scan.orgId);
+    // Shared mapping (campus/scanCheckin) — identical to the campus
+    // map's scan door, and safe for device-verified offline scans
+    // which carry no org name.
+    const prefill = checkinPrefillFromScan(scan);
+    setTempleName(prefill.templeName);
+    setOrgId(prefill.orgId);
   };
 
   const save = async () => {

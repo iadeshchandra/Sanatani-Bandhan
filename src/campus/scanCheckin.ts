@@ -19,7 +19,9 @@ export interface CheckinPrefill {
 
 export function checkinPrefillFromScan(scan: ZoneScanSuccess): CheckinPrefill {
   return {
-    templeName: `${scan.orgName} · ${scan.zoneName}`,
+    // Device-verified offline scans carry no org name (the v2 payload
+    // has none) — prefill with the zone name alone; still editable.
+    templeName: scan.orgName ? `${scan.orgName} · ${scan.zoneName}` : scan.zoneName,
     orgId: scan.orgId,
   };
 }

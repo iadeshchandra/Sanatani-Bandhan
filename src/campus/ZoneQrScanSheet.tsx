@@ -8,11 +8,18 @@
  *
  * ANTI-PHISHING AIR-GAP (preserved from zoneQr.ts):
  * - Accepts ONLY well-formed SB-ZONE payloads (parseZoneQr).
- * - Every scan is VERIFIED against the org's published campus map
- *   (verifyZoneQr) — a fake QR for a non-existent zone fails closed.
+ * - Every scan is VERIFIED (verifyZoneQr): against the org's published
+ *   campus map when reachable — a fake QR for a non-existent zone
+ *   fails closed. OFFLINE (Queued #20), it climbs the on-device
+ *   ladder instead: the cached published map, then the v2 integrity
+ *   checksum ("✓ Verified on this device" — honestly labelled, never
+ *   dressed up as a server confirmation). A v1 code that can't be
+ *   checked offline says so plainly.
  * - The result screen has NO payment buttons, NO links, NO donate CTA.
  * - On success: one warm button — "Record my visit" — which opens the
- *   Tirtha check-in sheet pre-filled. Nothing else.
+ *   Tirtha check-in sheet pre-filled. Nothing else. The check-in
+ *   itself is local-first (tirthaStore): it saves on-device and
+ *   syncs when back online.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -33,16 +40,26 @@ const tr = (copy: TriCopy): string => {
 
 export interface ZoneScanSuccess {
   orgId: string;
-  orgName: string;
+  /** Absent only when verified on-device offline (v2 checksum rung) —
+   *  the payload carries no names; the check-in prefill then uses the
+   *  zone name alone and stays fully editable. */
+  orgName?: string;
   zoneId: string;
   zoneName: string;
+  /** True when confirmed on this device only (offline). The visit is
+   *  saved locally and confirmed against the temple's published map
+   *  when connectivity returns — never presented as server-verified. */
+  offline?: boolean;
 }
 
 type ScanState =
   | { kind: 'scanning' }
   | { kind: 'verifying' }
   | { kind: 'ok'; result: ZoneScanSuccess }
-  | { kind: 'error'; reason: 'bad_format' | 'unknown_org' | 'unknown_zone' | 'camera' };
+  | {
+      kind: 'error';
+      reason: 'bad_format' | 'unknown_org' | 'unknown_zone' | 'bad_checksum' | 'offline_unverifiable' | 'camera';
+    };
 
 export const ZoneQrScanSheet: React.FC<{
   onVerified: (scan: ZoneScanSuccess) => void;
@@ -80,13 +97,15 @@ export const ZoneQrScanSheet: React.FC<{
         return;
       }
 
-      // Gate 2: verify against the org's PUBLISHED map — fails closed.
+      // Gate 2: verify — published map when reachable; on-device
+      // ladder (cached map → v2 checksum) when offline. Fails closed
+      // on any definitive "not a real zone" answer.
       setState({ kind: 'verifying' });
       let v: ZoneQrVerification;
       try {
         v = await verifyZoneQr(decodedText);
       } catch {
-        v = { ok: false, reason: 'unknown_org' };
+        v = { ok: false, reason: 'offline_unverifiable' };
       }
       if (v.ok === false) {
         setState({ kind: 'error', reason: v.reason });
@@ -94,7 +113,13 @@ export const ZoneQrScanSheet: React.FC<{
       }
       setState({
         kind: 'ok',
-        result: { orgId: v.orgId, orgName: v.orgName, zoneId: v.zoneId, zoneName: v.zoneName },
+        result: {
+          orgId: v.orgId,
+          orgName: v.orgName,
+          zoneId: v.zoneId,
+          zoneName: v.zoneName,
+          offline: v.source === 'device',
+        },
       });
     },
     [],
@@ -133,13 +158,27 @@ export const ZoneQrScanSheet: React.FC<{
     };
   }, [containerId, handleDecoded, stop]);
 
-  const errorCopy = (reason: 'bad_format' | 'unknown_org' | 'unknown_zone' | 'camera'): TriCopy => {
+  const errorCopy = (
+    reason: 'bad_format' | 'unknown_org' | 'unknown_zone' | 'bad_checksum' | 'offline_unverifiable' | 'camera',
+  ): TriCopy => {
     switch (reason) {
       case 'bad_format':
         return {
           en: "This doesn't look like a temple code. Temple QRs start with the 🛕 mark — ask a sevadar if you're unsure.",
           bn: 'এটি মন্দিরের কোড বলে মনে হচ্ছে না। নিশ্চিত না হলে একজন সেবাদারকে জিজ্ঞাসা করুন।',
           hi: 'यह मंदिर का कोड नहीं लगता। संदेह हो तो किसी सेवादार से पूछें।',
+        };
+      case 'bad_checksum':
+        return {
+          en: 'This code looks damaged or altered, so we can\'t trust it. If it\'s a paper print, it may be a worn copy — ask a sevadar for help.',
+          bn: 'এই কোডটি ক্ষতিগ্রস্ত বা পরিবর্তিত মনে হচ্ছে, তাই এটি বিশ্বাস করা যাচ্ছে না। সেবাদারের সাহায্য নিন।',
+          hi: 'यह कोड क्षतिग्रस्त या बदला हुआ लगता है, इसलिए इस पर भरोसा नहीं किया जा सकता। किसी सेवादार से सहायता लें।',
+        };
+      case 'offline_unverifiable':
+        return {
+          en: "You're offline, and this older temple code can only be checked against the temple's map. You can still record your visit by typing the temple name — or try the scan again when you have a connection.",
+          bn: 'আপনি অফলাইনে আছেন, আর এই পুরনো কোডটি শুধু মন্দিরের মানচিত্রের সাথে মিলিয়ে যাচাই করা যায়। চাইলে মন্দিরের নাম লিখে দর্শন লিখে রাখতে পারেন — অথবা সংযোগ পেলে আবার স্ক্যান করুন।',
+          hi: 'आप ऑफ़लाइन हैं, और यह पुराना कोड केवल मंदिर के मानचित्र से मिलाकर ही जाँचा जा सकता है। आप मंदिर का नाम लिखकर भी दर्शन दर्ज कर सकते हैं — या कनेक्शन मिलने पर फिर से स्कैन करें।',
         };
       case 'camera':
         return {
@@ -204,16 +243,41 @@ export const ZoneQrScanSheet: React.FC<{
 
         {state.kind === 'ok' && (
           <div className="p-5">
-            <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
-              <div>
-                <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
-                  {tr({ en: 'Verified temple code', bn: 'যাচাইকৃত মন্দির কোড', hi: 'सत्यापित मंदिर कोड' })}
-                </p>
-                <p className="text-lg font-extrabold text-stone-900">{state.result.orgName}</p>
-                <p className="text-sm text-stone-600">📍 {state.result.zoneName}</p>
+            {state.result.offline ? (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <CheckCircle2 className="w-8 h-8 text-amber-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">
+                    {tr({
+                      en: '✓ Verified on this device',
+                      bn: '✓ এই ডিভাইসে যাচাই করা হয়েছে',
+                      hi: '✓ इस डिवाइस पर सत्यापित',
+                    })}
+                  </p>
+                  <p className="text-lg font-extrabold text-stone-900">📍 {state.result.zoneName}</p>
+                  <p className="text-sm text-stone-600 leading-relaxed">
+                    {tr({
+                      en: "You're offline, so this code was checked on your phone itself. Your visit is saved here and will be confirmed with the temple's map when you're back online.",
+                      bn: 'আপনি অফলাইনে আছেন, তাই কোডটি আপনার ফোনেই যাচাই করা হয়েছে। আপনার দর্শন এখানে সেভ থাকবে এবং অনলাইনে ফিরলে মন্দিরের মানচিত্রের সাথে মিলিয়ে নেওয়া হবে।',
+                      hi: 'आप ऑफ़लाइन हैं, इसलिए कोड की जाँच आपके फ़ोन पर ही हुई है। आपका दर्शन यहाँ सहेजा जाएगा और ऑनलाइन लौटने पर मंदिर के मानचित्र से पुष्टि होगी।',
+                    })}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
+                    {tr({ en: 'Verified temple code', bn: 'যাচাইকৃত মন্দির কোড', hi: 'सत्यापित मंदिर कोड' })}
+                  </p>
+                  {state.result.orgName && (
+                    <p className="text-lg font-extrabold text-stone-900">{state.result.orgName}</p>
+                  )}
+                  <p className="text-sm text-stone-600">📍 {state.result.zoneName}</p>
+                </div>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => onVerified(state.result)}

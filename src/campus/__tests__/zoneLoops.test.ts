@@ -22,7 +22,15 @@ jest.mock('../../firebase', () => ({ db: {} }));
 jest.mock('../../lib/firebase', () => ({ db: {} }));
 jest.mock('../../lib/firestoreAdmin', () => ({ OWNER_EMAIL: 'iadeshchandra@gmail.com' }));
 
-import { parseZoneQr, buildZoneQrPayload, ZONE_QR_PREFIX, ZONE_QR_VERSION } from '../zoneQr';
+import {
+  parseZoneQr,
+  buildZoneQrPayload,
+  buildZoneQrPayloadV1,
+  zoneChecksum,
+  ZONE_QR_PREFIX,
+  ZONE_QR_VERSION,
+  ZONE_QR_V1,
+} from '../zoneQr';
 import {
   reportExpiryMs,
   isReportLive,
@@ -33,20 +41,37 @@ import {
 } from '../reporting';
 
 describe('zone QR payload', () => {
-  it('builds the canonical SB-ZONE:1:{orgId}:{zoneId} format', () => {
-    expect(buildZoneQrPayload('org_123', 'zone_abc')).toBe('SB-ZONE:1:org_123:zone_abc');
+  it('builds the canonical v2 format SB-ZONE:2:{orgId}:{zoneId}:{check} (Queued #20)', () => {
+    expect(buildZoneQrPayload('org_123', 'zone_abc')).toBe(
+      `SB-ZONE:2:org_123:zone_abc:${zoneChecksum('org_123', 'zone_abc')}`,
+    );
     expect(ZONE_QR_PREFIX).toBe('SB-ZONE');
-    expect(ZONE_QR_VERSION).toBe('1');
+    expect(ZONE_QR_VERSION).toBe('2');
+    expect(ZONE_QR_V1).toBe('1');
+  });
+
+  it('still builds the legacy v1 format for fixtures', () => {
+    expect(buildZoneQrPayloadV1('org_123', 'zone_abc')).toBe('SB-ZONE:1:org_123:zone_abc');
   });
 
   it('parses a well-formed zone QR', () => {
     const p = parseZoneQr('SB-ZONE:1:org_123:zone_abc');
-    expect(p).toEqual({ orgId: 'org_123', zoneId: 'zone_abc' });
+    expect(p).toEqual({ orgId: 'org_123', zoneId: 'zone_abc', version: 1 });
   });
 
   it('round-trips build → parse', () => {
     const raw = buildZoneQrPayload('dakshineswar', 'prasad-counter');
-    expect(parseZoneQr(raw)).toEqual({ orgId: 'dakshineswar', zoneId: 'prasad-counter' });
+    expect(parseZoneQr(raw)).toEqual({
+      orgId: 'dakshineswar',
+      zoneId: 'prasad-counter',
+      version: 2,
+      check: zoneChecksum('dakshineswar', 'prasad-counter'),
+    });
+  });
+
+  it('round-trips a legacy v1 code (backwards compat — printed v1 codes stay valid)', () => {
+    const raw = buildZoneQrPayloadV1('dakshineswar', 'prasad-counter');
+    expect(parseZoneQr(raw)).toEqual({ orgId: 'dakshineswar', zoneId: 'prasad-counter', version: 1 });
   });
 
   it('rejects URLs (anti-phishing gate 1)', () => {
@@ -57,7 +82,8 @@ describe('zone QR payload', () => {
   it('rejects payment codes and garbage', () => {
     expect(parseZoneQr('SB-P2P:1:req:100:BDT:uid')).toBeNull();
     expect(parseZoneQr('')).toBeNull();
-    expect(parseZoneQr('SB-ZONE:2:org:zone')).toBeNull(); // wrong version
+    expect(parseZoneQr('SB-ZONE:2:org:zone')).toBeNull(); // v2 without its checksum segment
+    expect(parseZoneQr('SB-ZONE:3:org:zone:abc123')).toBeNull(); // unknown version
     expect(parseZoneQr('SB-ZONE:1:org')).toBeNull(); // missing segment
     expect(parseZoneQr('SB-ZONE:1:org:zone:extra')).toBeNull(); // extra segment
     expect(parseZoneQr('  SB-ZONE:1:org:zone  ')).not.toBeNull(); // trims whitespace
