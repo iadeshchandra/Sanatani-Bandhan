@@ -27,6 +27,8 @@ import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { adminApi, BACKEND_URL, BACKEND_DEPLOYED_HINT, type PlatformOverview, type HealthStatus } from '../../lib/adminApi';
+import { runDueJobs, getDueJobsRunLog } from '../../lib/dueJobsService';
+import { runTotals, type DueJobsRunReport } from '../../lib/dueJobs';
 import { UsersTab, WorkspacesTab, VerificationTab } from './godmode/AdminTabsA';
 import { ModerationTab, BillingTab, MessagesTab, AuditTab } from './godmode/AdminTabsB';
 import { InsightsTab, DatabaseExplorerTab } from './godmode/AdminTabsC';
@@ -159,6 +161,84 @@ export const ConfirmDialog: React.FC<{
 
 /* ------------------------------ System tab ------------------------------- */
 
+/* ------------------------- Due jobs (QUEUED #15) ------------------------- */
+
+const DUE_JOB_LABELS: Record<string, string> = {
+  'samskara-age': 'Samskara age milestones',
+  shraddha: 'Shraddha remembrances',
+  ceremony: 'Ceremony plans',
+  'reminder-queue': 'Server reminder queue',
+};
+
+const DueJobsCard: React.FC = () => {
+  const { firebaseUser } = useAuthWorkspace();
+  const [running, setRunning] = useState(false);
+  const [fresh, setFresh] = useState<DueJobsRunReport | null>(null);
+  const [log, setLog] = useState<DueJobsRunReport[]>(() => getDueJobsRunLog());
+
+  const run = async () => {
+    if (!firebaseUser?.uid || running) return;
+    setRunning(true);
+    try {
+      const r = await runDueJobs({ uid: firebaseUser.uid, trigger: 'manual' });
+      setFresh(r);
+      setLog(getDueJobsRunLog());
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const shown = fresh ?? log[0] ?? null;
+  const totals = shown ? runTotals(shown) : null;
+
+  return (
+    <div className="rounded-2xl bg-slate-950/70 border border-slate-800 p-5">
+      <h3 className="text-sm font-bold text-slate-200 mb-2">🕐 Scheduled jobs — run due jobs</h3>
+      <p className="text-xs text-slate-400 leading-relaxed mb-3">
+        Spark has no server cron and Cloud Functions are not deployed, so due work is dispatched
+        from devices: every app open runs these jobs for the signed-in devotee (throttled,
+        idempotent — a job can never send twice). This button runs them now, for your account,
+        on this device, and reports honestly what happened.
+      </p>
+      <button
+        type="button"
+        onClick={run}
+        disabled={running || !firebaseUser?.uid}
+        className="px-4 py-2 min-h-[44px] rounded-xl bg-saffron-500/90 text-xs font-bold text-white hover:bg-saffron-500 disabled:opacity-50"
+      >
+        {running ? 'Running…' : 'Run due jobs now'}
+      </button>
+      {shown && totals && (
+        <div className="mt-4 text-xs space-y-2">
+          <p className="text-slate-400">
+            Last run: <span className="text-slate-200 font-semibold">{new Date(shown.at).toLocaleString()}</span>
+            {' '}({shown.trigger}) — scanned {totals.scanned} · due {totals.due} ·{' '}
+            <span className="text-emerald-400">delivered {totals.delivered}</span> · skipped {totals.skipped} ·{' '}
+            <span className={totals.failed > 0 ? 'text-red-400' : 'text-slate-400'}>failed {totals.failed}</span>
+          </p>
+          {shown.outcomes.map((o) => (
+            <div key={o.job} className="rounded-lg bg-slate-900/70 border border-slate-800 px-3 py-2">
+              <p className="text-slate-200 font-semibold">{DUE_JOB_LABELS[o.job] ?? o.job}</p>
+              <p className="text-slate-400">
+                scanned {o.scanned} · due {o.due} · delivered {o.delivered} · skipped {o.skipped} · failed {o.failed}
+              </p>
+              {o.note && <p className="text-slate-500 italic">{o.note}</p>}
+            </div>
+          ))}
+          {log.length > 1 && (
+            <p className="text-slate-500">
+              Recent runs on this device: {log.slice(0, 5).map((r) => `${new Date(r.at).toLocaleDateString()} ${new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${r.trigger}, ${runTotals(r).delivered} delivered)`).join(' · ')}
+            </p>
+          )}
+        </div>
+      )}
+      {!shown && (
+        <p className="mt-3 text-xs text-slate-500">No runs recorded on this device yet.</p>
+      )}
+    </div>
+  );
+};
+
 const SystemTab: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,6 +271,8 @@ const SystemTab: React.FC = () => {
           <p className="bg-slate-900 rounded-lg p-2.5 text-emerald-300">firebase deploy --only functions</p>
         </div>
       </div>
+
+      <DueJobsCard />
 
       <div className="rounded-2xl bg-slate-950/70 border border-slate-800 p-5">
         <h3 className="text-sm font-bold text-slate-200 mb-3">Live health</h3>

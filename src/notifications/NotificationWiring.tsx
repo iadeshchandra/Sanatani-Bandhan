@@ -28,6 +28,7 @@ import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
 import { startAartiReminderNotify } from '../darshan/aartiReminders';
 import { startOrgBroadcastNotify } from '../org/broadcastListener';
+import { startDueJobsNotify } from '../lib/dueJobsService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -126,6 +127,16 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startOrgBroadcastNotify(uid);
+  }, [uid]);
+
+  // Due-jobs runner → NotificationCenter (self-listen, QUEUED #15).
+  // Spark has no server cron and the Functions scheduler is undeployed,
+  // so due work is dispatched from the client on boot/foreground
+  // (3h-throttled, ledger-idempotent): samskara family reminders from
+  // device-local data + any server reminder-queue items for this user.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startDueJobsNotify(uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;
