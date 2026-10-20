@@ -111,7 +111,19 @@ export default defineConfig(() => {
           'icon-512x512.png'
         ],
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          // F1 precache diet (QUEUED #38 scale audit): shell only — HTML,
+          // CSS, manifest, root icons/logos, and the entry chunk. Lazy
+          // feature chunks arrive via the /assets/** StaleWhileRevalidate
+          // runtime cache below on first use. First install drops from
+          // ~28 MB to ~3-5 MB, so Spark hosting egress (360 MB/day)
+          // stops capping new installs at ~12/day.
+          globPatterns: [
+            '**/*.html',
+            '**/*.css',
+            '**/*.webmanifest',
+            '*.{ico,png,svg}',
+            'assets/index-*.js',
+          ],
           // web-llm is a 5.9MB on-demand chunk (dynamic import only when the
           // user enables the on-device voice). Precaching it would force every
           // devotee to download it; it loads lazily via import() instead.
@@ -172,6 +184,25 @@ export default defineConfig(() => {
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365, // <== 365 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              // F1 (QUEUED #38): hashed build chunks under /assets/** —
+              // StaleWhileRevalidate so repeat visits are instant from
+              // cache while new deploys flow in; hashed names make stale
+              // entries harmless (a new build references new names).
+              urlPattern: ({ url }: { url: URL }) =>
+                url.origin === self.origin && url.pathname.includes('/assets/'),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'app-chunks',
+                expiration: {
+                  maxEntries: 320,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // <== 30 days
                 },
                 cacheableResponse: {
                   statuses: [0, 200],
