@@ -27,6 +27,7 @@ import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
 import { startAartiReminderNotify } from '../darshan/aartiReminders';
+import { startOrgBroadcastNotify } from '../org/broadcastListener';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -115,6 +116,16 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startAartiReminderNotify(uid);
+  }, [uid]);
+
+  // Org broadcasts → NotificationCenter (self-listen, QUEUED #14).
+  // Trustees publish ONE doc per announcement; each follower's device
+  // observes its followed orgs and emits to its own inbox via
+  // notifyOrgAnnouncement (announcements_enabled kill-switch + quiet
+  // hours apply). Baseline law: first check notifies nothing.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startOrgBroadcastNotify(uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;

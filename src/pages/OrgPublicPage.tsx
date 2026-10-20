@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
 import { OrgEventManager } from '../org/OrgEventManager';
+import { OrgAnnouncementsSection } from '../org/OrgBroadcastManager';
 import type { OrgEventItem } from '../org/eventBridge';
 import { buildPinnedAarti } from '../sangam/liveAarti';
 import { OrgLiveWatchDoor } from '../darshan';
@@ -417,6 +418,12 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
             />
           )}
         </section>
+
+        {/* --------------------------- ANNOUNCEMENTS --------------------------- */}
+        {/* QUEUED #14: trustees publish → followers' devices self-listen and
+            ring their own Suchana bell. Public list shows the latest few;
+            the component hides itself for visitors until the org announces. */}
+        <OrgAnnouncementsSection orgId={page.orgId} orgName={page.name} isTrustee={isTrustee} />
 
         {/* ------------------------------ VISIT ------------------------------ */}
         {(addressLine || page.phone || page.website) && (

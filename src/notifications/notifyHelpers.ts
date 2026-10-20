@@ -341,24 +341,39 @@ export interface OrgAnnouncementInput {
   orgName: string;
   title: string;
   announcementId: string;
+  /**
+   * QUEUED #14: the broadcast's full message text. When present it
+   * becomes the notification body (same text in all three languages —
+   * the trustee wrote one sandesh, we don't machine-translate devotion),
+   * so followers read the whole announcement without opening the page.
+   */
+  message?: string;
 }
 
+/** Notification bodies stay glanceable — the full text lives on the org page. */
+const ANNOUNCEMENT_BODY_MAX = 240;
+
 /**
- * Trustee broadcast → IMPORTANT. Called by the (future) trustee broadcast
- * module per member uid — the org's own fan-out, one emit per devotee.
+ * Trustee broadcast → IMPORTANT. Called per recipient uid by the org
+ * broadcast module (src/org/broadcastListener.ts, self-listen: each
+ * follower's own device emits to itself — cross-user client writes are
+ * dropped by the self-write-only rules).
  */
 export function notifyOrgAnnouncement(recipientUid: string, a: OrgAnnouncementInput): Promise<EmitResult> {
   // AUDIT FIX #8: announcements_enabled kill-switch, actually wired.
   if (!isFlagEnabled('announcements_enabled')) {
     return Promise.resolve({ status: 'dropped', itemId: '', decision: undefined as never });
   }
-  return send(
-    recipientUid,
-    base('org', 'important', 'announcement', { orgName: a.orgName, title: a.title }, `organn:${a.announcementId}`, {
-      deepLink: `/org/${a.orgId}`,
-      payload: { orgId: a.orgId, announcementId: a.announcementId },
-    }),
-  );
+  const event = base('org', 'important', 'announcement', { orgName: a.orgName, title: a.title }, `organn:${a.announcementId}`, {
+    deepLink: `/org/${a.orgId}`,
+    payload: { orgId: a.orgId, announcementId: a.announcementId },
+  });
+  const message = (a.message ?? '').trim();
+  if (message) {
+    const bodyText = message.length > ANNOUNCEMENT_BODY_MAX ? `${message.slice(0, ANNOUNCEMENT_BODY_MAX)}…` : message;
+    event.body = { en: bodyText, bn: bodyText, hi: bodyText };
+  }
+  return send(recipientUid, event);
 }
 
 /* ------------------------------------------------------------------ */
