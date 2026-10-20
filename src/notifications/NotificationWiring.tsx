@@ -26,6 +26,7 @@ import { useSocialNotify } from './socialNotify';
 import { startP2PNotify } from '../chat/p2pService';
 import { startWalletNotify } from '../lib/wallet';
 import { startTithiNudgeNotify } from './tithiNudges';
+import { startAartiReminderNotify } from '../darshan/aartiReminders';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -104,6 +105,16 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startTithiNudgeNotify(uid);
+  }, [uid]);
+
+  // Aarti reminders → NotificationCenter (self-listen).
+  // ONE gentle bell 15 min before a subscribed aarti; quiet-hours held by
+  // the pipeline. Fires only while the app is open/foregrounded (PWA has
+  // no reliable background timer) — the dedupe ledger keeps it to one
+  // bell per aarti occurrence.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startAartiReminderNotify(uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;

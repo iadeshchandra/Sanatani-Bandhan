@@ -95,6 +95,21 @@ const STRINGS: Record<string, Record<Lang, string>> = {
     hi: 'दर्शन में जुड़ें — {temple} अभी स्ट्रीम कर रहा है।',
     bn: 'দর্শনে যোগ দিন — {temple} এখন স্ট্রিম করছে।',
   },
+  'darshan.aartiReminderTitle': {
+    en: '🪔 {aarti} at {temple} begins in {mins} minutes',
+    hi: '🪔 {temple} में {aarti} {mins} मिनट में शुरू होगी',
+    bn: '🪔 {temple}-এ {aarti} {mins} মিনিটে শুরু হবে',
+  },
+  'darshan.aartiReminderBody': {
+    en: 'A gentle bell before the aarti — join when you are ready.',
+    hi: 'आरती से पहले एक सौम्य घंटी — जब तैयार हों, जुड़ें।',
+    bn: 'আরতির আগে একটি মৃদু ঘণ্টা — প্রস্তুত হলে যোগ দিন।',
+  },
+  'darshan.aartiReminderCancelled': {
+    en: 'Reminder removed — no more bells for this aarti.',
+    hi: 'रिमाइंडर हटाया गया — इस आरती के लिए अब कोई घंटी नहीं।',
+    bn: 'রিমাইন্ডার সরানো হয়েছে — এই আরতির জন্য আর ঘণ্টা বাজবে না।',
+  },
   'yatra.title': {
     en: 'Darshan Yatra',
     hi: 'दर्शन यात्रा',

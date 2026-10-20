@@ -50,6 +50,12 @@ export interface OrgPage {
   website?: string;
   /** Darshan/aarti timings as written by the trustee. */
   darshanTimings?: { label: string; time: string }[];
+  /**
+   * Structured daily aarti schedule (trustee-published). Drives the
+   * "Daily Aarti" section + gentle "remind me" subscriptions.
+   * Shape: { name, time: "HH:MM", days?: 0-6 } (see src/darshan/types.ts).
+   */
+  aartiSchedules?: { name: string; time: string; days?: number[] }[];
   /** Public gallery image URLs (Storage `orgGallery/{orgId}/…`). */
   galleryUrls?: string[];
   /** Trustee-published upcoming events (max 10). */

@@ -33,6 +33,8 @@ import { OrgEventManager } from '../org/OrgEventManager';
 import type { OrgEventItem } from '../org/eventBridge';
 import { buildPinnedAarti } from '../sangam/liveAarti';
 import { OrgLivePoller } from '../darshan';
+import { AartiScheduleCard, AartiScheduleManager } from '../darshan';
+import type { AartiSlot } from '../darshan';
 import { useLanguage } from '../context/LanguageContext';
 import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -70,6 +72,7 @@ export interface OrgPublicPageViewProps {
   onToggleAartiPin: () => void;
   /** Trustee event bridge: persist org events + auto-share setting. */
   onSaveEvents: (events: OrgEventItem[], autoShare: boolean) => Promise<void>;
+  onSaveAartiSchedules: (schedules: AartiSlot[]) => Promise<void>;
 }
 
 export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
@@ -85,6 +88,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   aartiPinBusy,
   onToggleAartiPin,
   onSaveEvents,
+  onSaveAartiSchedules,
 }) => {
   const navigate = useNavigate();
   const { safeTranslate } = useLanguage();
@@ -320,6 +324,21 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
               ))}
             </dl>
           </section>
+        )}
+
+        {/* ------------------------- DAILY AARTI + REMIND ME ------------------------- */}
+        {/* Devotees see the published schedule with one-tap gentle reminders;
+            trustees manage it inline (same pattern as OrgEventManager). */}
+        <AartiScheduleCard
+          orgId={page.orgId}
+          orgName={page.name}
+          schedules={page.aartiSchedules || []}
+        />
+        {isTrustee && (
+          <AartiScheduleManager
+            schedules={page.aartiSchedules || []}
+            onSave={onSaveAartiSchedules}
+          />
         )}
 
         {/* ------------------------------ GALLERY ------------------------------ */}
@@ -662,6 +681,18 @@ export const OrgPublicPage: React.FC = () => {
     if (snap.exists()) setPage(snap.data() as OrgPageType);
   };
 
+  /** Trustee-published aarti schedules → orgPages (rules: trustee whitelist). */
+  const handleSaveAartiSchedules = async (schedules: AartiSlot[]) => {
+    if (!page || !isTrustee || !firebaseUser) return;
+    const ref = doc(db, 'orgPages', page.orgId);
+    await updateDoc(ref, {
+      aartiSchedules: schedules.slice(0, 8),
+      updatedAt: Date.now(),
+    });
+    const snap = await getDoc(ref);
+    if (snap.exists()) setPage(snap.data() as OrgPageType);
+  };
+
   const handleToggleAartiPin = async () => {
     if (!page || !isTrustee || aartiPinBusy || !firebaseUser) return;
     setAartiPinBusy(true);
@@ -739,6 +770,7 @@ export const OrgPublicPage: React.FC = () => {
         aartiPinBusy={aartiPinBusy}
         onToggleAartiPin={handleToggleAartiPin}
         onSaveEvents={handleSaveEvents}
+        onSaveAartiSchedules={handleSaveAartiSchedules}
       />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />

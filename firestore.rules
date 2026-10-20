@@ -2442,7 +2442,8 @@ service cloud.firestore {
            'tagline', 'logoUrl', 'coverUrl', 'publicSlug', 'addressLine',
            'pincode', 'phone', 'website', 'darshanTimings', 'galleryUrls',
            'upcomingEvents', 'autoShareEvents', 'registrationNo', 'eightyGRegistered',
-           'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti', 'updatedAt'])
+           'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti',
+           'aartiSchedules', 'updatedAt'])
         && request.resource.data.get('orgId', '') == orgId
       );
       allow delete: if isSuperAdmin();

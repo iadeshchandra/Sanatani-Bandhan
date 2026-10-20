@@ -30,6 +30,7 @@ export type NotifyKind =
   | 'blessing'
   | 'security'
   | 'darshan_live'
+  | 'aarti_reminder'
   | 'social';
 
 export type NotifyLang = 'en' | 'bn' | 'hi';

@@ -387,6 +387,20 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
       ),
     },
   },
+  aarti_reminder: {
+    startingSoon: {
+      title: t(
+        '🪔 {aarti} at {temple} begins in {mins} minutes',
+        '🪔 {temple}-এ {aarti} {mins} মিনিটে শুরু হবে',
+        '🪔 {temple} में {aarti} {mins} मिनट में शुरू होगी',
+      ),
+      body: t(
+        'A gentle bell before the aarti — join when you are ready.',
+        'আরতির আগে একটি মৃদু ঘণ্টা — প্রস্তুত হলে যোগ দিন।',
+        'आरती से पहले एक सौम्य घंटी — जब तैयार हों, जुड़ें।',
+      ),
+    },
+  },
 
   /* ---------------------------------------------------------------- */
   /* Social — community warmth. All GENTLE: never pings, never breaks   */
