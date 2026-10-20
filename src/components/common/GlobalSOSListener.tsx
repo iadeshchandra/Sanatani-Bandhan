@@ -14,6 +14,9 @@ import {
   notifySOSAcknowledged,
   notifySOSResolved,
 } from '../../notifications/notifyHelpers';
+// QUEUED #16: the dedupe / stand-down / sound / emit / push pipeline for
+// BOTH subscriptions below lives in ONE engine — see crisis/sosAlertEngine.ts.
+import { SosAlertEngine, type SosAlertSinks } from '../../crisis/sosAlertEngine';
 
 const CRISIS_SIT_LABEL: Record<string, keyof typeof crisisCopy> = {
   medical: 'sitMedical',
@@ -39,14 +42,13 @@ export const GlobalSOSListener: React.FC = () => {
   const tRef = useRef(t);
   tRef.current = t;
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const processedSOS = useRef<Set<string>>(new Set());
-  const processedCrisis = useRef<Set<string>>(new Set());
-  // Stand-down tracking: alert ids seen active + their meta, so a removal
-  // becomes an "All is well" emit.
-  const prevYatraIds = useRef<Set<string>>(new Set());
-  const yatraMeta = useRef(new Map<string, { notified: boolean; senderUid: string; senderName: string; situation: string }>());
-  const prevCrisisIds = useRef<Set<string>>(new Set());
-  const crisisMeta = useRef(new Map<string, { notified: boolean; senderUid: string; senderName: string; situation: string }>());
+  // QUEUED #16: one shared alert engine for both SOS subscriptions. The
+  // per-source processed sets / stand-down meta maps that used to live
+  // here (processedSOS, prevYatraIds, yatraMeta, processedCrisis,
+  // prevCrisisIds, crisisMeta) now live inside the engine, namespaced
+  // per source so the two collections can never suppress each other.
+  const engineRef = useRef<SosAlertEngine | null>(null);
+  const engine = engineRef.current ?? (engineRef.current = new SosAlertEngine());
   // Sender-side ACK watch: eventId -> per-event responses unsubscribe.
   const ackUnsubs = useRef(new Map<string, () => void>());
   const ackedResponders = useRef(new Map<string, Set<string>>());
@@ -65,14 +67,61 @@ export const GlobalSOSListener: React.FC = () => {
     return audioRef.current;
   };
 
+  // Side-effect channels for the shared SOS alert engine. The engine
+  // calls emitAlert / emitResolved only when a recipient uid exists;
+  // sound and OS push are uid-independent — exactly as both pipelines
+  // behaved before unification.
+  const buildSinks = (uid: string | null): SosAlertSinks => ({
+    playSound: () => {
+      ensureAudio().play().catch(() => { /* autoplay blocked — the banner still shows */ });
+    },
+    emitAlert: (a) => {
+      if (!uid) return;
+      void notifySOSAlert(uid, {
+        senderUid: a.senderUid,
+        senderName: a.senderName,
+        eventId: a.eventId,
+        situation: a.situation,
+        details: a.details,
+      });
+    },
+    emitResolved: (a) => {
+      if (!uid) return;
+      void notifySOSResolved(uid, {
+        senderUid: a.senderUid,
+        senderName: a.senderName,
+        eventId: a.eventId,
+        situation: a.situation,
+      });
+    },
+    osNotify: ({ title, body, navigateModule }) => {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        requireInteraction: true, // Persist on screen until user clicks
+      });
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+        if (navigateModule) {
+          // 'crisis-command' renders the CrisisDashboard — the real
+          // Command Center. ('socialWall' was a dead-end onto Org
+          // Settings; fixed 2026-10-20.)
+          window.dispatchEvent(new CustomEvent('navigate_module', { detail: navigateModule }));
+        }
+      };
+    },
+  });
+
   useEffect(() => {
     // Only listen if user is authenticated and active workspace is set to avoid permission errors
     if (!isAuthenticated || !firebaseUser || !activeWorkspace?.id) return;
 
-    // Reset processed SOS on workspace switch
-    processedSOS.current.clear();
-    prevYatraIds.current.clear();
-    yatraMeta.current.clear();
+    const sinks = buildSinks(myUid);
+
+    // Reset this source's pipeline state on workspace switch
+    engine.reset('legacy');
     setActiveAlerts([]);
 
     // Request browser notification permission
@@ -98,83 +147,28 @@ export const GlobalSOSListener: React.FC = () => {
 
       // Stand-down detection: alerts that left the active set were resolved
       // or cancelled → "All is well" (IMPORTANT) to the viewer.
-      const prevIds = prevYatraIds.current;
-      const nowIds = new Set(currentActive.map((a) => a.id));
-      for (const id of prevIds) {
-        if (!nowIds.has(id)) {
-          const was = yatraMeta.current.get(id);
-          if (myUid && was?.notified) {
-            void notifySOSResolved(myUid, {
-              senderUid: was.senderUid ?? '',
-              senderName: was.senderName ?? 'A devotee',
-              eventId: id,
-              situation: was.situation ?? '',
-            });
-          }
-          yatraMeta.current.delete(id);
-        }
-      }
-      prevYatraIds.current = nowIds;
+      engine.handleActiveSet('legacy', currentActive.map((a) => a.id), sinks, myUid);
 
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const sos = { id: change.doc.id, ...change.doc.data() } as any;
 
-          // Don't notify if the SOS is already resolved or if we've already processed it locally
-          if (sos.sosStatus === 'RESOLVED' || processedSOS.current.has(sos.id)) {
+          // Resolved adds never alert (and are not marked processed).
+          if (sos.sosStatus === 'RESOLVED') {
             return;
           }
 
-          // Don't notify the sender themselves
-          if (sos.senderId === currentUser?.id) {
-            processedSOS.current.add(sos.id);
-            return;
-          }
-
-          // Mark as processed
-          processedSOS.current.add(sos.id);
-
-          // 1. Play intense audio alarm
-          if (!audioRef.current) {
-            audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Intense alert sound
-            audioRef.current.loop = false;
-          }
-          audioRef.current.play().catch(() => { /* autoplay blocked — the banner still shows */ });
-
-          // 2. NotificationCenter emit (CRITICAL — breaks through quiet hours)
-          if (myUid) {
-            yatraMeta.current.set(sos.id, {
-              notified: true,
-              senderUid: sos.senderId ?? '',
-              senderName: sos.senderName ?? 'A devotee',
-              situation: sos.situation ?? '',
-            });
-            void notifySOSAlert(myUid, {
-              senderUid: sos.senderId ?? '',
-              senderName: sos.senderName || 'A devotee',
-              eventId: sos.id,
-              situation: sos.situation?.replace('_', ' ') || 'SOS',
-              details: sos.details || sos.text,
-            });
-          }
-
-          // 3. Trigger OS Native Push Notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification(`🚨 GLOBAL SOS: ${sos.senderName}`, {
-              body: sos.text || sos.details,
-              icon: '/favicon.ico',
-              requireInteraction: true, // Persist on screen until user clicks
-            });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-              // 'crisis-command' renders the CrisisDashboard — the real
-              // Command Center. ('socialWall' was a dead-end onto Org
-              // Settings; fixed 2026-10-20.)
-              window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'crisis-command' }));
-            };
-          }
+          engine.handleAdded('legacy', {
+            id: sos.id,
+            senderUid: sos.senderId ?? '',
+            senderName: sos.senderName || 'A devotee',
+            situation: sos.situation?.replace('_', ' ') || 'SOS',
+            metaSituation: sos.situation ?? '',
+            details: sos.details || sos.text,
+            osTitle: `🚨 GLOBAL SOS: ${sos.senderName}`,
+            osBody: sos.text || sos.details,
+            osNavigateModule: 'crisis-command',
+          }, sinks, myUid);
         }
       });
     }, (err) => console.warn("Firebase SOS sync:", err.message));
@@ -188,14 +182,14 @@ export const GlobalSOSListener: React.FC = () => {
   }, [myUid, currentUser?.id, isAuthenticated, firebaseUser, activeWorkspace?.id]);
 
   // ── Crisis Command Phase 1: live crisis_events listener ─────────────
-  // Adds ACK-count live updates + "I'm coming" quick-action. The existing
-  // yatra_broadcasts audio/push behavior above is untouched.
+  // Adds ACK-count live updates + "I'm coming" quick-action. Feeds the
+  // SAME alert engine as the legacy yatra_broadcasts listener above
+  // (QUEUED #16) — one dedupe / stand-down / sound / emit pipeline.
   useEffect(() => {
     if (!isAuthenticated || !firebaseUser) return;
-    processedCrisis.current.clear();
+    const sinks = buildSinks(myUid);
+    engine.reset('crisis');
     setCrisisAlerts([]);
-    prevCrisisIds.current.clear();
-    crisisMeta.current.clear();
 
     const q = query(
       collection(db, 'crisis_events'),
@@ -251,71 +245,29 @@ export const GlobalSOSListener: React.FC = () => {
       setCrisisAlerts(live);
 
       // Stand-down detection: my watched events + shown alerts that left
-      // the active set → "All is well" (IMPORTANT) to me.
-      const nowIds = new Set<string>();
-      snapshot.forEach((d) => nowIds.add(d.id));
-      for (const id of prevCrisisIds.current) {
-        if (!nowIds.has(id)) {
-          const was = crisisMeta.current.get(id);
-          if (myUid && was?.notified) {
-            void notifySOSResolved(myUid, {
-              senderUid: was.senderUid ?? '',
-              senderName: was.senderName ?? 'A devotee',
-              eventId: id,
-              situation: was.situation ?? '',
-            });
-          }
-          crisisMeta.current.delete(id);
-          unwatchAcks(id);
-        }
-      }
-      prevCrisisIds.current = nowIds;
+      // the active set → "All is well" (IMPORTANT) to me. The engine
+      // returns the departed ids so their ACK watchers are torn down.
+      const allIds: string[] = [];
+      snapshot.forEach((d) => allIds.push(d.id));
+      const departed = engine.handleActiveSet('crisis', allIds, sinks, myUid);
+      for (const id of departed) unwatchAcks(id);
 
       snapshot.docChanges().forEach((change) => {
         if (change.type !== 'added') return;
         const sos = { id: change.doc.id, ...change.doc.data() } as any;
-        if (processedCrisis.current.has(sos.id)) return;
-        if (sos.senderUid === currentUser?.id) {
-          processedCrisis.current.add(sos.id);
-          return;
-        }
-        processedCrisis.current.add(sos.id);
-
         const sitKey = CRISIS_SIT_LABEL[sos.situation as string] ?? 'sitOther';
         const sitLabel = tRef.current(crisisCopy[sitKey]);
 
-        // 1. Audio (same channel as existing SOS alerts)
-        ensureAudio().play().catch(() => { /* autoplay blocked — the banner still shows */ });
-
-        // 2. NotificationCenter emit (CRITICAL — breaks through quiet hours)
-        if (myUid) {
-          crisisMeta.current.set(sos.id, {
-            notified: true,
-            senderUid: sos.senderUid ?? '',
-            senderName: sos.senderName ?? 'A devotee',
-            situation: sos.situation ?? '',
-          });
-          void notifySOSAlert(myUid, {
-            senderUid: sos.senderUid ?? '',
-            senderName: sos.senderName || 'A devotee',
-            eventId: sos.id,
-            situation: String(sitLabel),
-            details: sos.details,
-          });
-        }
-
-        // 3. OS native push
-        if ('Notification' in window && Notification.permission === 'granted') {
-          const notification = new Notification(`🙏 SOS: ${sos.senderName || 'A devotee'} needs help`, {
-            body: `${sitLabel}${sos.details ? ` — ${sos.details}` : ''}`,
-            icon: '/favicon.ico',
-            requireInteraction: true,
-          });
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-          };
-        }
+        engine.handleAdded('crisis', {
+          id: sos.id,
+          senderUid: sos.senderUid ?? '',
+          senderName: sos.senderName || 'A devotee',
+          situation: String(sitLabel),
+          metaSituation: sos.situation ?? '',
+          details: sos.details,
+          osTitle: `🙏 SOS: ${sos.senderName || 'A devotee'} needs help`,
+          osBody: `${sitLabel}${sos.details ? ` — ${sos.details}` : ''}`,
+        }, sinks, myUid);
       });
     }, (err) => console.warn('Firebase crisis_events sync:', err.message));
 
