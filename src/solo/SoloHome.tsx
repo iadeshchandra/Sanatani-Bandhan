@@ -436,6 +436,7 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         uid={uid}
         isOpen={walletOpen}
         onClose={() => setWalletOpen(false)}
+        currentUser={selfInfo}
         // sanatani:open-chat wiring: the wallet's per-entry "chat" action
         // deep-links straight into the thread (closes the wallet first so the
         // Messages overlay owns the screen).

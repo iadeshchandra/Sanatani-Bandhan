@@ -39,6 +39,8 @@ import {
 } from '../lib/p2pLedger';
 import { detectPayRegion } from '../lib/geoDetect';
 import { currencyForRegion } from '../lib/wallet';
+import RequestModal from './RequestModal';
+import { requestTargetsFromEntries, type WalletRequestTarget } from './walletRequestTargets';
 
 type TabId = 'all' | 'owed_to_me' | 'i_owe' | 'pending' | 'history';
 
@@ -59,9 +61,11 @@ export interface PersonalWalletProps {
   onClose: () => void;
   /** Open the chat thread holding this request (wired by the parent when chat ships). */
   onOpenChat?: (chatId: string, requestId: string) => void;
+  /** The devotee's own identity — enables the "Request money" creation door. */
+  currentUser?: { uid: string; displayName: string; photoUrl?: string };
 }
 
-export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onClose, onOpenChat }) => {
+export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onClose, onOpenChat, currentUser }) => {
   const { lang } = useLocaleText();
   const L: 'en' | 'bn' | 'hi' = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
 
@@ -74,6 +78,10 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [settleEntry, setSettleEntry] = useState<LedgerEntry | null>(null);
+  // Request-creation door (audit 2026-10-20, offense #9): pick a known
+  // counterparty → the same RequestModal the chat composer opens.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [activeTarget, setActiveTarget] = useState<WalletRequestTarget | null>(null);
   const [rail, setRail] = useState<NonNullable<MoneyRequest['paidVia']>>('bkash');
   // Quick Guide: the honest-claim P2P pattern — invitational, never
   // auto-playing on this money screen.
@@ -136,6 +144,9 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
     for (const e of entries) if (!m.has(e.counterpartyId)) m.set(e.counterpartyId, e.counterpartyName);
     return [...m.entries()];
   }, [entries]);
+
+  /** Counterparties a new request can be composed to (existing threads). */
+  const requestTargets = useMemo(() => requestTargetsFromEntries(entries), [entries]);
 
   const filter: EntryFilter = useMemo(
     () => ({
@@ -286,6 +297,17 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
               </span>
             )}
           </div>
+          {/* Request-creation door — a labeled button, not a hidden icon
+              (audit 2026-10-20, offense #9). */}
+          {currentUser && (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="mt-3 w-full rounded-2xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-extrabold text-sm py-3 min-h-[48px] flex items-center justify-center gap-2"
+            >
+              🙏 <T en="Request money" bn="টাকার অনুরোধ" hi="पैसे का अनुरोध" />
+            </button>
+          )}
         </div>
 
         {/* Tabs */}
@@ -457,6 +479,88 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
                   );
                 })
                 .finally(() => setActing(null));
+            }}
+          />
+        )}
+
+        {/* Request-target picker — known counterparties only; the new
+            request lands in the thread the relationship already lives in. */}
+        {pickerOpen && (
+          <div className="absolute inset-0 z-[130] bg-black/50 flex items-end sm:items-center justify-center" onClick={() => setPickerOpen(false)}>
+            <div
+              className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex items-start justify-between mb-1">
+                <h3 className="font-extrabold text-stone-900">
+                  🙏 <T en="Request money" bn="টাকার অনুরোধ" hi="पैसे का अनुरोध" />
+                </h3>
+                <button onClick={() => setPickerOpen(false)} className="p-2 text-stone-400 min-h-[44px] min-w-[44px]" aria-label="Close">
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-stone-600 mb-4">
+                <T
+                  en="Choose who this request is with — it will appear in your conversation with them."
+                  bn="কার সাথে এই অনুরোধ তা বেছে নিন — এটি তাদের সাথে আপনার কথোপকথনে দেখা যাবে।"
+                  hi="चुनें कि यह अनुरोध किसके साथ है — यह उनके साथ आपकी बातचीत में दिखेगा।"
+                />
+              </p>
+              {requestTargets.length === 0 ? (
+                <p className="text-sm text-stone-500 bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+                  <T
+                    en="Requests begin in a conversation — open Messages and tap 🙏 in any chat to start your first one."
+                    bn="অনুরোধ কথোপকথন থেকে শুরু হয় — বার্তা খুলে যেকোনো চ্যাটে 🙏 চাপ দিয়ে প্রথমটি শুরু করুন।"
+                    hi="अनुरोध बातचीत से शुरू होते हैं — संदेश खोलकर किसी भी चैट में 🙏 दबाकर पहला शुरू करें।"
+                  />
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {requestTargets.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => {
+                        setPickerOpen(false);
+                        setActiveTarget(t);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-3 text-left hover:border-amber-400 hover:bg-amber-50/50 transition-colors min-h-[60px]"
+                    >
+                      {t.recipient.photoUrl ? (
+                        <img src={t.recipient.photoUrl} alt="" className="w-11 h-11 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <span className="w-11 h-11 rounded-full bg-emerald-100 text-emerald-800 font-extrabold flex items-center justify-center text-lg shrink-0">
+                          {(t.recipient.name || '?').trim().charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="flex-1 min-w-0">
+                        <span className="flex items-center gap-1.5 font-bold text-stone-900 text-sm truncate">
+                          {t.recipient.name}
+                          {t.recipient.orgId && <VerifiedPill compact />}
+                        </span>
+                        <span className="block text-[11px] text-stone-400">{timeAgo(t.lastActivityAt, L)}</span>
+                      </span>
+                      <span className="text-amber-600 font-black" aria-hidden>→</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* The request composer itself — the same modal chat uses. */}
+        {activeTarget && currentUser && (
+          <RequestModal
+            open
+            onClose={() => setActiveTarget(null)}
+            chatId={activeTarget.chatId}
+            currentUser={currentUser}
+            recipient={activeTarget.recipient}
+            onSent={() => {
+              void refresh();
             }}
           />
         )}

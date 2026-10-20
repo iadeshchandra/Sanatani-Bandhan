@@ -32,7 +32,7 @@ import { SevaCardsSection } from '../components/org/SevaCards';
 import { OrgEventManager } from '../org/OrgEventManager';
 import type { OrgEventItem } from '../org/eventBridge';
 import { buildPinnedAarti } from '../sangam/liveAarti';
-import { OrgLivePoller } from '../darshan';
+import { OrgLiveWatchDoor } from '../darshan';
 import { AartiScheduleCard, AartiScheduleManager } from '../darshan';
 import type { AartiSlot } from '../darshan';
 import { useLanguage } from '../context/LanguageContext';
@@ -578,7 +578,8 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
 export const OrgPublicPage: React.FC = () => {
   const { orgId: param } = useParams<{ orgId: string }>();
   const navigate = useNavigate();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, currentLang } = useLanguage();
+  const darshanLang = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as 'en' | 'hi' | 'bn';
   const { isFollowing, toggleFollow, followerCount, myMemberships } = useMembership();
   const { firebaseUser } = useAuthWorkspace();
   const T = (key: string, en: string, bn: string, hi: string) => safeTranslate(key, en, bn, hi);
@@ -757,6 +758,18 @@ export const OrgPublicPage: React.FC = () => {
 
   return (
     <>
+      {/* Live watch door (replaces the null-render poller — audit 2026-10-20):
+          same detection loop (leader election, gentle go-live notify) plus a
+          visible "🔴 Watch live" banner when the org is definitively live. */}
+      {page.youtubeChannelId && (
+        <OrgLiveWatchDoor
+          orgId={page.orgId}
+          channelId={page.youtubeChannelId}
+          templeName={page.name}
+          schedules={page.aartiSchedules || []}
+          lang={darshanLang}
+        />
+      )}
       <OrgPublicPageView
         page={page}
         followers={followers}
@@ -774,16 +787,6 @@ export const OrgPublicPage: React.FC = () => {
       />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />
-      )}
-      {/* Live-darshan detection loop: when the org linked a YouTube channel,
-          this client's page view may become the poll leader (1 API call per
-          15 min across ALL viewers). Fires a gentle notification on go-live. */}
-      {page.youtubeChannelId && (
-        <OrgLivePoller
-          orgId={page.orgId}
-          channelId={page.youtubeChannelId}
-          templeName={page.name}
-        />
       )}
     </>
   );

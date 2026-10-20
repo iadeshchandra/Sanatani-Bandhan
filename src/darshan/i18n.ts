@@ -10,6 +10,11 @@ const STRINGS: Record<string, Record<Lang, string>> = {
     hi: '🔴 लाइव दर्शन',
     bn: '🔴 লাইভ দর্শন',
   },
+  'darshan.watchNow': {
+    en: 'Watch live darshan 🙏',
+    hi: 'लाइव दर्शन देखें 🙏',
+    bn: 'লাইভ দর্শন দেখুন 🙏',
+  },
   'darshan.liveFrom': {
     en: '🙏 Live from',
     hi: '🙏 सीधा प्रसारण',

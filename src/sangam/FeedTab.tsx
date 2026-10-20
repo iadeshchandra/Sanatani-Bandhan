@@ -14,6 +14,7 @@ import { loadUserSignals, loadRankingConfig, trackInteraction } from '../ranking
 import { FestivalMomentsRail } from './FestivalMomentsRail';
 import { activeMomentWindows } from './festivalMoments';
 import { LiveAartiCard } from './LiveAartiCard';
+import { DarshanViewer } from '../darshan/DarshanViewer';
 import { shouldShowPinnedAarti, type PinnedAarti } from './liveAarti';
 import { isVideoFile } from '../video/uploadGuidance';
 import { VideoGuidanceSheet } from '../video/VideoGuidanceSheet';
@@ -493,6 +494,8 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
   /* Live aarti pinned cards — Seva Bazar Phase 3.
    * Followed orgs with pinnedAarti.enabled that are currently live. */
   const [liveAartis, setLiveAartis] = useState<Array<{ orgId: string; orgName: string; videoId: string; title?: string }>>([]);
+  /** The live aarti currently open in the in-app DarshanViewer (null = closed). */
+  const [watchAarti, setWatchAarti] = useState<{ orgName: string; videoId: string; title?: string } | null>(null);
   useEffect(() => {
     let live = true;
     const run = async () => {
@@ -623,16 +626,17 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
         );
       })}
 
-      {/* 🔴 Live aarti — pinned when a followed temple is live (Phase 3) */}
+      {/* 🔴 Live aarti — pinned when a followed temple is live (Phase 3).
+          Tap opens DarshanViewer IN-APP (audit 2026-10-20: it used to eject
+          the devotee to a new browser tab — the video law is "in-app via
+          YouTube", never a tab ejection). */}
       {liveAartis.map((a) => (
         <LiveAartiCard
           key={a.orgId}
           orgName={a.orgName}
           videoId={a.videoId}
           title={a.title}
-          onWatch={(videoId) => {
-            window.open(`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`, '_blank', 'noopener');
-          }}
+          onWatch={() => setWatchAarti({ orgName: a.orgName, videoId: a.videoId, title: a.title })}
         />
       ))}
 
@@ -729,6 +733,17 @@ export const FeedTab: React.FC<{ author: AuthorInfo; pageContext?: { orgId: stri
           lang={storyLang}
           onClose={() => setCreateOpen(false)}
           onCreated={() => setCreateOpen(false)}
+        />
+      )}
+
+      {/* 🔴 Live aarti viewer — in-app darshan (youtube-nocookie) */}
+      {watchAarti && (
+        <DarshanViewer
+          templeName={watchAarti.orgName}
+          videoId={watchAarti.videoId}
+          streamTitle={watchAarti.title}
+          lang={storyLang}
+          onClose={() => setWatchAarti(null)}
         />
       )}
     </div>

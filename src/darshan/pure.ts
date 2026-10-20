@@ -9,6 +9,22 @@ export function shouldShowLiveBadge(status: OrgLiveStatus | null | undefined): b
   return status?.isLive === true;
 }
 
+/**
+ * The watch-door target for an org page: what DarshanViewer needs when
+ * the org is definitively live WITH a playable video. Returns null in
+ * every other case — a live flag without a videoId must never open an
+ * empty viewer (audit 2026-10-20: the org page ran the poller but had
+ * no watch door at all).
+ */
+export function watchDoorTarget(
+  status: OrgLiveStatus | null | undefined,
+): { videoId: string; title?: string } | null {
+  if (!shouldShowLiveBadge(status)) return null;
+  const videoId = status?.videoId?.trim();
+  if (!videoId) return null;
+  return { videoId, title: status?.title };
+}
+
 /** Human "next aarti" text from a schedule. */
 export function nextAartiText(
   schedules: Array<{ name: string; time: string; days?: number[] }>,

@@ -85,6 +85,9 @@ export const OrgsTab: React.FC = () => {
   const renderRow = (ws: (typeof workspaces)[number]) => {
     const isActive = ws.id === activeWorkspace?.id;
     const busy = opening === ws.id;
+    // Demo sandboxes have no published orgPages doc — the public-page
+    // door is offered only for real organisations (orgId == workspace id).
+    const isDemo = ws.id.startsWith('DEMO_');
     return (
       <li
         key={ws.id}
@@ -105,6 +108,18 @@ export const OrgsTab: React.FC = () => {
             )}
           </div>
         </div>
+        {/* Public-page door (audit 2026-10-20, offense #10): "Open" enters
+            the workspace, but devotees also need the public face — aarti
+            schedules, campus map, events and live darshan live there. */}
+        {!isDemo && (
+          <button
+            type="button"
+            onClick={() => navigate(`/org/${ws.id}`)}
+            className="shrink-0 px-3 py-2 min-h-[44px] rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-black transition-colors"
+          >
+            <T en="View public page" bn="পাবলিক পেজ দেখুন" hi="सार्वजनिक पेज देखें" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => openOrg(ws.id, ws.name)}

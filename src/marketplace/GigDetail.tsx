@@ -9,6 +9,7 @@
  * rating exists as trust infrastructure, but gratitude leads.
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Clock, Languages, ShieldCheck, ChevronLeft, Star } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
@@ -31,6 +32,7 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   languages: { en: 'Languages', bn: 'ভাষা', hi: 'भाषाएँ' },
   category: { en: 'Category', bn: 'বিভাগ', hi: 'श्रेणी' },
   provider: { en: 'Seva provider', bn: 'সেবা প্রদানকারী', hi: 'सेवा प्रदाता' },
+  viewProfile: { en: 'View profile', bn: 'প্রোফাইল দেখুন', hi: 'प्रोफ़ाइल देखें' },
   suggestedDakshina: { en: 'Suggested dakshina', bn: 'প্রস্তাবিত দক্ষিণা', hi: 'सुझाई गई दक्षिणा' },
   verified: { en: '✓ VERIFIED', bn: '✓ যাচাইকৃত', hi: '✓ सत्यापित' },
 };
@@ -43,8 +45,14 @@ interface Props {
 
 export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
   const { currentLang } = useLanguage();
+  const navigate = useNavigate();
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const t = (k: keyof typeof COPY) => COPY[k][L];
+  // Provider profile door (audit 2026-10-20, offense #12): the provider's
+  // name was dead text — devotees couldn't reach the trust profile
+  // (gratitude wall, verification, other sevas) from the gig.
+  const proPath = gig.providerUid ? `/seva/pro/${gig.providerUid}` : null;
+  const openProfile = proPath ? () => navigate(proPath) : undefined;
 
   const [ratings, setRatings] = useState<GigRating[]>([]);
   const [loadingRatings, setLoadingRatings] = useState(true);
@@ -80,7 +88,21 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
           </button>
           <div className="flex-1 min-w-0">
             <p className="font-black text-stone-900 truncate">{gig.title}</p>
-            <p className="text-[11px] text-stone-500 truncate">{gig.providerName} · {gig.category}</p>
+            <p className="text-[11px] text-stone-500 truncate">
+              {openProfile ? (
+                <button
+                  type="button"
+                  onClick={openProfile}
+                  className="font-bold text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800"
+                  aria-label={`${t('viewProfile')} — ${gig.providerName}`}
+                >
+                  {gig.providerName}
+                </button>
+              ) : (
+                gig.providerName
+              )}{' '}
+              · {gig.category}
+            </p>
           </div>
           <button type="button" onClick={onBack} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-stone-100" aria-label="Close">
             <X className="w-5 h-5" />
@@ -125,7 +147,18 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
             <div className="bg-stone-50 rounded-xl p-2.5">
               <ShieldCheck className="w-4 h-4 mx-auto text-stone-400 mb-1" aria-hidden />
               <p className="text-[10px] text-stone-500 font-bold">{t('provider')}</p>
-              <p className="text-xs font-black text-stone-800 truncate">{gig.providerType === 'purohit' ? '🪔' : '🔮'} {gig.providerName}</p>
+              {openProfile ? (
+                <button
+                  type="button"
+                  onClick={openProfile}
+                  className="text-xs font-black text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800 w-full truncate"
+                  aria-label={`${t('viewProfile')} — ${gig.providerName}`}
+                >
+                  {gig.providerType === 'purohit' ? '🪔' : '🔮'} {gig.providerName} →
+                </button>
+              ) : (
+                <p className="text-xs font-black text-stone-800 truncate">{gig.providerType === 'purohit' ? '🪔' : '🔮'} {gig.providerName}</p>
+              )}
             </div>
           </div>
 

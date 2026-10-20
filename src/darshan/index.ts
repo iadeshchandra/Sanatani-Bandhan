@@ -8,6 +8,8 @@ export { useLivePoller, OrgLivePoller } from './useLivePoller';
 export { dt, fill } from './i18n';
 export { LiveBadge } from './LiveBadge';
 export { DarshanViewer } from './DarshanViewer';
+export { OrgLiveWatchDoor } from './OrgLiveWatchDoor';
+export { watchDoorTarget } from './pure';
 export { ChannelLinkCard } from './ChannelLinkCard';
 export { GoLiveButton } from './GoLiveButton';
 export { notifyTempleLive } from './notify';

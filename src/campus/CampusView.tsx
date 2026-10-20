@@ -10,13 +10,16 @@
  *   image — pins over the temple's own layout image (fully offline).
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MapPin, Navigation, Clock, X, Church, BadgeCheck } from 'lucide-react';
+import { MapPin, Navigation, Clock, X, Church, BadgeCheck, QrCode } from 'lucide-react';
 import { subscribeToCampusMap } from './campusService';
 import { subscribeToZoneReports, REPORT_META, reportRefreshMs, type ZoneReport } from './reporting';
 import { ZONE_CATEGORY_META, zoneLabel, type CampusMap, type CampusZone } from './types';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { RecordVisitButton } from '../tirtha/RecordVisitButton';
+import { VisitCheckinSheet } from '../tirtha/VisitCheckinSheet';
+import { ZoneQrScanSheet, type ZoneScanSuccess } from './ZoneQrScanSheet';
+import { checkinPrefillFromScan, type CheckinPrefill } from './scanCheckin';
 import { ZoneReportButton } from './ZoneReportButton';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { addResilientTiles, type ResilientTilesHandle } from '../maps/tileProviders';
@@ -33,11 +36,22 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
   const { currentLang } = useLanguage();
   const { firebaseUser } = useAuthWorkspace();
   const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+  const scanLang = currentLang === 'bn' ? 'bn' : currentLang === 'hi' ? 'hi' : 'en';
   const [map, setMap] = useState<CampusMap | null>(null);
   const [reports, setReports] = useState<ZoneReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<CampusZone | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
+  // Zone-QR scan door (audit 2026-10-20, offense #6): the devotee standing
+  // AT the temple scans the 🛕 code right here — previously the scanner
+  // existed only inside the Tirtha check-in form, four taps away.
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanPrefill, setScanPrefill] = useState<CheckinPrefill | null>(null);
+
+  const handleScanVerified = (scan: ZoneScanSuccess) => {
+    setScanOpen(false);
+    setScanPrefill(checkinPrefillFromScan(scan));
+  };
   const mapRef = useRef<HTMLDivElement | null>(null);
   const leafletMap = useRef<any>(null);
   // Quick Guide: visitor basics — invitational; dormant until the UX agent
@@ -173,7 +187,20 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
         </div>
         <TourLink guide={GUIDES.campus} onRestart={campusGuide.restart} />
         {uid && (
-          <RecordVisitButton uid={uid} templeName={orgName} orgId={orgId} />
+          <>
+            {/* Scan the temple's own QR while standing here — verifies
+                against the map, then opens the check-in pre-filled. */}
+            <button
+              type="button"
+              onClick={() => setScanOpen(true)}
+              aria-label={scanLang === 'bn' ? 'মন্দিরের QR স্ক্যান করুন' : scanLang === 'hi' ? 'मंदिर का QR स्कैन करें' : 'Scan temple QR'}
+              className="rounded-xl px-4 py-2 text-sm font-bold min-h-[44px] bg-stone-900 hover:bg-stone-800 text-white flex items-center gap-1.5"
+            >
+              <QrCode className="w-4 h-4" aria-hidden />
+              {scanLang === 'bn' ? '📷 স্ক্যান' : scanLang === 'hi' ? '📷 स्कैन' : '📷 Scan'}
+            </button>
+            <RecordVisitButton uid={uid} templeName={orgName} orgId={orgId} />
+          </>
         )}
       </div>
 
@@ -340,6 +367,20 @@ export const CampusView: React.FC<Props> = ({ orgId, orgName, festivalMode = fal
         <TourPill guide={GUIDES.campus} onStart={campusGuide.start} onDismiss={campusGuide.dismissPill} />
       )}
       {campusGuide.tourActive && <CoachMark guide={GUIDES.campus} onFinish={campusGuide.finish} />}
+
+      {/* Zone-QR scanner + verified check-in (the scan door's flow) */}
+      {scanOpen && (
+        <ZoneQrScanSheet onVerified={handleScanVerified} onClose={() => setScanOpen(false)} />
+      )}
+      {scanPrefill && uid && (
+        <VisitCheckinSheet
+          uid={uid}
+          initialTemple={scanPrefill.templeName}
+          initialOrgId={scanPrefill.orgId}
+          onSaved={() => setScanPrefill(null)}
+          onClose={() => setScanPrefill(null)}
+        />
+      )}
     </div>
   );
 };
