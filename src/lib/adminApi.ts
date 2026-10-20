@@ -276,6 +276,22 @@ export const adminApi = {
     withFallback(() => post(`/api/billing/payment-claims/${id}/reject`, { reason }), () => firestoreAdmin.claimReject(id, reason)),
   subscription: (workspaceId: string) =>
     withFallback(() => get(`/api/billing/subscription/${workspaceId}`), () => firestoreAdmin.subscription(workspaceId)),
+  // QUEUED #24: expiry execution is Spark-native only (no HTTP route yet).
+  subscriptionsExpireDue: () =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.subscriptionsExpireDue()
+    ),
+  subscriptionExpireNow: (id: string) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.subscriptionExpireNow(id)
+    ),
+  subscriptionExtend: (id: string, months: number) =>
+    withFallback(
+      () => Promise.resolve({ ok: false, code: 'backendDown' } as any),
+      () => firestoreAdmin.subscriptionExtend(id, months)
+    ),
 
   // Payment method intelligence (Spark-native only)
   paymentMethodStats: (period: '7d' | '30d' | '90d' | 'all' = '30d') =>

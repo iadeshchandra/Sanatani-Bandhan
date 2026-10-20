@@ -3,8 +3,9 @@
  * All actions go through the backend API (owner-gated, audited server-side).
  */
 import React, { useState, useCallback } from 'react';
-import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock } from 'lucide-react';
+import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock, CalendarPlus, TimerOff } from 'lucide-react';
 import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, type MessageTemplate } from '../../../lib/adminApi';
+import { findDueSubscriptions, extendedEndDateIso } from '../../../lib/subscriptionAdmin';
 import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentInsightsTab } from './AdminTabsG';
@@ -280,11 +281,27 @@ const BillingClaims: React.FC = () => {
  * Lists subscriptions with expiry status badges (Active / Expiring soon /
  * Grace / Expired) so the owner can see who's paid, who's lapsing, and who
  * has been gracefully downgraded to Seva caps.
+ *
+ * QUEUED #24: visibility becomes execution. Derived status was never
+ * written back, so lapsed docs kept stored status 'active' (inflating
+ * insights counts/MRR). The owner can now: sweep every DUE subscription
+ * (endDate + full grace past, still stored active — dry-run preview
+ * first, one audited batch), expire a single row now, or extend a row's
+ * endDate by whole months (the Audit Fix #4 correction tool; extending
+ * an expired row reactivates it). All writes go through adminApi →
+ * firestoreAdmin (owner-gated, audit-logged).
  */
+const EXTEND_MONTH_CHOICES = [1, 3, 6, 11, 12, 24];
+
 const SubscriptionsTab: React.FC = () => {
   const { showToast } = useToast();
   const [subs, setSubs] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [acting, setActing] = React.useState<string | null>(null);
+  const [showDuePreview, setShowDuePreview] = React.useState(false);
+  const [expireTarget, setExpireTarget] = React.useState<any | null>(null);
+  const [extendTarget, setExtendTarget] = React.useState<any | null>(null);
+  const [extendMonths, setExtendMonths] = React.useState(11);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -327,11 +344,75 @@ const SubscriptionsTab: React.FC = () => {
     return <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">ACTIVE</span>;
   };
 
+  // QUEUED #24: due = paid period + full grace past, stored status still
+  // 'active'. Computed from the loaded rows for the preview; the sweep
+  // itself re-scans everything server-side (well, client-side Firestore).
+  const due = findDueSubscriptions(subs, Date.now());
+  const storedStatus = (s: any) => String(s.status || 'active').toLowerCase();
+
+  const runExpireDue = async () => {
+    setActing('batch');
+    const r = await adminApi.subscriptionsExpireDue();
+    setActing(null);
+    setShowDuePreview(false);
+    if (r.ok) {
+      const failed = (r.data?.failedIds || []).length;
+      showToast(
+        failed > 0
+          ? `Expired ${r.data?.count ?? 0} subscription(s); ${failed} could not be updated — see console.`
+          : `Expired ${r.data?.count ?? 0} due subscription(s). Counts and MRR are truthful again.`,
+        failed > 0 ? 'error' : 'success'
+      );
+      load();
+    } else {
+      showToast(r.error || 'Expire sweep failed.', 'error');
+    }
+  };
+
+  const runExpireNow = async () => {
+    if (!expireTarget) return;
+    setActing(expireTarget.id);
+    const r = await adminApi.subscriptionExpireNow(expireTarget.id);
+    setActing(null);
+    setExpireTarget(null);
+    if (r.ok) { showToast('Subscription expired.', 'success'); load(); }
+    else showToast(r.error || 'Could not expire subscription.', 'error');
+  };
+
+  const runExtend = async () => {
+    if (!extendTarget) return;
+    setActing(extendTarget.id);
+    const r = await adminApi.subscriptionExtend(extendTarget.id, extendMonths);
+    setActing(null);
+    setExtendTarget(null);
+    if (r.ok) {
+      showToast(`Extended — new end date ${r.data?.newEndDate ? new Date(r.data.newEndDate).toLocaleDateString() : ''}.`, 'success');
+      load();
+    } else showToast(r.error || 'Could not extend subscription.', 'error');
+  };
+
   if (loading) return <p className="text-sm text-slate-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading subscriptions…</p>;
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-500">{subs.length} subscriptions — expired plans gracefully fall back to Seva (free) caps after a 7-day grace period. Nothing is ever locked out.</p>
+      {due.length > 0 && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-center gap-3 flex-wrap">
+          <TimerOff className="w-5 h-5 text-red-300 shrink-0" />
+          <p className="text-xs text-red-200 flex-1 min-w-[200px]">
+            <b>{due.length} subscription{due.length === 1 ? '' : 's'} past due</b> — paid period and grace are over,
+            but the record still says “active”, so counts and MRR overstate reality. Expiring them changes no member's
+            access (they already run on Seva caps) and never blocks a renewal.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowDuePreview(true)}
+            className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-red-600 text-white hover:bg-red-500"
+          >
+            Review &amp; expire due
+          </button>
+        </div>
+      )}
       {subs.length === 0 ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-10 text-center">
           <p className="text-3xl mb-2">🧾</p>
@@ -353,15 +434,110 @@ const SubscriptionsTab: React.FC = () => {
               <p className="text-[11px] text-slate-500 mt-1 font-mono">
                 {s.startDate ? new Date(s.startDate).toLocaleDateString() : '?'} → {s.endDate ? new Date(s.endDate).toLocaleDateString() : 'no expiry'}
                 {s.transactionId ? <span className="ml-2">· {s.transactionId}</span> : null}
+                {typeof s.expiredAt === 'string' && s.expiredAt ? <span className="ml-2 text-red-300/80">· expired {new Date(s.expiredAt).toLocaleDateString()}</span> : null}
               </p>
             </div>
             {badge(s)}
           </div>
+          {(s.endDate || storedStatus(s) === 'active') && (
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {s.endDate && (
+                <button
+                  type="button"
+                  disabled={acting != null}
+                  onClick={() => { setExtendTarget(s); setExtendMonths(11); }}
+                  className="px-3 py-2 min-h-[44px] rounded-xl text-[11px] font-black bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 disabled:opacity-50"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5 inline mr-1.5" />Extend
+                </button>
+              )}
+              {storedStatus(s) === 'active' && (
+                <button
+                  type="button"
+                  disabled={acting != null}
+                  onClick={() => setExpireTarget(s)}
+                  className="px-3 py-2 min-h-[44px] rounded-xl text-[11px] font-black bg-red-600/15 text-red-300 border border-red-500/30 hover:bg-red-600/25 disabled:opacity-50"
+                >
+                  <TimerOff className="w-3.5 h-3.5 inline mr-1.5" />Expire now
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
       <button type="button" onClick={load} className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-slate-900 text-slate-300 border border-slate-800">
         <RefreshCw className="w-3.5 h-3.5 inline mr-1.5" />Refresh
       </button>
+
+      {showDuePreview && (
+        <ConfirmDialog
+          title={`Expire ${due.length} due subscription${due.length === 1 ? '' : 's'}?`}
+          body="Each record's stored status flips to “expired” with today's stamp, and the batch is written to the audit log with every id. Members keep working on Seva (free) caps — most already do — and a later payment approval reactivates them cleanly. Subscriptions still in their grace period are NOT touched. The sweep re-scans all subscriptions on confirm, so the final count may include older records beyond the list below."
+          confirmLabel={`Expire ${due.length} now`}
+          working={acting === 'batch'}
+          onConfirm={runExpireDue}
+          onCancel={() => setShowDuePreview(false)}
+        >
+          <div className="mb-5 max-h-56 overflow-y-auto space-y-1.5 pr-1">
+            {due.map((d) => (
+              <div key={d.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-800/70 px-3 py-2">
+                <p className="text-xs text-slate-200 font-mono truncate">
+                  {d.kind === 'pro' ? '🪔 ' : '🏛 '}{d.subject}
+                  <span className="text-slate-500"> · {d.planId}</span>
+                </p>
+                <p className="text-[11px] text-red-300 shrink-0">ended {d.endDate ? new Date(d.endDate).toLocaleDateString() : '?'} · {d.daysOverdue}d ago</p>
+              </div>
+            ))}
+          </div>
+        </ConfirmDialog>
+      )}
+
+      {expireTarget && (
+        <ConfirmDialog
+          title="Expire this subscription now?"
+          body={`${expireTarget._isPro ? (expireTarget.providerUid || expireTarget.id) : expireTarget.workspaceId} · ${expireTarget.planId} will be marked expired immediately, whatever its end date says, and the action is audit-logged. The member keeps working on Seva (free) caps and can renew any time — a fresh approval reactivates the record.`}
+          confirmLabel="Expire now"
+          working={acting === expireTarget.id}
+          onConfirm={runExpireNow}
+          onCancel={() => setExpireTarget(null)}
+        />
+      )}
+
+      {extendTarget && (
+        <ConfirmDialog
+          title="Extend subscription"
+          body={`${extendTarget._isPro ? (extendTarget.providerUid || extendTarget.id) : extendTarget.workspaceId} · ${extendTarget.planId} — currently ends ${extendTarget.endDate ? new Date(extendTarget.endDate).toLocaleDateString() : '—'}.${storedStatus(extendTarget) === 'expired' || extendTarget._status === 'expired' || extendTarget._status === 'grace' ? ' Extending reactivates it (status back to active).' : ''} This is the correction tool for pre-fix annual plans that received a 1-month end date: add 11 months to make the paid year whole.`}
+          confirmLabel={`Extend by ${extendMonths} month${extendMonths === 1 ? '' : 's'}`}
+          working={acting === extendTarget.id}
+          onConfirm={runExtend}
+          onCancel={() => setExtendTarget(null)}
+        >
+          <div className="mb-4">
+            <div className="flex gap-1.5 flex-wrap mb-3">
+              {EXTEND_MONTH_CHOICES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setExtendMonths(m)}
+                  className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-black ${
+                    extendMonths === m ? 'bg-saffron-500 text-slate-950' : 'bg-slate-800 text-slate-300 border border-slate-700'
+                  }`}
+                >
+                  +{m} mo
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400">
+              New end date:{' '}
+              <b className="text-slate-100">
+                {extendedEndDateIso(extendTarget.endDate, extendMonths)
+                  ? new Date(extendedEndDateIso(extendTarget.endDate, extendMonths)!).toLocaleDateString()
+                  : '—'}
+              </b>
+            </p>
+          </div>
+        </ConfirmDialog>
+      )}
     </div>
   );
 };

@@ -55,7 +55,11 @@ import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from 
 import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
 import {
   isProPlanId, normalizeProPlanId, buildProSubscriptionDoc, providerTierFromSubscription,
+  isProSubscriptionDoc,
 } from './proSubscription';
+import {
+  findDueSubscriptions, buildExpireUpdate, buildExtendUpdate,
+} from './subscriptionAdmin';
 import { warnTargetForReport, shouldThankReporter } from '../sangam/moderation';
 import {
   computeMrr,
@@ -515,7 +519,9 @@ async function claimApprove(id: string): Promise<NativeResult> {
   if (isProPlanId(planId) && claim.applicantUid) {
     await setDoc(
       doc(db, 'subscriptions', claim.applicantUid),
-      { ...buildProSubscriptionDoc(claim, start, end), updatedAt: serverTimestamp() },
+      // QUEUED #24: clear any stale expiredAt stamp from a previous lapse —
+      // a fresh approval is a fresh, active subscription.
+      { ...buildProSubscriptionDoc(claim, start, end), expiredAt: null, updatedAt: serverTimestamp() },
       { merge: true }
     );
     await writeAudit(
@@ -537,6 +543,7 @@ async function claimApprove(id: string): Promise<NativeResult> {
       endDate: end.toISOString(),
       paymentMethod: claim.method,
       transactionId: claim.transactionId,
+      expiredAt: null, // QUEUED #24: renewal clears a previous expiry stamp
       updatedAt: serverTimestamp(),
     },
     { merge: true }
@@ -579,6 +586,113 @@ async function subscription(workspaceId: string): Promise<NativeResult> {
   const snap = await getDoc(doc(db, 'subscriptions', workspaceId));
   if (!snap.exists()) return { ok: false, error: 'No subscription found.', code: 'NOT_FOUND' };
   return { ok: true, data: { success: true, subscription: { id: snap.id, ...(snap.data() as any) } } };
+}
+
+/* ------------- QUEUED #24: subscription expiry execution -------------
+ * Expiry was derived at read (subscriptionExpiry.ts) but never executed:
+ * lapsed docs kept stored status 'active', inflating the insights
+ * counts/MRR (status == 'active' queries) and leaving the Pro tier
+ * verdict resting on dates alone. These owner actions make the stored
+ * record true. The scan math is pure (lib/subscriptionAdmin.ts):
+ * due = endDate + full 7-day grace past AND stored status still
+ * 'active'. Grace is never swept early; re-runs expire nothing twice.
+ * Rules already permit this: subscriptions create/update = isOwner(). */
+
+/** Expire every due subscription (org plans + Pro docs). One batch
+ *  audit entry carries the full id list; per-doc failures are reported,
+ *  never silently swallowed. */
+async function subscriptionsExpireDue(): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'subscriptions'), limit(500)));
+  const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  const due = findDueSubscriptions(rows, Date.now());
+  const nowIso = new Date().toISOString();
+  const expiredIds: string[] = [];
+  const failedIds: string[] = [];
+  for (const d of due) {
+    try {
+      await updateDoc(doc(db, 'subscriptions', d.id), {
+        ...buildExpireUpdate(nowIso),
+        updatedAt: serverTimestamp(),
+      });
+      expiredIds.push(d.id);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[firestoreAdmin] expire-due failed for', d.id, e);
+      failedIds.push(d.id);
+    }
+  }
+  if (expiredIds.length > 0) {
+    await writeAudit(
+      'billing.subscriptions.expireDue',
+      { count: expiredIds.length, ids: expiredIds, failedIds },
+      'warn'
+    );
+  }
+  return {
+    ok: true,
+    data: { ok: true, scanned: rows.length, count: expiredIds.length, expiredIds, failedIds },
+  };
+}
+
+/** Expire one subscription now (owner override, any endDate). Idempotent:
+ *  an already-expired doc is a successful no-op. */
+async function subscriptionExpireNow(id: string): Promise<NativeResult> {
+  requireOwner();
+  const ref = doc(db, 'subscriptions', id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, error: 'Subscription not found.', code: 'NOT_FOUND' };
+  const data: any = snap.data();
+  if (String(data.status || 'active').toLowerCase() === 'expired') {
+    return { ok: true, data: { ok: true, alreadyExpired: true } };
+  }
+  const nowIso = new Date().toISOString();
+  await updateDoc(ref, { ...buildExpireUpdate(nowIso), updatedAt: serverTimestamp() });
+  await writeAudit(
+    'billing.subscriptions.expire',
+    {
+      subscriptionId: id,
+      planId: data.planId || null,
+      kind: isProSubscriptionDoc(data) ? 'pro' : 'org',
+      previousStatus: data.status || 'active',
+      previousEndDate: data.endDate || null,
+    },
+    'warn',
+    id
+  );
+  return { ok: true, data: { ok: true, expiredAt: nowIso } };
+}
+
+/** Extend a subscription's endDate by whole months. Reactivates an
+ *  expired doc (status → 'active', expiredAt cleared) — this is also
+ *  the Audit Fix #4 correction tool for pre-fix annual plans whose
+ *  endDates came out one month instead of twelve. */
+async function subscriptionExtend(id: string, months: number): Promise<NativeResult> {
+  requireOwner();
+  const ref = doc(db, 'subscriptions', id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return { ok: false, error: 'Subscription not found.', code: 'NOT_FOUND' };
+  const data: any = snap.data();
+  const update = buildExtendUpdate(data, months);
+  if (!update) {
+    return { ok: false, error: 'This subscription has no end date to extend.', code: 'NO_END_DATE' };
+  }
+  await updateDoc(ref, { ...update, updatedAt: serverTimestamp() });
+  await writeAudit(
+    'billing.subscriptions.extend',
+    {
+      subscriptionId: id,
+      planId: data.planId || null,
+      kind: isProSubscriptionDoc(data) ? 'pro' : 'org',
+      months,
+      previousEndDate: data.endDate || null,
+      newEndDate: update.endDate,
+      previousStatus: data.status || 'active',
+    },
+    'warn',
+    id
+  );
+  return { ok: true, data: { ok: true, newEndDate: update.endDate } };
 }
 
 /* -------------------------------- Messaging ------------------------------ */
@@ -2945,6 +3059,9 @@ export const firestoreAdmin = {
   claimApprove,
   claimReject,
   subscription,
+  subscriptionsExpireDue,
+  subscriptionExpireNow,
+  subscriptionExtend,
   sendMessage,
   scheduleMessage,
   messageTemplates,
