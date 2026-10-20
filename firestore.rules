@@ -201,6 +201,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Delegated platform admins (QUEUED #21) — client-managed registry.
+    // DISTINCT from /platform_admins: a doc here NEVER confers
+    // isSuperAdmin(); it only gates the GodMode console UI.
+    match /platformAdmins/{adminUid} {
+      allow read: if isOwner()
+        || (isLoggedIn() && request.auth.uid == adminUid);
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(
+          ['uid', 'email', 'displayName', 'role', 'active',
+           'grantedBy', 'grantedAt', 'updatedAt'])
+        && request.resource.data.get('uid', '') == adminUid
+        && request.resource.data.get('role', '') in ['admin', 'moderator']
+        && request.resource.data.get('grantedBy', '') == request.auth.uid;
+      allow delete: if isOwner();
+    }
+
     match /platform_leads/{leadId} {
       allow create: if true; // public lead-capture form
       allow read, update: if isSuperAdmin() || isOwner();
