@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'rea
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, SyncLabel, useLocaleText, T } from './ui';
 import type { SangamPost, PostKind, SangamReport } from './types';
+import { isEdited, validatePostEditText, validateCommentEditText, POST_TEXT_MAX, COMMENT_TEXT_MAX } from './edits';
 import { uploadFile, resolveVaultUrl } from '../lib/fileVault';
 import { ServiceCardFeedItem } from './ServiceCardFeedItem';
 import { applyServiceCardDensity, serviceCardCooldownRemainingMs, cooldownMessage } from './serviceCard';
@@ -66,7 +67,7 @@ const FeedImage: React.FC<{ url: string }> = ({ url }) => {
   );
 };
 
-const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online, subscribeComments } = useSangam();
+const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, author }) => {  const { toggleAshirvad, addComment, sharePost, volunteerSeva, reportContent, comments, online, subscribeComments, editPost, editComment, deleteComment } = useSangam();
   const { tr } = useLocaleText();
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -76,6 +77,13 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
   const [reportReason, setReportReason] = useState<SangamReport['reason']>('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [safetyOpen, setSafetyOpen] = useState(false);
+  // QUEUED #12: author edit state (post + per-comment inline editing).
+  const [editOpen, setEditOpen] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentEditText, setCommentEditText] = useState('');
+  const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<string | null>(null);
 
   const gave = (post.ashirvadBy || []).includes(author.uid);
   const volunteered = (post.volunteers || []).includes(author.uid);
@@ -108,6 +116,35 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
     setReportOpen(false); // close immediately — sync is best-effort
     setReportDetails('');
     await reportContent(author.uid, author.name, 'post', post.id, reason, details);
+  };
+
+  // QUEUED #12: author edit/delete handlers.
+  const openEdit = () => {
+    setEditText(post.text);
+    setEditImageUrl(post.imageUrl || '');
+    setSafetyOpen(false);
+    setEditOpen(true);
+  };
+
+  const doEdit = async () => {
+    const v = validatePostEditText(editText);
+    if (!v.ok) return;
+    const edits: { text: string; imageUrl?: string } = { text: v.text };
+    if (post.kind === 'photo' || post.imageUrl) edits.imageUrl = editImageUrl.trim() || undefined;
+    setEditOpen(false); // close immediately — sync is best-effort
+    await editPost(post.id, edits);
+  };
+
+  const doCommentEdit = async (commentId: string) => {
+    const v = validateCommentEditText(commentEditText);
+    if (!v.ok) return;
+    setEditingCommentId(null);
+    await editComment(post.id, commentId, v.text);
+  };
+
+  const doCommentDelete = async (commentId: string) => {
+    setConfirmDeleteCommentId(null);
+    await deleteComment(post.id, commentId);
   };
 
   const sevaFull = post.kind === 'seva' && post.seva && (post.volunteers || []).length >= post.seva.slots;
@@ -162,6 +199,7 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
         <span>🙏 {post.ashirvadCount} <T en="Ashirvad" bn="আশীর্বাদ" hi="आशीर्वाद" /></span>
         <span>💬 {post.commentCount}</span>
         <span>🔁 {post.shareCount}</span>
+        {isEdited(post) && <span className="text-stone-400">✏️ {tr('Edited', 'সম্পাদিত', 'संपादित')}</span>}
         {post.status === 'reported' && <span className="text-amber-600">⚠️ {tr('Under review', 'পর্যালোচনাধীন', 'समीक्षाधीन')}</span>}
       </div>
 
@@ -206,7 +244,54 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
           {postComments.map((c) => (
             <div key={c.id} className="py-2 border-b border-stone-50 last:border-0">
               <AuthorLine name={c.authorName} sanId={c.authorSanId} kind={c.authorKind} tier={c.authorTier} time={c.createdAt} uid={c.authorUid} />
-              <p className="text-sm text-stone-700 mt-1 ml-12">{c.text}</p>
+              {editingCommentId === c.id ? (
+                <div className="mt-1 ml-12">
+                  <textarea
+                    value={commentEditText} onChange={(e) => setCommentEditText(e.target.value)}
+                    rows={2} maxLength={COMMENT_TEXT_MAX} className={inputCls}
+                  />
+                  <div className="flex gap-2 mt-1.5">
+                    <Btn variant="soft" onClick={() => doCommentEdit(c.id)} disabled={!validateCommentEditText(commentEditText).ok} className="!px-3 !py-2 text-xs min-h-[40px]">
+                      ✓ {tr('Save', 'সংরক্ষণ', 'सहेजें')}
+                    </Btn>
+                    <button onClick={() => setEditingCommentId(null)} className="px-3 py-2 text-xs font-bold text-stone-500 rounded-xl min-h-[40px]">
+                      {tr('Cancel', 'বাতিল', 'रद्द')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-stone-700 mt-1 ml-12">
+                    {c.text}
+                    {isEdited(c) && <span className="text-[11px] text-stone-400"> · {tr('edited', 'সম্পাদিত', 'संपादित')}</span>}
+                  </p>
+                  {c.authorUid === author.uid && (
+                    <div className="ml-12 mt-1 flex gap-2">
+                      <button
+                        onClick={() => { setCommentEditText(c.text); setEditingCommentId(c.id); setConfirmDeleteCommentId(null); }}
+                        className="text-xs font-bold text-stone-500 hover:text-orange-700 px-2 py-2 rounded-lg min-h-[40px]"
+                      >
+                        ✏️ {tr('Edit', 'সম্পাদনা', 'संपादित')}
+                      </button>
+                      {confirmDeleteCommentId === c.id ? (
+                        <button
+                          onClick={() => doCommentDelete(c.id)}
+                          className="text-xs font-bold text-white bg-red-600 px-3 py-2 rounded-lg min-h-[40px]"
+                        >
+                          {tr('Tap again to delete', 'মুছতে আবার ট্যাপ করুন', 'हटाने के लिए फिर टैप करें')}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteCommentId(c.id)}
+                          className="text-xs font-bold text-stone-500 hover:text-red-700 px-2 py-2 rounded-lg min-h-[40px]"
+                        >
+                          🗑️ {tr('Delete', 'মুছুন', 'हटाएँ')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ))}
           <div className="flex gap-2 mt-2">
@@ -245,9 +330,40 @@ const PostCard: React.FC<{ post: SangamPost; author: AuthorInfo }> = ({ post, au
       )}
       {safetyOpen && post.authorUid === author.uid && (
         <Modal onClose={() => setSafetyOpen(false)} title={<T en="Your post" bn="আপনার পোস্ট" hi="आपकी पोस्ट" />}>
-          <Btn onClick={() => { setSafetyOpen(false); setReportOpen(true); }} className="w-full">
-            ⚠️ <T en="Report this post" bn="এই পোস্ট রিপোর্ট করুন" hi="इस पोस्ट की रिपोर्ट करें" />
+          <div className="space-y-2">
+            <Btn onClick={openEdit} className="w-full">
+              ✏️ <T en="Edit post" bn="পোস্ট সম্পাদনা করুন" hi="पोस्ट संपादित करें" />
+            </Btn>
+            <Btn variant="soft" onClick={() => { setSafetyOpen(false); setReportOpen(true); }} className="w-full">
+              ⚠️ <T en="Report this post" bn="এই পোস্ট রিপোর্ট করুন" hi="इस पोस्ट की रिपोर्ट करें" />
+            </Btn>
+            {/* Honest removal note (QUEUED #12): only moderators can delete
+                posts (firestore.rules) — we never fake a local "delete". */}
+            <p className="text-xs text-stone-500 leading-relaxed pt-1">
+              {tr(
+                'Only moderators can delete posts. To have this post removed, report it and choose "Other" — the moderation team will take it down.',
+                'শুধুমাত্র মডারেটররাই পোস্ট মুছতে পারেন। এই পোস্টটি সরাতে চাইলে রিপোর্ট করে "অন্যান্য" বেছে নিন — মডারেশন দল এটি সরিয়ে দেবে।',
+                'केवल मॉडरेटर ही पोस्ट हटा सकते हैं। इस पोस्ट को हटवाने के लिए रिपोर्ट करें और "अन्य" चुनें — मॉडरेशन टीम इसे हटा देगी।',
+              )}
+            </p>
+          </div>
+        </Modal>
+      )}
+
+      {editOpen && (
+        <Modal onClose={() => setEditOpen(false)} title={<T en="Edit post" bn="পোস্ট সম্পাদনা" hi="पोस्ट संपादित करें" />}>
+          <Field label={<T en="Your words" bn="আপনার কথা" hi="आपके शब्द" />}>
+            <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={4} maxLength={POST_TEXT_MAX} className={inputCls} />
+          </Field>
+          {(post.kind === 'photo' || post.imageUrl) && (
+            <Field label={<T en="Photo link" bn="ছবির লিংক" hi="चित्र लिंक" />}>
+              <input value={editImageUrl} onChange={(e) => setEditImageUrl(e.target.value)} className={inputCls} placeholder="https://" maxLength={500} />
+            </Field>
+          )}
+          <Btn onClick={doEdit} disabled={!validatePostEditText(editText).ok} className="w-full mt-3">
+            ✓ {tr('Save changes', 'পরিবর্তন সংরক্ষণ করুন', 'परिवर्तन सहेजें')}
           </Btn>
+          {!online && <div className="text-[11px] text-amber-600 mt-2">📴 {tr('Offline — your edit is saved on this device.', 'অফলাইন — সম্পাদনা ডিভাইসে সংরক্ষিত।', 'ऑफ़लाइन — संपादन डिवाइस पर सहेजा।')}</div>}
         </Modal>
       )}
 

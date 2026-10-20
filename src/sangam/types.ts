@@ -147,6 +147,8 @@ export interface SangamComment {
   authorTier?: VerificationTier;
   text: string;
   createdAt: number;
+  /** Set by an author edit (QUEUED #12); drives the "edited" marker. */
+  updatedAt?: number;
   localOnly?: boolean;
 }
 

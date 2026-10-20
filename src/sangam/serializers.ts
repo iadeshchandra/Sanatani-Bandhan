@@ -45,6 +45,35 @@ export function toCloudPost(p: Record<string, unknown>): Record<string, unknown>
 }
 
 /**
+ * sangamPosts AUTHOR-EDIT update payload (QUEUED #12).
+ * The rules' author branch permits a diff touching ONLY
+ * ['text', 'imageUrl', 'updatedAt'] (authorUid pinned by a separate check).
+ * This serializer produces exactly that subset — nothing else may ride
+ * along, or the whole update is rejected. `imageUrl` is stripped when
+ * undefined so a text-only edit never touches the image field.
+ */
+export function toCloudPostEdit(edits: { text: string; imageUrl?: string; updatedAt: number }): Record<string, unknown> {
+  return stripUndefined({
+    text: edits.text,
+    imageUrl: edits.imageUrl,
+    updatedAt: edits.updatedAt,
+  });
+}
+
+/**
+ * sangamComments AUTHOR-EDIT update payload (QUEUED #12).
+ * Rules allow the comment's author to update/delete their own comment
+ * (no field whitelist on update). We still send the minimum: the new
+ * text plus `updatedAt` so the "edited" marker can render.
+ */
+export function toCloudCommentEdit(edits: { text: string; updatedAt: number }): Record<string, unknown> {
+  return stripUndefined({
+    text: edits.text,
+    updatedAt: edits.updatedAt,
+  });
+}
+
+/**
  * sangamComments create whitelist:
  * postId, authorUid, authorName, authorSanId, authorKind, authorTier, text, createdAt
  */

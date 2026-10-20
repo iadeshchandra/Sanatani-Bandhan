@@ -10,8 +10,9 @@ import type {
   SevaDetails,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
-import { toCloudComment, mergeComments } from './comments';
-import { toCloudPost, toCloudFollow, toCloudCircle, toCloudEvent, toCloudReport } from './serializers';
+import { toCloudComment, mergeComments, nextCommentCount } from './comments';
+import { toCloudPost, toCloudPostEdit, toCloudCommentEdit, toCloudFollow, toCloudCircle, toCloudEvent, toCloudReport } from './serializers';
+import { applyPostEdit, applyCommentEdit, removeComment } from './edits';
 
 /* Sangam store — the community's shared memory.
  * =====================================================================
@@ -59,8 +60,14 @@ interface SangamState {
 
 interface SangamContextType extends SangamState {
   createPost: (author: AuthorInfo, input: ComposeInput, asOrg?: { orgId: string; orgName: string }) => Promise<SangamPost>;
+  /** Author edit of own post — rules allow text/imageUrl/updatedAt only. */
+  editPost: (postId: string, edits: { text: string; imageUrl?: string }) => Promise<void>;
   toggleAshirvad: (postId: string, uid: string) => Promise<void>;
   addComment: (postId: string, author: AuthorInfo, text: string) => Promise<void>;
+  /** Author edit of own comment (rules: author may update own comments). */
+  editComment: (postId: string, commentId: string, text: string) => Promise<void>;
+  /** Author delete of own comment (rules: author may delete own comments). */
+  deleteComment: (postId: string, commentId: string) => Promise<void>;
   sharePost: (post: SangamPost, author: AuthorInfo, note: string) => Promise<void>;
   followTarget: (followerUid: string, targetType: 'org' | 'purohit' | 'jyotish', targetId: string, targetName: string) => Promise<void>;
   unfollowTarget: (followId: string) => Promise<void>;
@@ -289,6 +296,69 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
   }, []);
 
   /**
+   * Author edit of own post (QUEUED #12).
+   * Optimistic: applies locally with an `updatedAt` stamp, then best-effort
+   * `updateDoc` with ONLY the rules-approved keys (text/imageUrl/updatedAt)
+   * via `toCloudPostEdit`. A localOnly post has no cloud copy — the local
+   * edit IS the truth there. NOTE: there is deliberately no `deletePost`
+   * for authors — rules allow delete only for SuperAdmin, so the UI offers
+   * Edit + a report-for-removal path instead of a fake local "delete".
+   */
+  const editPost = useCallback(async (postId: string, edits: { text: string; imageUrl?: string }) => {
+    const at = now();
+    let cloud: SangamPost | undefined;
+    setPosts((prev) => prev.map((p) => {
+      if (p.id !== postId) return p;
+      const next = applyPostEdit(p, edits, at);
+      cloud = p;
+      return next;
+    }));
+    if (!navigator.onLine || cloud?.localOnly) return; // nothing to sync to
+    try {
+      await updateDoc(doc(db, 'sangamPosts', postId), toCloudPostEdit({ ...edits, updatedAt: at }));
+    } catch { /* stays local, honestly labeled */ }
+  }, []);
+
+  /**
+   * Author edit of own comment (QUEUED #12).
+   * Optimistic local edit with `updatedAt`; best-effort cloud `updateDoc`
+   * with the minimum payload (rules allow the author to update own comments).
+   */
+  const editComment = useCallback(async (postId: string, commentId: string, text: string) => {
+    const at = now();
+    let cloud: SangamComment | undefined;
+    setComments((prev) => {
+      const list = prev[postId] || [];
+      cloud = list.find((c) => c.id === commentId);
+      return { ...prev, [postId]: applyCommentEdit(list, commentId, text, at) };
+    });
+    if (!navigator.onLine || cloud?.localOnly) return;
+    try {
+      await updateDoc(doc(db, 'sangamComments', commentId), toCloudCommentEdit({ text, updatedAt: at }));
+    } catch { /* stays local, honestly labeled */ }
+  }, []);
+
+  /**
+   * Author delete of own comment (QUEUED #12).
+   * Optimistic remove + bounded count decrement; best-effort cloud
+   * `deleteDoc` and the ±1 `commentCount` bump (mirrors addComment).
+   */
+  const deleteComment = useCallback(async (postId: string, commentId: string) => {
+    let cloud: SangamComment | undefined;
+    setComments((prev) => {
+      const list = prev[postId] || [];
+      cloud = list.find((c) => c.id === commentId);
+      return { ...prev, [postId]: removeComment(list, commentId) };
+    });
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, commentCount: nextCommentCount(p.commentCount, -1) } : p)));
+    if (!navigator.onLine || cloud?.localOnly) return;
+    try {
+      await deleteDoc(doc(db, 'sangamComments', commentId));
+      await updateDoc(doc(db, 'sangamPosts', postId), { commentCount: increment(-1) });
+    } catch { /* stays local, honestly labeled */ }
+  }, []);
+
+  /**
    * Live comment thread subscription (Step 4: multi-device sync).
    * Call when a post's comment drawer opens; call the returned function on
    * close/unmount. Merges cloud comments with unsynced local ones by id.
@@ -433,12 +503,12 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
 
   const value = useMemo<SangamContextType>(() => ({
     posts, comments, circles, events, follows, online, lastSyncedAt,
-    createPost, toggleAshirvad, addComment, sharePost,
+    createPost, editPost, toggleAshirvad, addComment, editComment, deleteComment, sharePost,
     followTarget, unfollowTarget, isFollowing,
     joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments,
   }), [posts, comments, circles, events, follows, online, lastSyncedAt,
-    createPost, toggleAshirvad, addComment, sharePost, followTarget, unfollowTarget,
+    createPost, editPost, toggleAshirvad, addComment, editComment, deleteComment, sharePost, followTarget, unfollowTarget,
     isFollowing, joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments]);
 
