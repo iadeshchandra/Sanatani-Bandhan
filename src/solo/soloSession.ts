@@ -97,6 +97,31 @@ export function provisionalSoloProfile(): SanataniProfile {
 }
 
 /**
+ * QUEUED #50 (audit D11a): a provisional profile is a PLACEHOLDER for
+ * the session switch, never an identity. Surfaces must treat it as
+ * "identity still loading" — the audited bug rendered its literal
+ * 'SAN-PENDING' id and empty name in the solo header/greeting after
+ * returning from an org, until some later navigation re-hydrated the
+ * real profile.
+ */
+export function isProvisionalProfile(
+  p: { id?: string; uid?: string } | null | undefined,
+): boolean {
+  return !p || p.id === 'SAN-PENDING' || p.uid === '__pending__';
+}
+
+/**
+ * Synchronous read of the locally cached real profile (the continuity
+ * cache mintOrFetchSanataniProfile maintains). Lets the solo shell
+ * hydrate the user's actual SAN-XXXXXX + name instantly on return
+ * while the Firestore refresh verifies it in the background.
+ */
+export function getCachedSanataniProfile(uid: string): SanataniProfile | null {
+  if (!uid || uid === 'anon') return null;
+  return readCachedProfile(uid);
+}
+
+/**
  * Get-or-create the Sanatani profile. Never duplicates: an existing profile
  * is returned as-is. Offline → mints locally, marked unsynced.
  *

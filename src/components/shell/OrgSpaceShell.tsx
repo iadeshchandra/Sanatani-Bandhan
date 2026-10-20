@@ -4,6 +4,14 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { useToast } from '../../context/ToastContext';
 import { provisionalSoloProfile } from '../../solo/soloSession';
+import { NotificationBell } from '../../notifications/NotificationBell';
+import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
+import { useLiveNotifications } from '../../notifications/useLiveNotifications';
+import {
+  scopeItemsForOrg,
+  unreadInScope,
+  criticalUnreadInScope,
+} from '../../notifications/orgScope';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { ROLE_MIGRATION_MAP } from '../../types';
 import { T } from '../../solo/ui';
@@ -24,9 +32,13 @@ import { OrgLogo } from '../common/OrgLogo';
  *    the Sidebar nav filter and AppContent's devotee guard all evaluate
  *    the per-org role. A Devotee in this org never sees Trustee desks,
  *    even if they are a Trustee elsewhere.
- *  - Breadcrumb: Home → {Org} → {current desk}. The desk name arrives via
- *    the 'sanatani:org-desk' window event that AppContent broadcasts on
- *    every module change (labels resolved from MODULE_CATALOG).
+ *  - Breadcrumb: {Org} → {current desk}; the org crumb returns to the
+ *    org's Command Center (QUEUED #50 — it used to exit the org). The
+ *    desk name arrives via the 'sanatani:org-desk' window event that
+ *    AppContent broadcasts on every module change (labels resolved
+ *    from MODULE_CATALOG).
+ *  - Suchana bell (QUEUED #50): org-scoped notification center,
+ *    reachable at every width from this header.
  *  - First-entry role hint: a dismissable, warm banner shown once per
  *    role per org (localStorage org_role_hint_{orgId}_{role}).
  */
@@ -177,6 +189,38 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     navigate('/app/home');
   };
 
+  // QUEUED #50 (audit D11e): the breadcrumb root is THIS org's Command
+  // Center — the old "Home" crumb exited the org entirely, so the
+  // breadcrumb's first step threw the user out of the workspace they
+  // were navigating. Leaving the org stays on the explicit ← Home back
+  // button above; the crumb walks the desk tree instead. AppContent
+  // listens for 'sanatani:navigate' and switches the desk.
+  const goCommandCenter = () => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('sanatani:navigate', { detail: { module: 'dashboard' } })
+      );
+    } catch {
+      /* non-DOM environment — nothing to navigate */
+    }
+  };
+
+  // QUEUED #50 (audit D8): the org Suchana bell — reachable at EVERY
+  // width (the ERP header's bell is desktop-only, so mobile org users
+  // had no bell at all). The stream is per-user; in org context it is
+  // scoped to THIS org (orgScope), and the badge counts the same
+  // scoped, duplicate-collapsed list the center opens — badge == list.
+  const live = useLiveNotifications();
+  const orgItems = useMemo(() => scopeItemsForOrg(live.items, orgId), [live.items, orgId]);
+  const orgUnread = unreadInScope(orgItems);
+  const orgCritical = criticalUnreadInScope(orgItems);
+  const [showOrgCenter, setShowOrgCenter] = useState(false);
+  const markOrgAllRead = async () => {
+    for (const item of orgItems) {
+      if (!item.read) await live.markRead(item.id);
+    }
+  };
+
   const pillCls = ROLE_PILL_STYLE[displayRole] || ROLE_PILL_STYLE.Devotee;
   const caps = ROLE_CAPABILITIES[displayRole] || ROLE_CAPABILITIES.Devotee;
 
@@ -209,14 +253,33 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
               <h1 className="text-white font-extrabold text-sm sm:text-base truncate">{orgName}</h1>
             </div>
             <nav aria-label="Breadcrumb" className="text-[11px] text-amber-400/70 font-medium truncate mt-0.5">
-              <button type="button" onClick={goHome} className="hover:text-amber-300 underline-offset-2 hover:underline">
-                <T en="Home" bn="হোম" hi="होम" />
+              {/* QUEUED #50 (D11e): root crumb = this org's Command Center,
+                  not an exit. Leaving lives on the ← Home button. */}
+              <button
+                type="button"
+                onClick={goCommandCenter}
+                className="text-amber-200/90 hover:text-amber-300 underline-offset-2 hover:underline"
+                title={`${orgName} — Command Center`}
+              >
+                {orgName}
               </button>
-              <span aria-hidden className="mx-1">›</span>
-              <span className="text-amber-200/90">{orgName}</span>
               <span aria-hidden className="mx-1">›</span>
               <span className="text-amber-400/80">{deskLabel}</span>
             </nav>
+          </div>
+          {/* QUEUED #50 (D8): org Suchana bell — every width, this org only. */}
+          <div className="relative shrink-0">
+            <NotificationBell
+              unreadCount={orgUnread}
+              criticalCount={orgCritical}
+              onClick={() => setShowOrgCenter(true)}
+              className="text-amber-200 hover:text-white hover:bg-white/10 border border-white/10"
+              label={{
+                en: `🪔 Suchana — ${orgName}`,
+                bn: `🪔 সূচনা — ${orgName}`,
+                hi: `🪔 सूचना — ${orgName}`,
+              }}
+            />
           </div>
           {/* Role chip — plain role name, no "Viewing as" framing (Track 0:
               "viewing" language reads as demo/preview chrome to real users). */}
@@ -228,6 +291,20 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
           </span>
         </div>
       </header>
+
+      {/* QUEUED #50 (D8): the org center — fixed overlay mounted outside
+          the header so no transformed/hidden ancestor can trap it. */}
+      {showOrgCenter && (
+        <NotificationCenterUI
+          items={orgItems}
+          onClose={() => setShowOrgCenter(false)}
+          onMarkRead={(id) => void live.markRead(id)}
+          onMarkGroupRead={(group) => void live.markGroupRead(group)}
+          onMarkAllRead={() => void markOrgAllRead()}
+          onClearRead={() => void markOrgAllRead()}
+          onAcknowledge={(id) => void live.acknowledge(id)}
+        />
+      )}
 
       {/* First-entry role hint — warm welcome, not a warning */}
       {showHint && (

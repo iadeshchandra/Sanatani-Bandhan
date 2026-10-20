@@ -281,7 +281,7 @@ interface PortalLoginProps {
 }
 
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess, orgRegisterOnly = false }) => {
-  const { loginAsRole, addWorkspace, switchWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, soloProfile, currentDevotee, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
+  const { loginAsRole, switchWorkspace, activateCreatedWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, soloProfile, currentDevotee, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
   // Locale follows the app-wide LanguageContext (English default). The auth
   // page's own selector also pushes the choice back to the global locale.
@@ -1013,13 +1013,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         joinedAt: serverTimestamp(),
       });
 
-      addWorkspace(newWorkspace);
-      switchWorkspace(newWorkspace.id);
+      // QUEUED #50 (audit D7): activate the workspace just created — it
+      // becomes THE active workspace, the creator lands in its staff
+      // console as Trustee. The old sequence also fired switchWorkspace
+      // un-awaited (verified against the pre-create auth closure) and
+      // then called loginAsRole('Trustee') — the DEMO persona helper,
+      // which reset the active workspace to DEMO_ws-mandir and signed
+      // the user in anonymously, replacing the real session; the auth
+      // listener's anonymous branch demoted the role to Devotee, so the
+      // router landed on the demo Mandir's Devotee view, never the new
+      // org. activateCreatedWorkspace is the pure state transition.
+      activateCreatedWorkspace(newWorkspace);
       // Progressive upgrade: a Solo user registering an organisation leaves
       // the personal session so the router lands on the new org dashboard
       // (the Solo identity itself is untouched — one tap back via Personal).
       if (sessionKind === 'solo') exitSoloSession();
-      loginAsRole('Trustee', effAdminName);
 
       // First-run Setup Wizard: mark this fresh workspace as pending setup so
       // the wizard greets the new owner exactly once on first entry.

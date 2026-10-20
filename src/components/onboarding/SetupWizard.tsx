@@ -82,7 +82,8 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
     setFinishing(true);
     try {
       // 1. Their ~8 essential desks become sidebar favorites (existing system).
-      await setPinnedDesks(essentialDesks);
+      // QUEUED #50 (D11b): pinned desks are scoped to THIS workspace.
+      await setPinnedDesks(essentialDesks, workspaceId);
       // 2. Optional sample records, clearly marked as sample by the seeder.
       if (sampleData) {
         try {

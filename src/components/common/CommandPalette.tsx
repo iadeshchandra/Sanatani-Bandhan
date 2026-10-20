@@ -66,8 +66,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     setQuery('');
     setActiveIndex(0);
     setOpen(true);
-    getRecentDesks().then(setRecents).catch(() => {});
-  }, []);
+    // QUEUED #50 (D11b): recents are scoped to the active workspace.
+    getRecentDesks(activeWorkspace?.id || null).then(setRecents).catch(() => {});
+  }, [activeWorkspace?.id]);
 
   const closePalette = useCallback(() => setOpen(false), []);
 
@@ -80,7 +81,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
           if (!prev) {
             setQuery('');
             setActiveIndex(0);
-            getRecentDesks().then(setRecents).catch(() => {});
+            getRecentDesks(activeWorkspace?.id || null).then(setRecents).catch(() => {});
           }
           return !prev;
         });
@@ -291,12 +292,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     (item: PaletteItem) => {
       if (item.kind === 'desk' || item.kind === 'recent') {
         const deskId = item.key.replace(/^(desk|recent)-/, '');
-        recordDeskVisit(deskId).catch(() => {});
+        recordDeskVisit(deskId, activeWorkspace?.id || null).catch(() => {});
       }
       setOpen(false);
       item.run();
     },
-    []
+    [activeWorkspace?.id]
   );
 
   const onInputKeyDown = (e: React.KeyboardEvent) => {

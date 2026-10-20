@@ -261,6 +261,27 @@ const AppContent: React.FC = () => {
     }
   }, [effectiveRole, activeModule]);
 
+  // QUEUED #50 (audit D11c + D7): landing law on workspace CHANGE.
+  // AppContent stays mounted across org switches, so the previous org's
+  // desk (often the Devotee view) used to greet the next org too. On an
+  // actual workspace change, land on the staff Command Center
+  // ('dashboard'); a Devotee-role member is bounced to the Devotee view
+  // by the guard effect above — role-correct landing with no race on
+  // the per-org role override, which resolves asynchronously.
+  const lastWorkspaceIdRef = React.useRef<string>('');
+  React.useEffect(() => {
+    const wsId = activeWorkspace?.id || '';
+    if (!wsId) return;
+    if (!lastWorkspaceIdRef.current) {
+      lastWorkspaceIdRef.current = wsId;
+      return;
+    }
+    if (lastWorkspaceIdRef.current !== wsId) {
+      lastWorkspaceIdRef.current = wsId;
+      setActiveModule('dashboard');
+    }
+  }, [activeWorkspace?.id]);
+
   React.useEffect(() => {
     const handleNavigate = (e: any) => {
       const target = e.detail?.module || e.detail;

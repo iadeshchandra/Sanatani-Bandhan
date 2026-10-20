@@ -317,6 +317,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  // QUEUED #50 (audit D11d): the aside is `inert` only while it is truly
+  // off-canvas — the MOBILE drawer when closed. The old code applied
+  // inert whenever the drawer state was closed, which on desktop (where
+  // CSS keeps the sidebar permanently visible) made every desk row
+  // unclickable: only the command palette could switch desks.
+  const [isDesktop, setIsDesktop] = useState<boolean>(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(min-width: 1024px)').matches
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    onChange();
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  const isInert = !isOpen && !isDesktop;
+
   useEffect(() => {
     const checkQueue = () => {
       const q = OfflineSyncManager.getQueue();
@@ -361,10 +382,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>([]);
 
+  // QUEUED #50 (audit D11b): pinned + recent desks are scoped to the
+  // active workspace and reload when it changes — one org's recents
+  // must never surface inside another org.
   useEffect(() => {
-    getPinnedDesks().then(setPinnedIds).catch(() => {});
-    getRecentDesks().then(setRecentIds).catch(() => {});
-  }, []);
+    const scope = activeWorkspace?.id || null;
+    getPinnedDesks(scope).then(setPinnedIds).catch(() => {});
+    getRecentDesks(scope).then(setRecentIds).catch(() => {});
+  }, [activeWorkspace?.id]);
 
   // Reliable mobile drawer close: Escape key + body scroll lock while open.
   useEffect(() => {
@@ -387,13 +412,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setUpgradeModuleId(id);
       return;
     }
-    recordDeskVisit(id).then(setRecentIds).catch(() => {});
+    recordDeskVisit(id, activeWorkspace?.id || null).then(setRecentIds).catch(() => {});
     onSelectModule(id);
     if (window.innerWidth < 1024) onClose();
   };
 
   const handleTogglePin = (id: string) => {
-    togglePinnedDesk(id)
+    togglePinnedDesk(id, activeWorkspace?.id || null)
       .then(setPinnedIds)
       .catch(() => {});
   };
@@ -595,8 +620,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           closed on mobile so offscreen content can't capture focus or taps. */}
       <aside
         id="main-sidebar"
-        inert={!isOpen ? true : undefined}
-        aria-hidden={!isOpen ? true : undefined}
+        inert={isInert ? true : undefined}
+        aria-hidden={isInert ? true : undefined}
         className={`fixed lg:static top-0 bottom-0 left-0 z-50 lg:z-40 bg-temple-900 text-temple-300 flex flex-col shrink-0 transition-all duration-300 ease-in-out border-r border-temple-800 shadow-xl lg:translate-x-0 lg:visible ${
           isOpen ? 'translate-x-0 visible' : '-translate-x-full invisible'
         } ${isCollapsed ? 'lg:w-[72px]' : 'w-72 sm:w-80 lg:w-72'}`}

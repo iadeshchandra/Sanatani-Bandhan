@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Globe2,
   Sparkles,
@@ -31,6 +31,11 @@ import { UserRole } from '../../types';
 import { NotificationBell } from '../../notifications/NotificationBell';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
 import { useNotificationCenter } from '../../notifications/index';
+import {
+  scopeItemsForOrg,
+  unreadInScope,
+  criticalUnreadInScope,
+} from '../../notifications/orgScope';
 import { OPEN_PALETTE_EVENT } from './CommandPalette';
 import { BranchSwitcher } from '../branch/BranchSwitcher';
 
@@ -85,13 +90,21 @@ export const Header: React.FC<HeaderProps> = ({
   const centerUid = firebaseUser?.uid ?? null;
   const {
     items: centerItems,
-    criticalUnread: centerCritical,
     markRead: centerMarkRead,
     markGroupRead: centerMarkGroupRead,
-    markAllRead: centerMarkAllRead,
-    clearRead: centerClearRead,
     acknowledge: centerAcknowledge,
   } = useNotificationCenter(centerUid);
+  // QUEUED #50 (audit D8): this header exists only inside an org
+  // workspace, so its bell + center are scoped to THIS org — the old
+  // code showed the whole per-user stream (identical in every org,
+  // "Org" tab included) and counted all of it on the badge. The list
+  // is the #43 duplicate-collapsed list, scoped; badge == scoped list.
+  const orgItems = useMemo(
+    () => scopeItemsForOrg(centerItems, activeWorkspace?.id),
+    [centerItems, activeWorkspace?.id]
+  );
+  const orgUnread = unreadInScope(orgItems);
+  const orgCritical = criticalUnreadInScope(orgItems);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -326,25 +339,17 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs font-bold hidden 2xl:block">Smart Pass</span>
           </button>
           
-          {/* Notifications — unified center (blessings, not badges) */}
+          {/* Notifications — unified center (blessings, not badges).
+              QUEUED #50 (D8): org-scoped items + badge; "mark all read"
+              here settles THIS org's items only (group-read expands each
+              collapsed row to its stored copies, #43). */}
           <div className="relative">
             <NotificationBell
-              unreadCount={centerItems.filter((i) => !i.read).length}
-              criticalCount={centerCritical.length}
+              unreadCount={orgUnread}
+              criticalCount={orgCritical}
               onClick={() => setShowNotifications(true)}
               className="text-temple-400 hover:text-white hover:bg-white/10 border border-transparent hover:border-white/5"
             />
-            {showNotifications && (
-              <NotificationCenterUI
-                items={centerItems}
-                onClose={() => setShowNotifications(false)}
-                onMarkRead={(id) => void centerMarkRead(id)}
-                onMarkGroupRead={(group) => void centerMarkGroupRead(group.items.map((i) => i.id))}
-                onMarkAllRead={() => void centerMarkAllRead()}
-                onClearRead={() => void centerClearRead()}
-                onAcknowledge={(id) => void centerAcknowledge(id)}
-              />
-            )}
           </div>
         </div>
 
@@ -371,6 +376,21 @@ export const Header: React.FC<HeaderProps> = ({
               
               {/* Mobile Only: App Utilities */}
               <div className="md:hidden flex flex-col gap-1 mb-2">
+                {/* QUEUED #50 (D8): Suchana reachable on mobile too — the
+                    bell above is desktop-only (md:flex), so the avatar
+                    menu carries the door here, with the org's unread count. */}
+                <button
+                  type="button"
+                  onClick={() => { setShowRoleDropdown(false); setShowNotifications(true); }}
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-temple-300 text-xs font-bold transition-colors"
+                >
+                  <Bell className="w-4 h-4 text-amber-400" /> 🪔 Suchana — this organisation
+                  {orgUnread > 0 && (
+                    <span className="ml-auto min-w-[20px] h-5 px-1 rounded-full bg-amber-500 text-amber-950 text-[11px] font-black flex items-center justify-center">
+                      {orgUnread > 99 ? '99+' : orgUnread}
+                    </span>
+                  )}
+                </button>
                 <button onClick={() => { setShowRoleDropdown(false); onOpenMySpace(); }} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-temple-300 text-xs font-bold transition-colors">
                   <QrCode className="w-4 h-4 text-indigo-400" /> My Smart Pass
                 </button>
@@ -491,6 +511,26 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* QUEUED #50 (D8): the center is a fixed full-screen overlay —
+          mounted at header root, NOT inside the desktop-only controls
+          (a display:none ancestor would hide it), so the mobile avatar
+          menu's Suchana entry opens it too. Org-scoped items only. */}
+      {showNotifications && (
+        <NotificationCenterUI
+          items={orgItems}
+          onClose={() => setShowNotifications(false)}
+          onMarkRead={(id) => void centerMarkRead(id)}
+          onMarkGroupRead={(group) => void centerMarkGroupRead(group.items.map((i) => i.id))}
+          onMarkAllRead={() =>
+            void centerMarkGroupRead(orgItems.filter((i) => !i.read).map((i) => i.id))
+          }
+          onClearRead={() =>
+            void centerMarkGroupRead(orgItems.filter((i) => !i.read).map((i) => i.id))
+          }
+          onAcknowledge={(id) => void centerAcknowledge(id)}
+        />
+      )}
     </header>
   );
 };

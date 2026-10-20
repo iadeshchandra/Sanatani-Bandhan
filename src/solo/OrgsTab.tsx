@@ -4,6 +4,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useMembership } from '../context/MembershipContext';
 import { useToast } from '../context/ToastContext';
 import { Card, T, Btn } from './ui';
+import { isCurrentWorkspace } from '../lib/workspaceActivation';
 
 /* OrgsTab — "My Organisations" list at /app/orgs.
  * =====================================================================
@@ -13,7 +14,7 @@ import { Card, T, Btn } from './ui';
  */
 
 export const OrgsTab: React.FC = () => {
-  const { workspaces, activeWorkspace, switchWorkspace, exitSoloSession } = useAuthWorkspace();
+  const { workspaces, activeWorkspaceId, switchWorkspace, exitSoloSession } = useAuthWorkspace();
   const { showToast } = useToast();
   const { browseOrgPages } = useMembership();
   const navigate = useNavigate();
@@ -83,7 +84,11 @@ export const OrgsTab: React.FC = () => {
   };
 
   const renderRow = (ws: (typeof workspaces)[number]) => {
-    const isActive = ws.id === activeWorkspace?.id;
+    // QUEUED #50 (audit D7): "Current" compares against the active-id
+    // POINTER (isCurrentWorkspace), not the fallback-resolved workspace
+    // object — the memo's first-in-list fallback marked the wrong org
+    // "Current" while another org was actually in use.
+    const isActive = isCurrentWorkspace(ws.id, activeWorkspaceId);
     const busy = opening === ws.id;
     // Demo sandboxes have no published orgPages doc — the public-page
     // door is offered only for real organisations (orgId == workspace id).

@@ -7,6 +7,7 @@ import { DevoteeMember, UserRole, WorkspaceConfig, WorkspaceType, ROLE_MIGRATION
 import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
 import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
+import { activationForCreatedWorkspace } from '../lib/workspaceActivation';
 import {
   generatePinHash,
   verifyPinHash,
@@ -269,6 +270,17 @@ export interface AuthWorkspaceContextType {
   saveCustomLogo: (base64: string) => void;
   updateWorkspaceDetails: (updates: Partial<WorkspaceConfig>) => void;
   addWorkspace: (workspace: WorkspaceConfig) => void;
+  /**
+   * QUEUED #50 (audit D7): activate a workspace the signed-in user has
+   * JUST created — it becomes THE active workspace, the creator's role
+   * is Trustee, the view is the staff console. Pure state transition:
+   * never touches Firebase Auth (the registration flow's old
+   * loginAsRole call signed the user in ANONYMOUSLY, replaced the real
+   * session, demoted them to Devotee and reset the active workspace to
+   * the demo Mandir — the audited "landed on the Mandir's Devotee
+   * view" bug).
+   */
+  activateCreatedWorkspace: (workspace: WorkspaceConfig) => void;
   generateSecureQRToken: (member: DevoteeMember) => string;
 
   // Phase 21: Cloud production wiring (JWT auth + centralized sync)
@@ -1408,6 +1420,30 @@ const pinDeniedToast = (
     setActiveWorkspaceId(newWorkspace.id);
   };
 
+  /**
+   * QUEUED #50 (audit D7): post-registration activation. The creator
+   * edge (workspaceMembers/{id}_{uid} = Trustee, written by the
+   * registration flow) is the authority; on later sign-ins the H-11
+   * creator check re-derives the same role. This performs ONLY the
+   * state transition described by activationForCreatedWorkspace — the
+   * new workspace becomes active, role Trustee, manager view — and
+   * deliberately does NOT call switchWorkspace (its tenant verification
+   * answers a different question and ran un-awaited against a stale
+   * closure) or loginAsRole (a demo-persona helper that resets the
+   * active workspace to DEMO and signs in anonymously).
+   */
+  const activateCreatedWorkspace = (newWorkspace: WorkspaceConfig) => {
+    const activation = activationForCreatedWorkspace(newWorkspace);
+    addWorkspace(newWorkspace);
+    setWorkspaceId(activation.activeWorkspaceId);
+    setActiveWorkspaceId(activation.activeWorkspaceId);
+    setRole(activation.role);
+    setCurrentRole(activation.role);
+    setViewMode(activation.viewMode);
+    setCurrentDevotee(null);
+    setIsAuthenticated(true);
+  };
+
   // Identity-verification QR payload (PIN-free). Delegates to the hardened
   // qrUtils implementation — never embed credentials in a QR.
   const generateSecureQRToken = (member: DevoteeMember): string => {
@@ -1478,6 +1514,7 @@ const pinDeniedToast = (
         saveCustomLogo,
         updateWorkspaceDetails,
         addWorkspace,
+        activateCreatedWorkspace,
         generateSecureQRToken,
         // Phase 21: cloud production wiring
         cloudAccessToken,

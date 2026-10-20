@@ -55,8 +55,9 @@ export const AppStoreDesk: React.FC = () => {
   const [recDismissVersion, setRecDismissVersion] = useState(0);
 
   useEffect(() => {
-    getRecentDesks().then(setRecentDeskIds).catch(() => {});
-  }, []);
+    // QUEUED #50 (D11b): recents are scoped to the active workspace.
+    getRecentDesks(activeWorkspace?.id || null).then(setRecentDeskIds).catch(() => {});
+  }, [activeWorkspace?.id]);
 
   const { suggestions: pendingSuggestions, dismiss: dismissPending } = usePendingSuggestions(
     activeWorkspace?.id

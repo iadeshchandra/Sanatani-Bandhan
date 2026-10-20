@@ -2,7 +2,12 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SanataniProfile } from './types';
-import { mintOrFetchSanataniProfile, provisionalSoloProfile, MintDetails } from './soloSession';
+import {
+  mintOrFetchSanataniProfile,
+  provisionalSoloProfile,
+  getCachedSanataniProfile,
+  MintDetails,
+} from './soloSession';
 
 /* SoloContext — the Universal Sanatani ID spine.
  * =====================================================================
@@ -46,7 +51,14 @@ const Ctx = createContext<SoloContextType | null>(null);
 const now = () => Date.now();
 
 export const SoloProvider: React.FC<{ uid: string | null; children: React.ReactNode }> = ({ uid, children }) => {
-  const [profile, setProfile] = useState<SanataniProfile | null>(null);
+  // QUEUED #50 (audit D11a): hydrate instantly from the local continuity
+  // cache when one exists — a returning user sees their real SAN-XXXXXX
+  // and name on the first frame after a context switch, while refresh()
+  // verifies against Firestore. No cache → null (loading), never the
+  // provisional placeholder.
+  const [profile, setProfile] = useState<SanataniProfile | null>(() =>
+    uid ? getCachedSanataniProfile(uid) : null
+  );
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {

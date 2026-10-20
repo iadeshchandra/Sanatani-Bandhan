@@ -8,8 +8,25 @@ const MAX_RECENTS = 5;
  * Shared persistence for sidebar favorites + command-palette recents.
  * Stored in IndexedDB (survives the offline-first lifecycle); falls back
  * to in-memory when storage is unavailable.
+ *
+ * QUEUED #50 (audit D11b): lists are scoped PER WORKSPACE. The original
+ * single global list leaked across org contexts — a desk visited in the
+ * Ashram (Annakshetra One) appeared in the Mandir's and Gurukul's RECENT
+ * lists. Callers pass the active workspace id as `scope`; the storage
+ * key becomes `sanatani_recent_desks::<scope>`. Unscoped calls keep the
+ * legacy key (back-compat for any caller without a workspace context).
  */
 const mem: Record<string, string[]> = {};
+
+/** Storage key for a list kind + workspace scope. Pure — pinned by tests. */
+export function deskHistoryKey(
+  kind: 'pinned' | 'recent',
+  scope?: string | null,
+): string {
+  const base = kind === 'pinned' ? PINNED_KEY : RECENT_KEY;
+  const clean = typeof scope === 'string' ? scope.trim() : '';
+  return clean ? `${base}::${clean}` : base;
+}
 
 /**
  * Guards against corrupt/stale stored ids (e.g. desk ids renamed between
@@ -49,8 +66,8 @@ async function write(key: string, value: string[]): Promise<void> {
   }
 }
 
-export async function getPinnedDesks(): Promise<string[]> {
-  return read(PINNED_KEY);
+export async function getPinnedDesks(scope?: string | null): Promise<string[]> {
+  return read(deskHistoryKey('pinned', scope));
 }
 
 /**
@@ -58,26 +75,28 @@ export async function getPinnedDesks(): Promise<string[]> {
  * the user's essential desks). Extends the existing favorites system —
  * no parallel storage.
  */
-export async function setPinnedDesks(ids: string[]): Promise<string[]> {
+export async function setPinnedDesks(ids: string[], scope?: string | null): Promise<string[]> {
   const clean = sanitizeIds(ids);
-  await write(PINNED_KEY, clean);
+  await write(deskHistoryKey('pinned', scope), clean);
   return clean;
 }
 
-export async function togglePinnedDesk(id: string): Promise<string[]> {
-  const pinned = await read(PINNED_KEY);
+export async function togglePinnedDesk(id: string, scope?: string | null): Promise<string[]> {
+  const key = deskHistoryKey('pinned', scope);
+  const pinned = await read(key);
   const next = pinned.includes(id) ? pinned.filter((p) => p !== id) : [...pinned, id];
-  await write(PINNED_KEY, next);
+  await write(key, next);
   return next;
 }
 
-export async function getRecentDesks(): Promise<string[]> {
-  return read(RECENT_KEY);
+export async function getRecentDesks(scope?: string | null): Promise<string[]> {
+  return read(deskHistoryKey('recent', scope));
 }
 
-export async function recordDeskVisit(id: string): Promise<string[]> {
-  const recents = (await read(RECENT_KEY)).filter((r) => r !== id);
+export async function recordDeskVisit(id: string, scope?: string | null): Promise<string[]> {
+  const key = deskHistoryKey('recent', scope);
+  const recents = (await read(key)).filter((r) => r !== id);
   const next = [id, ...recents].slice(0, MAX_RECENTS);
-  await write(RECENT_KEY, next);
+  await write(key, next);
   return next;
 }

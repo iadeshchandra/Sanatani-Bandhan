@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { SoloProvider, useSolo } from './SoloContext';
+import { isProvisionalProfile } from './soloSession';
 import { SoloStoreProvider } from './soloStore';
 import { PurohitProvider } from '../context/PurohitContext';
 import { AppShell, AppTabId } from '../components/shell/AppShell';
@@ -77,7 +78,13 @@ const SoloRouter: React.FC = () => {
 
   const activeTab = tabFromPath(location.pathname);
   const subTab = soloSubTabFromPath(location.pathname);
-  const sanId = profile?.id || soloProfile?.id || 'SAN-…';
+  // QUEUED #50 (audit D11a): the provisional session-switch placeholder
+  // ('SAN-PENDING') is never an identity — while the real profile
+  // hydrates, the header shows the neutral 'SAN-…' rather than the
+  // placeholder's literal id.
+  const realProfile = isProvisionalProfile(profile) ? null : profile;
+  const realSoloProfile = isProvisionalProfile(soloProfile) ? null : soloProfile;
+  const sanId = realProfile?.id || realSoloProfile?.id || 'SAN-…';
 
   const header = (
     <header className="sticky top-0 z-40 bg-temple-950/95 backdrop-blur border-b border-amber-900/30">
