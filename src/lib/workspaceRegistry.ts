@@ -172,7 +172,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   Mandir: [
     'dashboard', 'devotees', 'family', 'treasury', 'taxReceipts',
     'poojaBooking', 'mandirPuja', 'panchang', 'utsavPanjika',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
+    'sandeshBroadcast', 'dharmicAssistant',
     'masterSettings', 'spiritualSettings',
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added — the setup wizard recommends these as Mandir defaults and
@@ -206,7 +206,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   Sangha: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
+    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added 'donorCare' — wizard default for Sangha.
     'donorCare',
@@ -216,7 +216,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   Samaj: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
+    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added 'donorCare' — mirrors Sangha (community org parity).
     'donorCare',
@@ -246,7 +246,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // R-1: verified minimal — kirtan/discourse circles need nothing more.
     'dashboard', 'devotees', 'family', 'treasury',
     'satsang', 'granthLibrary', 'shlokaFeed',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant', 'masterSettings',
+    'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     // Satsang One: mandali organizer tool (Satsang-native).
     'satsang-one',
   ],
@@ -315,7 +315,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'ashram-one', 'annadanam', 'satsang', 'utsavPanjika',
     // Tirth One: darshan queue & token management (KashiKshetra-native).
     'tirth-one',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
+    'sandeshBroadcast', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults / crowd-safety pairing for a tirth complex.
@@ -329,7 +329,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'ashram-one', 'annadanam', 'utsavPanjika', 'annakshetra-one',
     // Tirth One: darshan queue & token management (Tirth-native).
     'tirth-one',
-    'sandeshBroadcast', 'socialWall', 'dharmicAssistant',
+    'sandeshBroadcast', 'dharmicAssistant',
     'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults for Tirth (yatri flow, stays, GIS safety).
@@ -338,7 +338,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   MahotsavSamiti: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'utsavPanjika',
-    'sandeshBroadcast', 'socialWall', 'trusteeGovernance', 'crisis-command', 'masterSettings',
+    'sandeshBroadcast', 'trusteeGovernance', 'crisis-command', 'masterSettings',
     // R-1: added — crowd pain in the wizard routes to gate check-in & GIS.
     'checkin', 'donorCare', 'yatranet-gis',
     // Utsav One: festival management — budgets, committees, vendors, crowds (Mahotsav Samiti-native).

@@ -11,6 +11,7 @@ import { useMyJyotishIdentity } from '../jyotish/useMyJyotishIdentity';
 import { useNavigate } from 'react-router-dom';
 import { MySamskaras } from './MySamskaras';
 import { SafetyList } from '../social/SafetyList';
+import { SafetySection } from './SafetySection';
 import { APP_VERSION, APP_BUILD_SHA } from '../lib/appVersion';
 import { ProfileOrgHub } from './ProfileOrgHub';
 import { NotificationSettings } from '../notifications/NotificationSettings';
@@ -779,6 +780,12 @@ export const ProfileTab: React.FC = () => {
           {APP_VERSION}{APP_BUILD_SHA && APP_BUILD_SHA !== 'nogit' ? ` · ${APP_BUILD_SHA}` : ''}
         </p>
       </Card>
+
+      {/* ═══════════ 🛡️ Safety ═══════════ */}
+      {/* Family circle (SOS familyNotified phones), consent-first family
+          linking, and the devotee's own SOS log — mounted 2026-10-20;
+          previously the components existed with zero production mounts. */}
+      <SafetySection />
 
       {/* Quick Guide: the Sanatani identity explainer — invitational only. */}
       {profileGuide.pillVisible && (

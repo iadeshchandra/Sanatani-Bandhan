@@ -438,7 +438,7 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
       else if (['inventory'].includes(m.id)) hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'VOLUNTEER']);
       else if (['mandirPuja', 'purohitDesk', 'purohitMarket', 'pitruShradh'].includes(m.id)) hasRole = checkPermission(['PUROHIT', 'MANAGER', 'TRUSTEE']);
       else if (['taxReceipts'].includes(m.id)) hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
-      else if (['trusteeGovernance', 'sevadarRoster', 'crisis-command', 'socialWall'].includes(m.id)) hasRole = checkPermission(['TRUSTEE', 'MANAGER']);
+      else if (['trusteeGovernance', 'sevadarRoster', 'crisis-command'].includes(m.id)) hasRole = checkPermission(['TRUSTEE', 'MANAGER']);
       return hasRole;
     });
 

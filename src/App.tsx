@@ -708,7 +708,10 @@ const AppContent: React.FC = () => {
       case 'appStore':
         return checkPermission(['TRUSTEE']) ? <AppStoreDesk /> : <RestrictedAccess />;
       case 'masterSettings':
-      case 'socialWall':
+        // NOTE (2026-10-20): 'socialWall' was removed from the desk catalog —
+        // no component ever existed and its fall-through rendered Org
+        // Settings under a "Temple Darshan Wall" label (a dead-end). SOS
+        // "View in Command Center" now routes to 'crisis-command'.
         return checkPermission(['TRUSTEE']) ? <MasterSettingsDesk /> : <RestrictedAccess />;
       case 'panchayatPolls':
         return checkPermission(['TRUSTEE', 'MANAGER']) ? <PanchayatPollingDesk /> : <RestrictedAccess />;

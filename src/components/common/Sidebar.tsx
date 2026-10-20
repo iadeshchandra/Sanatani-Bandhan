@@ -160,7 +160,6 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'utsavPanjika', name: 'Festival Calendar & Gate Passes', domain: 5, domainTitle: 'Matrimony & Outreach', icon: CalendarCheck2 },
   { id: 'panchayatPolls', name: 'Panchayat Voting & Quorum', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Vote },
   { id: 'sandeshBroadcast', name: 'Sandesh WhatsApp/SMS Broadcast', domain: 5, domainTitle: 'Matrimony & Outreach', icon: MessageSquare },
-  { id: 'socialWall', name: 'Temple Darshan Wall & Notices', domain: 5, domainTitle: 'Matrimony & Outreach', icon: ImageIcon },
   { id: 'shlokaFeed', name: 'Shloka Wisdom Stream', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Scroll },
   { id: 'dharmicAssistant', name: 'Dharmic AI Query Desk', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Sparkles, badge: 'Gemini 3.7' },
   { id: 'dharmaMarketing', name: 'Dharma Marketing AI', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Bot, badge: 'Gemini AI' },
@@ -471,7 +470,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           hasRole = checkPermission(['MANAGER', 'TRUSTEE']);
         } else if (['workspace-hub', 'masterSettings', 'appStore', 'spiritualSettings', 'panchayatPolls'].includes(m.id)) {
           hasRole = checkPermission(['TRUSTEE']);
-        } else if (['tactical-radar', 'user-roles-rbac', 'trusteeGovernance', 'sevadarRoster', 'sevadar-roster', 'auditLog', 'legalVault', 'crisis-command', 'socialWall'].includes(m.id)) {
+        } else if (['tactical-radar', 'user-roles-rbac', 'trusteeGovernance', 'sevadarRoster', 'sevadar-roster', 'auditLog', 'legalVault', 'crisis-command'].includes(m.id)) {
           hasRole = checkPermission(['CSO', 'TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER']);
         } else {
           hasRole = true;

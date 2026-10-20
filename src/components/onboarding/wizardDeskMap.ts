@@ -110,7 +110,6 @@ export const DESK_NAMES: Record<string, string> = {
   masterSettings: 'Organization Settings & Logos',
   sanghaDrills: 'Sangha & Shakha Mobilization',
   sandeshBroadcast: 'Sandesh WhatsApp/SMS Broadcast',
-  socialWall: 'Temple Darshan Wall & Notices',
   'recurring-seva': 'Recurring Seva Mandates',
   'quick-chanda-pos': 'Quick Chanda Counter POS',
   'yatranet-gis': 'YatraNet GIS Crowd & SOS',
@@ -141,7 +140,7 @@ const ORG_DEFAULTS: Record<string, string[]> = {
 const PAIN_DESKS: Record<string, string[]> = {
   donations: ['quick-chanda-pos', 'donorCare', 'recurring-seva'],
   compliance: ['taxReceipts', 'form10bd', 'masterSettings'],
-  records: ['devotees', 'socialWall'],
+  records: ['devotees'],
   bookings: ['poojaBooking', 'panchang'],
   crowd: ['checkin', 'yatranet-gis'],
   festivals: ['utsavPanjika', 'campaigns'],
@@ -153,7 +152,9 @@ const PAIN_DESKS: Record<string, string[]> = {
 /** Size nudges: larger parivars get coordination tooling (low priority). */
 function sizeDesk(sizeId: string | null): string | null {
   if (sizeId === 'xl') return 'sandeshBroadcast';
-  if (sizeId === 'l') return 'socialWall';
+  // 'l' used to suggest 'socialWall' — that desk never existed and was
+  // removed from the catalog (2026-10-20). Larger parivars get donor care.
+  if (sizeId === 'l') return 'donorCare';
   return null;
 }
 

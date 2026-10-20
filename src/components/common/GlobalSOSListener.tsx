@@ -169,7 +169,10 @@ export const GlobalSOSListener: React.FC = () => {
             notification.onclick = () => {
               window.focus();
               notification.close();
-              window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'socialWall' }));
+              // 'crisis-command' renders the CrisisDashboard — the real
+              // Command Center. ('socialWall' was a dead-end onto Org
+              // Settings; fixed 2026-10-20.)
+              window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'crisis-command' }));
             };
           }
         }
@@ -386,8 +389,8 @@ export const GlobalSOSListener: React.FC = () => {
             </div>
             
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button 
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'socialWall' }))}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'crisis-command' }))}
                 className="px-4 py-2 rounded-xl bg-white text-rose-700 font-bold text-xs hover:bg-rose-50 transition-colors shadow-lg"
               >
                 View in Command Center
