@@ -22,7 +22,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Lock, KeyRound, LayoutDashboard, Users, Building2, BadgeCheck,
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
-  X, AlertTriangle, CheckCircle2, RefreshCw, LogOut,
+  X, AlertTriangle, CheckCircle2, RefreshCw,
   Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store, Crown, Rocket,
   Wallet, Languages, ShieldCheck,
 } from 'lucide-react';
@@ -47,6 +47,10 @@ import { TranslationsTab } from './godmode/TranslationsTab';
 import { RankingTab } from './godmode/RankingTab';
 import { CopilotLauncher } from '../../ai/godmode/CopilotPanel';
 import { AdminsTab } from './godmode/AdminsTab';
+import { ConsoleHeader } from './godmode/ConsoleHeader';
+import { NeedsAttention } from './godmode/NeedsAttention';
+import { useConsoleStatus } from './godmode/useConsoleStatus';
+import { buildHandItems, identityFor } from './godmode/consoleChrome';
 import { resolveRoleForUser } from '../../lib/platformAdmins';
 import { canAccessTab, type PlatformRole } from '../../lib/platformAdminRoles';
 
@@ -350,6 +354,12 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const [resetSent, setResetSent] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
 
+  // Shell chrome facts (QUEUED #39): API light, pending claims, due
+  // subscriptions, new support — loaded only for the unlocked role and
+  // gated per fact by the same #21 matrix as the tabs. Feeds the
+  // branded header's status strip + the "Needs your hand" summary.
+  const status = useConsoleStatus(isUnlocked ? adminRole : null);
+
   // Unlock resolution (QUEUED #21): the owner unlocks from the allowlist
   // alone — the delegation registry is never consulted for them, so a broken
   // or empty registry can never lock the owner out. Anyone else must hold a
@@ -378,6 +388,12 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       setTab((TABS.find((t) => canAccessTab(adminRole, t.id))?.id ?? 'overview') as TabId);
     }
   }, [isUnlocked, adminRole, tab]);
+
+  // Landing on Insights re-checks the hand facts (throttled in the hook).
+  const statusRefresh = status.refresh;
+  useEffect(() => {
+    if (isUnlocked && tab === 'overview') statusRefresh();
+  }, [isUnlocked, tab, statusRefresh]);
 
   if (!isOpen) return null;
 
@@ -489,47 +505,25 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
     }
   };
 
+  const handItems = buildHandItems(adminRole, status.facts);
+  const identity = identityFor(firebaseUser, adminRole);
+
   return (
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="bg-slate-900 text-slate-100 rounded-3xl shadow-2xl border border-saffron-500/40 w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-slate-950 via-slate-900 to-saffron-950/70 border-b border-saffron-500/30 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-saffron-400 to-saffron-500 flex items-center justify-center text-slate-950 text-xl shrink-0">👑</div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold text-saffron-200">Sovereign Console</h2>
-                <span className="px-2 py-0.5 rounded-md bg-saffron-500/20 text-saffron-300 text-[10px] font-mono border border-saffron-500/40 uppercase font-bold">v3.0</span>
-                {isUnlocked && adminRole && (
-                  <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-300 text-[10px] font-mono border border-sky-500/40 uppercase font-bold">
-                    {adminRole}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 truncate">Platform administration — live backend data</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {isUnlocked && (
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5"
-                title="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign out</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700"
-            >
-              Exit
-            </button>
-          </div>
-        </div>
+        {/* Branded header + status strip (QUEUED #39) */}
+        <ConsoleHeader
+          unlocked={isUnlocked}
+          role={adminRole}
+          identity={identity}
+          facts={status.facts}
+          handItems={handItems}
+          loadedAt={status.loadedAt}
+          tabs={visibleTabs}
+          onNavigate={(t) => setTab(t as TabId)}
+          onSignOut={handleSignOut}
+          onClose={onClose}
+        />
 
         {!isUnlocked ? (
           /* ------------------------- Login (unchanged security) ------------------------- */
@@ -633,6 +627,16 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               <h2 className="text-lg font-black text-white mb-4 md:hidden">
                 {TABS.find((t) => t.id === tab)?.label}
               </h2>
+              {tab === 'overview' && (
+                <NeedsAttention
+                  role={adminRole}
+                  facts={status.facts}
+                  loadedAt={status.loadedAt}
+                  loading={status.loading}
+                  onRefresh={() => status.refresh(true)}
+                  onNavigate={(t) => setTab(t as TabId)}
+                />
+              )}
               {renderTab()}
             </main>
           </div>
