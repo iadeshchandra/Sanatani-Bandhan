@@ -15,6 +15,8 @@ import { Copy, CheckCircle2, AlertTriangle, QrCode, Link2, ChevronLeft, RefreshC
 import { useToast } from '../context/ToastContext';
 import { createRail2Order, submitRail2Proof, validateTrxId } from '../lib/rail2';
 import type { Gig } from '../lib/marketplace';
+import { formatMoney } from '../lib/money';
+import type { PriceChangeNote } from '../lib/rebook';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -24,7 +26,7 @@ interface Created {
   orderId: string; orderCode: string; payableAmount: number; display: string; providerMethod: any;
 }
 
-export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = ({ gig, onDone, onBack }) => {
+export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void; priceNote?: PriceChangeNote | null }> = ({ gig, onDone, onBack, priceNote }) => {
   const { showToast } = useToast();
   const [created, setCreated] = useState<Created | null>(null);
   const [creating, setCreating] = useState(false);
@@ -76,6 +78,13 @@ export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack
         <div className="bg-white rounded-2xl border border-stone-200 p-4">
           <p className="text-sm font-black text-stone-900">{gig.title}</p>
           <p className="text-xs text-stone-500">{gig.providerName} · {gig.durationMinutes} min</p>
+          {/* QUEUED #27: a rebook always charges the CURRENT dakshina —
+              when it moved since the last seva, say so before payment. */}
+          {priceNote && (
+            <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2">
+              🪔 Dakshina updated since your last seva — was {formatMoney(priceNote.wasAmount, priceNote.wasCurrency)}, now {formatMoney(priceNote.nowAmount, priceNote.nowCurrency)}.
+            </p>
+          )}
           <p className="text-[11px] text-stone-500 mt-2">This provider accepts <b>direct payment</b>. You'll pay them via their own QR / UPI / link below, then submit proof here.</p>
         </div>
         <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">

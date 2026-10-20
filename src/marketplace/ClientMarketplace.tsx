@@ -6,7 +6,9 @@
  * rate. Disputes if needed.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { Search, Star, Clock, X, CheckCircle2, RefreshCw, AlertTriangle, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import {
@@ -30,6 +32,12 @@ import { GigDetail } from './GigDetail';
 import { OrderTimeline } from './OrderTimeline';
 import { extractReferrer, resolveReferralAttribution } from '../sangam/referrals';
 import { fetchOwnSanId, recordReferralClaim } from '../sangam/referralThanksService';
+import {
+  rebookEligibility, rebookGigState, priceChangeNote, type PriceChangeNote,
+} from '../lib/rebook';
+import { serviceCardPostFromCloud } from '../sangam/providerCards';
+import { SevaBookingSheet } from '../sangam/SevaBookingSheet';
+import type { SangamPost } from '../sangam/types';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { AuthorInfo } from '../sangam/sangamStore';
 
@@ -110,7 +118,7 @@ const GigCard: React.FC<{ gig: Gig; onOpen: () => void }> = ({ gig, onOpen }) =>
 
 /* ------------------------------ Booking ------------------------------ */
 
-const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = ({ gig, onDone, onBack }) => {
+const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void; priceNote?: PriceChangeNote | null }> = ({ gig, onDone, onBack, priceNote }) => {
   const { showToast } = useToast();
   const { firebaseUser } = useAuthWorkspace();
   const bookerUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
@@ -200,6 +208,18 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
         <div className="flex justify-between mt-2 text-sm">
           <span className="text-stone-500">{mkt(L, 'suggestedDakshina')}</span><b>{formatMoney(Number(gig.priceAmount), gig.priceCurrency)}</b>
         </div>
+        {/* QUEUED #27: a rebook always charges the CURRENT dakshina
+            (createOrder re-reads the gig) — when it differs from the
+            last seva, say so gently before any money moves. */}
+        {priceNote && (
+          <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2">
+            🪔 {L === 'en'
+              ? `Dakshina updated since your last seva — was ${formatMoney(priceNote.wasAmount, priceNote.wasCurrency)}, now ${formatMoney(priceNote.nowAmount, priceNote.nowCurrency)}.`
+              : L === 'bn'
+              ? `আপনার শেষ সেবার পর থেকে দক্ষিণা পরিবর্তিত হয়েছে — ছিল ${formatMoney(priceNote.wasAmount, priceNote.wasCurrency)}, এখন ${formatMoney(priceNote.nowAmount, priceNote.nowCurrency)}।`
+              : `आपकी पिछली सेवा के बाद से दक्षिणा बदली है — थी ${formatMoney(priceNote.wasAmount, priceNote.wasCurrency)}, अब ${formatMoney(priceNote.nowAmount, priceNote.nowCurrency)}।`}
+          </p>
+        )}
         {/* Escrow trust line — directly under the price, before the Confirm
             CTA (spec §4: trust placed at the moment of money movement). */}
         <p className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1.5 mt-2">
@@ -260,9 +280,16 @@ const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void }> = 
 
 /* ------------------------------ My bookings ------------------------------ */
 
-const MyBookings: React.FC = () => {
+const MyBookings: React.FC<{
+  onRebookGig: (gig: Gig, note: PriceChangeNote | null) => void;
+  onBrowseSimilar: (providerType: string) => void;
+}> = ({ onRebookGig, onBrowseSimilar }) => {
   const { showToast } = useToast();
   const { currentLang } = useLanguage();
+  const navigate = useNavigate();
+  const { firebaseUser } = useAuthWorkspace();
+  const bookerUid = ((firebaseUser as { uid?: string } | null)?.uid || 'anon') as string;
+  const bookerName = ((firebaseUser as { displayName?: string | null } | null)?.displayName) || 'Sanatani';
   const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -272,6 +299,11 @@ const MyBookings: React.FC = () => {
   const [commissionFor, setCommissionFor] = useState<MarketplaceOrder | null>(null);
   const [gratitudeFor, setGratitudeFor] = useState<MarketplaceOrder | null>(null);
   const [ratingFor, setRatingFor] = useState<MarketplaceOrder | null>(null);
+  // QUEUED #27 rebook state: which order is being checked, which order's
+  // target turned out gone, and the Seva Bazar sheet (post + viewer SAN-ID).
+  const [rebookBusy, setRebookBusy] = useState<string | null>(null);
+  const [goneFor, setGoneFor] = useState<string | null>(null);
+  const [rebookSheet, setRebookSheet] = useState<{ post: SangamPost; sanId?: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -293,6 +325,41 @@ const MyBookings: React.FC = () => {
     if (!disputeFor || !reason.trim()) { showToast(mkt(L, 'bkDescribeIssue'), 'error'); return; }
     try { await openDispute(disputeFor, reason, details); showToast(mkt(L, 'bkDisputeRaised'), 'success'); setDisputeFor(null); setReason(''); setDetails(''); load(); }
     catch (e: any) { showToast(e.message, 'error'); }
+  };
+
+  /* QUEUED #27: one-tap rebook. The past order is only a doorway — the
+   * booking itself is a NEW order through the normal paths: gig orders
+   * re-enter the parent's rail-detecting booking flow with the CURRENT
+   * gig (fresh date chosen there, current price, price-change note
+   * when it moved); Seva Bazar orders re-enter through their original
+   * notice in the booking sheet (fresh muhurat slots by design). A
+   * vanished target becomes a warm dead-end with a door, never a
+   * phantom order. The old order's date/notes are NEVER copied. */
+  const handleRebook = async (o: MarketplaceOrder) => {
+    const elig = rebookEligibility(o as any);
+    if (!elig.eligible || rebookBusy) return;
+    setRebookBusy(o.id as string);
+    try {
+      if (elig.kind === 'gig') {
+        const gig = await getGig(o.gigId);
+        if (rebookGigState(gig) !== 'available') { setGoneFor(o.id as string); return; }
+        onRebookGig(gig as Gig, priceChangeNote(o as any, gig as Gig));
+      } else {
+        const postId = String((o as any).sevaBazar?.postId || '');
+        const snap = postId ? await getDoc(doc(db, 'sangamPosts', postId)) : null;
+        const post = snap && snap.exists()
+          ? serviceCardPostFromCloud(snap.id, snap.data() as Record<string, unknown>, o.providerUid)
+          : null;
+        if (!post) { setGoneFor(o.id as string); return; }
+        const sanId = await fetchOwnSanId(bookerUid).catch(() => null);
+        setRebookSheet({ post, sanId: sanId || undefined });
+      }
+    } catch {
+      showToast(
+        L === 'en' ? 'Could not check this seva just now — please try again.' : L === 'bn' ? 'এই সেবাটি এখন যাচাই করা যায়নি — আবার চেষ্টা করুন।' : 'इस सेवा की जाँच अभी नहीं हो पाई — कृपया फिर प्रयास करें।',
+        'error',
+      );
+    } finally { setRebookBusy(null); }
   };
 
   if (commissionFor) {
@@ -357,8 +424,65 @@ const MyBookings: React.FC = () => {
               happens next, and who acts. Same component the provider sees,
               with devotee-side words. */}
           <OrderTimeline order={o as any} perspective="client" />
+          {/* QUEUED #27: one-tap rebook — Sanatani life is rhythmic; the
+              same seva with the same provider is one tap, a fresh date,
+              today's dakshina. Eligibility is pure (lib/rebook.ts):
+              completed + cancelled orders with a faithful target. */}
+          {rebookEligibility(o as any).eligible && goneFor !== o.id && (
+            <button
+              type="button"
+              disabled={rebookBusy === o.id}
+              onClick={() => handleRebook(o)}
+              className="w-full mt-3 min-h-[48px] rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+            >
+              {rebookBusy === o.id
+                ? (L === 'en' ? 'Checking…' : L === 'bn' ? 'যাচাই চলছে…' : 'जाँच हो रही है…')
+                : (L === 'en' ? '🙏 Book this seva again' : L === 'bn' ? '🙏 এই সেবাটি আবার বুক করুন' : '🙏 यह सेवा फिर से बुक करें')}
+            </button>
+          )}
+          {goneFor === o.id && (
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              {rebookEligibility(o as any).kind === 'seva_bazar' ? (
+                <>
+                  <p className="text-[11px] font-black text-amber-900">{L === 'en' ? '🕯️ This seva notice is no longer active' : L === 'bn' ? '🕯️ এই সেবা বিজ্ঞপ্তিটি আর সক্রিয় নেই' : '🕯️ यह सेवा सूचना अब सक्रिय नहीं है'}</p>
+                  <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en' ? 'The notice this booking came from has been withdrawn — but the sevak may offer other sevas.' : L === 'bn' ? 'যে বিজ্ঞপ্তি থেকে এই বুকিং হয়েছিল তা সরিয়ে নেওয়া হয়েছে — তবে সেবক অন্য সেবা দিতে পারেন।' : 'जिस सूचना से यह बुकिंग हुई थी वह हटा ली गई है — पर सेवक अन्य सेवाएँ दे सकते हैं।'}</p>
+                  <button type="button" onClick={() => navigate(`/seva/pro/${o.providerUid}`)} className={`${btnP} w-full mt-2`}>
+                    {L === 'en' ? `See what ${((o as any).sevaBazar?.providerName as string) || 'the sevak'} offers now →` : L === 'bn' ? 'সেবক এখন যা দিচ্ছেন দেখুন →' : 'सेवक अब क्या दे रहे हैं देखें →'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[11px] font-black text-amber-900">{L === 'en' ? '🕯️ This seva is no longer offered' : L === 'bn' ? '🕯️ এই সেবাটি আর দেওয়া হচ্ছে না' : '🕯️ यह सेवा अब नहीं दी जाती'}</p>
+                  <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en' ? 'The sevak has withdrawn this offering. Similar sevas from other sevaks await in the bazar.' : L === 'bn' ? 'সেবক এই সেবাটি সরিয়ে নিয়েছেন। বাজারে অন্য সেবকদের অনুরূপ সেবা রয়েছে।' : 'सेवक ने यह सेवा हटा ली है। बाज़ार में अन्य सेवकों की समान सेवाएँ हैं।'}</p>
+                  <button type="button" onClick={() => onBrowseSimilar(o.providerType === 'jyotishi' ? 'jyotishi' : 'purohit')} className={`${btnP} w-full mt-2`}>
+                    {L === 'en' ? 'See similar sevas →' : L === 'bn' ? 'অনুরূপ সেবা দেখুন →' : 'समान सेवाएँ देखें →'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       ))}
+      {/* QUEUED #27: Seva Bazar rebook sheet — the original notice,
+          reopened. The sheet itself offers only fresh muhurat slots;
+          onBooked here simply confirms + refreshes (the order already
+          exists; the devotee can follow it in this list and in
+          Messages). */}
+      {rebookSheet && (
+        <SevaBookingSheet
+          post={rebookSheet.post}
+          viewer={{ uid: bookerUid, name: bookerName, sanId: rebookSheet.sanId }}
+          onClose={() => setRebookSheet(null)}
+          onBooked={() => {
+            setRebookSheet(null);
+            showToast(
+              L === 'en' ? 'Seva requested again 🙏 — your booking is below.' : L === 'bn' ? 'সেবা আবার অনুরোধ করা হয়েছে 🙏 — আপনার বুকিং নিচে আছে।' : 'सेवा फिर से अनुरोधित 🙏 — आपकी बुकिंग नीचे है।',
+              'success',
+            );
+            load();
+          }}
+        />
+      )}
       {disputeFor && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setDisputeFor(null)}>
           <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -394,6 +518,9 @@ export const ClientMarketplace: React.FC = () => {
   const [cat, setCat] = useState('all');
   const [ptype, setPtype] = useState('all');
   const [booking, setBooking] = useState<Gig | null>(null);
+  // QUEUED #27: when a booking opens via rebook, the price-change note
+  // rides along into whichever payment flow the rail selects.
+  const [rebookNote, setRebookNote] = useState<PriceChangeNote | null>(null);
   const [bookingRail, setBookingRail] = useState<'rail1' | 'rail2' | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [detailGig, setDetailGig] = useState<Gig | null>(null);
@@ -409,7 +536,8 @@ export const ClientMarketplace: React.FC = () => {
     else { setCat(chipId); setPtype('all'); }
   };
 
-  const openBooking = async (g: Gig) => {
+  const openBooking = async (g: Gig, note: PriceChangeNote | null = null) => {
+    setRebookNote(note);
     setDetecting(true);
     try {
       const { rail } = await detectRail(g.providerUid);
@@ -437,12 +565,12 @@ export const ClientMarketplace: React.FC = () => {
   });
 
   if (booking) {
-    const closeBooking = () => { setBooking(null); setBookingRail(null); };
-    const doneBooking = () => { setBooking(null); setBookingRail(null); setView('bookings'); };
+    const closeBooking = () => { setBooking(null); setBookingRail(null); setRebookNote(null); };
+    const doneBooking = () => { setBooking(null); setBookingRail(null); setRebookNote(null); setView('bookings'); };
     if (bookingRail === 'rail2') {
-      return <Rail2PaymentScreen gig={booking} onBack={closeBooking} onDone={doneBooking} />;
+      return <Rail2PaymentScreen gig={booking} onBack={closeBooking} onDone={doneBooking} priceNote={rebookNote} />;
     }
-    return <BookGig gig={booking} onBack={closeBooking} onDone={doneBooking} />;
+    return <BookGig gig={booking} onBack={closeBooking} onDone={doneBooking} priceNote={rebookNote} />;
   }
 
   return (
@@ -454,7 +582,12 @@ export const ClientMarketplace: React.FC = () => {
         ))}
         <GuideButton moduleId="marketplace" />
       </div>
-      {view === 'bookings' ? <MyBookings /> : (
+      {view === 'bookings' ? (
+        <MyBookings
+          onRebookGig={(g, note) => openBooking(g, note)}
+          onBrowseSimilar={(pt) => { setPtype(pt); setCat('all'); setQ(''); setView('browse'); }}
+        />
+      ) : (
         <>
           {/* 🪔 Seva discovery rails — occasion + community notices, never a product grid. */}
           <SevaRails author={railAuthor} onCategory={handleRailCategory} activeCategory={ptype === 'jyotishi' && cat === 'all' ? 'Kundli' : cat} />
