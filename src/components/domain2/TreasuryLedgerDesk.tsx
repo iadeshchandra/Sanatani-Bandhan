@@ -64,6 +64,7 @@ import { MemberSearchSelect } from '../common/MemberSearchSelect';
 import { getTransactions } from '../../services/treasuryService';
 import { GuideButton } from '../suchana/GuideButton';
 import { AuditTrailView } from '../treasury/AuditTrailDesk';
+import { BahiKhataDesk } from '../../bahikhata/BahiKhataDesk';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface TreasuryLedgerDeskProps {
@@ -191,6 +192,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const { myMemberships } = useMembership();
   const myOrgRole = myMemberships.find((m) => m.workspaceId === workspaceId)?.role || '';
   const [p2pLedgerOpen, setP2pLedgerOpen] = useState(false);
+  const [showBahiKhata, setShowBahiKhata] = useState(false);
   // F-TREAS-1: overflow menu for the secondary actions (toolbar shows ≤4).
   const [showMoreActions, setShowMoreActions] = useState(false);
   const { t, safeTranslate } = useLanguage();
@@ -766,6 +768,21 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <span>{t('org.finance.treasury.newVoucherEntry')}</span>
             </button>
 
+            {/* Bahi-Khata Seva door — paper dan-khata digitization with
+                trustee/accountant review before anything lands here. */}
+            <button
+              type="button"
+              onClick={() => setShowBahiKhata((v) => !v)}
+              aria-expanded={showBahiKhata}
+              className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px] ${
+                showBahiKhata
+                  ? 'bg-amber-500 border-amber-400 text-temple-950'
+                  : 'bg-temple-900 hover:bg-temple-800 border-amber-500/50 text-amber-200'
+              }`}
+            >
+              <span>📖 Bahi-Khata Seva</span>
+            </button>
+
             {/* Quick Chanda Button (If parent passed callback) */}
             {onOpenQuickPay && (
               <button
@@ -929,6 +946,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             ))}
           </div>
         )}
+
+        {/* Bahi-Khata Seva (donors) — toggled from the header door. */}
+        {showBahiKhata && <BahiKhataDesk targets={['donors']} />}
 
         {/* Hero — one big calm number (F-TREAS-1, spec §1: premium = one big
             calm number, not three competing ones). Inflow/outflow are demoted

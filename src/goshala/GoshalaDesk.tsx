@@ -13,7 +13,23 @@ import { RosterTab } from './RosterTab';
 import { GrantTab } from './GrantTab';
 import { VyayaTab } from './VyayaTab';
 import { ReportTab } from './ReportTab';
+import { BahiKhataDesk } from '../bahikhata/BahiKhataDesk';
+import type { Nandi } from './types';
 import './print.css';
+
+/* Bahi-Khata Seva door (herd): the wrapper lives inside GoshalaProvider
+   so herd dedupe sees the live herd and commit writes through the
+   store's own mutator. */
+const GoshalaBahiKhata: React.FC = () => {
+  const { state, add } = useGoshala();
+  return (
+    <BahiKhataDesk
+      targets={['herd']}
+      existingHerd={state.nandis}
+      herdCommitter={(nandis: Nandi[]) => nandis.forEach((n) => add('nandis', n))}
+    />
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* Goshala One — complete goshala-operations suite for Goshala          */
@@ -61,6 +77,17 @@ const GoshalaInner: React.FC = () => {
               {t('suites.goshala.common.deskSubtitle')}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setTab('bahikhata')}
+            className={`ml-auto shrink-0 min-h-[48px] px-4 py-2.5 rounded-2xl border font-black text-sm transition no-print ${
+              tab === 'bahikhata'
+                ? 'bg-amber-400 text-amber-950 border-amber-300'
+                : 'bg-amber-400/15 text-amber-50 border-amber-300/40 hover:bg-amber-400/25'
+            }`}
+          >
+            📖 Bahi-Khata Seva
+          </button>
         </div>
       </div>
 
@@ -77,6 +104,7 @@ const GoshalaInner: React.FC = () => {
           {tab === 'grants' && <GrantTab />}
           {tab === 'vyaya' && <VyayaTab />}
           {tab === 'reports' && <ReportTab />}
+          {tab === 'bahikhata' && <GoshalaBahiKhata />}
         </div>
       </div>
     </div>

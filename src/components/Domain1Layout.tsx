@@ -9,6 +9,7 @@ import {
   FileSpreadsheet,
   Network,
   Zap,
+  BookOpen,
 } from 'lucide-react';
 import { DevoteeGrid } from './domain1/DevoteeGrid';
 import { DarshanCheckInDesk } from './domain1/DarshanCheckInDesk';
@@ -18,6 +19,7 @@ import { VanshavaliDesk } from './domain1/VanshavaliDesk';
 import { GuestManagerDesk } from './domain1/GuestManagerDesk';
 import { SevadarRosterDesk } from './domain1/SevadarRosterDesk';
 import { BulkImportDesk } from './domain1/BulkImportDesk';
+import { BahiKhataDesk } from '../bahikhata/BahiKhataDesk';
 import { FederationMultiBranchDesk } from './domain1/FederationMultiBranchDesk';
 
 export interface SubTab {
@@ -35,6 +37,7 @@ export const SUB_TABS: SubTab[] = [
   { id: 'guests', label: 'Guest CRM', icon: UserPlus },
   { id: 'sevadar-roster', label: 'Sevadar Roster', icon: UserCheck },
   { id: 'bulkImport', label: 'Bulk CSV Ingestion', icon: FileSpreadsheet },
+  { id: 'bahikhata', label: '📖 Bahi-Khata Seva', icon: BookOpen },
   { id: 'federation', label: 'Federation HQ', icon: Network },
 ];
 
@@ -61,6 +64,10 @@ export const Domain1Layout: React.FC<{ initialTab?: string }> = ({ initialTab = 
         return <SevadarRosterDesk />;
       case 'bulkImport':
         return <BulkImportDesk />;
+      case 'bahikhata':
+        // Bahi-Khata Seva (Phase 1): paper-register digitization for
+        // members + donors — everything lands in a review batch first.
+        return <BahiKhataDesk targets={['members', 'donors']} />;
       case 'federation':
         return <FederationMultiBranchDesk />;
       default:

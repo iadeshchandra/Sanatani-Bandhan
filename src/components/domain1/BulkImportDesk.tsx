@@ -7,10 +7,13 @@ import { generateSampleDevoteeCSV, parseDevoteeCSV, IngestedDevoteeRow } from '.
 import { useToast } from '../../context/ToastContext';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
+import { createBatch, loadBahiData, saveBahiData } from '../../bahikhata/bahikhataStore';
+import { analyzeRows } from '../../bahikhata/dedupe';
+import { digitsOnly } from '../../bahikhata/normalize';
 
 export const BulkImportDesk: React.FC = () => {
   const { t, safeTranslate } = useLanguage();
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, currentUser, effectiveRole } = useAuthWorkspace();
   const { devotees, addDevotee, getDemoStats } = useData();
   const { showToast } = useToast();
 
@@ -61,6 +64,59 @@ export const BulkImportDesk: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  /**
+   * Bahi-Khata Seva path (Phase 1, the default): parsed rows become a
+   * DRAFT review batch — nothing is enrolled until a trustee reviews
+   * and approves it in People → 📖 Bahi-Khata Seva. The auto-generated
+   * PINs from parsing are deliberately NOT carried into the batch:
+   * imported members receive no live PIN from a paper/file name alone.
+   */
+  const handleSendToBahiKhata = () => {
+    if (parsedRows.length === 0) return;
+    const items = parsedRows.map((r) => ({
+      raw: {
+        FullName: r.fullName, Phone: r.phone, Gotra: r.gotra,
+        SevaTier: r.sevaTier, Email: r.email || '', Address: r.address || '',
+      },
+      mapped: {
+        fullName: r.fullName,
+        phone: digitsOnly(r.phone),
+        gotra: r.gotra,
+        address: r.address || '',
+        sevaTier: r.sevaTier,
+        spiritualName: r.spiritualName || '',
+        email: r.email || '',
+      },
+      pageNo: 1,
+    }));
+    const rows = analyzeRows(
+      'members',
+      items,
+      { existingMembers: devotees, existingHerd: [] },
+      `bulk_${Date.now().toString(36)}`
+    );
+    const batch = createBatch({
+      workspaceId: activeWorkspace.id,
+      target: 'members',
+      source: 'csv',
+      label: 'Bulk CSV — devotee file',
+      enteredBy: {
+        uid: currentUser?.id || 'local-user',
+        name: currentUser?.name || currentUser?.fullName || 'Admin',
+        role: String(effectiveRole || ''),
+      },
+    });
+    batch.rows = rows;
+    const data = loadBahiData(activeWorkspace.id);
+    saveBahiData(activeWorkspace.id, { ...data, batches: [batch, ...data.batches] });
+    setParsedRows([]);
+    showToast(
+      'Batch saved in 📖 Bahi-Khata Seva — open People → Bahi-Khata Seva to review & approve. Nothing is enrolled yet.',
+      'success',
+      'Sent for Review'
+    );
   };
 
   const handleCommitIngestion = () => {
@@ -182,15 +238,29 @@ export const BulkImportDesk: React.FC = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              disabled={validCount === 0 || isProcessing}
-              onClick={handleCommitIngestion}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-temple-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isProcessing ? 'Enrolling...' : `Commit & Enroll ${validCount} Members`}</span>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              {/* Bahi-Khata review path — the default. Rows land in a
+                  draft batch; a trustee approves before enrollment. */}
+              <button
+                type="button"
+                disabled={parsedRows.length === 0 || isProcessing}
+                onClick={handleSendToBahiKhata}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-temple-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>📖 Send to Bahi-Khata Review</span>
+              </button>
+              {/* Legacy direct commit — admin quick path, skips review. */}
+              <button
+                type="button"
+                disabled={validCount === 0 || isProcessing}
+                onClick={handleCommitIngestion}
+                className="px-5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-300 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 min-h-[44px]"
+                title="Admin quick path — enrolls immediately without trustee review"
+              >
+                <span>{isProcessing ? 'Enrolling...' : `Commit directly (admin quick path) — ${validCount}`}</span>
+              </button>
+            </div>
           </div>
 
           {/* Pre-commit quota honesty (Track 3, §7): warn BEFORE the quota truncates. */}
