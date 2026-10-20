@@ -7,6 +7,7 @@ import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 
 interface DonorProfile {
   key: string;
@@ -228,6 +229,9 @@ export const DonorCareDesk: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-5 animate-in fade-in duration-300">
+      {/* F2: donor totals/last-gift below derive from the treasury set;
+          in windowed mode that set is partial — labelled honestly. */}
+      <WindowedNotice collection="treasury" variant="totals" loaded={treasury.length} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">

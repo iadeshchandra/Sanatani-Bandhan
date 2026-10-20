@@ -27,6 +27,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from '../../context/DataContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 import { useToast } from '../../context/ToastContext';
 import { CountUp } from '../common/ui/CountUp';
 import { MODULE_CATALOG } from '../common/Sidebar';
@@ -983,6 +984,10 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
 
   return (
     <div className="flex flex-col gap-4">
+      {/* F2: attention figures below derive from the loaded treasury
+          window in large-organisation mode — labelled, never exact-
+          presented. Renders nothing when fully synced. */}
+      <WindowedNotice collection="treasury" variant="totals" loaded={treasury.length} />
       <KpiGrid onNavigate={onNavigate} />
       <UtsavReadinessCard onPlan={() => onNavigate('utsav-one')} />
       <BranchComparisonPanel />

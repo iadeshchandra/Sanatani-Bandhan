@@ -33,7 +33,7 @@ import {
   SevaSubscription,
 } from '../types';
 import { trackTreasuryPurchase, trackSignUp, trackGenerateLead } from '../utils/gtm';
-import { nextReceiptSeq, formatReceiptNumber } from '../utils/receiptNumbers';
+import { nextReceiptSeq, formatReceiptNumber, parseReceiptNumber } from '../utils/receiptNumbers';
 import { resolveBranchIds } from '../utils/branchAccess';
 import { useAuthWorkspace } from './AuthWorkspaceContext';
 import { useToast } from './ToastContext';
@@ -50,8 +50,21 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+  getCountFromServer,
+  getAggregateFromServer,
+  sum,
+  orderBy,
+  limit as fsLimit,
 } from 'firebase/firestore';
 import { offlineSyncManager } from '../services/OfflineSyncManager';
+import {
+  COLLECTION_WINDOW_ORDER,
+  CORE_COLLECTIONS,
+  WINDOW_PAGE_SIZE,
+  windowStateForCount,
+  type CollectionWindowState,
+  type CoreCollectionKey,
+} from './data/windowing';
 
 
 // Master Initial Datasets
@@ -1004,6 +1017,23 @@ interface DataContextType {
   // Global loading state for initial data payload
   isDataLoading: boolean;
 
+  // F2 (scale-surge §6): size-aware sync metadata for the four core
+  // collections. `windowed` collections expose only the loaded window
+  // in the arrays below; desks must label figures derived from them
+  // (see WindowedNotice) unless an exact figure is provided here.
+  collectionWindows: Record<CoreCollectionKey, CollectionWindowState>;
+  /** Exact full-ledger treasury totals from a server aggregation
+   *  query — set only when treasury is windowed AND the aggregate read
+   *  succeeded (needs the workspaceId+type composite index). Null →
+   *  window-derived totals are partial and must be labelled as such. */
+  treasuryExactTotals: { totalIncome: number; totalExpense: number } | null;
+  /** Grow a windowed collection's loaded window by one page. */
+  loadMoreCollection: (key: CoreCollectionKey) => void;
+  /** True when receipt sequences are derived from the loaded window
+   *  only (the server max-sequence prefetch was unavailable, e.g. the
+   *  workspaceId+taxReceiptNumber composite index is not built yet). */
+  receiptSeqDegraded: boolean;
+
   // Core tenant-scoped datasets
   devotees: DevoteeMember[];
   puja_bookings: PoojaBooking[];
@@ -1190,12 +1220,65 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Global loading state for initial data payload across core collections
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
 
+  // F2: size-aware sync state (see ./data/windowing.ts). Limits live
+  // outside the probe state so "load more" growth survives re-probes.
+  const [collectionWindows, setCollectionWindows] = useState<
+    Record<CoreCollectionKey, CollectionWindowState>
+  >(() => ({
+    devotees: windowStateForCount(null),
+    puja_bookings: windowStateForCount(null),
+    treasury: windowStateForCount(null),
+    inventory_items: windowStateForCount(null),
+  }));
+  const [windowLimits, setWindowLimits] = useState<Record<CoreCollectionKey, number>>({
+    devotees: WINDOW_PAGE_SIZE,
+    puja_bookings: WINDOW_PAGE_SIZE,
+    treasury: WINDOW_PAGE_SIZE,
+    inventory_items: WINDOW_PAGE_SIZE,
+  });
+  const [treasuryExactTotals, setTreasuryExactTotals] = useState<{
+    totalIncome: number;
+    totalExpense: number;
+  } | null>(null);
+  // Server-prefetched max receipt sequences for the current year
+  // (windowed mode only): { 'SB-80G': maxSeq, 'SB-CHANDA': maxSeq }.
+  const [receiptSeqCache, setReceiptSeqCache] = useState<{
+    year: number;
+    'SB-80G': number;
+    'SB-CHANDA': number;
+  } | null>(null);
+  const [receiptSeqDegraded, setReceiptSeqDegraded] = useState<boolean>(false);
+  const prevWorkspaceForWindowsRef = useRef<string | null>(null);
+
+  /** F2: grow a windowed collection's window by one page (re-subscribes). */
+  const loadMoreCollection = useCallback(
+    (key: CoreCollectionKey) => {
+      setWindowLimits((prev) => {
+        const total = collectionWindows[key]?.total ?? null;
+        const grown = prev[key] + WINDOW_PAGE_SIZE;
+        return { ...prev, [key]: total != null ? Math.min(grown, total) : grown };
+      });
+    },
+    [collectionWindows]
+  );
+
   // ----------------------------------------------------
   // TENANT-SCOPED REAL-TIME DATA SUBSCRIPTIONS
   // Sets up onSnapshot listeners for core collections:
   // devotees, puja_bookings, donations, and inventory_items.
   // Every query MUST include .where('workspaceId', '==', activeWorkspaceId)
   // to prevent cross-tenant data leaks and minimize read costs.
+  //
+  // F2 (scale-surge §6): size-aware sync. Each collection is first
+  // measured with getCountFromServer. Small workspaces (<= 2,000 docs)
+  // keep the original unbounded listener — zero behaviour change.
+  // Larger ones get a windowed listener (orderBy + limit, growable via
+  // loadMoreCollection) so a 40k-devotee temple boots on ~2k reads
+  // instead of ~140k. A failed probe fails OPEN to the full listener.
+  // When treasury is windowed we additionally fetch exact full-ledger
+  // totals via a server aggregation and prefetch the max receipt
+  // sequences from the server, so M-18 receipt numbering never derives
+  // from a partial window when the server figures are available.
   // ----------------------------------------------------
   useEffect(() => {
     // If the user is unauthenticated or activeWorkspaceId does not exist
@@ -1205,6 +1288,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setIsDataLoading(true);
+
+    // Reset window growth when the workspace actually changes.
+    const wsChanged = prevWorkspaceForWindowsRef.current !== activeWorkspaceId;
+    if (wsChanged) {
+      prevWorkspaceForWindowsRef.current = activeWorkspaceId;
+    }
+    const effectiveLimits: Record<CoreCollectionKey, number> = wsChanged
+      ? {
+          devotees: WINDOW_PAGE_SIZE,
+          puja_bookings: WINDOW_PAGE_SIZE,
+          treasury: WINDOW_PAGE_SIZE,
+          inventory_items: WINDOW_PAGE_SIZE,
+        }
+      : windowLimits;
+    if (wsChanged && windowLimits.treasury !== WINDOW_PAGE_SIZE) {
+      setWindowLimits(effectiveLimits);
+    }
+
+    let cancelled = false;
+    const unsubs: Array<() => void> = [];
 
     const pendingCollections = new Set<string>([
       'devotees',
@@ -1220,108 +1323,212 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // 1. Core query: devotees
-    const devoteesQuery = query(
-      collection(db, 'devotees'),
-      where('workspaceId', '==', activeWorkspaceId)
-    );
-    const unsubDevotees = onSnapshot(
-      devoteesQuery,
-      (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => ({
-          ...docSnap.data(),
-          id: docSnap.id,
-        } as DevoteeMember));
-        if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
-          setAllDevotees(items);
-        }
-        markResolved('devotees');
-      },
-      (err) => {
-        console.warn('[Firestore] devotees listener error:', err);
-        markResolved('devotees');
-      }
-    );
+    const coreQuery = (key: CoreCollectionKey, states: Record<CoreCollectionKey, CollectionWindowState>) => {
+      const base = query(
+        collection(db, key),
+        where('workspaceId', '==', activeWorkspaceId)
+      );
+      if (!states[key].windowed) return base;
+      const ord = COLLECTION_WINDOW_ORDER[key];
+      return query(
+        collection(db, key),
+        where('workspaceId', '==', activeWorkspaceId),
+        orderBy(ord.field, ord.direction),
+        fsLimit(effectiveLimits[key])
+      );
+    };
 
-    // 2. Core query: puja_bookings
-    const pujaBookingsQuery = query(
-      collection(db, 'puja_bookings'),
-      where('workspaceId', '==', activeWorkspaceId)
-    );
-    const unsubPujaBookings = onSnapshot(
-      pujaBookingsQuery,
-      (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => ({
-          ...docSnap.data(),
-          id: docSnap.id,
-        } as PoojaBooking));
-        if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
-          setAllPoojaBookings(items);
-        }
-        markResolved('puja_bookings');
-      },
-      (err) => {
-        console.warn('[Firestore] puja_bookings listener error:', err);
-        markResolved('puja_bookings');
-      }
-    );
+    const subscribeAll = (states: Record<CoreCollectionKey, CollectionWindowState>) => {
+      if (cancelled) return;
+      setCollectionWindows(states);
 
-    // 3. Core query: treasury (canonical collection — all treasury writes go
-    // here; the legacy 'donations' read path was removed in M-1 because it
-    // read a different collection than the one being written to)
-    const treasuryQuery = query(
-      collection(db, 'treasury'),
-      where('workspaceId', '==', activeWorkspaceId)
-    );
-    const unsubTreasury = onSnapshot(
-      treasuryQuery,
-      (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => ({
-          ...docSnap.data(),
-          id: docSnap.id,
-        } as TreasuryTransaction));
-        if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
-          setAllTreasury(items);
+      // One attach helper for all four collections. F2 fallback law:
+      // a windowed query needs a composite index (workspaceId + order
+      // field). If Firestore rejects it (failed-precondition), we fall
+      // back to the ORIGINAL unbounded listener for that collection
+      // and mark it non-windowed — behaviour degrades to today's full
+      // sync, never to a desk showing seed/stale data. The indexes are
+      // on the F7 console list in the F2 report.
+      const attach = <T,>(
+        key: CoreCollectionKey,
+        setter: (items: T[]) => void
+      ) => {
+        const handle = (snapshot: { docs: Array<{ id: string; data: () => unknown }> }) => {
+          const items = snapshot.docs.map((docSnap) => ({
+            ...(docSnap.data() as Record<string, unknown>),
+            id: docSnap.id,
+          } as T));
+          if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
+            setter(items);
+          }
+          markResolved(key);
+        };
+        let fellBack = false;
+        const attachFull = () => {
+          const unsub = onSnapshot(
+            query(collection(db, key), where('workspaceId', '==', activeWorkspaceId)),
+            handle,
+            (err) => {
+              console.warn(`[Firestore] ${key} listener error:`, err);
+              markResolved(key);
+            }
+          );
+          unsubs.push(unsub);
+        };
+        if (!states[key].windowed) {
+          attachFull();
+          return;
         }
-        markResolved('treasury');
-      },
-      (err) => {
-        console.warn('[Firestore] treasury listener error:', err);
-        markResolved('treasury');
-      }
-    );
+        const unsub = onSnapshot(
+          coreQuery(key, states),
+          handle,
+          (err) => {
+            if (!fellBack) {
+              fellBack = true;
+              console.warn(
+                `[F2] windowed listener for ${key} rejected (composite index workspaceId + ` +
+                  `${COLLECTION_WINDOW_ORDER[key].field} missing?). Falling back to full sync for this collection.`,
+                err
+              );
+              setCollectionWindows((prev) => ({
+                ...prev,
+                [key]: { ...prev[key], windowed: false },
+              }));
+              attachFull();
+            } else {
+              console.warn(`[Firestore] ${key} listener error:`, err);
+              markResolved(key);
+            }
+          }
+        );
+        unsubs.push(unsub);
+      };
 
-    // 4. Core query: inventory_items
-    const inventoryItemsQuery = query(
-      collection(db, 'inventory_items'),
-      where('workspaceId', '==', activeWorkspaceId)
-    );
-    const unsubInventory = onSnapshot(
-      inventoryItemsQuery,
-      (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => ({
-          ...docSnap.data(),
-          id: docSnap.id,
-        } as InventoryItem));
-        if (items.length > 0 || !activeWorkspaceId.startsWith('DEMO_')) {
-          setAllInventory(items);
+      attach<DevoteeMember>('devotees', setAllDevotees);
+      attach<PoojaBooking>('puja_bookings', setAllPoojaBookings);
+      attach<TreasuryTransaction>('treasury', setAllTreasury);
+      attach<InventoryItem>('inventory_items', setAllInventory);
+    };
+
+    // F2 extras for a windowed treasury: exact totals + receipt maxima.
+    const loadTreasuryExtras = async () => {
+      // Exact full-ledger totals (server aggregation; ~1 read per
+      // 1,000 scanned docs). Needs the workspaceId+type composite
+      // index — on failure we stay null and desks label partials.
+      try {
+        const byType = (type: 'Income' | 'Expense') =>
+          query(
+            collection(db, 'treasury'),
+            where('workspaceId', '==', activeWorkspaceId),
+            where('type', '==', type)
+          );
+        const [inc, exp] = await Promise.all([
+          getAggregateFromServer(byType('Income'), { total: sum('amount') }),
+          getAggregateFromServer(byType('Expense'), { total: sum('amount') }),
+        ]);
+        if (!cancelled) {
+          setTreasuryExactTotals({
+            totalIncome: Number(inc.data().total || 0),
+            totalExpense: Number(exp.data().total || 0),
+          });
         }
-        markResolved('inventory_items');
-      },
-      (err) => {
-        console.warn('[Firestore] inventory_items listener error:', err);
-        markResolved('inventory_items');
+      } catch (e) {
+        console.warn('[F2] treasury aggregate totals unavailable (index?), partial totals will be labelled:', e);
+        if (!cancelled) setTreasuryExactTotals(null);
       }
-    );
+
+      // M-18 receipt integrity in windowed mode: prefetch the true
+      // max sequence per series for the current year (top-25 scan of
+      // the series' number range; needs the workspaceId+
+      // taxReceiptNumber composite index). Failure → degraded flag:
+      // sequences fall back to the loaded window, the same guarantee
+      // class as today's cross-device race — never silently worse
+      // without a signal.
+      const year = new Date().getFullYear();
+      const fetchMaxSeq = async (prefix: 'SB-80G' | 'SB-CHANDA'): Promise<number | null> => {
+        try {
+          const q = query(
+            collection(db, 'treasury'),
+            where('workspaceId', '==', activeWorkspaceId),
+            where('taxReceiptNumber', '>=', `${prefix}-${year}-`),
+            where('taxReceiptNumber', '<', `${prefix}-${year + 1}-`),
+            orderBy('taxReceiptNumber', 'desc'),
+            fsLimit(25)
+          );
+          const snap = await getDocs(q);
+          let max = 0;
+          snap.forEach((d) => {
+            const p = parseReceiptNumber(d.data().taxReceiptNumber);
+            if (p && p.prefix === prefix && p.year === year && p.seq > max) max = p.seq;
+          });
+          return max;
+        } catch {
+          return null;
+        }
+      };
+      const [g80, chanda] = await Promise.all([fetchMaxSeq('SB-80G'), fetchMaxSeq('SB-CHANDA')]);
+      if (cancelled) return;
+      if (g80 == null || chanda == null) {
+        setReceiptSeqCache(null);
+        setReceiptSeqDegraded(true);
+        console.warn(
+          '[F2] receipt max-sequence prefetch unavailable (composite index treasury: workspaceId + taxReceiptNumber?). ' +
+            'Receipt numbers will derive from the loaded window until the index exists.'
+        );
+      } else {
+        setReceiptSeqCache({ year, 'SB-80G': g80, 'SB-CHANDA': chanda });
+        setReceiptSeqDegraded(false);
+      }
+    };
+
+    (async () => {
+      // Probe: one aggregate count per core collection. Any failure
+      // leaves that collection at null → full sync (fail-open).
+      const counts: Record<CoreCollectionKey, number | null> = {
+        devotees: null,
+        puja_bookings: null,
+        treasury: null,
+        inventory_items: null,
+      };
+      await Promise.all(
+        CORE_COLLECTIONS.map(async (key) => {
+          try {
+            const snap = await getCountFromServer(
+              query(collection(db, key), where('workspaceId', '==', activeWorkspaceId))
+            );
+            counts[key] = snap.data().count;
+          } catch (e) {
+            console.warn(`[F2] size probe failed for ${key}; keeping full sync:`, e);
+            counts[key] = null;
+          }
+        })
+      );
+      if (cancelled) return;
+      const states: Record<CoreCollectionKey, CollectionWindowState> = {
+        devotees: windowStateForCount(counts.devotees),
+        puja_bookings: windowStateForCount(counts.puja_bookings),
+        treasury: windowStateForCount(counts.treasury),
+        inventory_items: windowStateForCount(counts.inventory_items),
+      };
+      for (const key of CORE_COLLECTIONS) {
+        states[key] = { ...states[key], limit: effectiveLimits[key] };
+      }
+      subscribeAll(states);
+      if (states.treasury.windowed) {
+        void loadTreasuryExtras();
+      } else {
+        setTreasuryExactTotals(null);
+        setReceiptSeqCache(null);
+        setReceiptSeqDegraded(false);
+      }
+    })();
 
     // Cleanup function that calls all unsubscribe methods to prevent memory leaks
     return () => {
-      unsubDevotees();
-      unsubPujaBookings();
-      unsubTreasury();
-      unsubInventory();
+      cancelled = true;
+      unsubs.forEach((u) => u());
     };
-  }, [activeWorkspaceId, isAuthenticated]);
+  }, [activeWorkspaceId, isAuthenticated, windowLimits]);
 
   // Helper to push to firestore
   const pushToFirestore = (colName: string, id: string, data: any) => {
@@ -2407,9 +2614,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existingNumbers = allTreasury
       .filter((t) => (t.workspaceId || '') === wsId)
       .map((t) => t.taxReceiptNumber);
+    // F2: in windowed mode allTreasury is a subset of the ledger, so a
+    // window-derived sequence could re-issue a number that exists
+    // beyond the window. When the server-prefetched maximum is cached,
+    // it wins; otherwise we fall back to the window (flagged via
+    // receiptSeqDegraded — the same guarantee class as today's
+    // cross-device race, never silently presented as exact).
+    const cached80GSeq =
+      collectionWindows.treasury.windowed && receiptSeqCache && receiptSeqCache.year === year
+        ? receiptSeqCache['SB-80G'] + 1
+        : null;
     const autoReceipt = tx.is80GEligible
-      ? formatReceiptNumber('SB-80G', year, nextReceiptSeq(existingNumbers, 'SB-80G', year))
+      ? formatReceiptNumber('SB-80G', year, cached80GSeq ?? nextReceiptSeq(existingNumbers, 'SB-80G', year))
       : undefined;
+    const assignedReceipt = tx.taxReceiptNumber || autoReceipt;
+    // Keep the prefetch cache at the true maximum once a number is
+    // assigned (auto or caller-provided, e.g. the POS print-first flow).
+    if (assignedReceipt) {
+      const parsedAssigned = parseReceiptNumber(assignedReceipt);
+      if (
+        parsedAssigned &&
+        parsedAssigned.year === year &&
+        (parsedAssigned.prefix === 'SB-80G' || parsedAssigned.prefix === 'SB-CHANDA')
+      ) {
+        const series = parsedAssigned.prefix as 'SB-80G' | 'SB-CHANDA';
+        setReceiptSeqCache((prev) =>
+          prev && prev.year === year && parsedAssigned.seq > prev[series]
+            ? { ...prev, [series]: parsedAssigned.seq }
+            : prev
+        );
+      }
+    }
     // Multi-branch: stamp the active branch (no-op → undefined for single-org).
     const _branchId = stampBranchId((tx as any).branchId);
     const newTx: any = {
@@ -2420,7 +2655,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: tx.createdAt || now,
       updatedAt: tx.updatedAt || now,
       auditVerified: true,
-      taxReceiptNumber: tx.taxReceiptNumber || autoReceipt,
+      taxReceiptNumber: assignedReceipt,
       _createdAt: now,
       ...demoTtlFields(wsId),
     };
@@ -2499,11 +2734,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getNextReceiptNumber = useCallback((prefix: 'SB-80G' | 'SB-CHANDA'): string => {
     const year = new Date().getFullYear();
     const wsId = activeWorkspace?.id;
+    // F2: windowed treasury → answer from the server-prefetched maximum
+    // (peek only; addTreasuryTransaction raises the cache on assignment).
+    if (collectionWindows.treasury.windowed && receiptSeqCache && receiptSeqCache.year === year) {
+      return formatReceiptNumber(prefix, year, receiptSeqCache[prefix] + 1);
+    }
     const existing = allTreasury
       .filter((t) => (t.workspaceId || '') === wsId)
       .map((t) => t.taxReceiptNumber);
     return formatReceiptNumber(prefix, year, nextReceiptSeq(existing, prefix, year));
-  }, [allTreasury, activeWorkspace?.id]);
+  }, [allTreasury, activeWorkspace?.id, collectionWindows.treasury.windowed, receiptSeqCache]);
 
   const updateTreasuryTransaction = (id: string, updates: Partial<TreasuryTransaction>) => {
     setAllTreasury((prev) =>
@@ -3166,7 +3406,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getBranchRecordCount,
         myBranchIds,
         isBranchAccessible,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible]);
+        collectionWindows,
+        treasuryExactTotals,
+        loadMoreCollection,
+        receiptSeqDegraded,
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
 
   return (
     <DataContext.Provider
@@ -3257,6 +3501,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getBranchRecordCount,
         myBranchIds,
         isBranchAccessible,
+        collectionWindows,
+        treasuryExactTotals,
+        loadMoreCollection,
+        receiptSeqDegraded,
       }}
     >
       {children}

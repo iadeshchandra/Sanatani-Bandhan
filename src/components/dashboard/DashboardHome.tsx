@@ -38,7 +38,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   const { activeWorkspace, currentDevotee } = useAuthWorkspace();
   const taxonomy = useWorkspaceTaxonomy();
   const { safeTranslate } = useLanguage();
-  const { devotees, poojaBookings, cows, gurukulStudents } = useData();
+  const { devotees, poojaBookings, cows, gurukulStudents, collectionWindows } = useData();
   const panchang = calculatePanchang();
   // Keep the Solo "what needs me" feed fresh: refresh this org's glance
   // summary (debounced, fail-open) whenever its dashboard loads.
@@ -70,18 +70,21 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       return {
         Icon: Sparkles,
         label: safeTranslate('dash_hero_bookings', 'Seva Bookings', 'সেবা বুকিং', 'सेवा बुकिंग'),
-        value: poojaBookings.length,
+        // F2: prefer the probed server total over the loaded window size.
+        value: collectionWindows.puja_bookings.total ?? poojaBookings.length,
       };
     if (orgTypeKey === 'ashram')
       return {
         Icon: Flame,
         label: safeTranslate('dash_hero_sadhaks', 'Sadhak Parivar', 'সাধক পরিবার', 'साधक परिवार'),
-        value: devotees.length,
+        // F2: prefer the probed server total over the loaded window size.
+        value: collectionWindows.devotees.total ?? devotees.length,
       };
     return {
       Icon: Users,
       label: safeTranslate('dash_hero_parivar', 'Kul Parivars', 'কুল পরিবার', 'कुल परिवार'),
-      value: devotees.length,
+      // F2: prefer the probed server total over the loaded window size.
+      value: collectionWindows.devotees.total ?? devotees.length,
     };
   })();
   // Honest fallback: a devotee with no recorded seva index is "on the path",

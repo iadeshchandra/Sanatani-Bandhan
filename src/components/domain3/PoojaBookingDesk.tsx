@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { PoojaBooking, PurohitProfile } from '../../types';
@@ -387,6 +388,7 @@ export const PoojaBookingDesk: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <WindowedNotice collection="puja_bookings" variant="list" loaded={puja_bookings.length} />
       {/* Top Banner & Mode Switcher */}
       <div className="relative overflow-hidden bg-gradient-to-r from-amber-950 via-temple-950 to-saffron-950 border border-amber-500/40 p-6 sm:p-8 rounded-3xl shadow-2xl">
         <div className="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />

@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 import { InventoryItem } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { CameraScanner } from '../common/CameraScanner';
@@ -177,6 +178,7 @@ export const InventoryDesk: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <WindowedNotice collection="inventory_items" variant="list" loaded={inventory.length} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-temple-900/90 border border-temple-800 p-6 rounded-3xl shadow-xl">
         <div>

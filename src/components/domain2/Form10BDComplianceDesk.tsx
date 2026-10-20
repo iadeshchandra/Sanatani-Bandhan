@@ -26,6 +26,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { TreasuryTransaction } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 
 // ============================================================================
 // TYPES & CBDT CODES SPECIFICATION
@@ -508,6 +509,10 @@ export const Form10BDComplianceDesk: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans selection:bg-amber-500 selection:text-stone-950 p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* F2: windowed mode — audit rows + totals below cover the loaded
+          window only; labelled so a partial set is never filed as a
+          full-year statement. */}
+      <WindowedNotice collection="treasury" variant="totals" loaded={rawTransactions.length} />
       
       {/* =====================================================================
           HEADER & FINANCIAL YEAR SELECTOR BANNER

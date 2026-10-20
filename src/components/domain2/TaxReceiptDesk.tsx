@@ -30,6 +30,7 @@ import { DataExportButton } from '../common/DataExportButton';
 import { findReceiptGaps, findDuplicateReceipts, formatReceiptNumber } from '../../utils/receiptNumbers';
 import { downloadAuditPack } from '../../utils/auditPack';
 import { useLanguage } from '../../context/LanguageContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 
 export const TaxReceiptDesk: React.FC = () => {
   const { t } = useLanguage();
@@ -264,6 +265,10 @@ export const TaxReceiptDesk: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* F2: in windowed mode every figure + the gap/duplicate integrity
+          checks below cover the loaded window only — labelled, never
+          presented as a full-ledger audit. */}
+      <WindowedNotice collection="treasury" variant="totals" loaded={rawTransactions.length} />
       {/* H-1: unregistered workspace → honest SAMPLE state with a path to Settings */}
       {!activeWorkspace?.trust80GRegistered && (
         <div className="rounded-2xl border-2 border-dashed border-amber-500 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">

@@ -42,6 +42,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData, INITIAL_DEVOTEES } from '../../context/DataContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 import { useScopedData } from '../../hooks/useScopedData';
 import { DevoteeMember, SevaTier, UserRole } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
@@ -710,6 +711,9 @@ export const DevoteeGrid: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* F2: windowed directory — counts/lists below cover the loaded
+          window; the notice carries the true total + Load More. */}
+      <WindowedNotice collection="devotees" variant="list" loaded={branchScopedDevotees.length} />
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-temple-200 shadow-sm p-6 rounded-xl shadow-xl">
         <div>

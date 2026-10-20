@@ -55,6 +55,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { OrgRequestLedger, canViewOrgLedger } from '../../chat/OrgRequestLedger';
 import { useData, INITIAL_TREASURY } from '../../context/DataContext';
+import { WindowedNotice } from '../common/WindowedNotice';
 import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF, generateTreasuryLedgerPDF } from '../../utils/pdfGenerator';
 import { printThermalReceipt } from '../../utils/printUtils';
@@ -196,7 +197,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   // F-TREAS-1: overflow menu for the secondary actions (toolbar shows ≤4).
   const [showMoreActions, setShowMoreActions] = useState(false);
   const { t, safeTranslate } = useLanguage();
-  const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId } = useData();
+  const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId, collectionWindows, treasuryExactTotals } = useData();
   const { showToast } = useToast();
   const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
 
@@ -350,6 +351,17 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
   // Top-Level Financial KPIs
   const financialKPIs = useMemo(() => {
+    // F2: in large-organisation (windowed) mode with a successful
+    // server aggregation, the headline KPIs are EXACT full-ledger
+    // totals — not sums over the loaded window. Otherwise they are
+    // computed from the loaded records and WindowedNotice labels them.
+    if (collectionWindows.treasury.windowed && treasuryExactTotals) {
+      return {
+        totalIncome: treasuryExactTotals.totalIncome,
+        totalExpense: treasuryExactTotals.totalExpense,
+        netBalance: treasuryExactTotals.totalIncome - treasuryExactTotals.totalExpense,
+      };
+    }
     let income = 0;
     let expense = 0;
 
@@ -366,7 +378,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
       totalExpense: expense,
       netBalance: income - expense,
     };
-  }, [allLedgerRecords]);
+  }, [allLedgerRecords, collectionWindows.treasury.windowed, treasuryExactTotals]);
 
   // Fund Segregation Breakdown (Restricted vs. Unrestricted)
   const fundBreakdown = useMemo(() => {
@@ -953,6 +965,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         {/* Hero — one big calm number (F-TREAS-1, spec §1: premium = one big
             calm number, not three competing ones). Inflow/outflow are demoted
             to the quiet secondary row below. */}
+        <WindowedNotice collection="treasury" variant="totals" loaded={allLedgerRecords.length} className="mb-4" />
         <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-b from-amber-950/50 via-temple-900 to-temple-900/90 p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
           <div className="flex items-center justify-center gap-2 text-amber-400">
             <ShieldCheck className="w-5 h-5 text-amber-400" />
