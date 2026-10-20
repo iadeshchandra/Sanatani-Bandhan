@@ -17,6 +17,12 @@ import {
   type TermsPlan, type TermsPlanId, type TermsLimits, type CommissionTerms,
 } from '../../../lib/termsConfig';
 import { useToast } from '../../../context/ToastContext';
+import {
+  TERMS_DRAFT_EVENT,
+  clearTermsDraft,
+  hasPendingTermsDraft,
+  peekTermsDraft,
+} from '../../../ai/godmode/termsDraftHandoff';
 import { optimizeQrImage, type QrOptimizeResult } from '../../../lib/qrOptimizer';
 import { CCard as Card, CEmpty as Empty, CLoading as Loading, CSubTabs as SubTabs, cInputCls as inputCls } from './AdminTabsD';
 
@@ -249,6 +255,39 @@ const PlansView: React.FC = () => {
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
+
+  /* QUEUED #32 — Copilot draft handoff. When the owner taps "Review in
+   * Plans & Terms" on a Copilot proposal, the draft waits in
+   * sessionStorage; here it PREFILLS the editor (never saves). The
+   * owner's own save — diff-confirm + audit — remains the only write. */
+  const applyCopilotDraft = useCallback(() => {
+    const draft = peekTermsDraft();
+    if (!draft) return;
+    if (draft.kind === 'plan') {
+      const plan = plans.find((p) => p.id === draft.planId);
+      if (!plan) return; // plans not loaded yet — the loading effect retries
+      setForm({
+        ...plan,
+        ...draft.patch,
+        limits: { ...plan.limits, ...(draft.limitsPatch || {}) },
+      } as TermsPlanForm);
+      clearTermsDraft();
+      showToast(`🪔 Copilot draft prefilled — ${draft.fieldLabel}: ${draft.oldValue} → ${draft.newValue}. Review the diff, then save.`, 'success');
+    } else {
+      setCommDraft((prev) => ({ ...prev, ...draft.patch }));
+      clearTermsDraft();
+      showToast(`🪔 Copilot draft prefilled — ${draft.fieldLabel}: ${draft.oldValue} → ${draft.newValue}. Review, then save the commission terms.`, 'success');
+    }
+  }, [plans, showToast]);
+
+  useEffect(() => {
+    if (!loading) applyCopilotDraft();
+  }, [loading, applyCopilotDraft]);
+  useEffect(() => {
+    const onDraft = () => applyCopilotDraft();
+    window.addEventListener(TERMS_DRAFT_EVENT, onDraft);
+    return () => window.removeEventListener(TERMS_DRAFT_EVENT, onDraft);
+  }, [applyCopilotDraft]);
 
   const shadowed = activeRuleShadowsTierRates(rules);
   const shadowTypes = shadowedServiceTypes(rules);
@@ -686,7 +725,14 @@ const MaintenanceView: React.FC = () => {
 };
 
 export const SettingsTab: React.FC = () => {
-  const [sub, setSub] = useState('Feature Flags');
+  // QUEUED #32: a pending Copilot terms draft lands the owner directly
+  // on Plans & Terms; a draft arriving while Settings is open switches too.
+  const [sub, setSub] = useState(() => (hasPendingTermsDraft() ? 'Plans & Terms' : 'Feature Flags'));
+  useEffect(() => {
+    const onDraft = () => setSub('Plans & Terms');
+    window.addEventListener(TERMS_DRAFT_EVENT, onDraft);
+    return () => window.removeEventListener(TERMS_DRAFT_EVENT, onDraft);
+  }, []);
   return (
     <div className="space-y-4">
       <SubTabs tabs={['Feature Flags', 'Plans & Terms', 'Payment Methods', 'Maintenance']} active={sub} onChange={setSub} />

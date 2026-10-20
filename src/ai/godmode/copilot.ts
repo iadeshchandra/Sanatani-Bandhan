@@ -16,13 +16,18 @@
 
 import type { IntentId, LangCode, Role } from '../types';
 
-/** The five copilot intents — owner-only. */
+/** The ten copilot intents — owner-only. */
 export const COPILOT_INTENTS: IntentId[] = [
   'admin_briefing',
   'admin_stats',
   'admin_moderation_help',
   'admin_anomaly',
   'admin_draft',
+  'admin_terms',
+  'admin_history',
+  'admin_simulate',
+  'admin_draft_change',
+  'admin_advise',
 ];
 
 export function isCopilotIntent(intent: IntentId): boolean {
@@ -70,11 +75,66 @@ const DRAFT_KW = [
   'घोषणा लिख', 'संदेश लिख', 'ঘোষণা লিখ', 'বার্তা লিখ',
 ];
 
+/* QUEUED #32 — terms / history / simulate / draft-change / advise.
+ * Keywords are PLATFORM-anchored on purpose: a devotee asking "what is
+ * the price of this seva?" or "how do I change the language?" must never
+ * land here (they would only meet the role gate, but the anchor keeps
+ * the router honest). Owner phrasing is possessive or plan-named —
+ * "our terms", "Standard price", "what changed", "set Rail-1". */
+const TERMS_KW = [
+  'our terms', 'the terms', 'current terms', 'terms today', 'our prices',
+  'our pricing', 'plan price', 'plan prices', 'plan limits', 'current limits',
+  'standard price', 'premium price', 'pro price', 'standard plan price',
+  'premium plan price', 'what do we charge', 'commission rate', 'commission rates',
+  'what commission', 'our commission', 'platform commission', 'tier rates',
+  'हमारी कीमत', 'हमारे दाम', 'कमीशन दर', 'हमारी शर्तें',
+  'আমাদের দাম', 'আমাদের মূল্য', 'কমিশনের হার', 'আমাদের শর্ত',
+];
+
+const HISTORY_KW = [
+  'what changed', 'what has changed', 'what was changed', 'change history',
+  'terms history', 'who changed', 'recent changes', 'price changes',
+  'last change', 'last changed', 'changes last week', 'changes this week',
+  'क्या बदला', 'किसने बदला', 'পরিবর্তনের ইতিহাস', 'কী বদলেছে', 'কে বদলেছে',
+];
+
+const SIMULATE_KW = [
+  'what if', 'simulate', 'simulation', 'impact of', 'what happens if',
+  'if we raise', 'if we lower', 'if i raise', 'if i lower', 'run the numbers',
+  'अगर बढ़ा', 'अगर घटा', 'যদি বাড়াই', 'যদি কমাই', 'প্রভাব কী হবে',
+];
+
+const DRAFT_CHANGE_KW = [
+  'draft the change', 'draft a change', 'draft change', 'prepare the change',
+  'change the price', 'change standard', 'change premium', 'change pro',
+  'change the commission', 'set rail', 'set the price', 'set standard',
+  'set premium', 'set pro', 'update the price', 'raise the price',
+  'lower the price', 'raise standard', 'raise premium', 'raise pro',
+  'make standard', 'make premium', 'make pro',
+  'दाम बदल', 'दर बदल', 'দাম বদলাও', 'দর বদলাও',
+];
+
+const ADVISE_KW = [
+  'should i', 'advise me', 'your advice', 'advise', 'strategy',
+  'grow revenue', 'grow the platform', 'too high', 'too low',
+  'your recommendation', 'सलाह', 'পরামর্শ', 'উপদেশ', 'কী করা উচিত', 'क्या करना चाहिए',
+];
+
 const COPILOT_RULES: Array<{ intent: IntentId; keywords: string[] }> = [
   { intent: 'admin_briefing', keywords: BRIEFING_KW },
   { intent: 'admin_moderation_help', keywords: MODERATION_KW },
   { intent: 'admin_anomaly', keywords: ANOMALY_KW },
   { intent: 'admin_draft', keywords: DRAFT_KW },
+  // #32 ordering: hypotheticals simulate ("what if…"); consultative
+  // phrasing advises ("should I raise Pro…?" is counsel, NOT a draft —
+  // advise is checked before the imperative draft table); imperatives
+  // draft ("change Standard…"); history before terms ("what changed in
+  // our terms?" asks about the past, not the present values).
+  { intent: 'admin_simulate', keywords: SIMULATE_KW },
+  { intent: 'admin_advise', keywords: ADVISE_KW },
+  { intent: 'admin_draft_change', keywords: DRAFT_CHANGE_KW },
+  { intent: 'admin_history', keywords: HISTORY_KW },
+  { intent: 'admin_terms', keywords: TERMS_KW },
   { intent: 'admin_stats', keywords: STATS_KW },
 ];
 
@@ -85,7 +145,8 @@ function escapeRegExp(s: string): string {
 /**
  * Route a copilot question. Returns the intent or null when nothing
  * matches — the caller falls back to the normal assistant router.
- * Priority-ordered: briefing > moderation > anomaly > draft > stats.
+ * Priority-ordered: briefing > moderation > anomaly > draft >
+ * simulate > advise > draft-change > history > terms > stats.
  */
 export function routeCopilotIntent(input: string): IntentId | null {
   const text = (input || '').toLowerCase();

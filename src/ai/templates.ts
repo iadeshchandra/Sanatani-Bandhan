@@ -598,6 +598,41 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
       bn: (p, c) => `${p['text']}\n\n${p['note'] || ''}`,
     },
   },
+  admin_terms: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_history: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_simulate: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_draft_change: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
+  admin_advise: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -709,6 +744,31 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['Morning briefing', 'Flagged posts', 'Anything unusual?'],
     hi: ['सुबह की जानकारी', 'फ्लैग पोस्ट', 'कुछ असामान्य?'],
     bn: ['সকালের ব্রিফিং', 'ফ্ল্যাগ পোস্ট', 'অস্বাভাবিক কিছু?'],
+  },
+  admin_terms: {
+    en: ['What changed?', 'Simulate a change', 'Advise me'],
+    hi: ['क्या बदला?', 'सलाह दें', 'सप्ताह के आंकड़े'],
+    bn: ['কী বদলেছে?', 'পরামর্শ দিন', 'সপ্তাহের সংখ্যা'],
+  },
+  admin_history: {
+    en: ['What are our terms?', 'Simulate a change', 'Advise me'],
+    hi: ['हमारी शर्तें क्या हैं?', 'क्या बदला?', 'सलाह दें'],
+    bn: ['আমাদের শর্ত কী?', 'কী বদলেছে?', 'পরামর্শ দিন'],
+  },
+  admin_simulate: {
+    en: ['What are our terms?', 'What changed?', 'Advise me'],
+    hi: ['हमारी शर्तें क्या हैं?', 'क्या बदला?', 'सलाह दें'],
+    bn: ['আমাদের শর্ত কী?', 'কী বদলেছে?', 'পরামর্শ দিন'],
+  },
+  admin_draft_change: {
+    en: ['What are our terms?', 'What changed?', 'Simulate a change'],
+    hi: ['हमारी शर्तें क्या हैं?', 'क्या बदला?', 'सलाह दें'],
+    bn: ['আমাদের শর্ত কী?', 'কী বদলেছে?', 'পরামর্শ দিন'],
+  },
+  admin_advise: {
+    en: ['What are our terms?', 'Simulate a change', "This week's numbers"],
+    hi: ['हमारी शर्तें क्या हैं?', 'सलाह दें', 'सप्ताह के आंकड़े'],
+    bn: ['আমাদের শর্ত কী?', 'পরামর্শ দিন', 'সপ্তাহের সংখ্যা'],
   },
 };
 

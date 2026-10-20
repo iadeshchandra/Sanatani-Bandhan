@@ -93,6 +93,11 @@ const OWNER_ONLY_INTENTS: IntentId[] = [
   'admin_moderation_help',
   'admin_anomaly',
   'admin_draft',
+  'admin_terms',
+  'admin_history',
+  'admin_simulate',
+  'admin_draft_change',
+  'admin_advise',
 ];
 
 export const roleCapabilities: Record<Role, RoleCapability> = {
@@ -137,6 +142,44 @@ export const roleCapabilities: Record<Role, RoleCapability> = {
     dataScopes: ['self', 'org', 'marketplace', 'platform'],
   },
 };
+
+/**
+ * H3 (QUEUED #32): normalise a workspace role string into the AI layer's
+ * Role vocabulary. Workspace sessions carry `UserRole` ('SuperAdmin',
+ * 'Trustee', … from src/types.ts) while the AI layer speaks lowercase —
+ * passing them through raw made canOffer() miss every lookup and deny
+ * everything (fail-closed, but broken UX for org-staff sessions).
+ *
+ * THE critical rule: a workspace 'SuperAdmin' is an ORG-scoped role and
+ * must NEVER normalise to the AI 'owner' role — its ceiling is 'trustee'.
+ * 'owner' is constructible ONLY by the Copilot panel's hardcoded ctx
+ * inside the owner-gated GodMode console. Unknown/empty → 'devotee'
+ * (least privilege). AI role names (lowercase, except 'owner') pass
+ * through so existing callers keep working.
+ */
+const WORKSPACE_TO_AI_ROLE: Record<string, Role> = {
+  SuperAdmin: 'trustee', // org ceiling — NEVER 'owner'
+  Trustee: 'trustee',
+  Priest: 'priest',
+  Accountant: 'accountant',
+  Sevadar: 'sevadar',
+  Devotee: 'devotee',
+  CSO: 'sevadar',
+};
+
+const AI_ROLE_PASSTHROUGH: ReadonlySet<string> = new Set([
+  'devotee', 'sevadar', 'priest', 'accountant', 'trustee', 'purohit', 'jyotish',
+  // note: 'owner' deliberately absent — see the rule above.
+]);
+
+export function toAiRole(workspaceRole: string | null | undefined): Role {
+  if (!workspaceRole) return 'devotee';
+  const exact = WORKSPACE_TO_AI_ROLE[workspaceRole];
+  if (exact) return exact;
+  const lower = workspaceRole.toLowerCase();
+  if (AI_ROLE_PASSTHROUGH.has(lower)) return lower as Role;
+  return 'devotee';
+}
 
 /**
  * The single gate the assistant consults before serving an intent.

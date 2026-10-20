@@ -14,6 +14,16 @@
 
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
+import { checkAgainstBrief } from './ownerBrief';
+import {
+  buildProposal,
+  composeAdvice,
+  formatSimulation,
+  formatTermsHistory,
+  formatTermsSummary,
+  simulateTermsChange,
+  type TermsHistoryEntryLike,
+} from './termsTools';
 import {
   canUseCopilot,
   copilotDenied,
@@ -363,6 +373,194 @@ export function adminDraftTask(ctx: TaskCtx): TaskOutcome {
     variant: 'draft',
     suggestions: suggestionsFor('admin_draft', lang),
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* QUEUED #32 — terms, history, simulation, drafting, counsel          */
+/* Every executor re-checks canUseCopilot FIRST (defence in depth —    */
+/* the router and canOffer already gate, this is the last wall). The   */
+/* Copilot NEVER writes config: draft_change only shapes a proposal;   */
+/* the save happens in the Plans & Terms editor, under the owner's     */
+/* hand, with its diff-confirm and audit trail.                        */
+/* ------------------------------------------------------------------ */
+
+function deniedOutcome(ctx: TaskCtx): TaskOutcome {
+  return {
+    params: { text: copilotDenied(ctx.lang) },
+    variant: 'denied',
+    suggestions: suggestionsFor('greeting', ctx.lang),
+  };
+}
+
+function unavailableText(intent: 'terms' | 'history' | 'advise', lang: TaskCtx['lang']): string {
+  if (lang === 'hi') {
+    return '🪔 मैं अभी यह रिकॉर्ड नहीं पढ़ सका — मैं अनुमान से आँकड़े नहीं बनाऊँगा। कृपया फिर प्रयास करें।';
+  }
+  if (lang === 'bn') {
+    return '🪔 আমি এখনই রেকর্ডটি পড়তে পারিনি — অনুমানে সংখ্যা বানাব না। আবার চেষ্টা করুন।';
+  }
+  const what =
+    intent === 'terms' ? 'the live terms' : intent === 'history' ? 'the change history' : 'the full picture';
+  return `🪔 I couldn't read ${what} just now, and I won't invent figures. Please try again in a moment.`;
+}
+
+async function loadTerms() {
+  const m = await import('../../lib/termsConfig');
+  return m.getTerms();
+}
+
+async function loadTermsHistory(limitN = 50): Promise<TermsHistoryEntryLike[] | null> {
+  try {
+    const mod = await import('../../lib/firestoreAdmin');
+    const res = await mod.firestoreAdmin.termsHistory(limitN);
+    if (!res || !res.ok) return null;
+    const data = res.data as { entries?: TermsHistoryEntryLike[] } | undefined;
+    return Array.isArray(data?.entries) ? data.entries : null;
+  } catch {
+    return null;
+  }
+}
+
+/** admin_terms — "What are our terms?" Read-only, from the live config. */
+export async function adminTermsTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  try {
+    const terms = await loadTerms();
+    let text = formatTermsSummary(terms, ctx.lang);
+    const drift = checkAgainstBrief(terms).filter((w) => w.kind === 'drift');
+    if (drift.length > 0) {
+      text +=
+        '\n⚠ Drift from your law baseline:\n' +
+        drift.map((w) => `· ${w.message}`).join('\n') +
+        '\nLive config always wins — the baseline is your own 2026-10-14 law, there to be questioned, not obeyed blindly.';
+    }
+    return {
+      params: { text },
+      variant: terms.loadedAt ? 'default' : 'defaults',
+      suggestions: suggestionsFor('admin_terms', ctx.lang),
+    };
+  } catch {
+    return {
+      params: { text: unavailableText('terms', ctx.lang) },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_terms', ctx.lang),
+    };
+  }
+}
+
+/** admin_history — "What changed and when?" from #31's audit entries. */
+export async function adminHistoryTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  const entries = await loadTermsHistory(50);
+  if (!entries) {
+    return {
+      params: { text: unavailableText('history', ctx.lang) },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_history', ctx.lang),
+    };
+  }
+  return {
+    params: { text: formatTermsHistory(entries, ctx.lang) },
+    suggestions: suggestionsFor('admin_history', ctx.lang),
+  };
+}
+
+/** admin_simulate — pure impact maths. Nothing is written, ever. */
+export async function adminSimulateTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  const terms = await loadTerms();
+  const verdict = buildProposal(ctx.input, terms);
+  if (!verdict) {
+    const clarify =
+      ctx.lang === 'hi'
+        ? '🧮 मैं परिदृश्य चला सकता हूँ — बस योजना या दर और नया मूल्य बता दें। उदाहरण: "क्या हो यदि स्टैंडर्ड BDT मासिक ७५० हो जाए?" या "क्या हो यदि रेल-२ १०% हो जाए?"'
+        : ctx.lang === 'bn'
+          ? '🧮 আমি দৃশ্যকল্প চালাতে পারি — শুধু পরিকল্পনা বা হার আর নতুন মান বলুন। যেমন: "স্ট্যান্ডার্ড BDT মাসিক ৭৫০ হলে কী হবে?" বা "রেল-২ ১০% হলে?"'
+          : '🧮 I can run the scenario — just name the plan or rate and the new value. For example: "What if Standard BDT monthly becomes 750?" or "What if Rail-2 goes to 10%?" Nothing is changed by asking.';
+    return {
+      params: { text: clarify },
+      variant: 'clarify',
+      suggestions: suggestionsFor('admin_simulate', ctx.lang),
+    };
+  }
+  const sim = simulateTermsChange(terms, verdict.proposal);
+  let text = formatSimulation(sim, ctx.lang);
+  if (verdict.warnings.length > 0) {
+    text += '\n⚠ The editor would flag:\n' + verdict.warnings.map((w) => `· ${w}`).join('\n');
+  }
+  if (verdict.errors.length > 0) {
+    text +=
+      '\n⛔ As drafted, this change could NOT be saved:\n' + verdict.errors.map((e) => `· ${e}`).join('\n');
+  }
+  return {
+    params: { text },
+    suggestions: suggestionsFor('admin_simulate', ctx.lang),
+  };
+}
+
+/** admin_draft_change — shape a proposal card. NEVER writes config. */
+export async function adminDraftChangeTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  const terms = await loadTerms();
+  const verdict = buildProposal(ctx.input, terms);
+  if (!verdict) {
+    const clarify =
+      ctx.lang === 'hi'
+        ? '📝 मैं मसौदा बना सकता हूँ — योजना या दर और नया मूल्य स्पष्ट बता दें। उदाहरण: "स्टैंडर्ड BDT मासिक ७५० करें" या "रेल-१ को ७% करें"।'
+        : ctx.lang === 'bn'
+          ? '📝 আমি খসড়া তৈরি করতে পারি — পরিকল্পনা বা হার আর নতুন মান স্পষ্ট করে বলুন। যেমন: "স্ট্যান্ডার্ড BDT মাসিক ৭৫০ করো" বা "রেল-১ ৭% করো"।'
+          : '📝 I can draft it — name the plan or rate and the new value plainly. For example: "Change Standard BDT monthly to 750" or "Set Rail-1 to 7%". I will not guess at your prices.';
+    return {
+      params: { text: clarify },
+      variant: 'clarify',
+      suggestions: suggestionsFor('admin_draft_change', ctx.lang),
+    };
+  }
+  const { proposal, errors, warnings } = verdict;
+  if (errors.length > 0) {
+    return {
+      params: {
+        text:
+          `⛔ I won't draft this — it fails your own validation:\n` +
+          errors.map((e) => `· ${e}`).join('\n') +
+          '\nAdjust the value and ask again; nothing was prepared.',
+      },
+      variant: 'invalid',
+      suggestions: suggestionsFor('admin_draft_change', ctx.lang),
+    };
+  }
+  const text =
+    `📝 Draft ready — ${proposal.fieldLabel}: ${proposal.oldValue} → ${proposal.newValue}.\n` +
+    (warnings.length > 0 ? `⚠ The editor will flag:\n${warnings.map((w) => `· ${w}`).join('\n')}\n` : '') +
+    'Nothing is saved. Review it in Plans & Terms — the diff, the warnings and the final tap are all yours.';
+  return {
+    params: {
+      text,
+      proposal: proposal as unknown as Record<string, unknown>,
+    },
+    variant: 'proposal',
+    suggestions: suggestionsFor('admin_draft_change', ctx.lang),
+  };
+}
+
+/** admin_advise — strategic counsel from the brief + live numbers. */
+export async function adminAdviseTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  try {
+    const terms = await loadTerms();
+    const recent = await loadTermsHistory(30);
+    const text = composeAdvice(ctx.input, terms, { recentChangeCount: recent?.length ?? 0 }, ctx.lang);
+    return {
+      params: { text },
+      suggestions: suggestionsFor('admin_advise', ctx.lang),
+    };
+  } catch {
+    return {
+      params: { text: unavailableText('advise', ctx.lang) },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_advise', ctx.lang),
+    };
+  }
 }
 
 /* ------------------------------------------------------------------ */

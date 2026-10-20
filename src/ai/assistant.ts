@@ -16,6 +16,10 @@
  *   6. Phase 1 (optional): the on-device voice may warm the prose of
  *      `text` only — never `type`, `action`, or `suggestions`. Any
  *      failure returns the deterministic answer untouched.
+ *   7. QUEUED #32 (H2): the never-surface guard runs LAST for every
+ *      non-owner role — if the final text (executor + voice combined)
+ *      contains GodMode/platform-internal content, the whole answer is
+ *      replaced with a safe fallback. Owner answers are untouched.
  *
  * The "100% accurate" guarantee: every fact in the response comes from an
  * executor reading app data. When nothing can answer, the assistant says so
@@ -32,6 +36,7 @@ import type {
 import { detectCrisis } from './crisisKeywords';
 import { deterministicRouter, type IntentRouter, type RouteResult } from './intents';
 import { canOffer } from './rbac';
+import { guardSurface } from './surfaceGuard';
 import { renderTemplate, suggestionsFor, type TemplateKey } from './templates';
 import { TASKS } from './tasks/index';
 
@@ -56,13 +61,16 @@ function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string)
 async function routeInput(
   text: string,
   lang: string,
-  router: IntentRouter
+  router: IntentRouter,
+  role: AssistantCtx['role']
 ): Promise<RouteResult> {
   const base = router.route(text, lang);
   if (router !== deterministicRouter) return base;
   try {
     const mod = await import('./voice/llmRouter');
-    const refined = await mod.tryLlmRoute(text, lang);
+    // H1 (QUEUED #32): the LLM's intent catalogue is scoped by role —
+    // non-owner sessions never even see the admin intents as options.
+    const refined = await mod.tryLlmRoute(text, lang, role);
     if (refined) return refined;
   } catch {
     /* voice absent or hiccup — deterministic stands */
@@ -120,7 +128,7 @@ export async function ask(
 
   // 2. Route — deterministic first; the on-device voice may refine the
   //    mapping when warm and highly confident (see routeInput).
-  const route: RouteResult = await routeInput(text, lang, router);
+  const route: RouteResult = await routeInput(text, lang, router, role);
 
   // 3. Role-capability gate.
   const guideId = route.slots['guideId'];
@@ -169,5 +177,16 @@ export async function ask(
     suggestions,
     data: outcome.params,
   };
-  return maybeEnhanceWithVoice(base, lang, region);
+  const enhanced = await maybeEnhanceWithVoice(base, lang, region);
+
+  // 7. Never-surface guard (H2) — the final step. For non-owner roles,
+  //    any internal-content hit replaces the WHOLE answer (and drops
+  //    the data payload); the owner is never guarded.
+  if (role !== 'owner') {
+    const guarded = guardSurface(enhanced.text, role, lang);
+    if (guarded !== enhanced.text) {
+      return { ...enhanced, text: guarded, data: undefined };
+    }
+  }
+  return enhanced;
 }

@@ -23,11 +23,16 @@ import { tirthaSummaryTask } from './tirtha_summary';
 import { greetingTask } from './greeting';
 import { fallbackUnknownTask } from './fallback_unknown';
 import {
+  adminAdviseTask,
   adminBriefingTask,
+  adminDraftChangeTask,
+  adminHistoryTask,
+  adminSimulateTask,
   adminStatsTask,
   adminModerationHelpTask,
   adminAnomalyTask,
   adminDraftTask,
+  adminTermsTask,
 } from '../godmode/copilotTasks';
 
 export const TASKS: Record<IntentId, TaskExecutor> = {
@@ -52,4 +57,9 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   admin_moderation_help: adminModerationHelpTask,
   admin_anomaly: adminAnomalyTask,
   admin_draft: adminDraftTask,
+  admin_terms: adminTermsTask,
+  admin_history: adminHistoryTask,
+  admin_simulate: adminSimulateTask,
+  admin_draft_change: adminDraftChangeTask,
+  admin_advise: adminAdviseTask,
 };

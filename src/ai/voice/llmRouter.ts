@@ -16,19 +16,35 @@
  */
 
 import { deterministicRouter, INTENTS, type IntentRouter, type RouteResult } from '../intents';
+import { isCopilotIntent } from '../godmode/copilot';
+import type { Role } from '../types';
 import { isEngineWarm } from './engine';
 import { INTENT_CONFIDENCE_THRESHOLD, mapToIntent } from './renderer';
+
+/**
+ * H1 (QUEUED #32): the intent catalogue offered to the LLM is scoped by
+ * role. Non-owner sessions are never even SHOWN the owner-only admin
+ * intents — the model cannot map a devotee's words onto a catalogue
+ * entry it has never seen. (canOffer still gates afterwards: defence in
+ * depth, not trust.)
+ */
+export function catalogueForRole(role?: Role) {
+  const all = INTENTS.map((i) => ({ id: i.id, description: i.description }));
+  if (role === 'owner') return all;
+  return all.filter((i) => !isCopilotIntent(i.id));
+}
 
 /**
  * Try the LLM mapping. Returns null when the voice should not be
  * consulted — the caller then uses the deterministic result.
  */
-export async function tryLlmRoute(input: string, lang: string): Promise<RouteResult | null> {
+export async function tryLlmRoute(
+  input: string,
+  lang: string,
+  role?: Role
+): Promise<RouteResult | null> {
   if (!isEngineWarm()) return null;
-  const mapping = await mapToIntent(
-    input,
-    INTENTS.map((i) => ({ id: i.id, description: i.description }))
-  );
+  const mapping = await mapToIntent(input, catalogueForRole(role));
   if (!mapping || mapping.confidence < INTENT_CONFIDENCE_THRESHOLD) return null;
   return {
     intent: mapping.intent as RouteResult['intent'],

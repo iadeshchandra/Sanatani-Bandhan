@@ -52,6 +52,40 @@ describe('routeCopilotIntent', () => {
     // "attention" is briefing-specific; stats keywords shouldn't steal it.
     expect(routeCopilotIntent('What needs my attention this week?')).toBe('admin_briefing');
   });
+
+  /* QUEUED #32 — the five terms-era intents */
+  it('routes terms questions (platform-anchored)', () => {
+    expect(routeCopilotIntent('What are our terms?')).toBe('admin_terms');
+    expect(routeCopilotIntent('What is the Standard price in taka?')).toBe('admin_terms');
+    expect(routeCopilotIntent('What is our commission rate?')).toBe('admin_terms');
+  });
+  it('routes history questions', () => {
+    expect(routeCopilotIntent('What changed in the plans last week?')).toBe('admin_history');
+    expect(routeCopilotIntent('Who changed the commission?')).toBe('admin_history');
+    expect(routeCopilotIntent('What changed in our terms?')).toBe('admin_history');
+  });
+  it('routes simulations (hypotheticals)', () => {
+    expect(routeCopilotIntent('What if Standard BDT monthly becomes 750?')).toBe('admin_simulate');
+    expect(routeCopilotIntent('Simulate Rail-2 at 10%')).toBe('admin_simulate');
+    expect(routeCopilotIntent('What if I change Standard to 750?')).toBe('admin_simulate');
+  });
+  it('routes drafts (imperatives)', () => {
+    expect(routeCopilotIntent('Change Standard BDT monthly to 750')).toBe('admin_draft_change');
+    expect(routeCopilotIntent('Set Rail-1 to 7%')).toBe('admin_draft_change');
+    expect(routeCopilotIntent('Draft the change: Premium USD yearly to 260')).toBe('admin_draft_change');
+  });
+  it('routes advice (consultative)', () => {
+    expect(routeCopilotIntent('Should I raise Pro to ৳320?')).toBe('admin_advise');
+    expect(routeCopilotIntent('Is our commission too high?')).toBe('admin_advise');
+    expect(routeCopilotIntent('Advise me')).toBe('admin_advise');
+    expect(routeCopilotIntent('How do I grow revenue?')).toBe('admin_advise');
+  });
+  it('never routes ordinary devotee questions into admin intents', () => {
+    expect(routeCopilotIntent('What is the price of this seva?')).toBeNull();
+    expect(routeCopilotIntent('How do I change the language?')).toBeNull();
+    expect(routeCopilotIntent('What is dakshina?')).toBeNull();
+    expect(routeCopilotIntent('How do I book a purohit?')).toBeNull();
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -59,8 +93,8 @@ describe('routeCopilotIntent', () => {
 /* ------------------------------------------------------------------ */
 
 describe('copilot RBAC', () => {
-  it('exposes exactly five copilot intents', () => {
-    expect(COPILOT_INTENTS).toHaveLength(5);
+  it('exposes exactly ten copilot intents', () => {
+    expect(COPILOT_INTENTS).toHaveLength(10);
     expect(isCopilotIntent('admin_briefing')).toBe(true);
     expect(isCopilotIntent('admin_draft')).toBe(true);
     expect(isCopilotIntent('greeting')).toBe(false);

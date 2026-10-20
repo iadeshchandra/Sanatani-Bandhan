@@ -40,7 +40,12 @@ export type IntentId =
   | 'admin_stats'
   | 'admin_moderation_help'
   | 'admin_anomaly'
-  | 'admin_draft';
+  | 'admin_draft'
+  | 'admin_terms'
+  | 'admin_history'
+  | 'admin_simulate'
+  | 'admin_draft_change'
+  | 'admin_advise';
 
 /** Languages with fully authored assistant templates today. */
 export type TemplateLang = 'en' | 'hi' | 'bn';

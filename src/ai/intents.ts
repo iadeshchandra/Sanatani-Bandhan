@@ -42,6 +42,11 @@ export const INTENTS: IntentDef[] = [
   { id: 'admin_moderation_help', description: 'GodMode: flagged-post recommendations (owner-only)' },
   { id: 'admin_anomaly', description: 'GodMode: unusual-pattern scan (owner-only)' },
   { id: 'admin_draft', description: 'GodMode: announcement draft writer (owner-only)' },
+  { id: 'admin_terms', description: 'GodMode: inspect current plan prices, limits and commission terms (owner-only)' },
+  { id: 'admin_history', description: 'GodMode: what changed in the platform terms, who changed it and when (owner-only)' },
+  { id: 'admin_simulate', description: 'GodMode: simulate the impact of a price or commission change without applying it (owner-only)' },
+  { id: 'admin_draft_change', description: 'GodMode: draft a terms change as a proposal for owner review in the editor (owner-only)' },
+  { id: 'admin_advise', description: 'GodMode: strategic advice on pricing, commission and growth (owner-only)' },
 ];
 
 export interface RouteResult {

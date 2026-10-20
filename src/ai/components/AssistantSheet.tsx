@@ -17,6 +17,7 @@ import { AiVoiceSettings } from '../voice/components/AiVoiceSettings';
 import { probeVoiceCapability } from '../voice/capabilities';
 import { findNearbyTemples } from '../tasks/nearby';
 import { renderTemplate } from '../templates';
+import { toAiRole } from '../rbac';
 import {
   countAssistantUse,
   dismissNudgeForever,
@@ -184,7 +185,10 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   }, [firebaseUser]);
 
   const ctx: AssistantContext = useMemo(
-    () => ({ uid: uidKey, lang: currentLang, region, role: role ?? null }),
+    // H3 (QUEUED #32): the workspace role ('Trustee', 'SuperAdmin', …)
+    // is normalised into the AI vocabulary at this boundary — and a
+    // workspace SuperAdmin can never become the AI 'owner'.
+    () => ({ uid: uidKey, lang: currentLang, region, role: role ? toAiRole(role) : null }),
     [uidKey, currentLang, region, role]
   );
   const ctxRef = useRef(ctx);

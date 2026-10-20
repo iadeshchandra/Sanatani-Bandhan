@@ -16,9 +16,15 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { X, Send, Sparkles, Loader2, ShieldAlert, TrendingUp, Bell, PenLine, Sun } from 'lucide-react';
+import {
+  X, Send, Sparkles, Loader2, ShieldAlert, TrendingUp, Bell, PenLine, Sun,
+  Coins, History, Calculator, Compass, BookOpen,
+} from 'lucide-react';
 import { ask } from '../assistant';
 import type { AssistantCtx } from '../types';
+import { logCopilotAction } from './copilotTasks';
+import { briefSummaryLines } from './ownerBrief';
+import { writeTermsDraft, type TermsDraft } from './termsDraftHandoff';
 
 interface Props {
   uid: string;
@@ -36,6 +42,8 @@ interface ChatMessage {
   createdAt: number;
   /** Structured moderation items (from admin_moderation_help). */
   moderationItems?: ModerationItem[];
+  /** Structured terms-change proposal (from admin_draft_change, QUEUED #32). */
+  proposal?: TermsDraft & { field: string } | null;
 }
 
 interface ModerationItem {
@@ -54,6 +62,11 @@ const QUICK_ACTIONS = [
   { id: 'moderation', label: 'Flagged posts', icon: ShieldAlert, query: 'Review flagged posts' },
   { id: 'stats', label: "This week's numbers", icon: TrendingUp, query: "How many bookings this week?" },
   { id: 'anomaly', label: 'Anything unusual?', icon: Bell, query: 'Anything unusual?' },
+  // QUEUED #32 — terms, history, simulation, counsel.
+  { id: 'terms', label: '💰 Terms today', icon: Coins, query: 'What are our terms?' },
+  { id: 'history', label: '🕰 What changed?', icon: History, query: 'What changed?' },
+  { id: 'simulate', label: '🧮 Simulate a change', icon: Calculator, query: 'Simulate a change' },
+  { id: 'advise', label: '🧭 Advise me', icon: Compass, query: 'Advise me' },
 ];
 
 let msgSeq = 0;
@@ -63,6 +76,7 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [showBrief, setShowBrief] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   const ctx: AssistantCtx = useMemo(
@@ -92,6 +106,7 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
         text: res.text,
         createdAt: Date.now(),
         moderationItems: extractModerationItems(res.data),
+        proposal: extractProposal(res.data),
       };
       setMessages((m) => [...m, copilotMsg]);
     } catch {
@@ -110,6 +125,24 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
     }
   };
 
+  /**
+   * QUEUED #32: hand a drafted change to the Plans & Terms editor.
+   * The Copilot NEVER writes config — the draft travels via
+   * sessionStorage, the editor prefills, and the owner's save there
+   * (diff-confirm + audit) is the only write. This tap is audit-marked
+   * as copilot-assisted, like every other copilot handoff.
+   */
+  const reviewDraft = (proposal: TermsDraft & { field: string }) => {
+    writeTermsDraft(proposal);
+    void logCopilotAction(
+      uid,
+      'copilot.terms_draft',
+      proposal.planId || proposal.kind,
+      `${proposal.fieldLabel}: ${proposal.oldValue} → ${proposal.newValue}`
+    );
+    onNavigateToTab?.('settings');
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-200">
       {/* Header */}
@@ -121,7 +154,33 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
           <div className="font-bold text-white text-sm">🪔 Your Copilot</div>
           <div className="text-xs text-slate-500">I advise — you decide. I never act alone.</div>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowBrief((b) => !b)}
+          className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 shrink-0"
+          aria-expanded={showBrief}
+        >
+          <BookOpen className="w-4 h-4 text-saffron-300" />
+          My brief
+        </button>
       </div>
+
+      {/* My brief — the owner's goals/laws/heuristics, read-only. */}
+      {showBrief && (
+        <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-900/60 max-h-64 overflow-y-auto">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-2">
+            The brief I think with — yours, always
+          </div>
+          <div className="space-y-1.5 text-xs text-slate-300 leading-relaxed">
+            {briefSummaryLines().map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500 italic">
+            Standing laws and pricing baseline live in my Owner Brief — I cite them when I advise, and I flag it when an ask conflicts with them.
+          </p>
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="flex gap-2 px-4 py-3 overflow-x-auto border-b border-slate-800/60">
@@ -154,7 +213,7 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
           <div className="text-center text-slate-500 text-sm py-8">
             <div className="text-3xl mb-2">🪔</div>
             <p>Ask me anything about your platform.</p>
-            <p className="mt-1 text-xs">Briefings, numbers, flagged posts, anomalies, drafts.</p>
+            <p className="mt-1 text-xs">Briefings, numbers, flagged posts, anomalies — and now your terms, their history, change simulations and counsel.</p>
           </div>
         )}
         {messages.map((m) => (
@@ -208,6 +267,27 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
                   </p>
                 </div>
               )}
+              {m.proposal && (
+                <div className="mt-3 rounded-xl bg-slate-900/80 border border-saffron-500/30 p-3">
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1">
+                    📝 Drafted change — not saved
+                  </div>
+                  <div className="text-sm text-slate-200 font-semibold">{m.proposal.fieldLabel}</div>
+                  <div className="text-sm text-slate-300 mb-3">
+                    {m.proposal.oldValue} <span className="text-saffron-300">→</span> {m.proposal.newValue}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => m.proposal && reviewDraft(m.proposal)}
+                    className="w-full min-h-[44px] rounded-lg bg-saffron-500/15 hover:bg-saffron-500/25 border border-saffron-500/30 text-saffron-200 text-xs font-bold"
+                  >
+                    Review in Plans &amp; Terms →
+                  </button>
+                  <p className="mt-2 text-[11px] text-slate-500 italic">
+                    The editor opens prefilled — check the diff and the warnings, then save there. Nothing changes until your tap.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -247,6 +327,34 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
     </div>
   );
 };
+
+/**
+ * Read a structured terms-change proposal from the executor's data
+ * payload (admin_draft_change). Returns null when absent or malformed —
+ * the message text always carries the summary either way.
+ */
+function extractProposal(
+  data: Record<string, unknown> | undefined
+): (TermsDraft & { field: string }) | null {
+  if (!data) return null;
+  const raw = data['proposal'] as Record<string, unknown> | undefined;
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw['kind'] !== 'plan' && raw['kind'] !== 'commission') return null;
+  if (typeof raw['fieldLabel'] !== 'string' || typeof raw['patch'] !== 'object' || !raw['patch']) return null;
+  return {
+    kind: raw['kind'] as 'plan' | 'commission',
+    planId: typeof raw['planId'] === 'string' ? (raw['planId'] as string) : undefined,
+    field: String(raw['field'] || ''),
+    fieldLabel: String(raw['fieldLabel']),
+    oldValue: typeof raw['oldValue'] === 'number' ? (raw['oldValue'] as number) : 0,
+    newValue: typeof raw['newValue'] === 'number' ? (raw['newValue'] as number) : 0,
+    patch: raw['patch'] as Record<string, number>,
+    limitsPatch:
+      raw['limitsPatch'] && typeof raw['limitsPatch'] === 'object'
+        ? (raw['limitsPatch'] as Record<string, number>)
+        : undefined,
+  };
+}
 
 /**
  * Read structured moderation items from the executor's data payload.
