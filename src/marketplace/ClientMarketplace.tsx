@@ -27,6 +27,7 @@ import { SevaRails } from './SevaRails';
 import { KritagyataPrompt } from './KritagyataPrompt';
 import { RatingPrompt } from './RatingPrompt';
 import { GigDetail } from './GigDetail';
+import { OrderTimeline } from './OrderTimeline';
 import { extractReferrer, resolveReferralAttribution } from '../sangam/referrals';
 import { fetchOwnSanId, recordReferralClaim } from '../sangam/referralThanksService';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -352,6 +353,10 @@ const MyBookings: React.FC = () => {
           {gratitudeFor && gratitudeFor.id === o.id && (
             <KritagyataPrompt order={gratitudeFor} onDone={() => { setGratitudeFor(null); setRatingFor({ ...gratitudeFor }); }} />
           )}
+          {/* QUEUED #26: the seva journey — where this order stands, what
+              happens next, and who acts. Same component the provider sees,
+              with devotee-side words. */}
+          <OrderTimeline order={o as any} perspective="client" />
         </div>
       ))}
       {disputeFor && (

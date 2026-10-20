@@ -21,6 +21,7 @@ import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from 
 import { openPlanUpgrade } from '../billing/PlanUpgradeFlow';
 import { PRO_REQUIRED_CODE } from '../lib/sevaPro/proGate';
 import { ProviderDues } from './ProviderDues';
+import { OrderTimeline } from './OrderTimeline';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
 // Seva Professional Phase 3+4: atomic completion w/ pre-funded commission,
 // earning-wallet coverage banner, provider referral dashboard.
@@ -302,6 +303,9 @@ const ProviderOrders: React.FC = () => {
               <SevaCompletionButton order={o} onCompleted={load} />
             </div>
           )}
+          {/* QUEUED #26: the seva journey — same timeline the family sees,
+              with provider-side words ("a family awaits your acceptance"). */}
+          <OrderTimeline order={o as any} perspective="provider" />
         </div>
       ))}
     </div>
