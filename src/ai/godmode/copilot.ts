@@ -15,8 +15,9 @@
  */
 
 import type { IntentId, LangCode, Role } from '../types';
+import { ANTI_PATTERN_ROUTER_PHRASES } from './marketingBrief';
 
-/** The ten copilot intents — owner-only. */
+/** The eleven copilot intents — owner-only. */
 export const COPILOT_INTENTS: IntentId[] = [
   'admin_briefing',
   'admin_stats',
@@ -28,6 +29,7 @@ export const COPILOT_INTENTS: IntentId[] = [
   'admin_simulate',
   'admin_draft_change',
   'admin_advise',
+  'admin_growth',
 ];
 
 export function isCopilotIntent(intent: IntentId): boolean {
@@ -120,6 +122,30 @@ const ADVISE_KW = [
   'your recommendation', 'सलाह', 'পরামর্শ', 'উপদেশ', 'কী করা উচিত', 'क्या करना चाहिए',
 ];
 
+/* QUEUED #37 — growth/marketing counsel. Anchored on marketing
+ * vocabulary (NOT bare 'grow' — "grow revenue" stays with admin_advise,
+ * whose counsel is pricing-framed; this intent is funnel-framed).
+ * The anti-pattern anchor phrases ride along so a refused tactic
+ * ("buy fake reviews", "discount on puja") lands HERE, where the
+ * executor refuses it with counsel, instead of drifting to advice. */
+const GROWTH_KW = [
+  'growth plan', 'growth strategy', 'marketing', 'marketing plan',
+  'promote', 'promotion', 'campaign', 'acquisition', 'user growth',
+  'get more users', 'more users', 'more devotees', 'more signups',
+  'grow our reach', 'grow the user base', 'how do we grow', 'viral',
+  'referral', 'referrals', 'referral program', 'onboard more',
+  'onboarding', 'more temples', 'more organisations', 'more organizations',
+  'brand awareness', 'app promotion',
+  // Market-success counsel (addendum): positioning / moat questions
+  // are growth questions — the executor adds the "Where we win" frame.
+  'competitor', 'competitors', 'competition', 'our moat', 'positioning',
+  'market position', 'how do we win', 'dominate the market', 'whatsapp groups',
+  'user behaviour', 'user behavior', 'retention', 'why do users leave',
+  'মার্কেটিং', 'প্রচার', 'অভিযান', 'আরও ব্যবহারকারী', 'আরও ভক্ত', 'রেফারেল',
+  'मार्केटिंग', 'अभियान', 'प्रचार अभियान',
+  ...ANTI_PATTERN_ROUTER_PHRASES,
+];
+
 const COPILOT_RULES: Array<{ intent: IntentId; keywords: string[] }> = [
   { intent: 'admin_briefing', keywords: BRIEFING_KW },
   { intent: 'admin_moderation_help', keywords: MODERATION_KW },
@@ -130,7 +156,12 @@ const COPILOT_RULES: Array<{ intent: IntentId; keywords: string[] }> = [
   // advise is checked before the imperative draft table); imperatives
   // draft ("change Standard…"); history before terms ("what changed in
   // our terms?" asks about the past, not the present values).
+  // #37: growth sits between simulate and advise — marketing-anchored
+  // phrases (and anti-pattern asks) claim growth counsel before the
+  // generic advise table can take them; bare "grow revenue" contains
+  // no growth keyword and still lands on advise, as pinned.
   { intent: 'admin_simulate', keywords: SIMULATE_KW },
+  { intent: 'admin_growth', keywords: GROWTH_KW },
   { intent: 'admin_advise', keywords: ADVISE_KW },
   { intent: 'admin_draft_change', keywords: DRAFT_CHANGE_KW },
   { intent: 'admin_history', keywords: HISTORY_KW },

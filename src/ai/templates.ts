@@ -633,6 +633,13 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
       bn: (p, c) => `${p['text']}`,
     },
   },
+  admin_growth: {
+    default: {
+      en: (p, c) => `${p['text']}`,
+      hi: (p, c) => `${p['text']}`,
+      bn: (p, c) => `${p['text']}`,
+    },
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -769,6 +776,11 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['What are our terms?', 'Simulate a change', "This week's numbers"],
     hi: ['हमारी शर्तें क्या हैं?', 'सलाह दें', 'सप्ताह के आंकड़े'],
     bn: ['আমাদের শর্ত কী?', 'পরামর্শ দিন', 'সপ্তাহের সংখ্যা'],
+  },
+  admin_growth: {
+    en: ['Give me a growth plan', "This week's numbers", 'What are our terms?'],
+    hi: ['वृद्धि योजना दें', 'सप्ताह के आंकड़े', 'हमारी शर्तें क्या हैं?'],
+    bn: ['বৃদ্ধির পরিকল্পনা দিন', 'সপ্তাহের সংখ্যা', 'আমাদের শর্ত কী?'],
   },
 };
 

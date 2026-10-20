@@ -98,6 +98,7 @@ const OWNER_ONLY_INTENTS: IntentId[] = [
   'admin_simulate',
   'admin_draft_change',
   'admin_advise',
+  'admin_growth',
 ];
 
 export const roleCapabilities: Record<Role, RoleCapability> = {

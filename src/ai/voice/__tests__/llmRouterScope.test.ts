@@ -34,12 +34,13 @@ describe('tryLlmRoute catalogue scoping (H1)', () => {
     expect(catalog.filter((c) => c.id.startsWith('admin_'))).toEqual([]);
   });
 
-  it('owner sessions: all ten admin intents are offered', async () => {
+  it('owner sessions: all eleven admin intents are offered', async () => {
     await tryLlmRoute('anything', 'en', 'owner');
     const catalog = mockMapToIntent.mock.calls[0][1] as Array<{ id: string }>;
     const admin = catalog.filter((c) => c.id.startsWith('admin_')).map((c) => c.id);
-    expect(admin).toHaveLength(10);
+    expect(admin).toHaveLength(11);
     expect(admin).toContain('admin_terms');
     expect(admin).toContain('admin_advise');
+    expect(admin).toContain('admin_growth'); // #37 — owner-only growth counsel
   });
 });

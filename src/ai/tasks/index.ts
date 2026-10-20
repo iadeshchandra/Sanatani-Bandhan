@@ -33,6 +33,7 @@ import {
   adminAnomalyTask,
   adminDraftTask,
   adminTermsTask,
+  adminGrowthTask,
 } from '../godmode/copilotTasks';
 
 export const TASKS: Record<IntentId, TaskExecutor> = {
@@ -62,4 +63,5 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   admin_simulate: adminSimulateTask,
   admin_draft_change: adminDraftChangeTask,
   admin_advise: adminAdviseTask,
+  admin_growth: adminGrowthTask,
 };

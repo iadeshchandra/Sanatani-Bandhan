@@ -45,7 +45,8 @@ export type IntentId =
   | 'admin_history'
   | 'admin_simulate'
   | 'admin_draft_change'
-  | 'admin_advise';
+  | 'admin_advise'
+  | 'admin_growth';
 
 /** Languages with fully authored assistant templates today. */
 export type TemplateLang = 'en' | 'hi' | 'bn';

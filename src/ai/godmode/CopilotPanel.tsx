@@ -25,6 +25,7 @@ import type { AnswerSource, AssistantCtx, VerificationMeta } from '../types';
 import { formatSourcesFooter } from './accuracy';
 import { logCopilotAction } from './copilotTasks';
 import { briefSummaryLines } from './ownerBrief';
+import { marketingSummaryLines } from './marketingBrief';
 import { writeTermsDraft, type TermsDraft } from './termsDraftHandoff';
 
 interface Props {
@@ -72,6 +73,8 @@ const QUICK_ACTIONS = [
   { id: 'history', label: '🕰 What changed?', icon: History, query: 'What changed?' },
   { id: 'simulate', label: '🧮 Simulate a change', icon: Calculator, query: 'Simulate a change' },
   { id: 'advise', label: '🧭 Advise me', icon: Compass, query: 'Advise me' },
+  // QUEUED #37 — marketing counsel: funnel facts, festival beats, plays.
+  { id: 'growth', label: '📈 Growth plan', icon: TrendingUp, query: 'Give me a growth plan' },
 ];
 
 let msgSeq = 0;
@@ -179,7 +182,7 @@ export const CopilotPanel: React.FC<Props> = ({ uid, lang, onNavigateToTab }) =>
             The brief I think with — yours, always
           </div>
           <div className="space-y-1.5 text-xs text-slate-300 leading-relaxed">
-            {briefSummaryLines().map((line, i) => (
+            {[...briefSummaryLines(), ...marketingSummaryLines()].map((line, i) => (
               <p key={i}>{line}</p>
             ))}
           </div>

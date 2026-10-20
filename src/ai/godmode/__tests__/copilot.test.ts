@@ -93,8 +93,8 @@ describe('routeCopilotIntent', () => {
 /* ------------------------------------------------------------------ */
 
 describe('copilot RBAC', () => {
-  it('exposes exactly ten copilot intents', () => {
-    expect(COPILOT_INTENTS).toHaveLength(10);
+  it('exposes exactly eleven copilot intents', () => {
+    expect(COPILOT_INTENTS).toHaveLength(11);
     expect(isCopilotIntent('admin_briefing')).toBe(true);
     expect(isCopilotIntent('admin_draft')).toBe(true);
     expect(isCopilotIntent('greeting')).toBe(false);

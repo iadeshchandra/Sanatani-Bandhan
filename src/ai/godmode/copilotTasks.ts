@@ -14,6 +14,13 @@
 
 import { suggestionsFor } from '../templates';
 import type { FigureClaim, TaskCtx, TaskOutcome } from '../types';
+import { upcomingFestivals } from '../../lib/panjikaFestivals';
+import { refusalHeadline, screenAntiPattern } from './marketingBrief';
+import {
+  composeGrowthWithClaims,
+  growthCoreReadable,
+  type GrowthSnapshot,
+} from './growthTools';
 import {
   collectionSource,
   historySource,
@@ -709,6 +716,174 @@ export async function adminAdviseTask(ctx: TaskCtx): Promise<TaskOutcome> {
       suggestions: suggestionsFor('admin_advise', ctx.lang),
     };
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* QUEUED #37 — admin_growth: digital-marketing counsel                */
+/* Grounded ONLY in live reads (funnel counts + referral claims +    */
+/* the bundled panjika calendar). Anti-pattern asks are refused with  */
+/* counsel BEFORE any data is read — the refusal never depends on     */
+/* the funnel being readable. No figure is ever invented: a failed    */
+/* read renders nothing, claims nothing, and is named as a gap.       */
+/* ------------------------------------------------------------------ */
+
+export async function adminGrowthTask(ctx: TaskCtx): Promise<TaskOutcome> {
+  if (!canUseCopilot(ctx.role)) return deniedOutcome(ctx);
+  const lang = ctx.lang || 'en';
+
+  // 1) Anti-pattern screen — buy fake reviews, discount a puja, blast
+  //    spam: refused from the owner's own brief, lawful play offered.
+  const anti = screenAntiPattern(ctx.input || '');
+  if (anti) {
+    return {
+      params: {
+        text: [
+          refusalHeadline(lang),
+          `You asked about ${anti.label}. From your own brief: ${anti.why}`,
+          `The lawful play instead: ${anti.alternative}`,
+          'Ask me "give me a growth plan" and I’ll lay out the plays that compound — grounded in this week’s real numbers.',
+        ].join('\n'),
+      },
+      variant: 'refused',
+      suggestions: suggestionsFor('admin_growth', lang),
+    };
+  }
+
+  // 2) Live funnel reads — every corner null-safe (a failed read is a
+  //    gap in the answer, never a zero dressed as fact).
+  const nowMs = Date.now();
+  const weekAgo = new Date(nowMs - 7 * DAY_MS);
+  const twoWeeksAgo = new Date(nowMs - 14 * DAY_MS);
+  const monthAgo = new Date(nowMs - 30 * DAY_MS);
+  const [
+    signups7, signups14, activeUsers, bookings7, bookings14,
+    orgsTotal, orgsNew, temples, subsActive, subsPro,
+    refClaims7, refClaims30,
+    usersTotal, providersTotal,
+    orders30Total, orders30Completed, orders30Pending, orders30Cancelled, orders30Disputed,
+  ] = await Promise.all([
+    countDocs('users', [{ field: 'createdAt', op: '>=', value: weekAgo }]),
+    countDocs('users', [{ field: 'createdAt', op: '>=', value: twoWeeksAgo }]),
+    countDocs('users', [{ field: 'lastActiveAt', op: '>=', value: weekAgo }]),
+    countDocs('marketplaceOrders', [{ field: 'createdAt', op: '>=', value: weekAgo }]),
+    countDocs('marketplaceOrders', [{ field: 'createdAt', op: '>=', value: twoWeeksAgo }]),
+    countDocs('workspaces', []),
+    countDocs('workspaces', [{ field: 'createdAt', op: '>=', value: monthAgo }]),
+    countDocs('campusMaps', []),
+    countDocs('subscriptions', [{ field: 'status', op: '==', value: 'active' }]),
+    countDocs('subscriptions', [
+      { field: 'status', op: '==', value: 'active' },
+      { field: 'planId', op: '==', value: 'purohit_pro' },
+    ]),
+    // referralClaims.createdAt is epoch ms (client clock) — a number.
+    countDocs('referralClaims', [{ field: 'createdAt', op: '>=', value: nowMs - 7 * DAY_MS }]),
+    countDocs('referralClaims', [{ field: 'createdAt', op: '>=', value: nowMs - 30 * DAY_MS }]),
+    // Segment shape (aggregates only — counts, never documents).
+    countDocs('users', []),
+    countDocs('sevaProfessionals', []),
+    // Booking funnel shape, last 30 days — a status census of orders.
+    countDocs('marketplaceOrders', [{ field: 'createdAt', op: '>=', value: monthAgo }]),
+    countDocs('marketplaceOrders', [
+      { field: 'createdAt', op: '>=', value: monthAgo },
+      { field: 'status', op: '==', value: 'completed' },
+    ]),
+    countDocs('marketplaceOrders', [
+      { field: 'createdAt', op: '>=', value: monthAgo },
+      { field: 'status', op: '==', value: 'pending_payment' },
+    ]),
+    countDocs('marketplaceOrders', [
+      { field: 'createdAt', op: '>=', value: monthAgo },
+      { field: 'status', op: '==', value: 'cancelled' },
+    ]),
+    countDocs('marketplaceOrders', [
+      { field: 'createdAt', op: '>=', value: monthAgo },
+      { field: 'status', op: '==', value: 'disputed' },
+    ]),
+  ]);
+  const prior = (last14: number | null, last7: number | null) =>
+    last14 !== null && last7 !== null ? Math.max(0, last14 - last7) : null;
+
+  // 3) Festival proximity — the bundled panjika calendar (real dates,
+  //    computed on-device; the same source festival_next serves).
+  let nextFestival: GrowthSnapshot['nextFestival'] = null;
+  try {
+    const now = new Date(nowMs);
+    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const next = upcomingFestivals(iso, 1)[0];
+    if (next) {
+      const days = Math.round(
+        (Date.parse(next.date) - Date.parse(iso)) / DAY_MS
+      );
+      const name =
+        lang === 'bn' ? next.nameBn || next.nameEn : lang === 'hi' ? next.nameHi || next.nameEn : next.nameEn;
+      nextFestival = { name, daysUntil: Math.max(0, days) };
+    }
+  } catch {
+    nextFestival = null; // calendar unreadable — the section simply absents itself
+  }
+
+  const snapshot: GrowthSnapshot = {
+    signups7d: signups7,
+    signupsPrior7d: prior(signups14, signups7),
+    activeUsers7d: activeUsers,
+    usersTotal,
+    providersTotal,
+    bookings7d: bookings7,
+    bookingsPrior7d: prior(bookings14, bookings7),
+    orders30dTotal: orders30Total,
+    orders30dCompleted: orders30Completed,
+    orders30dPendingPayment: orders30Pending,
+    orders30dCancelled: orders30Cancelled,
+    orders30dDisputed: orders30Disputed,
+    orgsTotal,
+    orgsNew30d: orgsNew,
+    templesMapped: temples,
+    subsActive,
+    subsProActive: subsPro,
+    referralClaims7d: refClaims7,
+    referralClaims30d: refClaims30,
+    nextFestival,
+  };
+
+  // 4) Abstention: if the whole funnel core is dark, say so.
+  if (!growthCoreReadable(snapshot)) {
+    return {
+      params: {
+        text:
+          lang === 'hi'
+            ? '📈 वृद्धि की तस्वीर अभी पढ़ी नहीं जा सकी — मैं अनुमान से सलाह नहीं दूँगा। कनेक्शन जाँचकर पुनः पूछें।'
+            : lang === 'bn'
+              ? '📈 বৃদ্ধির চিত্র এখন পড়া যাচ্ছে না — অনুমানে পরামর্শ দেব না। সংযোগ পরীক্ষা করে আবার জিজ্ঞেস করুন।'
+              : '📈 I couldn’t read the growth picture just now — and I won’t counsel from guesses. Please check your connection and ask again.',
+      },
+      variant: 'unavailable',
+      suggestions: suggestionsFor('admin_growth', lang),
+    };
+  }
+
+  // Market-shaped questions also get the competitive frame (general
+  // knowledge, labelled inside the answer — never dressed as data).
+  const marketFocus =
+    /compet|market|win|dominat|whatsapp group|positioning|moat/i.test(ctx.input || '');
+  const { text, claims } = composeGrowthWithClaims(snapshot, lang, { marketFocus });
+  const now = Date.now();
+  return {
+    params: { text },
+    suggestions: suggestionsFor('admin_growth', lang),
+    sources: [
+      collectionSource('users', now),
+      collectionSource('marketplaceOrders', now),
+      collectionSource('workspaces', now),
+      collectionSource('campusMaps', now),
+      collectionSource('subscriptions', now),
+      collectionSource('referralClaims', now),
+      collectionSource('sevaProfessionals', now),
+      ...(nextFestival
+        ? [{ label: 'panjika festival calendar (bundled)', readAt: now, live: true }]
+        : []),
+    ],
+    claims,
+  };
 }
 
 /* ------------------------------------------------------------------ */

@@ -47,6 +47,7 @@ export const INTENTS: IntentDef[] = [
   { id: 'admin_simulate', description: 'GodMode: simulate the impact of a price or commission change without applying it (owner-only)' },
   { id: 'admin_draft_change', description: 'GodMode: draft a terms change as a proposal for owner review in the editor (owner-only)' },
   { id: 'admin_advise', description: 'GodMode: strategic advice on pricing, commission and growth (owner-only)' },
+  { id: 'admin_growth', description: 'GodMode: digital-marketing counsel — funnel facts, festival beats, growth plays, refused anti-patterns (owner-only)' },
 ];
 
 export interface RouteResult {

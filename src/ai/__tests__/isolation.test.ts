@@ -130,7 +130,7 @@ describe('H1 — role-scoped LLM catalogue', () => {
     }
   });
 
-  it('the owner catalogue contains all ten copilot intents', () => {
+  it('the owner catalogue contains all copilot intents', () => {
     const ids = catalogueForRole('owner').map((c) => c.id);
     for (const id of COPILOT_INTENTS) expect(ids).toContain(id);
   });
