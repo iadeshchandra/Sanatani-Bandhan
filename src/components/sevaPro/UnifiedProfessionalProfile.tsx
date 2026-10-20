@@ -19,7 +19,7 @@
  * Warm, dignified Sanatani tone everywhere — verification reads as an honor.
  */
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Share2, Check, MessageCircle, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -40,6 +40,16 @@ import {
 } from './sevaProUi';
 import { BookingSheet } from './BookingSheet';
 import { ProviderGratitudeWall } from './ProviderGratitudeWall';
+import {
+  getProviderBlessings,
+  listProviderGigs,
+  type Gig,
+  type ProviderBlessings,
+} from '../../lib/marketplace';
+import { listProviderServiceCards } from '../../sangam/providerCards';
+import type { SangamPost } from '../../sangam/types';
+import { formatServiceDakshina } from '../../sangam/ServiceCardPost';
+import { formatMoney } from '../../lib/money';
 import { Chat } from '../../chat/Chat';
 import { getOrCreateDirectChat } from '../../chat/chatService';
 import type { ChatParticipant } from '../../chat/types';
@@ -57,6 +67,7 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
 }) => {
   const { uid: routeUid } = useParams<{ uid: string }>();
   const uid = uidOverride || routeUid || '';
+  const navigate = useNavigate();
   const { safeTranslate, language } = useLanguage();
   const tx = (en: string, bn: string, hi: string) => safeTranslate('', en, bn, hi);
   const { firebaseUser } = useAuthWorkspace();
@@ -72,6 +83,32 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
   const [chatOpen, setChatOpen] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatStarting, setChatStarting] = useState(false);
+  // QUEUED #22 — the silo bridge: this provider's marketplace gigs AND
+  // Sangam seva notices, plus the blessings both surfaces earned. Each
+  // fetch fails quiet — the profile stands without them.
+  const [sevaGigs, setSevaGigs] = useState<Gig[]>([]);
+  const [sevaCards, setSevaCards] = useState<SangamPost[]>([]);
+  const [sevaBlessings, setSevaBlessings] = useState<ProviderBlessings | null>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const g = await listProviderGigs(uid);
+        if (!cancelled) setSevaGigs(g);
+      } catch { /* enhancement only */ }
+      try {
+        const c = await listProviderServiceCards(uid);
+        if (!cancelled) setSevaCards(c);
+      } catch { /* enhancement only */ }
+      try {
+        const b = await getProviderBlessings(uid);
+        if (!cancelled) setSevaBlessings(b);
+      } catch { /* enhancement only */ }
+    })();
+    return () => { cancelled = true; };
+  }, [uid]);
 
   useEffect(() => {
     let cancelled = false;
@@ -482,6 +519,124 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
               />
             ))}
           </div>
+        </SectionCard>
+      )}
+
+      {/* ============ SEVAS OFFERED — BOTH SILOS, ONE PROVIDER ============
+          QUEUED #22: marketplace gigs (marketplaceGigs) and Sangam seva
+          notices (sangamPosts service cards) used to be invisible to each
+          other. Here they meet: one listing of everything this sevak
+          offers, and the blessings earned across BOTH. Gig rows open the
+          Seva marketplace; notice rows open the notice in the Sangam
+          feed — the surfaces where booking actually happens. */}
+      {(sevaGigs.length > 0 || sevaCards.length > 0) && (
+        <SectionCard
+          title={tx('Sevas offered', 'প্রদত্ত সেবা', 'प्रदत्त सेवाएँ')}
+          icon="🪔"
+        >
+          {sevaBlessings && sevaBlessings.count > 0 && (
+            <p className="text-sm text-stone-700 mb-3 flex items-center gap-1.5 flex-wrap">
+              <Stars value={sevaBlessings.avg} size="w-3.5 h-3.5" />
+              <span className="font-bold text-amber-800">{sevaBlessings.avg.toFixed(1)}</span>
+              <span aria-hidden="true">·</span>
+              <span>
+                🙏 {sevaBlessings.count}{' '}
+                {tx(
+                  'blessings from families across all sevas',
+                  'সব সেবা জুড়ে পরিবারদের আশীর্বাদ',
+                  'सभी सेवाओं में परिवारों के आशीर्वाद'
+                )}
+              </span>
+            </p>
+          )}
+          <ul className="space-y-2">
+            {sevaGigs.map((g) => (
+              <li key={`gig-${g.id}`}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/home/marketplace')}
+                  className="w-full text-left bg-stone-50 hover:bg-amber-50 border border-stone-200 hover:border-amber-200 rounded-xl p-3.5 transition-colors min-h-[44px]"
+                  aria-label={`${g.title} — ${tx('view in the Seva marketplace', 'সেবা বাজারে দেখুন', 'सेवा बाज़ार में देखें')}`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-stone-800 min-w-0 truncate">
+                      {g.providerType === 'jyotishi' ? '🔮' : '🛕'} {g.title}
+                    </span>
+                    <span className="text-sm font-bold text-amber-800 shrink-0">
+                      {formatMoney(Number(g.priceAmount || 0), g.priceCurrency || 'INR')}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 flex-wrap">
+                    <span className="font-medium text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                      {tx('Marketplace seva', 'বাজারের সেবা', 'बाज़ार सेवा')}
+                    </span>
+                    {Number(g.avgRating || 0) > 0 && (
+                      <span>
+                        ★ {Number(g.avgRating).toFixed(1)} · 🙏 {Number((g as { ratingCount?: number }).ratingCount || 0)}
+                      </span>
+                    )}
+                    {Number(g.totalOrders || 0) > 0 && (
+                      <span>
+                        {g.totalOrders} {tx('sevas booked', 'সেবা বুক হয়েছে', 'सेवाएँ बुक हुईं')}
+                      </span>
+                    )}
+                    <span className="ml-auto text-amber-700 font-semibold">
+                      {tx('Book in Seva Bazar →', 'সেবা বাজারে বুক করুন →', 'सेवा बाज़ार में बुक करें →')}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+            {sevaCards.map((p) => (
+              <li key={`card-${p.id}`}>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/app/home/sangam?post=${p.id}`)}
+                  className="w-full text-left bg-stone-50 hover:bg-amber-50 border border-stone-200 hover:border-amber-200 rounded-xl p-3.5 transition-colors min-h-[44px]"
+                  aria-label={`${p.serviceCard?.serviceLine || ''} — ${tx('view the seva notice', 'সেবা বিজ্ঞপ্তি দেখুন', 'सेवा सूचना देखें')}`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-stone-800 min-w-0 truncate">
+                      🪔 {p.serviceCard?.serviceLine}
+                    </span>
+                    {p.serviceCard && (
+                      <span className="text-sm font-bold text-amber-800 shrink-0">
+                        {formatServiceDakshina(p.serviceCard.dakshina, p.serviceCard.currency)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-2 mt-1 text-[11px] text-stone-500 flex-wrap">
+                    <span className="font-medium text-orange-800 bg-orange-50 border border-orange-100 rounded-full px-2 py-0.5">
+                      {tx('Seva notice', 'সেবা বিজ্ঞপ্তি', 'सेवा सूचना')}
+                    </span>
+                    <span className="ml-auto text-amber-700 font-semibold">
+                      {tx('View notice →', 'বিজ্ঞপ্তি দেখুন →', 'सूचना देखें →')}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {sevaBlessings && sevaBlessings.writtenCount > 0 && (
+            <div className="mt-4 space-y-2">
+              {sevaBlessings.ratings
+                .filter((r) => (r.review || '').trim())
+                .slice(0, 3)
+                .map((r) => (
+                  <div key={r.orderId} className="bg-amber-50/60 border border-amber-100 rounded-xl p-3">
+                    <p className="text-xs font-bold text-amber-800 flex items-center gap-1.5 flex-wrap">
+                      <span aria-hidden="true">★</span> {r.rating}/5
+                      <span className="font-medium text-stone-500">
+                        {r.gigId
+                          ? tx('· Marketplace seva', '· বাজারের সেবা', '· बाज़ार सेवा')
+                          : tx('· Seva notice', '· সেবা বিজ্ঞপ্তি', '· सेवा सूचना')}
+                      </span>
+                    </p>
+                    <p className="text-xs text-stone-700 mt-1 whitespace-pre-wrap">{r.review}</p>
+                  </div>
+                ))}
+            </div>
+          )}
         </SectionCard>
       )}
 

@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Clock, Languages, ShieldCheck, ChevronLeft, Star } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
-import { getGigRatings, type Gig, type GigRating } from '../lib/marketplace';
+import { getGigRatings, getProviderBlessings, type Gig, type GigRating, type ProviderBlessings } from '../lib/marketplace';
 import { formatMoney } from '../lib/money';
 
 const CATEGORY_TILE: Record<string, string> = {
@@ -26,6 +26,7 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   blessings: { en: 'Blessings from families', bn: 'পরিবারগুলোর আশীর্বাদ', hi: 'परिवारों के आशीर्वाद' },
   familiesShared: { en: 'families shared gratitude', bn: 'পরিবার কৃতজ্ঞতা জানিয়েছে', hi: 'परिवारों ने कृतज्ञता जताई' },
   noBlessings: { en: 'Be the first to receive this seva and share your blessings 🙏', bn: 'প্রথম এই সেবা গ্রহণ করুন এবং আশীর্বাদ জানান 🙏', hi: 'पहले इस सेवा को प्राप्त करें और अपना आशीर्वाद साझा करें 🙏' },
+  allSevasBlessings: { en: 'blessings across all sevas — gigs and seva notices alike', bn: 'সব সেবায় আশীর্বাদ — গিগ ও সেবা বিজ্ঞপ্তি উভয়েই', hi: 'सभी सेवाओं में आशीर्वाद — गिग और सेवा सूचनाएँ दोनों से' },
   bookSeva: { en: '🙏 Request this seva', bn: '🙏 এই সেবার অনুরোধ করুন', hi: '🙏 इस सेवा का अनुरोध करें' },
   duration: { en: 'Duration', bn: 'সময়কাল', hi: 'अवधि' },
   minutes: { en: 'min', bn: 'মিনিট', hi: 'मिनट' },
@@ -56,6 +57,11 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
 
   const [ratings, setRatings] = useState<GigRating[]>([]);
   const [loadingRatings, setLoadingRatings] = useState(true);
+  // QUEUED #22 — provider-wide blessings: this gig's ratings are one
+  // room of the house. Seva-notice bookings bless the same provider
+  // through the same gigRatings stream; show the whole house when it
+  // says more than this gig alone.
+  const [providerBlessings, setProviderBlessings] = useState<ProviderBlessings | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -71,6 +77,15 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
     })();
     return () => { alive = false; };
   }, [gig.id]);
+
+  useEffect(() => {
+    if (!gig.providerUid) return;
+    let alive = true;
+    getProviderBlessings(gig.providerUid)
+      .then((b) => { if (alive) setProviderBlessings(b); })
+      .catch(() => { /* enhancement only */ });
+    return () => { alive = false; };
+  }, [gig.providerUid]);
 
   const avg = Number(gig.avgRating || 0);
   const count = Number((gig as any).ratingCount || ratings.length || 0);
@@ -173,6 +188,14 @@ export const GigDetail: React.FC<Props> = ({ gig, onBook, onBack }) => {
           {/* Blessings */}
           <div>
             <h3 className="text-sm font-black text-stone-900 mb-2">🙏 {t('blessings')}</h3>
+            {providerBlessings && providerBlessings.count > ratings.length && (
+              <p className="text-xs text-stone-600 bg-orange-50/70 border border-orange-100 rounded-xl px-3 py-2 mb-2 flex items-center gap-1.5 flex-wrap">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" aria-hidden />
+                <span className="font-black text-amber-700">{providerBlessings.avg.toFixed(1)}</span>
+                <span aria-hidden>·</span>
+                <span>🙏 {providerBlessings.count} {t('allSevasBlessings')}</span>
+              </p>
+            )}
             {loadingRatings ? (
               <p className="text-xs text-stone-400 py-4 text-center">…</p>
             ) : ratings.length === 0 ? (

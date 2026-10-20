@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { SangamPost } from './types';
 import { T } from '../solo/ui';
 import { useLanguage } from '../context/LanguageContext';
 import { sevaProTierLabel } from '../lib/sevaPro/tierMapping';
 import { formatServiceDakshina } from './ServiceCardPost';
+import { getProviderBlessings, type ProviderBlessings } from '../lib/marketplace';
 
 /* Seva Bazar — service_card bottom-sheet detail view.
  * =====================================================================
@@ -34,7 +36,24 @@ function toTierLang(currentLang: string): 'en' | 'hi' | 'bn' {
 export const ServiceCardSheet: React.FC<ServiceCardSheetProps> = ({ post, onClose, onAsk, onRequest }) => {
   const card = post.serviceCard;
   const { currentLang } = useLanguage();
+  const navigate = useNavigate();
   const tierLang = toTierLang(currentLang);
+
+  // QUEUED #22 — live provider trust: blessings earned across BOTH
+  // listing silos (marketplace gigs + seva notices), read fresh from
+  // gigRatings. The card's own snapshot (blessingsReceived) froze at
+  // post time; live data wins whenever it exists, snapshot is fallback.
+  const [liveBlessings, setLiveBlessings] = React.useState<ProviderBlessings | null>(null);
+  const providerUid = card?.providerUid || post.authorUid || '';
+
+  React.useEffect(() => {
+    if (!providerUid) return;
+    let alive = true;
+    getProviderBlessings(providerUid)
+      .then((b) => { if (alive) setLiveBlessings(b); })
+      .catch(() => { /* snapshot fallback renders instead */ });
+    return () => { alive = false; };
+  }, [providerUid]);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -49,6 +68,13 @@ export const ServiceCardSheet: React.FC<ServiceCardSheetProps> = ({ post, onClos
   }, [onClose]);
 
   if (!card) return null;
+
+  const openProfile = providerUid
+    ? () => {
+        onClose();
+        navigate(`/seva/pro/${providerUid}`);
+      }
+    : undefined;
 
   const tierLabel = sevaProTierLabel(card.providerTier, tierLang);
 
@@ -100,9 +126,23 @@ export const ServiceCardSheet: React.FC<ServiceCardSheetProps> = ({ post, onClos
         )}
 
         <div className="p-4 sm:p-5">
-          {/* Provider identity */}
+          {/* Provider identity — the name is a door to the full Seva
+              Professional profile (both silos' listings + blessings). */}
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-stone-800">{card.providerName}</h2>
+            {openProfile ? (
+              <button
+                type="button"
+                onClick={openProfile}
+                className="text-left min-h-[44px] flex items-center"
+                aria-label={`${card.providerName} — view profile`}
+              >
+                <h2 className="text-lg font-semibold text-amber-800 underline decoration-amber-300 underline-offset-4">
+                  {card.providerName} →
+                </h2>
+              </button>
+            ) : (
+              <h2 className="text-lg font-semibold text-stone-800">{card.providerName}</h2>
+            )}
             <span
               className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${
                 card.providerTier === 'TRUSTED'
@@ -169,8 +209,20 @@ export const ServiceCardSheet: React.FC<ServiceCardSheetProps> = ({ post, onClos
             </div>
           )}
 
-          {/* Blessings received */}
-          {typeof card.blessingsReceived === 'number' && (
+          {/* Blessings received — LIVE across all sevas when the
+              read-model has data (#22); the post-time snapshot only
+              speaks when live data is silent. */}
+          {liveBlessings && liveBlessings.count > 0 ? (
+            <div className="mt-4 flex items-center gap-2 rounded-2xl bg-orange-50/70 border border-orange-100 px-4 py-3">
+              <span aria-hidden className="text-xl">🙏</span>
+              <p className="text-sm text-stone-700">
+                <span className="font-bold text-amber-700">★ {liveBlessings.avg.toFixed(1)}</span>
+                {' · '}
+                <span className="font-bold">{liveBlessings.count}</span>{' '}
+                <T en="blessings across all sevas — marketplace and notices alike" hi="सभी सेवाओं में प्राप्त आशीर्वाद — बाज़ार और सूचनाएँ दोनों से" bn="সব সেবায় প্রাপ্ত আশীর্বাদ — বাজার ও বিজ্ঞপ্তি উভয় থেকেই" />
+              </p>
+            </div>
+          ) : typeof card.blessingsReceived === 'number' && (
             <div className="mt-4 flex items-center gap-2 rounded-2xl bg-orange-50/70 border border-orange-100 px-4 py-3">
               <span aria-hidden className="text-xl">🙏</span>
               <p className="text-sm text-stone-700">

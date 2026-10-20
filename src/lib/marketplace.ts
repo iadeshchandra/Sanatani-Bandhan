@@ -16,9 +16,15 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { resolveCommissionRate, computeCommission, duesCreateForOrder } from './firestoreAdmin';
-import { validateRating, nextAvg, canRateStatus } from './gigRatings';
+import {
+  validateRating, nextAvg, canRateStatus,
+  ratingTargetForOrder, buildRatingDoc, summarizeBlessings,
+  type BlessingsSummary,
+} from './gigRatings';
 // Re-export pure rating helpers so UI imports stay on marketplace.ts.
 export { validateRating, nextAvg, canRateStatus };
+export { ratingTargetForOrder, buildRatingDoc, summarizeBlessings };
+export type { BlessingsSummary };
 import { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete } from './orderGuards';
 import { formatMoney } from './money';
 export { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete };
@@ -457,10 +463,19 @@ export interface GigRating {
 /**
  * Submit a rating for a completed order. Gated to COMPLETED orders only,
  * one rating per order (doc ID = orderId). Atomically creates the rating
- * and updates the gig's avgRating/ratingCount.
+ * and — for gig orders — updates the gig's avgRating/ratingCount.
  *
- * Firestore rules (flagged): gigRatings create requires a completed order
- * owned by the caller; gig update branch permits ratingCount +1 and
+ * QUEUED #22 (silo reconciliation): Seva Bazar orders (booked from a
+ * Sangam service card) carry `gigId: ''` — there is no gig doc. They now
+ * write the rating doc ALONE, anchored to the provider: the gigRatings
+ * create rule checks only the order (completed + caller's), and every
+ * rating doc already carries providerUid, so provider-wide trust
+ * aggregates via getProviderBlessings with no migration. Before this,
+ * the transaction tried to read `marketplaceGigs/''` and every seva-
+ * notice devotee hit "This seva is no longer available."
+ *
+ * Firestore rules: gigRatings create requires a completed order owned
+ * by the caller; gig update branch permits ratingCount +1 and
  * avgRating within 1-5.
  */
 export async function submitGigRating(orderId: string, rating: number, review: string): Promise<void> {
@@ -481,7 +496,27 @@ export async function submitGigRating(orderId: string, rating: number, review: s
     const existing = await tx.get(ratingRef);
     if (existing.exists()) throw new Error('You have already shared your blessings for this seva. 🙏');
 
-    const gigRef = doc(db, 'marketplaceGigs', o.gigId);
+    const target = ratingTargetForOrder(o);
+    const ratingDoc = {
+      ...buildRatingDoc({
+        gigId: target.kind === 'gig' ? target.gigId : '',
+        orderId,
+        clientUid: uid,
+        providerUid: o.providerUid,
+        rating,
+        review,
+      }),
+      createdAt: serverTimestamp(),
+    };
+
+    if (target.kind === 'provider') {
+      // Seva Bazar order: no gig aggregate exists — the provider-keyed
+      // rating doc IS the trust record (read-model aggregates it).
+      tx.set(ratingRef, ratingDoc);
+      return;
+    }
+
+    const gigRef = doc(db, 'marketplaceGigs', target.gigId);
     const gigSnap = await tx.get(gigRef);
     if (!gigSnap.exists()) throw new Error('This seva is no longer available.');
 
@@ -490,15 +525,7 @@ export async function submitGigRating(orderId: string, rating: number, review: s
       Number(g.avgRating || 0), Number(g.ratingCount || 0), rating
     );
 
-    tx.set(ratingRef, {
-      gigId: o.gigId,
-      orderId,
-      clientUid: uid,
-      providerUid: o.providerUid,
-      rating,
-      review: (review || '').trim().slice(0, 500),
-      createdAt: serverTimestamp(),
-    });
+    tx.set(ratingRef, ratingDoc);
     tx.update(gigRef, {
       avgRating: newAvg,
       ratingCount: newCount,
@@ -525,4 +552,48 @@ export async function getGigRatings(gigId: string, max = 50): Promise<GigRating[
 export async function hasRated(orderId: string): Promise<boolean> {
   const s = await getDoc(doc(db, 'gigRatings', orderId));
   return s.exists();
+}
+
+/* =====================================================================
+ * QUEUED #22 — provider-level read model (the silo bridge).
+ * =====================================================================
+ * A provider's trust no longer lives in two sealed rooms: gig orders
+ * aggregate onto their gig doc, seva-notice orders anchor to the
+ * provider — but EVERY blessing lands in gigRatings keyed by
+ * providerUid. These helpers read that one stream back as a unified
+ * whole. Public read (gigRatings + marketplaceGigs are world-readable);
+ * single-field queries only, so no composite index is needed.
+ */
+
+export interface ProviderBlessings extends BlessingsSummary {
+  /** Newest first. */
+  ratings: GigRating[];
+}
+
+/** All blessings a provider has received — gig sevas AND seva notices. */
+export async function getProviderBlessings(providerUid: string, max = 100): Promise<ProviderBlessings> {
+  if (!providerUid) return { ratings: [], avg: 0, count: 0, writtenCount: 0 };
+  const snap = await getDocs(
+    query(collection(db, 'gigRatings'), where('providerUid', '==', providerUid), limit(max))
+  );
+  const ratings = snap.docs
+    .map((d) => ({ ...(d.data() as any) } as GigRating))
+    .sort((a, b) => {
+      const ta = (a.createdAt?.toMillis?.() || 0);
+      const tb = (b.createdAt?.toMillis?.() || 0);
+      return tb - ta;
+    });
+  return { ratings, ...summarizeBlessings(ratings) };
+}
+
+/** A provider's ACTIVE marketplace gigs (most booked first). */
+export async function listProviderGigs(providerUid: string, max = 50): Promise<Gig[]> {
+  if (!providerUid) return [];
+  const snap = await getDocs(
+    query(collection(db, 'marketplaceGigs'), where('providerUid', '==', providerUid), limit(max))
+  );
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as any) } as Gig))
+    .filter((g) => g.active !== false)
+    .sort((a, b) => Number(b.totalOrders || 0) - Number(a.totalOrders || 0));
 }
