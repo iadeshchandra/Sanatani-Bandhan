@@ -190,6 +190,8 @@ Multi-tenant workspaces (`workspaces/{workspaceId}`, `workspaceMembers/{memberId
 
 - **Structured zone hours + "Open now" (QUEUED #19, 2026-10-20)** — campus zones carry optional structured `openHours` (`ZoneOpenHours` in `campus/types.ts`: daily open–close + optional weekly off day) alongside the free-text `hours` fallback. Pure `campus/openHours.ts` computes the state (open/closed + "closes at X" / "opens at X", device-local time) and `CampusView` renders a warm badge in the zone sheet; trustees set hours in the CampusBuilder zone editor. Empty hours = no badge — never a wrong badge. `campusMaps` rules have no field whitelist, so no rules change was needed. Tests: `campus/__tests__/openHours.test.ts` (27).
 
+- **Dead code removal (QUEUED #18, 2026-10-20)** — `src/components/common/GodModeBackend.tsx` (534 lines) deleted: exhaustively verified zero imports (static/dynamic/barrel/glob). Caution for future greps: `src/App.tsx` has a LOCAL variable named `GodModeBackend` bound to `GodModeConsole2` — a different, live module; the name is not the file.
+
 ## 10. Notifications — Suchana (`src/notifications/`)
 
 Event bus (`NotificationCenter.ts`): 4 priority tiers (**CRITICAL breaks quiet hours**); quiet hours 05:00–07:00 default; per-user `notifications/{uid}/items/{id}`; offline IndexedDB outbox. FCM server consumer needs Blaze (documented, not built). Warm copy in `warmCopy.ts` — blessings, not badges.
