@@ -26,6 +26,7 @@ import {
   notifyTopupRejected,
 } from "../notifications/notifyHelpers";
 import { db, auth } from './firebase';
+import { startPollLoop } from './pollCadence';
 
 export type WalletCurrency = 'BDT' | 'INR' | 'USD';
 
@@ -649,10 +650,16 @@ export function startWalletNotify(uid: string): () => void {
   );
 
   // --- Seva contribution due: my provider orders awaiting commission ---------
-  // Polled lightly (30s) — these change rarely; a snapshot listener would
+  // Polled lightly — these change rarely; a snapshot listener would
   // need a composite index. Once per order per day.
+  // QUEUED #38: was a fixed 30s setInterval with NO visibility gate (it
+  // burned a Firestore read in hidden tabs around the clock). Now the
+  // shared poll loop: 90s base cadence, jittered, visibility-gated, and
+  // backing off when the read fails (checkDues reports success so the
+  // backoff can engage). Dues bells are once-per-order-per-day, so the
+  // longer cadence costs nothing the user can feel.
   const duesNotified = new Map<string, string>(); // orderId -> dayKey
-  const checkDues = async () => {
+  const checkDues = async (): Promise<boolean> => {
     try {
       const snap = await getDocs(
         query(
@@ -670,13 +677,15 @@ export function startWalletNotify(uid: string): () => void {
         const amount = fmtWallet(Number(o.commissionAmount || 0), (String(o.currency || "BDT") as WalletCurrency));
         void notifyCommissionDue(uid, amount, d.id, today);
       }
+      return true;
     } catch {
       /* fail-open: never block on a dues read */
+      return false;
     }
   };
   void checkDues();
-  const duesTimer = setInterval(() => void checkDues(), 30_000);
-  cleanups.push(() => clearInterval(duesTimer));
+  const stopDuesPoll = startPollLoop(() => checkDues(), { baseMs: 90_000 });
+  cleanups.push(stopDuesPoll);
 
   return stop;
 }

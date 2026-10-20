@@ -31,7 +31,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { SocialBatcher, type SocialArrival } from './socialBatcher';
+import { SocialBatcher, watcherSignature, type SocialArrival } from './socialBatcher';
 import {
   notifySocialAshirvad,
   notifySocialComment,
@@ -111,6 +111,13 @@ export function useSocialNotify(uid: string | null | undefined): void {
     let unsubs: Unsubscribe[] = [];
     let flushTimer: ReturnType<typeof setInterval> | null = null;
     let reconcileTimer: ReturnType<typeof setInterval> | null = null;
+    // QUEUED #38: signature of the watcher set built by the last
+    // successful reconcile (day + post ids + event ids). When a later
+    // reconcile computes the same signature, the existing listeners are
+    // kept instead of being torn down and rebuilt — rebuilding re-bills
+    // every watcher's full initial snapshot, which made reconcile the
+    // largest per-user Firestore read source in the app.
+    let builtSignature: string | null = null;
 
     const isHiddenActor = (actorUid: string): boolean =>
       actorUid === myUid ||
@@ -133,19 +140,12 @@ export function useSocialNotify(uid: string | null | undefined): void {
     /** (Re)build all watchers from my current posts + events. */
     const reconcile = async () => {
       if (cancelled) return;
-      // Tear down old watchers before building new ones.
-      unsubs.forEach((u) => {
-        try {
-          u();
-        } catch {
-          /* best-effort */
-        }
-      });
-      unsubs = [];
 
       try {
         const cutoff = Date.now() - POST_FRESHNESS_MS;
 
+        // Fetch BOTH watched sets up-front (QUEUED #38): the rebuild
+        // decision needs the full set before any listener is touched.
         // --- My recent posts → Ashirvad + comment watchers ---
         const myPostsQuery = query(
           collection(db, 'sangamPosts'),
@@ -153,13 +153,62 @@ export function useSocialNotify(uid: string | null | undefined): void {
           limit(MAX_WATCHED),
         );
         const postsDocs = await getDocs(myPostsQuery).catch(() => null);
+        const fresh = postsDocs
+          ? postsDocs.docs
+              .map((d) => ({ id: d.id, ...(d.data() as { createdAt?: number; text?: string }) }))
+              .filter((p) => (p.createdAt ?? 0) >= cutoff)
+              .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+              .slice(0, MAX_WATCHED)
+          : null;
+
+        // --- My events → RSVP watchers ---
+        const myEventsQuery = query(
+          collection(db, 'sangamEvents'),
+          where('creatorUid', '==', myUid),
+          limit(MAX_WATCHED),
+        );
+        const eventsDocs = await getDocs(myEventsQuery).catch(() => null);
+        const upcoming = eventsDocs
+          ? eventsDocs.docs
+              .map((d) => ({ id: d.id, ...(d.data() as { startsAt?: number; title?: string }) }))
+              .filter((e) => (e.startsAt ?? 0) >= Date.now() - 24 * 60 * 60 * 1000)
+              .slice(0, MAX_WATCHED)
+          : null;
+
+        if (cancelled) return;
+
+        // QUEUED #38: if both fetches succeeded and the watched set
+        // (today + fresh post ids + upcoming event ids) is exactly what
+        // the live listeners already cover, keep them — a rebuild would
+        // re-bill every watcher's initial snapshot for nothing. The day
+        // is part of the signature so the follower watcher's dayKey
+        // still rolls over at midnight. On partial fetch failure, fall
+        // through to the historical rebuild-what-we-can behaviour and
+        // force a fresh signature next cycle.
+        let pendingSignature: string | null = null;
+        if (fresh && upcoming) {
+          pendingSignature = watcherSignature(
+            new Date().toISOString().slice(0, 10),
+            fresh.map((p) => p.id),
+            upcoming.map((e) => e.id),
+          );
+          if (builtSignature === pendingSignature) return;
+        } else {
+          builtSignature = null;
+        }
+
+        // Tear down old watchers before building new ones.
+        unsubs.forEach((u) => {
+          try {
+            u();
+          } catch {
+            /* best-effort */
+          }
+        });
+        unsubs = [];
+
         const myPostIds: string[] = [];
-        if (postsDocs) {
-          const fresh = postsDocs.docs
-            .map((d) => ({ id: d.id, ...(d.data() as { createdAt?: number; text?: string }) }))
-            .filter((p) => (p.createdAt ?? 0) >= cutoff)
-            .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-            .slice(0, MAX_WATCHED);
+        if (fresh) {
           for (const p of fresh) {
             if (cancelled) return;
             myPostIds.push(p.id);
@@ -219,18 +268,8 @@ export function useSocialNotify(uid: string | null | undefined): void {
           }
         }
 
-        // --- My events → RSVP watchers ---
-        const myEventsQuery = query(
-          collection(db, 'sangamEvents'),
-          where('creatorUid', '==', myUid),
-          limit(MAX_WATCHED),
-        );
-        const eventsDocs = await getDocs(myEventsQuery).catch(() => null);
-        if (eventsDocs) {
-          const upcoming = eventsDocs.docs
-            .map((d) => ({ id: d.id, ...(d.data() as { startsAt?: number; title?: string }) }))
-            .filter((e) => (e.startsAt ?? 0) >= Date.now() - 24 * 60 * 60 * 1000)
-            .slice(0, MAX_WATCHED);
+        // --- My events → RSVP watchers (fetched up-front, above) ---
+        if (upcoming) {
           for (const e of upcoming) {
             if (cancelled) return;
             const eventTitle = e.title || 'your event';
@@ -282,6 +321,11 @@ export function useSocialNotify(uid: string | null | undefined): void {
             },
           ),
         );
+
+        // QUEUED #38: only now — after a fully successful build — is
+        // the signature committed. A build that throws midway leaves
+        // the old signature in place, so the next cycle rebuilds.
+        if (pendingSignature) builtSignature = pendingSignature;
       } catch {
         /* reconcile failed — watchers stay as they were; retried next cycle */
       }

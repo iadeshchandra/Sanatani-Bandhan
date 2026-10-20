@@ -9,6 +9,7 @@
 import {
   SocialBatcher,
   summarizeActors,
+  watcherSignature,
   SOCIAL_BATCH_WINDOW_MS,
   type SocialArrival,
 } from '../socialBatcher';
@@ -128,5 +129,32 @@ describe('social routing (quiet-hours safety)', () => {
     const noon = new Date('2026-10-19T12:00:00+06:00').getTime();
     const d = decideRouting(socialEvent(), DEFAULT_PREFS, noon);
     expect(d.digestCandidate).toBe(true);
+  });
+});
+
+describe('watcherSignature (QUEUED #38 reconcile skip)', () => {
+  it('is stable for the same day + watched set', () => {
+    const a = watcherSignature('2026-10-20', ['p1', 'p2'], ['e1']);
+    const b = watcherSignature('2026-10-20', ['p1', 'p2'], ['e1']);
+    expect(a).toBe(b);
+  });
+  it('changes when a post or event enters/leaves the set', () => {
+    const base = watcherSignature('2026-10-20', ['p1'], []);
+    expect(watcherSignature('2026-10-20', ['p1', 'p2'], [])).not.toBe(base);
+    expect(watcherSignature('2026-10-20', [], [])).not.toBe(base);
+    expect(watcherSignature('2026-10-20', ['p1'], ['e9'])).not.toBe(base);
+  });
+  it('changes at day rollover even for an identical set (dayKey freshness)', () => {
+    expect(watcherSignature('2026-10-21', ['p1'], ['e1'])).not.toBe(
+      watcherSignature('2026-10-20', ['p1'], ['e1']),
+    );
+  });
+  it('distinguishes post ids from event ids with the same raw id', () => {
+    expect(watcherSignature('2026-10-20', ['x'], [])).not.toBe(
+      watcherSignature('2026-10-20', [], ['x']),
+    );
+  });
+  it('handles the empty watched set (non-creator)', () => {
+    expect(watcherSignature('2026-10-20', [], [])).toBe('2026-10-20');
   });
 });

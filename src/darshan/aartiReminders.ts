@@ -12,6 +12,7 @@
  *    (same self-listen pattern as tithiNudges). The dedupe ledger makes
  *    sure an occurrence is never announced twice.
  */
+import { startPollLoop } from '../lib/pollCadence';
 import { dt, fill, type Lang } from './i18n';
 import { dueWithin, localDateKey, type AartiSlot } from './aartiSchedule';
 
@@ -180,7 +181,8 @@ export async function checkAartiReminders(
 /**
  * Start the reminder watcher (mirrors startTithiNudgeNotify):
  * runs once on start, again whenever the app returns to the foreground,
- * and ticks every 60s while visible. Returns a stop function.
+ * and ticks on a jittered ~60s cadence while visible (QUEUED #38 poll
+ * loop). Returns a stop function.
  */
 export function startAartiReminderNotify(uid: string | null): () => void {
   if (!uid || uid === 'anon') return () => undefined;
@@ -198,17 +200,12 @@ export function startAartiReminderNotify(uid: string | null): () => void {
   };
   document.addEventListener('visibilitychange', onForeground);
   window.addEventListener('focus', onForeground);
-  const tick =
-    typeof window !== 'undefined'
-      ? window.setInterval(() => {
-          if (typeof document === 'undefined' || document.visibilityState !== 'hidden') run();
-        }, 60000)
-      : null;
+  const stopPoll = startPollLoop(() => checkAartiReminders(), { baseMs: 60000 });
 
   return () => {
     stopped = true;
     document.removeEventListener('visibilitychange', onForeground);
     window.removeEventListener('focus', onForeground);
-    if (tick !== null) window.clearInterval(tick);
+    stopPoll();
   };
 }

@@ -36,6 +36,17 @@ export interface SocialSummary {
 export const SOCIAL_BATCH_WINDOW_MS = 90_000;
 
 /**
+ * QUEUED #38: signature of the watcher set socialNotify's reconcile would
+ * build — the UTC day (so day-keyed state rolls over at midnight) plus the
+ * watched post ids and event ids, in build order. Reconcile keeps its
+ * live listeners whenever this signature is unchanged, instead of tearing
+ * them down and re-billing every watcher's initial snapshot.
+ */
+export function watcherSignature(dayKey: string, postIds: string[], eventIds: string[]): string {
+  return [dayKey, ...postIds.map((id) => `p:${id}`), ...eventIds.map((id) => `e:${id}`)].join('|');
+}
+
+/**
  * Summarize actor names for notification copy, in the devotee's language.
  *   1 → "Meera"
  *   2-3 → "Meera, Arjun" / "Meera, Arjun, Priya"

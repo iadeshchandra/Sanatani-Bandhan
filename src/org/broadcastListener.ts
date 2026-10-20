@@ -31,6 +31,7 @@ import {
   BROADCAST_RECENCY_MS,
 } from './broadcast';
 import { fetchFollowedOrgs, fetchRecentBroadcasts } from './broadcastService';
+import { startPollLoop } from '../lib/pollCadence';
 
 const SEEN_KEY_PREFIX = 'sb.orgBroadcasts.seen.v1.';
 /** Ledger entries older than this are pruned (beyond the recency window). */
@@ -126,7 +127,8 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
 /**
  * Start the broadcast watcher (mirrors startAartiReminderNotify):
  * runs once on start, again whenever the app returns to the foreground,
- * and ticks every 60s while visible. Returns a stop function.
+ * and ticks on a jittered ~60s cadence while visible (QUEUED #38 poll
+ * loop). Returns a stop function.
  */
 export function startOrgBroadcastNotify(uid: string | null): () => void {
   if (!uid || uid === 'anon') return () => undefined;
@@ -144,17 +146,12 @@ export function startOrgBroadcastNotify(uid: string | null): () => void {
   };
   document.addEventListener('visibilitychange', onForeground);
   window.addEventListener('focus', onForeground);
-  const tick =
-    typeof window !== 'undefined'
-      ? window.setInterval(() => {
-          if (typeof document === 'undefined' || document.visibilityState !== 'hidden') run();
-        }, 60000)
-      : null;
+  const stopPoll = startPollLoop(() => checkOrgBroadcasts(uid), { baseMs: 60000 });
 
   return () => {
     stopped = true;
     document.removeEventListener('visibilitychange', onForeground);
     window.removeEventListener('focus', onForeground);
-    if (tick !== null) window.clearInterval(tick);
+    stopPoll();
   };
 }

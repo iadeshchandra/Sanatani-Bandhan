@@ -71,6 +71,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { startPollLoop } from '../lib/pollCadence';
 import {
   pickReferralThanks,
   REFERRAL_THANKS_RECENCY_MS,
@@ -289,8 +290,8 @@ export async function checkReferralThanks(
 
 /**
  * Start the sharer-thanks watcher: runs once on start, again whenever
- * the app returns to the foreground, and ticks every 60s while visible.
- * Returns a stop function.
+ * the app returns to the foreground, and ticks on a jittered ~60s
+ * cadence while visible (QUEUED #38 poll loop). Returns a stop function.
  */
 export function startReferralThanksNotify(uid: string | null): () => void {
   if (!uid || uid === 'anon') return () => undefined;
@@ -308,17 +309,12 @@ export function startReferralThanksNotify(uid: string | null): () => void {
   };
   document.addEventListener('visibilitychange', onForeground);
   window.addEventListener('focus', onForeground);
-  const tick =
-    typeof window !== 'undefined'
-      ? window.setInterval(() => {
-          if (typeof document === 'undefined' || document.visibilityState !== 'hidden') run();
-        }, 60000)
-      : null;
+  const stopPoll = startPollLoop(() => checkReferralThanks(uid), { baseMs: 60000 });
 
   return () => {
     stopped = true;
     document.removeEventListener('visibilitychange', onForeground);
     window.removeEventListener('focus', onForeground);
-    if (tick !== null) window.clearInterval(tick);
+    stopPoll();
   };
 }

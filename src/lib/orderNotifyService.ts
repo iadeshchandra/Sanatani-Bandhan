@@ -27,6 +27,7 @@
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatMoney } from './money';
+import { startPollLoop } from './pollCadence';
 import {
   pickOrderNotifications,
   type OrderLite,
@@ -220,7 +221,8 @@ export async function checkOrderNotifications(
 
 /**
  * Start the order-news watcher: runs once on start, again whenever the
- * app returns to the foreground, and ticks every 60s while visible.
+ * app returns to the foreground, and ticks on a jittered ~60s cadence
+ * while visible (QUEUED #38 poll loop — no fleet-wide poll phase).
  * Returns a stop function.
  */
 export function startOrderNotify(uid: string | null): () => void {
@@ -239,17 +241,12 @@ export function startOrderNotify(uid: string | null): () => void {
   };
   document.addEventListener('visibilitychange', onForeground);
   window.addEventListener('focus', onForeground);
-  const tick =
-    typeof window !== 'undefined'
-      ? window.setInterval(() => {
-          if (typeof document === 'undefined' || document.visibilityState !== 'hidden') run();
-        }, 60000)
-      : null;
+  const stopPoll = startPollLoop(() => checkOrderNotifications(uid), { baseMs: 60000 });
 
   return () => {
     stopped = true;
     document.removeEventListener('visibilitychange', onForeground);
     window.removeEventListener('focus', onForeground);
-    if (tick !== null) window.clearInterval(tick);
+    stopPoll();
   };
 }

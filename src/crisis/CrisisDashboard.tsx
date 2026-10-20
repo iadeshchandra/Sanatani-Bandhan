@@ -88,12 +88,15 @@ export const CrisisDashboard: React.FC = () => {
         /* onSnapshot error → the backup refresh below keeps data fresh */
       },
     );
-    // Backup refresh every 15 s in case the live socket stalls.
+    // Backup refresh every 60 s in case the live socket stalls.
+    // (QUEUED #38: was 15 s — the onSnapshot above is the primary,
+    // realtime path; the backup is only stall insurance, and at 15 s it
+    // quadrupled this dashboard's Firestore reads for no fresher data.)
     const backup = window.setInterval(() => {
       getDocs(q)
         .then((snap) => applySnapshot(parse(snap.docs)))
         .catch(() => {});
-    }, 15000);
+    }, 60000);
     return () => {
       unsub();
       window.clearInterval(backup);
