@@ -15,6 +15,19 @@ import { executeSafeUpdate } from '../../lib/dbUtils';
 import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
 import { getPaymentMethods, methodsForRegion, methodsForRegionWithFallback, indianPaymentsReady, type PaymentMethodDoc } from '../../lib/paymentMethods';
 import { GeoPaymentsManager } from './GeoPaymentsManager';
+import { getTerms, type PlatformTerms } from '../../lib/termsConfig';
+import { checkLimit, loadWorkspaceSubscription, type LimitMetric } from '../../lib/planLimits';
+import {
+  resolveSettingsPlan,
+  buildSettingsUsageRows,
+  planPriceLabel,
+  planPerks,
+  workspaceTypeNameLabel,
+  paymentHistoryView,
+  type SettingsPlanInfo,
+  type SettingsUsageMetric,
+} from '../../lib/settingsHonesty';
+import { normalizePublicSlug, resolvePublicSlugDefault } from '../../lib/orgPublic';
 import { OrgBrandingSection, type BrandingSectionHandle } from './OrgBrandingSection';
 // Pillar 3: trustee-curated public profile (what the world sees on /org/…).
 import { OrgPublicProfileSection } from './OrgPublicProfileSection';
@@ -225,6 +238,8 @@ export const MasterSettingsDesk: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'GEO'>('GENERAL');
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyRetry, setHistoryRetry] = useState(0);
   
   const [appTheme, setAppTheme] = useState<'saffron' | 'classic'>(() => {
     return (localStorage.getItem('app-theme') as 'saffron' | 'classic') || 'saffron';
@@ -271,26 +286,25 @@ export const MasterSettingsDesk: React.FC = () => {
     twelveARegistered: (activeWorkspace as any)?.trust12ARegistered || false,
     twelveANumber: (activeWorkspace as any)?.trust12ANumber || '',
     trustPAN: (activeWorkspace as any)?.trustPAN || '',
-    description: activeWorkspace?.tagline || ''
+    description: activeWorkspace?.tagline || '',
+    // QUEUED #51 (D9c): the org's OWN saved slug — '' until the org sets
+    // one. Never prefilled from any other organisation.
+    publicSlug: activeWorkspace?.publicSlug || ''
   });
   
-  const [limits, setLimits] = useState({ plan: 'FREE', devoteeCount: 15, pdfsGenerated: 2 });
+  // QUEUED #51 (D9a/D9b): the plan Settings names and the limits it shows
+  // come from ONE source of truth — the #31 terms snapshot, the
+  // subscription lifecycle, and the same server counts planLimits
+  // enforces app-wide. (The old hard-coded `limits`/`saasConfig` sample
+  // state — 15 members, 2 PDFs, a fake 'Smart Pro' price — is gone:
+  // there is no honest PDF counter in the terms, so none is shown.)
+  const [termsSnapshot, setTermsSnapshot] = useState<PlatformTerms | null>(null);
+  const [planInfo, setPlanInfo] = useState<SettingsPlanInfo | null>(null);
+  const [planUsage, setPlanUsage] = useState<Partial<Record<SettingsUsageMetric, number>>>({});
+  const [planLoading, setPlanLoading] = useState(false);
 
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
   const [passLoading, setPassLoading] = useState(false);
-
-  // ✨ SMART PRO UPGRADE STATE
-  const [saasConfig, setSaasConfig] = useState({ 
-    bdtPrice: 5000, 
-    usdPrice: 50, 
-    originalBdtPrice: 8000, 
-    originalUsdPrice: 80,   
-    maxFreeMembers: 50, 
-    maxFreePdfs: 3,
-    duration: "LIFETIME ACCESS",
-    subtitle: "NO HIDDEN FEES",
-    features: ["Unlimited Devotees", "Master PDFs", "Mass Broadcasts"]
-  });
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [paymentTab, setPaymentTab] = useState<PayRegion>('BD');
@@ -369,25 +383,93 @@ export const MasterSettingsDesk: React.FC = () => {
     if (activeTab === 'BILLING' && activeWorkspace?.id) {
       const fetchHistory = async () => {
         setLoadingHistory(true);
+        setHistoryError(null);
         try {
           const q = query(collection(db, 'upgrade_requests'), where('communityId', '==', activeWorkspace.id));
-          const snapshot = (await getDocs(q).catch(e => { console.warn("Firebase getDocs error", e.message); return { empty: true, forEach: () => {}, docs: [] }; }));
-          const history = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+          // QUEUED #51 (D9e): no swallowed catch — a failed load must land
+          // in the explicit error state below, never a fake "no records"
+          // and never a spinner that never resolves.
+          const snapshot = await getDocs(q);
+          const history = snapshot.docs.map((docSnap): any => ({ id: docSnap.id, ...docSnap.data() }));
           history.sort((a, b) => {
             const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
             const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
             return timeB - timeA;
           });
           setPaymentHistory(history);
-        } catch (err) {
+        } catch (err: any) {
           console.error("Failed to fetch payment history", err);
+          setPaymentHistory([]);
+          setHistoryError(err?.message || 'Could not load payment history.');
         } finally {
           setLoadingHistory(false);
         }
       };
       fetchHistory();
     }
+  }, [activeTab, activeWorkspace?.id, historyRetry]);
+
+  // QUEUED #51: resolve the org's REAL plan + usage when Billing opens —
+  // terms snapshot for names/limits/prices, subscription doc for lifecycle,
+  // planLimits.checkLimit for the enforced usage counts.
+  useEffect(() => {
+    if (activeTab !== 'BILLING' || !activeWorkspace?.id) return;
+    let cancelled = false;
+    (async () => {
+      setPlanLoading(true);
+      try {
+        const [terms, subscription] = await Promise.all([
+          getTerms(),
+          loadWorkspaceSubscription(activeWorkspace.id),
+        ]);
+        const info = resolveSettingsPlan({
+          planId: subscription?.planId || (activeWorkspace as any).planId,
+          subscription,
+          terms,
+          isDemo: activeWorkspace.id.startsWith('DEMO'),
+        });
+        const metrics: LimitMetric[] = ['devotees', 'transactions', 'seats'];
+        // checkLimit takes the workspace-like (it short-circuits demo ids,
+        // honours the pre-loaded subscription, and counts server-side).
+        const wsLike = {
+          id: activeWorkspace.id,
+          planId: (activeWorkspace as any).planId ?? null,
+          branchCount: Array.isArray((activeWorkspace as any).branches)
+            ? (activeWorkspace as any).branches.length
+            : 0,
+          subscription,
+        };
+        const results = await Promise.all(metrics.map((m) => checkLimit(wsLike, m)));
+        if (cancelled) return;
+        const usage: Partial<Record<SettingsUsageMetric, number>> = {
+          branches: wsLike.branchCount,
+        };
+        results.forEach((r, i) => { usage[metrics[i]] = r.used; });
+        setTermsSnapshot(terms);
+        setPlanInfo(info);
+        setPlanUsage(usage);
+      } catch (err) {
+        console.warn('Settings plan resolution failed', err);
+      } finally {
+        if (!cancelled) setPlanLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [activeTab, activeWorkspace?.id]);
+
+  // QUEUED #51 derived display state — all from the resolvers above.
+  const wsCurrencyCode = (activeWorkspace as any)?.currency || workspaceInfo.currencyCode || 'BDT';
+  const offerPlan = planInfo?.nextPlanId && termsSnapshot ? termsSnapshot.plans[planInfo.nextPlanId] : null;
+  const usageRows = planInfo ? buildSettingsUsageRows(planInfo.limits, planUsage) : [];
+  const historyView = paymentHistoryView({ loading: loadingHistory, error: historyError, count: paymentHistory.length });
+  const slugResolution = resolvePublicSlugDefault({ name: workspaceInfo.name, publicSlug: workspaceInfo.publicSlug });
+  const planStatusLabel = planInfo
+    ? planInfo.status === 'free' ? 'FREE PLAN'
+      : planInfo.status === 'active' ? 'ACTIVE'
+      : planInfo.status === 'grace' ? 'GRACE PERIOD'
+      : planInfo.status === 'expired' ? 'EXPIRED — SEVA FREE APPLIES'
+      : 'DEMO'
+    : '';
 
   if (!activeWorkspace) return null;
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner') => {
@@ -437,6 +519,9 @@ export const MasterSettingsDesk: React.FC = () => {
         trust12ANumber: ((workspaceInfo as any).twelveANumber || '').trim(),
         trustPAN: ((workspaceInfo as any).trustPAN || '').trim().toUpperCase(),
         tagline: workspaceInfo.description?.trim() || '',
+        // QUEUED #51 (D9c): persist ONLY the slug this org typed
+        // (normalized); empty clears it back to the name-derived link.
+        publicSlug: normalizePublicSlug(workspaceInfo.publicSlug || ''),
         ...(coords && { location: coords })
       };
 
@@ -538,7 +623,9 @@ export const MasterSettingsDesk: React.FC = () => {
         transactionId: upgradeForm.trxId.trim(),
         timestamp: serverTimestamp(),
         status: "PENDING",
-        requestedPlan: "SMART_PRO"
+        // QUEUED #51: request the REAL next plan (canonical terms id),
+        // not the legacy 'SMART_PRO' label with Standard prices.
+        requestedPlan: planInfo?.nextPlanId ? planInfo.nextPlanId.toUpperCase() : 'STANDARD'
       });
 
       setShowUpgradeModal(false);
@@ -546,7 +633,7 @@ export const MasterSettingsDesk: React.FC = () => {
 
       setConfirmDialog({
         title: localSafeTranslate('req_submitted', "Request Submitted!"),
-        message: localSafeTranslate('dakshina_submitted_desc', "✅ Your transaction ID has been securely submitted. Our backend team will verify this within 24 hours and activate your SMART PRO status."),
+        message: localSafeTranslate('dakshina_submitted_desc', `✅ Your transaction ID has been securely submitted. Our backend team will verify this within 24 hours and activate your ${offerPlan?.name || 'upgraded'} plan.`),
         confirmText: localSafeTranslate('understood', "UNDERSTOOD"),
         isDanger: false,
         onConfirm: () => setConfirmDialog(null)
@@ -690,7 +777,7 @@ export const MasterSettingsDesk: React.FC = () => {
                   {/* BASIC INFO */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{workspaceInfo.type} {localSafeTranslate('name', 'Name')} *</label>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{`${workspaceTypeNameLabel(workspaceInfo.type, localSafeTranslate('name', 'Name'))} *`}</label>
                       <input type="text" required value={workspaceInfo.name} onChange={e=>setWorkspaceInfo({...workspaceInfo, name: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
                     </div>
                     {/* LOCKED ORGANIZATION TYPE */}
@@ -698,6 +785,26 @@ export const MasterSettingsDesk: React.FC = () => {
                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">{localSafeTranslate('org_type', 'Organization Type')}</label>
                       <input type="text" value={workspaceInfo.type} disabled={true} className="w-full p-4 pr-10 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 outline-none shadow-inner cursor-not-allowed" />
                       <Lock size={14} className="absolute right-4 top-[40px] text-gray-400" />
+                    </div>
+                  </div>
+
+                  {/* QUEUED #51 (D9c): public profile slug — empty until THIS
+                      org sets it; the suggestion is derived from the org's
+                      OWN name only. */}
+                  <div className="grid grid-cols-1 gap-5">
+                    <div>
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe size={12}/> Public Profile Link (Slug)</label>
+                      <div className="flex items-stretch gap-2">
+                        <span className="hidden sm:flex items-center px-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 font-mono whitespace-nowrap">sanatanibandhan.web.app/org/</span>
+                        <input type="text" value={workspaceInfo.publicSlug} onChange={e=>setWorkspaceInfo({...workspaceInfo, publicSlug: e.target.value})} placeholder={slugResolution.suggested || 'your-organisation'} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold font-mono text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-400 mt-1.5 leading-relaxed">
+                        {slugResolution.value
+                          ? <>Your public page: <span className="font-mono text-gray-500">/org/{slugResolution.value}</span></>
+                          : slugResolution.suggested
+                            ? <>Not set yet — your page currently answers to <span className="font-mono text-gray-500">/org/{slugResolution.suggested}</span>, suggested from your organisation's own name. Save a slug here only if you want a different one.</>
+                            : 'Not set yet — type a short link name (letters, numbers, dashes) for your public page.'}
+                      </p>
                     </div>
                   </div>
 
@@ -990,14 +1097,22 @@ export const MasterSettingsDesk: React.FC = () => {
               <History size={18} className="text-blue-600" /> Payment & Request History
             </h3>
             
-            {loadingHistory ? (
+            {historyView === 'loading' ? (
               <div className="flex justify-center p-12">
                 <Loader2 className="animate-spin text-gray-400" size={32} />
               </div>
-            ) : paymentHistory.length === 0 ? (
-              <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-200 border-dashed">
+            ) : historyView === 'error' ? (
+              <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200 border-dashed px-6">
+                <AlertTriangle size={36} className="mx-auto text-red-400 mb-3" />
+                <p className="text-xs font-black text-red-700 uppercase tracking-widest mb-1.5">Payment history couldn't be loaded</p>
+                <p className="text-[11px] font-bold text-red-500 leading-relaxed mb-4">{historyError}</p>
+                <button type="button" onClick={() => setHistoryRetry((n) => n + 1)} className="px-5 py-2.5 min-h-[44px] bg-white border border-red-300 text-red-700 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-red-100 transition-colors">Retry</button>
+              </div>
+            ) : historyView === 'empty' ? (
+              <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-200 border-dashed px-6">
                 <FileText size={40} className="mx-auto text-gray-300 mb-4" />
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">No payment records found.</p>
+                <p className="text-[11px] font-bold text-gray-400 mt-2 normal-case tracking-normal">Upgrade requests and payments you submit will appear here.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1005,7 +1120,7 @@ export const MasterSettingsDesk: React.FC = () => {
                   <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-gray-50 border border-gray-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all group">
                     <div className="mb-3 sm:mb-0">
                       <div className="flex items-center gap-3 mb-2">
-                         <span className="text-sm font-black text-gray-900 tracking-tight">{record.requestedPlan || 'SMART_PRO'}</span>
+                         <span className="text-sm font-black text-gray-900 tracking-tight">{record.requestedPlan || '—'}</span>
                          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md border ${
                            record.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' :
                            record.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-200' :
@@ -1013,7 +1128,7 @@ export const MasterSettingsDesk: React.FC = () => {
                          }`}>{record.status}</span>
                       </div>
                       <p className="text-[10px] font-bold text-gray-500 font-mono tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> TRX: {record.transactionId}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestamp?.toDate ? record.timestamp.toDate().toLocaleString() : new Date().toLocaleString()}</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestamp?.toDate ? record.timestamp.toDate().toLocaleString() : '—'}</p>
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-[10px] font-black text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-flex items-center gap-1.5 uppercase tracking-widest shadow-sm">
@@ -1027,39 +1142,90 @@ export const MasterSettingsDesk: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Limits & Upgrades */}
+        {/* RIGHT COLUMN: Current Plan, Limits & Upgrades — QUEUED #51:
+            everything here derives from the terms snapshot + real usage
+            (settingsHonesty resolvers fed by planLimits.checkLimit). */}
         <div className="space-y-6">
+          {/* CURRENT PLAN — the org's plan is always NAMED (D9a) */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-black/5">
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5 border-b border-gray-100 pb-4 flex items-center gap-2"><Settings size={16}/> {localSafeTranslate('current_limits', 'Current Limits')}</h3>
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="flex justify-between items-end mb-2.5">
-                  <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-1.5"><Users size={12}/> {localSafeTranslate('registered_members', 'Registered Members')}</p>
-                  <p className="text-base font-black text-gray-900">{limits.devoteeCount} <span className="text-gray-400 text-xs font-bold">/ {['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? '∞' : saasConfig.maxFreeMembers}</span></p>
-                </div>
-                <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-1000 ${limits.devoteeCount >= saasConfig.maxFreeMembers && !['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? 'bg-red-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} style={{ width: ['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? '100%' : `${Math.min((limits.devoteeCount / saasConfig.maxFreeMembers) * 100, 100)}%` }}></div></div>
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5 border-b border-gray-100 pb-4 flex items-center gap-2"><Crown size={16} className="text-sanatani-orange"/> Current Plan</h3>
+            {planLoading && !planInfo ? (
+              <div className="flex items-center gap-3 py-4">
+                <Loader2 className="animate-spin text-gray-400" size={20} />
+                <p className="text-xs font-bold text-gray-400">Loading your plan…</p>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="flex justify-between items-end mb-2.5">
-                  <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> {localSafeTranslate('pdfs_generated', 'PDFs Generated')}</p>
-                  <p className="text-base font-black text-gray-900">{limits.pdfsGenerated} <span className="text-gray-400 text-xs font-bold">/ {['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? '∞' : saasConfig.maxFreePdfs}</span></p>
+            ) : planInfo ? (
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <p className="text-2xl font-black text-gray-900 tracking-tight">{planInfo.name}</p>
+                  <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md border ${
+                    planInfo.status === 'active' ? 'bg-green-50 text-green-600 border-green-200' :
+                    planInfo.status === 'expired' ? 'bg-red-50 text-red-600 border-red-200' :
+                    planInfo.status === 'grace' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                    'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>{planStatusLabel}</span>
                 </div>
-                <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-1000 ${limits.pdfsGenerated >= saasConfig.maxFreePdfs && !['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? 'bg-red-500' : 'bg-gradient-to-r from-blue-400 to-blue-500'}`} style={{ width: ['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? '100%' : `${Math.min((limits.pdfsGenerated / saasConfig.maxFreePdfs) * 100, 100)}%` }}></div></div>
+                <p className="text-xs font-bold text-gray-500 mt-2">{planInfo.periodLabel}</p>
+                {planInfo.planId !== 'seva' && termsSnapshot && (
+                  <p className="text-xs font-bold text-gray-600 mt-1.5">
+                    {planPriceLabel(termsSnapshot.plans[planInfo.planId], wsCurrencyCode, 'monthly')} · {planPriceLabel(termsSnapshot.plans[planInfo.planId], wsCurrencyCode, 'annual')}
+                  </p>
+                )}
+                {planInfo.downgraded && (
+                  <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3 leading-relaxed">
+                    Your paid plan has ended, so Seva Free limits apply right now. Renew below to restore your previous plan.
+                  </p>
+                )}
               </div>
-            </div>
+            ) : (
+              <p className="text-xs font-bold text-gray-500 leading-relaxed">Plan details couldn't be loaded. Reopen this tab to try again.</p>
+            )}
           </div>
 
-          {!['PREMIUM', 'SMART_PRO'].includes(limits.plan) ? (
+          {/* CURRENT LIMITS — real usage vs the plan's terms limits (D9b) */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-black/5">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5 border-b border-gray-100 pb-4 flex items-center gap-2"><Settings size={16}/> {localSafeTranslate('current_limits', 'Current Limits')}</h3>
+            {planLoading && !planInfo ? (
+              <div className="flex items-center gap-3 py-4">
+                <Loader2 className="animate-spin text-gray-400" size={20} />
+                <p className="text-xs font-bold text-gray-400">Counting your workspace…</p>
+              </div>
+            ) : planInfo ? (
+              <>
+                <div className="space-y-6">
+                  {usageRows.map((row) => (
+                    <div key={row.metric} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                      <div className="flex justify-between items-end mb-2.5">
+                        <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{row.label}</p>
+                        <p className="text-base font-black text-gray-900">{row.used} <span className="text-gray-400 text-xs font-bold">/ {row.limit === -1 ? '∞' : row.limit}</span></p>
+                      </div>
+                      <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${row.overLimit ? 'bg-red-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} style={{ width: row.limit === -1 ? '100%' : `${row.percent}%` }}></div>
+                      </div>
+                      {row.limit === -1 && <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest">Unlimited on your plan</p>}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] font-bold text-gray-400 mt-4 leading-relaxed">
+                  Counted live from your workspace records against your plan's limits — the same numbers the app enforces everywhere.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs font-bold text-gray-500 leading-relaxed">Limits couldn't be loaded. Reopen this tab to try again.</p>
+            )}
+          </div>
+
+          {/* UPGRADE — the real next plan from the terms snapshot */}
+          {planInfo && offerPlan ? (
              <div className="bg-gradient-to-br from-saffron-500 to-red-600 p-6 sm:p-8 rounded-3xl shadow-lg text-white text-center relative overflow-hidden group">
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                 <Crown size={48} className="mx-auto mb-3 text-yellow-300 drop-shadow-md" />
-                <h3 className="text-2xl font-black mb-1 tracking-tight">{localSafeTranslate('upgrade_title', 'Upgrade to Smart Pro')}</h3>
+                <h3 className="text-2xl font-black mb-1 tracking-tight">Upgrade to {offerPlan.name}</h3>
 
-                <p className="text-[10px] font-black text-saffron-100 uppercase tracking-widest mb-5 bg-black/10 inline-block px-3 py-1 rounded-full">{saasConfig.duration} • {saasConfig.subtitle}</p>
-                
+                <p className="text-[10px] font-black text-saffron-100 uppercase tracking-widest mb-5 bg-black/10 inline-block px-3 py-1 rounded-full">{planPriceLabel(offerPlan, wsCurrencyCode, 'monthly')} · or {planPriceLabel(offerPlan, wsCurrencyCode, 'annual')} — 2 months free</p>
+
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-4 mb-6 flex flex-col gap-3 text-[11px] font-black uppercase tracking-widest text-white shadow-inner text-left">
-                   {saasConfig.features.map((feat, idx) => (
+                   {planPerks(planInfo.nextPlanId!).map((feat, idx) => (
                      <span key={idx} className="flex items-center gap-2"><CheckCircle2 size={14} className="text-yellow-300 shrink-0"/> {feat}</span>
                    ))}
                 </div>
@@ -1074,14 +1240,14 @@ export const MasterSettingsDesk: React.FC = () => {
                   </div>
                 )}
              </div>
-          ) : (
+          ) : planInfo ? (
             <div className="bg-gradient-to-br from-saffron-50 to-saffron-50 p-8 rounded-3xl shadow-sm border border-saffron-200 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Crown size={120}/></div>
                 <Crown size={48} className="mx-auto mb-4 text-sanatani-orange relative z-10" />
-                <h3 className="text-xl font-black text-gray-900 mb-2 relative z-10">You are on Smart Pro!</h3>
-                <p className="text-xs font-bold text-gray-600 leading-relaxed relative z-10">Your Workspace has absolute unlimited access to all platform features.</p>
-             </div>
-          )}
+                <h3 className="text-xl font-black text-gray-900 mb-2 relative z-10">You are on {planInfo.name}!</h3>
+                <p className="text-xs font-bold text-gray-600 leading-relaxed relative z-10">This is the highest plan — every feature is open to your workspace. Dhanyavaad for walking with Sanatani Bandhan.</p>
+            </div>
+          ) : null}
         </div>
       </div>
       )}
@@ -1098,11 +1264,11 @@ export const MasterSettingsDesk: React.FC = () => {
             <div className="bg-gradient-to-br from-gray-900 to-black p-6 sm:p-8 text-white text-center relative shrink-0">
                <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-colors"><X size={18}/></button>
                <Crown size={40} className="mx-auto mb-3 text-sanatani-orange drop-shadow-md" />
-               <h2 className="text-3xl font-black tracking-tight mb-2">Smart PRO</h2>
-               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{saasConfig.duration} • {saasConfig.subtitle}</p>
+               <h2 className="text-3xl font-black tracking-tight mb-2">{offerPlan ? offerPlan.name : 'Upgrade'}</h2>
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Monthly or annual billing • Annual includes 2 months free</p>
 
                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 mt-6 flex justify-center gap-3 sm:gap-4 text-[9px] font-black uppercase tracking-widest text-gray-200 flex-wrap shadow-inner">
-                  {saasConfig.features.map((feat, idx) => (
+                  {planPerks(planInfo?.nextPlanId || 'standard').map((feat, idx) => (
                     <span key={idx} className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-sanatani-orange"/> {feat}</span>
                   ))}
                </div>
@@ -1112,13 +1278,13 @@ export const MasterSettingsDesk: React.FC = () => {
 
                <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-4 shadow-inner border border-gray-200">
                  <button onClick={() => switchRegion('BD')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'BD' ? 'bg-white text-green-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🇧🇩 BD (৳700)
+                   🇧🇩 BD{offerPlan ? ` (${planPriceLabel(offerPlan, 'BDT', 'monthly')})` : ''}
                  </button>
                  <button onClick={() => switchRegion('IN')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'IN' ? 'bg-white text-orange-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🇮🇳 IN (₹499)
+                   🇮🇳 IN{offerPlan ? ` (${planPriceLabel(offerPlan, 'INR', 'monthly')})` : ''}
                  </button>
                  <button onClick={() => switchRegion('INTL')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'INTL' ? 'bg-white text-blue-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🌍 INTL ($6)
+                   🌍 INTL{offerPlan ? ` (${planPriceLabel(offerPlan, 'USD', 'monthly')})` : ''}
                  </button>
                </div>
                {payRegion && (
@@ -1137,7 +1303,7 @@ export const MasterSettingsDesk: React.FC = () => {
                <form onSubmit={handleSubmitUpgrade} className="space-y-5">
                  <div className="border-t border-gray-200 pt-6 mb-4">
                    <h3 className="text-sm font-black text-gray-900 mb-1 flex items-center gap-2"><Shield size={16} className="text-sanatani-orange"/> Verify Dakshina</h3>
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Submit details to activate PRO instantly.</p>
+                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Submit details — your plan activates after verification.</p>
                  </div>
 
                  <div>

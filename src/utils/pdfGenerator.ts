@@ -10,6 +10,11 @@ import {
   brandingFromWorkspace,
   letterheadAddressLine,
 } from '../lib/orgBranding';
+import {
+  resolveWorkspaceCurrency,
+  org80GStatus,
+  eightyGReceiptGate,
+} from '../lib/treasuryDisplay';
 
 /**
  * Generate cryptographic doc ref: DOC REF: SB-XXXX-XXXX-XXXX
@@ -436,10 +441,16 @@ export const generate80GTaxReceipt = async (
   // H-1: the registration gate is defined up-front so both the data and the
   // watermark below use it. NEVER invent registration identifiers.
   const is80GRegistered = !!workspace?.trust80GRegistered;
+  // QUEUED #51: registration alone is NOT enough for an official
+  // certificate — the shared gate also requires this voucher to be
+  // marked 80G-eligible AND a real identifier (URN / Reg. No) on file.
+  // Anything else renders as an unmistakable SAMPLE with no serial.
+  const receiptGate = eightyGReceiptGate(transaction, workspace);
+  const isOfficial80G = receiptGate.mode === 'official';
 
-  // H-1: unregistered workspace → stamp SAMPLE diagonally so the PDF can
-  // never be mistaken for a statutory certificate.
-  if (!is80GRegistered) {
+  // H-1 + #51: any non-official receipt → stamp SAMPLE diagonally so the
+  // PDF can never be mistaken for a statutory certificate.
+  if (!isOfficial80G) {
     doc.saveGraphicsState();
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(42);
@@ -456,9 +467,11 @@ export const generate80GTaxReceipt = async (
   // get a clearly-marked SAMPLE certificate.
   const trustName = workspace?.name || 'Sanatani Bandhan Dharmik Trust';
   const trustRegNumber = workspace?.trustRegNumber || workspace?.registrationNumber || (is80GRegistered ? '—' : 'NOT REGISTERED');
-  const exemption80GNumber = is80GRegistered
+  const exemption80GNumber = isOfficial80G
     ? (workspace?.trust80GURN || workspace?.taxExemptionNumber || workspace?.pan80GNumber || '—')
-    : 'NOT REGISTERED — SAMPLE';
+    : is80GRegistered
+      ? 'SAMPLE — NOT AN OFFICIAL RECEIPT'
+      : 'NOT REGISTERED — SAMPLE';
   const trustPan = workspace?.panNumber || workspace?.trustPan || workspace?.taxPan || (is80GRegistered ? '—' : 'NOT REGISTERED');
 
   // NOTE: address/tagline/phone render inside drawLetterhead (Pillar 1).
@@ -468,7 +481,12 @@ export const generate80GTaxReceipt = async (
   const amount = Number(transaction?.amount || 0);
   const amountInWords = numberToWords(amount);
   const dateOfReceipt = transaction?.date || new Date().toISOString().split('T')[0];
-  const receiptNo = transaction?.taxReceiptNumber || transaction?.receiptNo || `SB-80G-${String(transaction?.id || Date.now()).slice(-8).toUpperCase()}`;
+  // QUEUED #51: an official receipt carries the voucher's real serial
+  // (DataContext's gap-detectable SB-80G sequence). A SAMPLE carries NO
+  // serial at all — a formatted id fragment would look official.
+  const receiptNo = isOfficial80G
+    ? transaction?.taxReceiptNumber || transaction?.receiptNo || `SB-80G-${String(transaction?.id || Date.now()).slice(-8).toUpperCase()}`
+    : 'SAMPLE — NO RECEIPT NUMBER ISSUED';
   const paymentMode = transaction?.paymentMode || 'UPI / Digital';
   const referenceNo = transaction?.referenceNo || transaction?.utr || `TXN-${String(transaction?.id || '').slice(-8).toUpperCase()}`;
   const purpose = transaction?.purpose || transaction?.category || 'General Dharmic & Humanitarian Seva';
@@ -627,7 +645,7 @@ export const generate80GTaxReceipt = async (
   doc.setTextColor(180, 83, 9);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text(`Donation Amount: ${workspace?.currencySymbol || '₹'} ${amount.toLocaleString('en-IN')}/-`, 20, 144);
+  doc.text(`Donation Amount: ${resolveWorkspaceCurrency(workspace).symbol} ${amount.toLocaleString('en-IN')}/-`, 20, 144);
 
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
@@ -650,9 +668,14 @@ export const generate80GTaxReceipt = async (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(17, 24, 39);
-  doc.text(is80GRegistered
+  const declarationLine = isOfficial80G
     ? '"This donation is eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961."'
-    : '"SAMPLE — this organisation is not 80G-registered. No deduction may be claimed on this document."', 20, 180);
+    : receiptGate.reason === 'not-eligible'
+      ? '"SAMPLE — this donation was not marked 80G-eligible. No deduction may be claimed on this document."'
+      : receiptGate.reason === 'missing-identifier'
+        ? '"SAMPLE — the organisation’s 80G registration has no URN / registration number on record. No deduction may be claimed on this document."'
+        : '"SAMPLE — this organisation is not 80G-registered. No deduction may be claimed on this document."';
+  doc.text(declarationLine, 20, 180);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -706,7 +729,7 @@ export const generate80GTaxReceipt = async (
   }
 
   if (options?.download !== false) {
-    doc.save(`80G_Receipt_${receiptNo}.pdf`);
+    doc.save(isOfficial80G ? `80G_Receipt_${receiptNo}.pdf` : 'SAMPLE_80G_Preview.pdf');
   }
 
   return doc;
@@ -899,13 +922,19 @@ export const generateBulkTaxReceiptsPDF = async (
     const tx = txs[i];
     if (i > 0) doc.addPage();
 
+    // QUEUED #51: the bulk page obeys the same gate per voucher — a
+    // non-official page is titled and watermarked SAMPLE and carries
+    // no serial and no eligibility claim.
+    const bulkGate = eightyGReceiptGate(tx, workspace);
+    const bulkOfficial = bulkGate.mode === 'official';
+    const bulkOrg = org80GStatus(workspace);
     // Use statutory 80G page layout
     const singleDoc = (await generate80GTaxReceipt(tx, workspace, { download: false })) as jsPDF;
     // Copy content or generate inline
     const docRef = generateCryptoDocRef('TAX80G');
     const qrData = JSON.stringify({
       txId: tx.id,
-      receiptNo: tx.taxReceiptNumber || `SB-TAX-${String(tx.id || '').slice(-6)}`,
+      receiptNo: bulkOfficial ? tx.taxReceiptNumber || `SB-TAX-${String(tx.id || '').slice(-6)}` : 'SAMPLE — NO RECEIPT NUMBER ISSUED',
       amount: tx.amount,
       date: tx.date,
       donor: tx.devoteeName,
@@ -930,8 +959,8 @@ export const generateBulkTaxReceiptsPDF = async (
     doc.setTextColor(107, 114, 128);
     doc.text(workspace.address + ', ' + workspace.city + ', ' + workspace.country, 105, 28, { align: 'center' });
     // H-1: never print fabricated registration identifiers on bulk receipts.
-    const bulkUrn = workspace?.trust80GRegistered
-      ? (workspace?.trust80GURN || workspace?.taxExemptionNumber || '—')
+    const bulkUrn = bulkOrg.registered
+      ? bulkOrg.identifier || 'NOT RECORDED — SAMPLE'
       : 'NOT REGISTERED — SAMPLE';
     doc.text(`Trust Reg: ${workspace.trustRegNumber || '—'} | 80G Exemption: ${bulkUrn}`, 105, 34, { align: 'center' });
 
@@ -939,12 +968,28 @@ export const generateBulkTaxReceiptsPDF = async (
     doc.rect(11, 44, 188, 10, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
-    doc.text('OFFICIAL DONATION & TAX EXEMPTION RECEIPT (SECTION 80G)', 105, 51, { align: 'center' });
+    doc.text(
+      bulkOfficial ? 'OFFICIAL DONATION & TAX EXEMPTION RECEIPT (SECTION 80G)' : 'SAMPLE — NOT A VALID 80G CERTIFICATE',
+      105,
+      51,
+      { align: 'center' }
+    );
+    if (!bulkOfficial) {
+      doc.saveGraphicsState();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(42);
+      doc.setTextColor(220, 38, 38);
+      (doc as any).setGState?.((doc as any).GState?.({ opacity: 0.14 }));
+      doc.text('SAMPLE — NOT A VALID', 105, 130, { align: 'center', angle: 30 });
+      doc.text('80G CERTIFICATE', 105, 148, { align: 'center', angle: 30 });
+      doc.restoreGraphicsState();
+      doc.setTextColor(31, 41, 55);
+    }
 
     doc.setTextColor(31, 41, 55);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(`Receipt No: ${tx.taxReceiptNumber || 'TX-80G-' + tx.id}`, 20, 65);
+    doc.text(`Receipt No: ${bulkOfficial ? tx.taxReceiptNumber || 'TX-80G-' + tx.id : 'SAMPLE — NO RECEIPT NUMBER ISSUED'}`, 20, 65);
     doc.text(`Date of Issue: ${tx.date}`, 140, 65);
 
     doc.text(`Payment Mode: ${tx.paymentMode}`, 20, 72);
@@ -977,12 +1022,14 @@ export const generateBulkTaxReceiptsPDF = async (
     doc.setTextColor(180, 83, 9);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(`Total Amount Received: ${workspace.currencySymbol || '₹'} ${tx.amount.toLocaleString()}`, 25, 147);
+    doc.text(`Total Amount Received: ${resolveWorkspaceCurrency(workspace).symbol} ${tx.amount.toLocaleString()}`, 25, 147);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(75, 85, 99);
-    const legalNote = `This donation is eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961. We gratefully acknowledge this sacred contribution towards our Dharmic, educational, and charitable humanitarian activities.`;
+    const legalNote = bulkOfficial
+      ? `This donation is eligible for deduction under Section 80G(5)(vi) of the Income Tax Act, 1961. We gratefully acknowledge this sacred contribution towards our Dharmic, educational, and charitable humanitarian activities.`
+      : `SAMPLE — no deduction may be claimed on this document. ${bulkGate.explanation}`;
     doc.text(doc.splitTextToSize(legalNote, 170), 20, 168);
 
     doc.addImage(qrDataUrl, 'PNG', 25, 195, 38, 38);

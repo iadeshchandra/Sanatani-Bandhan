@@ -15,7 +15,13 @@ import {
 import { KpiCardSkeleton, TableSkeleton } from '../common/DeskSkeletons';
 import { EmptyState } from '../common/EmptyState';
 import { DataExportButton } from '../common/DataExportButton';
-import { formatINR, formatDateIST } from '../../utils/format';
+import { formatDateIST } from '../../utils/format';
+import {
+  resolveWorkspaceCurrency,
+  formatWorkspaceAmount,
+  org80GStatus,
+  eightyGReceiptGate,
+} from '../../lib/treasuryDisplay';
 import { workspaceRegistry } from '../../lib/workspaceRegistry';
 import {
   fireSuggestion,
@@ -138,10 +144,12 @@ interface FundCardProps {
   net: number;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  /** QUEUED #51: amounts render in the workspace's operating currency. */
+  formatAmount: (n: number) => string;
 }
 
 /** Memoized presentational fund card — re-renders only when its own fund data or selection changes. */
-const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, net, isSelected, onSelect }) => {
+const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, net, isSelected, onSelect, formatAmount }) => {
   return (
     <button
       type="button"
@@ -173,12 +181,12 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
         <div className="flex justify-between text-[11px] font-mono">
           <span className="text-temple-400">Net Corpus:</span>
           <span className={`font-bold ${net >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
-            {formatINR(net)}
+            {formatAmount(net)}
           </span>
         </div>
         <div className="flex justify-between text-[10px] text-temple-400 mt-0.5">
-          <span className="text-emerald-400">+{formatINR(income)}</span>
-          <span className="text-rose-400">-{formatINR(expense)}</span>
+          <span className="text-emerald-400">+{formatAmount(income)}</span>
+          <span className="text-rose-400">-{formatAmount(expense)}</span>
         </div>
       </div>
     </button>
@@ -199,6 +207,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const { t, safeTranslate } = useLanguage();
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId, collectionWindows, treasuryExactTotals } = useData();
   const { showToast } = useToast();
+  // QUEUED #51 (D10a): every amount/label in this desk renders in the
+  // workspace's OWN operating currency (Settings → Operating Currency) —
+  // a BDT org must never see ₹ here. Resolved once from AuthWorkspace.
+  const wsCurrency = resolveWorkspaceCurrency(activeWorkspace);
+  const fmtAmount = (n: number) => formatWorkspaceAmount(n, wsCurrency);
+  // QUEUED #51 (D10b): the org half of the 80G gate — marking + official
+  // certificates are possible only when the org is registered AND a real
+  // identifier (URN / Reg. No) is on file.
+  const org80G = org80GStatus(activeWorkspace);
+  const canMark80G = org80G.officialCapable;
   const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
 
   const isModuleAvailable = (id: string) => {
@@ -636,9 +654,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
       showToast('Please specify a valid transaction amount', 'warning');
       return;
     }
-    // Sanity cap: a single manual voucher above ₹10 Cr is almost certainly a data-entry error
+    // Sanity cap: a single manual voucher above the cap is almost certainly a data-entry error
     if (numAmount > 100000000) {
-      showToast('Amount exceeds the ₹10 Crore single-voucher sanity cap — please verify the figure', 'error', 'Amount Too Large');
+      showToast(`Amount exceeds the ${fmtAmount(100000000)} single-voucher sanity cap — please verify the figure`, 'error', 'Amount Too Large');
       return;
     }
     // Block future-dated vouchers: the ledger must reflect settled transactions only
@@ -683,9 +701,14 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
       paymentMode: voucherPaymentMode,
       referenceNo: voucherRefNo.trim() || undefined,
       purpose: voucherPurpose.trim() || `${voucherCategory} Transaction`,
-      is80GEligible: voucherType === 'Income' ? voucherIs80G : false,
-      taxReceiptIssued: voucherType === 'Income' && voucherIs80G,
-      taxReceiptNumber: voucherType === 'Income' && voucherIs80G ? `SB-80G-${Date.now().toString().slice(-6)}` : undefined,
+      // QUEUED #51: eligibility is only MARKED when the org can stand
+      // behind an official certificate (canMark80G); the form toggle is
+      // disabled otherwise. taxReceiptNumber is deliberately left
+      // undefined — DataContext assigns the next number in the real,
+      // gap-detectable SB-80G sequence. Never a timestamp fabrication.
+      is80GEligible: voucherType === 'Income' ? voucherIs80G && canMark80G : false,
+      taxReceiptIssued: voucherType === 'Income' && voucherIs80G && canMark80G,
+      taxReceiptNumber: undefined,
       memoImageUrl: voucherMemoUrl || undefined,
       auditVerified: true,
     };
@@ -978,7 +1001,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             </span>
           </div>
           <p className="mt-3 text-4xl sm:text-5xl font-black text-amber-300 tracking-tight">
-            {formatINR(financialKPIs.netBalance)}
+            {fmtAmount(financialKPIs.netBalance)}
           </p>
           <p className="mt-2 text-[11px] text-temple-400 font-mono">
             {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
@@ -993,7 +1016,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <span className="truncate">{t('org.finance.treasury.totalIncomeInflow')}</span>
             </div>
             <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
-              + {formatINR(financialKPIs.totalIncome)}
+              + {fmtAmount(financialKPIs.totalIncome)}
             </p>
             <p className="text-[10px] text-temple-500 mt-0.5 truncate">
               {t('org.finance.treasury.pranamiSevaAnnadanamHundiCollections')}
@@ -1005,7 +1028,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <span className="truncate">{t('org.finance.treasury.totalExpensesOutflow')}</span>
             </div>
             <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
-              - {formatINR(financialKPIs.totalExpense)}
+              - {fmtAmount(financialKPIs.totalExpense)}
             </p>
             <p className="text-[10px] text-temple-500 mt-0.5 truncate">
               {t('org.finance.treasury.sevadarHonorariumGheeUtilitiesMaintenanc')}
@@ -1032,13 +1055,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
                 <span className="text-temple-400 mr-1.5">Unrestricted Corpus:</span>
                 <span className="font-bold text-amber-400">
-                  {formatINR(fundBreakdown.unrestrictedNet)}
+                  {fmtAmount(fundBreakdown.unrestrictedNet)}
                 </span>
               </div>
               <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
                 <span className="text-temple-400 mr-1.5">Restricted Earmarked:</span>
                 <span className="font-bold text-emerald-400">
-                  {formatINR(fundBreakdown.restrictedNet)}
+                  {fmtAmount(fundBreakdown.restrictedNet)}
                 </span>
               </div>
             </div>
@@ -1055,6 +1078,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 net={entry.net}
                 isSelected={selectedFundId === entry.fund.id}
                 onSelect={setSelectedFundId}
+                formatAmount={fmtAmount}
               />
             ))}
           </div>
@@ -1095,12 +1119,12 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       tick={{ fontSize: 10, fill: '#a8a29e', fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(v: number) => (v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`)}
+                      tickFormatter={(v: number) => (v >= 1000 ? `${wsCurrency.symbol}${(v / 1000).toFixed(0)}k` : `${wsCurrency.symbol}${v}`)}
                     />
                     <Tooltip
                       cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                       contentStyle={CHART_TOOLTIP_STYLE}
-                      formatter={(value: any) => formatINR(Number(value))}
+                      formatter={(value: any) => fmtAmount(Number(value))}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
@@ -1140,7 +1164,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                         </Pie>
                         <Tooltip
                           contentStyle={CHART_TOOLTIP_STYLE}
-                          formatter={(value: any, name: any) => [formatINR(Number(value)), String(name)]}
+                          formatter={(value: any, name: any) => [fmtAmount(Number(value)), String(name)]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1160,7 +1184,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     </ul>
                     <p className="mt-2 pt-2 border-t border-temple-800 text-[11px] text-temple-400 flex justify-between">
                       <span>Total inflow:</span>
-                      <span className="font-mono font-bold text-amber-300">{formatINR(fundDonutTotal)}</span>
+                      <span className="font-mono font-bold text-amber-300">{fmtAmount(fundDonutTotal)}</span>
                     </p>
                   </>
                 ) : (
@@ -1375,7 +1399,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   <th className="py-3.5 px-3">Ledger Head & Fund</th>
                   <th className="py-3.5 px-3">Payment Mode</th>
                   <th className="py-3.5 px-3">Entity (Donor / Payee)</th>
-                  <th className="py-3.5 px-4 text-right">Amount (₹)</th>
+                  <th className="py-3.5 px-4 text-right">Amount ({wsCurrency.symbol})</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -1459,14 +1483,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                               isIncome ? 'text-emerald-400' : 'text-rose-400'
                             }`}
                           >
-                            {isIncome ? '+' : '-'} ₹{(tx.amount || 0).toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            {isIncome ? '+' : '-'} {fmtAmount(tx.amount || 0)}
                           </span>
-                          {tx.is80GEligible && (
+                          {tx.is80GEligible && eightyGReceiptGate(tx, activeWorkspace).mode === 'official' && (
                             <div className="text-[9px] font-mono text-amber-400 mt-0.5">
                               80G Tax Deductible
+                            </div>
+                          )}
+                          {tx.is80GEligible && eightyGReceiptGate(tx, activeWorkspace).mode === 'sample' && (
+                            <div className="text-[9px] font-mono text-temple-400 mt-0.5">
+                              80G marked · SAMPLE receipt only
                             </div>
                           )}
                         </td>
@@ -1503,26 +1529,46 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                               <span>Slip</span>
                             </button>
 
-                            {/* 80G Tax PDF for Incomes */}
-                            {isIncome && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    showToast('Compiling 80G Certificate...', 'info');
-                                    await generateTaxReceiptPDF(tx, activeWorkspace);
-                                    showToast('80G Certificate downloaded', 'success');
-                                  } catch (e) {
-                                    showToast('Failed to generate PDF', 'error');
-                                  }
-                                }}
-                                className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 hover:text-temple-950 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 transition-all"
-                                title="Download Section 80G Receipt"
-                              >
-                                <Receipt className="w-3.5 h-3.5" />
-                                <span>80G</span>
-                              </button>
-                            )}
+                            {/* 80G receipt — QUEUED #51 gate: an OFFICIAL
+                                certificate action exists only when the
+                                voucher is eligible AND the org is registered
+                                with a real identifier. Otherwise the action
+                                is a clearly-labelled SAMPLE preview. */}
+                            {isIncome && (() => {
+                              const gate = eightyGReceiptGate(tx, activeWorkspace);
+                              const official = gate.mode === 'official';
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      showToast(
+                                        official
+                                          ? 'Compiling 80G Certificate...'
+                                          : 'Compiling SAMPLE preview — not a valid 80G certificate...',
+                                        'info'
+                                      );
+                                      await generateTaxReceiptPDF(tx, activeWorkspace);
+                                      showToast(
+                                        official ? '80G Certificate downloaded' : 'SAMPLE preview downloaded — not a valid 80G certificate',
+                                        'success'
+                                      );
+                                    } catch (e) {
+                                      showToast('Failed to generate PDF', 'error');
+                                    }
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
+                                    official
+                                      ? 'bg-amber-500/20 hover:bg-amber-500 hover:text-temple-950 text-amber-300 border border-amber-500/40'
+                                      : 'bg-temple-800 hover:bg-temple-700 text-temple-300 border border-temple-600'
+                                  }`}
+                                  title={gate.explanation}
+                                >
+                                  <Receipt className="w-3.5 h-3.5" />
+                                  <span>{gate.actionLabel}</span>
+                                </button>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
@@ -1624,7 +1670,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
-                      Amount (₹) *
+                      Amount ({wsCurrency.symbol}) *
                     </label>
                     <input
                       type="number"
@@ -1784,20 +1830,31 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   />
                 </div>
 
-                {/* 80G Tax Exemption Toggle (For Incomes) */}
+                {/* 80G Tax Exemption Toggle (For Incomes) — QUEUED #51:
+                    marking is possible only when the org can issue an
+                    official certificate; otherwise the toggle is disabled
+                    with the honest reason instead of a silent fiction. */}
                 {voucherType === 'Income' && (
                   <div className="pt-2 border-t border-temple-800">
-                    <label className="flex items-center gap-2 text-xs text-temple-300 cursor-pointer">
+                    <label className={`flex items-center gap-2 text-xs ${canMark80G ? 'text-temple-300 cursor-pointer' : 'text-temple-500 cursor-not-allowed'}`}>
                       <input
                         type="checkbox"
-                        checked={voucherIs80G}
+                        checked={voucherIs80G && canMark80G}
+                        disabled={!canMark80G}
                         onChange={(e) => setVoucherIs80G(e.target.checked)}
-                        className="rounded bg-temple-950 border-temple-700 text-amber-500 focus:ring-0"
+                        className="rounded bg-temple-950 border-temple-700 text-amber-500 focus:ring-0 disabled:opacity-40"
                       />
                       <span className="font-semibold text-amber-300">
                         Mark as Section 80G(5)(vi) Tax Exemption Eligible
                       </span>
                     </label>
+                    {!canMark80G && (
+                      <p className="text-[11px] text-temple-400 mt-1.5 leading-relaxed">
+                        {org80G.reason === 'not-registered'
+                          ? 'Unavailable: this organisation is not 80G-registered, so its receipts are SAMPLE only. Add the registration in Settings → Legal & Compliance to enable official 80G marking.'
+                          : 'Unavailable: the 80G registration is saved without a URN / registration number. Add it in Settings → Legal & Compliance to enable official 80G marking.'}
+                      </p>
+                    )}
                   </div>
                 )}
 

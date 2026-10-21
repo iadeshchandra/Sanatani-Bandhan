@@ -116,6 +116,24 @@ export function orgPublicPath(page: { orgId: string; publicSlug?: string }): str
   return `/org/${page.publicSlug || page.orgId}`;
 }
 
+/**
+ * The slug a settings/profile form may show for an org (QUEUED #51, D9c):
+ *   - `value`     — ONLY the slug the org itself saved (normalized). EMPTY
+ *                   until the org sets one. Never a hard-coded temple name,
+ *                   never silently borrowed from another organisation.
+ *   - `suggested` — the org's OWN name slugified, offered as a placeholder /
+ *                   one-tap suggestion. Derived, never prefilled as fact.
+ */
+export function resolvePublicSlugDefault(input: {
+  name?: string | null;
+  publicSlug?: string | null;
+}): { value: string; suggested: string } {
+  return {
+    value: normalizePublicSlug(input.publicSlug || ''),
+    suggested: normalizePublicSlug(input.name || ''),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Presentation helpers                                                */
 /* ------------------------------------------------------------------ */

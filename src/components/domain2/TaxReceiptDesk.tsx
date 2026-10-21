@@ -22,6 +22,12 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { generate80GTaxReceipt, generateBulkTaxReceiptsPDF } from '../../utils/pdfGenerator';
+import {
+  resolveWorkspaceCurrency,
+  formatWorkspaceAmount,
+  org80GStatus,
+  eightyGReceiptGate,
+} from '../../lib/treasuryDisplay';
 import { PdfPreviewModal } from '../common/PdfPreviewModal';
 import { useToast } from '../../context/ToastContext';
 import { TreasuryTransaction } from '../../types';
@@ -36,6 +42,12 @@ export const TaxReceiptDesk: React.FC = () => {
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { treasury, donations, assets, updateTreasuryTransaction } = useData();
+  // QUEUED #51: amounts render in the workspace's operating currency,
+  // and certificate actions are gated by the shared 80G gate (eligible
+  // voucher + registered org + real identifier) — never by assumption.
+  const wsCurrency = resolveWorkspaceCurrency(activeWorkspace);
+  const fmtAmount = (n: number) => formatWorkspaceAmount(n, wsCurrency);
+  const org80G = org80GStatus(activeWorkspace);
   const [isAuditPacking, setIsAuditPacking] = useState(false);
   const { showToast } = useToast();
 
@@ -163,9 +175,14 @@ export const TaxReceiptDesk: React.FC = () => {
   // Individual Receipt Download
   const handleDownloadSingle = async (tx: TreasuryTransaction) => {
     try {
-      showToast('Generating official 80G Certificate...', 'info');
+      const official = eightyGReceiptGate(tx, activeWorkspace).mode === 'official';
+      showToast(official ? 'Generating official 80G Certificate...' : 'Generating SAMPLE preview — not a valid 80G certificate...', 'info');
       await generate80GTaxReceipt(tx, activeWorkspace, { download: true });
-      showToast(`Receipt downloaded for ${tx.devoteeName || 'Donor'}`, 'success', '80G Certificate');
+      showToast(
+        `Receipt downloaded for ${tx.devoteeName || 'Donor'}`,
+        'success',
+        official ? '80G Certificate' : 'SAMPLE Preview'
+      );
     } catch (e: any) {
       console.error(e);
       showToast('Failed to compile 80G Certificate', 'error');
@@ -205,14 +222,19 @@ export const TaxReceiptDesk: React.FC = () => {
 
     try {
       setIsBulkGenerating(true);
+      const bulkOfficial = org80G.officialCapable;
       showToast(
-        `Assembling statutory 80G bulk certificates for ${targetTransactions.length} donors...`,
+        bulkOfficial
+          ? `Assembling statutory 80G bulk certificates for ${targetTransactions.length} donors...`
+          : `Assembling SAMPLE bulk previews for ${targetTransactions.length} donors — not valid 80G certificates...`,
         'info',
-        'Form 10BE Compliance'
+        bulkOfficial ? 'Form 10BE Compliance' : 'SAMPLE Preview'
       );
       await generateBulkTaxReceiptsPDF(targetTransactions, activeWorkspace);
       showToast(
-        `Successfully generated bulk package for ${targetTransactions.length} records!`,
+        bulkOfficial
+          ? `Successfully generated bulk package for ${targetTransactions.length} records!`
+          : `SAMPLE bulk package generated for ${targetTransactions.length} records — not valid 80G certificates.`,
         'success',
         'Bulk Export Ready'
       );
@@ -270,17 +292,19 @@ export const TaxReceiptDesk: React.FC = () => {
           presented as a full-ledger audit. */}
       <WindowedNotice collection="treasury" variant="totals" loaded={rawTransactions.length} />
       {/* H-1: unregistered workspace → honest SAMPLE state with a path to Settings */}
-      {!activeWorkspace?.trust80GRegistered && (
+      {!org80G.officialCapable && (
         <div className="rounded-2xl border-2 border-dashed border-amber-500 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-start gap-3 flex-1">
             <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-black text-amber-900 uppercase tracking-wide">
-                Sample state — this organisation is not 80G-registered
+                {org80G.reason === 'missing-identifier'
+                  ? 'Sample state — 80G registration saved without a URN'
+                  : 'Sample state — this organisation is not 80G-registered'}
               </p>
               <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                 Certificates generated here are clearly marked <strong>SAMPLE</strong> and carry no URN.
-                Add your 80G registration in Settings to issue valid statutory receipts.
+                Add your 80G registration{org80G.reason === 'missing-identifier' ? '’s URN / registration number' : ''} in Settings to issue valid statutory receipts.
               </p>
             </div>
           </div>
@@ -321,9 +345,9 @@ export const TaxReceiptDesk: React.FC = () => {
               Statutory Form 10BE & 80G
             </span>
             <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-1 rounded-lg border border-temple-800">
-              80G URN: {activeWorkspace.trust80GRegistered ? (activeWorkspace.trust80GURN || '—') : 'Not registered'}
+              80G URN: {org80G.registered ? (org80G.identifier || 'Not recorded') : 'Not registered'}
             </span>
-            {!activeWorkspace.trust80GRegistered && (
+            {!org80G.officialCapable && (
               <span className="px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Sample mode — not statutory
@@ -400,7 +424,7 @@ export const TaxReceiptDesk: React.FC = () => {
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden">
           <p className="text-xs font-bold text-temple-400 uppercase tracking-wider">{t('org.finance.taxReceipts.total80gCollections')}</p>
           <p className="text-xl sm:text-2xl font-black text-amber-400 mt-1">
-            ₹{metrics.totalAmount.toLocaleString('en-IN')}
+            {fmtAmount(metrics.totalAmount)}
           </p>
           <p className="text-[11px] text-temple-400 mt-1 font-mono">Eligible for 50% Tax Deduction</p>
         </div>
@@ -651,7 +675,7 @@ export const TaxReceiptDesk: React.FC = () => {
 
                       {/* Amount */}
                       <td className="py-3 px-3 text-right font-black font-mono text-emerald-400 text-sm whitespace-nowrap">
-                        ₹{(tx.amount || 0).toLocaleString('en-IN')}
+                        {fmtAmount(tx.amount || 0)}
                       </td>
 
                       {/* Status */}
@@ -685,7 +709,7 @@ export const TaxReceiptDesk: React.FC = () => {
                             type="button"
                             onClick={() => handlePreviewSingle(tx)}
                             className="p-1.5 rounded-lg bg-temple-800 hover:bg-temple-750 text-temple-300 hover:text-amber-300 transition-colors"
-                            title="Preview 80G Certificate"
+                            title="Preview 80G Certificate (SAMPLE when the 80G gate is not met)"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -695,10 +719,10 @@ export const TaxReceiptDesk: React.FC = () => {
                             type="button"
                             onClick={() => handleDownloadSingle(tx)}
                             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-temple-950 font-bold text-xs shadow transition-all cursor-pointer"
-                            title="Download Signed 80G PDF"
+                            title={eightyGReceiptGate(tx, activeWorkspace).explanation}
                           >
                             <Download className="w-3.5 h-3.5" />
-                            <span>80G PDF</span>
+                            <span>{eightyGReceiptGate(tx, activeWorkspace).mode === 'official' ? '80G PDF' : 'SAMPLE PDF'}</span>
                           </button>
                         </div>
                       </td>
@@ -735,7 +759,7 @@ export const TaxReceiptDesk: React.FC = () => {
                 </p>
                 <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.receiptNo2')}<span className="font-mono text-amber-400">{editingTx.taxReceiptNumber || editingTx.id}</span>
                 </p>
-                <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.amount')}<span className="font-bold text-emerald-400">₹{(editingTx.amount || 0).toLocaleString()}</span>
+                <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.amount')}<span className="font-bold text-emerald-400">{fmtAmount(editingTx.amount || 0)}</span>
                 </p>
               </div>
 

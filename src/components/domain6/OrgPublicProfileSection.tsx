@@ -29,6 +29,7 @@ import { executeSafeUpdate } from '../../lib/dbUtils';
 import { syncOrgPage } from '../../context/MembershipContext';
 import {
   normalizePublicSlug,
+  resolvePublicSlugDefault,
   orgPublicPath,
   MAX_GALLERY_IMAGES,
   MAX_PUBLIC_EVENTS,
@@ -227,6 +228,13 @@ export const OrgPublicProfileSection: React.FC<{ isAdmin: boolean }> = ({ isAdmi
   };
 
   const previewPath = orgPublicPath({ orgId, publicSlug: normalizePublicSlug(slug) || undefined });
+  // QUEUED #51 (D9c): the slug field's suggestion comes from THIS org's
+  // own name via the shared resolver — never a hard-coded temple. (The
+  // field value itself is only ever the org's saved slug or empty.)
+  const slugSuggestion = resolvePublicSlugDefault({
+    name: activeWorkspace?.name,
+    publicSlug: slug,
+  }).suggested;
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
@@ -266,7 +274,7 @@ export const OrgPublicProfileSection: React.FC<{ isAdmin: boolean }> = ({ isAdmi
               disabled={!isAdmin}
               onChange={(e) => setSlug(e.target.value)}
               onBlur={(e) => checkSlugUnique(e.target.value)}
-              placeholder="dakshineswar-kali-mandir"
+              placeholder={slugSuggestion || 'your-organisation'}
               className={`${inputCls} font-mono`}
             />
             {isAdmin && (
