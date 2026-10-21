@@ -22,6 +22,8 @@ import {
   org80GStatus,
   eightyGReceiptGate,
 } from '../../lib/treasuryDisplay';
+import { SampleBadge } from '../common/SampleBadge';
+import { isSampleRecord } from '../../lib/sampleData';
 import { workspaceRegistry } from '../../lib/workspaceRegistry';
 import {
   fireSuggestion,
@@ -1471,6 +1473,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                           <p className="font-bold text-temple-100 truncate max-w-[180px]">
                             {entityName}
                           </p>
+                          {/* QUEUED #59 (A4-4): seeded vouchers are MARKED sample. */}
+                          {isSampleRecord(tx) && <SampleBadge className="mt-1" />}
                           <p className="text-[10px] text-temple-400">
                             Handled by: <span className="text-temple-300">{tx.handledBy || 'Admin'}</span>
                           </p>

@@ -35,6 +35,7 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { WorkspaceConfig } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 
 // ============================================================================
 // TYPES & DATA STRUCTURES
@@ -241,7 +242,8 @@ const INITIAL_SWEEPS: CashSweepRecord[] = [
 // ============================================================================
 
 export const FederationMultiBranchDesk: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, safeTranslate } = useLanguage();
+  const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace, workspaces, switchWorkspace, addWorkspace, checkPermission, currentRole, currentUser } = useAuthWorkspace();
   const { treasury, donations } = useData();
   const { showToast } = useToast();
@@ -1005,8 +1007,8 @@ export const FederationMultiBranchDesk: React.FC = () => {
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('org.people.federation.enrolledDevotees')}</span>
-                      <span className="font-bold text-stone-200 text-sm">{branch.memberCount} Members</span>
+                      <span className="text-[10px] text-stone-500 uppercase font-bold block">{safeTranslate('fed_enrolled', 'Enrolled', 'ভর্তি', 'नामांकित')} {taxonomy.memberNoun}</span>
+                      <span className="font-bold text-stone-200 text-sm">{branch.memberCount} {taxonomy.memberNoun}</span>
                     </div>
                   </div>
                 </div>

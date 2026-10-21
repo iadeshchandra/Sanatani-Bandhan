@@ -66,6 +66,7 @@ import {
 } from './data/windowing';
 import { stripUndefinedDeep } from './data/firestoreDoc';
 import { allowsSeedData } from '../lib/workspaceKind';
+import type { SampleRecordCounts } from '../lib/sampleData';
 
 
 // Master Initial Datasets
@@ -1074,6 +1075,7 @@ interface DataContextType {
 
   // Mutators
   seedDemoData: (workspaceId: string, type: string) => void;
+  clearSampleData: (workspaceId: string) => SampleRecordCounts;
   addDevotee: (devotee: Omit<DevoteeMember, 'id' | 'qrCodeRef' | 'joinedDate'>) => string | boolean;
   updateDevotee: (id: string, updates: Partial<DevoteeMember>) => void;
   deleteDevotee: (id: string) => void;
@@ -2149,6 +2151,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ----------------------------------------------------
   // MUTATOR IMPLEMENTATIONS (With Tenant Tagging & Auto-Delete Expiration)
   // ----------------------------------------------------
+
+  /**
+   * QUEUED #59 (A4-4): the one-tap half of the SetupWizard's sample-data
+   * promise ("delete them anytime"). Removes EXACTLY the records the
+   * seeder tagged `isDemoSeed` for this workspace — the same predicate
+   * seedDemoData's own stale-seed sweep uses — across the six seeded
+   * sets. A record the user created can never match: user mutators
+   * never set the tag. Devotees + treasury also carry a Firestore
+   * path, so their docs are deleted too (mirrors deleteDevotee);
+   * the rest live in state + the local snapshot, which the state
+   * filter below rewrites. Returns what was removed, per set.
+   */
+  const clearSampleData = (workspaceId: string): SampleRecordCounts => {
+    const isSample = (r: any) => !!r && r.isDemoSeed === true && r.workspaceId === workspaceId;
+    const counts: SampleRecordCounts = {
+      devotees: allDevotees.filter(isSample).length,
+      treasury: allTreasury.filter(isSample).length,
+      gurukulStudents: allGurukulStudents.filter(isSample).length,
+      cows: allCows.filter(isSample).length,
+      guests: allGuests.filter(isSample).length,
+      campaigns: allCampaigns.filter(isSample).length,
+      total: 0,
+    };
+    counts.total =
+      counts.devotees + counts.treasury + counts.gurukulStudents +
+      counts.cows + counts.guests + counts.campaigns;
+    if (counts.total === 0) return counts;
+    allDevotees.filter(isSample).forEach((r) => {
+      deleteDoc(doc(db, 'devotees', r.id)).catch((err: any) => {
+        console.warn('[Firestore sync] clear sample devotee offline or restricted:', err?.message || err);
+      });
+    });
+    allTreasury.filter(isSample).forEach((r) => {
+      deleteDoc(doc(db, 'treasury', r.id)).catch((err: any) => {
+        console.warn('[Firestore sync] clear sample treasury offline or restricted:', err?.message || err);
+      });
+    });
+    setAllDevotees((prev) => prev.filter((r) => !isSample(r)));
+    setAllTreasury((prev) => prev.filter((r) => !isSample(r)));
+    setAllGurukulStudents((prev) => prev.filter((r) => !isSample(r)));
+    setAllCows((prev) => prev.filter((r) => !isSample(r)));
+    setAllGuests((prev) => prev.filter((r) => !isSample(r)));
+    setAllCampaigns((prev) => prev.filter((r) => !isSample(r)));
+    return counts;
+  };
 
   const seedDemoData = (workspaceId: string, type: string) => {
     // Seed version: bump when seed content changes so existing demos pick up
@@ -3432,6 +3479,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         serviceRecords,
         sevaSubscriptions,
         seedDemoData,
+        clearSampleData,
         addDevotee,
         updateDevotee,
         deleteDevotee,
@@ -3490,7 +3538,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         treasuryExactTotals,
         loadMoreCollection,
         receiptSeqDegraded,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, clearSampleData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
 
   return (
     <DataContext.Provider
@@ -3527,6 +3575,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         serviceRecords,
         sevaSubscriptions,
         seedDemoData,
+        clearSampleData,
         addDevotee,
         updateDevotee,
         deleteDevotee,

@@ -28,6 +28,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
+import { resolveHerdCount } from '../../lib/herdCount';
 import { useToast } from '../../context/ToastContext';
 import { CountUp } from '../common/ui/CountUp';
 import { MODULE_CATALOG } from '../common/Sidebar';
@@ -235,7 +236,7 @@ export const ShlokaCard: React.FC = () => {
 export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
   const { safeTranslate } = useLanguage();
-  const { devotees, treasury, poojaBookings, cows, gurukulStudents } = useData();
+  const { devotees, treasury, poojaBookings, cows, gurukulStudents, collectionWindows, treasuryExactTotals } = useData();
 
   const orgTypeKey = (activeWorkspace.type || 'Mandir').toLowerCase();
   const isGurukulLike = ['gurukul', 'vidyalaya', 'pathshala'].includes(orgTypeKey);
@@ -246,13 +247,24 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
 
   // Branch-aware: KPIs follow the active branch filter via matchesActiveBranch
   // (treasury/devotees/poojaBookings are already branch-filtered in context).
-  const totalIncome = treasury
+  const windowedIncome = treasury
     .filter((tx) => tx.type === 'Income')
     .reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpense = treasury
+  const windowedExpense = treasury
     .filter((tx) => tx.type === 'Expense')
     .reduce((acc, curr) => acc + curr.amount, 0);
+  // QUEUED #59 (A4-7): mirror TreasuryLedgerDesk's honesty rule — in
+  // windowed mode the loaded array is only a window, so the KPI reads
+  // the exact server totals when they exist; the pill below then says
+  // which of the two the number really is. (Previously the windowed
+  // sum wore an unconditional "Synced" pill while the desk showed
+  // different, exact figures.)
+  const treasuryWindowed = collectionWindows.treasury.windowed;
+  const useExactTotals = treasuryWindowed && treasuryExactTotals != null;
+  const totalIncome = useExactTotals ? treasuryExactTotals.totalIncome : windowedIncome;
+  const totalExpense = useExactTotals ? treasuryExactTotals.totalExpense : windowedExpense;
   const netBalance = totalIncome - totalExpense;
+  const treasuryIsPartial = treasuryWindowed && !useExactTotals;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0 anim-stagger">
@@ -270,8 +282,11 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
               : safeTranslate('kpi_devotee_directory', 'Devotee Directory', 'ভক্ত তালিকা', 'भक्त सूची')}
           </span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-bold text-slate-900"><CountUp value={devotees.length} /></span>
-            <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded">KYC 100%</span>
+            {/* QUEUED #59 (A4-7): the count is the probed server total
+                under windowing (DashboardHome's rule), and the old
+                "KYC 100%" pill is GONE — no member record carries a KYC
+                field, so the percentage was invented. */}
+            <span className="text-2xl font-bold text-slate-900"><CountUp value={collectionWindows.devotees.total ?? devotees.length} /></span>
           </div>
         </div>
       )}
@@ -286,7 +301,15 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             <span className="text-2xl font-bold text-slate-900">
               <CountUp value={netBalance} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
             </span>
-            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Synced</span>
+            {treasuryIsPartial ? (
+              <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+              </span>
+            ) : (
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                {safeTranslate('kpi_treasury_full', 'Full ledger', 'সম্পূর্ণ খাতা', 'पूरा खाता')}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -335,7 +358,9 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
         >
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gau Seva Units</span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-bold text-slate-900"><CountUp value={cows.length} /></span>
+            {/* QUEUED #59 (A4-1): same herd resolver as the Command
+                Center — the suite store is the register of record. */}
+            <span className="text-2xl font-bold text-slate-900"><CountUp value={resolveHerdCount(activeWorkspace.id, { legacyCowCount: cows.length })} /></span>
             <span className="text-[10px] text-saffron-600 font-bold bg-saffron-50 px-1.5 py-0.5 rounded">Gomata</span>
           </div>
         </div>

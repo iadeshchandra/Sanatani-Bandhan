@@ -24,6 +24,7 @@ import { SevaSubscription } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 
 const PLANS = ['Nitya Annadanam', 'Gau Seva Monthly', 'Deep Seva', 'Nitya Pushpanjali', 'Custom'] as const;
 const FREQUENCIES: SevaSubscription['frequency'][] = ['Monthly', 'Quarterly', 'Annually'];
@@ -61,6 +62,7 @@ const planBadge: Record<string, string> = {
 
 export const RecurringSevaDesk: React.FC = () => {
   const { t } = useLanguage();
+  const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace } = useAuthWorkspace();
   const workspaceId = activeWorkspace?.id || 'DEMO_ws-mandir';
   const { sevaSubscriptions, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment } = useData();
@@ -521,7 +523,7 @@ export const RecurringSevaDesk: React.FC = () => {
             </div>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className={labelCls} htmlFor="seva-name">Devotee Name *</label>
+                <label className={labelCls} htmlFor="seva-name">{taxonomy.memberNoun} Name *</label>
                 <input id="seva-name" className={inputCls} value={fName} onChange={(e) => setFName(e.target.value)} placeholder="e.g. Sri Mohan Sharma" required />
               </div>
               <div>

@@ -3,9 +3,11 @@ import { Sparkles, Award, TrendingUp, Heart, Clock, ShieldCheck } from 'lucide-r
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 
 export const KarmaLedgerDesk: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, safeTranslate } = useLanguage();
+  const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace } = useAuthWorkspace();
   const { devotees } = useData();
 
@@ -53,7 +55,7 @@ export const KarmaLedgerDesk: React.FC = () => {
 
         <div className="bg-temple-900/90 border border-temple-700 rounded-2xl p-4 space-y-1">
           <span className="px-2 py-0.5 rounded-full bg-temple-800 text-temple-300 font-bold text-[10px] uppercase">{t('org.finance.karmaLedger.sadharanTier0299Pts')}</span>
-          <h4 className="font-bold text-temple-100 text-sm">{t('org.finance.karmaLedger.generalDevotee')}</h4>
+          <h4 className="font-bold text-temple-100 text-sm">{safeTranslate('karma_general_tier', 'General', 'সাধারণ', 'सामान्य')} {taxonomy.memberNoun}</h4>
           <p className="text-temple-400 text-[11px]">{t('org.finance.karmaLedger.smartPassIdStandardDarshanAccessCommunit')}</p>
         </div>
       </div>
@@ -65,7 +67,7 @@ export const KarmaLedgerDesk: React.FC = () => {
             <thead className="text-[10px] text-temple-400 uppercase bg-temple-950/60 font-semibold border-b border-temple-800">
               <tr>
                 <th className="p-3">Rank</th>
-                <th className="p-3">{t('org.finance.karmaLedger.devoteeMember')}</th>
+                <th className="p-3">{taxonomy.memberNoun}</th>
                 <th className="p-3">{t('org.finance.karmaLedger.gotra')}</th>
                 <th className="p-3">{t('org.finance.karmaLedger.sevaTier')}</th>
                 <th className="p-3">Volunteer Hours</th>

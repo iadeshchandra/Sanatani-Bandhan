@@ -7,6 +7,7 @@ import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { WindowedNotice } from '../common/WindowedNotice';
 
 interface DonorProfile {
@@ -48,6 +49,7 @@ export const DonorCareDesk: React.FC = () => {
   const { t } = useLanguage();
   const { treasury, devotees } = useData();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
+  const taxonomy = useWorkspaceTaxonomy();
   const { showToast } = useToast();
   const wsId = activeWorkspace?.id || 'default';
   const orgName = activeWorkspace?.name || 'our organisation';
@@ -158,7 +160,7 @@ export const DonorCareDesk: React.FC = () => {
         </div>
         {!d.phone && (
           <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-            <PhoneOff className="w-3.5 h-3.5" /> No phone on file — add it in the Devotee Directory to message directly.
+            <PhoneOff className="w-3.5 h-3.5" /> No phone on file — add it in the {taxonomy.directoryName} to message directly.
           </p>
         )}
         <div className="flex flex-wrap gap-2">

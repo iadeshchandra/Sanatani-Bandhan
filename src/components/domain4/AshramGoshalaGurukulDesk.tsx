@@ -815,7 +815,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 Domain 4 • Specialized Dharmic Institutions
               </span>
               <span className="text-xs text-stone-400 font-mono">
-                {activeWorkspace?.name || 'Sanatan Mandir Trust'} • Managed by {currentUser?.name || 'Acharya'}
+                {activeWorkspace?.name || '—'}{currentUser?.name ? ` • Managed by ${currentUser.name}` : ''}
               </span>
             </div>
 

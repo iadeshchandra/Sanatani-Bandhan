@@ -5,6 +5,9 @@ import { Card, Stat, Btn, Field, inputCls, Empty, FODDER_KIND_KEY, labelFor } fr
 import { inr } from '../pathshala/bn';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { SampleBadge } from '../components/common/SampleBadge';
+import { SampleEraBar } from '../components/common/SampleEraBar';
+import { isSampleEraFodderUseRow } from '../lib/sampleData';
 
 /* Goshala One — Chara (fodder): inventory, daily consumption, cost per
    animal per day, and the grant-vs-cost gap dashboard (research: ~₹50
@@ -20,6 +23,15 @@ export const CharaTab: React.FC = () => {
   const [use, setUse] = useState({ itemId: '', date: todayISO(), qty: 0 });
 
   const headcount = state.nandis.length;
+
+  // QUEUED #59 (sample-era review): fodder-use rows the old sample
+  // seed left behind — they reference a buildSeed fodder item
+  // (f_1…f_4) that is no longer in stock. Badged + one-tap clear.
+  const liveItemIds = useMemo(() => new Set(state.fodderItems.map((i) => i.id)), [state.fodderItems]);
+  const eraUse = useMemo(
+    () => state.fodderUse.filter((u) => isSampleEraFodderUseRow(u, liveItemIds)),
+    [state.fodderUse, liveItemIds],
+  );
 
   const stats = useMemo(() => {
     const since = new Date(); since.setDate(since.getDate() - 30);
@@ -64,6 +76,14 @@ export const CharaTab: React.FC = () => {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-bold text-stone-800">{t('suites.goshala.chara.title')}</h2>
       </div>
+
+      <SampleEraBar
+        count={eraUse.length}
+        nounEn="fodder-use rows"
+        nounBn="খড় ব্যবহারের সারি"
+        nounHi="चारा उपयोग पंक्तियाँ"
+        onClear={() => eraUse.forEach((u) => remove('fodderUse', u.id))}
+      />
 
       {/* Grant-vs-cost gap dashboard */}
       <Card className="border-red-200 bg-gradient-to-br from-red-50 to-amber-50">
@@ -137,7 +157,7 @@ export const CharaTab: React.FC = () => {
           <ul className="text-sm space-y-1 max-h-48 overflow-y-auto">
             {[...state.fodderUse].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((u) => (
               <li key={u.id} className="flex justify-between border-b border-stone-100 py-1">
-                <span>{state.fodderItems.find((i) => i.id === u.itemId)?.name} · {u.qty}</span>
+                <span>{state.fodderItems.find((i) => i.id === u.itemId)?.name} {isSampleEraFodderUseRow(u, liveItemIds) && <SampleBadge className="ml-1" />} · {u.qty}</span>
                 <span className="text-stone-500">{u.date}</span>
               </li>
             ))}

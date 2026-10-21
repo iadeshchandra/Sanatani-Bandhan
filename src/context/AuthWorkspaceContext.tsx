@@ -7,6 +7,7 @@ import { DevoteeMember, UserRole, WorkspaceConfig, WorkspaceType, ROLE_MIGRATION
 import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
 import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
+import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { activationForCreatedWorkspace } from '../lib/workspaceActivation';
 import { resolveEdgeRole, personaHomeModule } from '../lib/landingSurface';
 import { isModuleAllowedForOrgMount, resolveOrgModuleId } from '../lib/workspaceRegistry';
@@ -1486,13 +1487,24 @@ const pinDeniedToast = (
         role: role || currentRole,
       };
     }
-    const displayName = currentDevotee?.fullName || user?.displayName || 'Acharya / Trustee Administrator';
+    // QUEUED #59 (A4-9): this memo previously fell back to a fabricated
+    // identity — the literal name 'Acharya / Trustee Administrator', a
+    // made-up phone '+91 98765 43210' and a made-up email
+    // 'admin@sanatanmandir.org' — which then rendered as the signed-in
+    // person across desks ("Managed by Acharya"). Now the #52
+    // resolveActorName law applies at the source: a real profile name,
+    // else the account email, else the neutral 'Sanatani Sevak'; phone
+    // and email fall back to NOTHING rather than an invented contact.
+    const displayName = resolveActorName(
+      [currentDevotee?.fullName, user?.displayName],
+      user?.email,
+    );
     return {
       id: currentDevotee?.id || user?.uid || 'admin-root',
       name: displayName,
       fullName: displayName,
-      phone: currentDevotee?.phone || user?.phoneNumber || '+91 98765 43210',
-      email: currentDevotee?.email || user?.email || 'admin@sanatanmandir.org',
+      phone: currentDevotee?.phone || user?.phoneNumber || '',
+      email: currentDevotee?.email || user?.email || '',
       role: role || currentRole,
     };
   }, [personaUser, currentDevotee, user, role, currentRole]);

@@ -41,6 +41,8 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
+import { SampleBadge } from '../common/SampleBadge';
+import { isSampleRecord } from '../../lib/sampleData';
 import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
 import { useScopedData } from '../../hooks/useScopedData';
@@ -926,7 +928,7 @@ export const DevoteeGrid: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white border border-temple-200 rounded-xl shadow-sm text-center">
           <div className="w-8 h-8 border-4 border-saffron-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-          <p className="text-xs font-semibold text-temple-700">Loading Devotee Records from Firestore...</p>
+          <p className="text-xs font-semibold text-temple-700">Loading {taxonomy.directoryName} from Firestore...</p>
         </div>
       ) : filteredDevotees.length === 0 ? (
         /* F-MEM-2 (spec §7): warm empty state — acknowledge + bless + guide + one action.
@@ -1027,6 +1029,8 @@ export const DevoteeGrid: React.FC = () => {
                             Revoked
                           </span>
                         )}
+                        {/* QUEUED #59 (A4-4): sample records are MARKED, as the wizard promised. */}
+                        {isSampleRecord(devotee) && <SampleBadge />}
                       </div>
                     </div>
                   </div>
@@ -1222,6 +1226,7 @@ export const DevoteeGrid: React.FC = () => {
                               Revoked
                             </span>
                           )}
+                          {isSampleRecord(devotee) && <SampleBadge />}
                         </div>
                         {/* F-MEM-1: raw internal IDs (dev_…) never surface in the directory. */}
                       </div>

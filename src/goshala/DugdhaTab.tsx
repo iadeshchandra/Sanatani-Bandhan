@@ -5,6 +5,9 @@ import { Card, Btn, Field, inputCls, Empty, DISPOSAL_KIND_KEY, labelFor } from '
 import { fmtDateEn, inr } from '../pathshala/bn';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { SampleBadge } from '../components/common/SampleBadge';
+import { SampleEraBar } from '../components/common/SampleEraBar';
+import { isSampleEraMilkRow } from '../lib/sampleData';
 
 /* Goshala One — Dugdha (milk ledger): daily yield per animal, session-wise
    entry, disposal (sold / distributed / donated), simple lactation view. */
@@ -41,6 +44,16 @@ export const DugdhaTab: React.FC = () => {
   };
 
   const recent = useMemo(() => [...state.milk].sort((a, b) => b.date.localeCompare(a.date) || b.session.localeCompare(a.session)).slice(0, 20), [state.milk]);
+
+  // QUEUED #59 (sample-era review): milk rows the old sample seed left
+  // behind — identifiable with certainty because they reference a
+  // buildSeed nandi (n_1…n_8) that is no longer in the herd. Badged in
+  // the list below; removable in one tap. Real rows can never match.
+  const liveNandiIds = useMemo(() => new Set(state.nandis.map((n) => n.id)), [state.nandis]);
+  const eraMilk = useMemo(
+    () => state.milk.filter((r) => isSampleEraMilkRow(r, liveNandiIds)),
+    [state.milk, liveNandiIds],
+  );
   const disposals = useMemo(() => [...state.disposals].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12), [state.disposals]);
 
   // 7-day lactation view per milking animal.
@@ -62,6 +75,14 @@ export const DugdhaTab: React.FC = () => {
         <h2 className="text-lg font-bold text-stone-800">{t('suites.goshala.dugdha.title')}</h2>
         <div className="text-sm bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5">{t('suites.goshala.dugdha.milkSales')}: <b className="text-emerald-700">{inr(saleTotal)}</b></div>
       </div>
+
+      <SampleEraBar
+        count={eraMilk.length}
+        nounEn="milk rows"
+        nounBn="দুধের সারি"
+        nounHi="दूध पंक्तियाँ"
+        onClear={() => eraMilk.forEach((r) => remove('milk', r.id))}
+      />
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
@@ -132,7 +153,7 @@ export const DugdhaTab: React.FC = () => {
             <ul className="text-sm space-y-1.5 max-h-64 overflow-y-auto">
               {recent.map((r) => (
                 <li key={r.id} className="flex justify-between border-b border-stone-100 py-1">
-                  <span>{nameOf(r.nandiId)} · {r.session === 'morning' ? t('suites.goshala.common.morning') : t('suites.goshala.common.evening')}</span>
+                  <span>{nameOf(r.nandiId)} · {r.session === 'morning' ? t('suites.goshala.common.morning') : t('suites.goshala.common.evening')} {isSampleEraMilkRow(r, liveNandiIds) && <SampleBadge className="ml-1" />}</span>
                   <span><b>{r.liters.toFixed(1)} L</b> <span className="text-stone-500">{fmtDateEn(r.date)}</span></span>
                 </li>
               ))}

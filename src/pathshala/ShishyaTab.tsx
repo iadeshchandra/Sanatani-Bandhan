@@ -7,6 +7,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { GurukulStudent } from '../types';
 import { Card, Btn, Field, inputCls, Modal, Empty, useLocaleText } from './ui';
 import { todayISO, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
+import { SampleBadge } from '../components/common/SampleBadge';
+import { isSampleRecord } from '../lib/sampleData';
 
 /* Checklist #2 — shishya management: admission, edit, varga promotion,
    CSV import/export. Checklist #13 — admission & stipend register. */
@@ -186,7 +188,7 @@ export const ShishyaTab: React.FC = () => {
                 <tbody>
                   {filtered.map((s) => { const m = metaOf(s.id); return (
                     <tr key={s.id} className="border-b border-stone-100">
-                      <td className="py-2 pr-3"><div className="font-semibold">{s.studentName}</div><div className="text-xs text-stone-500">{s.rollNo}{m?.admissionNo ? ` • ${t('suites.pathshala.shishya.admissionLabel')} ${m.admissionNo}` : ''}</div></td>
+                      <td className="py-2 pr-3"><div className="font-semibold">{s.studentName} {isSampleRecord(s) && <SampleBadge className="ml-1" />}</div><div className="text-xs text-stone-500">{s.rollNo}{m?.admissionNo ? ` • ${t('suites.pathshala.shishya.admissionLabel')} ${m.admissionNo}` : ''}</div></td>
                       <td className="py-2 pr-3">{vargaName(m?.vargaId)}</td>
                       <td className="py-2 pr-3 text-xs">{levelLabel(s.courseLevel)}</td>
                       <td className="py-2 pr-3 text-xs">{s.guardianName}<br /><span className="text-stone-500">{s.guardianPhone}</span></td>
@@ -216,7 +218,7 @@ export const ShishyaTab: React.FC = () => {
               <tbody>{gurukulStudents.map((s, i) => { const m = metaOf(s.id); return (
                 <tr key={s.id} className="border-b border-stone-100">
                   <td className="py-2 pr-3">{digits(i + 1)}</td><td className="py-2 pr-3 font-mono">{m?.admissionNo || '—'}</td>
-                  <td className="py-2 pr-3 font-semibold">{s.studentName}</td><td className="py-2 pr-3">{vargaName(m?.vargaId)}</td>
+                  <td className="py-2 pr-3 font-semibold">{s.studentName} {isSampleRecord(s) && <SampleBadge className="ml-1" />}</td><td className="py-2 pr-3">{vargaName(m?.vargaId)}</td>
                   <td className="py-2 pr-3">{m?.admissionDate ? fmtDateEn(m.admissionDate) : '—'}</td><td className="py-2 pr-3">{s.guardianName}</td>
                 </tr>); })}</tbody>
             </table>
@@ -236,7 +238,7 @@ export const ShishyaTab: React.FC = () => {
               <thead><tr className="text-left text-xs text-stone-500 border-b">{[t('suites.pathshala.shishya.colSl'), t('suites.pathshala.shishya.colName'), t('suites.pathshala.shishya.colVarga'), t('suites.pathshala.shishya.colAttendance'), t('suites.pathshala.shishya.colEligible')].map((h) => <th key={h} className="py-2 pr-3">{h}</th>)}</tr></thead>
               <tbody>{stipendList.map((x, i) => (
                 <tr key={x.s.id} className="border-b border-stone-100">
-                  <td className="py-2 pr-3">{digits(i + 1)}</td><td className="py-2 pr-3 font-semibold">{x.s.studentName}</td>
+                  <td className="py-2 pr-3">{digits(i + 1)}</td><td className="py-2 pr-3 font-semibold">{x.s.studentName} {isSampleRecord(x.s) && <SampleBadge className="ml-1" />}</td>
                   <td className="py-2 pr-3">{vargaName(metaOf(x.s.id)?.vargaId)}</td><td className="py-2 pr-3 font-bold text-emerald-700">{digits(x.pct)}%</td>
                   <td className="py-2 pr-3"><span className="bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full px-2 py-0.5">{t('suites.pathshala.shishya.colEligible')}</span></td>
                 </tr>))}</tbody>

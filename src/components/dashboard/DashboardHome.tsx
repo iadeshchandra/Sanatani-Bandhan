@@ -8,6 +8,7 @@ import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { ShlokaCard, RoleHomeSwitch } from './RoleHome';
 import { GurukulHome } from './GurukulHome';
 import { useOrgGlanceRefresh } from '../../lib/orgGlanceSync';
+import { resolveHerdCount } from '../../lib/herdCount';
 
 interface DashboardHomeProps {
   onSelectModule?: (id: string) => void;
@@ -58,7 +59,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       return {
         Icon: Beef,
         label: safeTranslate('dash_hero_cows', 'Gau Mata Under Care', 'যত্নে থাকা গোমাতা', 'देखभाल में गौ माता'),
-        value: cows.length,
+        // QUEUED #59 (A4-1): the herd's register of record is the
+        // Goshala One suite store — read it through the ONE resolver
+        // every surface shares, never the DataContext register alone.
+        value: resolveHerdCount(activeWorkspace.id, { legacyCowCount: cows.length }),
       };
     if (isGurukulLike)
       return {

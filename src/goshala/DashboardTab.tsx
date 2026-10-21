@@ -4,17 +4,21 @@ import { Card, Stat, StatusPill } from './ui';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { inr, fmtDateEn } from '../pathshala/bn';
 import { useLanguage } from '../context/LanguageContext';
+import { resolveHerdCount } from '../lib/herdCount';
 
 /* Goshala One — dashboard: headcount, sick list, today's milk, fodder
    days-remaining, grant-vs-cost gap, upcoming vaccinations. */
 
 export const DashboardTab: React.FC = () => {
-  const { state } = useGoshala();
+  const { state, workspaceId } = useGoshala();
   const { t } = useLanguage();
   const today = todayISO();
 
   const m = useMemo(() => {
-    const headcount = state.nandis.length;
+    // QUEUED #59 (A4-1): headcount via the ONE herd resolver every
+    // surface shares — inside the provider the live suite count is
+    // authoritative (this store IS the register of record).
+    const headcount = resolveHerdCount(workspaceId, { legacyCowCount: state.nandis.length, liveSuiteCount: state.nandis.length });
     const sick = state.nandis.filter((n) => n.status === 'sick' || n.status === 'quarantine');
     const milking = state.nandis.filter((n) => n.status === 'milking').length;
     const todayMilk = state.milk.filter((r) => r.date === today).reduce((s, r) => s + r.liters, 0);

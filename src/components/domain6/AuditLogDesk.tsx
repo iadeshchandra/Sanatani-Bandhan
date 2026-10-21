@@ -24,52 +24,14 @@ export const AuditLogDesk: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [auditLogs] = useState<AuditTrailItem[]>([
-    {
-      id: 'log-101',
-      timestamp: '2026-08-24 11:42:15',
-      userEmail: 'adhyaksha@sanatanibandhan.org',
-      userRole: 'SUPER_ADMIN',
-      action: 'BATCH_INGEST_DEVOTEES (150 rows processed)',
-      module: 'Bulk CSV Ingestion Desk',
-      ipAddress: '103.24.12.89',
-      severity: 'Info',
-      sha256Hash: 'a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0',
-    },
-    {
-      id: 'log-102',
-      timestamp: '2026-08-24 10:15:30',
-      userEmail: 'accountant@kashi-mandir.org',
-      userRole: 'ACCOUNTANT',
-      action: 'ISSUE_TAX_RECEIPT (Receipt #SB-80G-1082)',
-      module: 'Section 80G Tax Desk',
-      ipAddress: '49.36.142.11',
-      severity: 'Info',
-      sha256Hash: 'b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1',
-    },
-    {
-      id: 'log-103',
-      timestamp: '2026-08-24 08:30:12',
-      userEmail: 'priest@sanatanibandhan.org',
-      userRole: 'PUROHIT',
-      action: 'SANCTUM_VAULT_DEITY_CROWN_AUDIT',
-      module: 'Fixed Asset Desk',
-      ipAddress: '103.24.12.89',
-      severity: 'Security',
-      sha256Hash: 'c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
-    },
-    {
-      id: 'log-104',
-      timestamp: '2026-08-23 21:10:00',
-      userEmail: 'guest_user@ip-202.44.1.2',
-      userRole: 'ANONYMOUS',
-      action: 'PIN_AUTH_FAILED (Attempt 1 for PIN: 9999)',
-      module: 'Smart ID Pass Desk',
-      ipAddress: '202.44.1.2',
-      severity: 'Warning',
-      sha256Hash: 'd0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
-    },
-  ]);
+  // QUEUED #59 (A4 residual from #58): this desk previously SEEDED
+  // itself with four hard-coded "audit entries" — invented people,
+  // invented IPs, invented SHA-256 stamps — on every workspace,
+  // including real ones. Fabricated rows in the one desk whose whole
+  // purpose is trust. The desk now starts EMPTY: entries arrive from
+  // the real audit stream (Blueprint A); until then the honest empty
+  // state below is the truth.
+  const [auditLogs] = useState<AuditTrailItem[]>([]);
 
   const filteredLogs = auditLogs.filter(
     (l) =>
@@ -102,17 +64,17 @@ export const AuditLogDesk: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold uppercase tracking-wider">
-              Immutable Cryptographic Audit Trail
+              Security & System Audit Log
             </span>
             <span className="text-xs text-temple-400 font-mono">
-              Zero-Trust Enterprise Compliance
+              {activeWorkspace.name}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
             Security & System Audit Log Desk
           </h2>
           <p className="text-xs text-temple-400 mt-0.5">
-            Tamper-proof record of every financial transaction, member edit, vault opening, and failed authentication
+            Recorded security and system activity for this workspace — sign-ins, approvals, exports and other audited actions, as they are recorded.
           </p>
         </div>
 
@@ -250,6 +212,19 @@ export const AuditLogDesk: React.FC = () => {
             </tbody>
           </table>
         </div>
+        {filteredLogs.length === 0 && (
+          <div className="text-center py-10">
+            <Activity className="w-8 h-8 text-temple-600 mx-auto mb-3" />
+            <p className="text-sm font-bold text-temple-200">
+              {auditLogs.length === 0 ? 'No audit entries recorded yet' : 'No entries match your search'}
+            </p>
+            <p className="text-xs text-temple-400 mt-1 max-w-md mx-auto">
+              {auditLogs.length === 0
+                ? 'This log fills as audited actions are recorded for this workspace. Nothing is back-filled or invented — an empty log is an honest log.'
+                : 'Try a different search term.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

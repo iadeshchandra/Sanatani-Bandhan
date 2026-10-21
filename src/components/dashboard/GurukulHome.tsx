@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { readParamparaCounts } from '../../lib/paramparaCounts';
 
 /* ------------------------------------------------------------------ */
 /* GurukulHome — the dedicated home for Gurukul / Vidyalaya workspaces */
@@ -86,26 +87,15 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
     [gurukulStudents]
   );
 
+  // QUEUED #59 (A4-3): the Parampara figures come from the register
+  // that actually holds them — Pathshala One's suite store (its gurus
+  // are the acharyas; its parikshas are the examinations held). The
+  // old code read a dead legacy key (`sb_gurukul_exams_<ws>`, which
+  // the current suite never writes) and floored the Acharya count at
+  // 3 — an invented lineage. Real register or honest zero, nothing else.
   const parampara = useMemo(() => {
-    // Acharyas: unique examiners from the local pariksha ledger (same
-    // ledger the Gurukul desk writes), falling back to the founding acharyas.
-    let acharyas: string[] = [];
-    try {
-      const raw = localStorage.getItem(`sb_gurukul_exams_${activeWorkspace.id}`);
-      const recs = raw ? JSON.parse(raw) : [];
-      acharyas = [...new Set(recs.map((r: { examinerAcharya: string }) => r.examinerAcharya).filter(Boolean))] as string[];
-    } catch {
-      /* storage unavailable */
-    }
-    const parikshas = (() => {
-      try {
-        const raw = localStorage.getItem(`sb_gurukul_exams_${activeWorkspace.id}`);
-        return raw ? (JSON.parse(raw) as unknown[]).length : 0;
-      } catch {
-        return 0;
-      }
-    })();
-    return { acharyaCount: Math.max(acharyas.length, 3), parikshas };
+    const counts = readParamparaCounts(activeWorkspace.id);
+    return { acharyaCount: counts.acharyaCount, parikshas: counts.parikshaCount };
   }, [activeWorkspace.id]);
 
   const upcomingParvas = useMemo(() => {

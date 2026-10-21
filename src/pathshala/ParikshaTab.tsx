@@ -5,6 +5,8 @@ import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Card, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
 import { todayISO, inr, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
+import { SampleEraBar } from '../components/common/SampleEraBar';
+import { isSampleEraMarksRow } from '../lib/sampleData';
 
 /* Checklist #4 — results: marks entry (Excel/CSV), 1-page + 2-page report
    cards, varga-wise results, merit list (medhakrom), result summary. */
@@ -96,13 +98,41 @@ export const ParikshaTab: React.FC = () => {
     return { subStats, passed, passPct: students.length ? Math.round((passed / students.length) * 100) : 0 };
   }, [pariksha, subjects, students, state.marks, totals]);
 
-  if (!pariksha) return <Empty text={t('suites.pathshala.pariksha.noExams')} />;
+  // QUEUED #59 (sample-era review): marks the old sample seed left
+  // behind — they belong to the seed pariksha (par_1) that #53 purged
+  // from the register, so they can never render in any grid; they are
+  // identifiable with certainty and removable in one tap. (Attendance
+  // rows from the same era name REAL students and cannot be told
+  // apart — deliberately never identified or touched; see
+  // lib/sampleData and the Settings sample card's honest note.)
+  const liveParikshaIds = useMemo(() => new Set(state.parikshas.map((x) => x.id)), [state.parikshas]);
+  const eraMarks = useMemo(
+    () => state.marks.filter((mk) => isSampleEraMarksRow(mk, liveParikshaIds)),
+    [state.marks, liveParikshaIds],
+  );
+  const eraBar = (
+    <SampleEraBar
+      count={eraMarks.length}
+      nounEn="marks entries from the old sample pariksha"
+      nounBn="পুরনো নমুনা পরীক্ষার নম্বরের সারি"
+      nounHi="पुरानी नमूना परीक्षा की अंक प्रविष्टियाँ"
+      onClear={() => eraMarks.forEach((mk) => remove('marks', mk.id))}
+    />
+  );
+
+  if (!pariksha) return (
+    <div className="space-y-4">
+      {eraBar}
+      <Empty text={t('suites.pathshala.pariksha.noExams')} />
+    </div>
+  );
 
   const rcStudent = reportCard ? students.find((s) => s.id === reportCard.sid) : null;
   const rcTotals = reportCard ? totals.find((t) => t.s.id === reportCard.sid) : null;
 
   return (
     <div className="space-y-4">
+      {eraBar}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-bold text-stone-800">{t('suites.pathshala.pariksha.heading')}</h2>
         <div className="flex gap-2 no-print flex-wrap">
