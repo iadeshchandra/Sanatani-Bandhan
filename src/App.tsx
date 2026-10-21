@@ -55,7 +55,8 @@ const PurohitReviewsRedirect: React.FC = () => (
     </div>
   </div>
 );
-import { MembershipProvider } from './context/MembershipContext';
+import { MembershipProvider, useMembership } from './context/MembershipContext';
+import { landingSurfaceForMembership, resolveOrgLandingRole } from './lib/landingSurface';
 import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { QuickGuideModal } from './components/common/QuickGuideModal';
 import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
@@ -244,7 +245,7 @@ const AppContent: React.FC = () => {
   // Phase 2 org spaces: RBAC here evaluates effectiveRole — the user's
   // ACTUAL role in THIS org (from the workspaceMembers edge), not the
   // global role carried from another session.
-  const { checkPermission, activeWorkspace, effectiveRole, viewMode, logout, isAuthenticated, exitDemo } = useAuthWorkspace();
+  const { checkPermission, activeWorkspace, effectiveRole, viewMode, logout, isAuthenticated, exitDemo, currentRole, firebaseUser } = useAuthWorkspace();
   const { showToast } = useToast();
   const { demoUpsellModule, closeDemoUpsell, getDemoStats } = useData();
   const [activeModule, setActiveModule] = useState<string>('dashboard');
@@ -252,35 +253,71 @@ const AppContent: React.FC = () => {
   // the ERP sidebar/header/footer/demo-banner chrome must not leak around it.
   const isDevoteePreview = activeModule === 'devoteePortal' || activeModule === 'devotee-super-app';
   const hideErpChrome = effectiveRole === 'Devotee' || isDevoteePreview;
+
+  // QUEUED #55: role-appropriate landing — the pure law lives in
+  // lib/landingSurface; this block resolves the role evidence for THIS
+  // org and applies the surface on entry. It replaces both the old
+  // devotee guard (which fired on the UNRESOLVED global fallback — a
+  // Solo-first Trustee's global role is 'Devotee', so the guard forced
+  // the Devotee view before the workspaceMembers edge landed, and
+  // nothing ever released it) and the #50 workspace-change effect
+  // (whose 'dashboard' reset the same async dip could undo a commit
+  // later). One law, every entry path: Orgs-list Open, workspace
+  // switcher, post-sign-in resume, org creation (whose activation also
+  // stamps creator + Trustee role — both resolve staff-side here).
+  const { myMemberships, membershipsLoaded } = useMembership();
+  const landingWsId = activeWorkspace?.id || '';
+  const landingMembership = React.useMemo(
+    () => myMemberships.find((m) => m.workspaceId === landingWsId),
+    [myMemberships, landingWsId]
+  );
+  const landingRoleState = resolveOrgLandingRole({
+    workspaceId: landingWsId,
+    membershipRole: landingMembership?.role,
+    membershipsLoaded,
+    globalRole: currentRole,
+    isCreator:
+      !!firebaseUser?.uid &&
+      (activeWorkspace as { createdBy?: string } | null)?.createdBy === firebaseUser.uid,
+  });
+  const landingSurface = landingSurfaceForMembership(
+    landingRoleState.role,
+    landingRoleState.resolved
+  );
+  const landingAppliedForRef = React.useRef<string>('');
+  const guardForcedDevoteeRef = React.useRef<boolean>(false);
   React.useEffect(() => {
-    if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
+    if (!landingWsId) return;
+    if (landingSurface === 'pending') return; // role still resolving — hold, never guess
+    const needsLanding = landingAppliedForRef.current !== landingWsId;
+    if (landingSurface === 'devotee') {
+      // Devotee-only member: the Devotee view IS their org home.
       const allowedDevoteeDesks = ['devoteePortal', 'devotee-super-app', 'devotee-portal', 'personal-portal', 'devotee-account'];
       if (!allowedDevoteeDesks.includes(activeModule)) {
+        guardForcedDevoteeRef.current = true;
         setActiveModule('devoteePortal');
       }
-    }
-  }, [effectiveRole, activeModule]);
-
-  // QUEUED #50 (audit D11c + D7): landing law on workspace CHANGE.
-  // AppContent stays mounted across org switches, so the previous org's
-  // desk (often the Devotee view) used to greet the next org too. On an
-  // actual workspace change, land on the staff Command Center
-  // ('dashboard'); a Devotee-role member is bounced to the Devotee view
-  // by the guard effect above — role-correct landing with no race on
-  // the per-org role override, which resolves asynchronously.
-  const lastWorkspaceIdRef = React.useRef<string>('');
-  React.useEffect(() => {
-    const wsId = activeWorkspace?.id || '';
-    if (!wsId) return;
-    if (!lastWorkspaceIdRef.current) {
-      lastWorkspaceIdRef.current = wsId;
+      landingAppliedForRef.current = landingWsId;
       return;
     }
-    if (lastWorkspaceIdRef.current !== wsId) {
-      lastWorkspaceIdRef.current = wsId;
+    // Staff surface: land on the Command Center at entry (first mount
+    // or workspace change — subsumes the #50 change law).
+    if (needsLanding) {
+      landingAppliedForRef.current = landingWsId;
+      guardForcedDevoteeRef.current = false;
+      if (activeModule !== 'dashboard') setActiveModule('dashboard');
+    } else if (
+      guardForcedDevoteeRef.current &&
+      (activeModule === 'devoteePortal' || activeModule === 'devotee-super-app')
+    ) {
+      // The role resolved to staff after a devotee landing had been
+      // forced on partial evidence — release it. A preview the user
+      // opened deliberately (Header "👁 Devotee preview") is never
+      // guard-forced, so this leaves it untouched.
+      guardForcedDevoteeRef.current = false;
       setActiveModule('dashboard');
     }
-  }, [activeWorkspace?.id]);
+  }, [landingWsId, landingSurface, activeModule]);
 
   React.useEffect(() => {
     const handleNavigate = (e: any) => {
@@ -409,6 +446,19 @@ const AppContent: React.FC = () => {
   }
 
   const renderActiveDesk = () => {
+    // QUEUED #55 fail-safe: while this org's role is still resolving,
+    // render a neutral hold — NEVER the Devotee view off the unresolved
+    // global fallback (the audited flash), and never staff desks off a
+    // fallback either. The org shell's chrome stays; the desk area
+    // simply waits the brief moment the membership edge needs.
+    if (landingSurface === 'pending') {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-4" />
+          <p className="text-slate-500 font-medium">Opening {activeWorkspace?.name || 'your organisation'}…</p>
+        </div>
+      );
+    }
     // Strict Guard: Devotee cannot view any administrative desk (Domains 1-7),
     // EXCEPT poojaBooking — devotee self-booking (M-10). The desk renders its
     // devotee-friendly 'book' tab via its internal isDevotee path.

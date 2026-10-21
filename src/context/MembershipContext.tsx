@@ -129,6 +129,14 @@ interface MembershipContextType {
 
   // --- memberships ---
   myMemberships: WorkspaceMembership[];
+  /**
+   * QUEUED #55: true once the first workspaceMembers fetch for the
+   * CURRENT user has settled (success or failure). Until then an empty
+   * myMemberships means "still loading", not "no memberships" — the
+   * org landing law (lib/landingSurface) holds on this signal instead
+   * of guessing a role from the global fallback.
+   */
+  membershipsLoaded: boolean;
   orgMembers: WorkspaceMembership[];
   removeMember: (m: WorkspaceMembership) => Promise<void>;
   /** Full post-membership handoff: edge → switcher → switch. No re-login. */
@@ -150,6 +158,8 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const userEmail = (firebaseUser?.email || '').toLowerCase();
 
   const [myMemberships, setMyMemberships] = useState<WorkspaceMembership[]>([]);
+  const [membershipsLoaded, setMembershipsLoaded] = useState<boolean>(false);
+  const membershipsLoadedForUidRef = useRef<string | null | undefined>(undefined);
   const [myJoinRequests, setMyJoinRequests] = useState<JoinRequest[]>([]);
   const [orgJoinRequests, setOrgJoinRequests] = useState<JoinRequest[]>([]);
   const [myInvites, setMyInvites] = useState<OrgInvite[]>([]);
@@ -248,8 +258,18 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // ---- memberships ----------------------------------------------------------
   const refreshMemberships = useCallback(async () => {
+    // QUEUED #55: a new user invalidates the previous user's list AND
+    // its loaded flag together — a stale edge must never speak for the
+    // next account on a shared device. Same-user refreshes (post-join)
+    // keep the flag up; only the fetch result replaces the list.
+    if (membershipsLoadedForUidRef.current !== uid) {
+      membershipsLoadedForUidRef.current = uid;
+      setMembershipsLoaded(false);
+      setMyMemberships([]);
+    }
     if (!uid) {
       setMyMemberships([]);
+      setMembershipsLoaded(true);
       return;
     }
     try {
@@ -257,6 +277,8 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setMyMemberships(snap.docs.map((d) => ({ ...(d.data() as any) } as WorkspaceMembership)));
     } catch {
       setMyMemberships([]);
+    } finally {
+      setMembershipsLoaded(true);
     }
   }, [uid]);
 
@@ -583,6 +605,7 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       orgInvites,
       respondToInvite,
       myMemberships,
+      membershipsLoaded,
       orgMembers,
       removeMember,
       joinWorkspace,
@@ -592,7 +615,7 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       getOrgPage, browseOrgPages, ensureOrgPage, isFollowing, toggleFollow, followerCount,
       requestToJoin, myJoinRequests, orgJoinRequests, decideJoinRequest,
       sendInvite, myInvites, orgInvites, respondToInvite,
-      myMemberships, orgMembers, removeMember, joinWorkspace, refreshMemberships,
+      myMemberships, membershipsLoaded, orgMembers, removeMember, joinWorkspace, refreshMemberships,
     ]
   );
 

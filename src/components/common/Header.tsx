@@ -308,13 +308,13 @@ export const Header: React.FC<HeaderProps> = ({
               } else {
                 window.location.href = '/devotee';
               }
-              showToast('Here is what your community members see 🙏', 'success', 'Devotee view');
+              showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 rounded-xl transition-all border border-amber-500/40 font-bold text-xs shadow-xs cursor-pointer group"
             title="See what your community members see"
           >
             <Sparkles className="w-4 h-4 text-amber-400 group-hover:text-slate-950 transition-colors" />
-            <span className="font-bold">Devotee view</span>
+            <span className="font-bold">👁 Devotee preview</span>
           </button>
 
           <button
@@ -438,12 +438,12 @@ export const Header: React.FC<HeaderProps> = ({
                     } else {
                       window.location.href = '/devotee';
                     }
-                    showToast('Here is what your community members see 🙏', 'success', 'Devotee view');
+                    showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 transition-all border border-amber-500/40 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Devotee view</span>
+                  <span>👁 Devotee preview</span>
                 </button>
                 <button
                   type="button"
