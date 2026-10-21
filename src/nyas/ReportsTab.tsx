@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNyas, currentFY, fyRange, todayISO, attentionRegs, overdueItems, healthScore, regStatus } from './nyasStore';
 import { REG_KINDS } from './types';
-import { T, Card, Btn, Empty, inr } from './ui';
+import { T, Card, Btn, Empty } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 
@@ -9,6 +10,7 @@ import { useData } from '../context/DataContext';
  * registrations/compliance CSVs, backup/restore. */
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useNyas();
   const { treasury } = useData();
   const { showToast } = useToast();

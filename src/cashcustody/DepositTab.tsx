@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useCashCustody, uid, todayISO, nextSlipNo } from './cashCustodyStore';
 import { CountingSession, DepositSlip, DENOMINATIONS, DENOM_LABEL } from './types';
-import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime, inr } from './ui';
+import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -14,6 +15,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 /* ------------------------------------------------------------------ */
 
 export const DepositTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, setSettings, logEvent } = useCashCustody();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();

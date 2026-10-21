@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Bus,
   Plus,
@@ -63,6 +64,8 @@ const expiryLabel = (name: string, d: number | null): string => {
 };
 
 export const VahanFleetDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const {
     fleetVehicles, fuelLogs, serviceRecords,
@@ -271,7 +274,7 @@ export const VahanFleetDesk: React.FC = () => {
       amount: total,
       handledBy: fLoggedBy.trim() || currentRole || 'Office Staff',
       paymentMode: fMode,
-      purpose: `Fuel — ${loggingVehicle.registrationNo} — ${Number(fLiters)}L @ ₹${Number(fRate)}/L`,
+      purpose: `Fuel — ${loggingVehicle.registrationNo} — ${Number(fLiters)}L @ ${inr(Number(fRate))}/L`,
       vendorName: fStation.trim() || undefined,
     });
     showToast('Treasury auto-posted: Fuel Expense', 'info', 'Treasury Sync');
@@ -423,7 +426,7 @@ export const VahanFleetDesk: React.FC = () => {
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
             <Fuel className="w-4 h-4 text-saffron-400" /> Fuel Spend (30d)
           </div>
-          <p className="text-3xl font-extrabold text-temple-100 mt-2">₹{Math.round(kpis.fuel30d).toLocaleString()}</p>
+          <p className="text-3xl font-extrabold text-temple-100 mt-2">{inr(Math.round(kpis.fuel30d))}</p>
           <p className="text-xs text-temple-500 mt-1">Last 30 days</p>
         </div>
         <div className={`bg-temple-900/90 border rounded-2xl p-5 shadow-lg ${kpis.servicesDue > 0 ? 'border-amber-500/40' : 'border-temple-800'}`}>
@@ -513,11 +516,11 @@ export const VahanFleetDesk: React.FC = () => {
                       })}
                     </div>
                     <div className="flex items-center gap-3 pt-1 text-[11px]">
-                      <span className="text-temple-400">Fuel ₹{a.fuelCost.toLocaleString()}</span>
+                      <span className="text-temple-400">Fuel {inr(a.fuelCost)}</span>
                       <span className="text-temple-600">|</span>
-                      <span className="text-temple-400">Service ₹{a.serviceCost.toLocaleString()}</span>
+                      <span className="text-temple-400">Service {inr(a.serviceCost)}</span>
                       <span className="text-temple-600">|</span>
-                      <span className="text-saffron-300 font-bold">₹{a.costPerKm.toFixed(1)}/km</span>
+                      <span className="text-saffron-300 font-bold">{inr(a.costPerKm)}/km</span>
                     </div>
                   </div>
 
@@ -527,15 +530,15 @@ export const VahanFleetDesk: React.FC = () => {
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="bg-temple-950/60 rounded-xl p-2">
                           <p className="text-[10px] text-temple-500 uppercase">Fuel Cost</p>
-                          <p className="text-sm font-extrabold text-temple-100">₹{a.fuelCost.toLocaleString()}</p>
+                          <p className="text-sm font-extrabold text-temple-100">{inr(a.fuelCost)}</p>
                         </div>
                         <div className="bg-temple-950/60 rounded-xl p-2">
                           <p className="text-[10px] text-temple-500 uppercase">Service Cost</p>
-                          <p className="text-sm font-extrabold text-temple-100">₹{a.serviceCost.toLocaleString()}</p>
+                          <p className="text-sm font-extrabold text-temple-100">{inr(a.serviceCost)}</p>
                         </div>
                         <div className="bg-temple-950/60 rounded-xl p-2">
                           <p className="text-[10px] text-temple-500 uppercase">Cost / km</p>
-                          <p className="text-sm font-extrabold text-saffron-300">₹{a.costPerKm.toFixed(1)}</p>
+                          <p className="text-sm font-extrabold text-saffron-300">{inr(a.costPerKm)}</p>
                         </div>
                       </div>
                       {a.logs.length > 0 && (
@@ -545,7 +548,7 @@ export const VahanFleetDesk: React.FC = () => {
                             {a.logs.slice(0, 10).map((l) => (
                               <div key={l.id} className="flex justify-between text-[11px] bg-temple-950/60 rounded-lg px-2.5 py-1.5 text-temple-300">
                                 <span>{l.logDate} • {l.litersFilled}L • {l.odometerKm.toLocaleString()} km</span>
-                                <span className="font-bold text-temple-100">₹{l.totalCost.toLocaleString()}</span>
+                                <span className="font-bold text-temple-100">{inr(l.totalCost)}</span>
                               </div>
                             ))}
                           </div>
@@ -558,7 +561,7 @@ export const VahanFleetDesk: React.FC = () => {
                             {a.services.map((s) => (
                               <div key={s.id} className="flex justify-between text-[11px] bg-temple-950/60 rounded-lg px-2.5 py-1.5 text-temple-300">
                                 <span>{s.serviceDate} • {s.serviceType}{s.nextDueDate ? ` → due ${s.nextDueDate}` : ''}</span>
-                                <span className="font-bold text-temple-100">₹{s.cost.toLocaleString()}</span>
+                                <span className="font-bold text-temple-100">{inr(s.cost)}</span>
                               </div>
                             ))}
                           </div>
@@ -648,11 +651,11 @@ export const VahanFleetDesk: React.FC = () => {
               <div><label className={labelCls}>Odometer (km) *</label><input type="number" min={0} value={fOdo} onChange={(e) => setFOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className={labelCls}>Liters *</label><input type="number" min={0} step="0.01" value={fLiters} onChange={(e) => setFLiters(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-                <div><label className={labelCls}>Cost / Liter (₹) *</label><input type="number" min={0} step="0.01" value={fRate} onChange={(e) => setFRate(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+                <div><label className={labelCls}>Cost / Liter ({wsCurrency.symbol}) *</label><input type="number" min={0} step="0.01" value={fRate} onChange={(e) => setFRate(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               </div>
               {fLiters !== '' && fRate !== '' && (
                 <div className="bg-saffron-500/10 border border-saffron-500/30 rounded-xl p-3 text-sm text-saffron-200 font-bold">
-                  Total: ₹{(Number(fLiters) * Number(fRate)).toLocaleString()}
+                  Total: {inr((Number(fLiters) * Number(fRate)))}
                 </div>
               )}
               <div><label className={labelCls}>Fuel Station</label><input value={fStation} onChange={(e) => setFStation(e.target.value)} className={inputCls} /></div>
@@ -684,7 +687,7 @@ export const VahanFleetDesk: React.FC = () => {
             <form onSubmit={handleLogService} className="space-y-4">
               <div><label className={labelCls}>Service Date</label><input type="date" value={sDate} onChange={(e) => setSDate(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Service Type</label><select value={sType} onChange={(e) => setSType(e.target.value)} className={inputCls}>{SERVICE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
-              <div><label className={labelCls}>Cost (₹) *</label><input type="number" min={0} value={sCost} onChange={(e) => setSCost(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>Cost ({wsCurrency.symbol}) *</label><input type="number" min={0} value={sCost} onChange={(e) => setSCost(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Vendor / Garage</label><input value={sVendor} onChange={(e) => setSVendor(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Odometer (km)</label><input type="number" min={0} value={sOdo} onChange={(e) => setSOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Next Service Due</label><input type="date" value={sNextDue} onChange={(e) => setSNextDue(e.target.value)} className={inputCls} /></div>

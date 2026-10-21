@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Calendar, Plus, MapPin, Users, Sparkles, Clock, CheckCircle2, X, Download } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
@@ -19,6 +20,8 @@ interface UtsavEvent {
 }
 
 export const VedicCalendarEventsDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { activeWorkspace, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const { showToast } = useToast();
   const { suggestions, dismiss } = usePendingSuggestions(activeWorkspace?.id);
@@ -224,7 +227,7 @@ export const VedicCalendarEventsDesk: React.FC = () => {
                 </p>
                 <p>
                   <span className="text-temple-400">Budget:</span>{' '}
-                  <span className="font-mono text-emerald-400 font-bold">₹{(ev.budgetAllocated || 0).toLocaleString()}</span>
+                  <span className="font-mono text-emerald-400 font-bold">{inr((ev.budgetAllocated || 0))}</span>
                 </p>
 
                 <div className="pt-2">
@@ -328,7 +331,7 @@ export const VedicCalendarEventsDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Budget (₹)</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Budget ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={budgetAllocated}

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useAnnakshetra, uid, todayISO, bomFor, cookShortfalls, estimateCost } from './annakshetraStore';
 import { Card, Btn, Field, inputCls, Modal, T, useLocaleText, StatusPill } from './ui';
 import { useToast } from '../context/ToastContext';
@@ -12,6 +13,7 @@ const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'prasad'];
 const CATS = ['breakfast', 'lunch', 'dinner', 'prasad', 'sweet', 'other'] as const;
 
 export const MenuTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, remove, cookMenu } = useAnnakshetra();
   const { showToast } = useToast();
   const { tr } = useLocaleText();
@@ -88,7 +90,7 @@ export const MenuTab: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="font-bold text-stone-800">{r.name}</div>
-                  <div className="text-xs text-stone-500 capitalize">{r.category} · ≈₹{estimateCost([r.id], 100, state)}/100 {tr('anna.menu.plates', 'plates', 'থালা', 'थाली')}</div>
+                  <div className="text-xs text-stone-500 capitalize">{r.category} · ≈{inr(estimateCost([r.id], 100, state))}/100 {tr('anna.menu.plates', 'plates', 'থালা', 'थाली')}</div>
                 </div>
                 <div className="flex gap-1 no-print">
                   <button onClick={() => openEditRecipe(r.id)} className="text-xs px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200">✎</button>
@@ -123,7 +125,7 @@ export const MenuTab: React.FC = () => {
                     <div className="text-xs text-stone-500">
                       {m.recipeIds.map((id) => state.recipes.find((r) => r.id === id)?.name).filter(Boolean).join(' + ') || '—'}
                       {' · '}{m.servings} {tr('anna.menu.servings', 'servings', 'থালা', 'थाली')}
-                      {' · '}≈₹{estimateCost(m.recipeIds, m.servings, state).toLocaleString('en-IN')}
+                      {' · '}≈{inr(estimateCost(m.recipeIds, m.servings, state))}
                     </div>
                     {!m.cooked && short.length > 0 && (
                       <div className="text-xs text-red-700 font-semibold mt-1">
@@ -201,7 +203,7 @@ export const MenuTab: React.FC = () => {
               <div className="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <b>{tr('anna.menu.willneed', 'Will need', 'লাগবে', 'चाहिए')}:</b>{' '}
                 {bomFor(mF.recipeIds, Math.max(1, Math.floor(mF.servings)), state).map((b) => `${b.name} ${b.need} ${b.unit}`).join(' · ')}
-                {' · '}≈₹{estimateCost(mF.recipeIds, Math.max(1, Math.floor(mF.servings)), state).toLocaleString('en-IN')}
+                {' · '}≈{inr(estimateCost(mF.recipeIds, Math.max(1, Math.floor(mF.servings)), state))}
               </div>
             )}
             <Btn type="submit" className="w-full"><T en="Plan menu" bn="পরিকল্পনা করুন" hi="योजना बनाएं" /></Btn>

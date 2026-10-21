@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAnnakshetra, uid, todayISO, estimateCost } from './annakshetraStore';
 import { Card, Btn, Field, inputCls, Modal, T, useLocaleText, StatusPill } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
@@ -25,7 +26,8 @@ export const BhandaraTab: React.FC = () => {
   });
   const [served, setServed] = useState(0);
 
-  const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +110,7 @@ export const BhandaraTab: React.FC = () => {
                 {b.servedCount != null && <> · {tr('anna.bh.servedn', 'served', 'পরিবেশিত', 'परोसे')}: <b>{b.servedCount}</b></>}
               </div>
               <div className="text-xs text-stone-500">
-                {tr('anna.bh.cost', 'Est. food cost', 'আনুমানিক খরচ', 'अनुमानित लागत')}: ₹{estimateCost(b.recipeIds, b.servingsPlanned, state).toLocaleString('en-IN')}
+                {tr('anna.bh.cost', 'Est. food cost', 'আনুমানিক খরচ', 'अनुमानित लागत')}: {inr(estimateCost(b.recipeIds, b.servingsPlanned, state))}
                 {' · '}{tr('anna.bh.donation', 'Donation', 'দান', 'दान')}: {inr(b.donationAmount)}
                 {b.is80GEligible && <span className="ml-1 text-emerald-700 font-bold">· 80G ✓</span>}
                 {b.treasuryTxId && <span className="ml-1 text-emerald-700">· {tr('anna.bh.posted', 'posted to treasury', 'কোষাগারে পোস্ট', 'कोषागार में दर्ज')}</span>}
@@ -144,7 +146,7 @@ export const BhandaraTab: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Field label={tr('anna.bh.date', 'Date', 'তারিখ', 'तिथि')}><input type="date" className={inputCls} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
               <Field label={tr('anna.bh.expected', 'Expected plates', 'প্রত্যাশিত থালা', 'अपेक्षित थाली')}><input type="number" min={1} className={inputCls} value={f.expectedCount} onChange={(e) => setF({ ...f, expectedCount: Number(e.target.value), servingsPlanned: Number(e.target.value) })} /></Field>
-              <Field label={tr('anna.bh.donationn', 'Donation (₹)', 'দান (₹)', 'दान (₹)')}><input type="number" min={0} step="any" className={inputCls} value={f.donationAmount} onChange={(e) => setF({ ...f, donationAmount: Number(e.target.value) })} /></Field>
+              <Field label={tr('anna.bh.donationn', `Donation (${wsCurrency.symbol})`, `দান (${wsCurrency.symbol})`, `दान (${wsCurrency.symbol})`)}><input type="number" min={0} step="any" className={inputCls} value={f.donationAmount} onChange={(e) => setF({ ...f, donationAmount: Number(e.target.value) })} /></Field>
               <Field label={tr('anna.bh.mode', 'Mode', 'মাধ্যম', 'माध्यम')}>
                 <select className={inputCls} value={f.paymentMode} onChange={(e) => setF({ ...f, paymentMode: e.target.value })}>
                   {['UPI', 'Cash', 'Bank Transfer', 'Cheque'].map((m) => <option key={m}>{m}</option>)}
@@ -164,7 +166,7 @@ export const BhandaraTab: React.FC = () => {
             </Field>
             {f.recipeIds.length > 0 && (
               <div className="text-xs text-stone-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                {tr('anna.bh.estcost', 'Estimated food cost', 'আনুমানিক খাদ্য খরচ', 'अनुमानित भोजन लागत')}: <b>₹{estimateCost(f.recipeIds, Math.max(1, Math.floor(f.servingsPlanned)), state).toLocaleString('en-IN')}</b>
+                {tr('anna.bh.estcost', 'Estimated food cost', 'আনুমানিক খাদ্য খরচ', 'अनुमानित भोजन लागत')}: <b>{inr(estimateCost(f.recipeIds, Math.max(1, Math.floor(f.servingsPlanned)), state))}</b>
                 {' '}{tr('anna.bh.for', 'for', 'জন্য', 'हेतु')} {f.servingsPlanned} {tr('anna.bh.plates', 'plates', 'থালা', 'थाली')}
               </div>
             )}

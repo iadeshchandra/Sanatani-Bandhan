@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useAnnakshetra, lowStockItems, totalMeals, todayISO, daysFrom } from './annakshetraStore';
 import { Card, Stat, useLocaleText } from './ui';
 
@@ -33,7 +34,7 @@ export const DashboardTab: React.FC = () => {
     return { mealsWeek, mealsMonth, low, upcoming, topSponsors, wastageWeek, wastagePrev, totalServed };
   }, [state]);
 
-  const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  const inr = useInr();
 
   return (
     <div className="space-y-4">

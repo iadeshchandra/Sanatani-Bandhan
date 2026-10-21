@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useUtsav, uid } from './utsavStore';
 import { BudgetLine, BudgetKind, INCOME_HEADS, EXPENSE_HEADS } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate, inr } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -15,6 +16,7 @@ const blank: Omit<BudgetLine, 'id' | 'festivalId'> = {
 };
 
 export const BudgetTab: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { state, add, update, remove } = useUtsav();
   const { showToast } = useToast();

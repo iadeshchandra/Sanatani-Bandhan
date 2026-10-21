@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSabha, uid, todayISO, thisYear, nextDuesReceipt, duesCollected, duesDefaulters, activeMembers } from './sabhaStore';
 import { DuesEntry } from './types';
-import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, inr, Empty } from './ui';
+import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -13,6 +14,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 /* ------------------------------------------------------------------ */
 
 export const DuesTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove, setSettings } = useSabha();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -135,7 +138,7 @@ export const DuesTab: React.FC = () => {
                 {defaulters.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </Field>
-            <Field label={<T en="Amount (₹)" bn="টাকা (₹)" hi="राशि (₹)" />}>
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`টাকা (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />}>
               <input type="number" min="1" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             </Field>
             <Field label={<T en="Date" bn="তারিখ" hi="तिथि" />}>
@@ -145,7 +148,7 @@ export const DuesTab: React.FC = () => {
           <div className="text-xs text-stone-500 mt-3">
             <T en="Standard annual dues" bn="মানক বার্ষিক চাঁদা" hi="मानक वार्षिक शुल्क" />: {inr(state.settings.annualDues)}{' '}
             <button type="button" className="underline text-amber-700" onClick={() => {
-              const v = window.prompt('Set standard annual dues (₹):', String(state.settings.annualDues));
+              const v = window.prompt(`Set standard annual dues (${wsCurrency.symbol}):`, String(state.settings.annualDues));
               const n = Number(v);
               if (n > 0) { setSettings({ annualDues: n }); setForm((f) => ({ ...f, amount: String(n) })); }
             }}>

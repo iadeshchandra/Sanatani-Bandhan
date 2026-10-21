@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Sparkles,
   ShieldCheck,
@@ -278,6 +279,8 @@ const ASSETS_STORAGE_KEY = 'sanatani_ratna_bhandar_assets';
 const AUDITS_STORAGE_KEY = 'sanatani_ratna_bhandar_audit_logs';
 
 export const RatnaBhandarAssetDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
   const { showToast } = useToast();
@@ -930,14 +933,14 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             </span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xs font-bold text-amber-400 font-mono">₹</span>
+            <span className="text-xs font-bold text-amber-400 font-mono">{wsCurrency.symbol}</span>
             <span className="text-2xl sm:text-3xl font-black text-amber-200 font-mono tracking-tight">
               {(metrics.totalValuation / 10000000).toFixed(2)}
             </span>
             <span className="text-sm font-bold text-amber-300">Cr</span>
           </div>
           <p className="text-[11px] text-stone-400 mt-1 font-mono">
-            ₹{metrics.totalValuation.toLocaleString('en-IN')} book value
+            {inr(metrics.totalValuation)} book value
           </p>
         </div>
       </div>
@@ -1127,7 +1130,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                             Purity: <strong className="text-amber-300 font-bold">{asset.purityPercentage}%</strong> ({asset.metalType})
                           </span>
                           <span className="text-stone-400">
-                            Book Est: <strong className="text-emerald-400 font-mono font-bold">₹{asset.approximateMarketValueINR.toLocaleString('en-IN')}</strong>
+                            Book Est: <strong className="text-emerald-400 font-mono font-bold">{inr(asset.approximateMarketValueINR)}</strong>
                           </span>
                         </div>
 
@@ -1783,7 +1786,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
 
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">
-                    Estimated Market Value (₹)
+                    Estimated Market Value ({wsCurrency.symbol})
                   </label>
                   <input
                     type="number"
@@ -1906,7 +1909,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Book Valuation</span>
-                  <span className="font-mono font-bold text-emerald-400 text-sm">₹{inspectTargetAsset.approximateMarketValueINR.toLocaleString('en-IN')}</span>
+                  <span className="font-mono font-bold text-emerald-400 text-sm">{inr(inspectTargetAsset.approximateMarketValueINR)}</span>
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Security Seal</span>

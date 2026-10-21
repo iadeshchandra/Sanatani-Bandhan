@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Coins,
   Search,
@@ -35,7 +36,6 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useToast } from '../../context/ToastContext';
 import { printThermalReceipt } from '../../utils/printUtils';
-import { formatINR } from '../../utils/format';
 import { isValidPAN, isValidPhone, parsePhone, phoneErrorMessage, phoneNationalKey, sanitizeName } from '../../utils/validation';
 import { TreasuryTransaction, DevoteeMember } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
@@ -245,6 +245,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
 ];
 
 export const QuickChandaPOS: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
   const { devotees, addTreasuryTransaction, treasury, getNextReceiptNumber } = useData();
@@ -361,7 +362,7 @@ export const QuickChandaPOS: React.FC = () => {
     if (grandTotal >= SUGGEST_80G_THRESHOLD && !is80GRequested && nudgeShownFor.current !== grandTotal) {
       nudgeShownFor.current = grandTotal;
       showToast(
-        `Donation of ${formatINR(grandTotal)} qualifies — consider issuing an 80G tax receipt (PAN required).`,
+        `Donation of ${inr(grandTotal)} qualifies — consider issuing an 80G tax receipt (PAN required).`,
         'info',
         '80G Suggestion'
       );
@@ -517,7 +518,7 @@ export const QuickChandaPOS: React.FC = () => {
 
       const primaryCategory = cart[0]?.category || 'General Chanda';
       const itemsSummary = cart
-        .map((c) => `${c.quantity}x ${c.name} (₹${c.unitAmount * c.quantity})`)
+        .map((c) => `${c.quantity}x ${c.name} (${inr(c.unitAmount * c.quantity)})`)
         .join(', ');
 
       const formattedPaymentMode =
@@ -579,7 +580,7 @@ export const QuickChandaPOS: React.FC = () => {
 
       setCompletedTransaction(finalRecord);
       showToast(
-        `Chanda of ${formatINR(grandTotal)} successfully processed!`,
+        `Chanda of ${inr(grandTotal)} successfully processed!`,
         'success',
         'Payment Completed'
       );
@@ -698,7 +699,7 @@ export const QuickChandaPOS: React.FC = () => {
                   onClick={() => handleAddQuickAmount(amt)}
                   className="min-h-[48px] py-2.5 px-2 rounded-xl bg-stone-800/90 hover:bg-amber-500 hover:text-stone-950 border border-stone-700 hover:border-amber-400 text-stone-100 font-black text-sm sm:text-base transition-all flex flex-col items-center justify-center shadow-xs active:scale-95 cursor-pointer group"
                 >
-                  <span className="group-hover:text-stone-950 font-mono">₹{amt}</span>
+                  <span className="group-hover:text-stone-950 font-mono">{inr(amt)}</span>
                   <span className="text-[10px] text-stone-400 group-hover:text-stone-900 font-normal">{t('org.finance.quickChanda.quickAdd')}</span>
                 </button>
               ))}
@@ -754,7 +755,7 @@ export const QuickChandaPOS: React.FC = () => {
                       {item.name}
                     </h3>
                     <span className="font-mono font-black text-amber-400 text-base shrink-0 bg-stone-950 px-2 py-0.5 rounded-lg border border-stone-800">
-                      ₹{item.defaultAmount}
+                      {inr(item.defaultAmount)}
                     </span>
                   </div>
 
@@ -906,7 +907,7 @@ export const QuickChandaPOS: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-white truncate">{item.name}</p>
                         <p className="text-[10px] text-stone-400">
-                          ₹{item.unitAmount} × {item.quantity}
+                          {inr(item.unitAmount)} × {item.quantity}
                         </p>
                       </div>
 
@@ -941,7 +942,7 @@ export const QuickChandaPOS: React.FC = () => {
                       </div>
 
                       <div className="w-16 text-right font-mono font-bold text-xs text-amber-300">
-                        ₹{item.unitAmount * item.quantity}
+                        {inr(item.unitAmount * item.quantity)}
                       </div>
                     </div>
                   ))
@@ -957,7 +958,7 @@ export const QuickChandaPOS: React.FC = () => {
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-200 leading-relaxed">
-                      Possible duplicate: <span className="font-bold">{formatINR(duplicateAlert.amount)}</span> from{' '}
+                      Possible duplicate: <span className="font-bold">{inr(duplicateAlert.amount)}</span> from{' '}
                       <span className="font-bold">{duplicateAlert.name}</span> was recorded ~{duplicateAlert.minutesAgo} min ago.
                       Double-entry at a busy counter is common — confirm before posting.
                     </p>
@@ -1005,7 +1006,7 @@ export const QuickChandaPOS: React.FC = () => {
               <div className="flex items-center justify-between bg-stone-950 p-3 rounded-xl border border-stone-800">
                 <span className="text-xs font-bold uppercase tracking-wider text-stone-400">{t('org.finance.quickChanda.totalDonation')}</span>
                 <span className="font-mono text-xl sm:text-2xl font-black text-amber-400">
-                  {formatINR(grandTotal)}
+                  {inr(grandTotal)}
                 </span>
               </div>
 
@@ -1051,7 +1052,7 @@ export const QuickChandaPOS: React.FC = () => {
                 ) : (
                   <>
                     <Printer className="w-5 h-5" />
-                    <span>Process & Print Receipt ({formatINR(grandTotal)})</span>
+                    <span>Process & Print Receipt ({inr(grandTotal)})</span>
                   </>
                 )}
               </button>
@@ -1179,7 +1180,7 @@ export const QuickChandaPOS: React.FC = () => {
                         {it.quantity}x {it.name}
                       </span>
                       <span className="font-bold shrink-0">
-                        {formatINR(it.unitAmount * it.quantity)}
+                        {inr(it.unitAmount * it.quantity)}
                       </span>
                     </div>
                   ))}
@@ -1189,7 +1190,7 @@ export const QuickChandaPOS: React.FC = () => {
                 <div className="flex justify-between items-center text-sm font-black pt-1">
                   <span>GRAND TOTAL</span>
                   <span className="text-base text-amber-800">
-                    {formatINR(completedTransaction.totalAmount)}
+                    {inr(completedTransaction.totalAmount)}
                   </span>
                 </div>
 

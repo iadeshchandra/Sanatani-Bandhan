@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSatsang, nextGathering, activeMembers, fundBalance, daysUntil, irregularMembers, presentCount } from './satsangStore';
-import { T, Card, Stat, fmtDate, fmtTime, inr } from './ui';
+import { T, Card, Stat, fmtDate, fmtTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* ------------------------------------------------------------------ */
 /* Dashboard — next gathering countdown, member count, attendance      */
@@ -8,6 +9,7 @@ import { T, Card, Stat, fmtDate, fmtTime, inr } from './ui';
 /* ------------------------------------------------------------------ */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useSatsang();
   const next = nextGathering(state);
   const members = activeMembers(state);

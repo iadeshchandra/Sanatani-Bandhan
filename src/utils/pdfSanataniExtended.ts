@@ -51,6 +51,11 @@ import {
 } from './pdfSanatani';
 
 import { letterheadForWorkspace } from '../lib/orgBranding';
+import {
+  formatWorkspaceAmount,
+  resolveWorkspaceCurrency,
+  type WorkspaceCurrency,
+} from '../lib/treasuryDisplay';
 
 import { get } from 'idb-keyval';
 import { generateSecureQRToken } from './qrUtils';
@@ -184,8 +189,10 @@ function autoText(text: string, fontSize = 8.5, extra: any = {}): any {
   };
 }
 
-const inr = (n: number): string =>
-  `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const inr = (n: number, currency?: WorkspaceCurrency): string =>
+  currency
+    ? formatWorkspaceAmount(n, currency)
+    : `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const fmtDate = (d: any): string => {
   if (!d) return '';
@@ -770,6 +777,7 @@ export const generateDonationHistoryPDF = async (
 ): Promise<void> => {
   const name = devotee.fullName || (devotee as any).name || 'Sanatani Devotee';
   const lh = await letterheadOpts(workspace);
+  const cur = resolveWorkspaceCurrency(workspace);
   const total = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
   // Pillar 1 — letterhead (logo left / monogram fallback) via sacredHeader.
@@ -798,7 +806,7 @@ export const generateDonationHistoryPDF = async (
         String(d.id || '').substring(0, 18),
         d.category || 'General',
         d.paymentMode || 'Cash',
-        { text: inr(d.amount), bold: true, alignment: 'right' },
+        { text: inr(d.amount, cur), bold: true, alignment: 'right' },
       ]),
       { widths: ['18%', '22%', '22%', '18%', '20%'] }
     ),
@@ -835,6 +843,7 @@ export const generateAnnualDonationSummaryPDF = async (
 ): Promise<void> => {
   const name = devotee.fullName || (devotee as any).name || 'Sanatani Devotee';
   const lh = await letterheadOpts(workspace);
+  const cur = resolveWorkspaceCurrency(workspace);
 
   const byYear: Record<string, { count: number; total: number }> = {};
   donations.forEach((d) => {
@@ -871,7 +880,7 @@ export const generateAnnualDonationSummaryPDF = async (
         ? years.map((y) => [
             { text: y, bold: true },
             { text: String(byYear[y].count), alignment: 'center' },
-            { text: inr(byYear[y].total), bold: true, alignment: 'right' },
+            { text: inr(byYear[y].total, cur), bold: true, alignment: 'right' },
           ])
         : [['—', 'No donations recorded', '—']],
       { widths: ['30%', '30%', '40%'], fontSize: 9 }
@@ -915,6 +924,7 @@ export const generateTreasuryLedgerPDF = async (
   reportTitle: string = 'Treasury & Expense Ledger Statement'
 ): Promise<void> => {
   const lh = await letterheadOpts(workspace);
+  const cur = resolveWorkspaceCurrency(workspace);
   const totalIncome = transactions
     .filter((t: any) => t.type === 'Income')
     .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -930,7 +940,7 @@ export const generateTreasuryLedgerPDF = async (
         stack: [
           { text: label, font: SANATANI_FONTS.body, fontSize: 7, bold: true, color: SANATANI_COLORS.stone, alignment: 'center' as const },
           { text: dev, font: SANATANI_FONTS.devanagari, fontSize: 7, color: SANATANI_COLORS.stone, alignment: 'center' as const },
-          { text: inr(value), font: SANATANI_FONTS.body, fontSize: 13, bold: true, color, alignment: 'center' as const, margin: [0, 3, 0, 0] },
+          { text: inr(value, cur), font: SANATANI_FONTS.body, fontSize: 13, bold: true, color, alignment: 'center' as const, margin: [0, 3, 0, 0] },
         ],
         margin: [0, 6, 0, 6],
       }]],
@@ -978,7 +988,7 @@ export const generateTreasuryLedgerPDF = async (
           t.category || '',
           t.paymentMode || '',
           t.devoteeName || t.vendorName || '',
-          { text: inr(t.amount), bold: true, alignment: 'right' },
+          { text: inr(t.amount, cur), bold: true, alignment: 'right' },
         ];
       }),
       { widths: ['11%', '13%', '10%', '16%', '13%', '20%', '17%'], fontSize: 7 }

@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { FodderKind } from './types';
 import { Card, Stat, Btn, Field, inputCls, Empty, FODDER_KIND_KEY, labelFor } from './ui';
-import { inr } from '../pathshala/bn';
+import { } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { SampleBadge } from '../components/common/SampleBadge';
@@ -16,6 +17,7 @@ import { isSampleEraFodderUseRow } from '../lib/sampleData';
 const KINDS: FodderKind[] = ['green', 'dry', 'concentrate', 'mineral'];
 
 export const CharaTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, remove, setSettings } = useGoshala();
   const { t } = useLanguage();
   const { showToast } = useToast();
@@ -118,7 +120,7 @@ export const CharaTab: React.FC = () => {
                     <button className="text-xs text-red-600 font-bold hover:underline" onClick={() => { if (confirm(t('suites.goshala.common.confirmDelete'))) remove('fodderItems', it.id); }}>✕</button>
                   </div>
                   <div className="flex justify-between text-xs text-stone-600 mt-1">
-                    <span>{it.stockQty} {it.unit} · ₹{it.ratePerUnit}/{it.unit}</span>
+                    <span>{it.stockQty} {it.unit} · {inr(it.ratePerUnit)}/{it.unit}</span>
                     <span className={days < 7 ? 'text-red-700 font-bold' : ''}>≈ {days >= 999 ? '—' : t('suites.goshala.common.daysLeft').replace('{days}', String(days))}</span>
                   </div>
                 </li>

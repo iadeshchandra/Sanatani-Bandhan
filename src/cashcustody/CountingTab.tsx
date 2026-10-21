@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useCashCustody, denomTotal, emptyCounts } from './cashCustodyStore';
 import { CountingSession, DenomKey, DENOMINATIONS, DENOM_LABEL } from './types';
-import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime, inr } from './ui';
+import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* ------------------------------------------------------------------ */
@@ -20,7 +21,9 @@ const DenomGrid: React.FC<{
   onChange: (k: DenomKey, v: number) => void;
   disabled?: boolean;
   other?: Record<DenomKey, number>;
-}> = ({ counts, onChange, disabled, other }) => (
+}> = ({ counts, onChange, disabled, other }) => {
+  const inr = useInr();
+  return (
   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
     {DENOMINATIONS.map((k) => {
       const mismatch = other && (Number(other[k]) || 0) !== (Number(counts[k]) || 0);
@@ -39,9 +42,11 @@ const DenomGrid: React.FC<{
       );
     })}
   </div>
-);
+  );
+};
 
 const SessionCard: React.FC<{ session: CountingSession }> = ({ session }) => {
+  const inr = useInr();
   const { state, update, logEvent } = useCashCustody();
   const { showToast } = useToast();
   const box = state.boxes.find((b) => b.id === session.boxId);
@@ -180,6 +185,7 @@ const SessionCard: React.FC<{ session: CountingSession }> = ({ session }) => {
 };
 
 export const CountingTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useCashCustody();
   const open = state.sessions.filter((s) => s.status !== 'closed').sort((a, b) => b.openedAt - a.openedAt);
   const closed = state.sessions.filter((s) => s.status === 'closed').sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));

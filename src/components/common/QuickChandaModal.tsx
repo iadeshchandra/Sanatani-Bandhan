@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Coins,
@@ -49,6 +50,8 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   prefilledDevoteeId,
   prefilledDevoteeName,
 }) => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { activeWorkspace, activeWorkspaceId } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { devotees, addTreasuryTransaction } = useData();
@@ -202,7 +205,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       }
       setLastRecordedTx(newTx);
       setIsSuccess(true);
-      showToast(t3(WARM_SUCCESS.donationRecorded(`₹${numericAmount.toLocaleString('en-IN')}`)), 'success', 'POS Counter');
+      showToast(t3(WARM_SUCCESS.donationRecorded(`${inr(numericAmount)}`)), 'success', 'POS Counter');
     } catch (err: any) {
       console.error('[POS Error]', err);
       showToast(t3(humanizeError(err)), 'error', 'POS Counter');
@@ -309,7 +312,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                     <CheckCircle className="w-8 h-8" />
                   </div>
                   <h4 className="text-xl sm:text-2xl font-black text-emerald-300">
-                    ₹{lastRecordedTx.amount.toLocaleString('en-IN')} Received!
+                    {inr(lastRecordedTx.amount)} Received!
                   </h4>
                   <p className="text-xs text-temple-300 mt-1">
                     Receipt Ref: <span className="font-mono text-amber-400 font-bold">{lastRecordedTx.taxReceiptNumber}</span>
@@ -412,7 +415,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                   <div className="flex items-center justify-between">
                     <label htmlFor="quick-chanda-amount" className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      Donation Amount ({activeWorkspace?.currencySymbol || '₹'}) *
+                      Donation Amount ({wsCurrency.symbol}) *
                     </label>
                     <span className="text-[11px] text-temple-400">Press Tab to navigate</span>
                   </div>
@@ -420,7 +423,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                   {/* Primary Large Amount Input */}
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl font-bold text-amber-500">
-                      {activeWorkspace?.currencySymbol || '₹'}
+                      {wsCurrency.symbol}
                     </span>
                     <input
                       ref={amountInputRef}
@@ -449,7 +452,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                             : 'bg-temple-800 hover:bg-temple-750 text-temple-300 border border-temple-700/60'
                         }`}
                       >
-                        ₹{preset}
+                        {inr(preset)}
                       </button>
                     ))}
                   </div>
@@ -608,7 +611,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                         <span>Dynamic UPI QR Code</span>
                       </div>
                       <p className="text-sm font-semibold text-temple-100">
-                        Scan to Pay Exactly <span className="text-amber-300 font-bold">₹{amount || 0}</span>
+                        Scan to Pay Exactly <span className="text-amber-300 font-bold">{inr(amount || 0)}</span>
                       </p>
                       <p className="text-[11px] text-temple-400">
                         Works with BHIM, Google Pay, PhonePe, Paytm, and any UPI app.
@@ -640,7 +643,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                       </span>
                       {cashChange > 0 && (
                         <span className="text-xs font-bold text-emerald-300">
-                          Return Change: ₹{cashChange.toLocaleString('en-IN')}
+                          Return Change: {inr(cashChange)}
                         </span>
                       )}
                     </div>
@@ -656,7 +659,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
                               : 'bg-temple-800 text-temple-300 hover:bg-temple-750'
                           }`}
                         >
-                          Tender ₹{tender}
+                          Tender {inr(tender)}
                         </button>
                       ))}
                     </div>
@@ -698,7 +701,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
           orgName={activeWorkspace?.name || 'Temple Trust'}
           logoUrl={(activeWorkspace as any)?.logoUrl}
           amount={lastRecordedTx.amount}
-          currencySymbol={activeWorkspace?.currencySymbol || '₹'}
+          currencySymbol={wsCurrency.symbol}
           purpose={lastRecordedTx.purpose}
           devoteeName={lastRecordedTx.devoteeName}
         />

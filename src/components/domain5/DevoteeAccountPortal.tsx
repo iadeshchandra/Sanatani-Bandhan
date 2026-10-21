@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   UserCircle, QrCode, Shield, Sparkles, Flame, Heart, 
   Download, Printer, Share2, Copy, Check, ExternalLink,
@@ -61,6 +62,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   initialTab = 'PASS',
   onNavigateDesk,
 }) => {
+  const inr = useInr();
   const { 
     currentUser, 
     currentRole, 
@@ -323,7 +325,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Download 80G Tax Receipt
   const handleDownload80GReceipt = async (tx: TreasuryTransaction) => {
     try {
-      showToast(`Generating Section 80G Tax Receipt for ₹${tx.amount.toLocaleString('en-IN')}...`, 'info');
+      showToast(`Generating Section 80G Tax Receipt for ${inr(tx.amount)}...`, 'info');
       await generate80GTaxReceipt(tx, activeWorkspace, { download: true });
       showToast('80G Tax Exemption Certificate downloaded! 📜', 'success');
     } catch (e: any) {
@@ -1292,7 +1294,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
                 <span className="text-[10px] uppercase font-bold text-stone-400 block">Total Lifetime Seva</span>
                 <span className="text-2xl font-black text-amber-400">
-                  ₹{userDonations.reduce((sum, d) => sum + d.amount, 0).toLocaleString('en-IN') || '11,000'}
+                  {inr(userDonations.reduce((sum, d) => sum + d.amount, 0))}
                 </span>
                 <span className="text-[10px] text-stone-500 block mt-1">Dharmic Chanda & Sponsorships</span>
               </div>
@@ -1300,7 +1302,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
                 <span className="text-[10px] uppercase font-bold text-stone-400 block">80G Eligible Deductions</span>
                 <span className="text-2xl font-black text-emerald-400">
-                  ₹{userDonations.filter(d => d.is80GEligible).reduce((sum, d) => sum + d.amount, 0).toLocaleString('en-IN') || '11,000'}
+                  {inr(userDonations.filter(d => d.is80GEligible).reduce((sum, d) => sum + d.amount, 0))}
                 </span>
                 <span className="text-[10px] text-stone-500 block mt-1">Section 80G(5)(vi) Verified</span>
               </div>
@@ -1389,7 +1391,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                       <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between">
                         <span className="text-xs font-black text-amber-300">
-                          Dakshina: ₹{(booking.dakshinaAmount || 1100).toLocaleString('en-IN')}
+                          Dakshina: {inr((booking.dakshinaAmount || 1100))}
                         </span>
                         <button
                           type="button"
@@ -1440,7 +1442,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         <tr key={tx.id} className="hover:bg-stone-900/40 transition-colors">
                           <td className="py-3 px-4 font-mono text-stone-400">{tx.date}</td>
                           <td className="py-3 px-4 font-bold text-amber-100">{tx.purpose || tx.category}</td>
-                          <td className="py-3 px-4 font-black text-amber-400">₹{tx.amount.toLocaleString('en-IN')}</td>
+                          <td className="py-3 px-4 font-black text-amber-400">{inr(tx.amount)}</td>
                           <td className="py-3 px-4 text-stone-400">{tx.paymentMode}</td>
                           <td className="py-3 px-4">
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">

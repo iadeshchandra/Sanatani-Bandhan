@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useYoga, uid, batchStudents } from './yogaStore';
 import { YogaInstructor } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, StatusPill, inr } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, StatusPill } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* Yoga One — instructor roster with honorarium tracking. */
 
 export const InstructorsTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useYoga();
   const { showToast } = useToast();
   const [forming, setForming] = useState<Partial<YogaInstructor> | null>(null);
@@ -80,7 +83,7 @@ export const InstructorsTab: React.FC = () => {
             <Field label={<T en="Phone" bn="ফোন" hi="फ़ोन" />}>
               <input className={inputCls} value={forming.phone || ''} onChange={(e) => setForming({ ...forming, phone: e.target.value })} placeholder="+91 …" />
             </Field>
-            <Field label={<T en="Monthly honorarium (₹)" bn="মাসিক সম্মানী (₹)" hi="मासिक मानदेय (₹)" />}>
+            <Field label={<T en={`Monthly honorarium (${wsCurrency.symbol})`} bn={`মাসিক সম্মানী (${wsCurrency.symbol})`} hi={`मासिक मानदेय (${wsCurrency.symbol})`} />}>
               <input type="number" min={0} className={inputCls} value={forming.honorariumMonthly ?? ''} onChange={(e) => setForming({ ...forming, honorariumMonthly: Number(e.target.value) || undefined })} placeholder="Optional" />
             </Field>
             <Field label={<T en="Specialties" bn="বিশেষত্ব" hi="विशेषज्ञता" />} className="sm:col-span-2">

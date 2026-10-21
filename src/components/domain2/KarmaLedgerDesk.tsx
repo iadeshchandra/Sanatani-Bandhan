@@ -1,4 +1,5 @@
 import React from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Sparkles, Award, TrendingUp, Heart, Clock, ShieldCheck } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -6,6 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 
 export const KarmaLedgerDesk: React.FC = () => {
+  const inr = useInr();
   const { t, safeTranslate } = useLanguage();
   const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace } = useAuthWorkspace();
@@ -114,7 +116,7 @@ export const KarmaLedgerDesk: React.FC = () => {
                     </span>
                   </td>
                   <td className="p-3 font-mono text-sky-400">{d.volunteerHours}h</td>
-                  <td className="p-3 font-mono text-saffron-400">₹{(d.totalDonated || 0).toLocaleString()}</td>
+                  <td className="p-3 font-mono text-saffron-400">{inr((d.totalDonated || 0))}</td>
                   <td className="p-3 text-right">
                     <span className="font-black text-sm text-purple-400 font-mono">
                       {d.sevaIndex} pts

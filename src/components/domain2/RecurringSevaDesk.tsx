@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Repeat,
   Plus,
@@ -50,8 +51,6 @@ const monthlyValue = (s: SevaSubscription): number => {
   return Number(s.amount || 0) / divisor;
 };
 
-const fmtINR = (n: number): string => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-
 const planBadge: Record<string, string> = {
   'Nitya Annadanam': 'bg-amber-500/15 text-amber-300 border-amber-500/30',
   'Gau Seva Monthly': 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -61,6 +60,8 @@ const planBadge: Record<string, string> = {
 };
 
 export const RecurringSevaDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace } = useAuthWorkspace();
@@ -310,7 +311,7 @@ export const RecurringSevaDesk: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <p className="text-xs text-temple-400 font-bold uppercase tracking-wider">Monthly Recurring</p>
           </div>
-          <p className="text-2xl font-black text-emerald-400 mt-2">{fmtINR(Math.round(kpis.mrr))}</p>
+          <p className="text-2xl font-black text-emerald-400 mt-2">{inr(Math.round(kpis.mrr))}</p>
           <p className="text-[11px] text-temple-400 mt-1">Normalized MRR run-rate</p>
         </div>
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
@@ -330,7 +331,7 @@ export const RecurringSevaDesk: React.FC = () => {
             {kpis.overdueCount}
           </p>
           <p className="text-[11px] text-temple-400 mt-1">
-            {kpis.overdueCount > 0 ? `${fmtINR(kpis.overdueValue)} pending` : 'All caught up 🎉'}
+            {kpis.overdueCount > 0 ? `${inr(kpis.overdueValue)} pending` : 'All caught up 🎉'}
           </p>
         </div>
       </div>
@@ -432,7 +433,7 @@ export const RecurringSevaDesk: React.FC = () => {
                       <span className="text-temple-400 flex items-center gap-1.5">
                         <IndianRupee className="w-3.5 h-3.5" /> Mandate
                       </span>
-                      <span className="text-temple-100 font-extrabold">{fmtINR(s.amount)} <span className="font-medium text-temple-400">/ {s.frequency}</span></span>
+                      <span className="text-temple-100 font-extrabold">{inr(s.amount)} <span className="font-medium text-temple-400">/ {s.frequency}</span></span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-temple-400 flex items-center gap-1.5">
@@ -451,7 +452,7 @@ export const RecurringSevaDesk: React.FC = () => {
                         <Wallet className="w-3.5 h-3.5" /> Collected
                       </span>
                       <span className="text-emerald-300 font-bold">
-                        {fmtINR(s.totalCollected)} <span className="font-medium text-temple-400">· {s.paymentsCount} payments</span>
+                        {inr(s.totalCollected)} <span className="font-medium text-temple-400">· {s.paymentsCount} payments</span>
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -552,7 +553,7 @@ export const RecurringSevaDesk: React.FC = () => {
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls} htmlFor="seva-amount">Amount (₹) *</label>
+                  <label className={labelCls} htmlFor="seva-amount">Amount ({wsCurrency.symbol}) *</label>
                   <input id="seva-amount" type="number" min="1" className={inputCls} value={fAmount} onChange={(e) => setFAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="1100" required />
                 </div>
                 <div>
@@ -600,7 +601,7 @@ export const RecurringSevaDesk: React.FC = () => {
             </p>
             <form onSubmit={handlePay} className="space-y-4">
               <div>
-                <label className={labelCls} htmlFor="pay-amount">Amount (₹) *</label>
+                <label className={labelCls} htmlFor="pay-amount">Amount ({wsCurrency.symbol}) *</label>
                 <input id="pay-amount" type="number" min="1" className={inputCls} value={pAmount} onChange={(e) => setPAmount(e.target.value === '' ? '' : Number(e.target.value))} required />
               </div>
               <div className="grid grid-cols-2 gap-3">

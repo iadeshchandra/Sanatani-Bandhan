@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Heart, Plus, Search, ShieldCheck, Sparkles, User, Calendar, Award, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -11,6 +12,8 @@ import { sanitizeName, isValidAmountOrZero, isValidPhone, phoneErrorMessage } fr
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const GauSevaDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { activeWorkspace } = useAuthWorkspace();
   const { cows, addCow, adoptCow } = useData();
   const { showToast } = useToast();
@@ -306,7 +309,7 @@ export const GauSevaDesk: React.FC = () => {
                 ) : null}
                 <p>
                   <span className="text-temple-400">Monthly Grass & Care:</span>{' '}
-                  <span className="font-mono text-temple-200">{formatINR(cow.monthlyCareCost)}/mo</span>
+                  <span className="font-mono text-temple-200">{inr(cow.monthlyCareCost)}/mo</span>
                 </p>
               </div>
 
@@ -343,7 +346,7 @@ export const GauSevaDesk: React.FC = () => {
                 className="w-full py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-saffron-600/20 transition-all cursor-pointer"
               >
                 <Heart className="w-3.5 h-3.5" />
-                <span>Adopt Gomata ({formatINR(cow.monthlyCareCost)}/mo)</span>
+                <span>Adopt Gomata ({inr(cow.monthlyCareCost)}/mo)</span>
               </button>
             )}
           </div>
@@ -406,7 +409,7 @@ export const GauSevaDesk: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-xl bg-saffron-500/10 border border-saffron-500/30 text-saffron-200 text-xs">
-                <p className="font-bold">Monthly Seva Commitment: {formatINR(adoptingCow.monthlyCareCost)}</p>
+                <p className="font-bold">Monthly Seva Commitment: {inr(adoptingCow.monthlyCareCost)}</p>
                 <p className="text-[11px] text-temple-300 mt-0.5">
                   Covers pure green fodder, Ayurvedic supplements, clean water, and goshala shed maintenance.
                 </p>
@@ -528,7 +531,7 @@ export const GauSevaDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Care Cost (₹)</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Care Cost ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={monthlyCareCost}

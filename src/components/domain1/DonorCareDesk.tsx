@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   HeartHandshake, MessageCircle, Clock, CalendarHeart, PhoneOff,
   CheckCircle2, History, Settings2, Gift,
@@ -46,6 +47,7 @@ function waMeLink(phone: string, message: string): string {
 const DAY = 86400000;
 
 export const DonorCareDesk: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { treasury, devotees } = useData();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
@@ -132,7 +134,7 @@ export const DonorCareDesk: React.FC = () => {
 
   const msg = {
     thanks: (d: DonorProfile) =>
-      `🙏 Dhanyavaad ${d.name}! Your generous contribution of ₹${d.total.toLocaleString('en-IN')} to ${orgName} means so much. With gratitude!`,
+      `🙏 Dhanyavaad ${d.name}! Your generous contribution of ${inr(d.total)} to ${orgName} means so much. With gratitude!`,
     winback: (d: DonorProfile) =>
       `🙏 Namaste ${d.name}, we miss you at ${orgName}! It has been ${daysSince(d.lastDonation)} days since your last visit. We would love to see you again — do drop by for darshan.`,
     anniversary: (d: DonorProfile, years: number) =>
@@ -148,7 +150,7 @@ export const DonorCareDesk: React.FC = () => {
           <div>
             <p className="font-bold text-slate-900">{d.name}</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              {d.count} donation{d.count > 1 ? 's' : ''} · ₹{d.total.toLocaleString('en-IN')} total · last {new Date(d.lastDonation).toLocaleDateString('en-IN')}
+              {d.count} donation{d.count > 1 ? 's' : ''} · {inr(d.total)} total · last {new Date(d.lastDonation).toLocaleDateString('en-IN')}
             </p>
             {extra && <p className="text-xs font-bold text-rose-600 mt-1">{extra}</p>}
           </div>

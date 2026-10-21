@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useAnnakshetra, uid, todayISO, lowStockItems } from './annakshetraStore';
 import { Card, Btn, Field, inputCls, Modal, T, useLocaleText } from './ui';
 import { useData } from '../context/DataContext';
@@ -13,6 +14,8 @@ import { Unit } from './types';
 const UNITS: Unit[] = ['kg', 'litre', 'pcs', 'packet', 'bundle'];
 
 export const InventoryTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove, recordPurchase } = useAnnakshetra();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -95,7 +98,7 @@ export const InventoryTab: React.FC = () => {
                   <div className="font-bold text-stone-800">{it.name}</div>
                   <div className="text-xs text-stone-500">
                     {tr('anna.inv.alertat', 'alert at', 'সতর্কতা', 'चेतावनी')}: {it.lowStockAt} {it.unit}
-                    {it.lastPurchaseRate ? ` · ₹${it.lastPurchaseRate}/${it.unit}` : ''}
+                    {it.lastPurchaseRate ? ` · ${inr(it.lastPurchaseRate)}/${it.unit}` : ''}
                   </div>
                 </div>
                 <div className={`text-xl font-extrabold ${isLow ? 'text-red-700' : 'text-stone-800'}`}>
@@ -147,7 +150,7 @@ export const InventoryTab: React.FC = () => {
           <form onSubmit={(e) => submitBuy(e, showBuy)} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <Field label={tr('anna.inv.qty', 'Quantity', 'পরিমাণ', 'मात्रा')}><input type="number" min={0} step="any" className={inputCls} value={buyF.qty} onChange={(e) => setBuyF({ ...buyF, qty: Number(e.target.value) })} /></Field>
-              <Field label={tr('anna.inv.amount', 'Amount (₹)', 'টাকা (₹)', 'राशि (₹)')}><input type="number" min={0} step="any" className={inputCls} value={buyF.amount} onChange={(e) => setBuyF({ ...buyF, amount: Number(e.target.value) })} /></Field>
+              <Field label={tr('anna.inv.amount', `Amount (${wsCurrency.symbol})`, `টাকা (${wsCurrency.symbol})`, `राशि (${wsCurrency.symbol})`)}><input type="number" min={0} step="any" className={inputCls} value={buyF.amount} onChange={(e) => setBuyF({ ...buyF, amount: Number(e.target.value) })} /></Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label={tr('anna.inv.vendor', 'Vendor (optional)', 'বিক্রেতা', 'विक्रेता')}><input className={inputCls} value={buyF.vendor} onChange={(e) => setBuyF({ ...buyF, vendor: e.target.value })} /></Field>

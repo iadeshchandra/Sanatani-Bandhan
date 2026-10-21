@@ -29,6 +29,9 @@ export const useLocaleText = () => {
   return { lang: currentLang, tr: safeTranslate };
 };
 
+/** @deprecated Hard-codes ₹. Components must bind `useInr()` from
+ * hooks/useWorkspaceInr so amounts render in the workspace currency
+ * (QUEUED #60). Kept only so no legacy import breaks. */
 export const inr = (n: number) =>
   '₹' + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 

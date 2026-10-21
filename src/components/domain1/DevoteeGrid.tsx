@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users,
   Search,
@@ -66,6 +67,8 @@ import { QuickChandaModal } from '../common/QuickChandaModal';
 import { getDevotees } from '../../services/devoteeService';
 
 export const DevoteeGrid: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { activeWorkspace, activeWorkspaceId, currentRole, currentDevotee, checkPermission } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
@@ -339,7 +342,7 @@ export const DevoteeGrid: React.FC = () => {
         date: new Date(t.date).getTime(),
         type: 'donation',
         title: `Donation: ${t.category}`,
-        desc: `₹${(t.amount || 0).toLocaleString()} via ${t.paymentMode}`,
+        desc: `${inr((t.amount || 0))} via ${t.paymentMode}`,
         icon: Receipt,
         color: 'text-saffron-600'
       });
@@ -896,9 +899,9 @@ export const DevoteeGrid: React.FC = () => {
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
               <option value={0}>Any</option>
-              <option value={1000}>₹1,000+</option>
-              <option value={10000}>₹10,000+</option>
-              <option value={100000}>₹1,00,000+</option>
+              <option value={1000}>{inr(1000)}+</option>
+              <option value={10000}>{inr(10000)}+</option>
+              <option value={100000}>{inr(100000)}+</option>
             </select>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 ml-2 border-l border-temple-200 pl-3">
@@ -1099,7 +1102,7 @@ export const DevoteeGrid: React.FC = () => {
                   <div className="p-2.5 rounded-xl bg-white shadow-sm border border-temple-200 grid grid-cols-2 gap-2 text-center text-xs my-2">
                     <div>
                       <p className="text-[10px] text-temple-600 font-semibold uppercase">Total Chanda</p>
-                      <p className="font-semibold text-saffron-600">₹{(devotee.totalDonated || 0).toLocaleString()}</p>
+                      <p className="font-semibold text-saffron-600">{inr((devotee.totalDonated || 0))}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Index</p>
@@ -1252,7 +1255,7 @@ export const DevoteeGrid: React.FC = () => {
                   </td>
                   {canViewFinancials && (
                     <td className="px-4 py-3 text-right font-mono font-semibold text-saffron-600">
-                      ₹{(devotee.totalDonated || 0).toLocaleString()}
+                      {inr((devotee.totalDonated || 0))}
                     </td>
                   )}
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1530,7 +1533,7 @@ export const DevoteeGrid: React.FC = () => {
                 {canViewFinancials && (
                   <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center flex flex-col justify-center items-center">
                     <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Total Chanda</p>
-                    <p className="text-2xl font-semibold text-saffron-600">₹{(selectedDevotee.totalDonated || 0).toLocaleString()}</p>
+                    <p className="text-2xl font-semibold text-saffron-600">{inr((selectedDevotee.totalDonated || 0))}</p>
                     {canManage && (
                       <button
                         onClick={() => setIsQuickChandaOpen(true)}
@@ -1579,7 +1582,7 @@ export const DevoteeGrid: React.FC = () => {
                           <th className="px-4 py-3 font-semibold">Receipt No.</th>
                           <th className="px-4 py-3 font-semibold">Category</th>
                           <th className="px-4 py-3 font-semibold">Mode</th>
-                          <th className="px-4 py-3 font-semibold text-right">Amount (₹)</th>
+                          <th className="px-4 py-3 font-semibold text-right">Amount ({wsCurrency.symbol})</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-temple-800/60 text-temple-700">

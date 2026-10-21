@@ -22,6 +22,8 @@ import {
   fingerprintEntries,
   downloadTextFile,
 } from '../../lib/auditTrail';
+import { resolveWorkspaceCurrency } from '../../lib/treasuryDisplay';
+import { useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { TransparencyView } from './TransparencyView';
 import {
   SANATANI_COLORS,
@@ -97,7 +99,8 @@ function buildFallbackDocDef(
   entries: AuditEntry[],
   orgName: string,
   chainStatus: { intact: boolean | null; events: number },
-  fingerprint: string
+  fingerprint: string,
+  symbol = '₹'
 ): any {
   const totalIn = entries.filter((e) => e.type === 'Income').reduce((s, e) => s + e.amount, 0);
   const totalOut = entries.filter((e) => e.type === 'Expense').reduce((s, e) => s + e.amount, 0);
@@ -109,7 +112,7 @@ function buildFallbackDocDef(
       { text: orgName, fontSize: 16, bold: true, alignment: 'center' },
       { text: 'AUDIT TRAIL — MONEY MOVEMENT', fontSize: 12, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
       {
-        text: `Generated ${formatTrailDate(new Date().toISOString())}  •  ${entries.length} entries  •  In ${formatINRFull(totalIn)}  •  Out ${formatINRFull(totalOut)}  •  Net ${formatINRFull(totalIn - totalOut)}  •  Chain: ${chainStatus.intact === true ? 'INTACT' : chainStatus.intact === false ? 'BROKEN' : 'n/a'}`,
+        text: `Generated ${formatTrailDate(new Date().toISOString())}  •  ${entries.length} entries  •  In ${formatINRFull(totalIn, symbol)}  •  Out ${formatINRFull(totalOut, symbol)}  •  Net ${formatINRFull(totalIn - totalOut, symbol)}  •  Chain: ${chainStatus.intact === true ? 'INTACT' : chainStatus.intact === false ? 'BROKEN' : 'n/a'}`,
         fontSize: 8, alignment: 'center', margin: [0, 0, 0, 8],
       },
       {
@@ -124,8 +127,8 @@ function buildFallbackDocDef(
               { text: e.action, fontSize: 7 },
               { text: e.purpose, fontSize: 7 },
               { text: e.type === 'Income' ? 'IN' : 'OUT', fontSize: 7, bold: true },
-              { text: formatINRFull(e.amount), fontSize: 7, alignment: 'right' },
-              { text: formatINRFull(e.balance), fontSize: 7, alignment: 'right' },
+              { text: formatINRFull(e.amount, symbol), fontSize: 7, alignment: 'right' },
+              { text: formatINRFull(e.balance, symbol), fontSize: 7, alignment: 'right' },
               { text: e.chained ? 'CHAINED' : 'ledger', fontSize: 7 },
             ]),
           ],
@@ -142,13 +145,14 @@ async function exportTrailPDF(
   workspace: any,
   chainStatus: { intact: boolean | null; events: number }
 ): Promise<void> {
+  const sym = resolveWorkspaceCurrency(workspace).symbol;
   const { richFonts: rich } = await pdfEngineHandles();
   const fingerprint = fingerprintEntries(entries).slice(0, 32);
   const fileName = `Audit_Trail_${new Date().toISOString().slice(0, 10)}.pdf`;
 
   if (!rich) {
     // Font pack missing (e.g. stale PWA shell) — still deliver the report.
-    await downloadDocDef(buildFallbackDocDef(entries, orgName, chainStatus, fingerprint), fileName);
+    await downloadDocDef(buildFallbackDocDef(entries, orgName, chainStatus, fingerprint, sym), fileName);
     return;
   }
 
@@ -162,7 +166,7 @@ async function exportTrailPDF(
         stack: [
           { text: label, font: SANATANI_FONTS.body, fontSize: 7, bold: true, color: SANATANI_COLORS.stone, alignment: 'center' },
           { text: dev, font: SANATANI_FONTS.devanagari, fontSize: 7, color: SANATANI_COLORS.stone, alignment: 'center' },
-          { text: formatINRFull(value), font: SANATANI_FONTS.body, fontSize: 12, bold: true, color, alignment: 'center', margin: [0, 3, 0, 0] },
+          { text: formatINRFull(value, sym), font: SANATANI_FONTS.body, fontSize: 12, bold: true, color, alignment: 'center', margin: [0, 3, 0, 0] },
         ],
         margin: [0, 6, 0, 6],
       }]],
@@ -182,8 +186,8 @@ async function exportTrailPDF(
       e.action,
       { text: e.purpose, fontSize: 6.5 },
       { text: isInc ? 'IN' : 'OUT', bold: true, color: isInc ? '#2F9E44' : SANATANI_COLORS.kumkum },
-      { text: formatINRFull(e.amount), bold: true, alignment: 'right' },
-      { text: formatINRFull(e.balance), alignment: 'right', color: SANATANI_COLORS.stone },
+      { text: formatINRFull(e.amount, sym), bold: true, alignment: 'right' },
+      { text: formatINRFull(e.balance, sym), alignment: 'right', color: SANATANI_COLORS.stone },
       e.chained ? { text: 'CHAINED', bold: true, fontSize: 6.5, color: '#2F9E44' } : { text: 'ledger', fontSize: 6.5, color: SANATANI_COLORS.stone },
     ];
   });
@@ -287,7 +291,7 @@ async function exportTrailPDF(
   } catch (e) {
     // Rich layout failed mid-flight (e.g. a font vanished) — fall back.
     console.warn('[auditTrail] rich PDF failed, using fallback layout', e);
-    await downloadDocDef(buildFallbackDocDef(entries, orgName, chainStatus, fingerprint), fileName);
+    await downloadDocDef(buildFallbackDocDef(entries, orgName, chainStatus, fingerprint, sym), fileName);
   }
 }
 
@@ -298,6 +302,7 @@ const TimelineCard: React.FC<{
   hash: string | null;
   onShowChain: (entry: AuditEntry) => void;
 }> = ({ entry, hash, onShowChain }) => {
+  const wsCurrency = useWorkspaceCurrency();
   const isInc = entry.type === 'Income';
   return (
     <div className="relative pl-10 sm:pl-12 pb-4">
@@ -329,10 +334,10 @@ const TimelineCard: React.FC<{
           </div>
           <div className="text-right shrink-0">
             <div className={`text-lg sm:text-xl font-black tabular-nums ${isInc ? 'text-emerald-300' : 'text-red-300'}`}>
-              {isInc ? '+' : '−'}{formatLakhCrore(entry.amount)}
+              {isInc ? '+' : '−'}{formatLakhCrore(entry.amount, wsCurrency.symbol)}
             </div>
             <div className="text-[11px] text-temple-400 tabular-nums">
-              <T en="Balance" bn="স্থিতি" hi="शेष" /> {formatINRFull(entry.balance)}
+              <T en="Balance" bn="স্থিতি" hi="शेष" /> {formatINRFull(entry.balance, wsCurrency.symbol)}
             </div>
           </div>
         </div>
@@ -366,6 +371,7 @@ const TimelineCard: React.FC<{
 /* --------------------------- main desk --------------------------- */
 
 const AuditTrailInner: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
   const { treasury } = useData();
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
   const { safeTranslate } = useLanguage();
@@ -578,7 +584,7 @@ const AuditTrailInner: React.FC = () => {
               ].map((s) => (
                 <div key={s.label} className="rounded-2xl bg-white/[0.04] border border-white/10 p-3 sm:p-4 text-center">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-temple-400">{s.label}</div>
-                  <div className={`text-lg sm:text-2xl font-black tabular-nums mt-1 ${s.tone}`}>{formatLakhCrore(s.v)}</div>
+                  <div className={`text-lg sm:text-2xl font-black tabular-nums mt-1 ${s.tone}`}>{formatLakhCrore(s.v, wsCurrency.symbol)}</div>
                 </div>
               ))}
             </div>
@@ -681,7 +687,7 @@ const AuditTrailInner: React.FC = () => {
                 <div className="text-xs font-bold uppercase tracking-wider text-emerald-300">⛓️ <T en="Chain of custody" bn="হেফাজত শৃঙ্খল" hi="अभिरक्षा श्रृंखला" /></div>
                 <div className="text-base font-black text-amber-200 mt-1">{drawerEntry.action}</div>
                 <div className="text-xs text-temple-300 tabular-nums">
-                  {formatTrailDate(drawerEntry.date)} · {formatINRFull(drawerEntry.amount)}
+                  {formatTrailDate(drawerEntry.date)} · {formatINRFull(drawerEntry.amount, wsCurrency.symbol)}
                   {drawerEntry.slipNo ? ` · ${drawerEntry.slipNo}` : ''}
                 </div>
               </div>

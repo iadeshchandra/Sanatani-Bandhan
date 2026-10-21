@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr } from '../../hooks/useWorkspaceInr';
 import { BookOpen, Plus, Award, User, Sparkles, GraduationCap, CheckCircle2, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
@@ -22,6 +23,7 @@ interface Vidyarthi {
 }
 
 const GurukulShishyaDeskInner: React.FC = () => {
+  const inr = useInr();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
 
@@ -131,7 +133,7 @@ const GurukulShishyaDeskInner: React.FC = () => {
   };
 
   const handleSponsor = (vid: Vidyarthi) => {
-    showToast(`Sponsorship portal linked for ${vid.name} (₹${vid.monthlySponsorshipCost}/mo)`, 'info', 'Veda Pathshala Seva');
+    showToast(`Sponsorship portal linked for ${vid.name} (${inr(vid.monthlySponsorshipCost)}/mo)`, 'info', 'Veda Pathshala Seva');
   };
 
   return (
@@ -233,7 +235,7 @@ const GurukulShishyaDeskInner: React.FC = () => {
                 ) : (
                   <div>
                     <p className="text-[10px] text-saffron-400 uppercase font-bold">Needs Vidya Danam Patron</p>
-                    <p className="text-temple-300 text-[11px]">₹{st.monthlySponsorshipCost}/mo (Food & Books)</p>
+                    <p className="text-temple-300 text-[11px]">{inr(st.monthlySponsorshipCost)}/mo (Food & Books)</p>
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useUtsav, budgetTotals, tasksDonePct, vendorPending, safetyDonePct, totalCheckins, nextUCNo } from './utsavStore';
-import { T, Card, Btn, Field, Empty, fmtDate, inr } from './ui';
+import { T, Card, Btn, Field, Empty, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -22,6 +23,7 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { state, exportJSON, importJSON, resetAll } = useUtsav();
   const { showToast } = useToast();

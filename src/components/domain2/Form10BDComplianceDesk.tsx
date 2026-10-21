@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   FileSpreadsheet,
   Download,
@@ -82,6 +83,7 @@ const CBDT_NATURE_CODES: Record<CBDTDonationNature, string> = {
 // ============================================================================
 
 export const Form10BDComplianceDesk: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { treasury, donations, devotees, updateTreasuryTransaction } = useData();
@@ -245,7 +247,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
         // Rule A: Cash Guardrail under Sec 80G(5)(d)
         // Cash donations exceeding Rs. 2,000 are strictly NOT eligible for 80G deduction
         if (resolvedMode === 'Cash' && amount > 2000) {
-          warnings.push(`Sec 80G(5)(d) Cash Violation: ₹${amount.toLocaleString()} in cash exceeds ₹2,000 threshold.`);
+          warnings.push(`Sec 80G(5)(d) Cash Violation: ${inr(amount)} in cash exceeds ₹2,000 threshold.`);
         }
 
         // Rule B: Missing Unique Identity
@@ -579,7 +581,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.finance.form10BD.total80gDonations')}</span>
             <div className="text-xl sm:text-2xl font-black text-white">
-              ₹{auditMetrics.totalDonationsAmount.toLocaleString('en-IN')}
+              {inr(auditMetrics.totalDonationsAmount)}
             </div>
             <span className="text-[11px] text-stone-400 font-mono mt-0.5 block">
               {auditMetrics.totalRecords} Qualifying Transactions
@@ -876,7 +878,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
 
                     {/* Amount */}
                     <td className="py-3 px-4 text-right font-mono font-bold text-stone-100">
-                      ₹{row.amount.toLocaleString('en-IN')}
+                      {inr(row.amount)}
                     </td>
 
                     {/* Compliance Audit */}
@@ -937,7 +939,7 @@ export const Form10BDComplianceDesk: React.FC = () => {
                 Income Tax Form 10BD Rectification
               </span>
               <h3 className="text-lg font-black text-white mt-1">{t('org.finance.form10BD.rectifyDonorTaxCredentials')}</h3>
-              <p className="text-stone-400">{t('org.finance.form10BD.amount2')}<strong className="text-amber-300">₹{editingRow.amount.toLocaleString()}</strong> • Date: {editingRow.date}
+              <p className="text-stone-400">{t('org.finance.form10BD.amount2')}<strong className="text-amber-300">{inr(editingRow.amount)}</strong> • Date: {editingRow.date}
               </p>
             </div>
 

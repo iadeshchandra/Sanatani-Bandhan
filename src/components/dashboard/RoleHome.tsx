@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users,
   Landmark,
@@ -696,6 +697,7 @@ export const ActionHub: React.FC<{
 };
 
 export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const inr = useInr();
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
   const { treasury } = useData();
   void activeWorkspace;
@@ -736,7 +738,7 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
             </div>
             <div className="text-right shrink-0">
               <p className={`font-black text-xs ${tx.type === 'Income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {tx.type === 'Income' ? '+' : '-'} ₹{(tx.amount || 0).toLocaleString()}
+                {tx.type === 'Income' ? '+' : '-'} {inr((tx.amount || 0))}
               </p>
               <p className="text-[9px] text-slate-400 font-mono mt-0.5">{tx.date ? new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</p>
             </div>

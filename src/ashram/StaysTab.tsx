@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useAshram, uid, todayISO, isRoomFreeForRange, findFreeRoom, nightsBetween } from './ashramStore';
 import { Booking, RoomType, Stay } from './types';
 import { Card, Btn, Field, inputCls, Empty, Modal, T, useLocaleText, StatusPill } from './ui';
@@ -21,6 +22,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 const ID_TYPES = ['Aadhaar', 'Voter ID', 'Passport', 'Driving Licence', 'Other'];
 
 export const StaysTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update } = useAshram();
   const { tr } = useLocaleText();
   const { showToast } = useToast();
@@ -130,7 +133,7 @@ export const StaysTab: React.FC = () => {
       notes: co.notes.trim() || undefined,
     });
     if (ok) {
-      showToast(tr('ashram.stay.outOk', `Checked out — ₹${actual.toLocaleString('en-IN')} posted to treasury (non-80G).`, 'চেক-আউট — ট্রেজারিতে পোস্ট।', 'चेक-आउट — ट्रेजरी में पोस्ट।'), 'success');
+      showToast(tr('ashram.stay.outOk', `Checked out — ${inr(actual)} posted to treasury (non-80G).`, 'চেক-আউট — ট্রেজারিতে পোস্ট।', 'चेक-आउट — ट्रेजरी में पोस्ट।'), 'success');
     } else {
       showToast(tr('ashram.stay.outLocal', 'Checked out locally — treasury posting failed, retry from Reports.', 'ট্রেজারি পোস্ট ব্যর্থ।', 'ट्रेजरी पोस्ट विफल।'), 'warning');
     }
@@ -194,7 +197,7 @@ export const StaysTab: React.FC = () => {
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100">
                 <div className="text-xs text-stone-500">
-                  {tr('ashram.stay.suggested', 'Suggested', 'প্রস্তাবিত', 'सुझाया')}: <b className="text-stone-700">₹{s.suggestedTotal.toLocaleString('en-IN')}</b>
+                  {tr('ashram.stay.suggested', 'Suggested', 'প্রস্তাবিত', 'सुझाया')}: <b className="text-stone-700">{inr(s.suggestedTotal)}</b>
                 </div>
                 <Btn className="!py-2 !min-h-0 text-xs" onClick={() => openCheckout(s)}>
                   {tr('ashram.stay.checkout', 'Check-out', 'চেক-আউট', 'चेक-आउट')}
@@ -223,7 +226,7 @@ export const StaysTab: React.FC = () => {
                   <StatusPill status="checked-out" />
                 </div>
                 <div className="text-xs text-stone-500 mt-2">
-                  {tr('ashram.stay.received', 'Received', 'প্রাপ্ত', 'प्राप्त')}: <b className="text-emerald-700">₹{(s.actualDonation || 0).toLocaleString('en-IN')}</b>
+                  {tr('ashram.stay.received', 'Received', 'প্রাপ্ত', 'प्राप्त')}: <b className="text-emerald-700">{inr(s.actualDonation || 0)}</b>
                   {' '}· {s.receiptNo}
                   {s.treasuryTxId ? ' · ✓ treasury' : ' · ⚠ local only'}
                 </div>
@@ -300,9 +303,9 @@ export const StaysTab: React.FC = () => {
             <div className="space-y-3">
               <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-sm">
                 <b>{s.guestName}</b> · 🏠 {room?.number} · {nights} {tr('ashram.stay.nights', 'night(s)', 'রাত', 'रात')}<br />
-                <span className="text-stone-600">{tr('ashram.stay.suggested', 'Suggested', 'প্রস্তাবিত', 'सुझाया')}: ₹{s.suggestedTotal.toLocaleString('en-IN')}</span>
+                <span className="text-stone-600">{tr('ashram.stay.suggested', 'Suggested', 'প্রস্তাবিত', 'सुझाया')}: {inr(s.suggestedTotal)}</span>
               </div>
-              <Field label={tr('ashram.stay.actual', 'Actual donation received (₹)', 'প্রাপ্ত দান (₹)', 'प्राप्त दान (₹)')}>
+              <Field label={tr('ashram.stay.actual', `Actual donation received (${wsCurrency.symbol})`, `প্রাপ্ত দান (${wsCurrency.symbol})`, `प्राप्त दान (${wsCurrency.symbol})`)}>
                 <input type="number" min={0} className={inputCls} value={co.actual} onChange={(e) => setCo({ ...co, actual: Number(e.target.value) })} />
               </Field>
               <Field label={tr('ashram.stay.payMode', 'Payment mode', 'প্রদানের মাধ্যম', 'भुगतान माध्यम')}>

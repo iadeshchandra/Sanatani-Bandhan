@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSabha, uid, todayISO, welfareBalance, activeMembers } from './sabhaStore';
 import { WelfareEntry } from './types';
-import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, inr, Empty } from './ui';
+import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -14,6 +15,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 const emptyForm = { date: todayISO(), kind: 'contribution' as WelfareEntry['kind'], memberId: '', amount: '', purpose: '', approvedBy: '' };
 
 export const WelfareTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useSabha();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -121,7 +124,7 @@ export const WelfareTab: React.FC = () => {
                 <option value="disbursement">Disbursement</option>
               </select>
             </Field>
-            <Field label={<T en="Amount (₹)" bn="টাকা (₹)" hi="राशि (₹)" />}>
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`টাকা (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />}>
               <input type="number" min="1" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             </Field>
             <Field label={<T en="Date" bn="তারিখ" hi="तिथि" />}>

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useTirth, todayISO, tokensFor, slotUtilPct, noShowPct, peakCrowd, sevaIncome } from './tirthStore';
 import { T, Card, Btn, Field, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
@@ -18,6 +19,7 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useTirth();
   const { showToast } = useToast();
   const [date, setDate] = useState(todayISO());
@@ -91,7 +93,7 @@ export const ReportsTab: React.FC = () => {
             <tr className="border-b border-stone-100"><td className="py-2 text-stone-500">Still waiting</td><td className="py-2 font-bold text-right text-amber-700">{waiting}</td></tr>
             <tr className="border-b border-stone-100"><td className="py-2 text-stone-500">No-shows</td><td className="py-2 font-bold text-right text-red-700">{noShows} ({ns}%)</td></tr>
             <tr className="border-b border-stone-100"><td className="py-2 text-stone-500">Peak crowd</td><td className="py-2 font-bold text-right">{peak ? `${peak.count} at ${peak.hour}` : '—'}</td></tr>
-            <tr><td className="py-2 text-stone-500">Seva-darshan income</td><td className="py-2 font-bold text-right text-emerald-700">₹{seva.toLocaleString('en-IN')}</td></tr>
+            <tr><td className="py-2 text-stone-500">Seva-darshan income</td><td className="py-2 font-bold text-right text-emerald-700">{inr(seva)}</td></tr>
           </tbody>
         </table>
         <div className="mt-3 text-xs text-stone-500">Slot utilisation</div>

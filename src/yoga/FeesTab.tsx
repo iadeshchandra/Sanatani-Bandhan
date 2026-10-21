@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useYoga, uid, todayISO, monthISO, nextReceiptNo, feePaid, feesOverdue, feesCollected } from './yogaStore';
 import { FeeRecord, PaymentMode } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, StatusPill, inr, fmtDate, fmtPeriod } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtDate, fmtPeriod } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -15,6 +16,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 const MODES: PaymentMode[] = ['Cash', 'UPI', 'Bank Transfer', 'Other'];
 
 export const FeesTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, setSettings } = useYoga();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -162,7 +165,7 @@ export const FeesTab: React.FC = () => {
       {collecting && (
         <Modal title={<T en="Collect fee" bn="ফি আদায়" hi="शुल्क वसूलें" />} onClose={() => setCollecting(null)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label={<T en="Amount (₹)" bn="টাকা (₹)" hi="राशि (₹)" />}>
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`টাকা (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />}>
               <input type="number" min={1} className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} />
             </Field>
             <Field label={<T en="Payment mode" bn="পেমেন্ট মাধ্যম" hi="भुगतान माध्यम" />}>

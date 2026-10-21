@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNyas, attentionRegs, overdueItems, dueSoonItems, healthScore, currentFY, appliedForFY, daysUntil } from './nyasStore';
-import { T, Card, Stat, StatusPill, inr, fmtDate } from './ui';
+import { T, Card, Stat, StatusPill, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useData } from '../context/DataContext';
 import { fyRange } from './nyasStore';
 import { REG_KINDS } from './types';
@@ -10,6 +11,7 @@ import { REG_KINDS } from './types';
 const scoreTone = (s: number) => (s >= 80 ? 'emerald' : s >= 50 ? 'amber' : 'red');
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useNyas();
   const { treasury } = useData();
   const fy = currentFY();

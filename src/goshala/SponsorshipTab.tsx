@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { SponsorPlan, SponsorStatus } from './types';
 import { Card, Stat, Btn, Field, inputCls, Empty, SPONSOR_PLAN_KEY, SPONSOR_STATUS_KEY, labelFor } from './ui';
-import { fmtDateEn, inr, receiptWords } from '../pathshala/bn';
+import { fmtDateEn, receiptWords } from '../pathshala/bn';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -15,6 +16,8 @@ import { useLanguage } from '../context/LanguageContext';
 const PLANS: SponsorPlan[] = ['monthly', 'quarterly', 'yearly', 'one-time'];
 
 export const SponsorshipTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useGoshala();
   const { addTreasuryTransaction, getNextReceiptNumber } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -165,7 +168,7 @@ export const SponsorshipTab: React.FC = () => {
                   <tr><td className="py-1 text-stone-600">{t('suites.goshala.sponsorship.thFor')}</td><td className="py-1">{nameOf(sp.nandiId) || t('suites.goshala.sponsorship.general')}</td></tr>
                   <tr><td className="py-1 text-stone-600">{t('suites.goshala.sponsorship.thPlan')}</td><td className="py-1">{labelFor(t, SPONSOR_PLAN_KEY, sp.plan)} · {fmtDateEn(sp.startDate)} → {fmtDateEn(sp.endDate)}</td></tr>
                   <tr><td className="py-1 text-stone-600">{t('suites.goshala.sponsorship.thAmount')}</td><td className="py-1 font-extrabold text-lg">{inr(sp.amount)}</td></tr>
-                  <tr><td className="py-1 text-stone-600" colSpan={2}>{receiptWords(sp.amount, currentLang)}</td></tr>
+                  <tr><td className="py-1 text-stone-600" colSpan={2}>{receiptWords(sp.amount, currentLang, wsCurrency.code)}</td></tr>
                 </tbody>
               </table>
               <p className="text-center text-xs text-stone-500 mt-4">॥ गौ माता की सेवा ही सच्ची सेवा ॥</p>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr } from '../../hooks/useWorkspaceInr';
 import { Building, Users, Clock, CheckCircle2, Plus, Calendar as CalendarIcon, MapPin, Tag, X, Phone } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -39,6 +40,7 @@ interface Booking {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export const DharamshalaDesk: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'rooms' | 'bookings'>('rooms');
@@ -269,7 +271,7 @@ export const DharamshalaDesk: React.FC = () => {
                       {room.status}
                     </span>
                   </div>
-                  <span className="text-sm font-black text-indigo-600">₹{room.price}/night</span>
+                  <span className="text-sm font-black text-indigo-600">{inr(room.price)}/night</span>
                 </div>
 
                 <div className="space-y-2 mb-4 grow">
@@ -436,7 +438,7 @@ export const DharamshalaDesk: React.FC = () => {
                     const conflict = bkCheckIn && bkCheckOut ? roomConflict(r.id, bkCheckIn, bkCheckOut) : null;
                     return (
                       <option key={r.id} value={r.id} disabled={!!conflict}>
-                        Room {r.id} — {r.type} (₹{r.price}/night){conflict ? ' — BOOKED for these dates' : ''}
+                        Room {r.id} — {r.type} ({inr(r.price)}/night){conflict ? ' — BOOKED for these dates' : ''}
                       </option>
                     );
                   })}

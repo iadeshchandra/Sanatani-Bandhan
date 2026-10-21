@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Boxes,
   Scroll,
@@ -405,6 +406,8 @@ const INITIAL_GRNS: GoodsReceiptNote[] = [
 // ============================================================================
 
 export const SmartBhandarProcurementDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
   const { addTreasuryTransaction } = useData();
   const { showToast } = useToast();
@@ -590,7 +593,7 @@ export const SmartBhandarProcurementDesk: React.FC = () => {
   const handleDispatchPOViaWhatsApp = (po: PurchaseOrder) => {
     const templeName = activeWorkspace?.name || 'Sri Sanatan Mandir Trust';
     const itemsListText = po.items
-      .map((it, idx) => `${idx + 1}. *${it.itemName}*: ${it.quantity} ${it.unit} @ ₹${it.unitCost} = ₹${it.totalCost.toLocaleString('en-IN')}`)
+      .map((it, idx) => `${idx + 1}. *${it.itemName}*: ${it.quantity} ${it.unit} @ ${inr(it.unitCost)} = ${inr(it.totalCost)}`)
       .join('\n');
 
     const message = 
@@ -604,7 +607,7 @@ export const SmartBhandarProcurementDesk: React.FC = () => {
 *REQUIRED BHANDAR SUPPLIES:*
 ${itemsListText}
 
-*Total Purchase Value:* ₹${po.totalAmount.toLocaleString('en-IN')}
+*Total Purchase Value:* ${inr(po.totalAmount)}
 *Special Notes:* ${po.notes || 'Please supply authentic fresh sattvic goods with Challan.'}
 
 _Authorized by: ${po.generatedBy}_
@@ -717,7 +720,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
     setViewingGRNVoucher(newGRN);
 
     showToast(
-      `GRN ${grnNum} Accepted! Inventory incremented & ₹${newGRN.totalAmount.toLocaleString('en-IN')} posted to Treasury Ledger! 📦⚡`,
+      `GRN ${grnNum} Accepted! Inventory incremented & ${inr(newGRN.totalAmount)} posted to Treasury Ledger! 📦⚡`,
       'success',
       'GRN & Treasury Synced'
     );
@@ -832,7 +835,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             <div className="text-center px-3 border-r border-stone-800">
               <span className="text-[10px] text-stone-400 uppercase font-black block">Inventory Value</span>
               <span className="text-base sm:text-lg font-black text-amber-300">
-                ₹{(inventorySummary.totalPhysicalValue / 100000).toFixed(2)} Lakh
+                {wsCurrency.symbol}{(inventorySummary.totalPhysicalValue / 100000).toFixed(2)} Lakh
               </span>
             </div>
 
@@ -1015,7 +1018,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     <th className="py-3 px-4 text-right">Committed</th>
                     <th className="py-3 px-4 text-right">Available Stock</th>
                     <th className="py-3 px-4 text-right">Reorder Threshold</th>
-                    <th className="py-3 px-4 text-right">Unit Rate (₹)</th>
+                    <th className="py-3 px-4 text-right">Unit Rate ({wsCurrency.symbol})</th>
                     <th className="py-3 px-4 text-center">Health Status</th>
                     <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
@@ -1086,7 +1089,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                         {/* Unit Cost */}
                         <td className="py-3.5 px-4 text-right font-mono text-stone-300">
-                          ₹{item.unitCost.toLocaleString('en-IN')}
+                          {inr(item.unitCost)}
                         </td>
 
                         {/* Status Flag */}
@@ -1286,7 +1289,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     <th className="py-3 px-4">PO Number & Date</th>
                     <th className="py-3 px-4">Vendor & Phone</th>
                     <th className="py-3 px-4">Line Items</th>
-                    <th className="py-3 px-4 text-right">Total Value (₹)</th>
+                    <th className="py-3 px-4 text-right">Total Value ({wsCurrency.symbol})</th>
                     <th className="py-3 px-4">Expected Delivery</th>
                     <th className="py-3 px-4 text-center">Status</th>
                     <th className="py-3 px-4 text-center">Actions</th>
@@ -1324,7 +1327,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                         {/* Total Amount */}
                         <td className="py-3.5 px-4 text-right font-mono font-black text-amber-300 text-sm">
-                          ₹{po.totalAmount.toLocaleString('en-IN')}
+                          {inr(po.totalAmount)}
                         </td>
 
                         {/* Expected Delivery */}
@@ -1436,7 +1439,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     <th className="py-3 px-4">Receipt Date</th>
                     <th className="py-3 px-4">Vendor & Challan</th>
                     <th className="py-3 px-4">Inspected By</th>
-                    <th className="py-3 px-4 text-right">Inward Value (₹)</th>
+                    <th className="py-3 px-4 text-right">Inward Value ({wsCurrency.symbol})</th>
                     <th className="py-3 px-4 text-center">Quality Status</th>
                     <th className="py-3 px-4 text-center">Treasury Sync</th>
                     <th className="py-3 px-4 text-center">Action</th>
@@ -1469,7 +1472,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                       {/* Value */}
                       <td className="py-3.5 px-4 text-right font-mono font-black text-amber-300 text-sm">
-                        ₹{grn.totalAmount.toLocaleString('en-IN')}
+                        {inr(grn.totalAmount)}
                       </td>
 
                       {/* Quality */}
@@ -1551,13 +1554,13 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-white font-medium">{it.itemName}</span>
                     <span className="font-mono text-amber-300 font-bold">
-                      {it.quantity} {it.unit} (₹{it.totalCost.toLocaleString('en-IN')})
+                      {it.quantity} {it.unit} ({inr(it.totalCost)})
                     </span>
                   </div>
                 ))}
                 <div className="pt-2 border-t border-stone-800 flex justify-between font-bold text-white text-sm">
                   <span>Total Inward Value:</span>
-                  <span className="text-emerald-400">₹{selectedPOForGRN.totalAmount.toLocaleString('en-IN')}</span>
+                  <span className="text-emerald-400">{inr(selectedPOForGRN.totalAmount)}</span>
                 </div>
               </div>
 
@@ -1927,7 +1930,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Rate / Unit (₹)</label>
+                  <label className="text-stone-300 font-bold block mb-1">Rate / Unit ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     name="unitCost"
@@ -2017,14 +2020,14 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 {viewingGRNVoucher.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between text-xs">
                     <span className="text-stone-300">{it.itemName} ({it.receivedQty} {it.unit})</span>
-                    <span className="font-mono text-amber-300 font-bold">₹{it.subtotal.toLocaleString('en-IN')}</span>
+                    <span className="font-mono text-amber-300 font-bold">{inr(it.subtotal)}</span>
                   </div>
                 ))}
               </div>
 
               <div className="pt-2 border-t border-stone-800 flex justify-between font-bold text-white text-sm">
                 <span>Total Settled Inward:</span>
-                <span className="text-emerald-400">₹{viewingGRNVoucher.totalAmount.toLocaleString('en-IN')}</span>
+                <span className="text-emerald-400">{inr(viewingGRNVoucher.totalAmount)}</span>
               </div>
             </div>
 
@@ -2135,7 +2138,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   >
                     {items.map((i) => (
                       <option key={i.id} value={i.id}>
-                        {i.name} ({i.unit} @ ₹{i.unitCost})
+                        {i.name} ({i.unit} @ {inr(i.unitCost)})
                       </option>
                     ))}
                   </select>

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useAshram, todayISO, roomLoadOn, eachDate } from './ashramStore';
 import { Card, Btn, Field, inputCls, T, useLocaleText } from './ui';
 import { useToast } from '../context/ToastContext';
@@ -11,6 +12,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
  * whose treasury posting failed while offline. */
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll, update } = useAshram();
   const { tr } = useLocaleText();
   const { showToast } = useToast();
@@ -104,7 +106,7 @@ export const ReportsTab: React.FC = () => {
           <ul className="space-y-2">
             {failedPosts.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 text-sm">
-                <span>{s.guestName} · ₹{(s.actualDonation || 0).toLocaleString('en-IN')} · {s.receiptNo}</span>
+                <span>{s.guestName} · {inr(s.actualDonation || 0)} · {s.receiptNo}</span>
                 <Btn className="!py-1.5 !min-h-0 text-xs" onClick={() => retryTreasury(s.id)}>
                   {tr('ashram.rep.retry', 'Retry posting', 'পুনরায়', 'पुनः प्रयास')}
                 </Btn>

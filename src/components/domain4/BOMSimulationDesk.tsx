@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   UtensilsCrossed,
   Zap,
@@ -73,6 +74,7 @@ const RECIPE_INGREDIENTS: MockIngredient[] = [
 ];
 
 export const BOMSimulationDesk: React.FC = () => {
+  const inr = useInr();
   const { showToast } = useToast();
 
   const [recipeName, setRecipeName] = useState('Maha Annadanam Khichdi & Halwa');
@@ -246,7 +248,7 @@ export const BOMSimulationDesk: React.FC = () => {
                     Total Estimated Batch Cost
                   </span>
                   <span className="text-xl sm:text-2xl font-black text-white font-mono">
-                    ₹{totalCost.toLocaleString('en-IN')}
+                    {inr(totalCost)}
                   </span>
                 </div>
                 <div className="text-right">

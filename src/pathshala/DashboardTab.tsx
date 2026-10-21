@@ -6,12 +6,14 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Card, Btn, Empty, useLocaleText } from './ui';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
-import { todayISO, inr, downloadJSON, uid } from './bn';
+import { todayISO, downloadJSON, uid } from './bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* Checklist #1 — dashboard: counts, today's attendance %, today's fees,
    monthly calendar, bhavan list. Checklist #15 — backup/restore (security). */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { digits } = useLocaleText();
   const { state, setSettings, exportJSON, importJSON, resetAll } = usePathshala();

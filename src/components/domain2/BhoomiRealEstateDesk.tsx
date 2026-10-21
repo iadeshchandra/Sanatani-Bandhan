@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Building2,
   Plus,
@@ -56,6 +57,8 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const currentRentMonth = () => new Date().toISOString().slice(0, 7);
 
 export const BhoomiRealEstateDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const { bhoomiProperties, rentReceipts, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addTreasuryTransaction } = useData();
@@ -249,7 +252,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
     }
     exportToCSV(
       'Sanatani_Bhoomi_Rent_Ledger',
-      ['Receipt No', 'Property', 'Tenant', 'Rent Month', 'Amount (₹)', 'Paid Date', 'Payment Mode', 'Collected By', 'Notes'],
+      ['Receipt No', 'Property', 'Tenant', 'Rent Month', `Amount (${wsCurrency.symbol})`, 'Paid Date', 'Payment Mode', 'Collected By', 'Notes'],
       rentReceipts.map((r) => [
         r.receiptNo, r.propertyName, r.tenantName, r.rentMonth, r.amount,
         r.paidDate, r.paymentMode, r.collectedBy, r.notes || '',
@@ -265,7 +268,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
     }
     exportToCSV(
       'Sanatani_Bhoomi_Property_Register',
-      ['Property', 'Type', 'Address', 'Area (sqft)', 'Monthly Rent (₹)', 'Deposit (₹)', 'Tenant', 'Tenant Phone', 'Lease Start', 'Lease End', 'Escalation %', 'Status', 'Doc Ref'],
+      ['Property', 'Type', 'Address', 'Area (sqft)', `Monthly Rent (${wsCurrency.symbol})`, `Deposit (${wsCurrency.symbol})`, 'Tenant', 'Tenant Phone', 'Lease Start', 'Lease End', 'Escalation %', 'Status', 'Doc Ref'],
       bhoomiProperties.map((p) => [
         p.name, p.propertyType, p.address, p.areaSqFt ?? '', p.monthlyRent, p.depositAmount ?? '',
         p.tenantName || '', p.tenantPhone || '', p.leaseStartDate || '', p.leaseEndDate || '',
@@ -288,7 +291,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
               Land & Lease Management
             </span>
             <span className="text-xs text-temple-400 font-mono">
-              {kpis.total} properties • ₹{kpis.rentRoll.toLocaleString()}/mo
+              {kpis.total} properties • {inr(kpis.rentRoll)}/mo
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
@@ -323,7 +326,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
             <IndianRupee className="w-4 h-4 text-saffron-400" /> Monthly Rent Roll
           </div>
-          <p className="text-3xl font-extrabold text-temple-100 mt-2">₹{kpis.rentRoll.toLocaleString()}</p>
+          <p className="text-3xl font-extrabold text-temple-100 mt-2">{inr(kpis.rentRoll)}</p>
           <p className="text-xs text-temple-500 mt-1">From occupied properties</p>
         </div>
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
@@ -338,7 +341,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
             <AlertTriangle className={`w-4 h-4 ${kpis.overdue > 0 ? 'text-red-400' : 'text-saffron-400'}`} /> Overdue Rent ({currentRentMonth()})
           </div>
           <p className={`text-3xl font-extrabold mt-2 ${kpis.overdue > 0 ? 'text-red-300' : 'text-emerald-300'}`}>
-            ₹{kpis.overdue.toLocaleString()}
+            {inr(kpis.overdue)}
           </p>
           <p className="text-xs text-temple-500 mt-1">{kpis.overdue > 0 ? 'Collection pending this month' : 'All dues collected 🎉'}</p>
         </div>
@@ -399,8 +402,8 @@ export const BhoomiRealEstateDesk: React.FC = () => {
                     <p className="flex items-center gap-1.5">
                       <IndianRupee className="w-3.5 h-3.5 text-saffron-400" />
                       <span className="text-temple-400">Rent:</span>{' '}
-                      <span className="font-extrabold text-temple-100">₹{p.monthlyRent.toLocaleString()}/mo</span>
-                      {proj && <span className="text-[10px] text-temple-500">→ ₹{proj.toLocaleString()} next yr ({p.escalationPercent}%)</span>}
+                      <span className="font-extrabold text-temple-100">{inr(p.monthlyRent)}/mo</span>
+                      {proj && <span className="text-[10px] text-temple-500">→ {inr(proj)} next yr ({p.escalationPercent}%)</span>}
                     </p>
                     {p.tenantName && (
                       <p className="flex items-center gap-1.5">
@@ -427,7 +430,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
                     {p.depositAmount !== undefined && (
                       <p className="flex items-center gap-1.5">
                         <KeyRound className="w-3.5 h-3.5 text-saffron-400" />
-                        <span className="text-temple-400">Deposit:</span> <span className="text-temple-100">₹{p.depositAmount.toLocaleString()}</span>
+                        <span className="text-temple-400">Deposit:</span> <span className="text-temple-100">{inr(p.depositAmount)}</span>
                       </p>
                     )}
                     {paidThisMonth && (
@@ -465,7 +468,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
           <h3 className="font-extrabold text-temple-100 text-sm flex items-center gap-2">
             <FileText className="w-4 h-4 text-saffron-400" />{t('org.finance.bhoomi.rentCollectionLedger')}</h3>
           <span className="text-[11px] text-temple-500 font-mono">
-            Total collected: ₹{rentReceipts.reduce((s, r) => s + r.amount, 0).toLocaleString()}
+            Total collected: {inr(rentReceipts.reduce((s, r) => s + r.amount, 0))}
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -492,7 +495,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
                   <td className="py-2.5 pr-3 font-medium">{r.propertyName}</td>
                   <td className="py-2.5 pr-3">{r.tenantName}</td>
                   <td className="py-2.5 pr-3 font-mono">{r.rentMonth}</td>
-                  <td className="py-2.5 pr-3 text-right font-bold text-emerald-300">₹{r.amount.toLocaleString()}</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-emerald-300">{inr(r.amount)}</td>
                   <td className="py-2.5 pr-3">{r.paidDate}</td>
                   <td className="py-2.5 pr-3">{r.paymentMode}</td>
                   <td className="py-2.5">{r.collectedBy}</td>
@@ -519,7 +522,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
               <div><label className={labelCls}>{t('org.finance.bhoomi.status')}</label><select value={pStatus} onChange={(e) => setPStatus(e.target.value as BhoomiProperty['status'])} className={inputCls}>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
               <div className="sm:col-span-2"><label className={labelCls}>Address *</label><input value={pAddress} onChange={(e) => setPAddress(e.target.value)} className={inputCls} placeholder="Full address" /></div>
               <div><label className={labelCls}>Area (sq ft)</label><input type="number" min={0} value={pArea} onChange={(e) => setPArea(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>Monthly Rent (₹) *</label><input type="number" min={0} value={pRent} onChange={(e) => setPRent(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>Monthly Rent ({wsCurrency.symbol}) *</label><input type="number" min={0} value={pRent} onChange={(e) => setPRent(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>{t('org.finance.bhoomi.depositAmount')}</label><input type="number" min={0} value={pDeposit} onChange={(e) => setPDeposit(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Annual Escalation %</label><input type="number" min={0} max={100} value={pEscalation} onChange={(e) => setPEscalation(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} placeholder="e.g. 5" /></div>
               <div><label className={labelCls}>{t('org.finance.bhoomi.tenantName')}</label><input value={pTenant} onChange={(e) => setPTenant(e.target.value)} className={inputCls} /></div>
@@ -552,7 +555,7 @@ export const BhoomiRealEstateDesk: React.FC = () => {
             </p>
             <form onSubmit={handleCollectRent} className="space-y-4">
               <div><label className={labelCls}>Rent Month (YYYY-MM)</label><input type="month" value={rMonth} onChange={(e) => setRMonth(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Amount (₹) *</label><input type="number" min={0} value={rAmount} onChange={(e) => setRAmount(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>Amount ({wsCurrency.symbol}) *</label><input type="number" min={0} value={rAmount} onChange={(e) => setRAmount(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Paid Date</label><input type="date" value={rPaidDate} onChange={(e) => setRPaidDate(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={rMode} onChange={(e) => setRMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
               <div><label className={labelCls}>Collected By</label><input value={rCollectedBy} onChange={(e) => setRCollectedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>

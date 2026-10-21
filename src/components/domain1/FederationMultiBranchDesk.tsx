@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Network,
   Building2,
@@ -242,6 +243,8 @@ const INITIAL_SWEEPS: CashSweepRecord[] = [
 // ============================================================================
 
 export const FederationMultiBranchDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t, safeTranslate } = useLanguage();
   const taxonomy = useWorkspaceTaxonomy();
   const { activeWorkspace, workspaces, switchWorkspace, addWorkspace, checkPermission, currentRole, currentUser } = useAuthWorkspace();
@@ -460,8 +463,8 @@ export const FederationMultiBranchDesk: React.FC = () => {
         city: newBranch.city,
         state: newBranch.state,
         country: 'Bharat (India)',
-        currency: 'INR',
-        currencySymbol: '₹',
+        currency: activeWorkspace?.currency || 'INR',
+        currencySymbol: activeWorkspace?.currencySymbol || '₹',
         phone: newBranch.adminPhone,
         email: newBranch.adminEmail,
         sampradaya: activeWorkspace?.sampradaya || 'Sanatan Dharma',
@@ -546,7 +549,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
     // Source Balance Check
     const sourceBranch = branches.find((b) => b.id === sweepForm.sourceBranchId);
     if (sourceBranch && sourceBranch.liquidBalance < sweepForm.amount) {
-      showToast(`Source branch "${sourceName}" only has ₹${sourceBranch.liquidBalance.toLocaleString()} liquid balance.`, 'warning');
+      showToast(`Source branch "${sourceName}" only has ${inr(sourceBranch.liquidBalance)} liquid balance.`, 'warning');
       return;
     }
 
@@ -585,7 +588,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
 
     setIsSweepModalOpen(false);
     showToast(
-      `Executed ₹${newSweep.amount.toLocaleString()} transfer from ${sourceName} to ${destName}! UTR: ${utr} ⚡`,
+      `Executed ${inr(newSweep.amount)} transfer from ${sourceName} to ${destName}! UTR: ${utr} ⚡`,
       'success',
       'Inter-Branch Cash Sweep'
     );
@@ -634,7 +637,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
             <div className="text-center px-3 border-r border-stone-800">
               <span className="text-[10px] text-stone-400 uppercase font-black block">Consolidated Reserves</span>
               <span className="text-lg font-black text-emerald-400">
-                ₹{(globalRollup.totalLiquidReserves / 10000000).toFixed(2)} Cr
+                {wsCurrency.symbol}{(globalRollup.totalLiquidReserves / 10000000).toFixed(2)} Cr
               </span>
             </div>
 
@@ -714,7 +717,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.totalFederationRevenue')}</span>
                 <div className="text-xl sm:text-2xl font-black text-white">
-                  ₹{globalRollup.totalRevenue.toLocaleString('en-IN')}
+                  {inr(globalRollup.totalRevenue)}
                 </div>
                 <span className="text-[11px] text-emerald-400 font-mono mt-0.5 block flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" />
@@ -731,7 +734,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.totalFederationExpenses')}</span>
                 <div className="text-xl sm:text-2xl font-black text-rose-300">
-                  ₹{globalRollup.totalExpenses.toLocaleString('en-IN')}
+                  {inr(globalRollup.totalExpenses)}
                 </div>
                 <span className="text-[11px] text-stone-400 font-mono mt-0.5 block">
                   Consolidated Operational Burn
@@ -749,7 +752,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                   Net Consolidated Surplus
                 </span>
                 <div className="text-xl sm:text-2xl font-black text-emerald-400">
-                  ₹{globalRollup.netSurplus.toLocaleString('en-IN')}
+                  {inr(globalRollup.netSurplus)}
                 </div>
                 <span className="text-[11px] text-stone-300 font-mono mt-0.5 block">
                   Surplus Margin: <strong className="text-amber-300">{globalRollup.surplusMargin}%</strong>
@@ -765,7 +768,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 block mb-1">{t('org.people.federation.liquidTreasuryFloat')}</span>
                 <div className="text-xl sm:text-2xl font-black text-amber-300">
-                  ₹{globalRollup.totalLiquidReserves.toLocaleString('en-IN')}
+                  {inr(globalRollup.totalLiquidReserves)}
                 </div>
                 <span className="text-[11px] text-stone-400 font-mono mt-0.5 block">
                   Reserve Runway: ~{globalRollup.reserveRunwayMonths} Months
@@ -805,9 +808,9 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     <th className="py-3 px-4">Entity & Branch Code</th>
                     <th className="py-3 px-4">Classification</th>
                     <th className="py-3 px-4">Location</th>
-                    <th className="py-3 px-4 text-right">Inflow (₹)</th>
-                    <th className="py-3 px-4 text-right">Outflow (₹)</th>
-                    <th className="py-3 px-4 text-right">Net Surplus (₹)</th>
+                    <th className="py-3 px-4 text-right">Inflow ({wsCurrency.symbol})</th>
+                    <th className="py-3 px-4 text-right">Outflow ({wsCurrency.symbol})</th>
+                    <th className="py-3 px-4 text-right">Net Surplus ({wsCurrency.symbol})</th>
                     <th className="py-3 px-4 text-right">{t('org.people.federation.liquidCash')}</th>
                     <th className="py-3 px-4 w-40">Expense Ratio</th>
                     <th className="py-3 px-4 text-center">Action</th>
@@ -828,16 +831,16 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     <td className="py-3.5 px-4 text-amber-300 font-semibold">{hqFinancials.classification}</td>
                     <td className="py-3.5 px-4 text-stone-300">{hqFinancials.city}, {hqFinancials.state}</td>
                     <td className="py-3.5 px-4 text-right font-mono text-emerald-400">
-                      ₹{hqFinancials.income.toLocaleString('en-IN')}
+                      {inr(hqFinancials.income)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono text-rose-300">
-                      ₹{hqFinancials.expense.toLocaleString('en-IN')}
+                      {inr(hqFinancials.expense)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono text-emerald-300 font-black">
-                      ₹{hqFinancials.surplus.toLocaleString('en-IN')}
+                      {inr(hqFinancials.surplus)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono text-amber-300 font-bold">
-                      ₹{hqFinancials.liquidBalance.toLocaleString('en-IN')}
+                      {inr(hqFinancials.liquidBalance)}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="w-full bg-stone-800 rounded-full h-2 overflow-hidden">
@@ -875,16 +878,16 @@ export const FederationMultiBranchDesk: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 text-stone-300">{branch.city}, {branch.state}</td>
                         <td className="py-3.5 px-4 text-right font-mono text-emerald-400 font-bold">
-                          ₹{branch.totalIncome.toLocaleString('en-IN')}
+                          {inr(branch.totalIncome)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-mono text-rose-300">
-                          ₹{branch.totalExpense.toLocaleString('en-IN')}
+                          {inr(branch.totalExpense)}
                         </td>
                         <td className={`py-3.5 px-4 text-right font-mono font-black ${surplus >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          ₹{surplus.toLocaleString('en-IN')}
+                          {inr(surplus)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-mono text-amber-300 font-bold">
-                          ₹{branch.liquidBalance.toLocaleString('en-IN')}
+                          {inr(branch.liquidBalance)}
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="w-full bg-stone-800 rounded-full h-2 overflow-hidden">
@@ -1003,7 +1006,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     <div>
                       <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('org.people.federation.cashinhandFloat')}</span>
                       <span className="font-black text-amber-300 text-sm">
-                        ₹{branch.liquidBalance.toLocaleString('en-IN')}
+                        {inr(branch.liquidBalance)}
                       </span>
                     </div>
                     <div>
@@ -1095,7 +1098,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     </option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} (Float: ₹{b.liquidBalance.toLocaleString()})
+                        {b.name} (Float: {inr(b.liquidBalance)})
                       </option>
                     ))}
                   </select>
@@ -1113,14 +1116,14 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     </option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} (Float: ₹{b.liquidBalance.toLocaleString()})
+                        {b.name} (Float: {inr(b.liquidBalance)})
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Transfer Amount (₹) *</label>
+                  <label className="text-stone-300 font-bold block mb-1">Transfer Amount ({wsCurrency.symbol}) *</label>
                   <input
                     type="number"
                     min={1000}
@@ -1139,7 +1142,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                         onClick={() => setSweepForm({ ...sweepForm, amount: amt })}
                         className="px-2 py-0.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 text-[10px] font-mono cursor-pointer"
                       >
-                        ₹{(amt / 100000).toFixed(0)} Lakh
+                        {wsCurrency.symbol}{(amt / 100000).toFixed(0)} Lakh
                       </button>
                     ))}
                   </div>
@@ -1223,7 +1226,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-black text-emerald-400 text-sm">
-                          ₹{swp.amount.toLocaleString('en-IN')}
+                          {inr(swp.amount)}
                         </td>
                         <td className="py-3 px-3">
                           <span className="font-semibold text-stone-200 block">{swp.transferMode}</span>
@@ -1380,7 +1383,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Seed Float Capital (₹)</label>
+                  <label className="text-stone-300 font-bold block mb-1">Seed Float Capital ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     min={0}
@@ -1456,7 +1459,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               <div className="flex justify-between pt-1 border-t border-stone-800">
                 <span className="text-stone-400 font-bold">{t('org.people.federation.transferAmount')}</span>
                 <span className="font-mono font-black text-emerald-400 text-sm">
-                  ₹{selectedVoucher.amount.toLocaleString('en-IN')}
+                  {inr(selectedVoucher.amount)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -1545,7 +1548,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     </option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} (₹{b.liquidBalance.toLocaleString()})
+                        {b.name} ({inr(b.liquidBalance)})
                       </option>
                     ))}
                   </select>
@@ -1563,7 +1566,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
                     </option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} (₹{b.liquidBalance.toLocaleString()})
+                        {b.name} ({inr(b.liquidBalance)})
                       </option>
                     ))}
                   </select>
@@ -1571,7 +1574,7 @@ export const FederationMultiBranchDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Sweep Amount (₹) *</label>
+                <label className="text-stone-300 font-bold block mb-1">Sweep Amount ({wsCurrency.symbol}) *</label>
                 <input
                   type="number"
                   min={1000}

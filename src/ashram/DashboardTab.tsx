@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAshram, todayISO, daysFrom, roomLoadOn, occupiedNights, eachDate } from './ashramStore';
 import { Card, Stat, T, useLocaleText, StatusPill } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* Ashram One — occupancy dashboard: today's occupancy %, arrivals /
  * departures, upcoming bookings, stay donations this week/month, rooms
@@ -49,7 +50,7 @@ export const DashboardTab: React.FC = () => {
     return { usable, beds, usedBeds, occPct, arrivals, departures, upcoming, maintenance, wk, mo, spark, avgOcc };
   }, [state, today]);
 
-  const inr = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+  const inr = useInr();
 
   return (
     <div className="space-y-4">

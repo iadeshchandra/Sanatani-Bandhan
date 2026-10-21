@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { useCashCustody, denomTotal } from './cashCustodyStore';
 import { DENOMINATIONS, DENOM_LABEL } from './types';
-import { T, Card, Stat, inr, fmtDateTime } from './ui';
+import { T, Card, Stat, fmtDateTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* ------------------------------------------------------------------ */
 /* Trustee dashboard — daily / weekly / monthly collections,           */
@@ -12,6 +13,7 @@ import { T, Card, Stat, inr, fmtDateTime } from './ui';
 const dayKey = (ts: number) => new Date(ts).toISOString().slice(0, 10);
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useCashCustody();
 
   const stats = useMemo(() => {

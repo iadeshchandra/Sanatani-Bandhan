@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { ExpenseHead } from './types';
 import { Card, Stat, Btn, Field, inputCls, Empty, EXPENSE_HEAD_KEY, labelFor } from './ui';
-import { fmtDateEn, inr } from '../pathshala/bn';
+import { fmtDateEn } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -14,6 +15,7 @@ import { useLanguage } from '../context/LanguageContext';
 const HEADS: ExpenseHead[] = ['feed', 'vet', 'staff', 'maintenance', 'other'];
 
 export const VyayaTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, remove } = useGoshala();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();

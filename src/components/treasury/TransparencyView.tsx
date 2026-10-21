@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   TransparencySnapshot, formatLakhCrore, formatINRFull, formatTrailDate,
   transparencyCardText,
@@ -21,6 +22,7 @@ const T: React.FC<{ en: string; bn: string; hi?: string }> = ({ en, bn, hi }) =>
 };
 
 export const TransparencyView: React.FC<{ snapshot: TransparencySnapshot }> = ({ snapshot }) => {
+  const wsCurrency = useWorkspaceCurrency();
   const [copied, setCopied] = useState(false);
   const { safeTranslate } = useLanguage();
   const s = snapshot;
@@ -28,7 +30,7 @@ export const TransparencyView: React.FC<{ snapshot: TransparencySnapshot }> = ({
 
   const copyCard = async () => {
     try {
-      await navigator.clipboard.writeText(transparencyCardText(s));
+      await navigator.clipboard.writeText(transparencyCardText(s, wsCurrency.symbol));
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -57,18 +59,18 @@ export const TransparencyView: React.FC<{ snapshot: TransparencySnapshot }> = ({
             <T en="Raised" bn="সংগৃহীত" hi="एकत्रित" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-emerald-300 tabular-nums mt-1">
-            {formatLakhCrore(s.totalRaised)}
+            {formatLakhCrore(s.totalRaised, wsCurrency.symbol)}
           </div>
-          <div className="text-[11px] text-emerald-200/60 tabular-nums">{formatINRFull(s.totalRaised)}</div>
+          <div className="text-[11px] text-emerald-200/60 tabular-nums">{formatINRFull(s.totalRaised, wsCurrency.symbol)}</div>
         </div>
         <div className="rounded-2xl bg-sky-500/10 border border-sky-500/30 p-4 text-center">
           <div className="text-[11px] font-bold uppercase tracking-wider text-sky-300/80">
             <T en="Utilized" bn="ব্যবহৃত" hi="उपयोग" />
           </div>
           <div className="text-2xl sm:text-3xl font-black text-sky-300 tabular-nums mt-1">
-            {formatLakhCrore(s.totalUtilized)}
+            {formatLakhCrore(s.totalUtilized, wsCurrency.symbol)}
           </div>
-          <div className="text-[11px] text-sky-200/60 tabular-nums">{formatINRFull(s.totalUtilized)}</div>
+          <div className="text-[11px] text-sky-200/60 tabular-nums">{formatINRFull(s.totalUtilized, wsCurrency.symbol)}</div>
         </div>
       </div>
 
@@ -86,9 +88,9 @@ export const TransparencyView: React.FC<{ snapshot: TransparencySnapshot }> = ({
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <div className="text-sm font-bold text-amber-100">{p.purpose}</div>
                 <div className="text-xs text-temple-300 tabular-nums">
-                  <span className="text-emerald-300 font-bold">{formatLakhCrore(p.raised)}</span>
+                  <span className="text-emerald-300 font-bold">{formatLakhCrore(p.raised, wsCurrency.symbol)}</span>
                   {' '}<T en="raised" bn="সংগৃহীত" hi="एकत्रित" /> ·{' '}
-                  <span className="text-sky-300 font-bold">{formatLakhCrore(p.utilized)}</span>
+                  <span className="text-sky-300 font-bold">{formatLakhCrore(p.utilized, wsCurrency.symbol)}</span>
                   {' '}<T en="utilized" bn="ব্যবহৃত" hi="उपयोग" />
                 </div>
               </div>

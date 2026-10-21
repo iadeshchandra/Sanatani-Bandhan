@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Download,
   FileCode2,
@@ -17,6 +18,7 @@ import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
 
 export const TallyExportDesk: React.FC = () => {
+  const inr = useInr();
   const { showToast } = useToast();
   const { treasury } = useData();
   const [fromDate, setFromDate] = useState<string>('2026-09-01');
@@ -135,7 +137,7 @@ export const TallyExportDesk: React.FC = () => {
             </h3>
           </div>
           <div className="text-xs text-slate-500 font-semibold">
-            {filteredTransactions.length} Vouchers Ready &bull; Total: ₹{totalAmount.toLocaleString('en-IN')}
+            {filteredTransactions.length} Vouchers Ready &bull; Total: {inr(totalAmount)}
           </div>
         </div>
 
@@ -250,7 +252,7 @@ export const TallyExportDesk: React.FC = () => {
                   </td>
                   <td className="px-4 py-4 text-slate-600">{t.category}</td>
                   <td className="px-5 py-4 text-right font-extrabold text-slate-900 text-sm">
-                    ₹{t.amount.toLocaleString('en-IN')}
+                    {inr(t.amount)}
                   </td>
                 </tr>
               ))}
@@ -261,7 +263,7 @@ export const TallyExportDesk: React.FC = () => {
                   Total Ledger Sum:
                 </td>
                 <td className="px-5 py-3 text-right text-emerald-700 font-extrabold text-sm">
-                  ₹{totalAmount.toLocaleString('en-IN')}
+                  {inr(totalAmount)}
                 </td>
               </tr>
             </tfoot>

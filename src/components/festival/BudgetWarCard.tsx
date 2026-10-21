@@ -8,7 +8,8 @@
  */
 import React, { useMemo } from 'react';
 import { useUtsav } from '../../utsav/utsavStore';
-import { T, Card, Empty, inr } from '../../utsav/ui';
+import { T, Card, Empty } from '../../utsav/ui';
+import { useInr } from '../../hooks/useWorkspaceInr';
 
 const HEADS = [
   { id: 'prasad', en: 'Prasad & bhandara', bn: 'প্রসাদ ও ভাণ্ডারা', hi: 'प्रसाद व भंडारा', keys: ['prasad', 'bhandara', 'bhog', 'annadan', 'kitchen', 'catering'] },
@@ -26,6 +27,7 @@ const headOf = (head: string): string => {
 };
 
 export const BudgetWarCard: React.FC = () => {
+  const inr = useInr();
   const { state } = useUtsav();
 
   const rows = useMemo(() => {

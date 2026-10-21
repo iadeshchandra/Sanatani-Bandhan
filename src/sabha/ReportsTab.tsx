@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSabha, duesCollected, duesDefaulters, welfareBalance, thisYear, activeMembers } from './sabhaStore';
 import { SPEC_LABEL } from './types';
-import { T, Card, Btn, fmtDate, inr } from './ui';
+import { T, Card, Btn, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* ------------------------------------------------------------------ */
@@ -21,6 +22,7 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useSabha();
   const { showToast } = useToast();
   const [importing, setImporting] = useState(false);

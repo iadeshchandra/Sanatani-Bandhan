@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useCashCustody, uid, emptyCounts } from './cashCustodyStore';
 import { HundiBox } from './types';
-import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime, inr } from './ui';
+import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* ------------------------------------------------------------------ */
@@ -13,6 +14,7 @@ import { useToast } from '../context/ToastContext';
 const LOCATIONS = ['sanctum', 'gate', 'annakshetra', 'corridor', 'office', 'other'];
 
 export const HundiTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, logEvent } = useCashCustody();
   const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);

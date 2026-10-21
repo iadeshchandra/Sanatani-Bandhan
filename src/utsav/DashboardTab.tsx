@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useUtsav, daysUntil, budgetTotals, tasksDonePct, vendorPending, safetyDonePct, totalCheckins, todayISO } from './utsavStore';
-import { T, Card, Stat, Field, Empty, fmtDate, inr } from './ui';
+import { T, Card, Stat, Field, Empty, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useLanguage } from '../context/LanguageContext';
 
 /* Utsav One — dashboard: countdown, budget burn, task/vender/safety state. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { state } = useUtsav();
   const [festivalId, setFestivalId] = useState(state.festivals[0]?.id || '');

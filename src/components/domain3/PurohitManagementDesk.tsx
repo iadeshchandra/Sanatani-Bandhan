@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users, Award, Sparkles, BookOpen, Flame, Calendar, Clock, Banknote,
   Search, Filter, Plus, Check, CheckCircle2, AlertCircle, Phone, Mail,
@@ -174,6 +175,8 @@ const DEFAULT_EXPANDED_PUROHITS: PurohitProfile[] = [
 ];
 
 export const PurohitManagementDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { purohits: contextPurohits, poojaBookings, residentPujas, updatePoojaStatus } = useData();
   const { currentUser, currentRole, activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
@@ -280,7 +283,7 @@ export const PurohitManagementDesk: React.FC = () => {
       rating: 5.0,
       reviewCount: 1,
       suggestedDakshina: Number(newPriestForm.suggestedDakshina) || 5100,
-      dakshinaRange: `₹${(Number(newPriestForm.suggestedDakshina) * 0.7).toFixed(0)} - ₹${(Number(newPriestForm.suggestedDakshina) * 1.5).toFixed(0)}`,
+      dakshinaRange: `${inr(Math.round(Number(newPriestForm.suggestedDakshina) * 0.7))} - ${inr(Math.round(Number(newPriestForm.suggestedDakshina) * 1.5))}`,
       specializations: newPriestForm.specializations.split(',').map((s) => s.trim()).filter(Boolean),
       verifiedByMandirTrust: true,
       isKycVerified: true,
@@ -541,7 +544,7 @@ export const PurohitManagementDesk: React.FC = () => {
     try {
       localStorage.setItem(dakshinaStorageKey, JSON.stringify(updated));
     } catch (e) {}
-    showToast(`Dakshina honorarium of ₹${settlingBooking.dakshinaAmount} marked Disbursed (Ref: ${ref}) 💰`, 'success', 'Honorarium Settled');
+    showToast(`Dakshina honorarium of ${inr(settlingBooking.dakshinaAmount)} marked Disbursed (Ref: ${ref}) 💰`, 'success', 'Honorarium Settled');
     setSettlingBooking(null);
     setSettlementRefInput('');
   };
@@ -710,7 +713,7 @@ export const PurohitManagementDesk: React.FC = () => {
             { id: 'DIRECTORY', label: '1. Purohit Directory', icon: Users, badge: `${allPurohits.length} Acharyas` },
             { id: 'ASSIGNMENT', label: '2. Smart Ritual Assignment', icon: Flame, badge: `${displayBookings.length} Bookings` },
             { id: 'ROSTER', label: '3. Duty Roster & Aarti Shifts', icon: Calendar, badge: 'Daily Rotations' },
-            { id: 'DAKSHINA', label: '4. Dakshina & Honorarium', icon: Coins, badge: `₹${financialTotals.gross.toLocaleString('en-IN')}` },
+            { id: 'DAKSHINA', label: '4. Dakshina & Honorarium', icon: Coins, badge: `${inr(financialTotals.gross)}` },
             { id: 'MARKETPLACE', label: '5. Invite from Marketplace', icon: Search, badge: 'Purohit One' },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -925,7 +928,7 @@ export const PurohitManagementDesk: React.FC = () => {
                       <div className="text-left">
                         <span className="text-[10px] uppercase font-bold text-stone-400 block">Dakshina</span>
                         <span className="text-xs font-black text-amber-300">
-                          {priest.dakshinaRange || `₹${priest.suggestedDakshina?.toLocaleString('en-IN') || 5100}`}
+                          {priest.dakshinaRange || inr(priest.suggestedDakshina ?? 5100)}
                         </span>
                       </div>
 
@@ -1061,7 +1064,7 @@ export const PurohitManagementDesk: React.FC = () => {
                           <div>
                             <span className="text-[10px] text-stone-400 uppercase font-bold block">Dakshina</span>
                             <span className="font-black text-amber-400">
-                              ₹{booking.dakshinaAmount?.toLocaleString('en-IN') || 2100}
+                              {inr(booking.dakshinaAmount ?? 2100)}
                             </span>
                           </div>
                         </div>
@@ -1252,7 +1255,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   <Coins className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-white">
-                  ₹{financialTotals.gross.toLocaleString('en-IN')}
+                  {inr(financialTotals.gross)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">From all scheduled temple rituals</p>
               </div>
@@ -1263,7 +1266,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="text-2xl font-black text-emerald-400">
-                  ₹{financialTotals.settled.toLocaleString('en-IN')}
+                  {inr(financialTotals.settled)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">Successfully settled via direct transfer</p>
               </div>
@@ -1274,7 +1277,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   <AlertCircle className="w-4 h-4 text-rose-400" />
                 </div>
                 <div className="text-2xl font-black text-rose-400">
-                  ₹{financialTotals.pending.toLocaleString('en-IN')}
+                  {inr(financialTotals.pending)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">Awaiting trust approval & disbursement</p>
               </div>
@@ -1285,7 +1288,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   <TrendingUp className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-amber-300">
-                  ₹{financialTotals.avgPerPuja.toLocaleString('en-IN')}
+                  {inr(financialTotals.avgPerPuja)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">Per ritual ceremony completed</p>
               </div>
@@ -1328,11 +1331,11 @@ export const PurohitManagementDesk: React.FC = () => {
                           <span>{stat.priestName}</span>
                         </td>
                         <td className="py-3 px-3 font-semibold text-stone-300">{stat.totalPujas}</td>
-                        <td className="py-3 px-3 font-semibold text-stone-300">₹{stat.grossDakshina.toLocaleString('en-IN')}</td>
-                        <td className="py-3 px-3 font-semibold text-stone-400">₹{stat.trustShare.toLocaleString('en-IN')}</td>
-                        <td className="py-3 px-3 font-black text-amber-400">₹{stat.netPayable.toLocaleString('en-IN')}</td>
-                        <td className="py-3 px-3 font-bold text-emerald-400">₹{stat.settledAmount.toLocaleString('en-IN')}</td>
-                        <td className="py-3 px-3 font-bold text-rose-400">₹{stat.pendingAmount.toLocaleString('en-IN')}</td>
+                        <td className="py-3 px-3 font-semibold text-stone-300">{inr(stat.grossDakshina)}</td>
+                        <td className="py-3 px-3 font-semibold text-stone-400">{inr(stat.trustShare)}</td>
+                        <td className="py-3 px-3 font-black text-amber-400">{inr(stat.netPayable)}</td>
+                        <td className="py-3 px-3 font-bold text-emerald-400">{inr(stat.settledAmount)}</td>
+                        <td className="py-3 px-3 font-bold text-rose-400">{inr(stat.pendingAmount)}</td>
                         <td className="py-3 px-3 text-right">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
@@ -1378,7 +1381,7 @@ export const PurohitManagementDesk: React.FC = () => {
                           <span className="text-stone-300">Yajamana: {booking.devoteeName}</span>
                         </div>
                         <p className="text-[11px] text-stone-400">
-                          Acharya: <strong className="text-amber-300">{assigned || 'Unassigned'}</strong> • Dakshina: ₹{booking.dakshinaAmount} • Net Honorarium: <strong className="text-emerald-400">₹{netAmount}</strong>
+                          Acharya: <strong className="text-amber-300">{assigned || 'Unassigned'}</strong> • Dakshina: {inr(booking.dakshinaAmount)} • Net Honorarium: <strong className="text-emerald-400">{inr(netAmount)}</strong>
                         </p>
                       </div>
 
@@ -1488,7 +1491,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     <div className="text-right">
                       <span className="text-[10px] text-stone-400 block">Suggested Dakshina</span>
                       <span className="text-xs font-bold text-amber-300">
-                        ₹{priest.suggestedDakshina?.toLocaleString('en-IN') || 5100}
+                        {inr(priest.suggestedDakshina ?? 5100)}
                       </span>
                     </div>
 
@@ -1647,7 +1650,7 @@ export const PurohitManagementDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Suggested Dakshina (₹)</label>
+                  <label className="text-stone-400 font-bold block mb-1">Suggested Dakshina ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={newPriestForm.suggestedDakshina}
@@ -1735,7 +1738,7 @@ export const PurohitManagementDesk: React.FC = () => {
                 <div>
                   <span className="text-[10px] text-stone-400 uppercase font-bold block">Honorarium Range</span>
                   <span className="font-black text-amber-400">
-                    {selectedPriestModal.dakshinaRange || `₹${selectedPriestModal.suggestedDakshina}`}
+                    {selectedPriestModal.dakshinaRange || inr(selectedPriestModal.suggestedDakshina || 0)}
                   </span>
                 </div>
                 {selectedPriestModal.phone && (
@@ -1777,18 +1780,18 @@ export const PurohitManagementDesk: React.FC = () => {
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Gross Dakshina:</span>
-                  <span className="font-bold text-white">₹{settlingBooking.dakshinaAmount}</span>
+                  <span className="font-bold text-white">{inr(settlingBooking.dakshinaAmount)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-400">Mandir Kalyan Nidhi (15%):</span>
                   <span className="font-bold text-stone-400">
-                    -₹{Math.round((settlingBooking.dakshinaAmount || 2100) * 0.15)}
+                    -{inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.15))}
                   </span>
                 </div>
                 <div className="border-t border-stone-800 pt-1 flex justify-between text-sm font-black">
                   <span className="text-amber-400">Net Payable:</span>
                   <span className="text-emerald-400">
-                    ₹{Math.round((settlingBooking.dakshinaAmount || 2100) * 0.85)}
+                    {inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.85))}
                   </span>
                 </div>
               </div>

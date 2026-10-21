@@ -1,11 +1,13 @@
 import React from 'react';
 import { useYoga, batchStudents, batchRunsOn, feesCollected, feesOverdue, lowAttendanceStudents, monthISO, todayISO } from './yogaStore';
-import { T, Card, Stat, inr, fmtTime } from './ui';
+import { T, Card, Stat, fmtTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { LEVEL_LABEL, WEEKDAYS_SHORT } from './types';
 
 /* Yoga One dashboard — shala at a glance. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useYoga();
   const today = todayISO();
   const period = monthISO();

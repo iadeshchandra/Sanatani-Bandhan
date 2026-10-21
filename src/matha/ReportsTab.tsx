@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMatha, displayName, todaysDinacharya } from './mathaStore';
-import { Card, Btn, Field, inputCls, inr, fmtDate, fmtTime, fmtMonthDay } from './ui';
+import { Card, Btn, Field, inputCls, fmtDate, fmtTime, fmtMonthDay } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -18,6 +19,7 @@ const download = (name: string, text: string, type = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useMatha();
   const { showToast } = useToast();
   const { t } = useLanguage();

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNyas, uid, currentFY, appliedForFY, fyRange, todayISO } from './nyasStore';
 import { ApplicationEntry } from './types';
-import { T, Card, Stat, Btn, Field, Modal, inputCls, Empty, inr, fmtDate } from './ui';
+import { T, Card, Stat, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 
@@ -18,6 +19,8 @@ const blank: Omit<ApplicationEntry, 'id'> = {
 };
 
 export const ApplicationTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, remove } = useNyas();
   const { treasury } = useData();
   const { showToast } = useToast();
@@ -98,7 +101,7 @@ export const ApplicationTab: React.FC = () => {
             <Field label={<T en="Date" bn="তারিখ" hi="तिथि" />}>
               <input type="date" className={inputCls} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </Field>
-            <Field label={<T en="Amount (₹)" bn="পরিমাণ (₹)" hi="राशि (₹)" />}>
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`পরিমাণ (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />}>
               <input type="number" min="1" className={inputCls} value={form.amount || ''} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} placeholder="50000" />
             </Field>
             <Field label={<T en="Purpose" bn="উদ্দেশ্য" hi="उद्देश्य" />} className="sm:col-span-2">

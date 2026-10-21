@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { useGoshala, todayISO } from './goshalaStore';
 import { Card, Stat, StatusPill } from './ui';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
-import { inr, fmtDateEn } from '../pathshala/bn';
+import { fmtDateEn } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useLanguage } from '../context/LanguageContext';
 import { resolveHerdCount } from '../lib/herdCount';
 
@@ -10,6 +11,7 @@ import { resolveHerdCount } from '../lib/herdCount';
    days-remaining, grant-vs-cost gap, upcoming vaccinations. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state, workspaceId } = useGoshala();
   const { t } = useLanguage();
   const today = todayISO();

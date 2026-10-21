@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useSamskara, uid, todayISO } from './samskaraStore';
 import { CeremonyPlan, SamskaraId, SAMSKARAS, samskaraMeta, FamilyMember } from './types';
 import { Card, Btn, Field, inputCls, Modal, Empty, StatusPill, fmtDate, T, useTr } from './ui';
@@ -11,6 +12,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
  * jyotishi), and dakshina tracking that posts honestly to treasury. */
 
 const PlanDetail: React.FC<{ plan: CeremonyPlan; onClose: () => void }> = ({ plan, onClose }) => {
+  const wsCurrency = useWorkspaceCurrency();
   const { state, update, toggleChecklist } = useSamskara();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -123,7 +125,7 @@ const PlanDetail: React.FC<{ plan: CeremonyPlan; onClose: () => void }> = ({ pla
           ) : (
             <div className="flex gap-2">
               <input type="number" min="0" className={inputCls} value={dakshinaAmount}
-                onChange={(e) => setDakshinaAmount(e.target.value)} placeholder="₹" />
+                onChange={(e) => setDakshinaAmount(e.target.value)} placeholder={wsCurrency.symbol} />
               <Btn variant="ghost" onClick={postDakshina} disabled={!Number(dakshinaAmount)}>
                 {t('suites.samskara.ceremony.post')}
               </Btn>
@@ -152,6 +154,7 @@ const PlanDetail: React.FC<{ plan: CeremonyPlan; onClose: () => void }> = ({ pla
 };
 
 export const CeremonyTab: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
   const { state, newPlan, remove } = useSamskara();
   const { t } = useLanguage();
   const tr = useTr();

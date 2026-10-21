@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Home, Plus, Users, Phone, MapPin, Sparkles, Heart, ChevronRight, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -8,6 +9,7 @@ import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const FamilyHouseholdDesk: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { families, devotees, addFamily } = useData();
@@ -142,7 +144,7 @@ export const FamilyHouseholdDesk: React.FC = () => {
                 <div>
                   <p className="text-[10px] text-temple-400 uppercase font-semibold">{t('org.people.familyHousehold.cumulativeChanda')}</p>
                   <p className="font-black text-saffron-400 text-sm">
-                    ₹{(fam.totalFamilyDonations || (karta ? karta.totalDonated : 0)).toLocaleString()}
+                    {inr((fam.totalFamilyDonations || (karta ? karta.totalDonated : 0)))}
                   </p>
                 </div>
                 {fam.lastChandaDate && (

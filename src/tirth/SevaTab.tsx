@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTirth, uid, todayISO } from './tirthStore';
 import { SevaBooking, SEVA_PASS_TYPES } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate, inr } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -15,6 +16,8 @@ const blank: Omit<SevaBooking, 'id' | 'date' | 'createdAt'> = {
 };
 
 export const SevaTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useTirth();
   const { showToast } = useToast();
   const { addTreasuryTransaction } = useData();
@@ -107,7 +110,7 @@ export const SevaTab: React.FC = () => {
             <Field label={<T en="Persons" bn="ব্যক্তি" hi="व्यक्ति" />}>
               <input type="number" min={1} className={inputCls} value={form.persons} onChange={(e) => setForm({ ...form, persons: Math.max(1, Math.round(Number(e.target.value) || 1)) })} />
             </Field>
-            <Field label={<T en="Amount (₹)" bn="টাকা (₹)" hi="राशि (₹)" />} className="sm:col-span-2">
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`টাকা (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />} className="sm:col-span-2">
               <input type="number" min={0} className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: Math.max(0, Math.round(Number(e.target.value) || 0)) })} />
             </Field>
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 sm:col-span-2">

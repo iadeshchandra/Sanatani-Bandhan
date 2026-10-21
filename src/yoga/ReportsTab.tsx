@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useYoga, monthISO, batchStudents, feesOverdue, attendancePct } from './yogaStore';
-import { T, Card, Btn, Field, inputCls, inr, fmtDate, fmtPeriod } from './ui';
+import { T, Card, Btn, Field, inputCls, fmtDate, fmtPeriod } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* Yoga One — reports: printable registers, CSV exports, backup/restore. */
@@ -17,6 +18,7 @@ const download = (name: string, text: string, type = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useYoga();
   const { showToast } = useToast();
   const [period, setPeriod] = useState(monthISO());

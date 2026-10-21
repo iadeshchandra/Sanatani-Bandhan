@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Package, Plus, Search, AlertTriangle, CheckCircle2, TrendingDown, X, Download, ScanBarcode } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -15,6 +16,8 @@ import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const InventoryDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { inventory, updateInventoryStock, addInventoryItem } = useData();
@@ -296,7 +299,7 @@ export const InventoryDesk: React.FC = () => {
                   </p>
                   <p>
                     <span className="text-temple-400">Cost per unit:</span>{' '}
-                    <span className="font-mono text-saffron-400">₹{item.costPerUnit}</span>
+                    <span className="font-mono text-saffron-400">{inr(item.costPerUnit)}</span>
                   </p>
                   {item.supplierName && (
                     <p className="text-[11px] text-temple-400 truncate">
@@ -465,7 +468,7 @@ export const InventoryDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Cost/Unit (₹)</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Cost/Unit ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={costPerUnit}

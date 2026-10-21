@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useYoga, uid, batchStudents, batchesWithRoom } from './yogaStore';
 import { YogaBatch, BatchLevel, WEEKDAYS_SHORT } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtTime, inr } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtTime } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* Yoga One — batch registry CRUD. */
@@ -11,6 +12,8 @@ const LEVEL_BN: Record<BatchLevel, string> = { beginner: 'প্রারম্�
 const LEVEL_HI: Record<BatchLevel, string> = { beginner: 'प्रारंभिक', intermediate: 'मध्यम', advanced: 'उन्नत' };
 
 export const BatchesTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useYoga();
   const { showToast } = useToast();
   const [forming, setForming] = useState<Partial<YogaBatch> | null>(null);
@@ -146,7 +149,7 @@ export const BatchesTab: React.FC = () => {
             <Field label={<T en="Capacity" bn="ধারণক্ষমতা" hi="क्षमता" />}>
               <input type="number" min={1} className={inputCls} value={forming.capacity ?? 20} onChange={(e) => setForming({ ...forming, capacity: Number(e.target.value) })} />
             </Field>
-            <Field label={<T en="Monthly fee (₹)" bn="মাসিক ফি (₹)" hi="मासिक शुल्क (₹)" />}>
+            <Field label={<T en={`Monthly fee (${wsCurrency.symbol})`} bn={`মাসিক ফি (${wsCurrency.symbol})`} hi={`मासिक शुल्क (${wsCurrency.symbol})`} />}>
               <input type="number" min={0} className={inputCls} value={forming.feeMonthly ?? state.settings.defaultFeeMonthly} onChange={(e) => setForming({ ...forming, feeMonthly: Number(e.target.value) })} />
             </Field>
             <Field label={<T en="Status" bn="অবস্থা" hi="स्थिति" />}>

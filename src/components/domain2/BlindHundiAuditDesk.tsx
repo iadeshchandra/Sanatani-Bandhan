@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   EyeOff,
   CheckCircle2,
@@ -42,6 +43,7 @@ const INITIAL_COUNTS: DenominationCounts = {
 };
 
 export const BlindHundiAuditDesk: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { showToast } = useToast();
   const { addTreasuryTransaction } = useData();
@@ -115,7 +117,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
     if (posted) {
       setIsPosted(true);
       showToast(
-        `Dual-authenticated Hundi count of ₹${total.toLocaleString('en-IN')} posted to General Trust Fund.`,
+        `Dual-authenticated Hundi count of ${inr(total)} posted to General Trust Fund.`,
         'success',
         'Treasury Ledger'
       );
@@ -264,7 +266,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                         </div>
                         <div className="w-24 text-right">
                           <span className="text-xs font-mono font-black text-slate-700">
-                            ₹{subtotal.toLocaleString('en-IN')}
+                            {inr(subtotal)}
                           </span>
                         </div>
                       </div>
@@ -277,7 +279,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
 
           <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs font-mono text-slate-400">
-              {isALocked ? 'Total Hidden' : `Subtotal: ₹${calculateTotal(counterAData).toLocaleString('en-IN')}`}
+              {isALocked ? 'Total Hidden' : `Subtotal: ${inr(calculateTotal(counterAData))}`}
             </span>
             {!isALocked && (
               <button
@@ -363,7 +365,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                         </div>
                         <div className="w-24 text-right">
                           <span className="text-xs font-mono font-black text-slate-700">
-                            ₹{subtotal.toLocaleString('en-IN')}
+                            {inr(subtotal)}
                           </span>
                         </div>
                       </div>
@@ -376,7 +378,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
 
           <div className="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs font-mono text-slate-400">
-              {isBLocked ? 'Total Hidden' : `Subtotal: ₹${calculateTotal(counterBData).toLocaleString('en-IN')}`}
+              {isBLocked ? 'Total Hidden' : `Subtotal: ${inr(calculateTotal(counterBData))}`}
             </span>
             {!isBLocked && (
               <button
@@ -425,7 +427,7 @@ export const BlindHundiAuditDesk: React.FC = () => {
                     <span className="text-xs text-emerald-400 font-mono">100% Matching Tally</span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-                    ₹{totalAmount.toLocaleString('en-IN')} Verified
+                    {inr(totalAmount)} Verified
                   </h2>
                   <p className="text-xs text-emerald-300/80 mt-0.5">
                     Both Counter A and Counter B inputs matched with zero denomination discrepancy. Ready for ledger entry.

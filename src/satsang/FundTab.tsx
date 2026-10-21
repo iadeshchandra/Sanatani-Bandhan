@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSatsang, uid, todayISO, fundBalance, activeMembers } from './satsangStore';
 import { FundEntry } from './types';
-import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, inr, Empty } from './ui';
+import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -15,6 +16,8 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 const emptyForm = { date: todayISO(), kind: 'contribution' as FundEntry['kind'], memberId: '', amount: '', note: '' };
 
 export const FundTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useSatsang();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
@@ -116,7 +119,7 @@ export const FundTab: React.FC = () => {
                 <option value="expense">Expense</option>
               </select>
             </Field>
-            <Field label={<T en="Amount (₹)" bn="টাকা (₹)" hi="राशि (₹)" />}>
+            <Field label={<T en={`Amount (${wsCurrency.symbol})`} bn={`টাকা (${wsCurrency.symbol})`} hi={`राशि (${wsCurrency.symbol})`} />}>
               <input type="number" min="1" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             </Field>
             <Field label={<T en="Date" bn="তারিখ" hi="तिथि" />}>

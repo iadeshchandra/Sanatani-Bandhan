@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Flame,
   Plus,
@@ -125,6 +126,8 @@ export const checkRahuKaalOverlap = (timeSlotStr: string, rahuKaalStr: string): 
 };
 
 export const PoojaBookingDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { activeWorkspace, role, currentRole, currentDevotee, user } = useAuthWorkspace();
   const { puja_bookings, purohits, devotees, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl } = useData();
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
@@ -648,7 +651,7 @@ export const PoojaBookingDesk: React.FC = () => {
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-temple-400">{t('ritual.pooja.totalDakshina')}</span>
                         <span className="font-mono font-bold text-amber-300">
-                          ₹{bookings.reduce((acc, cur) => acc + (cur.dakshinaAmount || 0), 0).toLocaleString()}
+                          {inr(bookings.reduce((acc, cur) => acc + (cur.dakshinaAmount || 0), 0))}
                         </span>
                       </div>
                     </div>
@@ -786,7 +789,7 @@ export const PoojaBookingDesk: React.FC = () => {
                             {p.name}
                           </span>
                           <span className="font-mono font-bold text-amber-400 text-[11px]">
-                            ₹{p.dakshina.toLocaleString()}
+                            {inr(p.dakshina)}
                           </span>
                         </div>
                         <p className="text-[10px] text-temple-400 line-clamp-2 leading-relaxed">
@@ -1004,7 +1007,7 @@ export const PoojaBookingDesk: React.FC = () => {
 
                 <div>
                   <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
-                    Dakshina / Ritual Offering (₹) *
+                    Dakshina / Ritual Offering ({wsCurrency.symbol}) *
                   </label>
                   <input
                     type="number"
@@ -1045,7 +1048,7 @@ export const PoojaBookingDesk: React.FC = () => {
               {/* Submit Button */}
               <div className="pt-4 border-t border-temple-800 flex items-center justify-between gap-4">
                 <div className="text-[11px] text-temple-400">
-                  {t('ritual.pooja.totalDakshina')} <span className="font-mono font-black text-amber-300 text-sm">₹{Number(dakshinaAmount || 0).toLocaleString()}</span>
+                  {t('ritual.pooja.totalDakshina')} <span className="font-mono font-black text-amber-300 text-sm">{inr(Number(dakshinaAmount || 0))}</span>
                 </div>
                 <button
                   type="submit"
@@ -1241,7 +1244,7 @@ export const PoojaBookingDesk: React.FC = () => {
                   </div>
 
                   <div className="pt-3 border-t border-temple-800 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-temple-400 font-mono">₹{b.dakshinaAmount || 0}</span>
+                    <span className="text-[10px] text-temple-400 font-mono">{inr(b.dakshinaAmount || 0)}</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1359,6 +1362,7 @@ const RosterBookingCard: React.FC<{
   onUpdateStatus: (status: 'Confirmed' | 'Completed' | 'In-Progress') => void;
   onCancel: () => void;
 }> = ({ booking, onPrintSankalp, onUpdateStatus, onCancel }) => {
+  const inr = useInr();
   // Pre-existing i18n gap (QR-agent commit): module-level card used parent-scope
   // `t` — wire the hook locally so tsc is clean.
   const { t } = useLanguage();
@@ -1437,7 +1441,7 @@ const RosterBookingCard: React.FC<{
       {/* Action Footer */}
       <div className="pt-3 border-t border-temple-800 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[11px] font-mono font-bold text-amber-400">
-          ₹{(booking.dakshinaAmount || 0).toLocaleString()}
+          {inr((booking.dakshinaAmount || 0))}
         </div>
 
         <div className="flex items-center gap-1.5">

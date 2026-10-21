@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Building2, Heart, GraduationCap, Plus, Search, Filter,
   CheckCircle2, Clock, Calendar, User, Phone, MapPin,
@@ -59,6 +60,8 @@ export interface RecitationExamRecord {
 }
 
 export const AshramGoshalaGurukulDesk: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
   const {
     rooms: contextRooms,
@@ -528,7 +531,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
     setIsFodderModalOpen(false);
     showToast(
-      `Gau Seva donation of ₹${finalAmount.toLocaleString('en-IN')} received with deep gratitude! Kamadhenu bless your lineage. 🐄`,
+      `Gau Seva donation of ${inr(finalAmount)} received with deep gratitude! Kamadhenu bless your lineage. 🐄`,
       'success',
       'Punya Karma Logged'
     );
@@ -1039,7 +1042,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                         <div className="flex items-center justify-between text-stone-400 text-[11px]">
                           <span>Suggested Seva Dakshina:</span>
                           <span className="font-bold text-emerald-400">
-                            ₹{room.suggestedDonationPerDay}/day
+                            {inr(room.suggestedDonationPerDay)}/day
                           </span>
                         </div>
                       </div>
@@ -1052,7 +1055,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                         <div className="flex items-center justify-between text-stone-400">
                           <span>Seva Donation / Day:</span>
                           <span className="font-bold text-amber-300">
-                            ₹{room.suggestedDonationPerDay}
+                            {inr(room.suggestedDonationPerDay)}
                           </span>
                         </div>
                         <p className="text-[11px] text-stone-500 mt-1">
@@ -1713,7 +1716,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Seva Donation Amount (₹)</label>
+                <label className="text-stone-300 font-bold block mb-1">Seva Donation Amount ({wsCurrency.symbol})</label>
                 <input
                   type="number"
                   value={bookForm.donationAmount}
@@ -1813,7 +1816,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-stone-400">Seva Dakshina:</span>
-                <span className="font-bold text-amber-400">₹{activeStayPass.donationAmount}</span>
+                <span className="font-bold text-amber-400">{inr(activeStayPass.donationAmount)}</span>
               </div>
             </div>
 
@@ -1891,7 +1894,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                           : 'bg-stone-950 border-stone-800 text-stone-400 hover:text-stone-200'
                       }`}
                     >
-                      <span className="text-sm font-black text-white block">₹{tier.amount}</span>
+                      <span className="text-sm font-black text-white block">{inr(tier.amount)}</span>
                       <span className="text-[11px] font-bold text-amber-400 block mt-0.5">{tier.label}</span>
                       <span className="text-[10px] text-stone-500 block">{tier.desc}</span>
                     </button>
@@ -1900,7 +1903,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Or Custom Amount (₹)</label>
+                <label className="text-stone-300 font-bold block mb-1">Or Custom Amount ({wsCurrency.symbol})</label>
                 <input
                   type="number"
                   placeholder="e.g. 11000"
@@ -2024,7 +2027,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Monthly Care Sponsorship (₹)</label>
+                <label className="text-stone-300 font-bold block mb-1">Monthly Care Sponsorship ({wsCurrency.symbol})</label>
                 <input
                   type="number"
                   value={adoptForm.monthlyCareFee}
@@ -2080,7 +2083,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 Official Gau Seva 80G Tax Exemption Receipt
               </span>
               <h3 className="text-xl font-black text-white mt-1">
-                ₹{gauReceipt.amount.toLocaleString('en-IN')}
+                {inr(gauReceipt.amount)}
               </h3>
               <p className="text-xs text-stone-400 font-mono">
                 Receipt Ref: {gauReceipt.receiptNo}
@@ -2661,7 +2664,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Donation / Day (₹)</label>
+                  <label className="text-stone-300 font-bold block mb-1">Donation / Day ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={newRoomForm.suggestedDonationPerDay}

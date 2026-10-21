@@ -5,7 +5,8 @@ import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Card, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
-import { todayISO, inr, receiptWords, uid, fmtDateEn } from './bn';
+import { todayISO, receiptWords, uid, fmtDateEn } from './bn';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { FeeReceipt, FeeHead } from './types';
 
 /* Checklist #8 — fee collection & receipts: multiple heads, auto totals,
@@ -13,6 +14,8 @@ import { FeeReceipt, FeeHead } from './types';
    treasury posting (addTreasuryTransaction). */
 
 export const FeeTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { lang } = useLocaleText();
   const { state, add, update, remove } = usePathshala();
@@ -104,7 +107,7 @@ export const FeeTab: React.FC = () => {
         <div className="flex flex-wrap gap-3 items-end no-print">
           <Field label={t('suites.pathshala.fee.fDiscount')} className="!w-32"><input type="number" min={0} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className={inputCls} /></Field>
           <div className="text-lg font-extrabold">{t('suites.pathshala.fee.total')}: <span className="text-amber-700">{inr(total)}</span></div>
-          <div className="text-xs text-stone-500 w-full">{receiptWords(total, lang)}</div>
+          <div className="text-xs text-stone-500 w-full">{receiptWords(total, lang, wsCurrency.code)}</div>
           <Btn onClick={collect} disabled={!student || !selHeads.length}><ReceiptIcon className="w-4 h-4" /> {t('suites.pathshala.fee.collectBtn')}</Btn>
         </div>
       </Card>
@@ -186,7 +189,7 @@ export const FeeTab: React.FC = () => {
                 <tr><td><b>{t('suites.pathshala.fee.grandTotal')}</b></td><td><b>{inr(printR.r.total)}</b></td></tr>
               </tbody>
             </table>
-            <p className="text-sm mt-2"><b>{t('suites.pathshala.fee.inWords')}:</b> {receiptWords(printR.r.total, lang)}</p>
+            <p className="text-sm mt-2"><b>{t('suites.pathshala.fee.inWords')}:</b> {receiptWords(printR.r.total, lang, wsCurrency.code)}</p>
             <div className="flex justify-between mt-8 text-sm">
               <div><div className="border-t border-black pt-1 px-6">{t('suites.pathshala.fee.receivedBy')}</div></div>
               <div><div className="border-t border-black pt-1 px-6">{t('suites.pathshala.fee.acharyaSeal')}</div></div>

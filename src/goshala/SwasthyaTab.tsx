@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { HealthKind } from './types';
 import { Card, Btn, Field, inputCls, Empty, StatusPill, HEALTH_KIND_KEY, labelFor } from './ui';
-import { fmtDateEn, inr } from '../pathshala/bn';
+import { fmtDateEn } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -12,6 +13,7 @@ import { useLanguage } from '../context/LanguageContext';
 const KINDS: HealthKind[] = ['vaccination', 'deworming', 'treatment', 'checkup'];
 
 export const SwasthyaTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, remove } = useGoshala();
   const { t } = useLanguage();
   const { showToast } = useToast();

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   FileText,
   Send,
@@ -19,6 +20,8 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const Dynamic80GReceiptStudio: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { showToast } = useToast();
   const { activeWorkspace } = useAuthWorkspace();
@@ -157,7 +160,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{t('org.finance.taxReceipts.donationAmountInr')}</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold">{wsCurrency.symbol}</span>
                   <input
                     type="number"
                     value={donationAmount}
@@ -299,7 +302,7 @@ export const Dynamic80GReceiptStudio: React.FC = () => {
                   Address: {donorAddress || 'Varanasi, Uttar Pradesh'}
                 </p>
                 <p className="text-slate-700">
-                  A sum of <strong className="text-slate-950 font-mono font-black text-sm">₹{numAmount.toLocaleString('en-IN')}</strong>{' '}
+                  A sum of <strong className="text-slate-950 font-mono font-black text-sm">{inr(numAmount)}</strong>{' '}
                   towards <strong className="text-amber-800">{sevaPurpose || 'Mandir Corpus'}</strong> via{' '}
                   <span className="font-mono font-semibold text-slate-800">{paymentMode}</span>.
                 </p>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useAshram, uid, todayISO, roomLoadOn } from './ashramStore';
 import { Room, ROOM_TYPES, RoomType } from './types';
 import { Card, Btn, Field, inputCls, Empty, Modal, T, useLocaleText, StatusPill } from './ui';
@@ -16,6 +17,8 @@ const TYPE_META: Record<RoomType, { icon: string }> = {
 };
 
 export const RoomsTab: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useAshram();
   const { tr } = useLocaleText();
   const { showToast } = useToast();
@@ -137,7 +140,7 @@ export const RoomsTab: React.FC = () => {
 
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100">
                   <div className="text-sm">
-                    <span className="font-extrabold text-stone-800">₹{r.suggestedDonation.toLocaleString('en-IN')}</span>
+                    <span className="font-extrabold text-stone-800">{inr(r.suggestedDonation)}</span>
                     <span className="text-xs text-stone-500"> / {tr('ashram.rooms.night', 'night', 'রাত', 'रात')}</span>
                   </div>
                   <div className="text-xs text-stone-500 truncate max-w-[45%]">{r.facilities.slice(0, 2).join(' · ')}</div>
@@ -185,7 +188,7 @@ export const RoomsTab: React.FC = () => {
               <Field label={tr('ashram.rooms.capacity', 'Capacity (beds/persons)', 'ধারণক্ষমতা', 'क्षमता')}>
                 <input type="number" min={1} className={inputCls} value={f.capacity} onChange={(e) => setF({ ...f, capacity: Number(e.target.value) })} />
               </Field>
-              <Field label={tr('ashram.rooms.donation', 'Suggested donation / night (₹)', 'প্রতি রাতে প্রস্তাবিত দান (₹)', 'प्रति रात सुझाया दान (₹)')}>
+              <Field label={tr('ashram.rooms.donation', `Suggested donation / night (${wsCurrency.symbol})`, `প্রতি রাতে প্রস্তাবিত দান (${wsCurrency.symbol})`, `प्रति रात सुझाया दान (${wsCurrency.symbol})`)}>
                 <input type="number" min={0} className={inputCls} value={f.suggestedDonation} onChange={(e) => setF({ ...f, suggestedDonation: Number(e.target.value) })} />
               </Field>
               <Field label={tr('ashram.rooms.floor', 'Floor / block (optional)', 'তলা (ঐচ্ছিক)', 'मंजिल (वैकल्पिक)')}>

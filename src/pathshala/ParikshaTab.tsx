@@ -4,7 +4,7 @@ import { usePathshala } from './pathshalaStore';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Card, Btn, Field, inputCls, Empty, Modal, useLocaleText } from './ui';
-import { todayISO, inr, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
+import { todayISO, downloadCSV, parseCSV, uid, fmtDateEn } from './bn';
 import { SampleEraBar } from '../components/common/SampleEraBar';
 import { isSampleEraMarksRow } from '../lib/sampleData';
 

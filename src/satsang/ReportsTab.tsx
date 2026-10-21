@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSatsang, fundBalance, attendancePct, presentCount } from './satsangStore';
-import { T, Card, Btn, fmtDate, fmtTime, inr } from './ui';
+import { T, Card, Btn, fmtDate, fmtTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 
 /* ------------------------------------------------------------------ */
@@ -20,6 +21,7 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 };
 
 export const ReportsTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useSatsang();
   const { showToast } = useToast();
   const [importing, setImporting] = useState(false);

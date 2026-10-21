@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useMatha, uid, todayISO, dakshinaTotal } from './mathaStore';
 import { DakshinaRecord } from './types';
-import { Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, inr, Empty } from './ui';
+import { Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -16,6 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 const emptyForm = { date: todayISO(), donorName: '', amount: '', purpose: 'guru-dakshina' as DakshinaRecord['purpose'], paymentMode: 'Cash', notes: '' };
 
 export const DakshinaTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, remove } = useMatha();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();

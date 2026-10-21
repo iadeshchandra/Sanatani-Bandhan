@@ -1,10 +1,12 @@
 import React from 'react';
 import { useTirth, todayISO, tokensFor, slotIssued, slotUtilPct, noShowPct, peakCrowd, sevaIncome, nowServingSeq } from './tirthStore';
-import { T, Card, Stat, Empty, inr, fmtTime } from './ui';
+import { T, Card, Stat, Empty, fmtTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* Tirth One — dashboard: today's tokens, slot utilisation, queue health. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useTirth();
   const date = todayISO();
 

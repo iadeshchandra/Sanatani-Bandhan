@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid, todayISO } from './goshalaStore';
 import { MilkSession, DisposalKind } from './types';
 import { Card, Btn, Field, inputCls, Empty, DISPOSAL_KIND_KEY, labelFor } from './ui';
-import { fmtDateEn, inr } from '../pathshala/bn';
+import { fmtDateEn } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { SampleBadge } from '../components/common/SampleBadge';
@@ -15,6 +16,7 @@ import { isSampleEraMilkRow } from '../lib/sampleData';
 const KINDS: DisposalKind[] = ['sold', 'distributed', 'donated', 'consumed'];
 
 export const DugdhaTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, remove } = useGoshala();
   const { t } = useLanguage();
   const { showToast } = useToast();

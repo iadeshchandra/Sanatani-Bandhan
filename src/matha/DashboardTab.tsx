@@ -1,11 +1,13 @@
 import React from 'react';
 import { useMatha, livingSannyasis, todaysDinacharya, upcomingObservances, dakshinaTotal, displayName } from './mathaStore';
-import { Card, Stat, fmtTime, fmtMonthDay, inr } from './ui';
+import { Card, Stat, fmtTime, fmtMonthDay } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useLanguage } from '../context/LanguageContext';
 
 /* Dashboard — residents, today's dinacharya, upcoming observances, branches. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useMatha();
   const { t } = useLanguage();
   const residents = livingSannyasis(state);

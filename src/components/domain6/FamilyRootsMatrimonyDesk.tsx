@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users, Heart, BookOpen, Sparkles, ShieldCheck, AlertTriangle,
   Calendar, CheckCircle2, ChevronRight, Phone, Mail, MapPin,
@@ -533,6 +534,8 @@ export function calculateAshtakootGunaMilan(
 // ============================================================================
 
 export const FamilyRootsMatrimonyDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
   const { showToast } = useToast();
   const { t } = useLanguage();
@@ -811,7 +814,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
     setIsPurohitBookingModalOpen(false);
 
     showToast(
-      `Pinda Daan & Shradh ritual successfully booked for ${selectedPitruForBooking.ancestorName}! Acharya Vidyadhar Shastri allocated. Dakshina: ₹${purohitBookingForm.dakshinaAmount} locked in Escrow. 🪔`,
+      `Pinda Daan & Shradh ritual successfully booked for ${selectedPitruForBooking.ancestorName}! Acharya Vidyadhar Shastri allocated. Dakshina: ${inr(purohitBookingForm.dakshinaAmount)} locked in Escrow. 🪔`,
       'success',
       'Purohit Market Dispatched'
     );
@@ -2032,7 +2035,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Escrow Dakshina (₹)</label>
+                  <label className="text-stone-300 font-bold block mb-1">Escrow Dakshina ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={purohitBookingForm.dakshinaAmount}

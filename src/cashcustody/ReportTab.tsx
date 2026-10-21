@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { useCashCustody, todayISO } from './cashCustodyStore';
 import { DENOMINATIONS, DENOM_LABEL } from './types';
-import { T, Card, Btn, Field, inputCls, inr, fmtDateTime } from './ui';
+import { T, Card, Btn, Field, inputCls, fmtDateTime } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -12,6 +13,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 /* ------------------------------------------------------------------ */
 
 export const ReportTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useCashCustody();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();

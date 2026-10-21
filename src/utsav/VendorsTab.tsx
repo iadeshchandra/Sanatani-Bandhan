@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useUtsav, uid } from './utsavStore';
 import { Vendor, VendorStatus, VENDOR_CATEGORIES } from './types';
-import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate, inr } from './ui';
+import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -16,6 +17,7 @@ const blank: Omit<Vendor, 'id' | 'festivalId'> = {
 };
 
 export const VendorsTab: React.FC = () => {
+  const inr = useInr();
   const { t } = useLanguage();
   const { state, add, update, remove } = useUtsav();
   const { showToast } = useToast();

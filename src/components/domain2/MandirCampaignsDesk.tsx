@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Target, Plus, Heart, Users, TrendingUp, Sparkles, X, Coins } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -7,6 +8,8 @@ import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const MandirCampaignsDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { campaigns, addCampaignDonation } = useData();
@@ -102,11 +105,11 @@ export const MandirCampaignsDesk: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <div>
                       <p className="text-temple-400 text-[10px] font-semibold uppercase">Collected</p>
-                      <p className="font-black text-saffron-400 text-sm">₹{(camp.collectedAmount || 0).toLocaleString()}</p>
+                      <p className="font-black text-saffron-400 text-sm">{inr((camp.collectedAmount || 0))}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-temple-400 text-[10px] font-semibold uppercase">Target</p>
-                      <p className="font-bold text-temple-200 text-sm">₹{(camp.targetAmount || 0).toLocaleString()}</p>
+                      <p className="font-bold text-temple-200 text-sm">{inr((camp.targetAmount || 0))}</p>
                     </div>
                   </div>
                 </div>
@@ -129,7 +132,7 @@ export const MandirCampaignsDesk: React.FC = () => {
                           {idx + 1}. {d.name} <span className="text-[10px] text-temple-400">({d.city})</span>
                         </span>
                         <span className="font-mono font-bold text-saffron-400">
-                          ₹{(d.amount || 0).toLocaleString()}
+                          {inr((d.amount || 0))}
                         </span>
                       </div>
                     ))}
@@ -183,7 +186,7 @@ export const MandirCampaignsDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Seva Amount (₹) *</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Seva Amount ({wsCurrency.symbol}) *</label>
                   <input
                     type="number"
                     required

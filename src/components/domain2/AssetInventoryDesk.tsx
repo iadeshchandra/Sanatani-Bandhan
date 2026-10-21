@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Layers, Plus, Search, ShieldCheck, Download, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -8,6 +9,8 @@ import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const AssetInventoryDesk: React.FC = () => {
+  const inr = useInr();
+  const wsCurrency = useWorkspaceCurrency();
   const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { assets, addAsset } = useData();
@@ -63,7 +66,7 @@ export const AssetInventoryDesk: React.FC = () => {
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-saffron-500/10 border border-saffron-500/30 text-saffron-400 text-[10px] font-bold uppercase tracking-wider">{t('org.finance.assets.fixedAssetVaultRegistry')}</span>
             <span className="text-xs text-temple-400 font-mono">
-              Total Valuation: ₹{totalAssetValuation.toLocaleString()}
+              Total Valuation: {inr(totalAssetValuation)}
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">{t('org.finance.assets.fixedAssetsDeityOrnamentsLedger')}</h2>
@@ -164,7 +167,7 @@ export const AssetInventoryDesk: React.FC = () => {
               <div className="p-3 rounded-xl bg-temple-950/60 border border-temple-800 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-temple-400 font-semibold uppercase">{t('org.finance.assets.assetValuation')}</p>
-                  <p className="text-lg font-black text-saffron-400">₹{(asset.valuation || 0).toLocaleString()}</p>
+                  <p className="text-lg font-black text-saffron-400">{inr((asset.valuation || 0))}</p>
                 </div>
                 <ShieldCheck className="w-5 h-5 text-saffron-500 opacity-80" />
               </div>
@@ -222,7 +225,7 @@ export const AssetInventoryDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-temple-300 font-semibold mb-1">Valuation (₹) *</label>
+                  <label className="block text-temple-300 font-semibold mb-1">Valuation ({wsCurrency.symbol}) *</label>
                   <input
                     type="number"
                     required

@@ -252,25 +252,27 @@ export function buildTransparencySnapshot(
 /* Formatting                                                          */
 /* ------------------------------------------------------------------ */
 
-/** Indian compact money: ₹850 · ₹2.4L · ₹1.8Cr. Tabular numerals via CSS. */
-export function formatLakhCrore(n: number): string {
+/** Compact money with lakh/crore grouping: ₹850 · ₹2.4L · ₹1.8Cr.
+ * The symbol defaults to ₹ (Indian-statutory callers, unit tests) —
+ * workspace surfaces pass their own currency symbol (QUEUED #60). */
+export function formatLakhCrore(n: number, symbol = '₹'): string {
   const num = Number(n);
-  if (!Number.isFinite(num)) return '₹0';
+  if (!Number.isFinite(num)) return `${symbol}0`;
   const abs = Math.abs(num);
   const sign = num < 0 ? '−' : '';
   if (abs >= 1e7) {
     const v = abs / 1e7;
-    return `${sign}₹${trimNum(v)}Cr`;
+    return `${sign}${symbol}${trimNum(v)}Cr`;
   }
   if (abs >= 1e5) {
     const v = abs / 1e5;
-    return `${sign}₹${trimNum(v)}L`;
+    return `${sign}${symbol}${trimNum(v)}L`;
   }
   if (abs >= 1e3) {
     const v = abs / 1e3;
-    return `${sign}₹${trimNum(v)}K`;
+    return `${sign}${symbol}${trimNum(v)}K`;
   }
-  return `${sign}₹${Math.round(abs).toLocaleString('en-IN')}`;
+  return `${sign}${symbol}${Math.round(abs).toLocaleString('en-IN')}`;
 }
 
 const trimNum = (v: number): string => {
@@ -278,11 +280,12 @@ const trimNum = (v: number): string => {
   return Number.isInteger(r) ? String(r) : r.toFixed(1);
 };
 
-/** Full Indian grouping: ₹12,34,567. */
-export function formatINRFull(n: number): string {
+/** Full grouping: ₹12,34,567. Symbol defaults to ₹ — workspace
+ * surfaces pass their own currency symbol (QUEUED #60). */
+export function formatINRFull(n: number, symbol = '₹'): string {
   const num = Number(n);
-  if (!Number.isFinite(num)) return '₹0';
-  return `${num < 0 ? '−' : ''}₹${Math.abs(Math.round(num)).toLocaleString('en-IN')}`;
+  if (!Number.isFinite(num)) return `${symbol}0`;
+  return `${num < 0 ? '−' : ''}${symbol}${Math.abs(Math.round(num)).toLocaleString('en-IN')}`;
 }
 
 /** DD MMM YYYY in Asia/Kolkata. */
@@ -355,12 +358,12 @@ export function downloadTextFile(filename: string, content: string, mime = 'text
 }
 
 /** Shareable plain-text transparency card — aggregates only, safe to forward. */
-export function transparencyCardText(s: TransparencySnapshot): string {
+export function transparencyCardText(s: TransparencySnapshot, symbol = '₹'): string {
   const lines = [
     `🪔 ${s.orgName} — Seva Transparency`,
-    `Raised ${formatLakhCrore(s.totalRaised)} · Utilized ${formatLakhCrore(s.totalUtilized)}`,
+    `Raised ${formatLakhCrore(s.totalRaised, symbol)} · Utilized ${formatLakhCrore(s.totalUtilized, symbol)}`,
     '',
-    ...s.purposes.slice(0, 8).map((p) => `• ${p.purpose}: ${formatLakhCrore(p.raised)} raised, ${formatLakhCrore(p.utilized)} utilized`),
+    ...s.purposes.slice(0, 8).map((p) => `• ${p.purpose}: ${formatLakhCrore(p.raised, symbol)} raised, ${formatLakhCrore(p.utilized, symbol)} utilized`),
     '',
     s.chainIntact === true
       ? `⛓ Custody chain verified intact (${s.chainEvents} sealed events)`

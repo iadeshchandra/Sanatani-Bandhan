@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { useGoshala, uid } from './goshalaStore';
 import { GrantStatus } from './types';
 import { Card, Stat, Btn, Field, inputCls, Empty, GRANT_STATUS_KEY, labelFor } from './ui';
-import { fmtDateEn, inr } from '../pathshala/bn';
+import { fmtDateEn } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -13,6 +14,7 @@ import { useLanguage } from '../context/LanguageContext';
 const STATUSES: GrantStatus[] = ['applied', 'pending', 'approved', 'received', 'rejected'];
 
 export const GrantTab: React.FC = () => {
+  const inr = useInr();
   const { state, add, update, remove } = useGoshala();
   const { t } = useLanguage();
   const { showToast } = useToast();

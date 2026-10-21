@@ -64,12 +64,25 @@ export function amountInWordsBn(n: number): string {
   return parts.join(' ');
 }
 
-/** Amount-in-words for receipts, following the app locale: Bengali words
- * ("এক হাজার ... টাকা মাত্র") when the language is Bengali, otherwise
- * English ("Rupees ... Only"). */
-export const receiptWords = (n: number, lang: string): string =>
-  lang === 'bn' ? `${amountInWordsBn(n)} টাকা মাত্র` : `Rupees ${amountInWordsEn(n)} Only`;
+/** Currency unit words for the English receipt line, by ISO code. */
+const UNIT_WORDS: Record<string, string> = {
+  BDT: 'Taka', INR: 'Rupees', USD: 'Dollars', EUR: 'Euros', GBP: 'Pounds', NPR: 'Rupees',
+};
 
+/** Amount-in-words for receipts, following the app locale and the
+ * workspace currency (QUEUED #60): Bengali words ("এক হাজার ... টাকা
+ * মাত্র") when the language is Bengali, otherwise English words ending
+ * in the workspace currency's unit ("Taka ... Only" for BDT,
+ * "Rupees ... Only" for INR, "Dollars ... Only" for USD). The optional
+ * currency code defaults to INR for legacy callers. */
+export const receiptWords = (n: number, lang: string, currencyCode = 'INR'): string =>
+  lang === 'bn'
+    ? `${amountInWordsBn(n)} টাকা মাত্র`
+    : `${UNIT_WORDS[String(currencyCode || 'INR').toUpperCase()] || 'Rupees'} ${amountInWordsEn(n)} Only`;
+
+/** @deprecated Hard-codes ₹. Components must bind `useInr()` from
+ * hooks/useWorkspaceInr so amounts render in the workspace currency
+ * (QUEUED #60). Kept only so no legacy import breaks. */
 export const inr = (n: number): string =>
   '₹' + Number(n || 0).toLocaleString('en-IN');
 

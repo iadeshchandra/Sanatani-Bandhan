@@ -1,11 +1,13 @@
 import React from 'react';
 import { useSabha, activeMembers, duesCollected, duesDefaulters, welfareBalance, upcomingDuties, upcomingTrainings, thisYear } from './sabhaStore';
-import { T, Card, Stat, inr, fmtDate } from './ui';
+import { T, Card, Stat, fmtDate } from './ui';
+import { useInr } from '../hooks/useWorkspaceInr';
 
 /* Dashboard — member count, dues collected/pending, welfare balance,
  * upcoming trainings and duties. */
 
 export const DashboardTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useSabha();
   const yr = thisYear();
   const members = activeMembers(state);

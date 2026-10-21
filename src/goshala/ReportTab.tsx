@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { useGoshala } from './goshalaStore';
 import { Card, Btn, STATUS_KEY, SOURCE_KEY, HEALTH_KIND_KEY, SPONSOR_PLAN_KEY, SPONSOR_STATUS_KEY, labelFor } from './ui';
-import { fmtDateEn, inr, downloadJSON } from '../pathshala/bn';
+import { fmtDateEn, downloadJSON } from '../pathshala/bn';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
@@ -13,6 +14,7 @@ import { useLanguage } from '../context/LanguageContext';
 type ReportKind = 'register' | 'health' | 'donors';
 
 export const ReportTab: React.FC = () => {
+  const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useGoshala();
   const { t } = useLanguage();
   const { showToast } = useToast();

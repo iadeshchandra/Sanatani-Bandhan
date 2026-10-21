@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useInr } from '../hooks/useWorkspaceInr';
 import { useAshram } from './ashramStore';
 import { Card, Field, inputCls, Empty, T, useLocaleText } from './ui';
 
@@ -7,6 +8,7 @@ import { Card, Field, inputCls, Empty, T, useLocaleText } from './ui';
  * (device-local); no separate profile store needed. */
 
 export const YatrisTab: React.FC = () => {
+  const inr = useInr();
   const { state } = useAshram();
   const { tr } = useLocaleText();
   const [q, setQ] = useState('');
@@ -75,7 +77,7 @@ export const YatrisTab: React.FC = () => {
                   <div className="text-[10px] text-stone-500">{tr('ashram.yatris.nights', 'nights', 'রাত', 'रातें')}</div>
                 </div>
                 <div className="rounded-xl bg-stone-50 py-2">
-                  <div className="font-extrabold text-stone-800">₹{Math.round(y.totalDonation).toLocaleString('en-IN')}</div>
+                  <div className="font-extrabold text-stone-800">{inr(Math.round(y.totalDonation))}</div>
                   <div className="text-[10px] text-stone-500">{tr('ashram.yatris.donated', 'donated', 'দান', 'दान')}</div>
                 </div>
               </div>

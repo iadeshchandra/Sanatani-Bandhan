@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   ShieldCheck, ShieldAlert, Award, Sparkles, Flame, CheckCircle2,
   Clock, Calendar, MapPin, Phone, Mail, Building2, User, Users,
@@ -321,6 +322,8 @@ const SEED_ESCROW_TXS: EscrowTransaction[] = [
 ];
 
 export const PurohitPortalUnified: React.FC = () => {
+  const wsCurrency = useWorkspaceCurrency();
+  const inr = useInr();
   const { currentUser, currentRole, activeWorkspace } = useAuthWorkspace();
   const { poojaBookings } = useData();
   const { showToast } = useToast();
@@ -545,7 +548,7 @@ export const PurohitPortalUnified: React.FC = () => {
       } catch (e) {}
 
       showToast(
-        `Proposal submitted for "${selectedGigForBid.title}" with Dakshina ₹${bidDakshinaInput.toLocaleString('en-IN')}! 🪔`,
+        `Proposal submitted for "${selectedGigForBid.title}" with Dakshina ${inr(bidDakshinaInput)}! 🪔`,
         'success',
         'Bid Registered'
       );
@@ -583,7 +586,7 @@ export const PurohitPortalUnified: React.FC = () => {
     } catch (e) {}
 
     showToast(
-      `Accepted gig "${gig.title}". ₹${gig.escrowDakshina.toLocaleString('en-IN')} locked in Platform Escrow Vault! 🔒`,
+      `Accepted gig "${gig.title}". ${inr(gig.escrowDakshina)} locked in Platform Escrow Vault! 🔒`,
       'success',
       'Escrow Gig Assigned'
     );
@@ -832,7 +835,7 @@ export const PurohitPortalUnified: React.FC = () => {
               { id: 'OVERVIEW', label: 'Acharya Profile & Verification', icon: Award },
               { id: 'MARKETPLACE_GIGS', label: 'Sanatani Ritual Gigs', icon: Flame, badge: `${gigs.length} Open` },
               { id: 'LONG_TERM_CONTRACTS', label: 'Long-Term Contracts & Kutir', icon: Building2, badge: `${contracts.length} Active` },
-              { id: 'ESCROW_LEDGER', label: 'Escrow Vault & Dakshina Ledger', icon: Coins, badge: `₹${escrowMetrics.locked.toLocaleString('en-IN')}` },
+              { id: 'ESCROW_LEDGER', label: 'Escrow Vault & Dakshina Ledger', icon: Coins, badge: `${inr(escrowMetrics.locked)}` },
               { id: 'GOD_MODE_QUEUE', label: 'God Mode Master Queue', icon: ShieldCheck, badge: `${applications.filter(a => a.stage !== 'VERIFIED_MASTER').length} Pending` },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1096,7 +1099,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       <div className="bg-stone-950/80 p-4 rounded-2xl border border-stone-800">
                         <span className="text-[10px] text-stone-400 uppercase font-bold block">Escrow Protected Dakshina</span>
                         <div className="text-xl font-black text-amber-300 mt-1">
-                          ₹{escrowMetrics.locked.toLocaleString('en-IN')}
+                          {inr(escrowMetrics.locked)}
                         </div>
                         <p className="text-[10px] text-stone-500 mt-0.5">Held safely in platform vault</p>
                       </div>
@@ -1112,7 +1115,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       <div className="bg-stone-950/80 p-4 rounded-2xl border border-stone-800">
                         <span className="text-[10px] text-stone-400 uppercase font-bold block">Total Disbursed Earnings</span>
                         <div className="text-xl font-black text-white mt-1">
-                          ₹{escrowMetrics.released.toLocaleString('en-IN')}
+                          {inr(escrowMetrics.released)}
                         </div>
                         <p className="text-[10px] text-stone-500 mt-0.5">Net direct-to-bank settlements</p>
                       </div>
@@ -1258,7 +1261,7 @@ export const PurohitPortalUnified: React.FC = () => {
                               Escrow Locked Dakshina
                             </span>
                             <span className="text-base font-black text-amber-300">
-                              ₹{gig.escrowDakshina.toLocaleString('en-IN')}
+                              {inr(gig.escrowDakshina)}
                             </span>
                           </div>
 
@@ -1365,7 +1368,7 @@ export const PurohitPortalUnified: React.FC = () => {
                               <div>
                                 <span className="text-[10px] text-stone-500 uppercase font-bold block">Monthly Honorarium</span>
                                 <span className="font-black text-amber-400">
-                                  ₹{contract.monthlyHonorarium.toLocaleString('en-IN')} / mo
+                                  {inr(contract.monthlyHonorarium)} / mo
                                 </span>
                               </div>
                               <div>
@@ -1420,7 +1423,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       Escrow Vault Held
                     </span>
                     <div className="text-2xl font-black text-amber-400 mt-1">
-                      ₹{escrowMetrics.locked.toLocaleString('en-IN')}
+                      {inr(escrowMetrics.locked)}
                     </div>
                     <p className="text-[11px] text-stone-500 mt-0.5">Secure funds pending ceremony completion</p>
                   </div>
@@ -1430,7 +1433,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       Total Disbursed Net
                     </span>
                     <div className="text-2xl font-black text-emerald-400 mt-1">
-                      ₹{escrowMetrics.released.toLocaleString('en-IN')}
+                      {inr(escrowMetrics.released)}
                     </div>
                     <p className="text-[11px] text-stone-500 mt-0.5">Settled directly to Bank / UPI</p>
                   </div>
@@ -1440,7 +1443,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       Platform Fee (Take Rate)
                     </span>
                     <div className="text-2xl font-black text-stone-300 mt-1">
-                      ₹{escrowMetrics.platformFees.toLocaleString('en-IN')}
+                      {inr(escrowMetrics.platformFees)}
                     </div>
                     <p className="text-[11px] text-stone-500 mt-0.5">5% temple software & insurance levy</p>
                   </div>
@@ -1486,9 +1489,9 @@ export const PurohitPortalUnified: React.FC = () => {
                           <tr key={tx.id} className="hover:bg-stone-900/50 transition-colors">
                             <td className="py-3 px-3 font-bold text-white">{tx.title}</td>
                             <td className="py-3 px-3 text-stone-300">{tx.payerName}</td>
-                            <td className="py-3 px-3 text-stone-200">₹{tx.grossDakshina.toLocaleString('en-IN')}</td>
-                            <td className="py-3 px-3 text-stone-400 font-mono">-₹{tx.platformTakeRate}</td>
-                            <td className="py-3 px-3 font-black text-amber-400">₹{tx.netHonorarium.toLocaleString('en-IN')}</td>
+                            <td className="py-3 px-3 text-stone-200">{inr(tx.grossDakshina)}</td>
+                            <td className="py-3 px-3 text-stone-400 font-mono">-{inr(tx.platformTakeRate)}</td>
+                            <td className="py-3 px-3 font-black text-amber-400">{inr(tx.netHonorarium)}</td>
                             <td className="py-3 px-3">
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
@@ -1784,7 +1787,7 @@ export const PurohitPortalUnified: React.FC = () => {
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Host Escrow Budget:</span>
-                  <span className="font-bold text-white">₹{selectedGigForBid.escrowDakshina.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-white">{inr(selectedGigForBid.escrowDakshina)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-400">Date & Slot:</span>
@@ -1793,7 +1796,7 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Your Proposed Dakshina (₹)</label>
+                <label className="text-stone-400 font-bold block mb-1">Your Proposed Dakshina ({wsCurrency.symbol})</label>
                 <input
                   type="number"
                   value={bidDakshinaInput}
@@ -1932,11 +1935,11 @@ export const PurohitPortalUnified: React.FC = () => {
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Available Escrow:</span>
-                  <span className="font-bold text-amber-300">₹{escrowMetrics.locked.toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-amber-300">{inr(escrowMetrics.locked)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-400">Instant IMPS Fee:</span>
-                  <span className="font-bold text-emerald-400">₹0 (Waived)</span>
+                  <span className="font-bold text-emerald-400">{inr(0)} (Waived)</span>
                 </div>
               </div>
 

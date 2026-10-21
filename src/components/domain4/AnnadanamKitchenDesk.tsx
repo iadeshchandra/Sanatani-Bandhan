@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Utensils, Plus, Heart, Users, Sparkles, CheckCircle2, Clock, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
@@ -10,6 +11,7 @@ import { DataExportButton } from '../common/DataExportButton';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const AnnadanamKitchenDesk: React.FC = () => {
+  const inr = useInr();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
 
@@ -83,7 +85,7 @@ export const AnnadanamKitchenDesk: React.FC = () => {
       });
     setIsAddModalOpen(false);
     setDonorName('');
-    showToast(`Annadanam Sponsorship confirmed for ${mealsCount} meals (${formatINR(cost)})`, 'success', 'Maha Prasadam Sponsored');
+    showToast(`Annadanam Sponsorship confirmed for ${mealsCount} meals (${inr(cost)})`, 'success', 'Maha Prasadam Sponsored');
   };
 
   const handleIncrementMeals = (count: number) => {
@@ -244,7 +246,7 @@ export const AnnadanamKitchenDesk: React.FC = () => {
               <div className="p-3 rounded-xl bg-temple-950/60 border border-temple-800 flex items-center justify-between text-xs">
                 <div>
                   <p className="text-[10px] text-temple-400 font-semibold uppercase">Seva Contribution</p>
-                  <p className="font-black text-saffron-400 text-sm">{formatINR(s.costRupees)}</p>
+                  <p className="font-black text-saffron-400 text-sm">{inr(s.costRupees)}</p>
                 </div>
                 <Utensils className="w-5 h-5 text-saffron-500 opacity-80" />
               </div>
@@ -328,11 +330,11 @@ export const AnnadanamKitchenDesk: React.FC = () => {
                   onChange={(e) => setMealsCount(Number(e.target.value))}
                   className="w-full bg-temple-800 border border-temple-700 rounded-xl px-3 py-2 text-xs text-temple-200"
                 >
-                  <option value={101}>101 Meals (₹3,030)</option>
-                  <option value={251}>251 Meals (₹7,530)</option>
-                  <option value={501}>501 Meals (₹15,030)</option>
-                  <option value={1001}>1,001 Meals (₹30,030)</option>
-                  <option value={2100}>2,100 Meals (Mega Bhandara - ₹63,000)</option>
+                  <option value={101}>101 Meals ({inr(3030)})</option>
+                  <option value={251}>251 Meals ({inr(7530)})</option>
+                  <option value={501}>501 Meals ({inr(15030)})</option>
+                  <option value={1001}>1,001 Meals ({inr(30030)})</option>
+                  <option value={2100}>2,100 Meals (Mega Bhandara - {inr(63000)})</option>
                 </select>
               </div>
 
