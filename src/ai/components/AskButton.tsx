@@ -35,6 +35,10 @@ const FORM_ROUTES = ['/register-org', '/login', '/signup'];
  * - desktop: `md:left-[260px] md:bottom-5` — bottom-left of the content column,
  *   just right of the verified 240px sidebar.
  * - `z-[9980]` sits below SOS (9990) so the panic button always wins.
+ * - QUEUED #52 (audit D12): auto-hides while the page scrolls and returns
+ *   ~700ms after it settles — a primary action passing through its corner
+ *   mid-scroll (the audit's Seva Wallet "Top up") is never covered while
+ *   the devotee is moving; the sb-has-sos bottom clearance covers rest.
  *
  * ≥56px touch target; warm halo + "Ask" pill in the SOS FAB's visual language.
  */
@@ -42,6 +46,17 @@ export const AskButton: React.FC = () => {
   const { isAuthenticated, sessionKind } = useAuthWorkspace();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  // QUEUED #52 (audit D12): while the devotee is scrolling, the FAB
+  // steps aside — the audit caught it sitting on real controls mid-page
+  // (the Seva Wallet "Top up" button rendered as "🙏op up"). The
+  // bottom-clearance CSS only guarantees the END of a page rests clear;
+  // mid-scroll, whatever passes through the FAB's corner is covered.
+  // So: scroll → the FAB fades/slides out (pointer-events off); it
+  // returns ~700ms after the scroll settles, when the devotee is
+  // reading again. Same transient-FAB pattern the SOS button uses
+  // (it auto-collapses on scroll). Capture phase catches inner
+  // scrollers too; rAF-throttled so it stays free on 2GB devices.
+  const [scrolling, setScrolling] = useState(false);
 
   // Named door: Profile's "🙏 Ask" row (and the assistant's own
   // upgrade intent) can open the sheet without the FAB.
@@ -49,6 +64,26 @@ export const AskButton: React.FC = () => {
     const onOpen = () => setOpen(true);
     window.addEventListener(ASSISTANT_OPEN_EVENT, onOpen);
     return () => window.removeEventListener(ASSISTANT_OPEN_EVENT, onOpen);
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    let timer: number | undefined;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        setScrolling(true);
+        if (timer !== undefined) window.clearTimeout(timer);
+        timer = window.setTimeout(() => setScrolling(false), 700);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true });
+      if (raf) window.cancelAnimationFrame(raf);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, []);
 
   // Solo-only: the assistant is a devotee aid, and the solo shell is the only
@@ -59,11 +94,17 @@ export const AskButton: React.FC = () => {
   return (
     <>
       {!open && (
-        <div className="fixed left-5 z-[9980] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:left-[260px] md:bottom-5 flex flex-col items-center gap-1.5">
+        <div
+          aria-hidden={scrolling}
+          className={`fixed left-5 z-[9980] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:left-[260px] md:bottom-5 flex flex-col items-center gap-1.5 transition-all duration-200 ${
+            scrolling ? '-translate-x-4 opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'
+          }`}
+        >
           <button
             type="button"
             aria-label="Ask the assistant"
             data-guide-anchor="ask-button"
+            tabIndex={scrolling ? -1 : 0}
             onClick={() => setOpen(true)}
             className="relative rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/70"
             style={{ width: 56, height: 56 }}

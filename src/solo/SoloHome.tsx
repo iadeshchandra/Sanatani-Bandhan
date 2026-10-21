@@ -11,8 +11,7 @@ import { SuggestionCards } from './SuggestionCards';
 import { PersonalWallet } from '../chat/PersonalWallet';
 import P2PScanSheet from '../chat/P2PScanSheet';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
-import { drikTodayLine, drikTithiAt } from '../lib/drikPanchang';
-import { getCalendar } from '../lib/regionalCalendars';
+import { calculateDailyPanchang, panchangTodayLine } from '../utils/panchang';
 import { Chat } from '../chat/Chat';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { useGroupUnreadTotal } from '../chat/groups/useGroups';
@@ -113,9 +112,13 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 
   const panchangLine = useMemo(() => {
     try {
-      // Drik engine — the legacy mean-motion engine drifted ~2 tithis.
-      const vsYear = getCalendar('vikram').toRegional(new Date()).year;
-      return drikTodayLine(new Date(), vsYear);
+      // QUEUED #52 (audit D12): single-source today line — the canonical
+      // sunrise-anchored engine (utils/panchang), identical to the org
+      // header/dashboard line for the same day. This used to call the
+      // instant-based drikTodayLine(new Date(), …), which flips to the
+      // NEXT tithi the moment the current one ends mid-day, so home
+      // disagreed with the panjika surfaces every such evening.
+      return panchangTodayLine(new Date());
     } catch {
       return '';
     }
@@ -196,22 +199,26 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
   // panchang line below already carries the detail).
   const tithiWarm = useMemo(() => {
     try {
-      const t = drikTithiAt(new Date());
-      if (t.name === 'Ekadashi')
+      // QUEUED #52 (audit D12): judge "today" by the same sunrise-anchored
+      // day tithi as the panchang line above — never the raw moment, or
+      // the greeting would bless an Ekadashi that ended at noon while
+      // the panjika line below already reads Dashami.
+      const dayTithi = calculateDailyPanchang(new Date()).tithi;
+      if (dayTithi.endsWith('Ekadashi'))
         return tr(
           'solo.greet.ekadashi',
           'Ekadashi today — a blessed day for vrata and remembrance 🙏',
           'আজ একাদশী — ব্রত ও স্মরণের পুণ্যদিন 🙏',
           'आज एकादशी है — व्रत और स्मरण का पुण्य दिन 🙏'
         );
-      if (t.name === 'Purnima')
+      if (dayTithi.endsWith('Purnima'))
         return tr(
           'solo.greet.purnima',
           'Purnima tonight — the moon is full, and so is grace 🌕',
           'আজ পূর্ণিমা — চাঁদ পূর্ণ, কৃপাও পূর্ণ 🌕',
           'आज पूर्णिमा है — चंद्र पूर्ण, कृपा भी पूर्ण 🌕'
         );
-      if (t.name === 'Amavasya')
+      if (dayTithi.endsWith('Amavasya'))
         return tr(
           'solo.greet.amavasya',
           'Amavasya today — a quiet day for remembrance and deep japa 🌑',

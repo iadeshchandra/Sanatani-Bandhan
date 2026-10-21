@@ -218,7 +218,7 @@ export const ritual: RitualFragment = {
         toastBackup: "Backup downloaded.",
         confirmReset: "Reset all Utsav One data on this device?",
         toastReset: "Data reset.",
-        samitiSummaryNote: "The samiti's own summary for donors/sponsors — confirm final figures with the koshadhyaksh / CA.",
+        samitiSummaryNote: "The samiti’s own summary for donors/sponsors — confirm final figures with the koshadhyaksh / CA.",
         income_expense_line: "Income {income} · Expense {expense}"
       },
       safety: {
@@ -252,7 +252,7 @@ export const ritual: RitualFragment = {
       subtitle: "Budgets, committees, vendors & crowds — honestly managed",
       honesty: {
         title: "Honest scope",
-        body: "Planned-vs-actual is a management view, not audited accounts. The utilisation certificate is the samiti\\\\u2019s own summary for donors — confirm final figures with your koshadhyaksh / CA."
+        body: "Planned-vs-actual is a management view, not audited accounts. The utilisation certificate is the samiti’s own summary for donors — confirm final figures with your koshadhyaksh / CA."
       },
       tabs: {
         warroom: "War Room",

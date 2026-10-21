@@ -351,16 +351,19 @@ export const GauSevaDesk: React.FC = () => {
         </div>
       )}
 
-      {/* Adopt Modal */}
+      {/* Adopt Modal — same QUEUED #52 viewport discipline as the herd
+          register modal above: dvh cap + internal scroll, bottom-sheet
+          dock on small screens, so no field can be cut off unreachable. */}
       {adoptingCow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
               <h3 className="font-bold text-sm">Adopt Gomata: {adoptingCow.name} ({adoptingCow.tagNumber})</h3>
               <button
                 type="button"
                 onClick={() => setAdoptingCow(null)}
-                className="text-temple-400 hover:text-temple-100"
+                className="text-temple-400 hover:text-temple-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -429,22 +432,29 @@ export const GauSevaDesk: React.FC = () => {
         </div>
       )}
 
-      {/* Add Cow Modal */}
+      {/* Add Cow Modal — QUEUED #52 (audit D12): the panel used to have
+          NO height cap and NO scroll, centred with items-center, so on a
+          short viewport (360×640) its top and bottom were cut off with
+          the lower fields + Save unreachable. Now: bottom-sheet dock on
+          small screens, dvh-capped panel, the FIELDS scroll internally
+          and the Cancel/Save row is a fixed footer — always reachable. */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full text-temple-100 shadow-2xl flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-temple-800 shrink-0">
               <div className="flex items-center gap-2 flex-wrap"><h3 className="font-bold text-sm">Register Indigenous Gomata</h3><LocalOnlyBadge /></div>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-temple-400 hover:text-temple-100"
+                className="text-temple-400 hover:text-temple-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCow} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveCow} className="flex flex-col min-h-0 text-xs">
+              <div className="overflow-y-auto px-6 py-4 space-y-3 min-h-0">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-temple-300 font-semibold mb-1">Tag Number *</label>
@@ -528,17 +538,18 @@ export const GauSevaDesk: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-temple-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-temple-800 shrink-0 bg-temple-900">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-semibold"
+                  className="px-4 py-2 min-h-[44px] rounded-xl bg-temple-800 text-temple-300 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
+                  className="px-5 py-2 min-h-[44px] rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold"
                 >
                   Save Gomata
                 </button>

@@ -39,6 +39,33 @@ export const ORG_TYPE_META: OrgTypeMeta[] = [
   { type: 'KashiKshetra', label: 'Kashi Kshetra', hook: 'Tirth operations at Kashi scale — handled.', icon: '🏛️' },
 ];
 
+/**
+ * QUEUED #52 (audit D12): the wizard's welcome heading used to promise
+ * every organisation a "digital ashram" — a Goshala trustee and a
+ * Gurukul acharya were greeted with the wrong home. Each org type gets
+ * its own warm noun here; the heading follows the type the user has
+ * selected in step 1, so changing the type re-names the home live.
+ * Unknown/future types fall back to the neutral "digital workspace".
+ */
+export const WIZARD_HOME_NOUN: Record<string, string> = {
+  Mandir: 'digital mandir',
+  Goshala: 'digital goshala',
+  Ashram: 'digital ashram',
+  Gurukul: 'digital gurukul',
+  Sangha: 'digital sangha',
+  Trust: 'digital trust',
+  MahotsavSamiti: 'digital samiti',
+  Tirth: 'digital tirtha',
+  Vidyalaya: 'digital pathshala',
+  AkshayaPatra: 'digital annakshetra',
+  PurohitSabha: 'digital sabha',
+  KashiKshetra: 'digital kshetra',
+};
+
+/** The wizard's welcome heading for an org type. Pure — unit-tested. */
+export const wizardWelcomeHeading = (orgType: string): string =>
+  `Namaste 🙏 — let's set up your ${WIZARD_HOME_NOUN[orgType] || 'digital workspace'}`;
+
 /** Pain cards shown in step 3 (max 3 selectable). */
 export interface PainMeta {
   id: string;

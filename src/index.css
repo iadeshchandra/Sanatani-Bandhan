@@ -266,3 +266,17 @@ body.sb-has-sos.sb-sos-open .sb-sos-clear {
     padding-bottom: 168px;
   }
 }
+/* ── Form-route SOS clearance (QUEUED #52, audit D12) ─────────────────
+ * On the focused form routes (/register-org, /login, /signup) the SOS
+ * mini docks TOP-CENTRE (QUEUED #41) so it can never cover a field or
+ * the primary CTA at the bottom. But the top-centre dock sits exactly
+ * where those pages centre their headings — the audit caught the mini
+ * overlapping the "Create workspace" heading on /register-org. The
+ * systemic fix mirrors the bottom-clearance law above: while
+ * PanicButton is on a form route it sets `sb-form-sos` on <body>, and
+ * the page reserves the mini's strip (10px offset + 48px mini + margin)
+ * at the top, so the floater only ever floats over empty scene.
+ */
+body.sb-form-sos {
+  padding-top: calc(66px + env(safe-area-inset-top));
+}

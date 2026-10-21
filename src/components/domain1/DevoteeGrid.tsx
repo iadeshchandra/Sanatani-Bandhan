@@ -520,19 +520,32 @@ export const DevoteeGrid: React.FC = () => {
         const newId = addDevoteeCtx(newDevoteeData);
         if (!newId) {
           showToast('Devotee could NOT be registered — the member limit for this workspace is reached.', 'error');
-        } else {
-          const newDevotee = {
-            id: newId as string,
-            ...newDevoteeData,
-          };
-          // Auto-generate the account creation PDF (ID Card)
-          setTimeout(() => {
-            handlePrintCard(newDevotee as unknown as DevoteeMember);
-          }, 500);
+          // QUEUED #52 (audit D12): a FAILED registration keeps the modal
+          // open and the form exactly as typed, so the sevadar can fix
+          // and retry — it used to fall through to the shared tail,
+          // which closed the modal and wiped the form on failure too.
+          return;
         }
+        const newDevotee = {
+          id: newId as string,
+          ...newDevoteeData,
+        };
+        // QUEUED #52 (audit D12): success closes the modal in this same
+        // commit — the success toast (fired by DataContext inside
+        // addDevoteeCtx) never hangs over a still-open register modal,
+        // and the ID card follows on its timer as before.
+        resetForm();
+        setIsAddModalOpen(false);
+        // Auto-generate the account creation PDF (ID Card)
+        setTimeout(() => {
+          handlePrintCard(newDevotee as unknown as DevoteeMember);
+        }, 500);
+        return;
       } catch (err: any) {
         console.error('Error adding devotee:', err);
         showToast('Failed to register devotee in database.', 'error');
+        // QUEUED #52: failure keeps modal + form (see the limit path).
+        return;
       }
     }
 

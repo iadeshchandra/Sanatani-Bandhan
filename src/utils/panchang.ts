@@ -1,6 +1,6 @@
 import {
   drikTithiAt,
-  drikNakshatraAt,
+  drikDayNakshatra,
   drikYogaAt,
   drikKaranaAt,
   drikLunarMonth,
@@ -385,19 +385,34 @@ export const calculateDailyPanchang = (
   // (P0: a Panjika showing wrong dates is worse than no Panjika).
   // Solar fields above (sunrise/sunset/rahu kaal/…) use the NOAA solar model
   // and are correct; only the lunar fields needed the Drik engine.
-  const drikT = drikTithiAt(date);
+  //
+  // CANONICAL DAY ANCHOR (QUEUED #52, audit D12): the day's lunar fields
+  // are those prevailing at LOCAL SUNRISE of the requested civil day —
+  // the classical panjika convention, and the same anchor PanjikaTab
+  // uses (drikSnapshot(sunrise) + drikDayNakshatra(sunrise, sunset)).
+  // Before this, the fields were evaluated at the raw `date` instant
+  // each caller happened to pass: the booking desk passed local noon,
+  // the dashboards passed the current moment — so on a day when a tithi
+  // or nakshatra changed mid-day, two surfaces showed two different
+  // values for the same day (2026-10-20: noon said Shukla Navami /
+  // Shravana, the evening said Shukla Dashami / Dhanishta). Now the
+  // instant inside `date` is irrelevant: same day + same place ⇒ same
+  // tithi / nakshatra / yoga / karana / month, on every surface.
+  const drikT = drikTithiAt(sunriseDate);
   const tithiNumberInPaksha = drikT.tithiNumber;
   const tithiMeta = TITHIS_DATA[tithiNumberInPaksha - 1];
   const paksha: 'Shukla' | 'Krishna' = drikT.paksha;
   const tithiFullName = `${paksha} ${drikT.name}`;
 
-  const drikN = drikNakshatraAt(date);
+  // Headline nakshatra: the one prevailing for the majority of the
+  // daylight span (matches published panjikas — see drikDayNakshatra).
+  const drikN = drikDayNakshatra(sunriseDate, sunsetDate);
   const nakshatraMeta = NAKSHATRAS_DATA[drikN.index];
 
-  const drikLM = drikLunarMonth(date, 'purnimanta');
+  const drikLM = drikLunarMonth(sunriseDate, 'purnimanta');
 
-  const yogaName = drikYogaAt(date).name;
-  const karanaName = drikKaranaAt(date).name;
+  const yogaName = drikYogaAt(sunriseDate).name;
+  const karanaName = drikKaranaAt(sunriseDate).name;
 
   const vaaraInfo = VAARA_NAMES[dayOfWeek];
 
@@ -475,3 +490,21 @@ export const calculatePanchang = (date: Date = new Date()) => {
 export const getPanchangTodayLine = (
   p: Pick<PanchangData, 'tithi' | 'lunarMonth' | 'vikramSamvat'>
 ): string => `${p.tithi} • ${p.lunarMonth} • Vikram Samvat ${p.vikramSamvat}`;
+
+/**
+ * The canonical today line for a civil day + place, computed end-to-end
+ * by the single-source engine above (QUEUED #52, audit D12). Surfaces
+ * that used to call the instant-based `drikTodayLine(new Date(), …)`
+ * directly (solo home, the today digest) rendered the tithi prevailing
+ * at the current MOMENT, so they disagreed with every sunrise-anchored
+ * surface after a mid-day tithi change. They call this instead — the
+ * values can never diverge from the header/dashboard line again.
+ * Defaults are the app's canonical place (Varanasi, IST), matching
+ * `calculatePanchang`.
+ */
+export const panchangTodayLine = (
+  date: Date = new Date(),
+  lat: number = 25.3176,
+  lon: number = 82.9739,
+  tzOffsetHours: number = 5.5
+): string => getPanchangTodayLine(calculateDailyPanchang(date, lat, lon, tzOffsetHours));

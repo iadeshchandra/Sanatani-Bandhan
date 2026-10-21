@@ -4,7 +4,10 @@ import type { Nandi } from '../goshala/types';
 import type { BahiTarget, BatchActor, BatchCommitSummary, ImportBatch } from './types';
 import { TARGET_EMOJI, canApproveAnyBahi, canApproveBahi, canEnterBahi } from './types';
 import { bk, bkLangOf, type BkLang } from './copy';
-import { applyTransition, createBatch, useBahiKhata } from './bahikhataStore';
+import {
+  applyTransition, batchHasEnteredRows, createBatch, resolveActorName, useBahiKhata,
+} from './bahikhataStore';
+import { getCachedSanataniProfile } from '../solo/soloSession';
 import { executeCommit } from './commit';
 import { RegisterMode } from './RegisterMode';
 import { CsvImport } from './CsvImport';
@@ -76,13 +79,28 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
   const [view, setView] = useState<View>({ kind: 'home' });
 
   const role = String(effectiveRole || currentUser?.role || '');
+  // QUEUED #52 (audit D12): "Entered by" must be the actual signed-in
+  // user. In an org session currentUser.name can be the auth layer's
+  // generic placeholder ("Acharya / Trustee Administrator") — a title,
+  // not a person — so resolve through the real identity chain and never
+  // let a placeholder be stamped as a batch's author.
   const actor: BatchActor = useMemo(
     () => ({
       uid: firebaseUser?.uid || currentUser?.id || 'local-user',
-      name: currentUser?.name || currentUser?.fullName || 'Staff',
+      name: resolveActorName(
+        [
+          firebaseUser?.displayName,
+          currentUser?.name,
+          currentUser?.fullName,
+          firebaseUser?.uid
+            ? getCachedSanataniProfile(firebaseUser.uid)?.displayName
+            : null,
+        ],
+        firebaseUser?.email
+      ),
       role,
     }),
-    [firebaseUser?.uid, currentUser?.id, currentUser?.name, currentUser?.fullName, role]
+    [firebaseUser?.uid, firebaseUser?.displayName, firebaseUser?.email, currentUser?.id, currentUser?.name, currentUser?.fullName, role]
   );
 
   const canEnter = canEnterBahi(role);
@@ -95,9 +113,20 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
     [herd, devotees]
   );
 
+  // QUEUED #52 (audit D12): a fresh register batch lives ONLY in memory
+  // until the sevadar enters the first row. Opening the form used to
+  // persist a 0-row draft instantly — a volunteer who tapped "Type it",
+  // looked, and left had silently created a batch in "My batches".
+  // Creation is now an explicit act of entry: first row → persisted
+  // (and from then on the draft autosaves exactly as before); backing
+  // out with no rows discards nothing, because nothing was created.
+  const [pendingBatch, setPendingBatch] = useState<ImportBatch | null>(null);
+
   const activeBatch =
-    (view.kind === 'register' || view.kind === 'review')
-      ? store.batches.find((b) => b.id === view.batchId)
+    view.kind === 'register' || view.kind === 'review'
+      ? pendingBatch && pendingBatch.id === view.batchId
+        ? pendingBatch
+        : store.batches.find((b) => b.id === view.batchId)
       : undefined;
 
   const startRegister = () => {
@@ -110,12 +139,35 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
       label: labelDefault + new Date().toISOString().slice(0, 10),
       enteredBy: actor,
     });
-    store.addBatch(batch);
+    setPendingBatch(batch);
     setView({ kind: 'register', batchId: batch.id });
   };
 
+  /** RegisterMode's update channel: routes a not-yet-persisted batch to
+   *  memory until its first entered row makes it a real draft. */
+  const handleRegisterUpdate = (b: ImportBatch) => {
+    if (pendingBatch && b.id === pendingBatch.id) {
+      if (batchHasEnteredRows(b)) {
+        store.addBatch(b);
+        setPendingBatch(null);
+      } else {
+        setPendingBatch(b);
+      }
+    } else {
+      store.updateBatch(b);
+    }
+  };
+
   const handleSubmit = (batch: ImportBatch) => {
-    store.updateBatch(applyTransition(batch, 'submit', actor));
+    const submitted = applyTransition(batch, 'submit', actor);
+    // Submit is disabled at 0 rows, so a pending batch should never
+    // arrive here — but if it does, persist it rather than lose it.
+    if (pendingBatch && batch.id === pendingBatch.id) {
+      store.addBatch(submitted);
+      setPendingBatch(null);
+    } else {
+      store.updateBatch(submitted);
+    }
     showToast(bk(lang, 'submittedToast'), 'success');
     setView({ kind: 'home' });
   };
@@ -230,9 +282,14 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
         existingHerd={herd}
         picklists={picklists}
         actorUid={actor.uid}
-        onUpdate={store.updateBatch}
+        onUpdate={handleRegisterUpdate}
         onSubmit={handleSubmit}
-        onBack={() => setView({ kind: 'home' })}
+        onBack={() => {
+          // Leaving a never-persisted batch discards it silently — by
+          // design (QUEUED #52): nothing was ever created.
+          setPendingBatch(null);
+          setView({ kind: 'home' });
+        }}
       />
     );
   }

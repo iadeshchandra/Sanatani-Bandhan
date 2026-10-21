@@ -13,6 +13,7 @@ import {
   deskName,
   tierNoteForDesk,
   markSetupDone,
+  wizardWelcomeHeading,
 } from './wizardDeskMap';
 
 interface SetupWizardProps {
@@ -101,9 +102,13 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
   const picked80G = pains.includes('compliance');
   const isTrustLike = ['Trust', 'Mandir', 'MahotsavSamiti'].includes(orgType);
 
+  /* sb-sos-clear (QUEUED #52, audit D12): this overlay is its own inner
+     scroller, so the body-level FAB clearance cannot reach its cards —
+     the class reserves the SOS mini's footprint at the scroll end and
+     the wizard's last card never rests underneath it. */
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-gradient-to-b from-amber-100 via-orange-50 to-stone-100 overflow-y-auto"
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-gradient-to-b from-amber-100 via-orange-50 to-stone-100 overflow-y-auto sb-sos-clear"
       role="dialog"
       aria-modal="true"
       aria-label="Workspace setup wizard"
@@ -124,7 +129,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
             <div>
               <p className="text-2xl" aria-hidden="true">🪔</p>
               <h2 className="mt-1 text-xl sm:text-2xl font-extrabold text-stone-900">
-                Namaste 🙏 — let's set up your digital ashram
+                {wizardWelcomeHeading(orgType)}
               </h2>
               <p className="text-sm text-stone-500 mt-1">
                 60 seconds, 4 steps — then your workspace feels like <em>yours</em>.

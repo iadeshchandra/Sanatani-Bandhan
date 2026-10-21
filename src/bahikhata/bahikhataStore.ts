@@ -44,6 +44,53 @@ export function saveBahiData(ws: string, data: BahiKhataData): void {
 export const newBatchId = () =>
   `bk_${Date.now().toString(36)}${Math.floor(Math.random() * 1e5).toString(36)}`;
 
+/* ------------------------------------------------------------------ */
+/* QUEUED #52 (audit D12): honest drafts + honest "entered by".        */
+/*                                                                     */
+/* 1) A register batch is a DRAFT only once it holds an entered row.   */
+/*    Merely opening the register form used to persist a 0-row draft   */
+/*    that then sat in "My batches" forever. The desk now keeps a      */
+/*    fresh batch in memory and persists it the moment the first row   */
+/*    lands — this predicate is the single definition of "has content" */
+/*    that decision uses. (RegisterMode only ever creates a row        */
+/*    object when the sevadar actually commits a row entry, so         */
+/*    rows.length is an exact signal, never a guess.)                  */
+/* 2) The "Entered by" name must be the actual signed-in user. The     */
+/*    auth layer's generic fallback ("Acharya / Trustee               */
+/*    Administrator") is a placeholder for a person, not a person —     */
+/*    it must never be stamped onto a batch as its author.             */
+/* ------------------------------------------------------------------ */
+
+export const batchHasEnteredRows = (batch: Pick<ImportBatch, 'rows'>): boolean =>
+  Array.isArray(batch.rows) && batch.rows.length > 0;
+
+/** Placeholder identities that are NOT a person's name. */
+export const GENERIC_ACTOR_NAMES: readonly string[] = [
+  'Acharya / Trustee Administrator',
+  'Trustee Administrator',
+  'Staff',
+  'Admin',
+  'Administrator',
+];
+
+/**
+ * First real name from the candidate chain wins; generic placeholders
+ * are skipped as if absent. Falls back to the account email (still the
+ * actual user) and only then to a warm generic.
+ */
+export function resolveActorName(
+  candidates: Array<string | null | undefined>,
+  email?: string | null
+): string {
+  for (const c of candidates) {
+    const v = (c || '').trim();
+    if (v && !GENERIC_ACTOR_NAMES.includes(v)) return v;
+  }
+  const em = (email || '').trim();
+  if (em) return em;
+  return 'Sanatani Sevak';
+}
+
 export function createBatch(args: {
   workspaceId: string;
   target: BahiTarget;

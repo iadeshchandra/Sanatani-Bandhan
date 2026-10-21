@@ -34,6 +34,12 @@ import { crisisCopy, useCrisisT } from './crisisStrings';
  * between the Back pill and the language pill — so it stays fully
  * reachable (same 48px mini, same tap-to-expand, same hold-to-fire)
  * while never covering a field or a CTA.
+ *
+ * QUEUED #52 (audit D12): top-centre alone was not enough — the audit
+ * caught the mini over the page's centred "Create workspace" heading.
+ * On these routes the button now also sets `sb-form-sos` on <body> and
+ * index.css reserves the mini's 66px strip at the top of the page, so
+ * the dock floats over empty scene only.
  */
 const FORM_ROUTES = ['/register-org', '/login', '/signup'];
 
@@ -43,6 +49,11 @@ const MINI_SIZE = 48; // ≥44px touch target (collapsed mini)
 const HINT_SEEN_KEY = 'sb_sos_hint_seen';
 const COLLAPSE_IDLE_MS = 8000; // auto-collapse the expanded button when idle
 const SOS_OPEN_CLASS = 'sb-sos-open';
+/** QUEUED #52 (audit D12): while the mini docks top-centre on a form
+ * route, this body class makes the page reserve the mini's strip at the
+ * top (see index.css `body.sb-form-sos`) so it can never sit over the
+ * page's centred heading. */
+const FORM_SOS_CLASS = 'sb-form-sos';
 
 export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }) => {
   const t = useCrisisT();
@@ -98,6 +109,17 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
       document.body.classList.remove(SOS_OPEN_CLASS);
     };
   }, [collapsed]);
+
+  // QUEUED #52 (audit D12): on form routes the mini docks top-centre —
+  // publish that on <body> so the page reserves the top strip and its
+  // centred heading never slides underneath the floater.
+  useEffect(() => {
+    const onFormRoute = FORM_ROUTES.includes(pathname);
+    document.body.classList.toggle(FORM_SOS_CLASS, onFormRoute);
+    return () => {
+      document.body.classList.remove(FORM_SOS_CLASS);
+    };
+  }, [pathname]);
 
   const collapse = useCallback(() => {
     if (idleRef.current !== null) {

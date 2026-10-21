@@ -16,7 +16,8 @@
 
 import { PANJIKA_FESTIVALS, type PanjikaFestival } from './panjikaFestivals';
 import { findEkadashis } from './vrataSchedule';
-import { drikTithiAt, drikTodayLine } from './drikPanchang';
+import { drikTithiAt } from './drikPanchang';
+import { panchangTodayLine } from '../utils/panchang';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -571,8 +572,12 @@ export function getTodayDigest(now: Date = new Date()): DigestToday {
   const iso = isoOf(now);
   let tithiLine = '';
   try {
-    const vsYear = 2083; // display-only fallback; PanjikaTab computes precisely
-    tithiLine = drikTodayLine(now, vsYear);
+    // QUEUED #52 (audit D12): the canonical sunrise-anchored today line
+    // (utils/panchang) — the same values the header, dashboards and solo
+    // home render. This used the instant-based drikTodayLine plus a
+    // HARDCODED Vikram year (2083), so the digest could disagree with
+    // every other surface on both tithi and year.
+    tithiLine = panchangTodayLine(now);
   } catch { tithiLine = ''; }
   const festivals = PANJIKA_FESTIVALS.filter((f) => f.date === iso).slice(0, 4);
   return { tithiLine, festivals, abhijitHint: '' };
