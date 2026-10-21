@@ -70,6 +70,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { isModuleAllowed, isModuleAllowedForPlan, requiredTierForModule } from '../../lib/workspaceRegistry';
+import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
@@ -447,68 +448,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       const allowedForWorkspace = isModuleAllowed(activeWorkspace, m.id);
       if (!allowedForWorkspace) return false;
       
-      // 2. Strict RBAC permissions enforcement
-      let hasRole = false;
+      // 2. Strict RBAC permissions enforcement — QUEUED #56: the
+      // per-role decision lives in ONE shared helper
+      // (src/lib/deskVisibility.ts), consumed by the Command Palette
+      // too, so nav and palette can never promise different desks.
+      const hasRole = isDeskVisibleForRole(m, effectiveRole, checkPermission);
 
-      if (effectiveRole === 'Priest') {
-        // If Priest: hide links to Domain 1, 2, and 6
-        if (m.domain === 1 || m.domain === 2 || m.domain === 6) {
-          return false;
-        }
-        const priestAllowed = [
-          'sanctum-hud', 'poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket',
-          'pitruShradh', 'panchang', 'yatranet-gis', 'shlokaFeed', 'satsang',
-          'granthLibrary', 'utsavPanjika', 'dharmicAssistant', 'sadhana-karma',
-          'rakthaSeva', 'goshala', 'annadanam', 'annakshetra-one', 'ashramKutir', 'dharamshala',
-          'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one', 'ashram-one',
-          'utsav-one', 'tirth-one', 'yoga-one', 'matha-one', 'satsang-one', 'sabha-one', 'samskara-one'
-        ];
-        hasRole = priestAllowed.includes(m.id) || m.domain === 3;
-      } else if (effectiveRole === 'Accountant') {
-        // If Accountant: hide links to Domain 1, 3, and 6
-        if (m.domain === 1 || m.domain === 3 || m.domain === 6) {
-          return false;
-        }
-        const accountantAllowed = [
-          'quick-chanda-pos', 'treasury', 'treasury-audit', 'hundi-audit', 'ratna-bhandar',
-          'taxReceipts', 'form10bd', 'campaigns', 'karmaLedger', 'assets', 'inventory',
-          'bhoomi', 'vahan', 'recurring-seva'
-        ];
-        hasRole = accountantAllowed.includes(m.id) || m.domain === 2;
-      } else if (effectiveRole === 'CSO') {
-        // CSO authorized for tactical radar, gate command checkin, crisis command, qr scanner; blocked from treasury & rituals
-        const csoAllowed = [
-          'tactical-radar', 'checkin', 'crisis-command', 'qrScanner', 'yatranet-gis',
-          'sevadar-roster', 'devotee-portal'
-        ];
-        hasRole = csoAllowed.includes(m.id);
-      } else if (effectiveRole === 'SuperAdmin') {
-        hasRole = true;
-      } else {
-        // Fallback for Trustee / Sevadar / Volunteer
-        if (['checkin', 'gate-command', 'darshan-checkin'].includes(m.id)) {
-          hasRole = checkPermission(['CSO', 'TRUSTEE', 'SEVADAR', 'VOLUNTEER']);
-        } else if (['bulkImport', 'federation'].includes(m.id)) {
-          hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
-        } else if (['treasury', 'treasury-audit', 'taxReceipts', 'form10bd', 'hundi-audit', 'ratna-bhandar'].includes(m.id)) {
-          hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
-        } else if (['campaigns', 'assets'].includes(m.id)) {
-          hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
-        } else if (m.id === 'inventory') {
-          hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'VOLUNTEER']);
-        } else if (['sanctum-hud', 'poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket', 'pitruShradh'].includes(m.id)) {
-          hasRole = checkPermission(['PUROHIT', 'PRIEST', 'MANAGER', 'TRUSTEE']);
-        } else if (['sandeshBroadcast'].includes(m.id)) {
-          hasRole = checkPermission(['MANAGER', 'TRUSTEE']);
-        } else if (['workspace-hub', 'masterSettings', 'appStore', 'spiritualSettings', 'panchayatPolls'].includes(m.id)) {
-          hasRole = checkPermission(['TRUSTEE']);
-        } else if (['tactical-radar', 'user-roles-rbac', 'trusteeGovernance', 'sevadarRoster', 'sevadar-roster', 'auditLog', 'legalVault', 'crisis-command'].includes(m.id)) {
-          hasRole = checkPermission(['CSO', 'TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER']);
-        } else {
-          hasRole = true;
-        }
-      }
-      
       if (!hasRole) return false;
 
       // 3. Domain filter pill

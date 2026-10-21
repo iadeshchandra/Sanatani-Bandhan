@@ -563,15 +563,19 @@ const AppContent: React.FC = () => {
       case '/sevadar-roster':
       case 'sevadarRoster':
       case 'sevadar-hr':
-        return checkPermission(['TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER']) ? <SevadarRosterDesk /> : <RestrictedAccess />;
+        // QUEUED #56 (A2-D4): CSO added — the CSO nav allowlist promises
+        // the duty roster; the mount guard omitted the role entirely.
+        return checkPermission(['TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER', 'CSO']) ? <SevadarRosterDesk /> : <RestrictedAccess />;
 
       // Domain 2
       case 'quick-chanda-pos':
       case 'quickChandaPos':
       case 'chanda-pos':
       case 'counter-pos':
-        // V9 RBAC: cash-collection POS — finance roles only.
-        return checkPermission(['TRUSTEE', 'ACCOUNTANT', 'SuperAdmin']) ? <QuickChandaPOS /> : <RestrictedAccess />;
+        // V9 RBAC: cash-collection POS — finance roles + the Sevadar who
+        // staffs the counter (QUEUED #56, A2-D4: nav promised it via the
+        // fallback branch while the mount refused — widened to match).
+        return checkPermission(['TRUSTEE', 'ACCOUNTANT', 'SEVADAR', 'SuperAdmin']) ? <QuickChandaPOS /> : <RestrictedAccess />;
       case 'treasury-audit':
       case 'treasuryAudit':
       case 'treasury':
@@ -610,13 +614,18 @@ const AppContent: React.FC = () => {
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <Form10BDComplianceDesk /> : <RestrictedAccess />;
       case 'campaigns':
       case 'mandir-campaigns':
-        return checkPermission(['MANAGER', 'TRUSTEE']) ? <MandirCampaignsDesk /> : <RestrictedAccess />;
+        // QUEUED #56 (A2-D4): ACCOUNTANT added — nav (accountantAllowed +
+        // the Sidebar fallback check) already promised Campaigns to the
+        // Accountant; the mount guard was the only layer refusing.
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <MandirCampaignsDesk /> : <RestrictedAccess />;
       case 'karmaLedger':
       case 'karma-ledger':
         return <KarmaLedgerDesk />;
       case 'assets':
       case 'asset-register':
-        return checkPermission(['MANAGER', 'TRUSTEE']) ? <AssetInventoryDesk /> : <RestrictedAccess />;
+        // QUEUED #56 (A2-D4): ACCOUNTANT added — same nav/mount split as
+        // Campaigns; the asset register is the Accountant's own ledger.
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <AssetInventoryDesk /> : <RestrictedAccess />;
       case 'inventory':
       case 'store-inventory':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'VOLUNTEER']) ? <InventoryDesk /> : <RestrictedAccess />;

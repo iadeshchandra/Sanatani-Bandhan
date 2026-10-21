@@ -155,15 +155,26 @@ export interface OrgInvite {
  * Roles an inviter may grant. A Trustee may grant any operational role
  * AT or BELOW their own — never Trustee, never SuperAdmin. Only a
  * SuperAdmin (platform owner) may grant Trustee/SuperAdmin.
+ *
+ * QUEUED #56 (audit A2-D1): every entry here MUST be a canonical role
+ * the resolver accepts (see resolveEdgeRole / normalizeMembershipRole
+ * in src/lib/landingSurface.ts). 'Manager' and 'Member' were offered
+ * here but are NOT canonical roles — the per-org override rejected
+ * them, so invitees silently fell back to their GLOBAL role (a normal
+ * invitee was trapped in the Devotee view of the org; a staff member
+ * of another org bled that role in). There is no canonical Manager
+ * tier today (ROLE_MIGRATION_MAP collapses MANAGER → Sevadar); a real
+ * Manager tier is a separate proposal needing a rules delta. Legacy
+ * edges already stored with 'Manager'/'Member' are resolved
+ * deterministically at read time (resolveEdgeRole), so existing
+ * invitees are freed without a data migration.
  */
 export const TRUSTEE_GRANTABLE_ROLES = [
   'Priest',
   'Accountant',
   'Sevadar',
   'Devotee',
-  'Member',
   'CSO',
-  'Manager',
 ] as const;
 
 export const SUPERADMIN_GRANTABLE_ROLES = [

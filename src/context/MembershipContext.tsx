@@ -41,6 +41,7 @@ import {
   TRUSTEE_GRANTABLE_ROLES,
   WorkspaceMembership,
 } from '../types/membership';
+import { resolveEdgeRole } from '../lib/landingSurface';
 
 const now = () => Date.now();
 const memberDocId = (workspaceId: string, uid: string) => `${workspaceId}_${uid}`;
@@ -422,7 +423,13 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       // Role matrix: a Trustee may grant roles at/below their own — never
       // Trustee, never SuperAdmin. Only a SuperAdmin may grant those.
-      const role = input.role;
+      // QUEUED #56 (audit A2-D1): normalize at WRITE — whatever the UI
+      // passes, the invite (and therefore the membership edge minted
+      // from it) stores a canonical role. Legacy spellings collapse to
+      // their migration-map intent ('Manager' → Sevadar); unknown
+      // strings resolve to the member floor (Devotee), never to a
+      // string the resolver would reject downstream.
+      const role = resolveEdgeRole(input.role);
       const grantable =
         currentRole === 'SuperAdmin'
           ? true
@@ -539,6 +546,13 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           id: memberDocId(invite.orgId, uid),
           workspaceId: invite.orgId,
           uid,
+          // Verbatim BY DESIGN (rules verify edge role == invite role —
+          // no self-escalation). New invites are canonicalized at write
+          // in sendInvite; a legacy invite still carrying 'Manager' /
+          // 'Member' mints that string, and every READ path
+          // (resolveEdgeRole: landing, override gate, header chip)
+          // resolves it deterministically — the victim is freed without
+          // breaking the rules equality check here.
           role: invite.role,
           displayName: firebaseUser?.displayName || firebaseUser?.email || 'Member',
           email: firebaseUser?.email || '',

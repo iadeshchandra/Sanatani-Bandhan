@@ -13,7 +13,7 @@ import {
   criticalUnreadInScope,
 } from '../../notifications/orgScope';
 import { MODULE_CATALOG } from '../common/Sidebar';
-import { ROLE_MIGRATION_MAP } from '../../types';
+import { normalizeMembershipRole, resolveEdgeRole } from '../../lib/landingSurface';
 import { T } from '../../solo/ui';
 import { OrgLogo } from '../common/OrgLogo';
 
@@ -124,8 +124,12 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     [myMemberships, orgId]
   );
   const displayRole = useMemo(() => {
-    const raw = membership?.role || (currentRole as string);
-    return (ROLE_MIGRATION_MAP[raw] || raw || 'Devotee') as string;
+    // QUEUED #56 (audit A2-D1): the chip displays the RESOLVED role,
+    // never the raw edge string — a legacy 'Manager' edge reads
+    // "Sevadar" (its migration-map intent), 'Member'/unknown reads
+    // "Devotee", matching what every gate actually grants this user.
+    if (membership) return resolveEdgeRole(membership.role) as string;
+    return (normalizeMembershipRole(currentRole as string) || 'Devotee') as string;
   }, [membership, currentRole]);
 
   // Publish the per-org role into the auth context so every RBAC check

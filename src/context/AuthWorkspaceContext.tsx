@@ -8,6 +8,8 @@ import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
 import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
 import { activationForCreatedWorkspace } from '../lib/workspaceActivation';
+import { resolveEdgeRole, personaHomeModule } from '../lib/landingSurface';
+import { isModuleAllowedForOrgMount, resolveOrgModuleId } from '../lib/workspaceRegistry';
 import {
   generatePinHash,
   verifyPinHash,
@@ -1031,16 +1033,28 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
    * V6 RBAC: the raw orgRoleOverride setter must never be handed to arbitrary
    * components — whoever holds it can escalate privilege (it drives
    * checkPermission() via effectiveRole). The context exposes this guarded
-   * wrapper instead: it passes through null (session clear) and recognized
-   * role values from ROLE_MIGRATION_MAP, and rejects arbitrary strings.
-   * Sole legitimate publisher remains OrgSpaceShell (membership edge role).
+   * wrapper instead. Sole legitimate publisher remains OrgSpaceShell
+   * (membership edge role).
+   *
+   * QUEUED #56 (audit A2-D1): normalize-then-validate, never reject.
+   * The old gate passed through only exact ROLE_MIGRATION_MAP keys, so
+   * a stored edge role of 'Manager'/'Member' (offered by the invite
+   * dropdown, written verbatim to the edge) silently disabled the
+   * per-org override — the invitee fell back to their GLOBAL role
+   * (Devotee blackhole, or cross-org staff bleed). resolveEdgeRole
+   * maps every stored string deterministically to a canonical role
+   * ('Manager' → Sevadar via the migration map's intent; unknown →
+   * Devotee), so a bad stored string can never switch the override
+   * off — and can never escalate: unrecognized values resolve DOWN
+   * to the member floor, and recognized ones to exactly the role the
+   * rules-enforced edge record grants.
    */
   const setOrgRoleOverrideSafe = useCallback((next: string | null) => {
-    if (next === null || ROLE_MIGRATION_MAP[next]) {
-      setOrgRoleOverride(next);
+    if (next === null) {
+      setOrgRoleOverride(null);
       return;
     }
-    console.warn('[RBAC] setOrgRoleOverride rejected unrecognized role value; ignoring.');
+    setOrgRoleOverride(resolveEdgeRole(next));
   }, []);
 
   /**
@@ -1337,17 +1351,32 @@ const pinDeniedToast = (
         setCurrentDevotee(null);
       }
 
-      const destModule =
-        targetModule ||
-        (normalized === 'Devotee'
-          ? 'devoteePortal'
-          : normalized === 'Priest'
-          ? 'sanctum-hud'
-          : normalized === 'Accountant'
-          ? 'treasury-audit'
-          : normalized === 'CSO'
-          ? 'tactical-radar'
-          : 'dashboard');
+      // QUEUED #56 (audit A1-D05): a persona's home must be a desk that
+      // can actually MOUNT in the workspace being entered. The old map
+      // sent Priest → 'sanctum-hud' (an alias seam whose canonical
+      // desk, purohitDesk, is native to few org types) and CSO →
+      // 'tactical-radar' (native to NO org type) — the persona's first
+      // screen was the restricted desk. Defaults now resolve through
+      // personaHomeModule against the target workspace's mount gate,
+      // falling back to the Command Center; an explicit targetModule
+      // is canonicalised and mount-checked the same way.
+      const targetWsId = activeWorkspaceId.startsWith('DEMO_')
+        ? activeWorkspaceId
+        : 'DEMO_ws-mandir';
+      const targetWs = workspaces.find((w) => w.id === targetWsId);
+      const canMount = (id: string) => isModuleAllowedForOrgMount(targetWs, id);
+      let destModule: string;
+      if (targetModule) {
+        const canonical = resolveOrgModuleId(targetModule);
+        destModule =
+          normalized !== 'Devotee' && targetWs && !canMount(canonical)
+            ? 'dashboard'
+            : canonical;
+      } else if (normalized === 'Devotee') {
+        destModule = 'devoteePortal';
+      } else {
+        destModule = personaHomeModule(normalized, canMount);
+      }
 
       // Dispatch global custom event for instant navigation
       window.dispatchEvent(
@@ -1356,7 +1385,7 @@ const pinDeniedToast = (
         })
       );
     },
-    [activeWorkspaceId]
+    [activeWorkspaceId, workspaces]
   );
 
   const logout = async () => {

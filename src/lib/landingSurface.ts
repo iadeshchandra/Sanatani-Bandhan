@@ -55,6 +55,49 @@ export function normalizeMembershipRole(
     : null;
 }
 
+const MIGRATION_KEYS_BY_LOWER = new Map<string, string>(
+  Object.keys(ROLE_MIGRATION_MAP).map((k) => [k.toLowerCase(), k]),
+);
+
+/**
+ * QUEUED #56 (audit A2-D1) — deterministic resolution of a STORED
+ * membership-edge role. Unlike normalizeMembershipRole (which returns
+ * null for unreadable values so LANDING can hold at 'pending'), an edge
+ * that EXISTS is proof of membership: its role must resolve to SOME
+ * canonical role, never to "no override" — the old reject-the-string
+ * behaviour silently disabled the per-org override, trapping the
+ * invitee in their global role (Devotee blackhole, or cross-org staff
+ * bleed). Resolution order:
+ *
+ *  1. Exact migration-map / canonical match ('MANAGER' → Sevadar).
+ *  2. Case-insensitive sweep of the migration map — the title-case
+ *     spellings the map's exact keys miss ('Manager' → Sevadar,
+ *     'Purohit' → Priest, 'Volunteer' → Sevadar).
+ *  3. Anything else ('Member', or any unknown string) → 'Devotee':
+ *     a member-level floor. An unrecognized edge role can never
+ *     escalate anyone — it can only ever resolve DOWN to the
+ *     member role the edge's existence already proves.
+ *
+ * Used at invite write (sendInvite stores canonical roles), at the
+ * per-org override gate (setOrgRoleOverrideSafe), at landing
+ * (resolveOrgLandingRole step 2), and for the header role chip — one
+ * helper, one truth.
+ */
+export function resolveEdgeRole(
+  role: string | null | undefined,
+): UserRole {
+  const exact = normalizeMembershipRole(role);
+  if (exact) return exact;
+  if (role) {
+    const key = MIGRATION_KEYS_BY_LOWER.get(role.trim().toLowerCase());
+    if (key) {
+      const swept = normalizeMembershipRole(key);
+      if (swept) return swept;
+    }
+  }
+  return 'Devotee';
+}
+
 /**
  * The landing surface for a membership role. `resolved` is false while
  * the per-org role is still loading — an unresolved role can only ever
@@ -97,7 +140,11 @@ export interface OrgLandingRole {
  *  1. SuperAdmin global role — platform clearance in every org (mirrors
  *     effectiveRole, which short-circuits before the per-org override).
  *  2. The workspaceMembers edge — the rules-enforced truth for this
- *     org; authoritative the moment it exists, even mid-load.
+ *     org; authoritative the moment it exists, even mid-load. A
+ *     present-but-unreadable edge role (legacy 'Manager'/'Member')
+ *     resolves deterministically via resolveEdgeRole — the edge's
+ *     existence is membership evidence, so the global fallback must
+ *     NOT speak for this org (that fallback was the cross-org bleed).
  *  3. Demo sandboxes hold no edges — the persona role IS the role.
  *  4. H-11: the recorded creator of the workspace is its Trustee.
  *  5. No edge: the global fallback may speak ONLY once the edge list
@@ -115,9 +162,11 @@ export function resolveOrgLandingRole(
     return { role: 'SuperAdmin', resolved: true };
   }
 
-  const edgeRole = normalizeMembershipRole(membershipRole);
-  if (edgeRole) {
-    return { role: edgeRole, resolved: true };
+  if (membershipRole && membershipRole.trim()) {
+    // An edge exists for THIS org: it speaks, deterministically, even
+    // when its stored role string is a legacy/invite-invented value
+    // ('Manager' → Sevadar, 'Member'/unknown → Devotee).
+    return { role: resolveEdgeRole(membershipRole), resolved: true };
   }
 
   if (workspaceId.startsWith('DEMO_')) {
@@ -137,4 +186,43 @@ export function resolveOrgLandingRole(
   return globalNormalized
     ? { role: globalNormalized, resolved: true }
     : { role: null, resolved: false };
+}
+
+/**
+ * QUEUED #56 (audit A1-D05) — persona role homes.
+ * =====================================================================
+ * switchPersona's old landing map sent Priest → 'sanctum-hud' (an
+ * alias seam whose canonical desk, purohitDesk, is native to only a
+ * few org types) and CSO → 'tactical-radar' (native to NO org type),
+ * so a demo Priest/CSO's first screen was the restricted desk. The
+ * law: a persona's home is the first desk from its candidate list
+ * that can actually MOUNT in the workspace being entered (the caller
+ * supplies the mount check — isModuleAllowedForOrgMount against the
+ * target workspace), falling back to the Command Center ('dashboard',
+ * org-agnostic, mounts everywhere). Candidates are canonical ids, in
+ * preference order:
+ *
+ *  - Priest: the Purohit desk where the org type is ritual-native
+ *    (Tirth, PurohitSabha, KashiKshetra, …), else the puja-booking
+ *    desk (native to Mandir and most ritual types), else dashboard.
+ *  - Accountant: the Treasury ledger (native to every operating type).
+ *  - CSO: Gate Check-In (native to Mandir et al., and its mount guard
+ *    names CSO), else Crisis Command, else dashboard.
+ */
+export const PERSONA_HOME_CANDIDATES: Record<string, string[]> = {
+  Priest: ['purohitDesk', 'poojaBooking'],
+  Accountant: ['treasury'],
+  CSO: ['checkin', 'crisis-command'],
+};
+
+export function personaHomeModule(
+  role: UserRole | string | null | undefined,
+  canMount: (moduleId: string) => boolean,
+): string {
+  const normalized = normalizeMembershipRole(role);
+  const candidates = (normalized && PERSONA_HOME_CANDIDATES[normalized]) || [];
+  for (const id of candidates) {
+    if (canMount(id)) return id;
+  }
+  return 'dashboard';
 }

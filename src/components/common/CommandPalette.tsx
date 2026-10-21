@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock, CalendarCheck2, Home } from 'lucide-react';
 import { MODULE_CATALOG, NavItem } from './Sidebar';
 import { isModuleAllowed } from '../../lib/workspaceRegistry';
+import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { getRecentDesks, recordDeskVisit } from './ui/deskHistory';
@@ -53,7 +54,7 @@ function fuzzyScore(query: string, text: string): number {
  * (dispatched by the Header search trigger).
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }) => {
-  const { activeWorkspace, setViewMode, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
+  const { activeWorkspace, setViewMode, updateWorkspaceDetails, checkPermission, effectiveRole } = useAuthWorkspace();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -108,9 +109,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     };
   }, [open ]);
 
+  // QUEUED #56 (audit A2-D2): taxonomy AND role. The palette used to
+  // filter by org taxonomy only, offering Treasury/POS/restricted desks
+  // to roles whose nav hides them — every such pick landed on
+  // RestrictedAccess. The role decision is the Sidebar's own, shared
+  // via src/lib/deskVisibility.ts (recents below draw from this same
+  // list, so they inherit the filter).
   const desks = useMemo(
-    () => MODULE_CATALOG.filter((m) => isModuleAllowed(activeWorkspace, m.id)),
-    [activeWorkspace]
+    () =>
+      MODULE_CATALOG.filter(
+        (m) =>
+          isModuleAllowed(activeWorkspace, m.id) &&
+          isDeskVisibleForRole(m, effectiveRole, checkPermission)
+      ),
+    [activeWorkspace, effectiveRole, checkPermission]
   );
 
   // Seva Suggestions: modules not yet enabled but installable from the store.
@@ -143,23 +155,35 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
 
   const quickActions: PaletteItem[] = useMemo(
     () => {
+      // QUEUED #56 (audit A2-D2): quick actions are gated by the SAME
+      // checkPermission sets as their desks' mount guards in App.tsx —
+      // an action a role cannot mount is never offered to that role.
+      // (qa-personal is a view switch, not a desk — open to everyone.)
       const actions: PaletteItem[] = [
-        {
-          key: 'qa-treasury',
-          kind: 'action',
-          label: 'Open Treasury Ledger',
-          sub: 'Financials & Assets · new voucher',
-          icon: Landmark,
-          run: () => onSelectModule('treasury'),
-        },
-        {
-          key: 'qa-pos',
-          kind: 'action',
-          label: 'Quick Chanda POS',
-          sub: 'Financials & Assets · counter collection',
-          icon: Receipt,
-          run: () => onSelectModule('quick-chanda-pos'),
-        },
+        ...(checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE'])
+          ? [
+              {
+                key: 'qa-treasury',
+                kind: 'action' as const,
+                label: 'Open Treasury Ledger',
+                sub: 'Financials & Assets · new voucher',
+                icon: Landmark,
+                run: () => onSelectModule('treasury'),
+              },
+            ]
+          : []),
+        ...(checkPermission(['TRUSTEE', 'ACCOUNTANT', 'SEVADAR', 'SuperAdmin'])
+          ? [
+              {
+                key: 'qa-pos',
+                kind: 'action' as const,
+                label: 'Quick Chanda POS',
+                sub: 'Financials & Assets · counter collection',
+                icon: Receipt,
+                run: () => onSelectModule('quick-chanda-pos'),
+              },
+            ]
+          : []),
         {
           key: 'qa-personal',
           kind: 'action',
@@ -174,7 +198,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
       // palette action primes the suite's initial tab (sessionStorage
       // hand-off read once by PathshalaDesk) and opens the suite, so
       // "attendance" is reachable without hunting through tabs.
-      if (activeWorkspace && isModuleAllowed(activeWorkspace, 'pathshala')) {
+      const pathshalaEntry = MODULE_CATALOG.find((m) => m.id === 'pathshala');
+      if (
+        activeWorkspace &&
+        isModuleAllowed(activeWorkspace, 'pathshala') &&
+        pathshalaEntry &&
+        isDeskVisibleForRole(pathshalaEntry, effectiveRole, checkPermission)
+      ) {
         actions.push({
           key: 'qa-attendance',
           kind: 'action',
@@ -194,10 +224,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
       // QUEUED #48 — Ashram residents as their own palette entry. The
       // residents live on the Kutirs tab of the Ashram Kutir desk
       // (rooms + occupied stays), which is that desk's default tab.
+      const ashramKutirEntry = MODULE_CATALOG.find((m) => m.id === 'ashramKutir');
       if (
         activeWorkspace &&
         (activeWorkspace.type === 'Ashram' || activeWorkspace.type === 'Yoga') &&
-        isModuleAllowed(activeWorkspace, 'ashramKutir')
+        isModuleAllowed(activeWorkspace, 'ashramKutir') &&
+        ashramKutirEntry &&
+        isDeskVisibleForRole(ashramKutirEntry, effectiveRole, checkPermission)
       ) {
         actions.push({
           key: 'qa-residents',
@@ -210,7 +243,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
       }
       return actions;
     },
-    [onSelectModule, setViewMode, activeWorkspace]
+    [onSelectModule, setViewMode, activeWorkspace, checkPermission, effectiveRole]
   );
 
   const items: PaletteItem[] = useMemo(() => {
