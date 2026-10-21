@@ -353,8 +353,8 @@ export const OrgBrandingSection = forwardRef<BrandingSectionHandle, Props>(({ on
 
       {/* Sample receipt PDF modal */}
       {previewUrl && (
-        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Sample receipt preview">
-          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-label="Sample receipt preview">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
               <p className="text-sm font-black text-gray-900">
                 <T en="Sample receipt — how your letterhead prints" bn="নমুনা রসিদ — আপনার লেটারহেড যেমন ছাপা হবে" hi="नमूना रसीद — आपका लेटरहेड ऐसे छपेगा" />

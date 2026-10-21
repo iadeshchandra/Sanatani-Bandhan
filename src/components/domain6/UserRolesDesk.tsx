@@ -212,9 +212,9 @@ export const UserRolesDesk: React.FC = () => {
 
       {/* 3. Edit Access Matrix Modal */}
       {isEditModalOpen && selectedStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full flex flex-col overflow-hidden shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 px-6 pt-5 shrink-0">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-bold text-slate-900">
@@ -230,7 +230,7 @@ export const UserRolesDesk: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60">
                 <p className="font-bold text-slate-900 text-sm">{selectedStaff.name}</p>
                 <p className="text-slate-500">{selectedStaff.email}</p>
@@ -270,7 +270,7 @@ export const UserRolesDesk: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-3 border-t border-slate-100 shrink-0 px-6 py-4">
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}

@@ -278,9 +278,12 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
                 pokeIdle();
               }}
               aria-label={t(crisisCopy.close)}
-              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-amber-950/90 text-amber-100/90 text-sm font-bold flex items-center justify-center shadow-md hover:bg-amber-900"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] -m-2 flex items-center justify-center"
             >
-              ×
+              {/* QUEUED #61 (A3-11): 44px hit area, original 28px visual. */}
+              <span className="w-7 h-7 rounded-full bg-amber-950/90 text-amber-100/90 text-sm font-bold flex items-center justify-center shadow-md hover:bg-amber-900">
+                ×
+              </span>
             </button>
           )}
         </div>
@@ -341,9 +344,12 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
           type="button"
           onClick={collapse}
           aria-label={t(crisisCopy.panicCollapse)}
-          className="absolute -top-2 -right-2 w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-stone-900/90 text-amber-100 flex items-center justify-center shadow-lg border border-amber-400/30 hover:bg-stone-800"
+          className="absolute -top-3.5 -right-3.5 w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
-          <X className="w-4 h-4" aria-hidden />
+          {/* QUEUED #61 (A3-11): 44px hit area, original 32px visual. */}
+          <span className="w-8 h-8 rounded-full bg-stone-900/90 text-amber-100 flex items-center justify-center shadow-lg border border-amber-400/30 hover:bg-stone-800">
+            <X className="w-4 h-4" aria-hidden />
+          </span>
         </button>
       </div>
       <span className="text-[11px] font-bold text-amber-950 bg-amber-100/95 px-2.5 py-0.5 rounded-full shadow">

@@ -24,6 +24,9 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 /**
  * Accessible modal: focus trap, Esc to close, backdrop click (optional),
  * aria-modal semantics, body scroll lock, and focus restoration.
+ * QUEUED #61 (A3-6): the panel docks as a bottom sheet on small screens
+ * (items-end, rounded top) and centres on sm+ — the modal law the #61
+ * sweep applied across the hand-rolled org-desk modals.
  */
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
@@ -93,7 +96,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="presentation"
     >
       <div
@@ -109,8 +112,8 @@ export const Modal: React.FC<ModalProps> = ({
         aria-describedby={subtitle ? descId : undefined}
         tabIndex={-1}
         className={[
-          'relative w-full bg-temple-900 border border-temple-700 rounded-2xl shadow-2xl',
-          'max-h-[90vh] flex flex-col outline-none',
+          'relative w-full bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl shadow-2xl',
+          'max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col outline-none',
           'focus-visible:ring-2 focus-visible:ring-saffron-500',
           'anim-modal',
           SIZE_CLASSES[size],

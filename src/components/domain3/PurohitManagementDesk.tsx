@@ -1434,11 +1434,11 @@ export const PurohitManagementDesk: React.FC = () => {
           MODAL 1: SMART MATCH PUROHIT ASSIGNMENT
       ======================================================== */}
       {selectedBookingForMatch && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-stone-800 pb-4">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-4 px-6 pt-5 shrink-0">
               <div>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   Smart Match Engine
@@ -1460,7 +1460,7 @@ export const PurohitManagementDesk: React.FC = () => {
             </div>
 
             {/* Ranked Acharyas List */}
-            <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-1">
+            <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-1 min-h-0 grow px-6 py-4">
               {rankedPriestsForBooking.map(({ priest, score }) => (
                 <div
                   key={priest.id}
@@ -1515,10 +1515,10 @@ export const PurohitManagementDesk: React.FC = () => {
           MODAL 2: REGISTER NEW PUROHIT
       ======================================================== */}
       {isAddPriestOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-lg font-black text-amber-100">
                   Register Vedic Acharya into Parishad
@@ -1536,7 +1536,8 @@ export const PurohitManagementDesk: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleRegisterPurohit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleRegisterPurohit} className="flex flex-col min-h-0 grow text-xs">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-stone-400 font-bold block mb-1">Acharya Full Name *</label>
@@ -1660,7 +1661,8 @@ export const PurohitManagementDesk: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-stone-800 flex items-center justify-end gap-2">
+              </div>
+              <div className="border-t border-stone-800 flex items-center justify-end gap-2 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAddPriestOpen(false)}
@@ -1685,9 +1687,9 @@ export const PurohitManagementDesk: React.FC = () => {
           MODAL 3: ACHARYA DOSSIER VIEWER
       ======================================================== */}
       {selectedPriestModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-black text-xl">
                   🕉️
@@ -1706,7 +1708,7 @@ export const PurohitManagementDesk: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800">
                   <span className="text-[10px] text-stone-400 uppercase font-bold block">Veda Shakha</span>
@@ -1760,9 +1762,9 @@ export const PurohitManagementDesk: React.FC = () => {
           MODAL 4: DISBURSE DAKSHINA SETTLEMENT
       ======================================================== */}
       {settlingBooking && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-base font-black text-white">Disburse Priest Honorarium</h3>
                 <p className="text-xs text-stone-400">{settlingBooking.poojaName}</p>
@@ -1770,13 +1772,13 @@ export const PurohitManagementDesk: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSettlingBooking(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Gross Dakshina:</span>
@@ -1834,9 +1836,9 @@ export const PurohitManagementDesk: React.FC = () => {
           MODAL 5: REASSIGN SHIFT IN ROSTER
       ======================================================== */}
       {shiftEditModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-base font-black text-white">Reassign Aarti Duty Shift</h3>
                 <p className="text-xs text-amber-400 font-medium">{shiftEditModal.pujaName} ({shiftEditModal.timings})</p>
@@ -1844,13 +1846,13 @@ export const PurohitManagementDesk: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShiftEditModal(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div>
                 <label className="text-stone-400 font-bold block mb-1">Select Lead Acharya</label>
                 <select

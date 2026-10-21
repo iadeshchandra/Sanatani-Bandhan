@@ -356,9 +356,9 @@ export const PanchayatPollingDesk: React.FC = () => {
 
       {/* Propose Resolution Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-sm">
-          <div className="bg-temple-900 border border-temple-700 rounded-3xl max-w-lg w-full p-6 text-temple-100 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-temple-800 mb-5">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-sm">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between pb-4 border-b border-temple-800 px-6 pt-5 shrink-0">
               <h3 className="text-xl font-black text-white flex items-center gap-2">
                  <Vote className="text-indigo-500 w-6 h-6"/> Propose Resolution <LocalOnlyBadge />
               </h3>
@@ -367,7 +367,8 @@ export const PanchayatPollingDesk: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={handleCreatePoll} className="space-y-4">
+            <form onSubmit={handleCreatePoll} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               <div>
                 <label className="block text-[10px] font-black text-temple-400 uppercase tracking-widest mb-1.5">Resolution Title *</label>
                 <input
@@ -431,7 +432,8 @@ export const PanchayatPollingDesk: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex items-center justify-end gap-3 pt-6">
+              </div>
+              <div className="flex items-center justify-end gap-3 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
@@ -453,8 +455,8 @@ export const PanchayatPollingDesk: React.FC = () => {
 
       {/* Cryptographic Audit Trail Modal */}
       {auditPoll && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-sm">
-          <div className="bg-temple-900 border border-temple-700 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-sm">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="p-6 border-b border-temple-800 flex justify-between items-center bg-temple-800/30">
               <div>
                 <h3 className="text-xl font-black text-white flex items-center gap-2">

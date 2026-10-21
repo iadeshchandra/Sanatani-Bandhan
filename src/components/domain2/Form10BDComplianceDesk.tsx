@@ -924,17 +924,17 @@ export const Form10BDComplianceDesk: React.FC = () => {
           MODAL: RECTIFY 10BD RECORD
       ===================================================================== */}
       {editingRow && (
-        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative text-xs">
+        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl relative text-xs max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <button
               type="button"
               onClick={() => setEditingRow(null)}
-              className="absolute top-5 right-5 text-stone-400 hover:text-white"
+              className="absolute top-3 right-3 text-stone-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div>
+            <div className="px-6 pt-5 shrink-0">
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Income Tax Form 10BD Rectification
               </span>
@@ -943,7 +943,8 @@ export const Form10BDComplianceDesk: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+            <form onSubmit={handleSaveEdit} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div>
                 <label className="text-stone-300 font-bold block mb-1">Donor Legal Name *</label>
                 <input
@@ -1034,7 +1035,8 @@ export const Form10BDComplianceDesk: React.FC = () => {
                 </div>
               )}
 
-              <div className="pt-2 flex justify-end gap-2">
+              </div>
+              <div className="flex justify-end gap-2 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setEditingRow(null)}
@@ -1054,8 +1056,8 @@ export const Form10BDComplianceDesk: React.FC = () => {
           CONFIRMATION DIALOG: EXPORTING WITH CBDT WARNINGS
       ===================================================================== */}
       {isExportConfirmOpen && (
-        <div className="fixed inset-0 z-50 bg-stone-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-rose-500/50 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-xs">
+        <div className="fixed inset-0 z-50 bg-stone-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-rose-500/50 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative text-xs max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3 text-rose-400">
               <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-rose-400" />

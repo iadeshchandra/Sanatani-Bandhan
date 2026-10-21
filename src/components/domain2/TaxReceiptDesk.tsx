@@ -737,9 +737,9 @@ export const TaxReceiptDesk: React.FC = () => {
 
       {/* UPDATE PAN MODAL */}
       {editingTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-temple-900 border border-amber-500/40 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-temple-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-temple-900 border border-amber-500/40 rounded-t-3xl sm:rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-temple-800 pb-3 px-6 pt-5 shrink-0">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-amber-400" />
                 <h3 className="font-bold text-base text-temple-100">{t('org.finance.taxReceipts.updateDonorPanForm10be')}</h3>
@@ -753,7 +753,8 @@ export const TaxReceiptDesk: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSavePan} className="space-y-4">
+            <form onSubmit={handleSavePan} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               <div className="bg-temple-950/70 p-3 rounded-xl border border-temple-800 space-y-1">
                 <p className="text-xs text-temple-400">{t('org.finance.taxReceipts.donor')}<span className="font-bold text-temple-200">{editingTx.devoteeName}</span>
                 </p>
@@ -782,7 +783,8 @@ export const TaxReceiptDesk: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              </div>
+              <div className="flex items-center justify-end gap-3 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setEditingTx(null)}

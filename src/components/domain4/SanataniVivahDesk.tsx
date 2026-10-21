@@ -542,8 +542,8 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
       )}
 
       {selectedProfile && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-temple-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-temple-200 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-temple-200 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             {(() => {
               const conn = connections[selectedProfile.uid];
               const status = conn?.status;
@@ -555,7 +555,7 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
 
               return (
                 <>
-                  <div className="relative h-64 bg-temple-100">
+                  <div className="relative h-64 bg-temple-100 shrink-0">
                     {selectedProfile.photoUrl ? (
                       <img 
                         src={selectedProfile.photoUrl || undefined} 
@@ -567,7 +567,7 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
                         <UserCircle size={80} className="text-temple-300"/>
                       </div>
                     )}
-                    <button onClick={() => setSelectedProfile(null)} className="absolute top-4 right-4 bg-white/50 hover:bg-white/90 backdrop-blur-md p-2 rounded-full text-temple-900 transition-all shadow-sm">
+                    <button onClick={() => setSelectedProfile(null)} className="absolute top-4 right-4 bg-white/50 hover:bg-white/90 backdrop-blur-md p-2 rounded-full text-temple-900 transition-all shadow-sm min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Close">
                       <X size={20}/>
                     </button>
                     {!isConnected && (
@@ -576,7 +576,7 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
                       </div>
                     )}
                   </div>
-                  <div className="p-8">
+                  <div className="p-8 overflow-y-auto min-h-0">
                     <h2 className="text-2xl font-black text-temple-900 tracking-tight mb-2">{maskedName}</h2>
                     <p className="text-sm font-bold text-temple-500 flex items-center gap-2 mb-6">
                       <span>{selectedProfile.dob || 'Age NA'}</span> 
@@ -638,8 +638,8 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
 
       {/* CHAT OVERLAY */}
       {activeChatProfile && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4 bg-temple-950/60 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-2xl h-full max-h-[85vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-2xl h-full max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col">
             <DirectMessageChat 
               recipientId={activeChatProfile.uid}
               recipientName={activeChatProfile.name}

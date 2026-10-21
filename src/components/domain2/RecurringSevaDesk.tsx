@@ -506,9 +506,9 @@ export const RecurringSevaDesk: React.FC = () => {
 
       {/* New subscription modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
           <div
-            className="bg-temple-900 border border-temple-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl"
+            className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -581,9 +581,9 @@ export const RecurringSevaDesk: React.FC = () => {
 
       {/* Record payment modal */}
       {payingSub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setPayingSub(null)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-sm" onClick={() => setPayingSub(null)}>
           <div
-            className="bg-temple-900 border border-temple-700 rounded-2xl w-full max-w-md p-6 shadow-2xl"
+            className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -599,7 +599,8 @@ export const RecurringSevaDesk: React.FC = () => {
               <span className="text-temple-100 font-bold">{payingSub.devoteeName}</span> · {payingSub.planName} · {payingSub.frequency}
               <br />This auto-posts an <span className="text-emerald-300 font-bold">Income</span> entry to the Treasury Ledger.
             </p>
-            <form onSubmit={handlePay} className="space-y-4">
+            <form onSubmit={handlePay} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               <div>
                 <label className={labelCls} htmlFor="pay-amount">Amount ({wsCurrency.symbol}) *</label>
                 <input id="pay-amount" type="number" min="1" className={inputCls} value={pAmount} onChange={(e) => setPAmount(e.target.value === '' ? '' : Number(e.target.value))} required />
@@ -617,6 +618,7 @@ export const RecurringSevaDesk: React.FC = () => {
                 </div>
               </div>
               <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all cursor-pointer min-h-[48px]">{t('org.finance.recurringSeva.collectPostToTreasury')}</button>
+              </div>
             </form>
           </div>
         </div>

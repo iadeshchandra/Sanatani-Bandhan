@@ -23,7 +23,9 @@ import { OrgLogo } from '../common/OrgLogo';
  * AppContentRouter: <OrgSpaceShell><AppContent /></OrgSpaceShell>.
  * It adds, without touching AppContent's desk navigation:
  *
- *  - Header: back button (← Home → solo session), org name, and a role
+ *  - Header: back button (← Home → solo session), the org's mark +
+ *    breadcrumb (the org NAME renders once, in the ERP header below —
+ *    QUEUED #61 A3-1), and a role
  *    chip that reflects the user's ACTUAL role in THIS org (from the
  *    rules-enforced workspaceMembers edge via myMemberships), falling
  *    back to the global role when the edge has not loaded yet.
@@ -156,6 +158,13 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     () => MODULE_CATALOG.find((m) => m.id === deskId)?.name || prettifyDeskId(deskId),
     [deskId]
   );
+  // QUEUED #61 (A3-1): the breadcrumb root names the place it goes — the
+  // org's Command Center — instead of repeating the org name (which the
+  // ERP header directly below already renders, with type + city).
+  const commandCenterLabel = useMemo(
+    () => MODULE_CATALOG.find((m) => m.id === 'dashboard')?.name || 'Command Center',
+    []
+  );
 
   // F-RBAC-1: the devotee preview renders chromeless — the org-space header
   // (org name, breadcrumb, role chip) and the first-entry hint must not leak
@@ -245,30 +254,36 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             <span aria-hidden className="text-lg leading-none">←</span>
             <T en="Home" bn="হোম" hi="होम" />
           </button>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 min-w-0">
-              {/* Pillar 1 — the org's own mark (logo or monogram), never a generic icon. */}
-              <OrgLogo
-                name={orgName}
-                logoUrl={(activeWorkspace as any)?.logoUrl}
-                size={36}
-                withRing={false}
-              />
-              <h1 className="text-white font-extrabold text-sm sm:text-base truncate">{orgName}</h1>
-            </div>
-            <nav aria-label="Breadcrumb" className="text-[11px] text-amber-400/70 font-medium truncate mt-0.5">
-              {/* QUEUED #50 (D11e): root crumb = this org's Command Center,
-                  not an exit. Leaving lives on the ← Home button. */}
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            {/* Pillar 1 — the org's own mark (logo or monogram), never a generic icon. */}
+            <OrgLogo
+              name={orgName}
+              logoUrl={(activeWorkspace as any)?.logoUrl}
+              size={32}
+              withRing={false}
+            />
+            {/* QUEUED #61 (A3-1 + breadcrumb truncation): ONE org name —
+                the ERP header below renders it (with type + city); this
+                bar keeps the mark + breadcrumb only, so the stacked
+                mobile chrome sheds a line. The crumb path gets a real
+                flex row: root + separator never shrink, the desk segment
+                truncates (min-w-0) instead of clipping mid-word.
+                QUEUED #50 (D11e) stands: root = Command Center, not exit. */}
+            <nav aria-label="Breadcrumb" className="flex items-center min-w-0 text-xs font-medium">
               <button
                 type="button"
                 onClick={goCommandCenter}
-                className="text-amber-200/90 hover:text-amber-300 underline-offset-2 hover:underline"
+                className="shrink-0 min-h-[44px] flex items-center font-bold text-amber-200/90 hover:text-amber-300 underline-offset-2 hover:underline"
                 title={`${orgName} — Command Center`}
               >
-                {orgName}
+                {commandCenterLabel}
               </button>
-              <span aria-hidden className="mx-1">›</span>
-              <span className="text-amber-400/80">{deskLabel}</span>
+              {deskId !== 'dashboard' && (
+                <>
+                  <span aria-hidden className="mx-1 shrink-0 text-amber-400/70">›</span>
+                  <span className="text-amber-400/80 truncate min-w-0">{deskLabel}</span>
+                </>
+              )}
             </nav>
           </div>
           {/* QUEUED #50 (D8): org Suchana bell — every width, this org only. */}

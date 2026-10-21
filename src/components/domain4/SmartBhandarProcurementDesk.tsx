@@ -1522,9 +1522,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: ACCEPT GRN & POST TO TREASURY
       ===================================================================== */}
       {isAcceptGRNModalOpen && selectedPOForGRN && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                   Goods Receipt Note (GRN) Inward
@@ -1545,7 +1545,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </button>
             </div>
 
-            <form onSubmit={handleExecuteAcceptGRN} className="space-y-4 text-xs">
+            <form onSubmit={handleExecuteAcceptGRN} className="flex flex-col min-h-0 grow text-xs">
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-4">
               <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 space-y-2">
                 <span className="text-[10px] text-stone-400 uppercase font-black block">
                   Items to Inward:
@@ -1593,7 +1594,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 ⚡ <strong>Treasury Handoff:</strong> Clicking "Accept GRN" will automatically update stock in Bhandar and log an expense transaction in the Mandir Treasury under <em>Bhandar & Ration Procurement</em>.
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-stone-800 shrink-0 px-6 sm:px-8 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAcceptGRNModalOpen(false)}
@@ -1618,9 +1620,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: SCALE RECIPE BOM & RESERVE STOCK
       ===================================================================== */}
       {selectedBOMForScaling && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
                   Recipe BOM Scaling & Stock Reservation
@@ -1638,7 +1640,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-xs overflow-y-auto min-h-0 grow px-6 sm:px-8 py-4">
               <div>
                 <label className="text-stone-300 font-bold block mb-1">
                   Target Event Multiplier / Batches
@@ -1730,9 +1732,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: QUICK STOCK ADJUSTMENT
       ===================================================================== */}
       {adjustItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-md w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-400">Stock Adjustment</span>
                 <h3 className="text-base font-black text-white mt-0.5">{adjustItem.name}</h3>
@@ -1747,7 +1749,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 sm:px-8 py-4">
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -1807,9 +1809,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: ADD NEW BHANDAR ITEM
       ===================================================================== */}
       {isAddItemModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-400">Inventory Catalog</span>
                 <h3 className="text-lg font-black text-white mt-0.5">Register New Bhandar Item</h3>
@@ -1855,8 +1857,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 setIsAddItemModalOpen(false);
                 showToast(`Registered "${name}" into Bhandar master catalog! 📦`, 'success');
               }}
-              className="space-y-3.5 text-xs"
+              className="flex flex-col min-h-0 grow text-xs"
             >
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="text-stone-300 font-bold block mb-1">Item Name *</label>
@@ -1950,7 +1953,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-stone-800 shrink-0 px-6 sm:px-8 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAddItemModalOpen(false)}
@@ -1974,9 +1978,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: VIEW PRINTABLE GRN VOUCHER
       ===================================================================== */}
       {viewingGRNVoucher && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-5 animate-scaleUp">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
                   Official Goods Receipt Voucher
@@ -1997,7 +2001,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </button>
             </div>
 
-            <div className="space-y-3 text-xs bg-stone-950 p-4 rounded-2xl border border-stone-800">
+            <div className="space-y-3 text-xs bg-stone-950 p-4 rounded-2xl border border-stone-800 overflow-y-auto min-h-0 grow">
               <div className="flex justify-between">
                 <span className="text-stone-400">Vendor:</span>
                 <span className="text-white font-bold">{viewingGRNVoucher.vendorName}</span>
@@ -2031,7 +2035,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-2">
+            <div className="flex items-center justify-between gap-3 shrink-0 px-6 sm:px-8 py-4">
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -2057,9 +2061,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: CREATE MANUAL PURCHASE ORDER
       ===================================================================== */}
       {isNewPOModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-400">Procurement Desk</span>
                 <h3 className="text-lg font-black text-white mt-0.5">Draft Purchase Order</h3>
@@ -2113,8 +2117,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 setIsNewPOModalOpen(false);
                 showToast(`Draft PO ${newPO.poNumber} created successfully!`, 'success');
               }}
-              className="space-y-3.5 text-xs"
+              className="flex flex-col min-h-0 grow text-xs"
             >
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div>
                 <label className="text-stone-300 font-bold block mb-1">Select Preferred Vendor *</label>
                 <select
@@ -2166,7 +2171,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-stone-800 shrink-0 px-6 sm:px-8 py-4">
                 <button
                   type="button"
                   onClick={() => setIsNewPOModalOpen(false)}
@@ -2190,9 +2196,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           MODAL: ADD NEW RECIPE BOM
       ===================================================================== */}
       {isAddRecipeModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-4 animate-scaleUp">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-400">Recipe Engineering</span>
                 <h3 className="text-lg font-black text-white mt-0.5">Configure Shastric Recipe BOM</h3>
@@ -2234,8 +2240,9 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 setIsAddRecipeModalOpen(false);
                 showToast(`Recipe BOM "${name}" created successfully!`, 'success');
               }}
-              className="space-y-3.5 text-xs"
+              className="flex flex-col min-h-0 grow text-xs"
             >
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div>
                 <label className="text-stone-300 font-bold block mb-1">Recipe / Ritual Title *</label>
                 <input
@@ -2291,7 +2298,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-stone-800 shrink-0 px-6 sm:px-8 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAddRecipeModalOpen(false)}

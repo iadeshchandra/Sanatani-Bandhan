@@ -159,20 +159,21 @@ export const MandirCampaignsDesk: React.FC = () => {
 
       {/* Donation Modal */}
       {selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-6 text-temple-100 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full flex flex-col overflow-hidden text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-temple-800 px-6 pt-5 shrink-0">
               <h3 className="font-bold text-sm">Contribute to {selectedCampaign.title}</h3>
               <button
                 type="button"
                 onClick={() => setSelectedCampaign(null)}
-                className="text-temple-400 hover:text-temple-100"
+                className="text-temple-400 hover:text-temple-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleDonate} className="space-y-3 text-xs">
+            <form onSubmit={handleDonate} className="flex flex-col min-h-0 grow text-xs">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3">
               <div>
                 <label className="block text-temple-300 font-semibold mb-1">Donor Full Name *</label>
                 <input
@@ -207,7 +208,8 @@ export const MandirCampaignsDesk: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-temple-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-temple-800 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setSelectedCampaign(null)}

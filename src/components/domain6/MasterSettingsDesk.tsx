@@ -394,8 +394,8 @@ export const MasterSettingsDesk: React.FC = () => {
 
       {/* ✨ CONFIRMATION DIALOG PORTAL */}
       {confirmDialog && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 text-center border-t-4 border-sanatani-orange">
+        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 text-center border-t-4 border-sanatani-orange max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner ${confirmDialog.isDanger ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
               {confirmDialog.isDanger ? <AlertTriangle size={32}/> : <CheckCircle2 size={32}/>}
             </div>
@@ -435,15 +435,19 @@ export const MasterSettingsDesk: React.FC = () => {
       </div>
 
       {/* TABS NAVIGATION */}
-      <div className="flex gap-2 border-b border-gray-200 mb-2 overflow-x-auto scrollbar-hide">
-         <button onClick={() => setActiveTab('GENERAL')} className={`pb-3 text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GENERAL' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+      {/* QUEUED #61 (mobile clipping): the strip used to scroll sideways
+          with its scrollbar hidden, so "Billing & Subscription" clipped
+          mid-word with no affordance. Tabs now WRAP to a second row on
+          narrow screens — every label fully visible, nothing hidden. */}
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 mb-2">
+         <button onClick={() => setActiveTab('GENERAL')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GENERAL' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
            <Settings size={16}/> General Settings
          </button>
-         <button onClick={() => setActiveTab('BILLING')} className={`pb-3 text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'BILLING' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+         <button onClick={() => setActiveTab('BILLING')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'BILLING' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
            <CreditCard size={16}/> Billing & Subscription
          </button>
          {isOwnerEmail(auth.currentUser?.email) && (
-           <button onClick={() => setActiveTab('GEO')} className={`pb-3 text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GEO' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+           <button onClick={() => setActiveTab('GEO')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GEO' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
              <Globe size={16}/> Geo Payments
            </button>
          )}

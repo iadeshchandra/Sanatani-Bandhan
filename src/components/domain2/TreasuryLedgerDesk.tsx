@@ -1586,8 +1586,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
         {/* ATTACHED MEMO MODAL */}
         {selectedMemoUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/85 backdrop-blur-md">
-            <div className="bg-temple-900 border border-temple-700 rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
+            <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
                 <h4 className="font-bold text-xs">Attached Payment Memo / Voucher Photo</h4>
                 <button
@@ -1610,8 +1610,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
         {/* NEW VOUCHER ENTRY MODAL */}
         {showVoucherModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/85 backdrop-blur-md animate-in fade-in">
-            <div className="bg-temple-900 border border-amber-500/40 rounded-3xl w-full max-w-xl shadow-2xl p-6 text-temple-200 max-h-[92vh] overflow-y-auto custom-scrollbar">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md animate-in fade-in">
+            <div className="bg-temple-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl p-6 text-temple-200 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
                 <div>

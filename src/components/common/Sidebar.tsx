@@ -624,7 +624,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="hidden lg:flex p-1.5 rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 transition-colors"
+                className="hidden lg:flex p-1.5 min-w-[44px] min-h-[44px] items-center justify-center rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 transition-colors"
                 title={isCollapsed ? 'Expand Sidebar (280px)' : 'Collapse Sidebar to Icon Rail (72px)'}
               >
                 {isCollapsed ? <PanelLeftOpen className="w-4 h-4 text-saffron-400" /> : <PanelLeftClose className="w-4 h-4" />}
@@ -635,7 +635,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="lg:hidden p-2 rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 transition-colors"
+              className="lg:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-temple-400 hover:text-white hover:bg-temple-800 transition-colors"
               title="Close Menu"
             >
               <X className="w-5 h-5" />
@@ -686,6 +686,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <input
                 type="text"
                 id="sidebar-module-search"
+                data-guide-anchor="org-desk-search"
                 placeholder="Search desks (e.g. 80G, Pooja, Goshala)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

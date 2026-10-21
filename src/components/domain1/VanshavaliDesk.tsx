@@ -11,6 +11,10 @@ interface TreeNodeProps {
 }
 
 const TreeNodeComponent: React.FC<TreeNodeProps> = ({ node, onAddChild }) => {
+  // QUEUED #61 drive-by (pre-existing on HEAD, found by the tsc gate):
+  // this module-level component used t() with no t in scope — a runtime
+  // ReferenceError the moment a family node renders its action row.
+  const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const hasChildren = node.children && node.children.length > 0;
@@ -190,22 +194,23 @@ export const VanshavaliDesk: React.FC = () => {
 
       {/* Add Descendant Modal */}
       {selectedParent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-temple-700 rounded-2xl w-full max-w-md shadow-2xl p-6 text-temple-100">
-            <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl w-full max-w-md shadow-2xl flex flex-col overflow-hidden text-temple-100 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-temple-800 px-6 pt-5 shrink-0">
               <h3 className="font-bold text-sm">
                 Add Descendant under {selectedParent.name} (Gen {selectedParent.generation})
               </h3>
               <button
                 type="button"
                 onClick={() => setSelectedParent(null)}
-                className="text-temple-400 hover:text-temple-100"
+                className="text-temple-400 hover:text-temple-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveChild} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveChild} className="flex flex-col min-h-0 grow text-xs">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3">
               <div>
                 <label className="block text-temple-300 font-semibold mb-1">Descendant Name *</label>
                 <input
@@ -278,7 +283,8 @@ export const VanshavaliDesk: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-temple-800">
+              </div>
+              <div className="flex items-center justify-end gap-3 border-t border-temple-800 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setSelectedParent(null)}

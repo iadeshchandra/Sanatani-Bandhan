@@ -5,7 +5,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { callGeminiDirect } from '../../utils/geminiClient';
 
 export const TawkToWidget: React.FC = () => {
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, sessionKind } = useAuthWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
   const [messages, setMessages] = useState<
@@ -111,6 +111,13 @@ export const TawkToWidget: React.FC = () => {
     }
   };
 
+  // QUEUED #61 (A3-4): an unregulated second floater must never float over
+  // org work surfaces — the org view already carries its own chrome (Ask
+  // FAB, SOS strip, Suchana) and this drawer even fired inside the
+  // chromeless devotee preview. Suppressed for org sessions; behaviour on
+  // non-org surfaces is unchanged.
+  if (sessionKind === 'org') return null;
+
   return (
     <>
       {/* Floating Trigger Button */}
@@ -160,7 +167,8 @@ export const TawkToWidget: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg text-saffron-200 hover:text-saffron-50 hover:bg-temple-950/20"
+                aria-label="Close helpdesk"
+                className="p-1 -m-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-saffron-200 hover:text-saffron-50 hover:bg-temple-950/20"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -207,7 +215,8 @@ export const TawkToWidget: React.FC = () => {
               />
               <button
                 type="submit"
-                className="p-2 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 font-bold transition-all"
+                aria-label="Send message"
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 font-bold transition-all"
               >
                 <Send className="w-3.5 h-3.5" />
               </button>

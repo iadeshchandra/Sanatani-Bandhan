@@ -1065,8 +1065,8 @@ export const QuickChandaPOS: React.FC = () => {
       {/* 3. SIMULATED ESC/POS THERMAL RECEIPT SUCCESS MODAL                        */}
       {/* ========================================================================= */}
       {completedTransaction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-stone-900 border border-stone-700 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-stone-900 border border-stone-700 rounded-t-3xl sm:rounded-3xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-stone-800 flex items-center justify-between bg-stone-950">
               <div className="flex items-center gap-2.5">

@@ -1618,9 +1618,9 @@ export const PurohitPortalUnified: React.FC = () => {
           MODAL 1: ONBOARDING & APPLICATION WIZARD
       ===================================================================== */}
       {isApplyWizardOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
                   National Parishad Accreditation
@@ -1638,7 +1638,8 @@ export const PurohitPortalUnified: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCompleteApplication} className="space-y-3.5 text-xs">
+            <form onSubmit={handleCompleteApplication} className="flex flex-col min-h-0 grow text-xs">
+              <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-stone-400 font-bold block mb-1">Full Legal & Vedic Name *</label>
@@ -1743,7 +1744,8 @@ export const PurohitPortalUnified: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-stone-800 flex items-center justify-end gap-2">
+              </div>
+              <div className="border-t border-stone-800 flex items-center justify-end gap-2 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsApplyWizardOpen(false)}
@@ -1767,9 +1769,9 @@ export const PurohitPortalUnified: React.FC = () => {
           MODAL 2: GIG PROPOSAL & BIDDING MODAL
       ===================================================================== */}
       {selectedGigForBid && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-base font-black text-white">Submit Proposal for Ritual Gig</h3>
                 <p className="text-xs text-amber-400">{selectedGigForBid.title}</p>
@@ -1777,13 +1779,13 @@ export const PurohitPortalUnified: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedGigForBid(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Host Escrow Budget:</span>
@@ -1841,9 +1843,9 @@ export const PurohitPortalUnified: React.FC = () => {
           MODAL 3: SEVA LEAVE REQUEST MODAL
       ===================================================================== */}
       {selectedContractForLeave && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-base font-black text-white">Apply for Seva Leave</h3>
                 <p className="text-xs text-amber-400">{selectedContractForLeave.contractTitle}</p>
@@ -1851,13 +1853,13 @@ export const PurohitPortalUnified: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedContractForLeave(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Available Leave Balance:</span>
@@ -1915,9 +1917,9 @@ export const PurohitPortalUnified: React.FC = () => {
           MODAL 4: ESCROW PAYOUT REQUEST
       ===================================================================== */}
       {isPayoutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 my-8">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
                 <h3 className="text-base font-black text-white">Disburse Escrow Dakshina</h3>
                 <p className="text-xs text-stone-400">Withdraw available escrow honorarium to UPI</p>
@@ -1925,13 +1927,13 @@ export const PurohitPortalUnified: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsPayoutModalOpen(false)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-stone-400">Available Escrow:</span>

@@ -784,11 +784,15 @@ export const PoojaBookingDesk: React.FC = () => {
                             : 'bg-temple-950/70 border-temple-800 hover:border-amber-500/40 text-temple-300'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className={`font-bold text-xs ${isSelected ? 'text-amber-200' : 'text-temple-200'}`}>
+                        {/* QUEUED #61 (mobile clipping): the price span
+                            could shrink in this row, clipping its last
+                            digit at 390px. The row now wraps and the
+                            price never shrinks or breaks. */}
+                        <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5 mb-1">
+                          <span className={`font-bold text-xs min-w-0 ${isSelected ? 'text-amber-200' : 'text-temple-200'}`}>
                             {p.name}
                           </span>
-                          <span className="font-mono font-bold text-amber-400 text-[11px]">
+                          <span className="font-mono font-bold text-amber-400 text-[11px] shrink-0 whitespace-nowrap">
                             {inr(p.dakshina)}
                           </span>
                         </div>
@@ -1052,6 +1056,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 </div>
                 <button
                   type="submit"
+                  data-guide-anchor="org-rituals-book"
                   className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-500 hover:from-amber-400 hover:to-saffron-400 text-temple-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all"
                 >
                   <Flame className="w-4 h-4" />
@@ -1244,7 +1249,7 @@ export const PoojaBookingDesk: React.FC = () => {
                   </div>
 
                   <div className="pt-3 border-t border-temple-800 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-temple-400 font-mono">{inr(b.dakshinaAmount || 0)}</span>
+                    <span className="text-[10px] text-temple-400 font-mono shrink-0 whitespace-nowrap">{inr(b.dakshinaAmount || 0)}</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1284,9 +1289,10 @@ export const PoojaBookingDesk: React.FC = () => {
 
       {/* Cancellation Modal */}
       {cancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-rose-500/40 rounded-3xl max-w-md w-full p-6 text-temple-100 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-temple-800">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
+          <div className="bg-temple-900 border border-rose-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-temple-800 px-6 pt-5 shrink-0">
+            <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-4 grow">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-rose-400" />
                 <h3 className="font-black text-sm text-rose-200 uppercase tracking-wider">
@@ -1315,7 +1321,8 @@ export const PoojaBookingDesk: React.FC = () => {
               className="w-full bg-temple-950 border border-temple-700 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-rose-400"
             />
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            </div>
+            <div className="flex items-center justify-end gap-3 shrink-0 px-6 py-4">
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
@@ -1440,7 +1447,7 @@ const RosterBookingCard: React.FC<{
 
       {/* Action Footer */}
       <div className="pt-3 border-t border-temple-800 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[11px] font-mono font-bold text-amber-400">
+        <div className="text-[11px] font-mono font-bold text-amber-400 whitespace-nowrap">
           {inr((booking.dakshinaAmount || 0))}
         </div>
 

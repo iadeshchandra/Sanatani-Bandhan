@@ -1732,8 +1732,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           FULLSCREEN QR MODAL FOR SANCTUM GATE SCANNER
       ======================================================== */}
       {isQrModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-stone-950 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-stone-950 border-2 border-amber-500/50 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl relative max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <button
               type="button"
               onClick={() => setIsQrModalOpen(false)}
@@ -1785,8 +1785,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           EDIT PROFILE MODAL
       ======================================================== */}
       {isEditProfileOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-950 border border-stone-800 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-950 border border-stone-800 rounded-t-3xl sm:rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-amber-400" />
@@ -1905,8 +1905,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           EMERGENCY SOS PANIC MODAL
       ======================================================== */}
       {showSosModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-stone-950 border-2 border-red-500/70 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl shadow-red-950/80">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-stone-950 border-2 border-red-500/70 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl shadow-red-950/80 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-red-900/40 pb-3">
               <div className="flex items-center gap-2 text-red-400">
                 <ShieldAlert className="w-6 h-6 animate-pulse" />
@@ -1992,8 +1992,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           QUICK SETTINGS & PREFERENCES DRAWER/MODAL
       ======================================================== */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-950 border border-stone-800 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-950 border border-stone-800 rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-amber-400" />

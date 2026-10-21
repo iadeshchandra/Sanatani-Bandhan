@@ -31,14 +31,14 @@ export const JoinRequestModal: React.FC<{ page: OrgPage; onClose: () => void }> 
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8"
+        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={`Request to join ${page.name}`}
       >
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
           <div>
             <h2 className="text-lg font-black text-stone-900 flex items-center gap-2">
               <UserPlus size={20} className="text-amber-600" /> Request to Join
@@ -52,7 +52,8 @@ export const JoinRequestModal: React.FC<{ page: OrgPage; onClose: () => void }> 
           </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col min-h-0 grow">
+          <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-4">
           <div>
             <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">
               Introduce yourself <span className="normal-case font-medium">(optional)</span>
@@ -85,6 +86,7 @@ export const JoinRequestModal: React.FC<{ page: OrgPage; onClose: () => void }> 
           <p className="text-[11px] text-stone-400 text-center">
             You can follow the page right away; membership needs a Trustee’s approval.
           </p>
+          </div>
         </form>
       </div>
     </div>

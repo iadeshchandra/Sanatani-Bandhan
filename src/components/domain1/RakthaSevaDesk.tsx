@@ -208,20 +208,20 @@ export const RakthaSevaDesk: React.FC = () => {
 
       {/* Add Modal Overlay */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50 shrink-0">
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-rose-600" />
                 <h2 className="text-lg font-bold text-slate-800">{t('org.people.rakthaSeva.registerNewDonor')}</h2>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-200/50 rounded-full text-slate-500 transition-colors">
+              <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-200/50 rounded-full text-slate-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Close">
                 <Search className="w-4 h-4 hidden" /> {/* Dummy to avoid import issue if X is missing, wait I didn't import X. Let me use plain SVG */}
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
             
-            <form onSubmit={handleAddDonor} className="p-6 space-y-4">
+            <form onSubmit={handleAddDonor} className="p-6 space-y-4 overflow-y-auto min-h-0 grow">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">{t('org.people.rakthaSeva.fullName')}</label>
                 <input type="text" required value={newDonor.name || ''} onChange={e => setNewDonor({...newDonor, name: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" placeholder="e.g. Rahul Sharma" />

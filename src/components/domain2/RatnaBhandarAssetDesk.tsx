@@ -1310,12 +1310,12 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           MODAL 1: PHYSICAL AUDIT WITH TRUSTEE PIN VERIFICATION
       ===================================================================== */}
       {auditTargetAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-6 relative overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl relative overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
+            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4 px-6 sm:px-7 pt-5 sm:pt-7 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
                   <Scale className="w-6 h-6" />
@@ -1339,7 +1339,8 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleExecutePhysicalAudit} className="space-y-4">
+            <form onSubmit={handleExecutePhysicalAudit} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-7 py-4 space-y-4">
               {/* Recorded vs Today's Verified Scale Inputs */}
               <div className="grid grid-cols-2 gap-3 bg-stone-950 p-4 rounded-2xl border border-stone-800">
                 <div>
@@ -1484,7 +1485,8 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </label>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
+              </div>
+              <div className="flex items-center gap-3 shrink-0 px-6 sm:px-7 py-4">
                 <button
                   type="button"
                   onClick={() => setAuditTargetAsset(null)}
@@ -1508,9 +1510,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           MODAL 2: RELOCATE ASSET (GARBHAGRIHA / STRONG ROOM / BANK)
       ===================================================================== */}
       {relocateTargetAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
-            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4 px-6 sm:px-7 pt-5 sm:pt-7 shrink-0">
               <div>
                 <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.custodyTransferRelocation')}</span>
                 <h3 className="text-lg font-black text-white">
@@ -1526,7 +1528,8 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleExecuteRelocation} className="space-y-4">
+            <form onSubmit={handleExecuteRelocation} className="flex flex-col min-h-0 grow">
+              <div className="overflow-y-auto min-h-0 px-6 sm:px-7 py-4 space-y-4">
               <div className="bg-stone-950 p-3.5 rounded-2xl border border-stone-800 text-xs">
                 <span className="text-stone-400 block mb-1">Current Location:</span>
                 <div>{getLocationBadge(relocateTargetAsset.currentLocation)}</div>
@@ -1587,7 +1590,8 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              </div>
+              <div className="flex items-center gap-3 shrink-0 px-6 sm:px-7 py-4">
                 <button
                   type="button"
                   onClick={() => setRelocateTargetAsset(null)}
@@ -1611,8 +1615,8 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           MODAL 3: ADD NEW SACRED ASSET
       ===================================================================== */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
               <div>
                 <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredBullionAssetRegistration')}</span>
@@ -1863,9 +1867,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           MODAL 4: DETAILED ASSET INSPECTION
       ===================================================================== */}
       {inspectTargetAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 max-w-xl w-full shadow-2xl space-y-5">
-            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4 px-6 sm:px-7 pt-5 sm:pt-7 shrink-0">
               <div>
                 <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredAssetDossier')}</span>
                 <h3 className="text-xl font-black text-white">{inspectTargetAsset.assetName}</h3>
@@ -1880,7 +1884,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <div className="space-y-4 text-xs overflow-y-auto min-h-0 grow px-6 sm:px-7 py-4">
               <div className="h-44 rounded-2xl overflow-hidden relative">
                 <img
                   src={inspectTargetAsset.photoUrl}

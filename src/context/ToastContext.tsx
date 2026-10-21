@@ -100,10 +100,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={toastValue}>
       {children}
 
-      {/* Toast Notification Container */}
+      {/* Toast Notification Container — QUEUED #61 (A3-5): the viewport no
+          longer sits in the SOS corner. On small screens toasts stack
+          bottom-centre, clear of both floater corners (SOS right, Ask
+          left); on md+ they hang top-right BELOW the stacked org chrome
+          (shell bar + ERP header ≈ 140px), never over the SOS strip. */}
       <div
         id="toast-portal-container"
-        className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none max-w-md w-full px-4"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-6 md:bottom-auto md:top-[152px] z-50 flex flex-col gap-2 pointer-events-none max-w-md w-full px-4"
       >
         <AnimatePresence>
           {toasts.map((t, idx) => (
@@ -122,7 +126,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <button
                 type="button"
                 onClick={() => removeToast(t.id)}
-                className="text-stone-400 hover:text-stone-200 transition-colors p-0.5 rounded-lg"
+                aria-label="Dismiss notification"
+                className="text-stone-400 hover:text-stone-200 transition-colors p-2 -m-1 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
