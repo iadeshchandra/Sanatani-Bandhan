@@ -592,6 +592,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Workspace treasury summaries (QUEUED #40 design; owner-approved
+    // 2026-10-22): one maintained aggregate doc per workspace so large
+    // orgs get exact money totals without full-ledger reads. The doc
+    // carries its own workspaceId field (newDocWs/wsImmutable pin it).
+    // Finance roles of that workspace only — member-level read would
+    // leak treasury totals; delete is never allowed.
+    match /workspaceSummaries/{workspaceId} {
+      allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_FINANCE());
+      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && wsImmutable();
+      allow delete: if false;
+    }
+
     // ---- Messaging ----
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
