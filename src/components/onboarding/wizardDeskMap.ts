@@ -6,8 +6,12 @@ import { PLAN_PRICING } from '../../config/planPricing';
  * wizardDeskMap.ts — the Setup Wizard's brain.
  *
  * Maps (orgType, pains, size) → ~8 essential desk ids from the REAL sidebar
- * catalog. Every id here is verified to mount in App.tsx's renderActiveDesk
- * switch (see verification notes). No invented ids.
+ * catalog. Every id here mounts in App.tsx's renderActiveDesk switch, and
+ * — QUEUED #57 (audit A1-D06) — the wizard now ENABLES the desks it picks
+ * (SetupWizard.finish), so a pick can no longer silently vanish for
+ * being non-native; org defaults below are additionally all native (or
+ * always-allowed) for their type. The agreement is pinned by
+ * src/lib/__tests__/reachabilityCanonical.test.ts. No invented ids.
  */
 
 /** The 12 organisation types offered in the wizard (mirrors DemoSelectionModal). */
@@ -119,6 +123,8 @@ export const DESK_NAMES: Record<string, string> = {
   gurukul: 'Gurukul Residential Monitoring',
   granthLibrary: 'Sacred Granth & Manuscript Library',
   vidyalaya: 'Weekend Heritage School',
+  pathshala: 'Pathshala — Complete School Management',
+  'ashram-one': 'Ashram One — Complete Yatri Stay Management',
   dharamshala: 'Dharamshala Yatri Bhavan',
   guests: 'Guest & Visitor CRM',
   annadanam: 'Annadanam & Prasad Seva',
@@ -147,20 +153,30 @@ export function deskName(id: string): string {
   return DESK_NAMES[id] ?? id;
 }
 
-/** Sensible ~8-desk defaults per org type. dashboard always leads. */
+/**
+ * Sensible ~8-desk defaults per org type. dashboard always leads.
+ *
+ * QUEUED #57 (audit A1-D06): every default below is NATIVE (or
+ * always-allowed) for its org type — the previous lists promised desks
+ * that then silently never appeared: 'dharamshala' for Ashram / Tirth /
+ * KashiKshetra (their real stay suite is 'ashram-one'), 'gurukulAcademy'
+ * + 'granthLibrary' for Vidyalaya, 'granthLibrary' for PurohitSabha.
+ * Pain-pulled desks (PAIN_DESKS) may still be non-native — the wizard
+ * enables whatever it picks, so those land for real too.
+ */
 const ORG_DEFAULTS: Record<string, string[]> = {
   Mandir: ['dashboard', 'devotees', 'quick-chanda-pos', 'treasury', 'hundi-audit', 'poojaBooking', 'taxReceipts', 'donorCare'],
   Goshala: ['dashboard', 'goshala', 'devotees', 'treasury', 'inventory', 'donorCare', 'taxReceipts', 'sevadar-roster'],
-  Ashram: ['dashboard', 'dharamshala', 'guests', 'devotees', 'treasury', 'annadanam', 'donorCare', 'sevadar-roster'],
-  Gurukul: ['dashboard', 'gurukulAcademy', 'gurukul', 'devotees', 'treasury', 'granthLibrary', 'donorCare', 'vidyalaya'],
+  Ashram: ['dashboard', 'ashram-one', 'guests', 'devotees', 'treasury', 'annadanam', 'donorCare', 'sevadar-roster'],
+  Gurukul: ['dashboard', 'gurukul', 'pathshala', 'devotees', 'treasury', 'granthLibrary', 'donorCare', 'inventory'],
   Sangha: ['dashboard', 'devotees', 'sanghaDrills', 'treasury', 'campaigns', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
   Trust: ['dashboard', 'devotees', 'treasury', 'campaigns', 'taxReceipts', 'donorCare', 'recurring-seva', 'masterSettings'],
   MahotsavSamiti: ['dashboard', 'utsavPanjika', 'devotees', 'treasury', 'campaigns', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
-  Tirth: ['dashboard', 'yatranet-gis', 'dharamshala', 'guests', 'treasury', 'quick-chanda-pos', 'donorCare', 'sandeshBroadcast'],
-  Vidyalaya: ['dashboard', 'vidyalaya', 'gurukulAcademy', 'devotees', 'treasury', 'granthLibrary', 'donorCare', 'sandeshBroadcast'],
+  Tirth: ['dashboard', 'yatranet-gis', 'ashram-one', 'guests', 'treasury', 'quick-chanda-pos', 'donorCare', 'sandeshBroadcast'],
+  Vidyalaya: ['dashboard', 'vidyalaya', 'pathshala', 'devotees', 'treasury', 'donorCare', 'sandeshBroadcast', 'inventory'],
   AkshayaPatra: ['dashboard', 'annadanam', 'annakshetra-one', 'inventory', 'treasury', 'donorCare', 'sevadar-roster', 'campaigns'],
-  PurohitSabha: ['dashboard', 'poojaBooking', 'devotees', 'panchang', 'treasury', 'donorCare', 'sandeshBroadcast', 'granthLibrary'],
-  KashiKshetra: ['dashboard', 'devotees', 'treasury', 'yatranet-gis', 'utsavPanjika', 'poojaBooking', 'donorCare', 'dharamshala'],
+  PurohitSabha: ['dashboard', 'poojaBooking', 'devotees', 'panchang', 'treasury', 'donorCare', 'sandeshBroadcast', 'sabha-one'],
+  KashiKshetra: ['dashboard', 'devotees', 'treasury', 'yatranet-gis', 'utsavPanjika', 'poojaBooking', 'donorCare', 'ashram-one'],
 };
 
 /** Extra desks pulled in by each pain (merged with org defaults). Ordered by importance — first pick wins when slots are tight. */
@@ -194,7 +210,9 @@ function sizeDesk(sizeId: string | null): string | null {
  *   3. pain desks (first pick per pain, then second picks if room)
  *   4. remaining org defaults fill any gaps
  *   5. size nudge if still room
- * Every returned id mounts in App.tsx.
+ * Every returned id mounts in App.tsx once enabled — and the wizard
+ * enables its picks at finish (QUEUED #57), so every desk named here
+ * is genuinely present on the workspace's first open.
  */
 export function getEssentialDesks(
   orgType: string,

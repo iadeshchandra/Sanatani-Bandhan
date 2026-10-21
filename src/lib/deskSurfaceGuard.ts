@@ -96,11 +96,32 @@ export function resolveShikshaDeskSurface(
 }
 
 /**
+ * QUEUED #57 (audit A1-D07): the org family each case-group id BELONGS
+ * to. #48 denied the mount only when the org's surface was
+ * 'restricted' — so cross-ENABLES still mounted the wrong family's
+ * desk under the clicked id's breadcrumb (a Gurukul that enabled
+ * 'sanghaDrills' received the Gurukul surface labelled "Sangha &
+ * Shakha Mobilization"; a Sangha that enabled 'gurukul' received the
+ * mobilisation surface labelled Gurukul — 40 wrong-desk cells).
+ * 'sevaTrust' is deliberately ABSENT: no surface renders it, so it
+ * can never family-match and stays denied everywhere (the restricted
+ * screen's guidance already says the desk is not built yet).
+ */
+export const SHIKSHA_MODULE_FAMILY: Partial<Record<string, ShikshaDeskSurface>> = {
+  gurukul: 'gurukul',
+  gurukulAcademy: 'gurukul',
+  vidyalaya: 'gurukul',
+  sanghaDrills: 'sangha-mobilization',
+  satsang: 'satsang',
+};
+
+/**
  * May the shared shiksha-family component mount at all for this
- * workspace + module id? Used by isModuleAllowedForOrgMount: when the
- * module belongs to the shared case group but the org's surface is
- * 'restricted', the correct behaviour is the platform's restricted
- * screen — not the wrong family's desk.
+ * workspace + module id? Used by isModuleAllowedForOrgMount: the mount
+ * is allowed only when the module's OWN family equals the surface this
+ * org type renders — a non-'restricted' surface alone (#48) is no
+ * longer enough. Mismatches fall to the platform's restricted screen
+ * with its per-module guidance, never to a wrong family's desk.
  */
 export function isShikshaFamilyMountAllowed(
   workspaceType: string | null | undefined,
@@ -112,5 +133,10 @@ export function isShikshaFamilyMountAllowed(
     (rawModuleId != null && SHIKSHA_CASE_GROUP_IDS.has(rawModuleId));
   if (!inGroup) return true;
   if (!workspaceType) return true; // no type known — fail open (legacy behaviour)
-  return resolveShikshaDeskSurface(workspaceType) !== 'restricted';
+  const surface = resolveShikshaDeskSurface(workspaceType);
+  if (surface === 'restricted') return false;
+  const family =
+    SHIKSHA_MODULE_FAMILY[canonicalModuleId] ??
+    (rawModuleId != null ? SHIKSHA_MODULE_FAMILY[rawModuleId] : undefined);
+  return family !== undefined && family === surface;
 }

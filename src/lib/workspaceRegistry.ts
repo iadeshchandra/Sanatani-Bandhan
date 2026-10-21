@@ -175,6 +175,10 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'poojaBooking', 'mandirPuja', 'panchang', 'utsavPanjika',
     'sandeshBroadcast', 'dharmicAssistant',
     'masterSettings', 'spiritualSettings',
+    // QUEUED #57 (owner decision, org-view audit): Samskara One is the
+    // flagship family-lifecycle suite — it is native here (and in
+    // Ashram), not an App Store discovery exercise.
+    'samskara-one',
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added — the setup wizard recommends these as Mandir defaults and
     // the Trustee/Accountant/Sevadar home screens link straight to them.
@@ -224,8 +228,13 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ],
   Ashram: [
     'dashboard', 'devotees', 'guests', 'treasury',
-    'ashramKutir', 'satsang', 'granthLibrary', 'shlokaFeed',
+    // QUEUED #57: 'shlokaFeed' removed — it is an alias door to
+    // 'granthLibrary' (already native here); the registry speaks
+    // canonical ids only.
+    'ashramKutir', 'satsang', 'granthLibrary',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings', 'spiritualSettings',
+    // QUEUED #57 (owner decision): Samskara One native (see Mandir).
+    'samskara-one',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as Ashram defaults.
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
@@ -245,15 +254,24 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ],
   Satsang: [
     // R-1: verified minimal — kirtan/discourse circles need nothing more.
+    // QUEUED #57: 'shlokaFeed' alias door removed ('granthLibrary' is
+    // the canonical native here, as in Ashram).
     'dashboard', 'devotees', 'family', 'treasury',
-    'satsang', 'granthLibrary', 'shlokaFeed',
+    'satsang', 'granthLibrary',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     // Satsang One: mandali organizer tool (Satsang-native).
     'satsang-one',
   ],
   Gurukul: [
     'dashboard', 'devotees', 'treasury', 'inventory',
-    'gurukul', 'gurukulAcademy', 'vidyalaya', 'granthLibrary', 'goshala',
+    // QUEUED #57 (audit A1-D10): 'gurukulAcademy' and 'vidyalaya' are
+    // no longer separate natives here. All three ids mount the ONE
+    // shiksha surface for this org type (deskSurfaceGuard), so three
+    // native rows were three menu entries opening the identical desk
+    // (live-confirmed). 'gurukul' is the family's door for Gurukul
+    // orgs; the other two stay App-Store enableable, and 'vidyalaya'
+    // stays native where it is the primary surface (Vidyalaya).
+    'gurukul', 'granthLibrary', 'goshala',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
     'bhoomi', 'recurring-seva',
     // Pathshala One: complete school-management suite (Gurukul + Vidyalaya only).
@@ -288,7 +306,11 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   Trust: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
     'campaigns', 'karmaLedger', 'assets', 'sevaTrust', 'rakthaSeva', 'annadanam',
-    'sandeshBroadcast', 'dharmaMarketing', 'trusteeGovernance', 'legalVault', 'masterSettings',
+    // QUEUED #57 (audit A1-D01): was 'dharmaMarketing' — the raw alias.
+    // The mount guard resolves it to 'dharmicAssistant', which was
+    // absent here, so Trust's own AI desk was permanently mount-blocked
+    // in the ONLY org type whose registry listed it. Canonical id now.
+    'sandeshBroadcast', 'dharmicAssistant', 'trusteeGovernance', 'legalVault', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added 'donorCare' — wizard default for Trust.
     'donorCare',
@@ -317,7 +339,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // Tirth One: darshan queue & token management (KashiKshetra-native).
     'tirth-one',
     'sandeshBroadcast', 'dharmicAssistant',
-    'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
+    'trusteeGovernance', 'sevadar-roster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults / crowd-safety pairing for a tirth complex.
     'checkin', 'donorCare', 'yatranet-gis',
@@ -331,7 +353,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // Tirth One: darshan queue & token management (Tirth-native).
     'tirth-one',
     'sandeshBroadcast', 'dharmicAssistant',
-    'trusteeGovernance', 'sevadarRoster', 'crisis-command', 'masterSettings',
+    'trusteeGovernance', 'sevadar-roster', 'crisis-command', 'masterSettings',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults for Tirth (yatri flow, stays, GIS safety).
     'checkin', 'donorCare', 'yatranet-gis', 'quick-chanda-pos',
@@ -363,14 +385,30 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
 
 export const isModuleAllowed = (workspace: any, moduleId: string): boolean => {
   if (!workspace) return true;
-  if (moduleId === 'dashboard' || moduleId === 'appStore') return true;
-  if (['sadhana-karma', 'yatraNet', 'sevadar-roster', 'sevadarRoster'].includes(moduleId)) return true;
+  // QUEUED #57 (audit A1-D01 / A2-D8) — ONE canonical key at every gate.
+  // Nav, the App Store and the palette used to test the RAW catalog id
+  // while the mount guard (isModuleAllowedForOrgMount) tested the
+  // CANONICAL id — and `enableModule` stored the raw id. Every alias
+  // catalog door (the old 'sanctum-hud', 'treasury-audit', 'shlokaFeed',
+  // 'dharmaMarketing', 'matrimony' rows) lived in that seam:
+  // installable and nav-visible, yet mount-blocked — in Trust's case
+  // the desk was dead in its only registry home. Resolve first, then
+  // test natives / enabledModules canonically; legacy enabled entries
+  // stored under an alias still count, because they name the same desk.
+  const canonical = resolveOrgModuleId(moduleId);
+  if (canonical === 'dashboard' || canonical === 'appStore' || canonical === 'workspace-hub') return true;
+  if (['sadhana-karma', 'yatraNet', 'sevadar-roster'].includes(canonical)) return true;
 
   const workspaceType = typeof workspace === 'string' ? workspace : workspace.type;
   const allowedModules = workspaceRegistry[workspaceType as WorkspaceType];
 
-  if (allowedModules && allowedModules.includes(moduleId)) return true;
-  if (workspace.enabledModules && workspace.enabledModules.includes(moduleId)) return true;
+  if (allowedModules && allowedModules.includes(canonical)) return true;
+  if (
+    workspace.enabledModules &&
+    workspace.enabledModules.some((id: string) => resolveOrgModuleId(id) === canonical)
+  ) {
+    return true;
+  }
 
   return false;
 };
@@ -417,8 +455,13 @@ export const ORG_MODULE_ALIASES: Record<string, string> = {
   'bullion-vault': 'ratna-bhandar',
   toshakhana: 'ratna-bhandar',
   'tax-receipt-80g': 'taxReceipts',
-  'tally-export': 'taxReceipts',
-  tallyExport: 'taxReceipts',
+  // QUEUED #57 (audit A1-D01, sixth door — found by the #57 matrix
+  // test, missed by the audit's five): 'tally-export' is a first-class
+  // catalog desk (TallyExportDesk), NOT an alias of 'taxReceipts'.
+  // Mapping it here made its enable write the wrong key and its mount
+  // depend on a different desk's availability. It is canonical now;
+  // the camelCase spelling resolves to it.
+  tallyExport: 'tally-export',
   'form-10bd': 'form10bd',
   form10bdCompliance: 'form10bd',
   'form-10bd-compliance': 'form10bd',
@@ -544,6 +587,28 @@ export function isModuleAllowedForOrgMount(workspace: any, moduleId: string): bo
   const workspaceType = typeof workspace === 'string' ? workspace : workspace.type;
   if (!isShikshaFamilyMountAllowed(workspaceType, canonical, moduleId)) return false;
   return isModuleAllowed(workspace, canonical);
+}
+
+/**
+ * QUEUED #57 (audit A1-D01): would this module actually MOUNT if it
+ * were enabled for this workspace? Simulates the enable against the
+ * real mount guard. The Command Palette's install shelf gates on this:
+ * the palette auto-opens whatever it installs, so it must never
+ * promise a desk the guard would refuse (cross-family shiksha ids,
+ * 'sevaTrust', …). The App Store keeps browse-all semantics — only
+ * auto-opening install paths gate on this.
+ */
+export function wouldMountIfEnabled(workspace: any, moduleId: string): boolean {
+  if (!workspace || typeof workspace !== 'object') return true;
+  const canonical = resolveOrgModuleId(moduleId);
+  const enabled: string[] = Array.isArray(workspace.enabledModules) ? workspace.enabledModules : [];
+  if (enabled.some((id: string) => resolveOrgModuleId(id) === canonical)) {
+    return isModuleAllowedForOrgMount(workspace, moduleId);
+  }
+  return isModuleAllowedForOrgMount(
+    { ...workspace, enabledModules: [...enabled, canonical] },
+    moduleId
+  );
 }
 
 /**

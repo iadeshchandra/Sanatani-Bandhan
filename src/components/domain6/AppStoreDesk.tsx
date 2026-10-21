@@ -16,7 +16,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Layers as Blocks, CheckCircle2, Download, Trash2, Search, ShieldAlert, Sparkles, Filter, Settings, Layers, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { MODULE_CATALOG } from '../common/Sidebar';
-import { workspaceRegistry } from '../../lib/workspaceRegistry';
+import { workspaceRegistry, resolveOrgModuleId } from '../../lib/workspaceRegistry';
 import { useToast } from '../../context/ToastContext';
 import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -116,7 +116,12 @@ export const AppStoreDesk: React.FC = () => {
 
   if (!activeWorkspace) return null;
 
-  const isAvailable = (id: string) => baseModules.includes(id) || enabledModules.includes(id);
+  // QUEUED #57 (audit A1-D01): availability is judged canonically, the
+  // same key nav and mount use — a legacy enabled entry stored under an
+  // alias id still makes its desk "available" here.
+  const isAvailable = (id: string) =>
+    baseModules.includes(resolveOrgModuleId(id)) ||
+    enabledModules.some((e) => resolveOrgModuleId(e) === resolveOrgModuleId(id));
 
   const handleEnable = (moduleId: string) => {
     enableModule(enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
@@ -134,7 +139,11 @@ export const AppStoreDesk: React.FC = () => {
       handleEnable(moduleId);
       return;
     }
-    const newEnabled = enabledModules.filter((id) => id !== moduleId);
+    // QUEUED #57: uninstall removes the canonical entry AND any legacy
+    // alias entry naming the same desk — a raw-id filter used to leave
+    // the alias behind, so the desk stayed enabled after "uninstall".
+    const canonical = resolveOrgModuleId(moduleId);
+    const newEnabled = enabledModules.filter((id) => resolveOrgModuleId(id) !== canonical);
     updateWorkspaceDetails({ enabledModules: newEnabled });
     showToast(t('suites.seva.appstore.toasts.uninstalled'), 'success');
   };
@@ -156,10 +165,14 @@ export const AppStoreDesk: React.FC = () => {
   };
 
   const processedModules = MODULE_CATALOG.filter(m =>
-    !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id)
+    // 'workspace-hub' joins the never-sold shell desks (QUEUED #57): it
+    // is always available to Trustees, not an installable add-on.
+    !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet', 'workspace-hub'].includes(m.id)
   ).map(m => {
     const isNative = baseModules.includes(m.id);
-    const isInstalled = enabledModules.includes(m.id);
+    // QUEUED #57: canonical — a legacy alias entry in enabledModules
+    // still shows its desk as Installed (and uninstall above clears it).
+    const isInstalled = enabledModules.some((e) => resolveOrgModuleId(e) === m.id);
 
     let status: 'Native' | 'Installed' | 'Available' = 'Available';
     if (isNative) status = 'Native';

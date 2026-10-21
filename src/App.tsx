@@ -151,12 +151,17 @@ const RecurringSevaDesk = lazy(() => import('./components/domain2/RecurringSevaD
 // Domain 3: Vedic Rituals & Astrology
 const PoojaBookingDesk = lazy(() => import('./components/domain3/PoojaBookingDesk').then(m => ({ default: m.PoojaBookingDesk })));
 const MandirPujaDesk = lazy(() => import('./components/domain3/MandirPujaDesk').then(m => ({ default: m.MandirPujaDesk })));
-const PurohitMarketDesk = lazy(() => import('./components/domain3/PurohitMarketDesk').then(m => ({ default: m.PurohitMarketDesk })));
-const PurohitDesk = lazy(() => import('./components/domain3/PurohitDesk').then(m => ({ default: m.PurohitDesk })));
+// QUEUED #57 (audit A1-D10): the stranded PurohitMarketDesk /
+// PurohitDesk lazy imports are removed — both components were
+// imported here but never rendered ('purohitMarket' mounts
+// PurohitPortalUnified; 'purohitDesk' mounts PurohitManagementDesk).
+// Dead imports mislead the next editor about which desk is live.
 const PurohitManagementDesk = lazy(() => import('./components/domain3/PurohitManagementDesk').then(m => ({ default: m.PurohitManagementDesk })));
 const PurohitPortalUnified = lazy(() => import('./components/domain3/PurohitPortalUnified').then(m => ({ default: m.PurohitPortalUnified })));
 const PitruShradhDesk = lazy(() => import('./components/domain3/PitruShradhDesk').then(m => ({ default: m.PitruShradhDesk })));
-const PanchangMuhuratDesk = lazy(() => import('./components/domain3/PanchangMuhuratDesk').then(m => ({ default: m.PanchangMuhuratDesk })));
+// QUEUED #57 (audit A1-D10): the stranded PanchangMuhuratDesk lazy
+// import is removed — imported, never rendered ('panchang' mounts
+// PanchangAstrologyEngine below).
 const PanchangAstrologyEngine = lazy(() => import('./components/domain3/PanchangAstrologyEngine').then(m => ({ default: m.PanchangAstrologyEngine })));
 const YatraNetCommandCenter = lazy(() => import('./components/domain3/YatraNetCommandCenter').then(m => ({ default: m.YatraNetCommandCenter })));
 const CrisisDashboard = lazy(() => import('./crisis/CrisisDashboard').then(m => ({ default: m.CrisisDashboard })));
@@ -208,9 +213,15 @@ const SanataniVivahDesk = lazy(() => import('./components/domain4/SanataniVivahD
 // Domain 6: Enterprise Control & Multi-Workspace
 const WorkspaceSelectorDesk = lazy(() => import('./components/domain6/WorkspaceSelectorDesk').then(m => ({ default: m.WorkspaceSelectorDesk })));
 const MasterSettingsDesk = lazy(() => import('./components/domain6/MasterSettingsDesk').then(m => ({ default: m.MasterSettingsDesk })));
-const FamilyRootsMatrimonyDesk = lazy(() => import('./components/domain6/FamilyRootsMatrimonyDesk').then(m => ({ default: m.FamilyRootsMatrimonyDesk })));
+// QUEUED #57 (audit A1-D10): the FamilyRootsMatrimonyDesk and
+// CrisisCommandCenter lazy imports are removed. Family Roots' switch
+// case (below) is removed with it — the mount guard blocked the id
+// for every org type (no catalog row, no native, no enable path), so
+// the case was unreachable code that invited the next reachability
+// bug; the component file stays in the repo, unrouted, like
+// CrisisCommandCenter (whose 'crisis-command' case comment records
+// the same status).
 const AppStoreDesk = lazy(() => import('./components/domain6/AppStoreDesk').then(m => ({ default: m.AppStoreDesk })));
-const CrisisCommandCenter = lazy(() => import('./components/domain6/CrisisCommandCenter').then(m => ({ default: m.CrisisCommandCenter })));
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
@@ -759,11 +770,11 @@ const AppContent: React.FC = () => {
       case 'sanatani-vivah':
       case 'matrimony':
         return <SanataniVivahDesk />;
-      case 'familyRootsMatrimony':
-      case 'family-roots-matrimony':
-      case 'familyRoots':
-      case 'family-roots':
-        return <FamilyRootsMatrimonyDesk />;
+      // QUEUED #57 (audit A1-D10): the 'familyRootsMatrimony' case
+      // group is removed — the mount guard above blocks the id for
+      // every org type (no catalog row, no registry native, no enable
+      // path), so the case could never render. Direct navigation now
+      // lands on the designed OrgTypeRestrictedDesk instead of dead code.
       case 'yatraNet':
       case 'yatra-net':
         return <YatraNetDesk />;

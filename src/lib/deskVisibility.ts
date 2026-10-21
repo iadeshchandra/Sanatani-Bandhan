@@ -25,6 +25,12 @@
  * Taxonomy (isModuleAllowed), the federation 2+-branch rule, the
  * domain pill and search stay with the callers — this helper answers
  * exactly one question: "may THIS role see THIS desk?"
+ *
+ * QUEUED #57 (audit A2-D9 / A1-D10): the allowlists below speak
+ * CANONICAL catalog ids only. The dead spellings the #57 catalog
+ * cleanup removed have been dropped from these lists — callers only
+ * ever pass MODULE_CATALOG rows, so an alias entry here was a promise
+ * no caller could redeem, and a trap for the next editor.
  */
 
 import type { UserRole } from '../types';
@@ -52,8 +58,8 @@ export function isDeskVisibleForRole(
       return false;
     }
     const priestAllowed = [
-      'sanctum-hud', 'poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket',
-      'pitruShradh', 'panchang', 'yatranet-gis', 'shlokaFeed', 'satsang',
+      'poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket',
+      'pitruShradh', 'panchang', 'yatranet-gis', 'satsang',
       'granthLibrary', 'utsavPanjika', 'dharmicAssistant', 'sadhana-karma',
       'rakthaSeva', 'goshala', 'annadanam', 'annakshetra-one', 'ashramKutir', 'dharamshala',
       'gurukul', 'gurukulAcademy', 'vidyalaya', 'pathshala', 'goshala-one', 'ashram-one',
@@ -70,7 +76,7 @@ export function isDeskVisibleForRole(
       return false;
     }
     const accountantAllowed = [
-      'quick-chanda-pos', 'treasury', 'treasury-audit', 'hundi-audit', 'ratna-bhandar',
+      'quick-chanda-pos', 'treasury', 'hundi-audit', 'ratna-bhandar',
       'taxReceipts', 'form10bd', 'campaigns', 'karmaLedger', 'assets', 'inventory',
       'bhoomi', 'vahan', 'recurring-seva',
     ];
@@ -84,7 +90,7 @@ export function isDeskVisibleForRole(
     const csoAllowed = [
       'dashboard',
       'tactical-radar', 'checkin', 'crisis-command', 'qrScanner', 'yatranet-gis',
-      'sevadar-roster', 'devotee-portal',
+      'sevadar-roster',
     ];
     return csoAllowed.includes(mod.id);
   }
@@ -100,7 +106,7 @@ export function isDeskVisibleForRole(
   if (['bulkImport', 'federation'].includes(mod.id)) {
     return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
   }
-  if (['treasury', 'treasury-audit', 'taxReceipts', 'form10bd', 'hundi-audit', 'ratna-bhandar'].includes(mod.id)) {
+  if (['treasury', 'taxReceipts', 'form10bd', 'hundi-audit', 'ratna-bhandar'].includes(mod.id)) {
     return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
   }
   if (['campaigns', 'assets'].includes(mod.id)) {
@@ -109,7 +115,7 @@ export function isDeskVisibleForRole(
   if (mod.id === 'inventory') {
     return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'VOLUNTEER']);
   }
-  if (['sanctum-hud', 'poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket', 'pitruShradh'].includes(mod.id)) {
+  if (['poojaBooking', 'mandirPuja', 'purohitDesk', 'purohitMarket', 'pitruShradh'].includes(mod.id)) {
     return checkPermission(['PUROHIT', 'PRIEST', 'MANAGER', 'TRUSTEE']);
   }
   if (['sandeshBroadcast'].includes(mod.id)) {
@@ -123,7 +129,7 @@ export function isDeskVisibleForRole(
     // governance desks are not promised to roles the mount refuses.
     return checkPermission(['TRUSTEE', 'SuperAdmin']);
   }
-  if (['tactical-radar', 'user-roles-rbac', 'trusteeGovernance', 'sevadarRoster', 'sevadar-roster', 'auditLog', 'legalVault', 'crisis-command'].includes(mod.id)) {
+  if (['tactical-radar', 'trusteeGovernance', 'sevadar-roster', 'legalVault', 'crisis-command'].includes(mod.id)) {
     return checkPermission(['CSO', 'TRUSTEE', 'MANAGER', 'SEVADAR', 'VOLUNTEER']);
   }
   return true;

@@ -10,6 +10,13 @@
  *   - the mount guard (isModuleAllowedForOrgMount) admits exactly the
  *     mounts whose component family matches the org — and denies the
  *     one id ('sevaTrust') for which no correct component exists.
+ *
+ * QUEUED #57 (audit A1-D07) strengthened the cross-enable half: #48
+ * denied only 'restricted'-surface orgs, so an ENABLED foreign-family
+ * id still mounted (wrong desk, right-looking breadcrumb). The guard
+ * now requires the module's family to EQUAL the org's surface; the
+ * one #48 pin that asserted the old cross-enable mount (Gurukul +
+ * 'sanghaDrills') is flipped below, deliberately.
  */
 import {
   SHIKSHA_CASE_GROUP_IDS,
@@ -114,7 +121,17 @@ describe('deskSurfaceGuard — the audited defects, pinned', () => {
     // the mounted component family excludes Mandir for that id.
     expect(isModuleAllowed(ws('Mandir', ['sanghaDrills']), 'sanghaDrills')).toBe(true);
     expect(isModuleAllowedForOrgMount(ws('Mandir', ['sanghaDrills']), 'sanghaDrills')).toBe(false);
-    expect(isModuleAllowedForOrgMount(ws('Gurukul', ['sanghaDrills']), 'sanghaDrills')).toBe(true);
+    // QUEUED #57 (audit A1-D07) — FLIPPED from the #48 pin: a Gurukul
+    // enabling 'sanghaDrills' used to MOUNT (the Gurukul surface under
+    // a "Sangha & Shakha Mobilization" breadcrumb — a wrong desk).
+    // The mount now requires family == surface, so it is denied and
+    // the restricted screen's guidance shows instead.
+    expect(isModuleAllowedForOrgMount(ws('Gurukul', ['sanghaDrills']), 'sanghaDrills')).toBe(false);
+    expect(isModuleAllowedForOrgMount(ws('Sangha', ['gurukul']), 'gurukul')).toBe(false);
+    expect(isModuleAllowedForOrgMount(ws('Sangha', ['satsang']), 'satsang')).toBe(false);
+    // Same-family cross-enables still mount: the surface IS the desk.
+    expect(isModuleAllowedForOrgMount(ws('Vidyalaya', ['gurukulAcademy']), 'gurukulAcademy')).toBe(true);
+    expect(isModuleAllowedForOrgMount(ws('Samaj', ['sanghaDrills']), 'sanghaDrills')).toBe(true);
   });
 
   it('fails open when the workspace type is unknown (legacy behaviour preserved)', () => {

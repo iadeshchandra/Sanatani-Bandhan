@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { LocalizedText } from './recommend';
+import { resolveOrgModuleId } from '../lib/workspaceRegistry';
 
 export interface PendingSuggestion {
   key: string;
@@ -105,9 +106,12 @@ export function dismissSuggestion(workspaceId: string, key: string): void {
 /** Remove pending suggestions for a module once it becomes available. */
 export function clearSuggestionsForModule(workspaceId: string, moduleId: string): void {
   if (!workspaceId) return;
+  // QUEUED #57: compare canonically — a pending suggestion filed under
+  // an alias id names the same desk and clears with it.
+  const canonical = resolveOrgModuleId(moduleId);
   writePending(
     workspaceId,
-    readPending(workspaceId).filter((s) => s.moduleId !== moduleId)
+    readPending(workspaceId).filter((s) => resolveOrgModuleId(s.moduleId) !== canonical)
   );
 }
 
@@ -189,9 +193,16 @@ export function enableModule(
   updateWorkspaceDetails: (updates: { enabledModules: string[] }) => void,
   workspaceId?: string | null
 ): string[] {
+  // QUEUED #57 (audit A1-D01): store the CANONICAL id. This used to
+  // store the raw catalog id while the mount guard consulted only the
+  // canonical key — installing an alias door ('sanctum-hud',
+  // 'dharmaMarketing', 'matrimony', …) wrote a key nothing else read,
+  // so the desk stayed mount-blocked after a cheerful "installed".
+  // Dedupe is canonical too: a legacy raw entry already covers the desk.
+  const canonicalId = resolveOrgModuleId(moduleId);
   const next = [...(currentEnabled || [])];
-  if (!next.includes(moduleId)) next.push(moduleId);
+  if (!next.some((id) => resolveOrgModuleId(id) === canonicalId)) next.push(canonicalId);
   updateWorkspaceDetails({ enabledModules: next });
-  if (workspaceId) clearSuggestionsForModule(workspaceId, moduleId);
+  if (workspaceId) clearSuggestionsForModule(workspaceId, canonicalId);
   return next;
 }

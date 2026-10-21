@@ -37,8 +37,6 @@ import { Layers, LayoutDashboard,
   Vote,
   MessageSquare,
   Image as ImageIcon,
-  Scroll,
-  Bot,
   Scale,
   Ticket,
   Sunrise,
@@ -94,7 +92,10 @@ export interface NavItem {
 }
 
 export const MODULE_CATALOG: NavItem[] = [
-  { id: 'devotee-portal', name: 'My Devotee Portal', domain: 0, domainTitle: 'Personal', icon: UserCircle, badge: 'New' },
+  // QUEUED #57 (audit A1-D10): the old Domain-0 'devotee-portal' row is
+  // gone — domain groups render 1–7 only and the taxonomy filter could
+  // never pass it, so the row was dead weight that invited exactly the
+  // wrong edits. Personal switching happens via viewMode, not a desk row.
   // Domain 1: Core Command & CRM
   { id: 'dashboard', name: 'Command Center', domain: 1, domainTitle: 'Core Command & CRM', icon: LayoutDashboard },
   { id: 'checkin', name: 'Gate Command & Check-In', domain: 1, domainTitle: 'Core Command & CRM', icon: ScanFace, badge: 'Biometric' },
@@ -107,12 +108,16 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'bulkImport', name: 'Bulk CSV Ingestion', domain: 1, domainTitle: 'Core Command & CRM', icon: FileSpreadsheet },
   { id: 'federation', name: 'Federation & Multi-Branch HQ', domain: 1, domainTitle: 'Core Command & CRM', icon: Network, badge: 'HQ Rollup' },
   { id: 'sevadar-roster', name: 'Sevadar HR & Volunteer Roster', domain: 1, domainTitle: 'Core Command & CRM', icon: UserCheck, badge: 'SOP / KYC' },
-  { id: 'crisis-command', name: 'Crisis Command', domain: 1, domainTitle: 'Core Command & CRM', icon: ShieldAlert, badge: 'SOS' },
+  // QUEUED #57 (audit A1-D08): 'crisis-command' was listed here AND in
+  // Domain 6 — duplicate nav entries and duplicate App Store cards.
+  // The Domain 6 row (Governance & Security) is the single entry now.
 
   // Domain 2: Financials & Assets
   { id: 'quick-chanda-pos', name: 'Quick Chanda Counter POS', domain: 2, domainTitle: 'Financials & Assets', icon: Receipt, badge: 'High-Speed' },
   { id: 'treasury', name: 'Treasury & Expense Ledger', domain: 2, domainTitle: 'Financials & Assets', icon: Landmark, badge: 'Auto-Audit' },
-  { id: 'treasury-audit', name: 'Treasury & Audit Ledger', domain: 2, domainTitle: 'Financials & Assets', icon: Landmark, badge: 'Audit' },
+  // QUEUED #57 (audit A1-D01): the 'treasury-audit' shadow row is gone —
+  // it was an alias door to this same desk whose enable wrote a key the
+  // mount guard never consulted. One desk, one canonical row.
   { id: 'hundi-audit', name: 'Hundi & Golak Dual Audit', domain: 2, domainTitle: 'Financials & Assets', icon: Lock, badge: '2-Key' },
   { id: 'cash-custody', name: 'Cash Custody — Hundi Chain of Custody', domain: 2, domainTitle: 'Financials & Assets', icon: Lock, badge: 'New' },
   { id: 'ratna-bhandar', name: 'Ratna Bhandar & Bullion Vault', domain: 2, domainTitle: 'Financials & Assets', icon: Sparkles, badge: 'Dual-PIN' },
@@ -128,7 +133,10 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'recurring-seva', name: 'Recurring Seva Mandates', domain: 2, domainTitle: 'Financials & Assets', icon: Repeat, badge: 'MRR' },
 
   // Domain 3: Vedic Rituals & Ephemeris
-  { id: 'sanctum-hud', name: 'Sanctum HUD & Daily Roster', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Flame, badge: 'Sanctum' },
+  // QUEUED #57 (audit A1-D01): the 'sanctum-hud' shadow row is gone — an
+  // alias door to 'purohitDesk' below (same desk, same component); its
+  // enable wrote a key the mount guard never consulted, dead-ending
+  // even in Mandir, the desk's most natural home.
   { id: 'poojaBooking', name: 'Rituals & Sankalp Hub', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Flame, badge: 'Purohit Sync' },
   { id: 'mandirPuja', name: 'Daily Aarti & Pujas', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: Clock },
   { id: 'purohitDesk', name: 'Purohit Diary & Dakshina', domain: 3, domainTitle: 'Vedic Rituals & Ephemeris', icon: BookOpen },
@@ -164,19 +172,26 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'granthLibrary', name: 'Sacred Granth & Manuscript Library', domain: 4, domainTitle: 'Specialized Desks', icon: Library },
 
   // Domain 5: Matrimony & Outreach
-  { id: 'matrimony', name: 'Vivah Bandhan (Dharmic Match)', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Heart, badge: 'Gotra Match' },
+  // QUEUED #57 (audit A1-D01): three shadow rows removed from this
+  // domain — 'matrimony' (alias door to 'sanatani-vivah' in Domain 7;
+  // on the store shelf it was a trap: install succeeded, mount
+  // blocked), 'shlokaFeed' (alias door to 'granthLibrary' in Domain 4),
+  // and 'dharmaMarketing' (alias door to 'dharmicAssistant' below —
+  // dead in Trust, its only registry home). One desk, one canonical row.
   { id: 'utsavPanjika', name: 'Festival Calendar & Gate Passes', domain: 5, domainTitle: 'Matrimony & Outreach', icon: CalendarCheck2 },
   { id: 'panchayatPolls', name: 'Panchayat Voting & Quorum', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Vote },
   { id: 'sandeshBroadcast', name: 'Sandesh WhatsApp/SMS Broadcast', domain: 5, domainTitle: 'Matrimony & Outreach', icon: MessageSquare },
-  { id: 'shlokaFeed', name: 'Shloka Wisdom Stream', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Scroll },
   { id: 'dharmicAssistant', name: 'Dharmic AI Query Desk', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Sparkles, badge: 'Gemini 3.7' },
-  { id: 'dharmaMarketing', name: 'Dharma Marketing AI', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Bot, badge: 'Gemini AI' },
 
   // Domain 6: Governance & Security
   { id: 'trusteeGovernance', name: 'Trustee Board & Governance', domain: 6, domainTitle: 'Governance & Security', icon: Scale },
   { id: 'legalVault', name: 'Encrypted Legal Vault (80G/Deeds)', domain: 6, domainTitle: 'Governance & Security', icon: Lock },
   { id: 'qrScanner', name: 'QR Gate Scanner', domain: 6, domainTitle: 'Governance & Security', icon: ShieldCheck, badge: 'Check-in' },
   { id: 'appStore', name: 'App Store & Add-ons', domain: 6, domainTitle: 'Governance & Security', icon: Layers, badge: 'Integrations' },
+  // QUEUED #57 (audit A1-D09): 'workspace-hub' finally has its catalog
+  // row — the desk (WorkspaceSelectorDesk) and its TRUSTEE mount gate
+  // existed, but with no row here no user path could ever reach it.
+  { id: 'workspace-hub', name: 'Workspace Hub', domain: 6, domainTitle: 'Governance & Security', icon: ArrowLeftRight, keywords: 'switch workspace organisations orgs selector hub multi-workspace' },
   { id: 'masterSettings', name: 'Organization Settings & Logos', domain: 6, domainTitle: 'Governance & Security', icon: Settings },
   { id: 'spiritualSettings', name: 'Sampradaya & Kuladevata Config', domain: 6, domainTitle: 'Governance & Security', icon: Compass },
   { id: 'crisis-command', name: 'Crisis Command Center', domain: 6, domainTitle: 'Governance & Security', icon: ShieldAlert, badge: 'SOS' },

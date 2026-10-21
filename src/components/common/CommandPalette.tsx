@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock, CalendarCheck2, Home } from 'lucide-react';
 import { MODULE_CATALOG, NavItem } from './Sidebar';
-import { isModuleAllowed } from '../../lib/workspaceRegistry';
+import { isModuleAllowed, wouldMountIfEnabled } from '../../lib/workspaceRegistry';
 import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
@@ -127,12 +127,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
 
   // Seva Suggestions: modules not yet enabled but installable from the store.
   // Same exclusion list as AppStoreDesk — these are never "installed".
+  // QUEUED #57 (audit A1-D01): the shelf also requires the desk to
+  // actually MOUNT once enabled (wouldMountIfEnabled simulates the
+  // enable against the real mount guard). handleInstall below toasts
+  // "now on — opening it" and navigates straight there; before this
+  // gate that promise landed cross-family shiksha ids and other
+  // guard-refused desks on the restricted screen.
   const installable = useMemo(
     () =>
       MODULE_CATALOG.filter(
         (m) =>
           !isModuleAllowed(activeWorkspace, m.id) &&
-          !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id)
+          !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id) &&
+          wouldMountIfEnabled(activeWorkspace, m.id)
       ),
     [activeWorkspace]
   );

@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, Check, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { enableModule } from '../../suggestions/store';
 import { setPinnedDesks } from '../common/ui/deskHistory';
 import {
   WIZARD_ORG_TYPES,
@@ -39,7 +41,8 @@ const STEPS = [
  *
  * Shows exactly once per fresh (non-demo) workspace, right after signup.
  * Warm Sanatani first impression: 4 steps, 60 seconds, skippable everywhere.
- * Ends with the workspace's sidebar favorites set to THEIR ~8 essential desks.
+ * Ends with THEIR ~8 essential desks enabled on the workspace and set as
+ * its sidebar favorites — the desks named in step 4 are really there.
  */
 export const SetupWizard: React.FC<SetupWizardProps> = ({
   workspaceId,
@@ -50,6 +53,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
   onOpenCompliance,
 }) => {
   const { seedDemoData } = useData();
+  const { activeWorkspace, updateWorkspaceDetails } = useAuthWorkspace();
   const [step, setStep] = useState(0);
   const [orgType, setOrgType] = useState<string>(
     signupOrgType && WIZARD_ORG_TYPES.includes(signupOrgType as never) ? signupOrgType : 'Mandir'
@@ -85,6 +89,19 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
       // 1. Their ~8 essential desks become sidebar favorites (existing system).
       // QUEUED #50 (D11b): pinned desks are scoped to THIS workspace.
       await setPinnedDesks(essentialDesks, workspaceId);
+      // 1b. QUEUED #57 (audit A1-D06): pinning alone silently dropped
+      // every non-native pick — the Sidebar intersects pins with the
+      // org taxonomy, so desks the wizard just named ("these desks
+      // will greet you first") never appeared. Enable the picks for
+      // real: canonical ids via enableModule, accumulated locally and
+      // written once. Guarded to the workspace being set up.
+      if (activeWorkspace && activeWorkspace.id === workspaceId) {
+        let enabled = activeWorkspace.enabledModules || [];
+        for (const id of essentialDesks) {
+          enabled = enableModule(enabled, id, () => undefined, workspaceId);
+        }
+        updateWorkspaceDetails({ enabledModules: enabled });
+      }
       // 2. Optional sample records, clearly marked as sample by the seeder.
       if (sampleData) {
         try {
