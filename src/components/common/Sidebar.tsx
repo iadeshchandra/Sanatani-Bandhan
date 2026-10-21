@@ -29,7 +29,6 @@ import { Layers, LayoutDashboard,
   BookMarked,
   Radio,
   Swords,
-  Cross,
   Library,
   Heart,
   HeartPulse,
@@ -38,6 +37,7 @@ import { Layers, LayoutDashboard,
   MessageSquare,
   Image as ImageIcon,
   Scale,
+  ScrollText,
   Ticket,
   Sunrise,
   Music,
@@ -168,7 +168,13 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'ashram-one', name: 'Ashram One — Complete Yatri Stay Management', domain: 4, domainTitle: 'Specialized Desks', icon: Home, badge: 'New', keywords: 'residents resident yatri stays rooms bookings guest register' },
   { id: 'satsang', name: 'Satsang, Kirtan & Discourse', domain: 4, domainTitle: 'Specialized Desks', icon: Radio },
   { id: 'sanghaDrills', name: 'Sangha & Shakha Mobilization', domain: 4, domainTitle: 'Specialized Desks', icon: Swords, keywords: 'sangha shakha mobilization mobilisation members sangh shakha units' },
-  { id: 'sevaTrust', name: 'Humanitarian Seva Trust', domain: 4, domainTitle: 'Specialized Desks', icon: Cross },
+  // QUEUED #58 (audit A1-D04): the 'sevaTrust' catalog row is removed.
+  // No humanitarian-seva desk component exists and the #48 surface guard
+  // denies its mount for every org type — as a catalog row it was a false
+  // promise in nav, App Store, and palette alike (native in Trust /
+  // AkshayaPatra, whose own nav led to a restricted screen). The guard's
+  // honest guidance still answers deep links and stored enables. The row
+  // returns when a real desk is built.
   { id: 'granthLibrary', name: 'Sacred Granth & Manuscript Library', domain: 4, domainTitle: 'Specialized Desks', icon: Library },
 
   // Domain 5: Matrimony & Outreach
@@ -185,7 +191,12 @@ export const MODULE_CATALOG: NavItem[] = [
 
   // Domain 6: Governance & Security
   { id: 'trusteeGovernance', name: 'Trustee Board & Governance', domain: 6, domainTitle: 'Governance & Security', icon: Scale },
-  { id: 'legalVault', name: 'Encrypted Legal Vault (80G/Deeds)', domain: 6, domainTitle: 'Governance & Security', icon: Lock },
+  // QUEUED #58 (audit A1-D03): honest relabel — this id mounts
+  // AuditLogDesk ("Security & System Audit Log"); no legal vault exists
+  // (Nyas One carries the document vault). The label now says what the
+  // desk is. The id stays 'legalVault' (stored enabledModules + aliases
+  // 'security-audit-log'/'auditLog' already resolve to it).
+  { id: 'legalVault', name: 'Security & Audit Log', domain: 6, domainTitle: 'Governance & Security', icon: ScrollText, keywords: 'audit log security activity history who did what' },
   { id: 'qrScanner', name: 'QR Gate Scanner', domain: 6, domainTitle: 'Governance & Security', icon: ShieldCheck, badge: 'Check-in' },
   { id: 'appStore', name: 'App Store & Add-ons', domain: 6, domainTitle: 'Governance & Security', icon: Layers, badge: 'Integrations' },
   // QUEUED #57 (audit A1-D09): 'workspace-hub' finally has its catalog

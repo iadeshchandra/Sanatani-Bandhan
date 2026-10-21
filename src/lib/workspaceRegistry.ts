@@ -305,7 +305,10 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ],
   Trust: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
-    'campaigns', 'karmaLedger', 'assets', 'sevaTrust', 'rakthaSeva', 'annadanam',
+    // QUEUED #58 (audit A1-D04): 'sevaTrust' removed from natives — no
+    // desk component exists and the #48 guard denies its mount; a native
+    // nav promise the app cannot keep. Returns when a real desk is built.
+    'campaigns', 'karmaLedger', 'assets', 'rakthaSeva', 'annadanam',
     // QUEUED #57 (audit A1-D01): was 'dharmaMarketing' — the raw alias.
     // The mount guard resolves it to 'dharmicAssistant', which was
     // absent here, so Trust's own AI desk was permanently mount-blocked
@@ -323,7 +326,8 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ],
   AkshayaPatra: [
     'dashboard', 'devotees', 'guests', 'bulkImport', 'treasury', 'taxReceipts',
-    'campaigns', 'assets', 'sevaTrust', 'annadanam', 'rakthaSeva', 'inventory',
+    // QUEUED #58 (audit A1-D04): 'sevaTrust' removed — see Trust above.
+    'campaigns', 'assets', 'annadanam', 'rakthaSeva', 'inventory',
     'sandeshBroadcast', 'trusteeGovernance', 'legalVault', 'masterSettings', 'crisis-command',
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as AkshayaPatra defaults

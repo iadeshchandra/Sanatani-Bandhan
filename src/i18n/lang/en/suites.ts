@@ -295,8 +295,8 @@ export const suites = {
       desc: "Board meetings with minutes, resolutions, and accountability — governance you can show.",
     },
     "legalVault": {
-      name: "Encrypted Legal Vault (80G/Deeds)",
-      desc: "Deeds, 80G certificates, and legal papers — encrypted and retrievable in seconds.",
+      name: "Security & Audit Log",
+      desc: "Who did what, and when — the workspace's security and activity audit log.",
     },
     "qrScanner": {
       name: "QR Gate Scanner",

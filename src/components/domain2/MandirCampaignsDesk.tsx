@@ -50,7 +50,22 @@ export const MandirCampaignsDesk: React.FC = () => {
         </div>
       </div>
 
-      {/* Campaign Cards */}
+      {/* Campaign Cards — QUEUED #58: a real workspace with no campaigns
+          (the seed law: empty means EMPTY) used to render a blank body
+          under this header. It now gets an honest empty state. */}
+      {(campaigns || []).length === 0 ? (
+        <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-10 shadow-xl text-center space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-saffron-500/15 border border-saffron-500/30 flex items-center justify-center">
+            <Target className="w-7 h-7 text-saffron-400" />
+          </div>
+          <h3 className="text-lg font-extrabold text-temple-100">No campaigns yet</h3>
+          <p className="text-xs text-temple-400 max-w-md mx-auto leading-relaxed">
+            When this institution launches a crowdfunding campaign — Mandir Nirman, a renovation,
+            or a public seva drive — it will appear here with live collection progress, milestone
+            transparency, and its hall of seva donors.
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {(campaigns || []).map((camp, idx) => {
           const pct = Math.min(100, Math.round((camp.collectedAmount / camp.targetAmount) * 100));
@@ -102,6 +117,11 @@ export const MandirCampaignsDesk: React.FC = () => {
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>{t('org.finance.campaigns.topDonorsHallOfSeva')}</span>
                   </p>
+                  {(camp.topDonors || []).length === 0 && (
+                    <p className="text-[11px] text-temple-400 font-medium">
+                      No contributions yet — the first seva donor will be honoured here.
+                    </p>
+                  )}
                   <div className="divide-y divide-temple-800 text-xs">
                     {(camp.topDonors || []).map((d, idx) => (
                       <div key={idx} className="py-1.5 flex items-center justify-between">
@@ -132,6 +152,7 @@ export const MandirCampaignsDesk: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Donation Modal */}
       {selectedCampaign && (

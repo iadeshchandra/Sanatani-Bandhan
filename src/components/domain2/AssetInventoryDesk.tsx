@@ -25,9 +25,9 @@ export const AssetInventoryDesk: React.FC = () => {
   const [location, setLocation] = useState('Sanctum Central Vault');
   const [donorName, setDonorName] = useState('');
 
-  const totalAssetValuation = assets.reduce((acc, curr) => acc + curr.valuation, 0);
+  const totalAssetValuation = (assets || []).reduce((acc, curr) => acc + curr.valuation, 0);
 
-  const filteredAssets = assets.filter(
+  const filteredAssets = (assets || []).filter(
     (a) =>
       a.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
       a.category?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
@@ -81,6 +81,38 @@ export const AssetInventoryDesk: React.FC = () => {
           <span>{t('org.finance.assets.registerFixedAsset')}</span>
         </button>
       </div>
+
+      {/* QUEUED #58: honest empty states — a real workspace with no assets
+          (the seed law: empty means EMPTY) used to render a blank body
+          under the header; a search with no matches did the same. */}
+      {(assets || []).length === 0 ? (
+        <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-10 shadow-xl text-center space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-saffron-500/15 border border-saffron-500/30 flex items-center justify-center">
+            <Layers className="w-7 h-7 text-saffron-400" />
+          </div>
+          <h3 className="text-lg font-extrabold text-temple-100">No fixed assets registered yet</h3>
+          <p className="text-xs text-temple-400 max-w-md mx-auto leading-relaxed">
+            This register protects the institution&apos;s wealth — deity ornaments, land and
+            buildings, vehicles, and sacred utensils — with a named custodian for every item.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs shadow-lg shadow-saffron-600/20 transition-all cursor-pointer min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('org.finance.assets.registerFixedAsset')}</span>
+          </button>
+        </div>
+      ) : filteredAssets.length === 0 ? (
+        <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-10 shadow-xl text-center space-y-2">
+          <Search className="w-7 h-7 mx-auto text-temple-400" />
+          <h3 className="text-base font-extrabold text-temple-100">No assets match your search</h3>
+          <p className="text-xs text-temple-400">
+            Try a different name, category, or custodian — or clear the search to see the full register.
+          </p>
+        </div>
+      ) : null}
 
       {/* Asset Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

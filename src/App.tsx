@@ -225,6 +225,7 @@ const AppStoreDesk = lazy(() => import('./components/domain6/AppStoreDesk').then
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
+const SpiritualSettingsDesk = lazy(() => import('./components/domain6/SpiritualSettingsDesk').then(m => ({ default: m.SpiritualSettingsDesk })));
 const GodModeBackend = lazy(() => import('./components/common/GodModeConsole2').then(m => ({ default: m.GodModeConsole2 })));
 import { PersonaSwitcher } from './components/dev/PersonaSwitcher';
 
@@ -813,17 +814,13 @@ const AppContent: React.FC = () => {
 
       case 'spiritualSettings':
       case 'platformBroadcast':
-        return (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Module Upgrading</h2>
-            <p className="text-slate-500 max-w-md">
-              This module is currently receiving an over-the-air update and will be available shortly.
-            </p>
-          </div>
-        );
+        // QUEUED #58 (audit A1-D02): the fake "Module Upgrading —
+        // over-the-air update" placeholder is deleted. This mounts the
+        // real SpiritualSettingsDesk (sampradaya / kuladevata / darshan
+        // timings over the workspace's own persisted fields).
+        // 'platformBroadcast' is a legacy alias whose canonical id IS
+        // 'spiritualSettings' (ORG_MODULE_ALIASES), so it lands here too.
+        return checkPermission(['TRUSTEE', 'MANAGER']) ? <SpiritualSettingsDesk /> : <RestrictedAccess />;
 
       default:
         return (

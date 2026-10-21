@@ -232,10 +232,19 @@ export function addResilientTiles(
     } catch {
       /* noop */
     }
+    // QUEUED #58 (YatraNet crash root cause): `subdomains` must be passed
+    // ONLY when the provider defines it. Leaflet's L.setOptions copies own
+    // keys verbatim — an explicit `subdomains: undefined` (Esri and CARTO
+    // providers define none) clobbers TileLayer's default 'abc', and
+    // _getSubdomain then throws "Cannot read properties of undefined
+    // (reading 'length')" the moment the map creates its first tile —
+    // which crashed EVERY map surface (YatraNet in all org types, SOS
+    // responder map, campus maps, location picker) into its error
+    // boundary on mount, deterministically, so retry always failed.
     layer = L.tileLayer(provider.url, {
       maxZoom: provider.maxZoom,
       attribution: provider.attribution,
-      subdomains: provider.subdomains,
+      ...(provider.subdomains ? { subdomains: provider.subdomains } : {}),
     });
     layer.on('tileerror', onTileError);
     layer.on('tileload', onTileLoad);
