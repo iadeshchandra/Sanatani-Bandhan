@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { updatePassword, User as FirebaseUser } from 'firebase/auth';
-import { auth, db, doc, collection, setDoc, serverTimestamp, query, where, getDocs } from '../../firebase';
+import { auth, db, collection, query, where, getDocs } from '../../firebase';
 import { 
   Settings, Shield, Building2, Key, Loader2, Save, Crown, 
-  AlertTriangle, CreditCard, Send, CheckCircle2, Globe,
+  AlertTriangle, CreditCard, CheckCircle2, Globe,
   WifiOff, MapPin, Phone, Mail, Copy, Camera, FileText, Image as ImageIcon, Briefcase, FileSignature, 
-  X, Lock, QrCode, HelpCircle, Users, FileDigit, Navigation, AlertCircle, Palette, History
+  Lock, QrCode, Users, FileDigit, Navigation, AlertCircle, Palette, History
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
-import { detectPayRegion, setCachedRegion, clearCachedRegion, type PayRegion } from '../../lib/geoDetect';
-import { getPaymentMethods, methodsForRegion, methodsForRegionWithFallback, indianPaymentsReady, type PaymentMethodDoc } from '../../lib/paymentMethods';
 import { GeoPaymentsManager } from './GeoPaymentsManager';
-import { getTerms, type PlatformTerms } from '../../lib/termsConfig';
+import { getTerms, tierForPlan, type PlatformTerms } from '../../lib/termsConfig';
 import { checkLimit, loadWorkspaceSubscription, type LimitMetric } from '../../lib/planLimits';
 import {
   resolveSettingsPlan,
@@ -28,6 +26,14 @@ import {
   type SettingsUsageMetric,
 } from '../../lib/settingsHonesty';
 import { normalizePublicSlug, resolvePublicSlugDefault } from '../../lib/orgPublic';
+import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
+import {
+  claimToHistoryRow,
+  combineHistoryStreams,
+  requestToHistoryRow,
+  type HistoryRow,
+  type StreamResult,
+} from '../../lib/paymentHistoryMerge';
 import { OrgBrandingSection, type BrandingSectionHandle } from './OrgBrandingSection';
 // Pillar 3: trustee-curated public profile (what the world sees on /org/…).
 import { OrgPublicProfileSection } from './OrgPublicProfileSection';
@@ -47,184 +53,9 @@ const getCurrencyDetails = (countryCode: string) => {
   }
 };
 
-/* ---------- Geo-based payment views (BD / IN / INTL) ---------- */
-
-const REGION_ACCENT: Record<'BD' | 'IN' | 'INTL', { bar: string; border: string; bg: string; title: string; headBorder: string }> = {
-  BD: { bar: 'bg-green-500', border: 'border-green-200', bg: 'bg-green-50/50', title: 'text-green-800', headBorder: 'border-green-100' },
-  IN: { bar: 'bg-orange-500', border: 'border-orange-200', bg: 'bg-orange-50/50', title: 'text-orange-800', headBorder: 'border-orange-100' },
-  INTL: { bar: 'bg-blue-500', border: 'border-blue-200', bg: 'bg-blue-50/50', title: 'text-blue-800', headBorder: 'border-blue-100' },
-};
-
-const REGION_NAME: Record<'BD' | 'IN' | 'INTL', string> = {
-  BD: 'Bangladesh',
-  IN: 'India',
-  INTL: 'International',
-};
-
-/** Numbered how-to-pay steps — Bengali when the UI locale is bn and BN steps exist. */
-const PaySteps: React.FC<{ method: PaymentMethodDoc; language: string }> = ({ method, language }) => {
-  const steps = language === 'bn' && method.instructionsBn.length > 0 ? method.instructionsBn : method.instructionsEn;
-  if (steps.length === 0) return null;
-  return (
-    <ol className="space-y-2 mt-3">
-      {steps.map((s, i) => (
-        <li key={i} className="flex gap-3 items-start bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-          <span className="shrink-0 w-6 h-6 rounded-full bg-gray-900 text-white text-[11px] font-black flex items-center justify-center">{i + 1}</span>
-          <span className="text-xs font-bold text-gray-700 leading-relaxed">{s}</span>
-        </li>
-      ))}
-    </ol>
-  );
-};
-
-const CopyValue: React.FC<{ label: string; value: string; onCopy: (v: string) => void }> = ({ label, value, onCopy }) => (
-  <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-    <div className="min-w-0">
-      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{label}</p>
-      <p className="text-xl font-black text-gray-900 font-mono tracking-wider break-all">{value}</p>
-    </div>
-    <button type="button" onClick={() => onCopy(value)} aria-label={`Copy ${label}`}
-      className="p-3 bg-gray-50 rounded-xl border border-gray-200 hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors shadow-sm shrink-0 ml-3 min-w-[44px] min-h-[44px] flex items-center justify-center">
-      <Copy size={16} />
-    </button>
-  </div>
-);
-
-/** QR image with graceful fallback — if the owner hasn't uploaded the real
- * merchant QR yet (public/bangla-qr.png via GitHub web UI), show a helpful
- * placeholder instead of a broken image. */
-const QrImage: React.FC<{ src: string; onZoom: (url: string) => void }> = ({ src, onZoom }) => {
-  const [ok, setOk] = useState(true);
-  if (!ok) {
-    return (
-      <div className="w-52 h-52 bg-gray-50 rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 p-4">
-        <QrCode size={40} className="text-gray-300" />
-        <p className="text-[10px] font-bold text-gray-400 text-center leading-relaxed">
-          QR image not uploaded yet.<br />Add it in GodMode → Settings → Payment Methods.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <button type="button" onClick={() => onZoom(src)} aria-label="Zoom QR code"
-      className="rounded-xl overflow-hidden shadow-md border border-gray-200 hover:scale-[1.02] transition-transform bg-white min-w-[44px] min-h-[44px]">
-      <img src={src} alt="Bangla QR payment code" className="w-52 h-52 object-contain" loading="lazy"
-        onError={() => setOk(false)} />
-    </button>
-  );
-};
-
-/** One payment method card, rendered by type. */
-const MethodCard: React.FC<{
-  method: PaymentMethodDoc;
-  language: string;
-  onCopy: (v: string) => void;
-  onZoom: (url: string) => void;
-}> = ({ method, language, onCopy, onZoom }) => {
-  if (method.type === 'bangla_qr') {
-    return (
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col items-center">
-          {method.qrImageUrl ? (
-            <QrImage src={method.qrImageUrl} onZoom={onZoom} />
-          ) : (
-            <div className="w-52 h-52 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center">
-              <QrCode size={36} className="text-gray-400" />
-            </div>
-          )}
-          <p className="text-xs font-black text-gray-800 uppercase tracking-widest mt-3">{method.label}</p>
-          {method.merchantName && <p className="text-[11px] font-bold text-gray-500 mt-0.5">{method.merchantName}</p>}
-          <p className="text-[10px] font-bold text-gray-400 text-center mt-1">Tap the QR to zoom. Scan from bKash, Nagad, Rocket, or any bank app.</p>
-        </div>
-        {method.number && (
-          <div className="mt-3"><CopyValue label="Merchant number" value={method.number} onCopy={onCopy} /></div>
-        )}
-        <PaySteps method={method} language={language} />
-      </div>
-    );
-  }
-  if (method.type === 'mobile') {
-    return (
-      <div className="space-y-3">
-        <CopyValue label={method.label} value={method.number || '—'} onCopy={onCopy} />
-        <PaySteps method={method} language={language} />
-      </div>
-    );
-  }
-  if (method.type === 'upi') {
-    // UPI QR: prefer configured qrImageUrl, fall back to /upi-qr.png directly
-    // (bypasses any stale paymentMethods build cache).
-    const upiQrSrc = method.qrImageUrl || '/upi-qr.png';
-    return (
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col items-center">
-          <QrImage src={upiQrSrc} onZoom={onZoom} />
-          <p className="text-xs font-black text-gray-800 uppercase tracking-widest mt-3">{method.label}</p>
-          <p className="text-[10px] font-bold text-gray-400 text-center mt-1">Tap the QR to zoom. Scan from GPay, PhonePe, Paytm, or BHIM.</p>
-        </div>
-        <div className="mt-3 space-y-3">
-          <CopyValue label="UPI ID" value={method.upiId || '—'} onCopy={onCopy} />
-          {method.accountName && <p className="text-[11px] font-bold text-gray-500">Account: {method.accountName}</p>}
-        </div>
-        <PaySteps method={method} language={language} />
-      </div>
-    );
-  }
-  // payoneer (primary) / wise (fallback)
-  const detail = method.type === 'wise' ? method.accountDetails : method.accountEmail;
-  return (
-    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
-      {method.link && (
-        <button type="button" onClick={() => window.open(method.link, '_blank')}
-          className={`w-full text-white px-6 py-4 rounded-xl text-xs uppercase tracking-widest font-black flex justify-center items-center gap-2 mx-auto transition-all shadow-md hover:-translate-y-0.5 min-h-[52px] ${method.type === 'wise' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-600 hover:bg-orange-700'}`}>
-          {method.type === 'wise' ? <Globe size={16} /> : <CreditCard size={16} />}
-          {method.type === 'wise' ? 'Open secure checkout (Wise)' : 'Pay via Payoneer'}
-        </button>
-      )}
-      {method.accountName && <p className="text-xs font-black text-gray-800">Account holder: {method.accountName}</p>}
-      {detail && <p className="text-xs font-mono font-bold text-gray-600 break-all bg-gray-50 p-3 rounded-xl border border-gray-100">{detail}</p>}
-      <PaySteps method={method} language={language} />
-    </div>
-  );
-};
-
-/** Region payment panel — reads owner-configured methods, graceful empty state. */
-const RegionPayView: React.FC<{
-  region: PayRegion;
-  methods: PaymentMethodDoc[];
-  language: string;
-  loading: boolean;
-  onCopy: (v: string) => void;
-  onZoom: (url: string) => void;
-}> = ({ region, methods, language, loading, onCopy, onZoom }) => {
-  const a = REGION_ACCENT[region];
-  const list = methodsForRegionWithFallback(methods, region);
-  return (
-    <div className={`${a.bg} border ${a.border} rounded-3xl p-5 mb-6 shadow-sm relative overflow-hidden text-left`}>
-      <div className={`absolute top-0 left-0 w-1.5 h-full ${a.bar}`}></div>
-      <div className={`flex justify-between items-center border-b ${a.headBorder} pb-4 mb-4 pl-2`}>
-        <h4 className={`text-xs font-black ${a.title} uppercase tracking-widest flex items-center gap-2`}>
-          <CreditCard size={16} /> Payment Instructions — {REGION_NAME[region]}
-        </h4>
-      </div>
-      {loading ? (
-        <div className="flex items-center justify-center py-10 text-gray-400">
-          <Loader2 size={22} className="animate-spin" />
-        </div>
-      ) : list.length === 0 ? (
-        <p className="text-xs font-bold text-gray-500 text-center py-8 leading-relaxed">
-          No payment methods are enabled for your region right now.<br />Please contact support.
-        </p>
-      ) : (
-        <div className="space-y-4 pl-2">
-          {list.map((m) => (
-            <MethodCard key={m.id} method={m} language={language} onCopy={onCopy} onZoom={onZoom} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+/* QUEUED #54: the bespoke geo payment views that served the retired
+ * Settings upgrade modal were removed with it — payment instructions
+ * now live in the canonical PlanUpgradeFlow (billing/PlanUpgradeFlow). */
 
 export const MasterSettingsDesk: React.FC = () => {
   const { activeWorkspace, updateWorkspaceDetails, currentRole, currentUser, checkPermission } = useAuthWorkspace();
@@ -236,9 +67,10 @@ export const MasterSettingsDesk: React.FC = () => {
   const [saving, setSaving] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'GENERAL' | 'BILLING' | 'GEO'>('GENERAL');
-  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<HistoryRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyPartialError, setHistoryPartialError] = useState<string | null>(null);
   const [historyRetry, setHistoryRetry] = useState(0);
   
   const [appTheme, setAppTheme] = useState<'saffron' | 'classic'>(() => {
@@ -306,22 +138,6 @@ export const MasterSettingsDesk: React.FC = () => {
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
   const [passLoading, setPassLoading] = useState(false);
 
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [paymentTab, setPaymentTab] = useState<PayRegion>('BD');
-  const [copied, setCopied] = useState(false);
-  // Geo-based payment: auto-detect region, load owner-configured methods.
-  const [payRegion, setPayRegion] = useState<PayRegion | null>(null);
-  const [payMethods, setPayMethods] = useState<PaymentMethodDoc[]>([]);
-  const [regionLoading, setRegionLoading] = useState(false);
-
-  const [upgradeForm, setUpgradeForm] = useState({ 
-    contact: currentUser?.name || '', 
-    senderNumber: '',
-    paymentMethod: 'bKash',
-    trxId: '' 
-  });
-  const [submittingTrx, setSubmittingTrx] = useState(false);
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   // Pillar 1: the branding section owns the logo pipeline (validate → crop
@@ -334,37 +150,6 @@ export const MasterSettingsDesk: React.FC = () => {
     (activeWorkspace as any)?.location?.lat ? (activeWorkspace as any)?.location : null
   );
 
-  // NOTE: payment numbers/links are owner-configured via GodMode → Settings →
-  // Payment Methods (paymentMethods collection). Hardcoded fallbacks live in
-  // src/lib/paymentMethods.ts for graceful degradation only.
-
-  // Geo-detect the payer's region when the upgrade modal opens and load
-  // the owner-configured payment methods. Manual tab taps override geo.
-  useEffect(() => {
-    if (!showUpgradeModal) return;
-    let cancelled = false;
-    (async () => {
-      setRegionLoading(true);
-      try {
-        const region = await detectPayRegion(currentUser?.phone || (activeWorkspace as any)?.phone);
-        if (cancelled) return;
-        setPayRegion(region);
-        setPaymentTab(region);
-        const methods = await getPaymentMethods();
-        if (cancelled) return;
-        setPayMethods(methods);
-      } finally {
-        if (!cancelled) setRegionLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [showUpgradeModal]);
-
-  const switchRegion = (r: PayRegion) => {
-    setCachedRegion(r); // remember the manual choice for 24h
-    setPayRegion(r);
-    setPaymentTab(r);
-  };
 
   const isAdmin = checkPermission(['TRUSTEE']);
 
@@ -384,26 +169,37 @@ export const MasterSettingsDesk: React.FC = () => {
       const fetchHistory = async () => {
         setLoadingHistory(true);
         setHistoryError(null);
-        try {
-          const q = query(collection(db, 'upgrade_requests'), where('communityId', '==', activeWorkspace.id));
-          // QUEUED #51 (D9e): no swallowed catch — a failed load must land
-          // in the explicit error state below, never a fake "no records"
-          // and never a spinner that never resolves.
-          const snapshot = await getDocs(q);
-          const history = snapshot.docs.map((docSnap): any => ({ id: docSnap.id, ...docSnap.data() }));
-          history.sort((a, b) => {
-            const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
-            const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
-            return timeB - timeA;
-          });
-          setPaymentHistory(history);
-        } catch (err: any) {
-          console.error("Failed to fetch payment history", err);
-          setPaymentHistory([]);
-          setHistoryError(err?.message || 'Could not load payment history.');
-        } finally {
-          setLoadingHistory(false);
+        setHistoryPartialError(null);
+        // QUEUED #54: the panel unions BOTH billing streams for the org —
+        // legacy upgrade_requests (retired Settings-modal era) and the
+        // canonical paymentClaims (PlanUpgradeFlow; org-readable since
+        // the #54 rules bundle). The streams settle independently: one
+        // stream's failure must never fake-empty the other's rows (the
+        // D9e honesty law) — it surfaces as a partial-error note beside
+        // the surviving rows; only a double failure lands in the full
+        // error state below.
+        const [reqRes, claimRes] = await Promise.allSettled([
+          getDocs(query(collection(db, 'upgrade_requests'), where('communityId', '==', activeWorkspace.id))),
+          getDocs(query(collection(db, 'paymentClaims'), where('workspaceId', '==', activeWorkspace.id))),
+        ]);
+        const toStream = (
+          res: PromiseSettledResult<any>,
+          mapRow: (id: string, data: Record<string, any>) => HistoryRow,
+        ): StreamResult =>
+          res.status === 'fulfilled'
+            ? { status: 'ok', rows: res.value.docs.map((d: any) => mapRow(d.id, d.data())) }
+            : { status: 'error', error: (res.reason as any)?.message || 'Could not load payment history.' };
+        const combined = combineHistoryStreams(
+          toStream(reqRes, requestToHistoryRow),
+          toStream(claimRes, claimToHistoryRow),
+        );
+        if (combined.fullError || combined.partialError) {
+          console.error("Failed to fetch payment history", combined.fullError || combined.partialError);
         }
+        setPaymentHistory(combined.rows);
+        setHistoryError(combined.fullError);
+        setHistoryPartialError(combined.partialError);
+        setLoadingHistory(false);
       };
       fetchHistory();
     }
@@ -591,67 +387,6 @@ export const MasterSettingsDesk: React.FC = () => {
     });
   };
 
-  const handleSubmitUpgrade = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!upgradeForm.contact || !upgradeForm.trxId) return showToast("Contact and Transaction ID are required.", "error");
-    if (paymentTab === 'BD' && !upgradeForm.senderNumber) return showToast("Sender Number is required for verification.", "error");
-
-    setSubmittingTrx(true);
-    try {
-      const requestRef = doc(collection(db, 'upgrade_requests'));
-      // Canonical payment method id for per-method insights (see paymentMethods.ts).
-      const methodLabel = (paymentTab === 'INTL' ? 'INTL Gateway (Payoneer/Wise)' : upgradeForm.paymentMethod) || '';
-      const ml = methodLabel.toLowerCase();
-      const paymentMethodId =
-        paymentTab === 'BD'
-          ? (ml.includes('bangla') || ml.includes('tallypay') || ml.includes('qr') ? 'bd_banglaqr'
-            : ml.includes('nagad') ? 'bd_nagad'
-            : ml.includes('rocket') ? 'bd_bkash' : 'bd_bkash')
-          : paymentTab === 'IN' ? (indianPaymentsReady(payMethods) ? 'in_upi' : 'intl_payoneer')
-          : (ml.includes('payoneer') ? 'intl_payoneer' : 'intl_wise');
-      await setDoc(requestRef, {
-        requestId: requestRef.id,
-        communityId: activeWorkspace?.id,
-        communityName: workspaceInfo.name,
-        adminName: currentUser?.name || 'Admin',
-        contactInfo: upgradeForm.contact.trim(),
-        senderNumber: paymentTab === 'BD' ? upgradeForm.senderNumber.trim() : (upgradeForm.senderNumber.trim() || 'N/A'),
-        paymentMethod: paymentTab === 'INTL' ? 'INTL Gateway (Payoneer/Wise)' : upgradeForm.paymentMethod,
-        paymentMethodId,
-        paymentRegion: paymentTab,
-        transactionId: upgradeForm.trxId.trim(),
-        timestamp: serverTimestamp(),
-        status: "PENDING",
-        // QUEUED #51: request the REAL next plan (canonical terms id),
-        // not the legacy 'SMART_PRO' label with Standard prices.
-        requestedPlan: planInfo?.nextPlanId ? planInfo.nextPlanId.toUpperCase() : 'STANDARD'
-      });
-
-      setShowUpgradeModal(false);
-      setUpgradeForm({ contact: currentUser?.name || '', senderNumber: '', paymentMethod: 'bKash', trxId: '' });
-
-      setConfirmDialog({
-        title: localSafeTranslate('req_submitted', "Request Submitted!"),
-        message: localSafeTranslate('dakshina_submitted_desc', `✅ Your transaction ID has been securely submitted. Our backend team will verify this within 24 hours and activate your ${offerPlan?.name || 'upgraded'} plan.`),
-        confirmText: localSafeTranslate('understood', "UNDERSTOOD"),
-        isDanger: false,
-        onConfirm: () => setConfirmDialog(null)
-      });
-
-    } catch (err: any) {
-      showToast(err.message, "error");
-    } finally {
-      setSubmittingTrx(false);
-    }
-  };
-
-  const handleCopyNumber = (num: string) => {
-    navigator.clipboard.writeText(num);
-    setCopied(true);
-    showToast(localSafeTranslate('copied_success', "Number Copied Successfully!"), "success");
-    setTimeout(() => setCopied(false), 3000);
-  };
 
   return (
     <div className="space-y-6 fade-in pb-12 relative">
@@ -1096,6 +831,13 @@ export const MasterSettingsDesk: React.FC = () => {
             <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest">
               <History size={18} className="text-blue-600" /> Payment & Request History
             </h3>
+
+            {historyPartialError && historyView !== 'loading' && (
+              <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+                <p className="text-[11px] font-bold text-amber-700 leading-relaxed flex-1">Some records couldn't be loaded — {historyPartialError}</p>
+                <button type="button" onClick={() => setHistoryRetry((n) => n + 1)} className="px-4 py-2 min-h-[44px] bg-white border border-amber-300 text-amber-700 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors shrink-0">Retry</button>
+              </div>
+            )}
             
             {historyView === 'loading' ? (
               <div className="flex justify-center p-12">
@@ -1119,21 +861,25 @@ export const MasterSettingsDesk: React.FC = () => {
                 {paymentHistory.map(record => (
                   <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-gray-50 border border-gray-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all group">
                     <div className="mb-3 sm:mb-0">
-                      <div className="flex items-center gap-3 mb-2">
-                         <span className="text-sm font-black text-gray-900 tracking-tight">{record.requestedPlan || '—'}</span>
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                         <span className="text-sm font-black text-gray-900 tracking-tight">{record.planLabel}</span>
                          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md border ${
-                           record.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' :
-                           record.status === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-200' :
+                           record.statusLabel === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' :
+                           record.statusLabel === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-200' :
                            'bg-orange-50 text-orange-600 border-orange-200'
-                         }`}>{record.status}</span>
+                         }`}>{record.statusLabel}</span>
+                         <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-md border bg-blue-50 text-blue-600 border-blue-200">{record.sourceLabel}</span>
                       </div>
                       <p className="text-[10px] font-bold text-gray-500 font-mono tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> TRX: {record.transactionId}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestamp?.toDate ? record.timestamp.toDate().toLocaleString() : '—'}</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestampMillis ? new Date(record.timestampMillis).toLocaleString() : '—'}</p>
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-[10px] font-black text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-flex items-center gap-1.5 uppercase tracking-widest shadow-sm">
-                        <CreditCard size={12}/> {record.paymentMethod}
+                        <CreditCard size={12}/> {record.methodLabel}
                       </p>
+                      {record.amountLabel && (
+                        <p className="text-[10px] font-bold text-gray-400 mt-1.5">{record.amountLabel}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1231,7 +977,7 @@ export const MasterSettingsDesk: React.FC = () => {
                 </div>
 
                 {isAdmin ? (
-                  <button onClick={() => { setShowUpgradeModal(true); }} className="w-full bg-white text-sanatani-orange hover:bg-gray-50 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 relative z-10 flex items-center justify-center gap-2">
+                  <button onClick={() => openPlanUpgrade(planInfo?.nextPlanId ? tierForPlan(planInfo.nextPlanId) : undefined)} className="w-full bg-white text-sanatani-orange hover:bg-gray-50 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 relative z-10 flex items-center justify-center gap-2">
                     {localSafeTranslate('offer_dakshina', 'OFFER DAKSHINA (UPGRADE)')}
                   </button>
                 ) : (
@@ -1256,134 +1002,9 @@ export const MasterSettingsDesk: React.FC = () => {
         <GeoPaymentsManager />
       )}
 
-      {/* ✨ SECURE UPGRADE & PAYMENT MODAL */}
-      {showUpgradeModal && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden fade-in flex flex-col max-h-[90vh] ring-1 ring-white/20 border-t-4 border-sanatani-orange">
-
-            <div className="bg-gradient-to-br from-gray-900 to-black p-6 sm:p-8 text-white text-center relative shrink-0">
-               <button onClick={() => setShowUpgradeModal(false)} className="absolute top-5 right-5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-colors"><X size={18}/></button>
-               <Crown size={40} className="mx-auto mb-3 text-sanatani-orange drop-shadow-md" />
-               <h2 className="text-3xl font-black tracking-tight mb-2">{offerPlan ? offerPlan.name : 'Upgrade'}</h2>
-               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Monthly or annual billing • Annual includes 2 months free</p>
-
-               <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 mt-6 flex justify-center gap-3 sm:gap-4 text-[9px] font-black uppercase tracking-widest text-gray-200 flex-wrap shadow-inner">
-                  {planPerks(planInfo?.nextPlanId || 'standard').map((feat, idx) => (
-                    <span key={idx} className="flex items-center gap-1.5"><CheckCircle2 size={12} className="text-sanatani-orange"/> {feat}</span>
-                  ))}
-               </div>
-            </div>
-
-            <div className="p-6 sm:p-8 overflow-y-auto bg-white flex-1 scrollbar-hide">
-
-               <div className="flex bg-gray-100 p-1.5 rounded-2xl mb-4 shadow-inner border border-gray-200">
-                 <button onClick={() => switchRegion('BD')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'BD' ? 'bg-white text-green-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🇧🇩 BD{offerPlan ? ` (${planPriceLabel(offerPlan, 'BDT', 'monthly')})` : ''}
-                 </button>
-                 <button onClick={() => switchRegion('IN')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'IN' ? 'bg-white text-orange-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🇮🇳 IN{offerPlan ? ` (${planPriceLabel(offerPlan, 'INR', 'monthly')})` : ''}
-                 </button>
-                 <button onClick={() => switchRegion('INTL')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center min-h-[44px] ${paymentTab === 'INTL' ? 'bg-white text-blue-700 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                   🌍 INTL{offerPlan ? ` (${planPriceLabel(offerPlan, 'USD', 'monthly')})` : ''}
-                 </button>
-               </div>
-               {payRegion && (
-                 <p className="text-[10px] font-bold text-gray-400 text-center mb-4">
-                   Showing {REGION_NAME[payRegion]} methods{regionLoading ? '…' : ''} ·{' '}
-                   <button type="button" onClick={() => { clearCachedRegion(); setPayRegion(null); }}
-                     className="underline hover:text-gray-600">Wrong region? Pick manually above</button>
-                 </p>
-               )}
-
-               <RegionPayView region={paymentTab} methods={payMethods} language={language}
-                 loading={regionLoading} onCopy={handleCopyNumber} onZoom={setZoomedImage} />
-
-               
-
-               <form onSubmit={handleSubmitUpgrade} className="space-y-5">
-                 <div className="border-t border-gray-200 pt-6 mb-4">
-                   <h3 className="text-sm font-black text-gray-900 mb-1 flex items-center gap-2"><Shield size={16} className="text-sanatani-orange"/> Verify Dakshina</h3>
-                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Submit details — your plan activates after verification.</p>
-                 </div>
-
-                 <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Contact Method *</label>
-                   <div className="relative">
-                     <Phone size={16} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                     <input type="text" required value={upgradeForm.contact} onChange={e=>setUpgradeForm({...upgradeForm, contact: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange transition-all shadow-sm" placeholder="Phone or Email" />
-                   </div>
-                 </div>
-
-                 {paymentTab !== 'INTL' && (
-                   <div className="grid grid-cols-2 gap-4">
-                     <div>
-                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Payment Method *</label>
-                       <select required value={upgradeForm.paymentMethod} onChange={e=>setUpgradeForm({...upgradeForm, paymentMethod: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange shadow-sm cursor-pointer appearance-none transition-all">
-                         {paymentTab === 'BD' ? (
-                           <>
-                             <option value="bKash">bKash</option>
-                             <option value="Nagad">Nagad</option>
-                             <option value="Rocket">Rocket</option>
-                             <option value="TallyPay/BanglaQR">TallyPay QR</option>
-                             <option value="Other">Other Bank</option>
-                           </>
-                         ) : (
-                           <>
-                             <option value="UPI">UPI</option>
-                             <option value="Other">Other</option>
-                           </>
-                         )}
-                       </select>
-                     </div>
-                     <div>
-                       <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Sender Number {paymentTab === 'BD' ? '*' : '(optional)'}</label>
-                       <input type="text" required={paymentTab === 'BD'} value={upgradeForm.senderNumber} onChange={e=>setUpgradeForm({...upgradeForm, senderNumber: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:bg-white focus:border-sanatani-orange transition-all shadow-sm" placeholder={paymentTab === 'BD' ? '017...' : '98...'} />
-                     </div>
-                   </div>
-                 )}
-
-                 <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Transaction ID (TrxID) *</label>
-                   <div className="relative">
-                     <FileText size={16} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                     <input type="text" required value={upgradeForm.trxId} onChange={e=>setUpgradeForm({...upgradeForm, trxId: e.target.value})} className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold font-mono outline-none focus:bg-white focus:border-sanatani-orange transition-all shadow-sm uppercase" placeholder="Enter TrxID" />
-                   </div>
-
-                   <div className="bg-gray-100/80 p-4 rounded-xl border border-gray-200 mt-3 flex items-start gap-3 shadow-inner">
-                     <HelpCircle size={16} className="text-gray-500 shrink-0 mt-0.5" />
-                     <div className="text-[10px] text-gray-600 font-bold leading-relaxed">
-                       <span className="text-gray-900 font-black">How to find TrxID?</span><br/>
-                       After sending money, check your confirmation SMS or App screen. Look for "TrxID" or "Transaction ID" (e.g., 9A7BC8FXYZ).
-                     </div>
-                   </div>
-                 </div>
-
-                 <button type="submit" disabled={submittingTrx} className="w-full bg-gray-900 hover:bg-black text-white font-black py-4 rounded-xl shadow-lg hover:shadow-xl text-xs uppercase tracking-widest transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 mt-6 disabled:opacity-50 disabled:transform-none">
-                   {submittingTrx ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} />} SUBMIT FOR VERIFICATION
-                 </button>
-               </form>
-
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* ✨ FULL-SCREEN IMAGE ZOOM MODAL */}
-      {zoomedImage && createPortal(
-        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-sm z-[11000] flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
-          <div className="relative max-w-3xl w-full flex justify-center items-center animate-in zoom-in-95">
-             <button onClick={() => setZoomedImage(null)} aria-label="Close zoom"
-               className="absolute -top-12 right-0 sm:-right-12 sm:top-0 bg-white/10 hover:bg-white/30 text-white p-3 rounded-full transition-colors backdrop-blur-md min-w-[44px] min-h-[44px] flex items-center justify-center">
-               <X size={24}/>
-             </button>
-             <img src={zoomedImage} alt="Payment QR code (zoomed)"
-               className="w-full max-w-md max-h-[75vh] object-contain rounded-xl border border-white/20 shadow-2xl bg-white p-2"
-               onClick={(e) => e.stopPropagation()} />
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* QUEUED #54: the bespoke upgrade modal was retired — upgrades now
+          file through the canonical PlanUpgradeFlow (openPlanUpgrade →
+          paymentClaims → owner approval → plan activates). */}
 
     </div>
   );

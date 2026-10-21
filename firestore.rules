@@ -567,7 +567,15 @@ service cloud.firestore {
     // Payment claims: any authenticated member files their own claim; only the
     match /paymentClaims/{claimId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid);
+        || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid)
+        // QUEUED #54 (owner-approved companion): the org's own finance
+        // roles may read claims filed for their workspace, so Settings →
+        // Billing history can list the org's claims (query
+        // where('workspaceId','==',wsId)) alongside its upgrade requests.
+        // hasRole ANDs tenant membership, so cross-org reads stay
+        // impossible; claims with workspaceId 'personal' fail closed
+        // (hasRole('personal', …) is false) and remain applicant-only.
+        || (isLoggedIn() && hasRole(resource.data.get('workspaceId', ''), R_FINANCE()));
       allow create: if isLoggedIn()
         && request.resource.data.get('applicantUid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'pending';
@@ -1352,8 +1360,31 @@ service cloud.firestore {
 
     // Upgrade requests
     match /upgrade_requests/{reqId} {
-      allow create: if isLoggedIn();
-      allow read, update, delete: if isSuperAdmin();
+      // QUEUED #54 (owner-approved): create tightened from any-logged-in —
+      // a request must name the filer's OWN tenant (previously any
+      // signed-in user could file against any communityId, spamming the
+      // owner's stats). Demo sandboxes file against their DEMO_ id and
+      // demo personas hold no membership edge, so the demo term mirrors
+      // the yatra_broadcasts create shape and keeps demo submission open.
+      allow create: if isLoggedIn() && (isSuperAdmin()
+        || isTenantMember(request.resource.data.get('communityId', ''))
+        || isDemoWs(request.resource.data.get('communityId', null)));
+      // QUEUED #54 (owner-approved): the submitting org's own finance
+      // roles may read back its requests — Settings → Billing history
+      // queries where('communityId','==',workspaceId), and the previous
+      // SuperAdmin-only read denied every trustee their own history
+      // ("Missing or insufficient permissions", even for an empty list).
+      // Docs carry payer contact + sender numbers, so read is scoped to
+      // the owning tenant's finance roles (hasRole ANDs tenant
+      // membership, so a trustee of org A cannot read org B's requests).
+      // Pattern mirrors yatra_broadcasts (communityId-keyed member read).
+      // Demo carve-out mirrors yatra_broadcasts: demo personas hold no
+      // tenant membership, so DEMO_ workspaces' requests stay readable
+      // to any signed-in demo session.
+      allow read: if isSuperAdmin()
+        || hasRole(resource.data.get('communityId', ''), R_FINANCE())
+        || (isDemoWs(resource.data.get('communityId', null)) && isLoggedIn());
+      allow update, delete: if isSuperAdmin();
     }
 
     // Live Darshan — public live-status cache. Any viewer can read whether
