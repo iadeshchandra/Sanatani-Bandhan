@@ -44,6 +44,7 @@ export type IntentId =
   | 'record_donation'
   | 'record_expense'
   | 'draft_notice'
+  | 'org_locator'
   | 'admin_briefing'
   | 'admin_stats'
   | 'admin_moderation_help'
@@ -87,9 +88,13 @@ export interface AssistantCtx {
 
 /** Machine-readable follow-up the host UI may act on. */
 export interface AssistantAction {
-  kind: 'navigate' | 'openGuide' | 'openSheet' | 'requestLocation';
-  /** Route path, guide id, or sheet id — resolved by the host shell. */
+  kind: 'navigate' | 'openGuide' | 'openSheet' | 'requestLocation' | 'openDesk';
+  /** Route path, guide id, sheet id — or, for 'openDesk', a catalog
+   *  desk id the host shell switches to via its desk-routing event
+   *  ('sanatani:navigate'). Desk ids are NOT routes. */
   target: string;
+  /** Optional CTA label (the sheet falls back to a per-kind default). */
+  label?: string;
 }
 
 export type ResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent' | 'draft';

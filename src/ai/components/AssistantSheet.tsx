@@ -724,6 +724,23 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
       if (action.kind === 'navigate') {
         onClose();
         navigate(action.target);
+      } else if (action.kind === 'openDesk') {
+        // Feature locator (org_locator): switch the org desk through
+        // the app's own desk-routing event — the same
+        // 'sanatani:navigate' contract FestivalJourneyCard and the
+        // shell breadcrumb use; AppContent listens and sets the
+        // active module. A desk id is not a route, so react-router
+        // must never see it.
+        onClose();
+        try {
+          window.dispatchEvent(
+            new CustomEvent('sanatani:navigate', {
+              detail: { module: action.target },
+            })
+          );
+        } catch {
+          /* non-DOM environment — nothing to navigate */
+        }
       } else if (action.kind === 'openGuide') {
         if (getGuide(action.target)) {
           setActiveGuide(action.target);

@@ -18,6 +18,7 @@ import { sosHelpTask } from './sos_help';
 import { voiceUpgradeTask } from './voice_upgrade';
 import { dharmaQuestionTask } from './dharma_question';
 import { navigationQuestionTask } from './navigation';
+import { orgLocatorTask } from './org_locator';
 import { nearbyTask } from './nearby';
 import { tirthaSummaryTask } from './tirtha_summary';
 import { greetingTask } from './greeting';
@@ -55,6 +56,7 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   voice_upgrade: voiceUpgradeTask,
   dharma_question: dharmaQuestionTask,
   navigation_question: navigationQuestionTask,
+  org_locator: orgLocatorTask,
   nearby_temples: nearbyTask,
   tirtha_summary: tirthaSummaryTask,
   greeting: greetingTask,

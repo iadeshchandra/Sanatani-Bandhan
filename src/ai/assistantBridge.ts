@@ -18,7 +18,14 @@
  * re-export the core's types; the UI components only ever import from here.
  */
 
-export type AssistantActionKind = 'navigate' | 'openGuide' | 'openSheet' | 'requestLocation';
+export type AssistantActionKind =
+  | 'navigate'
+  | 'openGuide'
+  | 'openSheet'
+  | 'requestLocation'
+  // Feature locator: target is a DESK ID switched through the app's
+  // 'sanatani:navigate' desk-routing event — never a route path.
+  | 'openDesk';
 
 export interface AssistantAction {
   kind: AssistantActionKind;

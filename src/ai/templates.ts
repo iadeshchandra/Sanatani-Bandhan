@@ -312,6 +312,27 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
       bn: (p, c) => `🙏 অ্যাপে যেকোনো কিছু কোথায় আছে জিজ্ঞেস করুন — আপনার ওয়ালেট, তীর্থ ডায়েরি, গ্রুপ চ্যাট, ভাষা সেটিং — আমি আপনাকে সেখানে নিয়ে যাব। 🌼`,
     },
   },
+  /* ---------------- org_locator ---------------- */
+  org_locator: {
+    answer: {
+      en: (p, c) => `${p['answer']}`,
+      hi: (p, c) => `${p['answer']}`,
+      bn: (p, c) => `${p['answer']}`,
+    },
+    clarify: {
+      en: (p, c) => `${p['answer']}`,
+      hi: (p, c) => `${p['answer']}`,
+      bn: (p, c) => `${p['answer']}`,
+    },
+    default: {
+      en: (p, c) =>
+        `🙏 Ask me where anything lives — a desk, Bahi-Khata, Practice Mode — and I'll point you there, or take you if it's yours to open. 🌼`,
+      hi: (p, c) =>
+        `🙏 मुझसे पूछें कि कुछ भी कहाँ है — कोई डेस्क, बही-खाता, प्रैक्टिस मोड — मैं आपको बता दूँगा, या यदि वह आपके खोलने के लिए है तो वहाँ ले चलूँगा। 🌼`,
+      bn: (p, c) =>
+        `🙏 আমাকে জিজ্ঞেস করুন যেকোনো কিছু কোথায় আছে — কোনো ডেস্ক, বহিখাতা, প্র্যাক্টিস মোড — আমি আপনাকে জানিয়ে দেব, অথবা সেটি আপনার খোলার হলে সেখানে নিয়ে যাব। 🌼`,
+    },
+  },
   /* ---------------- nearby_temples ---------------- */
   nearby_temples: {
     consent: {
@@ -923,6 +944,11 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ['Where is my wallet?', 'Where is the Tirtha Diary?', 'Where are group chats?'],
     hi: ['मेरा वॉलेट कहाँ है?', 'तीर्थ डायरी कहाँ है?', 'ग्रुप चैट कहाँ हैं?'],
     bn: ['আমার ওয়ালেট কোথায়?', 'তীর্থ ডায়েরি কোথায়?', 'গ্রুপ চ্যাট কোথায়?'],
+  },
+  org_locator: {
+    en: ['Where is Bahi-Khata?', 'Where is Practice Mode?', 'Where are Suchana controls?'],
+    hi: ['बही-खाता कहाँ है?', 'प्रैक्टिस मोड कहाँ है?', 'सूचना नियंत्रण कहाँ हैं?'],
+    bn: ['বহিখাতা কোথায়?', 'প্র্যাক্টিস মোড কোথায়?', 'সূচনা নিয়ন্ত্রণ কোথায়?'],
   },
   nearby_temples: {
     en: ['Temples near me', 'Nearby mandirs', 'Temples around here?'],

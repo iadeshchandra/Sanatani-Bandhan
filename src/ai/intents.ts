@@ -14,6 +14,7 @@
 import type { IntentId, LangCode } from './types';
 import { matchDharma } from './dharma';
 import { isWhereQuestion, matchNavigation } from './navigation';
+import { isLocatorQuestion, matchLocator } from './locator';
 import { routeCopilotIntent } from './godmode/copilot';
 
 export interface IntentDef {
@@ -34,6 +35,7 @@ export const INTENTS: IntentDef[] = [
   { id: 'voice_upgrade', description: 'Get the warmer on-device AI voice (Settings card)' },
   { id: 'dharma_question', description: 'Answer from the restricted Dharma corpus (or escalate to Purohitji)' },
   { id: 'navigation_question', description: 'Where an app feature lives (navigation corpus + deep-link)' },
+  { id: 'org_locator', description: 'Feature locator: where an org desk or nested feature lives (MODULE_CATALOG map), scope-honest, tap-to-go when the caller may open it' },
   { id: 'nearby_temples', description: 'Temples near the devotee — explicit location consent, never stored' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
@@ -497,6 +499,37 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
       slots: {},
       evidence: ['copilot-keyword'],
     };
+  }
+
+  // Feature-locator chance (micro-batch, 2026-10-22): "where is X /
+  // how do I reach X" for ORG desks and nested features (Bahi-Khata
+  // inside Treasury, Practice Mode inside Settings, …). The solo
+  // navigation corpus does not know them, so those questions fell
+  // through to the honest fallback ("beyond what I've been taught")
+  // in the live walk. The locator map is traced to MODULE_CATALOG;
+  // the executor applies the caller's role + desk scope before
+  // offering any deep-link, and asks ONE clarifying question when a
+  // name matches two features. Runs before the corpus chance so an
+  // org feature gets the org answer; corpus-only destinations
+  // (wallet, diary, …) are not in the locator map and still fall
+  // through to navigation_question below.
+  if (isLocatorQuestion(input)) {
+    const loc = matchLocator(input);
+    if (
+      loc.best &&
+      (loc.confidence === 'high' ||
+        loc.confidence === 'medium' ||
+        loc.ambiguous.length >= 2)
+    ) {
+      return {
+        intent: 'org_locator',
+        // An ambiguity match can sit at 'low'/'none' score confidence;
+        // the router's scale bottoms out at 'low'.
+        confidence: loc.confidence === 'none' ? 'low' : loc.confidence,
+        slots: { entryId: loc.best.id },
+        evidence: loc.evidence,
+      };
+    }
   }
 
   // Phase 3 first chance: "where is X?" interrogatives. When the devotee

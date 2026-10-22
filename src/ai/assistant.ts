@@ -210,6 +210,10 @@ export async function ask(
     'record_donation',
     'record_expense',
     'draft_notice',
+    // The locator's desk/place names must reach the user exactly as
+    // authored — a voice rephrase could garble the very name the
+    // user is hunting for.
+    'org_locator',
   ]);
   const enhanced =
     outcome.draft || ORG_INTENTS.has(route.intent)

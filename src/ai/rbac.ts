@@ -77,6 +77,7 @@ const ALL_INTENTS: IntentId[] = [
   'voice_upgrade',
   'dharma_question',
   'navigation_question',
+  'org_locator',
   'tirtha_summary',
   'nearby_temples',
   'greeting',
