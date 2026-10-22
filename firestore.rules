@@ -604,6 +604,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Master audit stream (Blueprint A): append-only, hash-chained
+    // auditEvents written by the data layer at every commit point
+    // (treasury, devotees, bookings, inventory, settings, sample
+    // purge, publish/unpublish). A member may only ever write events
+    // AS THEMSELVES (actorUid == request.auth.uid — no impersonation),
+    // and no one can update or delete an event: the stream is the
+    // forensic record. Reads are finance/oversight roles of that
+    // workspace (a member-level read would expose everyone's history).
+    match /auditEvents/{eventId} {
+      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
+      allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
+        && request.resource.data.get('actorUid', '') == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Published monthly accounts (Blueprint A): the public
+    // Transparency Board. A document exists ONLY because a finance
+    // role published that month — unpublished months have no
+    // document at all — so reads are public, like orgPages. Publish,
+    // republish and unpublish (delete) are finance roles of that
+    // workspace; update keeps the workspaceId pinned (wsImmutable).
+    match /publishedAccounts/{docId} {
+      allow read: if true;
+      allow create: if hasRole(newDocWs(), R_FINANCE());
+      allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
+      allow delete: if hasRole(docWs(), R_FINANCE());
+    }
+
     // ---- Messaging ----
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
