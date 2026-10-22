@@ -72,6 +72,7 @@ import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant
 import { TawkToWidget } from './components/common/TawkToWidget';
 import { LandingPage as LegacyLandingPage } from './components/public/LandingPage';
 import { LandingPage } from './pages/LandingPage';
+import { AskAiPage } from './pages/AskAiPage';
 import { ContactPage } from './pages/ContactPage';
 import { DevoteePortal } from './pages/DevoteePortal';
 import { PortalLogin } from './components/public/PortalLogin';
@@ -1067,7 +1068,7 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // P1-1: Signed-out deep routes must redirect to /login, not render landing
   // content at the protected URL. Preserve the intended destination for
   // post-login return via ?next=.
-  const publicPaths = ['/', '/login', '/signup', '/contact', '/mysecretlogin', '/get-app'];
+  const publicPaths = ['/', '/login', '/signup', '/contact', '/ask-ai', '/mysecretlogin', '/get-app'];
   const currentPath = window.location.pathname;
   const isPublicPath = publicPaths.some((p) =>
     p === '/' ? currentPath === '/' : currentPath === p || currentPath.startsWith(p + '/')
@@ -1251,6 +1252,7 @@ const AppRoutes: React.FC = () => {
             }
           />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/ask-ai" element={<AskAiPage />} />
           {/* Secret Obfuscated Platform Route: Accessed via URL typing only, strictly guarded */}
           <Route
             path="/system-override"

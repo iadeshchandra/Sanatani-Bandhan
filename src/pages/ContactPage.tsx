@@ -393,6 +393,26 @@ export const ContactPage: React.FC = () => {
                 </button>
               </div>
 
+              <div className="bg-white rounded-3xl border border-orange-100 p-6 shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h3 className="font-black text-lg">Ask any AI about us</h3>
+                <p className="text-sm text-stone-500 mt-1 mb-4">
+                  ChatGPT, Claude or Gemini — ask them anything about Sanatani Bandhan.
+                  We publish our facts openly, with ready-made prompts that point your
+                  AI straight at them.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/ask-ai')}
+                  className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-sm font-extrabold transition-all cursor-pointer"
+                >
+                  Get the prompts
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+
               <div className="flex items-center gap-3 text-sm text-stone-500 px-1">
                 <Clock className="w-5 h-5 text-orange-500 shrink-0" />
                 <span>
