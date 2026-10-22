@@ -29,7 +29,7 @@ export const CommitteeTab: React.FC = () => {
   if (!fest) return <Card><Empty text={t('ritual.utsav.committee.empty_add_a_festival_first_then_build')} /></Card>;
 
   const members = state.members.filter((m) => m.festivalId === fest.id);
-  const tasks = state.tasks.filter((t) => t.festivalId === fest.id).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+  const tasks = state.tasks.filter((task) => task.festivalId === fest.id).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
 
   const saveMember = () => {
     if (!formM.name.trim()) { showToast(t('ritual.utsav.committee.toastNameRequired'), 'error'); return; }
@@ -45,9 +45,9 @@ export const CommitteeTab: React.FC = () => {
     setEditingT(null);
   };
 
-  const cycleTask = (t: Task) => {
-    const next: TaskStatus = t.status === 'todo' ? 'doing' : t.status === 'doing' ? 'done' : 'todo';
-    update('tasks', t.id, { status: next });
+  const cycleTask = (task: Task) => {
+    const next: TaskStatus = task.status === 'todo' ? 'doing' : task.status === 'doing' ? 'done' : 'todo';
+    update('tasks', task.id, { status: next });
   };
 
   return (
@@ -88,26 +88,26 @@ export const CommitteeTab: React.FC = () => {
 
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-extrabold text-stone-800">{t('ritual.utsav.committee.tasks')} <span className="text-xs font-normal text-stone-500">({tasks.filter((t) => t.status === 'done').length}/{tasks.length} {t('ritual.utsav.committee.done')})</span></h3>
+            <h3 className="font-extrabold text-stone-800">{t('ritual.utsav.committee.tasks')} <span className="text-xs font-normal text-stone-500">({tasks.filter((task) => task.status === 'done').length}/{tasks.length} {t('ritual.utsav.committee.done')})</span></h3>
             <Btn onClick={() => { setFormT(blankTask); setEditingT({ ...blankTask, id: '', festivalId: fest.id } as Task); }}>＋ {t('ritual.common.assign')}</Btn>
           </div>
           {tasks.length === 0 && <Empty text={t('ritual.utsav.committee.empty_no_tasks_yet_break_the_festival')} />}
           <div className="space-y-2">
-            {tasks.map((t) => (
-              <div key={t.id} className="rounded-xl border border-stone-100 p-3">
+            {tasks.map((task) => (
+              <div key={task.id} className="rounded-xl border border-stone-100 p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <button onClick={() => cycleTask(t)} className="text-left flex-1 no-print" aria-label={t('ritual.utsav.committee.toggleTask')}>
-                    <div className={`font-bold ${t.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>{t.title}</div>
+                  <button onClick={() => cycleTask(task)} className="text-left flex-1 no-print" aria-label={t('ritual.utsav.committee.toggleTask')}>
+                    <div className={`font-bold ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>{task.title}</div>
                     <div className="text-xs text-stone-500 mt-0.5">
-                      {t.assignedTo && <>{t('ritual.utsav.committee.assigned_to')}: <span className="font-semibold">{t.assignedTo}</span> · </>}
-                      {t.dueDate && <>{t('ritual.utsav.committee.due')}: {fmtDate(t.dueDate)}</>}
+                      {task.assignedTo && <>{t('ritual.utsav.committee.assigned_to')}: <span className="font-semibold">{task.assignedTo}</span> · </>}
+                      {task.dueDate && <>{t('ritual.utsav.committee.due')}: {fmtDate(task.dueDate)}</>}
                     </div>
                   </button>
                   <div className="flex items-center gap-1 shrink-0">
-                    <StatusPill status={t.status} />
+                    <StatusPill status={task.status} />
                     <div className="no-print flex gap-1">
-                      <Btn variant="ghost" onClick={() => { setFormT({ title: t.title, assignedTo: t.assignedTo || '', dueDate: t.dueDate || todayISO(), status: t.status, notes: t.notes || '' }); setEditingT(t); }}>✎</Btn>
-                      <Btn variant="danger" onClick={() => { remove('tasks', t.id); showToast(t('ritual.utsav.committee.toastTaskRemoved'), 'success'); }}>🗑</Btn>
+                      <Btn variant="ghost" onClick={() => { setFormT({ title: task.title, assignedTo: task.assignedTo || '', dueDate: task.dueDate || todayISO(), status: task.status, notes: task.notes || '' }); setEditingT(task); }}>✎</Btn>
+                      <Btn variant="danger" onClick={() => { remove('tasks', task.id); showToast(t('ritual.utsav.committee.toastTaskRemoved'), 'success'); }}>🗑</Btn>
                     </div>
                   </div>
                 </div>
