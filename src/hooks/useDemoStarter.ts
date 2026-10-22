@@ -3,19 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
-import { WorkspaceConfig, WorkspaceType, UserRole } from '../types';
+import { WorkspaceConfig, WorkspaceType } from '../types';
 import type { DemoView } from '../components/public/DemoSelectionModal';
-
-/** Demo-only role mapping — drives loginAsRole in the local demo bootstrap.
- *  Production RBAC is untouched (this never runs outside demo start). */
-const DEMO_ROLE_FOR_VIEW: Record<DemoView, UserRole> = {
-  trustee: 'Trustee',
-  devotee: 'Devotee',
-  priest: 'Priest',
-  accountant: 'Accountant',
-  sevadar: 'Sevadar',
-  superadmin: 'SuperAdmin',
-};
+import { DEMO_ROLE_FOR_VIEW } from '../lib/demoSession';
 
 /**
  * useDemoStarter — self-sufficient demo workspace bootstrap.

@@ -11,6 +11,12 @@ import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { auditRecorder } from './data/auditStore';
 import { activationForCreatedWorkspace } from '../lib/workspaceActivation';
 import { resolveEdgeRole, personaHomeModule } from '../lib/landingSurface';
+import {
+  clearDemoSessionRole,
+  readDemoSessionRole,
+  resolveAnonymousSessionRole,
+  stashDemoSessionRole,
+} from '../lib/demoSession';
 import { isModuleAllowedForOrgMount, resolveOrgModuleId } from '../lib/workspaceRegistry';
 import {
   generatePinHash,
@@ -643,14 +649,29 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
           // SECURITY (C-2): anonymous sessions are credential-less by definition
           // and must NEVER inherit a persisted privileged role (e.g. a
           // SuperAdmin role left behind on a shared temple computer). Any
-          // elevated demo access is granted explicitly via loginAsRole, which
-          // runs after this branch and sets role state directly.
-          const fallbackRole: UserRole = 'Devotee';
+          // elevated demo access is granted explicitly via loginAsRole.
+          //
+          // D-01 (UI/UX audit): loginAsRole sets the chosen role and THEN
+          // triggers this sign-in — an unconditional 'Devotee' reset here
+          // landed AFTER it and stomped every demo persona back to the
+          // Devotee app (the public demo's staff consoles were
+          // unreachable). The role now resolves through
+          // lib/demoSession: the explicit, session-scoped demo grant
+          // loginAsRole stashed immediately before this sign-in wins;
+          // with no grant, C-2's Devotee fallback stands untouched.
+          const fallbackRole: UserRole = resolveAnonymousSessionRole(
+            readDemoSessionRole()
+          );
           setRole(fallbackRole);
           setCurrentRole(fallbackRole);
           setIsLoading(false);
           return;
         }
+
+        // A real (credential-bearing) sign-in supersedes any demo
+        // grant stashed earlier in this tab — clear it so a later
+        // anonymous session can never inherit it (C-2).
+        clearDemoSessionRole();
 
         try {
           // Fetch authoritative user profile from Firestore 'users' collection
@@ -920,6 +941,8 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
       // Persist synchronously BEFORE any state update or navigation
       set('sanatani_workspaces', real);
       localStorage.removeItem('sb_pending_demo_conversion');
+      // D-01: leaving the demo ends the demo persona grant with it.
+      clearDemoSessionRole();
       const activeWs = localStorage.getItem('sanatani_active_workspace_id');
       if (!activeWs || activeWs.startsWith('DEMO_')) {
         localStorage.removeItem('sanatani_active_workspace_id');
@@ -1280,6 +1303,11 @@ const pinDeniedToast = (
     setCurrentRole(normalized);
     setIsAuthenticated(true);
     setViewMode('MANAGER');
+    // D-01: stash the explicit demo grant BEFORE the anonymous
+    // sign-in below resolves — the auth listener reads it in its
+    // anonymous branch, so the chosen persona survives the C-2
+    // fallback instead of being stomped back to 'Devotee'.
+    stashDemoSessionRole(normalized);
     signInAnonymously(auth).catch(console.error);
 
     if (normalized === 'Devotee') {
@@ -1432,6 +1460,8 @@ const pinDeniedToast = (
     // and the legacy localStorage key written by the persona switcher.
     await del('sanatani_user_role');
     localStorage.removeItem('sanatani_user_role');
+    // D-01: the session-scoped demo grant dies with the session too.
+    clearDemoSessionRole();
     setWorkspaceId('DEMO_ws-mandir');
     setActiveWorkspaceId('DEMO_ws-mandir');
     // Purohit One: a purohit-personal session must never survive logout.

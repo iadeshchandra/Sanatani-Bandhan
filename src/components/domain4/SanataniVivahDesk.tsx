@@ -23,6 +23,10 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
   const workspaceId = activeWorkspace?.id;
 
   const [loading, setLoading] = useState(true);
+  // D-02: a failed read ends loading with an honest error state —
+  // never a permanent spinner. retryNonce re-runs the subscriptions.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [activeTab, setActiveTab] = useState('BROWSE'); // 'BROWSE' | 'MATCHES' | 'MY_PROFILE'
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{message: string, type: 'success'|'error'|'offline'} | null>(null);
@@ -81,7 +85,7 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
   }, [myProfile]);
 
   useEffect(() => {
-    if (!workspaceId) return;
+    if (!workspaceId) { setLoading(false); return; }
 
     // Load Profiles
     const profRef = collection(db, `communities/${workspaceId}/vivah_profiles`);
@@ -105,8 +109,18 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
           }
         ]);
       }
+      setLoadError(null);
       setLoading(false);
-    }, (err) => console.warn("Firebase SanataniVivahDesk sync:", err.message));
+    }, (err) => {
+      // D-02 root cause: this callback used to ONLY console.warn, so
+      // any denied/failed read left `loading` true forever — a lone
+      // spinner, no message, no way out. An errored read now ENDS
+      // loading with an honest error state (DeskLoadGuard backstops
+      // every other desk the same way).
+      console.warn("Firebase SanataniVivahDesk sync:", err.message);
+      setLoadError('Vivah profiles could not be loaded. Please check your connection, or ask a Trustee to confirm your access to this workspace.');
+      setLoading(false);
+    });
 
     // Load Connections (Bidirectional)
     const connRef = collection(db, `communities/${workspaceId}/vivah_connections`);
@@ -123,7 +137,7 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
     }, (err) => console.warn("Firebase SanataniVivahDesk sync:", err.message));
 
     return () => { unsubProf(); unsubConn(); };
-  }, [workspaceId, currentUser?.id]);
+  }, [workspaceId, currentUser?.id, retryNonce]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,6 +204,29 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
       showToast(err.message, 'error');
     }
   };
+
+  const retryLoad = () => {
+    setLoadError(null);
+    setLoading(true);
+    setRetryNonce((n) => n + 1);
+  };
+  const backToCommandCenter = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('sanatani:navigate', { detail: { module: 'dashboard' } }));
+    } catch { /* non-DOM environment */ }
+  };
+
+  if (loadError) return (
+    <div className="p-10 flex flex-col items-center text-center" role="alert">
+      <div className="text-4xl mb-3" aria-hidden>🪔</div>
+      <h2 className="text-lg font-black text-gray-900 mb-1">This desk could not be loaded</h2>
+      <p className="text-sm text-gray-500 font-medium max-w-md mb-5">{loadError}</p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={retryLoad} className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition-colors min-h-[44px]">Try again</button>
+        <button type="button" onClick={backToCommandCenter} className="px-5 py-2.5 rounded-xl bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold transition-colors min-h-[44px]">Back to Command Center</button>
+      </div>
+    </div>
+  );
 
   if (loading) return <div className="flex justify-center p-20 text-rose-600"><Loader2 size={40} className="animate-spin" /></div>;
 

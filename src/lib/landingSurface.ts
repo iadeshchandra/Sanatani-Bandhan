@@ -231,3 +231,25 @@ export function personaHomeModule(
   }
   return 'dashboard';
 }
+
+/**
+ * UI/UX audit U7 (2026-10-22) — what a SETTLED membership fetch may do
+ * to the `membershipsLoaded` flag. The audited failure: refreshMemberships
+ * was one-shot, and its catch set the list empty AND marked it loaded
+ * for the whole session — a failed fetch (the owner's near-dead
+ * connection) posed as the evidence "this user has no memberships", so
+ * step 5 of resolveOrgLandingRole let the GLOBAL fallback speak, and a
+ * Trustee landed in the Devotee view for the entire session.
+ *
+ * The law: ONLY a successful fetch is evidence. A failure leaves the
+ * flag exactly where it was — false for a first load (landing holds
+ * at 'pending' and the fetch is retried on org entry and on
+ * reconnect), true for a re-fetch after an earlier success (the
+ * already-proven list keeps speaking).
+ */
+export function membershipsLoadedAfterFetch(
+  previouslyLoaded: boolean,
+  fetchSucceeded: boolean,
+): boolean {
+  return fetchSucceeded ? true : previouslyLoaded;
+}

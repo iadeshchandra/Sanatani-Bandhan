@@ -118,11 +118,24 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     enterSoloSession,
     setOrgRoleOverride,
   } = useAuthWorkspace();
-  const { myMemberships } = useMembership();
+  const { myMemberships, membershipsLoaded, refreshMemberships } = useMembership();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const orgId = activeWorkspace?.id || '';
+
+  // U7: org entry is a retry point for the membership evidence. If
+  // the sign-in fetch failed (dead connection), the list is NOT
+  // loaded and landing is holding at 'pending' — re-run the fetch
+  // here instead of letting the global-role fallback speak for this
+  // org all session. A successful fetch flips membershipsLoaded and
+  // this effect goes quiet; a failed one leaves the deps unchanged,
+  // so it cannot loop.
+  useEffect(() => {
+    if (orgId && !membershipsLoaded) {
+      void refreshMemberships();
+    }
+  }, [orgId, membershipsLoaded, refreshMemberships]);
   const orgName = activeWorkspace?.name || 'Organisation';
 
   // The ACTUAL role in this org — membership edge first, global fallback.

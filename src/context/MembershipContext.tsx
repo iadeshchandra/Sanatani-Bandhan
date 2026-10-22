@@ -41,7 +41,8 @@ import {
   TRUSTEE_GRANTABLE_ROLES,
   WorkspaceMembership,
 } from '../types/membership';
-import { resolveEdgeRole } from '../lib/landingSurface';
+import { resolveEdgeRole, membershipsLoadedAfterFetch } from '../lib/landingSurface';
+import { normalizeMembershipDoc } from '../lib/timestamps';
 import { auditRecorder } from './data/auditStore';
 import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { grantNeedsApproval, type RoleAssignment } from '../lib/roleTemplates';
@@ -185,11 +186,13 @@ interface MembershipContextType {
   // --- memberships ---
   myMemberships: WorkspaceMembership[];
   /**
-   * QUEUED #55: true once the first workspaceMembers fetch for the
-   * CURRENT user has settled (success or failure). Until then an empty
-   * myMemberships means "still loading", not "no memberships" — the
-   * org landing law (lib/landingSurface) holds on this signal instead
-   * of guessing a role from the global fallback.
+   * QUEUED #55 + U7: true once a workspaceMembers fetch for the
+   * CURRENT user has SUCCEEDED. A failed fetch never raises this flag
+   * (membershipsLoadedAfterFetch) — until then an empty myMemberships
+   * means "still loading", not "no memberships" — the org landing law
+   * (lib/landingSurface) holds on this signal instead of guessing a
+   * role from the global fallback. Retries fire on org entry and on
+   * reconnect, so a transient failure heals within the session.
    */
   membershipsLoaded: boolean;
   orgMembers: WorkspaceMembership[];
@@ -215,6 +218,10 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [myMemberships, setMyMemberships] = useState<WorkspaceMembership[]>([]);
   const [membershipsLoaded, setMembershipsLoaded] = useState<boolean>(false);
   const membershipsLoadedForUidRef = useRef<string | null | undefined>(undefined);
+  // Ref mirror of the loaded flag — the fetch-settle law
+  // (membershipsLoadedAfterFetch) and the reconnect retry read the
+  // CURRENT value without re-subscribing on every state change.
+  const membershipsLoadedRef = useRef<boolean>(false);
   const [myJoinRequests, setMyJoinRequests] = useState<JoinRequest[]>([]);
   const [orgJoinRequests, setOrgJoinRequests] = useState<JoinRequest[]>([]);
   const [myInvites, setMyInvites] = useState<OrgInvite[]>([]);
@@ -374,26 +381,50 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // keep the flag up; only the fetch result replaces the list.
     if (membershipsLoadedForUidRef.current !== uid) {
       membershipsLoadedForUidRef.current = uid;
+      membershipsLoadedRef.current = false;
       setMembershipsLoaded(false);
       setMyMemberships([]);
     }
     if (!uid) {
       setMyMemberships([]);
+      membershipsLoadedRef.current = true;
       setMembershipsLoaded(true);
       return;
     }
+    let fetchOk = false;
     try {
       const snap = await getDocs(query(collection(db, 'workspaceMembers'), where('uid', '==', uid)));
-      setMyMemberships(snap.docs.map((d) => ({ ...(d.data() as any) } as WorkspaceMembership)));
+      // U1: normalize at the reader — creator edges store joinedAt as
+      // a Firestore serverTimestamp; the raw spread let a Timestamp
+      // object pose as the declared `number` and the directory card
+      // printed the literal string "Invalid Date".
+      setMyMemberships(snap.docs.map((d) => normalizeMembershipDoc(d.data())));
+      fetchOk = true;
     } catch {
-      setMyMemberships([]);
-    } finally {
-      setMembershipsLoaded(true);
+      // U7: a FAILED fetch is not an empty list. Keep whatever list we
+      // already hold, and — via membershipsLoadedAfterFetch — never
+      // let the failure pose as "loaded": landing holds at 'pending'
+      // and the fetch is retried on org entry and on reconnect.
     }
+    const nextLoaded = membershipsLoadedAfterFetch(membershipsLoadedRef.current, fetchOk);
+    membershipsLoadedRef.current = nextLoaded;
+    setMembershipsLoaded(nextLoaded);
   }, [uid]);
 
   useEffect(() => {
     refreshMemberships();
+  }, [refreshMemberships]);
+
+  // U7: reconnect is a retry point — a membership fetch that failed
+  // on a dead connection heals itself the moment the network returns,
+  // instead of trapping the session in the fallback landing.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onOnline = () => {
+      void refreshMemberships();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
   }, [refreshMemberships]);
 
   // Org-side: live member roster for the active workspace (trustees).
@@ -405,7 +436,9 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
     const unsub = onSnapshot(
       query(collection(db, 'workspaceMembers'), where('workspaceId', '==', wsId)),
-      (snap) => setOrgMembers(snap.docs.map((d) => ({ ...(d.data() as any) } as WorkspaceMembership))),
+      // U1: same reader normalization as refreshMemberships — one
+      // coercion point for every workspaceMembers read.
+      (snap) => setOrgMembers(snap.docs.map((d) => normalizeMembershipDoc(d.data()))),
       () => setOrgMembers([])
     );
     return () => unsub();

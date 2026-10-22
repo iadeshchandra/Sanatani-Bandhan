@@ -15,6 +15,7 @@ import { NativeWelcomeSheet } from './components/language/NativeWelcomeSheet';
 import { TravelNudge } from './components/language/TravelNudge';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { DeskErrorBoundary } from './components/common/DeskErrorBoundary';
+import { DeskLoadGuard } from './components/common/DeskLoadGuard';
 import { AppInitializer } from './context/AppInitializer';
 import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
@@ -924,8 +925,20 @@ const AppContent: React.FC = () => {
               desk scroller is an inner scroller, so the body rule can't
               reach it; this keeps the last row above the FAB hit area. */}
           <div className="flex flex-col grow overflow-y-auto custom-scrollbar sb-sos-clear">
+            {/* D-02: the load-timeout guard wraps the whole desk
+                region — if the Suspense fallback (marked
+                data-desk-loading) is still mounted after the timeout,
+                or the desk holds nothing but a spinner, the guard
+                swaps in an honest error state with a way back. No
+                desk can spin forever. Keyed by desk id, like the
+                error boundary inside it. */}
+            <DeskLoadGuard
+              key={activeModule}
+              moduleId={activeModule}
+              onBackToDashboard={() => setActiveModule('dashboard')}
+            >
             <Suspense fallback={
-              <div className="flex flex-col items-center justify-center h-full text-center">
+              <div data-desk-loading="true" className="flex flex-col items-center justify-center h-full text-center">
                 <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-4" />
                 <p className="text-slate-500 font-medium">Loading desk module...</p>
               </div>
@@ -941,6 +954,7 @@ const AppContent: React.FC = () => {
                 {renderActiveDesk()}
               </DeskErrorBoundary>
             </Suspense>
+            </DeskLoadGuard>
           </div>
         </main>
       </div>

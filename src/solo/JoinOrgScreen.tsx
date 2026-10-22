@@ -21,15 +21,25 @@ import { Card, T, Btn, inputCls } from './ui';
  */
 
 const memberSince = (ts: number) => {
+  // U1 belt-and-braces: a non-finite or unparseable value yields NO
+  // date text — never the literal string "Invalid Date". (new Date()
+  // does not throw on bad input; it produces an Invalid Date whose
+  // toLocaleDateString() returns that string, so the old try/catch
+  // around it could never fire.) The reader-side fix lives in
+  // lib/timestamps (normalizeMembershipDoc); this guard keeps ANY
+  // future bad value invisible instead of printed.
+  if (typeof ts !== 'number' || !Number.isFinite(ts) || ts <= 0) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
   try {
-    return new Date(ts).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   } catch {
     return '';
   }
 };
 
 export const JoinOrgScreen: React.FC = () => {
-  const { switchWorkspace, exitSoloSession } = useAuthWorkspace();
+  const { switchWorkspace, exitSoloSession, workspaces } = useAuthWorkspace();
   const {
     browseOrgPages,
     myMemberships,
@@ -124,6 +134,22 @@ export const JoinOrgScreen: React.FC = () => {
     }
   };
 
+  /**
+   * U1 — display-name fallback chain for directory cards. A legacy or
+   * stub orgPages doc can carry an empty name (the card used to render
+   * a nameless "?"); fall back to the workspace's own name from the
+   * local registry, then to the same neutral label syncOrgPage
+   * writes. (Repair-on-read is NOT an established pattern here —
+   * ensureOrgPage fires from the Membership desk — so this is a
+   * display fallback only; the stale doc itself is untouched.)
+   */
+  const displayNameFor = (page: OrgPage): string => {
+    const fromPage = (page.name || '').trim();
+    if (fromPage) return fromPage;
+    const fromWorkspace = (workspaces?.find((w) => w.id === page.orgId)?.name || '').trim();
+    return fromWorkspace || 'Unnamed Organisation';
+  };
+
   const membershipFor = (orgId: string) => myMemberships.find((m) => m.workspaceId === orgId);
   const pendingRequestFor = (orgId: string) =>
     myJoinRequests.find((r) => r.orgId === orgId && r.status === 'PENDING');
@@ -134,12 +160,19 @@ export const JoinOrgScreen: React.FC = () => {
     const membership = membershipFor(page.orgId);
     if (membership) {
       const role = ROLE_MIGRATION_MAP[membership.role] || membership.role || 'Member';
+      // U1: the "since" gloss renders ONLY when a real date exists —
+      // a pending/unresolved joinedAt omits it instead of printing
+      // "· since Invalid Date".
+      const since = memberSince(membership.joinedAt);
       return (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-stone-500">
-            {role} <T en={`· since ${memberSince(membership.joinedAt)}`} bn={`· ${memberSince(membership.joinedAt)} থেকে`} hi={`· ${memberSince(membership.joinedAt)} से`} />
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-[11px] font-bold text-stone-500 min-w-0">
+            {role}
+            {since && (
+              <T en={` · since ${since}`} bn={` · ${since} থেকে`} hi={` · ${since} से`} />
+            )}
           </span>
-          <Btn onClick={() => openOrg(page.orgId, page.name)} disabled={busy}>
+          <Btn onClick={() => openOrg(page.orgId, displayNameFor(page))} disabled={busy}>
             {busy ? '…' : <T en="Open" bn="খুলুন" hi="खोलें" />}
           </Btn>
         </div>
@@ -156,8 +189,8 @@ export const JoinOrgScreen: React.FC = () => {
     const invite = inviteFor(page.orgId);
     if (invite) {
       return (
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-emerald-700">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-[11px] font-bold text-emerald-700 min-w-0">
             <T en={`Invited as ${invite.role}`} bn={`${invite.role} হিসেবে আমন্ত্রিত`} hi={`${invite.role} हेतु आमंत्रित`} />
           </span>
           <Btn onClick={() => acceptInvite(invite)} disabled={busy}>
@@ -261,19 +294,19 @@ export const JoinOrgScreen: React.FC = () => {
             const expanded = expandedId === page.orgId;
             return (
               <li key={page.orgId} className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3">
+                <div className="px-4 py-3">
                   <button
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : page.orgId)}
-                    className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                    className="flex w-full items-center gap-3 min-w-0 text-left"
                     aria-expanded={expanded}
                   >
                     <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center text-lg font-black text-amber-700 shrink-0" aria-hidden>
-                      {(page.name || '?').trim().charAt(0).toUpperCase()}
+                      {displayNameFor(page).charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-stone-900 text-sm truncate">
-                        {page.name}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-extrabold text-stone-900 text-sm leading-snug break-words">
+                        {displayNameFor(page)}
                         {page.verified && (
                           <span className="ml-2 inline-block rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 align-middle">
                             ✓ <T en="Verified" bn="যাচাইকৃত" hi="सत्यापित" />
@@ -296,7 +329,17 @@ export const JoinOrgScreen: React.FC = () => {
                       {expanded ? '▾' : '▸'}
                     </span>
                   </button>
-                  <div className="shrink-0">{renderAction(page)}</div>
+                  {/* U2: the actions live on their OWN full-width row
+                      under the identity row (Material list rule — a
+                      wide button never shares the title row). The old
+                      shrink-0 single-line cluster needed ≈370px
+                      inside a ≈326px row in bilingual mode and
+                      clipped the Open button ≈45px off-screen; the
+                      stacked row wraps freely at 390 / 360 / 320px
+                      in every language. */}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    {renderAction(page)}
+                  </div>
                 </div>
                 {expanded && (
                   <div className="px-4 pb-4 pt-1 border-t border-stone-100">

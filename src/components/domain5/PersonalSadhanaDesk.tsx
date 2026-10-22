@@ -16,6 +16,10 @@ export default function PersonalSadhanaDesk() {
   const [logs, setLogs] = useState<any[]>([]);
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // D-02: a failed read ends loading with an honest error state —
+  // never a permanent spinner. retryNonce re-runs the subscription.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   
   const [sadhanaForm, setSadhanaForm] = useState({
     japaCount: 108,
@@ -43,21 +47,31 @@ export default function PersonalSadhanaDesk() {
   };
 
   useEffect(() => {
-    if (!activeWorkspace?.id) return;
+    if (!activeWorkspace?.id) { setLoading(false); return; }
     const logsRef = collection(db, `communities/${activeWorkspace.id}/sadhana_logs`);
     const unsub = onSnapshot(logsRef, (snap) => {
       const parsedLogs: any[] = snap.docs.map((d, idx) => ({ id: d.id, ...d.data() }));
-      
+
       const myLogs = parsedLogs.filter(l => l.uid === currentUser?.id).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
       setLogs(myLogs);
-      
+
       const publicLogs = parsedLogs.filter(l => l.isPublic).sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
       setAllLogs(publicLogs);
-      
+
+      setLoadError(null);
       setLoading(false);
-    }, (err) => console.warn("Firebase PersonalSadhanaDesk sync:", err.message));
+    }, (err) => {
+      // D-02 root cause: this callback used to ONLY console.warn, so
+      // any denied/failed read (e.g. an org staffer with no community
+      // edge) left `loading` true forever — a lone spinner, no
+      // message, no way out. An errored read now ENDS loading with
+      // an honest error state (and DeskLoadGuard backstops the rest).
+      console.warn("Firebase PersonalSadhanaDesk sync:", err.message);
+      setLoadError('Sadhana records could not be loaded. Please check your connection, or ask a Trustee to confirm your access to this workspace.');
+      setLoading(false);
+    });
     return () => unsub();
-  }, [activeWorkspace?.id, currentUser?.id]);
+  }, [activeWorkspace?.id, currentUser?.id, retryNonce]);
 
   const handleLogSadhana = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +207,29 @@ export default function PersonalSadhanaDesk() {
     });
     return Object.values(userMap).sort((a, b) => b.karma - a.karma).slice(0, 10);
   }, [allLogs]);
+
+  const retryLoad = () => {
+    setLoadError(null);
+    setLoading(true);
+    setRetryNonce((n) => n + 1);
+  };
+  const backToCommandCenter = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('sanatani:navigate', { detail: { module: 'dashboard' } }));
+    } catch { /* non-DOM environment */ }
+  };
+
+  if (loadError) return (
+    <div className="p-10 flex flex-col items-center text-center" role="alert">
+      <div className="text-4xl mb-3" aria-hidden>🪔</div>
+      <h2 className="text-lg font-black text-gray-900 mb-1">This desk could not be loaded</h2>
+      <p className="text-sm text-gray-500 font-medium max-w-md mb-5">{loadError}</p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={retryLoad} className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-colors min-h-[44px]">Try again</button>
+        <button type="button" onClick={backToCommandCenter} className="px-5 py-2.5 rounded-xl bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold transition-colors min-h-[44px]">Back to Command Center</button>
+      </div>
+    </div>
+  );
 
   if (loading) return <div className="p-10 text-center"><div className="animate-spin w-8 h-8 border-4 border-saffron-500 border-t-transparent rounded-full mx-auto"></div></div>;
 
