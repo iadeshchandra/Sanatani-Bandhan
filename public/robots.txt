@@ -1,0 +1,29 @@
+# robots.txt — Sanatani Bandhan (sanatanibandhan.web.app)
+#
+# OpenAI crawlers are explicitly welcomed:
+#  - OAI-AdsBot:    reviews ChatGPT Ads landing pages and checks ad
+#                   relevance — blocking it prevents ad approval.
+#  - OAI-SearchBot: indexes pages for ChatGPT search results.
+#  - GPTBot:        OpenAI's crawler for model training data.
+#  - ChatGPT-User:  fetches pages on behalf of a ChatGPT user.
+# All other crawlers receive the same open access: this is a public
+# product site, and being findable — by search engines and by AI
+# assistants — is the point.
+
+User-agent: OAI-AdsBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: *
+Allow: /
+
+# Sitemap (generated at build time by scripts/generate-sitemap.js)
+Sitemap: https://sanatanibandhan.web.app/sitemap.xml

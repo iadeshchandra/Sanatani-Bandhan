@@ -103,6 +103,11 @@ const DevoteeRoute = lazy(() => import('./social/DevoteeRoute').then(m => ({ def
 // chunk so the first paint stays under 2s on low-end phones.
 const GetAppPage = lazy(() => import('./appgrowth/GetAppPage'));
 
+// ChatGPT Ads landing (/for-institutions): public, institution-facing —
+// own lazy chunk in the GetAppPage pattern so ad traffic pays only for
+// this page, and the app shell stays slim.
+const ForInstitutionsPage = lazy(() => import('./pages/ForInstitutionsPage').then(m => ({ default: m.ForInstitutionsPage })));
+
 // Dashboard
 const DashboardHome = lazy(() => import('./components/dashboard/DashboardHome').then(m => ({ default: m.DashboardHome })));
 
@@ -1068,7 +1073,7 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // P1-1: Signed-out deep routes must redirect to /login, not render landing
   // content at the protected URL. Preserve the intended destination for
   // post-login return via ?next=.
-  const publicPaths = ['/', '/login', '/signup', '/contact', '/ask-ai', '/mysecretlogin', '/get-app'];
+  const publicPaths = ['/', '/login', '/signup', '/contact', '/ask-ai', '/mysecretlogin', '/get-app', '/for-institutions'];
   const currentPath = window.location.pathname;
   const isPublicPath = publicPaths.some((p) =>
     p === '/' ? currentPath === '/' : currentPath === p || currentPath.startsWith(p + '/')
@@ -1317,6 +1322,23 @@ const AppRoutes: React.FC = () => {
                 }
               >
                 <GetAppPage />
+              </Suspense>
+            }
+          />
+          {/* ChatGPT Ads landing: institution inquiry funnel for ad
+              traffic. The page owns its lazy chunk; signed-out visitors
+              reach it via the publicPaths entry above. */}
+          <Route
+            path="/for-institutions"
+            element={
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center bg-[#2b1408] text-orange-50">
+                    <span className="text-5xl" aria-hidden="true">🪔</span>
+                  </div>
+                }
+              >
+                <ForInstitutionsPage />
               </Suspense>
             }
           />

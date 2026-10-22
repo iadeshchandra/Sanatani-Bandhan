@@ -12,7 +12,10 @@ const routes = [
   { path: '/goshala', priority: '0.8', changefreq: 'weekly' },
   { path: '/dharamshala', priority: '0.8', changefreq: 'weekly' },
   { path: '/sanskrit-library', priority: '0.8', changefreq: 'monthly' },
-  { path: '/pooja-booking', priority: '0.8', changefreq: 'weekly' }
+  { path: '/pooja-booking', priority: '0.8', changefreq: 'weekly' },
+  { path: '/for-institutions', priority: '0.9', changefreq: 'weekly' },
+  { path: '/contact', priority: '0.8', changefreq: 'monthly' },
+  { path: '/ask-ai', priority: '0.8', changefreq: 'monthly' }
 ];
 
 const generateSitemap = () => {

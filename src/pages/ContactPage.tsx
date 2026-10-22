@@ -21,6 +21,7 @@ import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { WorkspaceType } from '../types';
 import { WHATSAPP_URL, hasWhatsApp, SUPPORT_EMAIL } from '../config/contact';
+import { trackOpenAiEvent } from '../lib/openaiAds';
 
 // SUPPORT_EMAIL is still the placeholder inbox — the owner has not provided
 // the real one yet. WhatsApp is live (owner-provided +8801608533529).
@@ -73,7 +74,7 @@ export const ContactPage: React.FC = () => {
     setSubmitState('sending');
     setError('');
     try {
-      await addDoc(collection(db, 'platform_leads'), {
+      const leadRef = await addDoc(collection(db, 'platform_leads'), {
         name: name.trim(),
         institution: institution.trim(),
         orgType,
@@ -84,6 +85,12 @@ export const ContactPage: React.FC = () => {
         status: 'new',
         createdAt: serverTimestamp(),
       });
+      // ChatGPT Ads measurement: count the inquiry as the standard
+      // lead_created event, keyed by the Firestore document id so a
+      // later server-side Conversions API copy of this same lead can
+      // deduplicate against it (same Pixel ID + event name + event_id).
+      // No-op when no OpenAI Ads Pixel ID is configured.
+      trackOpenAiEvent('lead_created', { type: 'lead' }, leadRef.id);
       setSubmitState('sent');
     } catch (err) {
       console.error('Contact form failed:', err);
