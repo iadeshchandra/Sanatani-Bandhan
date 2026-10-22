@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { readDevoteeLifetimeGiving } from '../context/data/summaryStore';
 import { SevaTier, DevoteeMember, PitruRecord, TreasuryTransaction, PoojaBooking } from '../types';
 
 export interface ShradhReminder {
@@ -140,26 +141,32 @@ export class PersonalizedReminderService {
   }
 
   static async getSevaProgress(devoteeId: string): Promise<SevaProgress> {
-    // 1. Fetch Donations
-    const treasuryRef = collection(db, 'treasury');
-    const qTreasury = query(treasuryRef, where('devoteeId', '==', devoteeId), where('type', '==', 'Income'));
-    const treasurySnap = (await getDocs(qTreasury).catch(e => { console.warn("Firebase getDocs error", e.message); return { empty: true, forEach: () => {}, docs: [] }; }));
-    
-    let totalDonations = 0;
-    treasurySnap.forEach(tDoc => {
-      const td = tDoc.data() as TreasuryTransaction;
-      totalDonations += (td.amount || 0);
-    });
-    
-    // 2. Fetch Volunteer Hours (If stored on devotee doc)
+    // 1. Fetch the devotee (workspace, name and volunteer hours live here)
     const devoteeRef = doc(db, 'devotees', devoteeId);
     const devoteeSnap = (await getDoc(devoteeRef).catch(e => { console.warn("Firebase getDoc error", e.message); return { exists: () => false, data: () => null }; }));
     let volunteerHours = 0;
+    let devoteeWorkspaceId = '';
+    let devoteeFullName = '';
     if (devoteeSnap.exists()) {
       const dd = devoteeSnap.data();
       // Graceful fallback if volunteerHours does not exist natively
       volunteerHours = dd.volunteerHours || dd.sevaHours || 0;
+      devoteeWorkspaceId = dd.workspaceId || '';
+      devoteeFullName = dd.fullName || '';
     }
+
+    // 2. Lifetime giving from the maintained workspace summary
+    // (workspaceSummaries/{workspaceId}.treasury.byDevoteeIncome).
+    // The previous implementation summed the treasury collection with
+    // where('devoteeId', '==', devoteeId) — but the desk write paths
+    // overwhelmingly stamp `devoteeName` and never `devoteeId`, so the
+    // query matched almost nothing and lifetime giving read ~0 forever
+    // (it was also unscoped by workspace). The summary's byDevoteeIncome
+    // uses the lib's id-or-name keying, so it sees both kinds of rows.
+    // No summary yet (or no read permission) → 0: honest, never invented.
+    const totalDonations = devoteeWorkspaceId
+      ? await readDevoteeLifetimeGiving(devoteeWorkspaceId, devoteeId, devoteeFullName)
+      : 0;
     
     const currentTier = calculateSevaTier(totalDonations, volunteerHours);
     

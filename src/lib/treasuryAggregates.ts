@@ -9,9 +9,11 @@
  * full transaction set (Σ income, Σ expense, 80G-eligible income,
  * per-category / per-month / per-donor sums). §6-F2's end-state is a
  * maintained `workspaceSummaries/{workspaceId}` doc holding exactly
- * these figures, updated on each treasury write. That doc needs a NEW
- * Firestore rules block (see the F2 report — flagged for the owner's
- * rules-approval flow), so the writer is deliberately NOT built yet.
+ * these figures, updated on each treasury write. The rules block
+ * landed 2026-10-22 (commit 3e813297) and the writer is now built:
+ * src/context/data/summaryWriter.ts (maintenance policy) +
+ * summaryStore.ts (Firestore adapter), wired into DataContext's
+ * treasury commit points.
  *
  * What IS built and proven here:
  *   - `computeTreasuryAggregates(txs)` — the full-set computation,
@@ -173,12 +175,11 @@ export function applyTxUpdate(
 }
 
 /**
- * The future `workspaceSummaries/{workspaceId}` document (F2 end-state).
- * NOT written by any code yet: the collection needs a dedicated
- * Firestore rules block (member read / R_FINANCE write), which is
- * flagged for the owner's rules-approval flow in the F2 report. The
- * shape is defined — and its treasury section is produced by
- * `buildSummaryDoc` — so the writer is a drop-in once rules land.
+ * The `workspaceSummaries/{workspaceId}` document (F2 end-state).
+ * Written by src/context/data/summaryWriter.ts since the rules block
+ * landed (2026-10-22, 3e813297: R_FINANCE read/write, delete never).
+ * Its treasury section is produced by `buildSummaryDoc` (full-set
+ * computation) or by the equality-proven delta folds above.
  */
 export interface WorkspaceSummaryDoc {
   workspaceId: string;

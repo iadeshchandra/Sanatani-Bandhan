@@ -65,6 +65,15 @@ import {
   type CoreCollectionKey,
 } from './data/windowing';
 import { stripUndefinedDeep } from './data/firestoreDoc';
+import {
+  fetchFullTreasurySet,
+  workspaceSummaryMaintainer,
+} from './data/summaryStore';
+import {
+  NULL_COUNTS,
+  type SummaryCounts,
+  type TreasuryMutation,
+} from './data/summaryWriter';
 import { allowsSeedData } from '../lib/workspaceKind';
 import type { SampleRecordCounts } from '../lib/sampleData';
 
@@ -1848,6 +1857,77 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentWsId = activeWorkspaceId || activeWorkspace.id;
 
   // ----------------------------------------------------
+  // WORKSPACE SUMMARY MAINTENANCE (F2 end-state; the workspaceSummaries
+  // rules landed 2026-10-22 in 3e813297). The treasury commit points —
+  // addTreasuryTransaction (which every auto-log path and every
+  // Bahi-Khata commit/reversal funnels through), updateTreasuryTransaction
+  // and clearSampleData — report each committed mutation to the
+  // maintainer (./data/summaryWriter.ts, Firestore adapter in
+  // ./data/summaryStore.ts), which keeps workspaceSummaries/{id} equal
+  // to the canonical full-set aggregates of src/lib/treasuryAggregates.ts.
+  // Derived data only: the maintainer never throws into a mutator,
+  // never blocks one, and reconciles on the next mutation or open.
+  // ----------------------------------------------------
+  const summaryCountsFor = (wsId: string): SummaryCounts => {
+    if (wsId !== currentWsId) return { ...NULL_COUNTS };
+    const ofWs = <T extends { workspaceId?: string }>(rows: T[]) =>
+      rows.filter((r) => r.workspaceId === wsId).length;
+    return {
+      devotees: collectionWindows.devotees.total ?? ofWs(allDevotees),
+      puja_bookings:
+        collectionWindows.puja_bookings.total ?? ofWs(allPoojaBookings),
+      treasury: collectionWindows.treasury.total ?? ofWs(allTreasury),
+      inventory_items:
+        collectionWindows.inventory_items.total ?? ofWs(allInventory),
+    };
+  };
+
+  const noteTreasuryMutationForSummary = (
+    wsId: string,
+    mutation: TreasuryMutation,
+    postSet: TreasuryTransaction[]
+  ) => {
+    if (!wsId) return;
+    workspaceSummaryMaintainer.noteMutation({
+      workspaceId: wsId,
+      windowed: wsId === currentWsId && collectionWindows.treasury.windowed,
+      mutation,
+      fullSet: postSet.filter((t) => t.workspaceId === wsId),
+      counts: summaryCountsFor(wsId),
+    });
+  };
+
+  // First-open backfill: once a workspace's initial payload resolves,
+  // adopt its stored summary — or compute it once from the full set
+  // (the in-memory ledger here; a one-time full read when windowed)
+  // and write it flagged `backfilled`. Once per workspace per session
+  // (the maintainer dedupes); DEMO_ workspaces are skipped inside it.
+  useEffect(() => {
+    if (isDataLoading || !currentWsId) return;
+    const wsId = currentWsId;
+    const windowed = collectionWindows.treasury.windowed;
+    // The windowed backfill's one-time full read exists only to feed a
+    // write — don't burn it for a role the rules would reject anyway
+    // (R_FINANCE: SuperAdmin / Trustee / Accountant).
+    const roleUpper = (currentRole || '').toUpperCase();
+    const mayWriteSummary =
+      roleUpper === 'SUPERADMIN' ||
+      roleUpper === 'TRUSTEE' ||
+      roleUpper === 'ACCOUNTANT';
+    void workspaceSummaryMaintainer.ensureBackfill({
+      workspaceId: wsId,
+      windowed,
+      mayWrite: windowed ? mayWriteSummary : true,
+      counts: summaryCountsFor(wsId),
+      loadFullSet: async () =>
+        windowed
+          ? fetchFullTreasurySet(wsId)
+          : allTreasury.filter((t) => t.workspaceId === wsId),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWsId, isDataLoading]);
+
+  // ----------------------------------------------------
   // MULTI-BRANCH (v1) — optional location layer.
   // DESIGN PRINCIPLE: a single-organisation workspace (no `branches` array,
   // or a single entry) must NEVER see the word "branch" or any branch UI.
@@ -2194,6 +2274,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAllCows((prev) => prev.filter((r) => !isSample(r)));
     setAllGuests((prev) => prev.filter((r) => !isSample(r)));
     setAllCampaigns((prev) => prev.filter((r) => !isSample(r)));
+    // Summary maintenance: the purged sample rows were real ledger
+    // rows until now — report their deletion (exact rows known).
+    if (counts.treasury > 0) {
+      noteTreasuryMutationForSummary(
+        workspaceId,
+        { kind: 'deleteMany', txs: allTreasury.filter(isSample) },
+        allTreasury.filter((r) => !isSample(r))
+      );
+    }
     return counts;
   };
 
@@ -2772,8 +2861,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDoc(doc(db, 'treasury', id), stripUndefinedDeep({ ...newTx, timestamp: serverTimestamp() })).catch((err: any) => {
       console.warn('[Firestore sync] treasury write rejected — rolling back:', err?.message || err);
       setAllTreasury((prev) => prev.filter((t) => t.id !== id));
+      // Summary maintenance: undo the create reported below, so the
+      // summary stays equal to the (rolled-back) ledger.
+      noteTreasuryMutationForSummary(
+        wsId,
+        { kind: 'delete', tx: newTx },
+        allTreasury.filter((t) => t.id !== id)
+      );
       showToast('That voucher could NOT be saved — it has been removed from the ledger. Please retry.', 'error', 'Not Saved');
     });
+
+    // Summary maintenance: the row is committed (optimistic locally,
+    // queued by the persistence layer). Every treasury auto-log path
+    // and every Bahi-Khata commit/reversal funnels through here, so
+    // this one report covers them all.
+    noteTreasuryMutationForSummary(
+      wsId,
+      { kind: 'create', tx: newTx },
+      [newTx, ...allTreasury]
+    );
 
     if (tx.type === 'Income') {
       trackTreasuryPurchase({
@@ -2855,6 +2961,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allTreasury, activeWorkspace?.id, collectionWindows.treasury.windowed, receiptSeqCache]);
 
   const updateTreasuryTransaction = (id: string, updates: Partial<TreasuryTransaction>) => {
+    const oldTx = allTreasury.find((t) => t.id === id) || null;
+    const postSet = allTreasury.map((t) =>
+      t.id === id ? { ...t, ...updates } : t
+    );
     setAllTreasury((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
@@ -2864,6 +2974,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setDoc(doc(db, 'treasury', id), stripUndefinedDeep({ ...updates, updatedAt: serverTimestamp() }), { merge: true }).catch(console.warn);
     } catch (e) {
       console.warn('Update treasury transaction error:', e);
+    }
+    // Summary maintenance. When the row is not in the loaded set
+    // (beyond a windowed page) its workspace cannot be attributed —
+    // the next mutation/open reconciles via recompute/re-backfill.
+    if (oldTx) {
+      noteTreasuryMutationForSummary(
+        oldTx.workspaceId || currentWsId,
+        { kind: 'update', oldTx, newTx: { ...oldTx, ...updates } },
+        postSet
+      );
     }
   };
 
