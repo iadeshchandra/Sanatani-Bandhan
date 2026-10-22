@@ -278,6 +278,36 @@ export function notifySOSResolved(recipientUid: string, s: SosAlertInput): Promi
 /* Wallet                                                              */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Approvals (Blueprint B maker–checker)                              */
+/* ------------------------------------------------------------------ */
+
+export interface ApprovalNotifyInput {
+  copyKey: 'approvalRequested' | 'approvalApproved' | 'approvalRejected';
+  orgId: string;
+  orgName: string;
+  summary: string;
+  requestId: string;
+  dedupeKey: string;
+}
+
+/**
+ * Maker–checker news → IMPORTANT, kind 'security' (approvals guard
+ * the money and the keys; protective, plain, never alarmist).
+ * Emitted ONLY into the recipient's own inbox by the self-listen
+ * watcher (lib/approvalNotifyService) — rules bind inbox writes to
+ * their owner, so no device can write another member's bell.
+ */
+export function notifyApprovalEvent(recipientUid: string, a: ApprovalNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('security', 'important', a.copyKey, { orgName: a.orgName, summary: a.summary }, a.dedupeKey, {
+      deepLink: `/org/${a.orgId}`,
+      payload: { requestId: a.requestId, orgId: a.orgId },
+    }),
+  );
+}
+
 /** Top-up approved → IMPORTANT. */
 export function notifyTopupApproved(recipientUid: string, amount: string, claimId: string): Promise<EmitResult> {
   return send(

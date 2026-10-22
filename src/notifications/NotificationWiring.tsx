@@ -31,6 +31,7 @@ import { startOrgBroadcastNotify } from '../org/broadcastListener';
 import { startReferralThanksNotify } from '../sangam/referralThanksService';
 import { startDueJobsNotify } from '../lib/dueJobsService';
 import { startOrderNotify } from '../lib/orderNotifyService';
+import { startApprovalNotify } from '../lib/approvalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -162,6 +163,17 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startOrderNotify(uid);
+  }, [uid]);
+
+  // Maker–checker approvals → NotificationCenter (self-listen,
+  // Blueprint B). Cross-user inbox writes are impossible under the
+  // rules, so my device watches the approval requests I can see —
+  // new PENDING items I may check, and decisions on my own filings —
+  // and emits into my own Suchana inbox. Baseline-silent first run;
+  // a per-request ledger keeps every bell to once.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startApprovalNotify(uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;

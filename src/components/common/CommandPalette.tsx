@@ -4,6 +4,8 @@ import { MODULE_CATALOG, NavItem } from './Sidebar';
 import { isModuleAllowed, wouldMountIfEnabled } from '../../lib/workspaceRegistry';
 import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useMembership } from '../../context/MembershipContext';
+import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { useToast } from '../../context/ToastContext';
 import { getRecentDesks, recordDeskVisit } from './ui/deskHistory';
 import { enableModule } from '../../suggestions/store';
@@ -55,6 +57,13 @@ function fuzzyScore(query: string, text: string): number {
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }) => {
   const { activeWorkspace, setViewMode, updateWorkspaceDetails, checkPermission, effectiveRole } = useAuthWorkspace();
+  // Blueprint B: desk scope narrows the palette exactly like the nav.
+  const { myMemberships } = useMembership();
+  const myEdge = myMemberships.find((m) => m.workspaceId === (activeWorkspace?.id || ''));
+  const myDeskScope = effectiveDeskScope(myEdge, Date.now(), {
+    creatorUid: activeWorkspace?.createdBy,
+  });
+  const deskAccess = { deskScope: myDeskScope };
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -120,9 +129,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
       MODULE_CATALOG.filter(
         (m) =>
           isModuleAllowed(activeWorkspace, m.id) &&
-          isDeskVisibleForRole(m, effectiveRole, checkPermission)
+          isDeskVisibleForRole(m, effectiveRole, checkPermission, deskAccess)
       ),
-    [activeWorkspace, effectiveRole, checkPermission]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeWorkspace, effectiveRole, checkPermission, myDeskScope]
   );
 
   // Seva Suggestions: modules not yet enabled but installable from the store.
@@ -210,7 +220,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
         activeWorkspace &&
         isModuleAllowed(activeWorkspace, 'pathshala') &&
         pathshalaEntry &&
-        isDeskVisibleForRole(pathshalaEntry, effectiveRole, checkPermission)
+        isDeskVisibleForRole(pathshalaEntry, effectiveRole, checkPermission, deskAccess)
       ) {
         actions.push({
           key: 'qa-attendance',
@@ -237,7 +247,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
         (activeWorkspace.type === 'Ashram' || activeWorkspace.type === 'Yoga') &&
         isModuleAllowed(activeWorkspace, 'ashramKutir') &&
         ashramKutirEntry &&
-        isDeskVisibleForRole(ashramKutirEntry, effectiveRole, checkPermission)
+        isDeskVisibleForRole(ashramKutirEntry, effectiveRole, checkPermission, deskAccess)
       ) {
         actions.push({
           key: 'qa-residents',

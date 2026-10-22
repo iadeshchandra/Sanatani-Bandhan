@@ -108,6 +108,20 @@ export interface WorkspaceMembership {
   viaInviteId?: string;
   viaRequestId?: string;
   invitedByUid?: string;
+  /**
+   * Blueprint B — role-template assignment attributes (research
+   * §1d: attributes instead of new roles). All additive; legacy
+   * edges carry none and behave exactly as before.
+   * templateId: the lib/roleTemplates template this assignment came
+   * from (null/absent = a direct canonical-role assignment).
+   */
+  templateId?: string | null;
+  /** Desk scope: canonical catalog ids this member may open, on top
+   *  of (intersected with) their role's visibility. null = unscoped. */
+  deskScope?: string[] | null;
+  /** When the STAFF role lapses (epoch ms). Expiry degrades the
+   *  role to the Devotee floor — see lib/membershipAccess. */
+  roleExpiresAt?: number | null;
 }
 
 /** Join request — `joinRequests/{orgId}_{userUid}` (deterministic: one pending per user per org). */
@@ -142,6 +156,14 @@ export interface OrgInvite {
   invitedName?: string;
   /** Role the invitee receives on accept. Never above the inviter's own. */
   role: string;
+  /** Blueprint B — template assignment carried onto the minted edge
+   *  verbatim at accept (the rules check binds the edge ROLE to the
+   *  invite role; these attributes ride along). */
+  templateId?: string | null;
+  deskScope?: string[] | null;
+  /** The ROLE expiry the member receives (distinct from the invite's
+   *  own expiresAt TTL below). */
+  roleExpiresAt?: number | null;
   message?: string;
   status: OrgInviteStatus;
   invitedByUid: string;
@@ -175,6 +197,10 @@ export const TRUSTEE_GRANTABLE_ROLES = [
   'Sevadar',
   'Devotee',
   'CSO',
+  // Blueprint B: 'Auditor' is canonical (landingSurface) and
+  // trustee-grantable; its grant is maker–checker gated and the
+  // rules grant matrix carries it too (see rules DELTA).
+  'Auditor',
 ] as const;
 
 export const SUPERADMIN_GRANTABLE_ROLES = [

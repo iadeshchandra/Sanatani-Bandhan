@@ -18,7 +18,9 @@ import { DeskErrorBoundary } from './components/common/DeskErrorBoundary';
 import { AppInitializer } from './context/AppInitializer';
 import { startDemoBackgroundService } from './lib/dbUtils';
 import { Header } from './components/common/Header';
-import { Sidebar } from './components/common/Sidebar';
+import { Sidebar, MODULE_CATALOG } from './components/common/Sidebar';
+import { isDeskVisibleForRole } from './lib/deskVisibility';
+import { effectiveDeskScope, isDeskInScope, membershipEffectiveRole } from './lib/membershipAccess';
 import { OrgSpaceShell } from './components/shell/OrgSpaceShell';
 // Bundle slimming (2026-10-18): dev previews are DEV-only — lazy so they never
 // enter the production initial bundle.
@@ -285,7 +287,13 @@ const AppContent: React.FC = () => {
   );
   const landingRoleState = resolveOrgLandingRole({
     workspaceId: landingWsId,
-    membershipRole: landingMembership?.role,
+    membershipRole: landingMembership
+      ? String(
+          membershipEffectiveRole(landingMembership, Date.now(), {
+            creatorUid: (activeWorkspace as { createdBy?: string } | null)?.createdBy,
+          })
+        )
+      : undefined,
     membershipsLoaded,
     globalRole: currentRole,
     isCreator:
@@ -519,6 +527,31 @@ const AppContent: React.FC = () => {
       );
     }
 
+    // Blueprint B: desk-scope + Auditor enforcement at the ONE mount
+    // point. Nav/palette already hide out-of-scope desks; this gate
+    // makes deep links, navigate_module events and guide CTAs obey
+    // the same law (fail-closed, honest RestrictedAccess):
+    //  - a scoped member (template narrowing / Desk Lead / scoped
+    //    volunteer) can only mount desks inside their scope;
+    //  - the read-only Auditor mounts only the oversight desk set
+    //    (lib/deskVisibility AUDITOR_READ_DESKS).
+    {
+      const canonicalModule = resolvePlanModuleId(activeModule);
+      const myEdge = myMemberships.find((m) => m.workspaceId === (activeWorkspace?.id || ''));
+      const scope = effectiveDeskScope(myEdge, Date.now(), {
+        creatorUid: activeWorkspace?.createdBy,
+      });
+      if (!isDeskInScope(canonicalModule, scope)) {
+        return <RestrictedAccess />;
+      }
+      if ((effectiveRole as string) === 'Auditor') {
+        const catEntry = MODULE_CATALOG.find((m) => m.id === canonicalModule);
+        if (!catEntry || !isDeskVisibleForRole(catEntry, effectiveRole, checkPermission)) {
+          return <RestrictedAccess />;
+        }
+      }
+    }
+
     switch (activeModule) {
       case 'devoteePortal':
       case 'devotee-super-app':
@@ -592,7 +625,7 @@ const AppContent: React.FC = () => {
       case 'treasuryAudit':
       case 'treasury':
       case 'treasury-ledger':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? (
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? (
           <TreasuryLedgerDesk
             onOpenQuickPay={() => setIsQuickChandaOpen(true)}
             onNavigate={(mod) => setActiveModule(mod)}
@@ -604,7 +637,7 @@ const AppContent: React.FC = () => {
       case 'hundi-audit':
       case 'hundi-counting':
       case 'golak':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <HundiCountingAuditDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <HundiCountingAuditDesk /> : <RestrictedAccess />;
       case 'cash-custody':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <CashCustodyDesk /> : <RestrictedAccess />;
       case 'ratna-bhandar':
@@ -612,24 +645,24 @@ const AppContent: React.FC = () => {
       case 'sacred-assets':
       case 'bullion-vault':
       case 'toshakhana':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'PUROHIT']) ? <RatnaBhandarAssetDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'PUROHIT', 'Auditor']) ? <RatnaBhandarAssetDesk /> : <RestrictedAccess />;
       case 'taxReceipts':
       case 'tax-receipt-80g':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <TaxReceiptDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <TaxReceiptDesk /> : <RestrictedAccess />;
       case 'tally-export':
       case 'tallyExport':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <TallyExportDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <TallyExportDesk /> : <RestrictedAccess />;
       case 'form10bd':
       case 'form-10bd':
       case 'form10bdCompliance':
       case 'form-10bd-compliance':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <Form10BDComplianceDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <Form10BDComplianceDesk /> : <RestrictedAccess />;
       case 'campaigns':
       case 'mandir-campaigns':
         // QUEUED #56 (A2-D4): ACCOUNTANT added — nav (accountantAllowed +
         // the Sidebar fallback check) already promised Campaigns to the
         // Accountant; the mount guard was the only layer refusing.
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <MandirCampaignsDesk /> : <RestrictedAccess />;
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <MandirCampaignsDesk /> : <RestrictedAccess />;
       case 'karmaLedger':
       case 'karma-ledger':
         return <KarmaLedgerDesk />;
@@ -794,7 +827,7 @@ const AppContent: React.FC = () => {
       case 'security-audit-log':
       case 'legalVault':
       case 'auditLog':
-        return checkPermission(['TRUSTEE', 'MANAGER']) ? <AuditLogDesk /> : <RestrictedAccess />;
+        return checkPermission(['TRUSTEE', 'MANAGER', 'Auditor']) ? <AuditLogDesk /> : <RestrictedAccess />;
       case 'qrScanner':
         return checkPermission(['CSO', 'TRUSTEE', 'MANAGER', 'VOLUNTEER']) ? <QRScanner /> : <RestrictedAccess />;
       case 'appStore':

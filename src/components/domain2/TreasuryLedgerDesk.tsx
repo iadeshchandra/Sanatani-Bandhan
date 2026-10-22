@@ -68,6 +68,12 @@ import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF, generateTreasuryLedgerPDF } from '../../utils/pdfGenerator';
 import { receiptCoverageFor } from '../../lib/receiptCoverage';
 import { RecordHistory } from '../audit/RecordHistory';
+import { ApprovalsPanel } from '../org/ApprovalsPanel';
+import { approvalService } from '../../context/data/approvalsStore';
+import {
+  buildPayoutPayload, payoutApprovalThreshold, payoutNeedsApproval,
+} from '../../lib/approvals';
+import { resolveActorName } from '../../bahikhata/bahikhataStore';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { useToast } from '../../context/ToastContext';
 import { compressExpenseMemo } from '../../utils/imageCompression';
@@ -198,7 +204,7 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
 });
 
 export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQuickPay, onNavigate }) => {
-  const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
+  const { activeWorkspace, activeWorkspaceId, updateWorkspaceDetails, checkPermission, firebaseUser, effectiveRole } = useAuthWorkspace();
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
 
   // P2P request ledger (trustee/accountant only) — role from the membership edge.
@@ -653,7 +659,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   };
 
   // Save Voucher Entry
-  const handleSaveVoucher = (e: React.FormEvent) => {
+  const handleSaveVoucher = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = Number(voucherAmount);
     if (!Number.isFinite(numAmount) || numAmount <= 0) {
@@ -720,6 +726,46 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     };
 
     try {
+      // Blueprint B maker–checker: an EXPENSE (payout) at or above
+      // the workspace threshold never posts on one pair of eyes.
+      // The voucher is filed as a PENDING approvalRequests record;
+      // a DIFFERENT finance/oversight member approves it in the
+      // ApprovalsPanel, and only then does it commit — through
+      // this same canonical path (the panel's applier calls
+      // addTreasuryTransaction with the approved payload).
+      if (
+        voucherType === 'Expense' &&
+        !workspaceId.startsWith('DEMO_') &&
+        payoutNeedsApproval(
+          { type: 'Expense', amount: numAmount },
+          payoutApprovalThreshold(activeWorkspace as any)
+        )
+      ) {
+        await approvalService.request(
+          {
+            workspaceId,
+            workspaceName: activeWorkspace?.name || '',
+            kind: 'treasury.payout',
+            payload: buildPayoutPayload(newTx) as unknown as Record<string, unknown>,
+            summary: `Payout · ${voucherCategory} · ${fmtAmount(numAmount)}${voucherEntityName ? ` · ${voucherEntityName}` : ''}`,
+            amount: numAmount,
+          },
+          {
+            uid: firebaseUser?.uid || '',
+            name: resolveActorName([firebaseUser?.displayName], firebaseUser?.email || ''),
+            role: (effectiveRole as string) || '',
+          }
+        );
+        showToast(t('org.access.approvals.payoutFiled'), 'success');
+        setShowVoucherModal(false);
+        setVoucherAmount('');
+        setVoucherEntityName('');
+        setVoucherPurpose('');
+        setVoucherRefNo('');
+        setVoucherMemoUrl('');
+        return;
+      }
+
       // C-8: addTreasuryTransaction returns false when the module quota blocks
       // the write — never inject the voucher locally in that case, or the
       // ledger would show money that was never persisted.
@@ -799,7 +845,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <GuideButton moduleId="treasury" className="!text-amber-300 hover:!text-amber-200 hover:!bg-white/10" />
 
-            {/* New Voucher Entry — primary */}
+            {/* New Voucher Entry — primary (hidden for the read-only
+                Auditor role: Blueprint B — the Auditor watches the
+                ledger, never writes it) */}
+            {effectiveRole !== 'Auditor' && (
             <button
               type="button"
               id="new-voucher-entry-btn"
@@ -812,9 +861,11 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <Plus className="w-4 h-4 text-temple-950" />
               <span>{t('org.finance.treasury.newVoucherEntry')}</span>
             </button>
+            )}
 
             {/* Bahi-Khata Seva door — paper dan-khata digitization with
                 trustee/accountant review before anything lands here. */}
+            {effectiveRole !== 'Auditor' && (
             <button
               type="button"
               onClick={() => setShowBahiKhata((v) => !v)}
@@ -827,6 +878,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             >
               <span>📖 Bahi-Khata Seva</span>
             </button>
+            )}
 
             {/* Quick Chanda Button (If parent passed callback) */}
             {onOpenQuickPay && (
@@ -1013,6 +1065,11 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
           </p>
         </div>
+
+        {/* Blueprint B — maker–checker queue (renders only when
+            there is something for this member to decide, file or
+            retry; DEMO workspaces never see it). */}
+        <ApprovalsPanel />
 
         {/* Quiet secondary row — inflow / outflow, demoted (F-TREAS-1) */}
         <div className="grid grid-cols-2 gap-3">

@@ -38,6 +38,11 @@ const CANONICAL_ROLES: readonly string[] = [
   'Sevadar',
   'Devotee',
   'CSO',
+  // Blueprint B: read-only oversight role (research §1b). Canonical
+  // like any other; its read-only nature is enforced by the rules
+  // (it is in no write role-set) and its visibility by
+  // deskVisibility's fail-closed Auditor branch.
+  'Auditor',
 ];
 
 /**

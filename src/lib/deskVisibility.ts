@@ -34,6 +34,7 @@
  */
 
 import type { UserRole } from '../types';
+import { isDeskInScope } from './membershipAccess';
 
 export interface DeskVisibilityModule {
   id: string;
@@ -42,7 +43,51 @@ export interface DeskVisibilityModule {
 
 export type PermissionCheck = (roles: (UserRole | string)[]) => boolean;
 
+/**
+ * Blueprint B — the Auditor's read-only desk set (canonical catalog
+ * ids). The Auditor (research §1b) sees the ledger and the audit
+ * surfaces and NOTHING else: fail-closed, unlike the staff fallback.
+ * Read-only is not a UI promise — the Auditor appears in no write
+ * role-set in firestore.rules (R_FINANCE / R_STAFF unchanged), so
+ * any write it attempts is denied server-side; this list governs
+ * only what it may OPEN. App.tsx mount guards admit 'Auditor' for
+ * exactly these desks (nav and mount agree — the #56 law).
+ */
+export const AUDITOR_READ_DESKS: readonly string[] = [
+  'dashboard',
+  'treasury',
+  'hundi-audit',
+  'ratna-bhandar',
+  'taxReceipts',
+  'form10bd',
+  'tally-export',
+  'campaigns',
+  'karmaLedger',
+  'legalVault',
+];
+
+/** Blueprint B — a member's desk-scope attribute (membershipAccess).
+ *  When present (an array), the role decision is INTERSECTED with
+ *  the scope: scope can only narrow what the role already grants. */
+export interface DeskAccessScope {
+  deskScope?: string[] | null;
+}
+
 export function isDeskVisibleForRole(
+  mod: DeskVisibilityModule,
+  role: UserRole | string | null | undefined,
+  checkPermission: PermissionCheck,
+  access?: DeskAccessScope,
+): boolean {
+  const base = baseDeskVisibleForRole(mod, role, checkPermission);
+  if (!base) return false;
+  if (access && access.deskScope != null) {
+    return isDeskInScope(mod.id, access.deskScope);
+  }
+  return true;
+}
+
+function baseDeskVisibleForRole(
   mod: DeskVisibilityModule,
   role: UserRole | string | null | undefined,
   checkPermission: PermissionCheck,
@@ -81,6 +126,12 @@ export function isDeskVisibleForRole(
       'bhoomi', 'vahan', 'recurring-seva',
     ];
     return accountantAllowed.includes(mod.id) || mod.domain === 2;
+  }
+
+  if (role === 'Auditor') {
+    // Blueprint B: read-only oversight — the fail-closed list above,
+    // never the staff fallback's permissive default.
+    return AUDITOR_READ_DESKS.includes(mod.id);
   }
 
   if (role === 'CSO') {

@@ -12,19 +12,24 @@
 import React, { useEffect, useState } from 'react';
 import {
   Users, UserPlus, Inbox, Check, X, Loader2, Mail, Phone, Fingerprint,
-  ShieldCheck, Trash2, Send,
+  ShieldCheck, Trash2, Send, Pencil, CalendarClock,
 } from 'lucide-react';
 import { useMembership, syncOrgPage } from '../../context/MembershipContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { usePlanLimits } from '../../hooks/usePlanLimits';
 import { LimitReachedModal } from '../billing/LimitReachedModal';
-import { TRUSTEE_GRANTABLE_ROLES, WorkspaceMembership, JoinRequest } from '../../types/membership';
+import { WorkspaceMembership, JoinRequest } from '../../types/membership';
 import { useLanguage } from '../../context/LanguageContext';
+import { MemberAccessEditor } from './MemberAccessEditor';
+import { ApprovalsPanel } from './ApprovalsPanel';
+import {
+  resolveAssignment, templateById, validateAssignment, type RoleAssignment,
+} from '../../lib/roleTemplates';
+import { expiryState } from '../../lib/membershipAccess';
+import { APPROVAL_REQUIRED } from '../../lib/approvals';
+import { resolveEdgeRole } from '../../lib/landingSurface';
 
 type Tab = 'MEMBERS' | 'REQUESTS' | 'INVITE';
-
-const ROLE_OPTIONS =
-  TRUSTEE_GRANTABLE_ROLES.map((r) => ({ value: r, label: r }));
 
 export const MembershipDesk: React.FC = () => {
   const { t } = useLanguage();
@@ -32,6 +37,7 @@ export const MembershipDesk: React.FC = () => {
   const {
     orgMembers, orgJoinRequests, orgInvites,
     decideJoinRequest, sendInvite, removeMember, ensureOrgPage,
+    requestRoleGrant, updateMembershipAccess,
   } = useMembership();
 
   const [tab, setTab] = useState<Tab>('MEMBERS');
@@ -48,12 +54,29 @@ export const MembershipDesk: React.FC = () => {
   }, [activeWorkspace?.id]);
 
   // ---- invite form ----
-  const [invite, setInvite] = useState({ email: '', phone: '', uid: '', name: '', role: 'Devotee', message: '' });
+  const [invite, setInvite] = useState({ email: '', phone: '', uid: '', name: '', message: '' });
+  // Blueprint B: the assignment (template + scope + expiry) is a
+  // first-class value, resolved by lib/roleTemplates.
+  const [assignment, setAssignment] = useState<RoleAssignment>(() =>
+    resolveAssignment({ templateId: 'member-donor' }, Date.now())
+  );
   const [inviteBusy, setInviteBusy] = useState(false);
+
+  const resetInviteForm = () => {
+    setInvite({ email: '', phone: '', uid: '', name: '', message: '' });
+    setAssignment(resolveAssignment({ templateId: 'member-donor' }, Date.now()));
+  };
 
   const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const errs = validateAssignment(assignment, Date.now());
+    if (errs.length) {
+      setError(
+        t(errs[0] === 'SCOPE_REQUIRED' ? 'org.access.editor.scopeRequired' : 'org.access.editor.expiryPast')
+      );
+      return;
+    }
     // Freemium seat-limit enforcement — invite counts as a staff seat.
     if (!(await guardPlanLimit('seats'))) return;
     setInviteBusy(true);
@@ -63,14 +86,105 @@ export const MembershipDesk: React.FC = () => {
         phone: invite.phone || undefined,
         uid: invite.uid || undefined,
         name: invite.name || undefined,
-        role: invite.role,
+        role: assignment.role,
+        templateId: assignment.templateId,
+        deskScope: assignment.deskScope,
+        roleExpiresAt: assignment.roleExpiresAt,
         message: invite.message || undefined,
       });
-      setInvite({ email: '', phone: '', uid: '', name: '', role: 'Devotee', message: '' });
+      resetInviteForm();
     } catch (err: any) {
-      setError(err?.message || 'Could not send the invitation.');
+      if (err?.code === APPROVAL_REQUIRED) {
+        // Blueprint B: a gated grant (> Sevadar) files a maker–checker
+        // request instead; the invite is sent by the checker's
+        // client once a DIFFERENT Trustee approves it.
+        try {
+          await requestRoleGrant({
+            mode: 'invite',
+            invite: {
+              email: invite.email || undefined,
+              phone: invite.phone || undefined,
+              uid: invite.uid || undefined,
+              name: invite.name || undefined,
+              message: invite.message || undefined,
+            },
+            targetName: invite.name || invite.email || invite.phone || invite.uid || 'Invitee',
+            assignment,
+          });
+          resetInviteForm();
+        } catch (e2: any) {
+          setError(e2?.message || 'Could not file the approval request.');
+        }
+      } else {
+        setError(err?.message || 'Could not send the invitation.');
+      }
     } finally {
       setInviteBusy(false);
+    }
+  };
+
+  // ---- member access editing (Blueprint B) ----
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAssignment, setEditAssignment] = useState<RoleAssignment | null>(null);
+
+  const beginEdit = (m: WorkspaceMembership) => {
+    setEditAssignment({
+      role: resolveEdgeRole(m.role),
+      templateId: m.templateId ?? null,
+      deskScope: m.deskScope ?? null,
+      roleExpiresAt: m.roleExpiresAt ?? null,
+    });
+    setEditingId(m.id);
+    setError('');
+  };
+
+  const saveEdit = async (m: WorkspaceMembership) => {
+    if (!editAssignment) return;
+    const errs = validateAssignment(editAssignment, Date.now());
+    if (errs.length) {
+      setError(
+        t(errs[0] === 'SCOPE_REQUIRED' ? 'org.access.editor.scopeRequired' : 'org.access.editor.expiryPast')
+      );
+      return;
+    }
+    const changes: {
+      role?: string;
+      templateId?: string | null;
+      deskScope?: string[] | null;
+      roleExpiresAt?: number | null;
+    } = {};
+    if (editAssignment.role !== resolveEdgeRole(m.role)) changes.role = editAssignment.role;
+    if ((editAssignment.templateId ?? null) !== (m.templateId ?? null)) changes.templateId = editAssignment.templateId;
+    if (JSON.stringify(editAssignment.deskScope ?? null) !== JSON.stringify(m.deskScope ?? null)) changes.deskScope = editAssignment.deskScope;
+    if ((editAssignment.roleExpiresAt ?? null) !== (m.roleExpiresAt ?? null)) changes.roleExpiresAt = editAssignment.roleExpiresAt;
+    if (Object.keys(changes).length === 0) {
+      setEditingId(null);
+      return;
+    }
+    setBusyId(m.id);
+    setError('');
+    try {
+      await updateMembershipAccess(m, changes);
+      setEditingId(null);
+    } catch (err: any) {
+      if (err?.code === APPROVAL_REQUIRED) {
+        try {
+          await requestRoleGrant({
+            mode: 'membership',
+            membershipId: m.id,
+            targetUid: m.uid,
+            targetName: m.displayName || m.email || 'Member',
+            assignment: editAssignment,
+          });
+          setEditingId(null);
+        } catch (e2: any) {
+          setError(e2?.message || 'Could not file the approval request.');
+        }
+      } else {
+        setError(err?.message || 'Could not update access.');
+      }
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -159,30 +273,90 @@ export const MembershipDesk: React.FC = () => {
               <p className="text-xs text-stone-400 mt-1">Approved join requests and accepted invites appear here.</p>
             </div>
           )}
-          {orgMembers.map((m) => (
-            <div key={m.id} className="bg-white border border-stone-200 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white font-black text-sm shrink-0">
-                {(m.displayName || 'M').charAt(0).toUpperCase()}
+          {orgMembers.map((m) => {
+            const tpl = templateById(m.templateId);
+            const expState = expiryState(m, Date.now());
+            return (
+              <div key={m.id} className="bg-white border border-stone-200 rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white font-black text-sm shrink-0">
+                    {(m.displayName || 'M').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-stone-900 truncate">{m.displayName || 'Member'}</p>
+                    <p className="text-[11px] text-stone-500">
+                      {resolveEdgeRole(m.role)} · via {m.joinedVia === 'invite' ? 'invitation' : m.joinedVia === 'request' ? 'join request' : m.joinedVia}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {tpl && (
+                        <span className="text-[10px] font-black text-amber-800 bg-amber-100 rounded-full px-2 py-0.5">
+                          {t(tpl.nameKey)}
+                        </span>
+                      )}
+                      {Array.isArray(m.deskScope) && (
+                        <span className="text-[10px] font-black text-stone-600 bg-stone-100 rounded-full px-2 py-0.5">
+                          {m.deskScope.length} {t('org.access.member.desksWord')}
+                        </span>
+                      )}
+                      {expState === 'expired' && (
+                        <span className="text-[10px] font-black text-red-700 bg-red-100 rounded-full px-2 py-0.5 flex items-center gap-1">
+                          <CalendarClock size={10} /> {t('org.access.member.roleExpired')}
+                        </span>
+                      )}
+                      {(expState === 'active' || expState === 'expiringSoon') && m.roleExpiresAt != null && (
+                        <span className={`text-[10px] font-black rounded-full px-2 py-0.5 flex items-center gap-1 ${
+                          expState === 'expiringSoon' ? 'text-amber-800 bg-amber-100' : 'text-stone-600 bg-stone-100'
+                        }`}>
+                          <CalendarClock size={10} />
+                          {t('org.access.member.expiresOn')} {new Date(m.roleExpiresAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => (editingId === m.id ? setEditingId(null) : beginEdit(m))}
+                    className="p-2.5 text-stone-400 hover:text-amber-700 hover:bg-amber-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label={`${t('org.access.member.editAccess')} ${m.displayName || ''}`}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => doRemove(m)}
+                    disabled={busyId === m.id}
+                    className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                    aria-label={`Remove ${m.displayName}`}
+                  >
+                    {busyId === m.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  </button>
+                </div>
+                {editingId === m.id && editAssignment && (
+                  <div className="mt-4 pt-4 border-t border-stone-100">
+                    <MemberAccessEditor
+                      value={editAssignment}
+                      onChange={setEditAssignment}
+                      isSuperAdmin={currentRole === 'SuperAdmin'}
+                    />
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        onClick={() => saveEdit(m)}
+                        disabled={busyId === m.id}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black min-h-[44px] disabled:opacity-50"
+                      >
+                        {busyId === m.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                        {t('org.access.member.saveAccess')}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="flex-1 py-2.5 rounded-xl bg-white border border-stone-300 text-stone-600 text-xs font-black min-h-[44px]"
+                      >
+                        {t('org.access.member.cancelEdit')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-stone-900 truncate">{m.displayName || 'Member'}</p>
-                <p className="text-[11px] text-stone-500">
-                  {m.role} · via {m.joinedVia === 'invite' ? 'invitation' : m.joinedVia === 'request' ? 'join request' : m.joinedVia}
-                </p>
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 rounded-full px-2 py-1">
-                {m.role}
-              </span>
-              <button
-                onClick={() => doRemove(m)}
-                disabled={busyId === m.id}
-                className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label={`Remove ${m.displayName}`}
-              >
-                {busyId === m.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              </button>
-            </div>
-          ))}
+            );
+          })}
           <p className="text-[11px] text-stone-400 flex items-center gap-1.5 pt-1">
             <ShieldCheck size={12} /> Membership is enforced by Firestore rules — the roster here mirrors the secure record.
           </p>
@@ -263,18 +437,11 @@ export const MembershipDesk: React.FC = () => {
             <input value={invite.name} onChange={(e) => setInvite({ ...invite, name: e.target.value })} placeholder="Name (optional note)" className={inputCls} />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Role to grant</label>
-            <select value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value })} className={`${inputCls} cursor-pointer`}>
-              {ROLE_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-              {currentRole === 'SuperAdmin' && (
-                <>
-                  <option value="Trustee">{t('org.people.membership.trusteeSuperadminOnly')}</option>
-                  <option value="SuperAdmin">SuperAdmin (SuperAdmin only)</option>
-                </>
-              )}
-            </select>
+            <MemberAccessEditor
+              value={assignment}
+              onChange={setAssignment}
+              isSuperAdmin={currentRole === 'SuperAdmin'}
+            />
           </div>
           <div>
             <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">
@@ -316,6 +483,7 @@ export const MembershipDesk: React.FC = () => {
           )}
         </form>
       )}
+      <ApprovalsPanel />
       {limitModalInfo && (
         <LimitReachedModal info={limitModalInfo} onClose={closeLimitModal} />
       )}

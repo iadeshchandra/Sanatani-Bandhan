@@ -42,6 +42,15 @@ import {
   WorkspaceMembership,
 } from '../types/membership';
 import { resolveEdgeRole } from '../lib/landingSurface';
+import { auditRecorder } from './data/auditStore';
+import { resolveActorName } from '../bahikhata/bahikhataStore';
+import { grantNeedsApproval, type RoleAssignment } from '../lib/roleTemplates';
+import {
+  guardAccessChange,
+  guardMemberRemoval,
+} from '../lib/membershipAccess';
+import { APPROVAL_REQUIRED, type RoleGrantPayload } from '../lib/approvals';
+import { approvalService } from './data/approvalsStore';
 
 const now = () => Date.now();
 const memberDocId = (workspaceId: string, uid: string) => `${workspaceId}_${uid}`;
@@ -123,7 +132,52 @@ interface MembershipContextType {
     name?: string;
     role: string;
     message?: string;
+    /** Blueprint B — resolved template assignment (roleTemplates),
+     *  carried onto the invite and the minted edge verbatim. */
+    templateId?: string | null;
+    deskScope?: string[] | null;
+    roleExpiresAt?: number | null;
+    /** Set ONLY by the maker–checker applier after a recorded
+     *  checker decision. A gated role (> Sevadar) without it throws
+     *  an APPROVAL_REQUIRED error. */
+    viaApproval?: boolean;
   }) => Promise<void>;
+  /**
+   * Blueprint B — file a maker–checker 'role.grant' request for a
+   * gated grant (invite or membership edit). The change applies
+   * only when a DIFFERENT Trustee/SuperAdmin approves it from the
+   * Approvals panel.
+   */
+  requestRoleGrant: (input: {
+    mode: 'invite' | 'membership';
+    invite?: {
+      email?: string;
+      phone?: string;
+      uid?: string;
+      name?: string;
+      message?: string;
+    };
+    membershipId?: string;
+    targetUid?: string;
+    targetName: string;
+    assignment: RoleAssignment;
+  }) => Promise<void>;
+  /**
+   * Blueprint B — edit an existing member's role / template / desk
+   * scope / expiry (Trustee). Gated target roles throw
+   * APPROVAL_REQUIRED unless viaApproval; continuity guards
+   * (creator, last Trustee) always apply.
+   */
+  updateMembershipAccess: (
+    m: WorkspaceMembership,
+    changes: {
+      role?: string;
+      templateId?: string | null;
+      deskScope?: string[] | null;
+      roleExpiresAt?: number | null;
+    },
+    opts?: { viaApproval?: boolean }
+  ) => Promise<void>;
   myInvites: OrgInvite[];
   orgInvites: OrgInvite[];
   respondToInvite: (invite: OrgInvite, accept: boolean) => Promise<void>;
@@ -153,7 +207,7 @@ export const useMembership = (): MembershipContextType => {
 };
 
 export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { firebaseUser, activeWorkspace, currentRole, addWorkspace, switchWorkspace } = useAuthWorkspace();
+  const { firebaseUser, activeWorkspace, currentRole, effectiveRole, addWorkspace, switchWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
   const uid = firebaseUser?.uid || null;
   const userEmail = (firebaseUser?.email || '').toLowerCase();
@@ -169,6 +223,61 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
 
   const isTrusteeLike = ['Trustee', 'SuperAdmin'].includes(currentRole as string);
+
+  // ---------------------------------------------------------------
+  // Blueprint A/B — membership changes are audit-stream events.
+  // The recorder is fail-open and actor-bound (rules require
+  // actorUid == auth.uid, so the FIREBASE uid leads — the same law
+  // as DataContext's auditActor). Membership events were deferred
+  // from Blueprint A to here because B restructures these paths.
+  // ---------------------------------------------------------------
+  const auditActor = useCallback(
+    () => ({
+      actorUid: uid || '',
+      actorName: resolveActorName(
+        [firebaseUser?.displayName],
+        firebaseUser?.email || ''
+      ),
+      actorRole: (effectiveRole as string) || (currentRole as string) || '',
+    }),
+    [uid, firebaseUser, effectiveRole, currentRole]
+  );
+
+  /** ApprovalActor shape for the maker–checker service. */
+  const approvalActor = useCallback(
+    () => ({
+      uid: uid || '',
+      name: resolveActorName(
+        [firebaseUser?.displayName],
+        firebaseUser?.email || ''
+      ),
+      role: ((effectiveRole as string) || (currentRole as string) || '') as string,
+    }),
+    [uid, firebaseUser, effectiveRole, currentRole]
+  );
+
+  const noteMembershipAudit = useCallback(
+    (input: {
+      workspaceId: string;
+      action: string;
+      entityId: string;
+      entityLabel?: string;
+      summaryKey: string;
+      summaryParams?: Record<string, string | number>;
+    }) => {
+      auditRecorder.record({
+        workspaceId: input.workspaceId,
+        ...auditActor(),
+        action: input.action,
+        entityType: 'membership',
+        entityId: input.entityId,
+        ...(input.entityLabel ? { entityLabel: input.entityLabel } : {}),
+        summaryKey: input.summaryKey,
+        ...(input.summaryParams ? { summaryParams: input.summaryParams } : {}),
+      });
+    },
+    [auditActor]
+  );
 
   // ---- org pages ---------------------------------------------------------
   const getOrgPage = useCallback(async (orgId: string): Promise<OrgPage | null> => {
@@ -306,10 +415,30 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     async (m: WorkspaceMembership) => {
       if (!isTrusteeLike) throw new Error('Only a Trustee can remove members.');
       if (m.uid === uid) throw new Error('You cannot remove yourself.');
+      // Blueprint B continuity law: the creator's edge is the
+      // provisioning record, and the last active Trustee can never
+      // be removed — the workspace must keep a recovery path.
+      const guard = guardMemberRemoval(orgMembers, m.uid, now(), {
+        creatorUid: (activeWorkspace as { createdBy?: string } | null)?.createdBy,
+      });
+      if (!guard.ok) {
+        throw new Error(
+          guard.reason === 'CREATOR_PROTECTED'
+            ? 'The workspace creator cannot be removed.'
+            : 'This is the last active Trustee — appoint another Trustee before removing them.'
+        );
+      }
       await deleteDoc(doc(db, 'workspaceMembers', m.id));
+      noteMembershipAudit({
+        workspaceId: m.workspaceId,
+        action: 'membership.removed',
+        entityId: m.id,
+        entityLabel: m.displayName || m.email || 'Member',
+        summaryKey: 'org.audit.history.membershipRemoved',
+      });
       showToast(`${m.displayName || 'Member'} removed from the organisation.`, 'info');
     },
-    [isTrusteeLike, uid, showToast]
+    [isTrusteeLike, uid, showToast, orgMembers, activeWorkspace, noteMembershipAudit]
   );
 
   // ---- join requests (user → org) --------------------------------------------
@@ -394,6 +523,14 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           viaRequestId: req.id,
           invitedByUid: uid,
         } as WorkspaceMembership);
+        noteMembershipAudit({
+          workspaceId: req.orgId,
+          action: 'membership.requestApproved',
+          entityId: memberDocId(req.orgId, req.userUid),
+          entityLabel: req.userName,
+          summaryKey: 'org.audit.history.membershipApproved',
+          summaryParams: { role: 'Devotee' },
+        });
       }
       await updateDoc(doc(db, 'joinRequests', req.id), {
         status,
@@ -406,12 +543,23 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         approve ? 'success' : 'info'
       );
     },
-    [isTrusteeLike, uid, firebaseUser, showToast]
+    [isTrusteeLike, uid, firebaseUser, showToast, noteMembershipAudit]
   );
 
   // ---- invites (org → user) -----------------------------------------------------
   const sendInvite = useCallback(
-    async (input: { email?: string; phone?: string; uid?: string; name?: string; role: string; message?: string }) => {
+    async (input: {
+      email?: string;
+      phone?: string;
+      uid?: string;
+      name?: string;
+      role: string;
+      message?: string;
+      templateId?: string | null;
+      deskScope?: string[] | null;
+      roleExpiresAt?: number | null;
+      viaApproval?: boolean;
+    }) => {
       if (!isTrusteeLike) throw new Error('Only a Trustee can invite members.');
       const ws = activeWorkspace;
       if (!ws || ws.id.startsWith('DEMO_')) throw new Error('Invites need a real organisation workspace.');
@@ -438,6 +586,19 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         throw new Error(`You cannot grant the role "${role}". A Trustee may only invite operational roles (Priest, Accountant, Sevadar, Devotee, …).`);
       }
 
+      // Blueprint B maker–checker gate: grants above the Sevadar line
+      // never happen on one pair of eyes. The ONLY direct path is the
+      // approvals applier, after a different checker has approved
+      // (viaApproval). Everyone else gets APPROVAL_REQUIRED and the
+      // desk files a request instead (requestRoleGrant).
+      if (grantNeedsApproval(role) && !input.viaApproval) {
+        const err = new Error(
+          `Granting ${role} needs a second approver. The invitation will be sent once another Trustee approves it.`
+        ) as Error & { code: string };
+        err.code = APPROVAL_REQUIRED;
+        throw err;
+      }
+
       const ref = doc(collection(db, 'orgInvites'));
       await setDoc(ref, {
         id: ref.id,
@@ -449,6 +610,11 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         invitedPhone: phone,
         invitedName: (input.name || '').slice(0, 120),
         role,
+        // Blueprint B — template assignment attributes ride onto the
+        // invite and then the minted edge (rules bind only the role).
+        templateId: input.templateId ?? null,
+        deskScope: input.deskScope ?? null,
+        roleExpiresAt: input.roleExpiresAt ?? null,
         message: (input.message || '').slice(0, 300),
         status: 'PENDING',
         invitedByUid: uid,
@@ -456,9 +622,156 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createdAt: now(),
         expiresAt: now() + INVITE_TTL_MS,
       } as OrgInvite);
+      noteMembershipAudit({
+        workspaceId: ws.id,
+        action: 'membership.invited',
+        entityId: ref.id,
+        entityLabel: (input.name || '').slice(0, 120) || email || phone || invitedUid || 'Invitee',
+        summaryKey: 'org.audit.history.membershipInvited',
+        summaryParams: { role },
+      });
       showToast(`Invitation sent${email ? ` to ${email}` : phone ? ` to ${phone}` : ''}.`, 'success');
     },
-    [isTrusteeLike, activeWorkspace, currentRole, uid, firebaseUser, showToast]
+    [isTrusteeLike, activeWorkspace, currentRole, uid, firebaseUser, showToast, noteMembershipAudit]
+  );
+
+  /**
+   * Blueprint B — file the maker–checker request for a gated grant.
+   * The payload carries the FULL intended change; the approvals
+   * applier replays it (sendInvite / updateMembershipAccess with
+   * viaApproval) only after a different checker approves.
+   */
+  const requestRoleGrant = useCallback(
+    async (input: {
+      mode: 'invite' | 'membership';
+      invite?: { email?: string; phone?: string; uid?: string; name?: string; message?: string };
+      membershipId?: string;
+      targetUid?: string;
+      targetName: string;
+      assignment: RoleAssignment;
+    }) => {
+      const ws = activeWorkspace;
+      if (!ws || ws.id.startsWith('DEMO_')) throw new Error('Approvals need a real organisation workspace.');
+      if (!uid) throw new Error('Sign in to request a role grant.');
+      const payload: RoleGrantPayload = {
+        mode: input.mode,
+        ...(input.mode === 'invite'
+          ? {
+              invite: {
+                email: input.invite?.email || '',
+                phone: input.invite?.phone || '',
+                uid: input.invite?.uid || '',
+                name: input.invite?.name || '',
+                message: input.invite?.message || '',
+                role: input.assignment.role,
+                templateId: input.assignment.templateId,
+                deskScope: input.assignment.deskScope,
+                roleExpiresAt: input.assignment.roleExpiresAt,
+              },
+            }
+          : {
+              membershipId: input.membershipId || '',
+              targetUid: input.targetUid || '',
+            }),
+        targetName: input.targetName,
+        role: input.assignment.role,
+        templateId: input.assignment.templateId,
+        deskScope: input.assignment.deskScope,
+        roleExpiresAt: input.assignment.roleExpiresAt,
+      };
+      await approvalService.request(
+        {
+          workspaceId: ws.id,
+          workspaceName: ws.name,
+          kind: 'role.grant',
+          payload: payload as unknown as Record<string, unknown>,
+          summary: `Role grant: ${input.assignment.role} for ${input.targetName}`,
+        },
+        approvalActor()
+      );
+      showToast('Sent for approval — a second Trustee must approve this grant.', 'success');
+    },
+    [activeWorkspace, uid, approvalActor, showToast]
+  );
+
+  /**
+   * Blueprint B — edit an existing member's access. Direct for
+   * ungated outcomes; gated target roles require viaApproval (the
+   * approvals applier) — the desk catches APPROVAL_REQUIRED and
+   * files requestRoleGrant instead. Continuity guards always run.
+   */
+  const updateMembershipAccess = useCallback(
+    async (
+      m: WorkspaceMembership,
+      changes: {
+        role?: string;
+        templateId?: string | null;
+        deskScope?: string[] | null;
+        roleExpiresAt?: number | null;
+      },
+      opts?: { viaApproval?: boolean }
+    ) => {
+      if (!isTrusteeLike) throw new Error('Only a Trustee can change member access.');
+      const targetRole = resolveEdgeRole(changes.role ?? m.role);
+      // The gate fires on a genuine role CHANGE into a gated role.
+      // Scope/expiry-only edits (even on a gated member) and
+      // demotions stay direct: scope can only narrow a role's own
+      // visibility, and reducing access must never need permission.
+      const roleChanges = targetRole !== resolveEdgeRole(m.role);
+      if (grantNeedsApproval(targetRole) && roleChanges && !opts?.viaApproval) {
+        const err = new Error(
+          `Changing a role to ${targetRole} needs a second approver.`
+        ) as Error & { code: string };
+        err.code = APPROVAL_REQUIRED;
+        throw err;
+      }
+      const guard = guardAccessChange(
+        orgMembers,
+        m.uid,
+        {
+          role: changes.role !== undefined ? targetRole : undefined,
+          roleExpiresAt:
+            changes.roleExpiresAt !== undefined ? changes.roleExpiresAt : undefined,
+        },
+        now(),
+        { creatorUid: (activeWorkspace as { createdBy?: string } | null)?.createdBy }
+      );
+      if (!guard.ok) {
+        throw new Error(
+          guard.reason === 'CREATOR_PROTECTED'
+            ? "The workspace creator's access cannot be reduced or expired."
+            : 'This is the last active Trustee — appoint another Trustee first.'
+        );
+      }
+      const updates: Record<string, unknown> = {};
+      if (changes.role !== undefined) updates.role = targetRole;
+      if (changes.templateId !== undefined) updates.templateId = changes.templateId;
+      if (changes.deskScope !== undefined) updates.deskScope = changes.deskScope;
+      if (changes.roleExpiresAt !== undefined) updates.roleExpiresAt = changes.roleExpiresAt;
+      if (Object.keys(updates).length === 0) return;
+      await updateDoc(doc(db, 'workspaceMembers', m.id), updates);
+      if (changes.role !== undefined && targetRole !== resolveEdgeRole(m.role)) {
+        noteMembershipAudit({
+          workspaceId: m.workspaceId,
+          action: 'membership.roleChanged',
+          entityId: m.id,
+          entityLabel: m.displayName || m.email || 'Member',
+          summaryKey: 'org.audit.history.membershipRoleChanged',
+          summaryParams: { from: resolveEdgeRole(m.role), to: targetRole },
+        });
+      } else {
+        noteMembershipAudit({
+          workspaceId: m.workspaceId,
+          action: 'membership.accessUpdated',
+          entityId: m.id,
+          entityLabel: m.displayName || m.email || 'Member',
+          summaryKey: 'org.audit.history.membershipAccessUpdated',
+          summaryParams: { fields: Object.keys(updates).join(', ') },
+        });
+      }
+      showToast(`${m.displayName || 'Member'}'s access updated.`, 'success');
+    },
+    [isTrusteeLike, orgMembers, activeWorkspace, noteMembershipAudit, showToast]
   );
 
   // My incoming invites — matched by uid, then email, then phone-on-file.
@@ -554,6 +867,11 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           // resolves it deterministically — the victim is freed without
           // breaking the rules equality check here.
           role: invite.role,
+          // Blueprint B — the template assignment rides onto the edge
+          // verbatim (desk scope + role expiry the trustee granted).
+          templateId: invite.templateId ?? null,
+          deskScope: invite.deskScope ?? null,
+          roleExpiresAt: invite.roleExpiresAt ?? null,
           displayName: firebaseUser?.displayName || firebaseUser?.email || 'Member',
           email: firebaseUser?.email || '',
           joinedAt: now(),
@@ -561,6 +879,14 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           viaInviteId: invite.id,
           invitedByUid: invite.invitedByUid,
         } as WorkspaceMembership);
+        noteMembershipAudit({
+          workspaceId: invite.orgId,
+          action: 'membership.joined',
+          entityId: memberDocId(invite.orgId, uid),
+          entityLabel: firebaseUser?.displayName || firebaseUser?.email || 'Member',
+          summaryKey: 'org.audit.history.membershipJoined',
+          summaryParams: { role: resolveEdgeRole(invite.role) },
+        });
         showToast(`Welcome to ${invite.orgName}!`, 'success');
         // Immediate switcher handoff (defined below; safe: executes after mount).
         await joinWorkspaceRef.current(invite.orgId);
@@ -569,7 +895,7 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       setMyInvites((list) => list.filter((i) => i.id !== invite.id));
     },
-    [uid, firebaseUser, showToast]
+    [uid, firebaseUser, showToast, noteMembershipAudit]
   );
 
   // ---- post-membership handoff -----------------------------------------------------
@@ -615,6 +941,8 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       orgJoinRequests,
       decideJoinRequest,
       sendInvite,
+      requestRoleGrant,
+      updateMembershipAccess,
       myInvites,
       orgInvites,
       respondToInvite,
@@ -628,7 +956,7 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [
       getOrgPage, browseOrgPages, ensureOrgPage, isFollowing, toggleFollow, followerCount,
       requestToJoin, myJoinRequests, orgJoinRequests, decideJoinRequest,
-      sendInvite, myInvites, orgInvites, respondToInvite,
+      sendInvite, requestRoleGrant, updateMembershipAccess, myInvites, orgInvites, respondToInvite,
       myMemberships, membershipsLoaded, orgMembers, removeMember, joinWorkspace, refreshMemberships,
     ]
   );

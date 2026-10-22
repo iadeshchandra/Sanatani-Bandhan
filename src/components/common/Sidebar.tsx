@@ -69,6 +69,8 @@ import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { isModuleAllowed, isModuleAllowedForPlan, requiredTierForModule } from '../../lib/workspaceRegistry';
 import { isDeskVisibleForRole } from '../../lib/deskVisibility';
+import { useMembership } from '../../context/MembershipContext';
+import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
@@ -391,6 +393,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Phase 2 org spaces: nav filtering evaluates the per-org effective
   // role (from the workspaceMembers edge), not the global session role.
   const { activeWorkspace, effectiveRole, checkPermission, setViewMode } = useAuthWorkspace();
+  // Blueprint B: my membership edge for THIS workspace carries the
+  // desk scope (template narrowing) + expiry; the visibility layer
+  // intersects it, so scoped staff never see desks outside scope.
+  const { myMemberships } = useMembership();
+  const myEdge = myMemberships.find((m) => m.workspaceId === (activeWorkspace?.id || ''));
+  const myDeskScope = effectiveDeskScope(myEdge, Date.now(), {
+    creatorUid: activeWorkspace?.createdBy,
+  });
   const taxonomy = useWorkspaceTaxonomy();
   const { t } = useLanguage();
   const { showToast } = useToast();
@@ -478,7 +488,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // per-role decision lives in ONE shared helper
       // (src/lib/deskVisibility.ts), consumed by the Command Palette
       // too, so nav and palette can never promise different desks.
-      const hasRole = isDeskVisibleForRole(m, effectiveRole, checkPermission);
+      const hasRole = isDeskVisibleForRole(m, effectiveRole, checkPermission, {
+        deskScope: myDeskScope,
+      });
 
       if (!hasRole) return false;
 

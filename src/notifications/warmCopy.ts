@@ -376,6 +376,31 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
         '{orgName} में आपकी भूमिका अब {title} है। नई ज़िम्मेदारी के साथ नया विश्वास — शुभकामना।',
       ),
     },
+    // Blueprint B — maker–checker approvals (protective, plain).
+    approvalRequested: {
+      title: t('Approval needed at {orgName}', '{orgName}-এ অনুমোদন প্রয়োজন', '{orgName} में अनुमोदन आवश्यक है'),
+      body: t(
+        '{summary} — a second pair of eyes keeps the treasury safe. Open the approvals card to review.',
+        '{summary} — দ্বিতীয় একজনের পরীক্ষা কোষাগারকে নিরাপদ রাখে। পর্যালোচনার জন্য অনুমোদন কার্ডটি খুলুন।',
+        '{summary} — दूसरी जोड़ी आँखें कोष को सुरक्षित रखती हैं। समीक्षा के लिए अनुमोदन कार्ड खोलें।',
+      ),
+    },
+    approvalApproved: {
+      title: t('Your request was approved', 'আপনার অনুরোধ অনুমোদিত হয়েছে', 'आपका अनुरोध स्वीकृत हुआ'),
+      body: t(
+        '{summary} at {orgName} has been approved and applied.',
+        '{orgName}-এ {summary} অনুমোদিত হয়ে কার্যকর হয়েছে।',
+        '{orgName} में {summary} स्वीकृत होकर लागू हो गया है।',
+      ),
+    },
+    approvalRejected: {
+      title: t('Your request was not approved', 'আপনার অনুরোধ অনুমোদিত হয়নি', 'आपका अनुरोध स्वीकृत नहीं हुआ'),
+      body: t(
+        '{summary} at {orgName} was declined by the reviewing member. Nothing was changed — you can discuss and file again.',
+        '{orgName}-এ {summary} পর্যালোচনাকারী সদস্য গ্রহণ করেননি। কিছুই বদলায়নি — আলোচনা করে আবার জমা দিতে পারেন।',
+        '{orgName} में {summary} समीक्षक सदस्य ने अस्वीकार किया। कुछ नहीं बदला — चर्चा करके फिर से भेज सकते हैं।',
+      ),
+    },
   },
   darshan_live: {
     wentLive: {

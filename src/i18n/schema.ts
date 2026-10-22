@@ -2520,6 +2520,18 @@ export interface TranslationSchema {
           settingsUpdated: string;
           accountsPublished: string;
           accountsUnpublished: string;
+          membershipInvited: string;
+          membershipJoined: string;
+          membershipApproved: string;
+          membershipRoleChanged: string;
+          membershipAccessUpdated: string;
+          membershipRemoved: string;
+          approvalRequested: string;
+          approvalApproved: string;
+          approvalRejected: string;
+          approvalCancelled: string;
+          approvalApplied: string;
+          approvalApplyFailed: string;
         };
         desk: {
           badge: string;
@@ -2592,6 +2604,80 @@ export interface TranslationSchema {
         receipts: {
           noReceiptNo: string;
           anonymousNoReceipt: string;
+        };
+      };
+      access?: {
+        templates: {
+          'trustee-chair': { name: string; desc: string };
+          'org-secretary': { name: string; desc: string };
+          'org-manager': { name: string; desc: string };
+          'treasurer-checker': { name: string; desc: string };
+          'accountant-maker': { name: string; desc: string };
+          'desk-lead': { name: string; desc: string };
+          'religious-lead': { name: string; desc: string };
+          'festival-volunteer': { name: string; desc: string };
+          'auditor-readonly': { name: string; desc: string };
+          'member-donor': { name: string; desc: string };
+        };
+        editor: {
+          templateLabel: string;
+          customRole: string;
+          roleLabel: string;
+          scopeToggle: string;
+          scopeHint: string;
+          scopeRequired: string;
+          homeAlways: string;
+          expiryLabel: string;
+          expiryHint: string;
+          expiryPast: string;
+        };
+        member: {
+          desksWord: string;
+          roleExpired: string;
+          expiresOn: string;
+          editAccess: string;
+          saveAccess: string;
+          cancelEdit: string;
+        };
+        approvals: {
+          title: string;
+          awaitingYou: string;
+          yourRequests: string;
+          needsApply: string;
+          recentDecisions: string;
+          approve: string;
+          reject: string;
+          cancel: string;
+          retryApply: string;
+          kindPayout: string;
+          kindPayment: string;
+          kindRole: string;
+          statusPending: string;
+          statusApplied: string;
+          statusApplyFailed: string;
+          statusRejected: string;
+          statusCancelled: string;
+          approvedApplied: string;
+          approvedApplyFailed: string;
+          rejectedDone: string;
+          cancelledDone: string;
+          decideFailed: string;
+          payoutFiled: string;
+        };
+        payment: {
+          title: string;
+          dualControlNote: string;
+          pendingNote: string;
+          accountName: string;
+          accountNumber: string;
+          bankName: string;
+          ifsc: string;
+          upiId: string;
+          requestChange: string;
+          submitRequest: string;
+          filed: string;
+          fileFailed: string;
+          summaryPrefix: string;
         };
       };
   };

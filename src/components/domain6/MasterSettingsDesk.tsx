@@ -41,6 +41,7 @@ import { SampleDataCard } from './SampleDataCard';
 import { OrgLogo } from '../common/OrgLogo';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
+import { PaymentDetailsCard } from '../org/PaymentDetailsCard';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
 
 const getCurrencyDetails = (countryCode: string) => {
@@ -458,6 +459,10 @@ export const MasterSettingsDesk: React.FC = () => {
 
         {/* LEFT COLUMN: Workspace Info & Geolocation */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Blueprint B — payout/payment account details under
+              maker–checker dual control: edits file an approval
+              request; a second pair of eyes applies the change. */}
+          <PaymentDetailsCard />
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
 
              {/* Dynamic Banner Area */}

@@ -13,7 +13,8 @@ import {
   criticalUnreadInScope,
 } from '../../notifications/orgScope';
 import { MODULE_CATALOG } from '../common/Sidebar';
-import { normalizeMembershipRole, resolveEdgeRole } from '../../lib/landingSurface';
+import { normalizeMembershipRole } from '../../lib/landingSurface';
+import { membershipEffectiveRole } from '../../lib/membershipAccess';
 import { T } from '../../solo/ui';
 import { OrgLogo } from '../common/OrgLogo';
 
@@ -130,16 +131,31 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     // never the raw edge string — a legacy 'Manager' edge reads
     // "Sevadar" (its migration-map intent), 'Member'/unknown reads
     // "Devotee", matching what every gate actually grants this user.
-    if (membership) return resolveEdgeRole(membership.role) as string;
+    // Blueprint B: the display is also EXPIRY-AWARE — an expired
+    // scoped grant reads as the Devotee floor it degrades to (the
+    // workspace creator can never expire: membershipEffectiveRole's
+    // creator carve-out).
+    if (membership)
+      return membershipEffectiveRole(membership, Date.now(), {
+        creatorUid: activeWorkspace?.createdBy,
+      }) as string;
     return (normalizeMembershipRole(currentRole as string) || 'Devotee') as string;
-  }, [membership, currentRole]);
+  }, [membership, currentRole, activeWorkspace?.createdBy]);
 
   // Publish the per-org role into the auth context so every RBAC check
   // (checkPermission, Sidebar nav filter, AppContent devotee guard)
   // evaluates THIS org's role. Cleared when the org session ends.
+  // Blueprint B: for a SCOPED/EXPIRING edge the published value is
+  // the effective (expiry-aware) role, so an expired grant stops
+  // unlocking role-gated desks the moment it lapses; unscoped edges
+  // publish exactly as before.
   useEffect(() => {
-    setOrgRoleOverride(membership?.role || null);
-  }, [orgId, membership, setOrgRoleOverride]);
+    const publish =
+      membership && (membership.deskScope != null || membership.roleExpiresAt != null)
+        ? displayRole
+        : membership?.role || null;
+    setOrgRoleOverride(publish);
+  }, [orgId, membership, displayRole, setOrgRoleOverride]);
   useEffect(() => {
     return () => setOrgRoleOverride(null);
   }, [setOrgRoleOverride]);

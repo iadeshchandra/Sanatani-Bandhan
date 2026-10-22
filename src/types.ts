@@ -4,7 +4,7 @@ export type WorkspaceType =
   | 'Tirth' | 'Samaj' | 'AkshayaPatra' | 'KashiKshetra'
   | 'DharmadaTrust' | 'MahotsavSamiti' | 'PurohitSabha';
 
-export type UserRole = 'SuperAdmin' | 'Trustee' | 'Priest' | 'Accountant' | 'Sevadar' | 'Devotee' | 'CSO';
+export type UserRole = 'SuperAdmin' | 'Trustee' | 'Priest' | 'Accountant' | 'Sevadar' | 'Devotee' | 'CSO' | 'Auditor';
 
 export type LegacyUserRole =
   | 'SUPER_ADMIN'
@@ -40,6 +40,9 @@ export const ROLE_MIGRATION_MAP: Record<string, UserRole> = {
   PRIEST: 'Priest',
   cso: 'CSO',
   CSO: 'CSO',
+  auditor: 'Auditor',
+  AUDITOR: 'Auditor',
+  Auditor: 'Auditor',
   'chief security officer': 'CSO',
   'Chief Security Officer': 'CSO',
   volunteer: 'Sevadar',
@@ -252,6 +255,25 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
    * SuperAdmin always bypasses restrictions.
    */
   branchAccess?: BranchMemberAccess[];
+  /**
+   * Blueprint B — the organisation's bank / payout details (where
+   * money is sent TO). Sensitive by nature: changes never apply
+   * directly — they are filed as a maker–checker 'payment.details'
+   * approval request (lib/approvals) and written only after a
+   * second Trustee/SuperAdmin approves. All fields optional; an org
+   * that has never set them simply has none on file.
+   */
+  paymentAccountName?: string;
+  paymentAccountNumber?: string;
+  paymentBankName?: string;
+  paymentIfsc?: string;
+  paymentUpiId?: string;
+  /**
+   * Blueprint B — maker–checker threshold for expense vouchers, in
+   * the workspace's own currency units. Absent/invalid = the
+   * default 10,000 (lib/approvals.DEFAULT_PAYOUT_APPROVAL_THRESHOLD).
+   */
+  makerCheckerPayoutThreshold?: number;
 }
 
 export interface AuditLog extends TenantScoped {
