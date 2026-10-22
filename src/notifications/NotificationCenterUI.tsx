@@ -32,6 +32,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { NT, pick, useNotifLang } from './NT';
+import { whyLine } from './whyLine';
 import {
   groupCenterItems,
   summarizeForHeader,
@@ -313,6 +314,21 @@ const GroupCard: React.FC<{
                     </span>
                   )}
                 </div>
+                {/* Blueprint D — "Why am I seeing this?": every card
+                    names its category and the control that allowed
+                    it, derived from the item's own stored decision. */}
+                <p className="mt-1 text-[11px] leading-snug text-stone-400">
+                  <span className="font-bold">
+                    <NT
+                      text={{
+                        en: 'Why am I seeing this? ',
+                        bn: 'আমি এটি কেন দেখছি? ',
+                        hi: 'मैं यह क्यों देख रहा हूँ? ',
+                      }}
+                    />
+                  </span>
+                  <NT text={whyLine(item)} />
+                </p>
               </div>
             </SwipeRow>
           ))}

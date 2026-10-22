@@ -59,13 +59,19 @@ export interface ReceiptTxLike {
   is80GEligible?: boolean | null;
   taxReceiptNumber?: string | null;
   referenceNo?: string | null;
+  /** Blueprint D — practice-mode row (lib/practiceMode). */
+  isPractice?: boolean | null;
 }
 
 export type ReceiptCoverage =
   | 'covered'
   | 'missing'
   | 'anonymous'
-  | 'not-income';
+  | 'not-income'
+  /** Blueprint D: a practice row — no real receipt exists or is owed;
+   *  it never consumes a sequence number and never counts as a
+   *  coverage gap. */
+  | 'practice';
 
 /** A record has a donor when an id or a real name is attached. */
 export function hasDonor(tx: ReceiptTxLike): boolean {
@@ -83,6 +89,10 @@ export function receiptNumberFor(tx: ReceiptTxLike): string | null {
 }
 
 export function receiptCoverageFor(tx: ReceiptTxLike): ReceiptCoverage {
+  // Practice first: a practice row is not a real donation in ANY
+  // state — it must never read as a coverage gap ('missing') and
+  // never inflate the covered count.
+  if (tx.isPractice === true) return 'practice';
   if (tx.type !== 'Income') return 'not-income';
   if (!hasDonor(tx)) return 'anonymous';
   return receiptNumberFor(tx) ? 'covered' : 'missing';
@@ -93,6 +103,8 @@ export interface ReceiptCoverageCounts {
   missing: number;
   anonymous: number;
   notIncome: number;
+  /** Blueprint D: practice rows, counted apart (never a gap). */
+  practice: number;
 }
 
 export function auditReceiptCoverage(
@@ -103,6 +115,7 @@ export function auditReceiptCoverage(
     missing: 0,
     anonymous: 0,
     notIncome: 0,
+    practice: 0,
   };
   for (const tx of txs) {
     const c = receiptCoverageFor(tx);
@@ -126,6 +139,12 @@ export function assignReceiptNumber(
   year: number,
   cachedNext?: { 'SB-80G'?: number; 'SB-CHANDA'?: number } | null
 ): string | undefined {
+  // Blueprint D: practice rows take NO receipt number — a practice
+  // donation must never consume a real sequence number (the sequence
+  // is gap-detectable; a practice gap would read as a missing real
+  // receipt) and must never carry a number a donor could mistake
+  // for a real one. Even a caller-provided number is not stored.
+  if (tx.isPractice === true) return undefined;
   if (tx.type !== 'Income') return undefined;
   const caller = (tx.taxReceiptNumber || '').trim();
   if (caller) return caller;

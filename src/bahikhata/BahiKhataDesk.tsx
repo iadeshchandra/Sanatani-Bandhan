@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, Camera, Mic, FileSpreadsheet, PenLine } from 'lucide-react';
+import { BookOpen, Camera, FileSpreadsheet, PenLine } from 'lucide-react';
 import type { Nandi } from '../goshala/types';
 import type { BahiTarget, BatchActor, BatchCommitSummary, ImportBatch } from './types';
 import { TARGET_EMOJI, canApproveAnyBahi, canApproveBahi, canEnterBahi } from './types';
@@ -10,6 +10,8 @@ import {
 import { getCachedSanataniProfile } from '../solo/soloSession';
 import { executeCommit } from './commit';
 import { RegisterMode } from './RegisterMode';
+import { VoiceEntryPanel } from './VoiceEntryPanel';
+import { buildVoiceBatch, type ParsedVoiceDonation } from './voiceEntry';
 import { CsvImport } from './CsvImport';
 import { BatchReview } from './BatchReview';
 import { ScanImport } from './scan/ScanImport';
@@ -407,9 +409,25 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
             <button type="button" onClick={() => setView({ kind: 'scan' })} className={`${modeCard} bg-white border-stone-300 text-stone-800 hover:border-amber-400`}>
               <Camera className="w-6 h-6 shrink-0 text-amber-600" /> {bk(lang, 'modePhoto')}
             </button>
-            <div className={`${modeCard} bg-stone-50 border-stone-200 text-stone-400`} aria-disabled="true">
-              <Mic className="w-6 h-6 shrink-0" /> {bk(lang, 'modeVoiceSoon')}
-            </div>
+            {/* Blueprint D — voice entry: rendered ONLY where the
+                browser offers speech recognition (the panel returns
+                null otherwise — no fake affordance). A heard line
+                opens the ordinary register review pre-filled; voice
+                itself never commits. */}
+            <VoiceEntryPanel
+              lang={lang}
+              cardClassName={modeCard}
+              onHeard={(parsed: ParsedVoiceDonation) => {
+                const batch = buildVoiceBatch({
+                  workspaceId: ws,
+                  enteredBy: actor,
+                  label: bk(lang, 'voiceBatchLabel'),
+                  parsed,
+                });
+                setPendingBatch(batch);
+                setView({ kind: 'register', batchId: batch.id });
+              }}
+            />
           </div>
         </div>
       )}

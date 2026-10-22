@@ -42,9 +42,9 @@
 import type { EmitResult, NotificationItem, NotifyEvent, QueuedEvent } from './types';
 import { NotificationCenter } from './NotificationCenter';
 import { decideRouting, digestOnlyDecision, findGroupTarget, groupedCardText, classifyReplay } from './engine';
-import { deliver, readPrefsDoc, updateInAppItem } from './delivery';
+import { countItemsToday, deliver, readPrefsDoc, updateInAppItem } from './delivery';
 import { createOutbox, backoffMs, type OutboxStore } from './outbox';
-import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from './preferences';
+import { DEFAULT_PREFS, dailyCapFor, mergePrefs, type NotificationPrefs } from './preferences';
 import {
   collection,
   doc,
@@ -279,7 +279,23 @@ async function tryGroup(uid: string, event: NotifyEvent, now: number): Promise<s
 /** Path 2: the online pipeline for an explicit recipient uid. */
 async function emitOnlineTo(uid: string, event: NotifyEvent, now: number): Promise<EmitResult> {
   const prefs = await loadPrefs(uid);
-  const decision = decideRouting(event, prefs, now);
+  // Blueprint D: same cap discipline as the singleton path (the ONE
+  // pipeline law — a sender cannot dodge the devotee's controls by
+  // choosing the other emit path). No cap set → no count read, and
+  // routing is exactly as before.
+  let decision = decideRouting(event, prefs, now);
+  if (dailyCapFor(prefs) > 0 && event.priority !== 'critical') {
+    try {
+      const deliveredToday = await countItemsToday(uid, now);
+      decision = decideRouting(event, prefs, now, { deliveredToday });
+    } catch {
+      /* a failed count never swallows a notification */
+    }
+  }
+  // A switched-off kind is silent: no grouping, no write.
+  if (decision.suppressed === 'category') {
+    return { status: 'dropped', itemId: '', decision };
+  }
 
   const groupedId = await tryGroup(uid, event, now);
   if (groupedId) return { status: 'grouped', itemId: groupedId, decision };

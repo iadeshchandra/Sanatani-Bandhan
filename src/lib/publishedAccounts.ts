@@ -90,6 +90,10 @@ export function monthsPresent(txs: readonly AggregatableTx[]): string[] {
 export function donorCountFor(txs: readonly AggregatableTx[]): number {
   const keys = new Set<string>();
   for (const tx of txs) {
+    // Blueprint D: a practice "donor" is not a donor — the public
+    // board's donor count must never include practice rows (the
+    // totals already exclude them via computeTreasuryAggregates).
+    if (tx.isPractice === true) continue;
     if (tx.type !== 'Income') continue;
     const key = tx.devoteeId || tx.devoteeName || '';
     if (key) keys.add(String(key));

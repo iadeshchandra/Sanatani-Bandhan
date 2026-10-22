@@ -22,6 +22,7 @@ import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../c
 import { TirthaDiarySheet, computeStats, syncTirtha } from '../tirtha';
 import { VdaAliasSection } from './VdaAliasSection';
 import { LanguageRegionSettings } from './LanguageRegionSettings';
+import { PrivacyNoticeBody } from '../components/account/PrivacyNotice';
 import { AiVoiceSettings } from '../ai/voice/components/AiVoiceSettings';
 import { ASSISTANT_OPEN_EVENT } from '../ai/components/AskButton';
 import { useNativeLanguage } from '../components/language/nativeBridge';
@@ -75,6 +76,7 @@ export const ProfileTab: React.FC = () => {
   const { muted: bellMuted, setMuted: setBellMuted, playBell } = useSacredSound();
   const { currentLang, changeLanguage, markLanguageChosen } = useNativeLanguage();
   const [langOpen, setLangOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [tirthaOpen, setTirthaOpen] = useState(false);
   const [tirthaStats, setTirthaStats] = useState({ visitCount: 0, templeCount: 0, yatraCount: 0 });
   const curLangNative = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang)?.nativeName || currentLang;
@@ -580,6 +582,37 @@ export const ProfileTab: React.FC = () => {
 
       {/* Language & region — the devotee's words, their choice, never overridden */}
       <LanguageRegionSettings />
+
+      {/* Blueprint D — the privacy notice, always reachable from
+          Profile (the one-time gate is only the introduction). */}
+      <Card>
+        <button
+          type="button"
+          onClick={() => setPrivacyOpen((v) => !v)}
+          className="w-full flex items-center gap-3 text-left min-h-[64px] px-1"
+          aria-expanded={privacyOpen}
+        >
+          <span className="text-2xl shrink-0" aria-hidden>🛡️</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-extrabold text-stone-900">
+              <T en="Your privacy, in plain words" bn="আপনার গোপনীয়তা, সহজ ভাষায়" hi="आपकी गोपनीयता, सरल शब्दों में" />
+            </span>
+            <span className="block text-xs text-stone-500">
+              <T
+                en="What the app keeps, where it lives, and what is never public."
+                bn="অ্যাপ যা রাখে, যেখানে থাকে, এবং যা কখনো প্রকাশ্য নয়।"
+                hi="ऐप क्या रखता है, कहाँ रहता है, और क्या कभी सार्वजनिक नहीं होता।"
+              />
+            </span>
+          </span>
+          <span className="text-stone-400 shrink-0" aria-hidden>{privacyOpen ? '▾' : '▸'}</span>
+        </button>
+        {privacyOpen && (
+          <div className="pt-2 pb-1">
+            <PrivacyNoticeBody />
+          </div>
+        )}
+      </Card>
 
       {/* Assistant — the on-device AI voice, permanent home.
           The one-time nudge points here ("Profile → 🗣️ How we speak with

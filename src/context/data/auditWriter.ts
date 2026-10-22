@@ -67,6 +67,28 @@ export class AuditRecorder {
   private readonly now: () => number;
   private readonly log: (msg: string, err?: unknown) => void;
   private readonly makeId: () => string;
+  /**
+   * Blueprint D — assisted mode: an optional provider consulted on
+   * EVERY record() (registered once by lib/assistedSession). When it
+   * returns a helper identity for the event's workspace/actor, the
+   * event is stamped `assistedBy` — at this ONE seam, so every commit
+   * point in the app (DataContext, settings, membership, approvals)
+   * is covered without any of them knowing assisted mode exists.
+   * The provider must be synchronous and total; a throwing provider
+   * is treated as "no assistance" (the recorder never breaks).
+   */
+  private assistedByProvider: (
+    input: AuditEventInput
+  ) => { uid: string; name: string } | null = () => null;
+
+  /** Register (or clear, with null) the assisted-session provider. */
+  setAssistedByProvider(
+    provider:
+      | ((input: AuditEventInput) => { uid: string; name: string } | null)
+      | null
+  ): void {
+    this.assistedByProvider = provider ?? (() => null);
+  }
 
   constructor(
     private store: AuditStore,
@@ -102,8 +124,30 @@ export class AuditRecorder {
       );
       return;
     }
+    // Blueprint D: stamp the helper identity when an assisted
+    // session is live. The actor stays the account owner; a helper
+    // whose uid IS the actor (self-declared) is not stamped —
+    // assistance means a second pair of hands. A name-only helper
+    // (uid '') still stamps: the declaration itself is the record.
+    // An explicit assistedBy on the input (none today) is never
+    // overwritten.
+    let stamped = input;
+    if (!input.assistedBy) {
+      try {
+        const helper = this.assistedByProvider(input);
+        if (
+          helper &&
+          helper.name.trim() &&
+          helper.uid !== input.actorUid
+        ) {
+          stamped = { ...input, assistedBy: { uid: helper.uid, name: helper.name } };
+        }
+      } catch {
+        /* a broken provider must never break the stream */
+      }
+    }
     const chain = this.chainFor(workspaceId);
-    chain.tail = chain.tail.then(() => this.appendOne(chain, input));
+    chain.tail = chain.tail.then(() => this.appendOne(chain, stamped));
   }
 
   /** Prime a workspace's chain head (idempotent; record() also does

@@ -76,6 +76,16 @@ export interface AuditEvent {
   summaryParams?: Record<string, string | number>;
   /** Money amount when the action is a money movement. */
   amount?: number;
+  /**
+   * Blueprint D — assisted mode: when the commit was made during a
+   * declared assisted session, the helper who was physically helping
+   * is recorded ALONGSIDE the actor (the actor stays the account
+   * owner — nothing is shared or transferred between accounts; this
+   * field only tells the truth about whose hands were on the device).
+   * Stamped by the recorder (auditWriter) from the live session, never
+   * by individual commit points. Absent on every ordinary event.
+   */
+  assistedBy?: { uid: string; name: string };
   /** Before/after digest for edits — scalar fields only, pruned. */
   changes?: Record<string, AuditChange>;
   /** Monotonic append order within the workspace chain. */
@@ -134,6 +144,17 @@ export function auditCanonical(e: {
     amount: e.amount ?? null,
     changes: e.changes ?? {},
     entityLabel: (e as { entityLabel?: string }).entityLabel ?? null,
+    // Blueprint D: the assisted-by stamp is hash-bound WHEN PRESENT —
+    // and only then. Events written before assisted mode existed (or
+    // outside an assisted session) canonicalize byte-identically to
+    // before, so every existing chain still verifies.
+    ...((e as unknown as { assistedBy?: { uid: string; name: string } })
+      .assistedBy
+      ? {
+          assistedBy: (e as unknown as { assistedBy: { uid: string; name: string } })
+            .assistedBy,
+        }
+      : {}),
   });
   return `${e.prevHash}|${e.seq}|${e.createdAt}|${e.workspaceId}|${e.actorUid}|${e.action}|${e.entityType}|${e.entityId}|${digest}`;
 }
@@ -214,7 +235,14 @@ export function verifyAuditChain(events: readonly AuditEvent[]): ChainVerificati
 export function renderAuditSummary(
   event: Pick<
     AuditEvent,
-    'actorName' | 'action' | 'summaryKey' | 'summaryParams' | 'amount' | 'entityLabel' | 'entityId'
+    | 'actorName'
+    | 'action'
+    | 'summaryKey'
+    | 'summaryParams'
+    | 'amount'
+    | 'entityLabel'
+    | 'entityId'
+    | 'assistedBy'
   >,
   translate: (key: string) => string,
   formatAmount: (n: number) => string
@@ -231,7 +259,30 @@ export function renderAuditSummary(
   for (const [k, v] of Object.entries(event.summaryParams ?? {})) {
     values[k] = String(v);
   }
-  return template.replace(/\{(\w+)\}/g, (m, key: string) =>
+  let line = template.replace(/\{(\w+)\}/g, (m, key: string) =>
     key in values ? values[key] : m
   );
+  // Blueprint D suffixes — appended only when their template key
+  // resolves (a language without the key simply shows the plain
+  // line; the data is never hidden by a raw key string):
+  //  - assisted sessions: "· with help from {helper}" — the helper
+  //    is part of the forensic truth of the event (see AuditEvent).
+  //  - practice entries: commit points mark practice rows with
+  //    summaryParams.practice, so a trustee reading the stream can
+  //    never mistake a practice entry for real money movement.
+  if (event.assistedBy?.name) {
+    const suffix = translate('org.audit.history.assistedBy');
+    if (suffix && suffix !== 'org.audit.history.assistedBy') {
+      line += suffix.replace(/\{(\w+)\}/g, (m, key: string) =>
+        key === 'helper' ? event.assistedBy!.name : m
+      );
+    }
+  }
+  if (event.summaryParams?.practice) {
+    const mark = translate('org.audit.history.practiceMark');
+    if (mark && mark !== 'org.audit.history.practiceMark') {
+      line += mark;
+    }
+  }
+  return line;
 }

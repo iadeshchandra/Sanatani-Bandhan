@@ -31,7 +31,7 @@
  * payload carries `critical: true` so the service worker can escalate).
  */
 
-import { collection, doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { collection, doc, getCountFromServer, getDoc, query, setDoc, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import type {
   NotificationItem,
@@ -86,6 +86,10 @@ export function toFirestoreDoc(item: NotificationItem): Record<string, unknown> 
       holdReason: item.decision.holdReason,
       digestCandidate: item.decision.digestCandidate,
       digestWindow: item.decision.digestWindow,
+      // Blueprint D: why this item was held back by the devotee's own
+      // controls (null = it wasn't) — the "Why am I seeing this?"
+      // line reads it back off the stored item.
+      suppressed: item.decision.suppressed ?? null,
     },
     serverCreatedAt: serverTimestamp(),
   };
@@ -213,6 +217,24 @@ export async function deliver(input: DeliverInput): Promise<{ ok: boolean; error
   }
 
   return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Blueprint D — how many items the centre has written for this user
+ * since local midnight: the daily cap's input. A single-field range
+ * count over the user's own subcollection (no composite index; a
+ * count aggregate, ~1 read per 1,000 items). Throws on failure —
+ * callers treat a failed count as "no cap context" (the engine then
+ * behaves exactly as before D; a broken counter must never become
+ * a reason to swallow a notification).
+ */
+export async function countItemsToday(uid: string, now: number): Promise<number> {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const snap = await getCountFromServer(
+    query(itemsCol(uid), where('createdAt', '>=', start.getTime())),
+  );
+  return snap.data().count;
 }
 
 // ---------------------------------------------------------------------------

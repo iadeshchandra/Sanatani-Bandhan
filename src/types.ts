@@ -274,6 +274,15 @@ export interface WorkspaceConfig extends Partial<TenantScoped> {
    * default 10,000 (lib/approvals.DEFAULT_PAYOUT_APPROVAL_THRESHOLD).
    */
   makerCheckerPayoutThreshold?: number;
+  /**
+   * Blueprint D — practice mode (lib/practiceMode): while true,
+   * DataContext stamps every new record for this workspace
+   * `isPractice: true`; such rows are badged, hidden when the mode
+   * is off, and excluded from every total at the aggregates fold.
+   * Written through updateWorkspaceDetails (the audited settings
+   * choke point) by the Settings practice card / SetupWizard.
+   */
+  practiceMode?: boolean;
 }
 
 export interface AuditLog extends TenantScoped {
@@ -482,6 +491,9 @@ export interface TreasuryTransaction extends TenantScoped {
   auditVerified: boolean;
   isRecurring?: boolean;
   recurringInterval?: 'Monthly' | 'Annually';
+  /** Blueprint D — practice-mode row (lib/practiceMode): excluded
+   *  from every total at the aggregates fold; never receipted. */
+  isPractice?: boolean;
 }
 
 export type TreasuryLedger = TreasuryTransaction;
@@ -501,6 +513,9 @@ export interface DonationRecord extends TenantScoped {
   receiptNumber?: string;
   is80GEligible?: boolean;
   date: string;
+  /** Blueprint D — the donations view of a treasury row carries the
+   *  row's practice tag through (lib/practiceMode). */
+  isPractice?: boolean;
 }
 
 export type Donation = DonationRecord;

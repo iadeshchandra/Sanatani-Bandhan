@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ArrowRight, Check, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, ShieldCheck, ChevronRight, Sprout } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { enableModule } from '../../suggestions/store';
@@ -62,6 +62,10 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
   const [staffId, setStaffId] = useState<string | null>(null);
   const [pains, setPains] = useState<string[]>([]);
   const [sampleData, setSampleData] = useState(true);
+  // Blueprint D — the gentle first-run practice suggestion. Default
+  // OFF: practice mode is the owner's own choice, never a default
+  // that could make a real first donation land as pretend.
+  const [practiceMode, setPracticeMode] = useState(false);
   const [displayName, setDisplayName] = useState(workspaceName);
   const [editingName, setEditingName] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -101,6 +105,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
           enabled = enableModule(enabled, id, () => undefined, workspaceId);
         }
         updateWorkspaceDetails({ enabledModules: enabled });
+      }
+      // 1c. Blueprint D — optional practice mode for the first tour:
+      // written through the same audited settings choke point, and
+      // only for the workspace being set up.
+      if (practiceMode && activeWorkspace && activeWorkspace.id === workspaceId) {
+        updateWorkspaceDetails({ practiceMode: true });
       }
       // 2. Optional sample records, clearly marked as sample by the seeder.
       if (sampleData) {
@@ -361,6 +371,24 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
                   </span>
                   <span className="block text-xs text-stone-500 mt-0.5">
                     Clearly marked as sample — delete them anytime. Recommended for your first tour.
+                  </span>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 p-4 rounded-2xl border-2 border-stone-200 cursor-pointer hover:border-violet-300 transition-colors mb-3">
+                <input
+                  type="checkbox"
+                  checked={practiceMode}
+                  onChange={(e) => setPracticeMode(e.target.checked)}
+                  className="mt-1 w-5 h-5 accent-violet-600"
+                />
+                <span>
+                  <span className="flex items-center gap-1.5 text-sm font-extrabold text-stone-900">
+                    <Sprout className="w-4 h-4 text-violet-600" aria-hidden="true" />
+                    Start in practice mode — nothing will be real
+                  </span>
+                  <span className="block text-xs text-stone-500 mt-0.5">
+                    Practising — nothing here is real. Try every desk freely; practice entries are clearly marked, never counted, and clear in one tap from Settings. Turn it off whenever you are ready for the real books.
                   </span>
                 </span>
               </label>

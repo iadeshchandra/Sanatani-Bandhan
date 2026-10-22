@@ -138,6 +138,25 @@ export const MembershipDesk: React.FC = () => {
     setError('');
   };
 
+  // Blueprint D — the Access Review card's deep link: it stores the
+  // member's uid in sessionStorage ('sb_focus_member'); on arrival,
+  // open that member's editor directly. Consumed once.
+  useEffect(() => {
+    let focusUid: string | null = null;
+    try {
+      focusUid = sessionStorage.getItem('sb_focus_member');
+      if (focusUid) sessionStorage.removeItem('sb_focus_member');
+    } catch {
+      focusUid = null;
+    }
+    if (!focusUid) return;
+    const m = orgMembers.find((x) => x.uid === focusUid);
+    if (m) beginEdit(m);
+    // beginEdit is a stable local closure over the current render's
+    // setters; orgMembers identity is the meaningful trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgMembers]);
+
   const saveEdit = async (m: WorkspaceMembership) => {
     if (!editAssignment) return;
     const errs = validateAssignment(editAssignment, Date.now());

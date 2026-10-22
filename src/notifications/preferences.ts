@@ -30,6 +30,23 @@ export interface NotificationPrefs {
   quietHours: QuietHours;
   /** Manual do-not-disturb. Critical still breaks through. */
   dnd: boolean;
+  /**
+   * Blueprint D — per-kind opt-in toggles for EVERY NotifyKind
+   * (the categories the original four policies never covered:
+   * wallet, seva_order, org, security, darshan_live, aarti_reminder,
+   * social — plus an explicit switch layered over the legacy four).
+   * Absent = on (the calm default is the shipped behaviour). The
+   * one exception is 'sos': its toggle is recorded for display but
+   * NEVER honoured — see kindEnabled. An emergency is not a setting.
+   */
+  kindToggles?: Partial<Record<NotifyKind, boolean>>;
+  /**
+   * Blueprint D — the daily cap: the maximum number of Suchana the
+   * centre will DELIVER in one local day. 0 / absent = no cap
+   * (today's behaviour). Critical (SOS) items never count and are
+   * never held by it — see decideRouting in engine.ts.
+   */
+  dailyCap?: number;
 }
 
 /** The calm defaults: everything instant except the Suchana digest. */
@@ -49,7 +66,35 @@ export function mergePrefs(patch?: Partial<NotificationPrefs>): NotificationPref
     ...DEFAULT_PREFS,
     ...patch,
     quietHours: { ...DEFAULT_PREFS.quietHours, ...(patch.quietHours ?? {}) },
+    kindToggles: { ...(patch.kindToggles ?? {}) },
   };
+}
+
+/**
+ * Blueprint D — is this kind switched on? The full taxonomy, one
+ * answer:
+ *  - 'sos' is ALWAYS on. A devotee can see the switch in settings,
+ *    locked, with the honest reason beside it — an SOS switch that
+ *    worked would be a safety failure dressed as a preference.
+ *  - the four legacy categories combine their richer policy with
+ *    the toggle: 'off' policy OR toggle-off = off;
+ *  - every other kind answers to its toggle alone (absent = on).
+ */
+export function kindEnabled(kind: NotifyKind, prefs: NotificationPrefs): boolean {
+  if (kind === 'sos') return true;
+  if (prefs.kindToggles && prefs.kindToggles[kind] === false) return false;
+  const cat = categoryFor(kind);
+  if (cat === 'moneyRequests' || cat === 'chat') return prefs[cat] !== 'off';
+  if (cat === 'blessings') return prefs.blessings;
+  if (cat === 'suchana') return prefs.suchana !== 'off';
+  return true;
+}
+
+/** The devotee's daily cap, sanitized: a positive integer or 0 (no cap). */
+export function dailyCapFor(prefs: NotificationPrefs): number {
+  const cap = prefs.dailyCap;
+  if (typeof cap !== 'number' || !Number.isFinite(cap) || cap <= 0) return 0;
+  return Math.floor(cap);
 }
 
 /** Parse 'HH:MM' → minutes since midnight. Returns null on garbage input. */

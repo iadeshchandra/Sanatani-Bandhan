@@ -7,6 +7,9 @@ import { provisionalSoloProfile } from '../../solo/soloSession';
 import { NotificationBell } from '../../notifications/NotificationBell';
 import { ASSISTANT_OPEN_EVENT } from '../../ai/components/AskButton';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
+import { PracticeBanner } from '../org/PracticeBanner';
+import { AssistedBanner } from '../org/AssistedBanner';
+import { PrivacyNoticeGate } from '../account/PrivacyNotice';
 import { useLiveNotifications } from '../../notifications/useLiveNotifications';
 import {
   scopeItemsForOrg,
@@ -399,6 +402,12 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
       )}
         </>
       )}
+
+      {/* Blueprint D — persistent session banners: practice mode and
+          an assisted session can never be forgotten mid-session. */}
+      <PracticeBanner />
+      <AssistedBanner />
+      <PrivacyNoticeGate />
 
       {/* The existing org content (AppContent) — desk navigation untouched */}
       <div className="flex-1 min-h-0">{children}</div>

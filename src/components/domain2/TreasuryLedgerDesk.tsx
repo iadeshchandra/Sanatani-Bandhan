@@ -23,6 +23,7 @@ import {
   eightyGReceiptGate,
 } from '../../lib/treasuryDisplay';
 import { SampleBadge } from '../common/SampleBadge';
+import { PracticeBadge } from '../common/PracticeBadge';
 import { isSampleRecord } from '../../lib/sampleData';
 import { workspaceRegistry } from '../../lib/workspaceRegistry';
 import {
@@ -400,6 +401,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     let expense = 0;
 
     for (const tx of allLedgerRecords) {
+      // Blueprint D: practice rows are visible in this desk's list
+      // (badged) but never in its totals — the same law the
+      // aggregates fold enforces everywhere else.
+      if (tx.isPractice) continue;
       if (tx.type === 'Income') {
         income += Number(tx.amount || 0);
       } else if (tx.type === 'Expense') {
@@ -423,6 +428,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     }
 
     for (const tx of allLedgerRecords) {
+      if (tx.isPractice) continue;
       const fund = getTransactionFund(tx);
       const entry = map.get(fund.id);
       if (entry) {
@@ -513,6 +519,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
       });
     }
     for (const tx of allLedgerRecords) {
+      if (tx.isPractice) continue;
       const monthKey = (tx.date || '').slice(0, 7); // YYYY-MM
       const bucket = buckets.find((b) => b.key === monthKey);
       if (!bucket) continue;
@@ -1552,6 +1559,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                           </p>
                           {/* QUEUED #59 (A4-4): seeded vouchers are MARKED sample. */}
                           {isSampleRecord(tx) && <SampleBadge className="mt-1" />}
+                          {tx.isPractice && <PracticeBadge className="mt-1 ml-1" />}
                           <p className="text-[10px] text-temple-400">
                             Handled by: <span className="text-temple-300">{tx.handledBy || 'Admin'}</span>
                           </p>

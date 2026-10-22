@@ -30,6 +30,7 @@ import type {
 } from './types';
 import {
   DEFAULT_PREFS,
+  dailyCapFor,
   mergePrefs,
   type NotificationPrefs,
 } from './preferences';
@@ -43,6 +44,7 @@ import {
 } from './engine';
 import {
   acknowledgeItem,
+  countItemsToday,
   deliver,
   markItemRead,
   readPrefsDoc,
@@ -64,6 +66,11 @@ export interface CenterConfig {
   listRecent?: (uid: string) => Promise<GroupCandidate[]>;
   /** Held items (quietHold) awaiting release. Injected for testability. */
   listHeld?: (uid: string) => Promise<Array<{ id: string; holdUntil: number | null }>>;
+  /** Blueprint D: items delivered since local midnight (the daily
+   *  cap's input). Injected for testability; defaults to the
+   *  Firestore count in delivery.ts. Consulted ONLY when the user
+   *  has set a daily cap — with no cap, routing is exactly as before. */
+  countToday?: (uid: string) => Promise<number>;
 }
 
 export interface DrainReport {
@@ -97,6 +104,8 @@ class NotificationCenter {
   private listRecent: (uid: string) => Promise<GroupCandidate[]> = defaultListRecent;
   private listHeld: (uid: string) => Promise<Array<{ id: string; holdUntil: number | null }>> =
     defaultListHeld;
+  private countToday: (uid: string) => Promise<number> = (uid) =>
+    countItemsToday(uid, Date.now());
   private networkBound = false;
   private draining = false;
 
@@ -122,6 +131,7 @@ class NotificationCenter {
     if (config.online) this.online = config.online;
     if (config.listRecent) this.listRecent = config.listRecent;
     if (config.listHeld) this.listHeld = config.listHeld;
+    if (config.countToday) this.countToday = config.countToday;
 
     try {
       const stored = await readPrefsDoc(config.uid);
@@ -199,7 +209,26 @@ class NotificationCenter {
   /** The online pipeline, shared by emit() and outbox replay. */
   private async emitOnline(event: NotifyEvent, now: number): Promise<EmitResult> {
     const uid = this.uid as string;
-    const decision = decideRouting(event, this.prefs, now);
+    // Blueprint D: the daily cap needs today's delivered count. It
+    // is consulted ONLY when the devotee set a cap (and never for
+    // critical — the engine exempts SOS before the cap is read);
+    // a failed count degrades to "no cap context", never to a
+    // swallowed notification.
+    let decision = decideRouting(event, this.prefs, now);
+    if (dailyCapFor(this.prefs) > 0 && event.priority !== 'critical') {
+      try {
+        const deliveredToday = await this.countToday(uid);
+        decision = decideRouting(event, this.prefs, now, { deliveredToday });
+      } catch {
+        /* keep the cap-less decision */
+      }
+    }
+    // Blueprint D: a kind the devotee switched off is silent — no
+    // grouping (which would resurrect it onto an old card), no
+    // write, an honest 'dropped' result naming their own switch.
+    if (decision.suppressed === 'category') {
+      return { status: 'dropped', itemId: '', decision };
+    }
 
     // Smart grouping — one calm card instead of a buzzing stack.
     let target: GroupCandidate | null = null;

@@ -9,10 +9,35 @@
  */
 
 import React from 'react';
-import { X, HandCoins, MessageCircle, Sunrise, Sparkles, MoonStar, RotateCcw } from 'lucide-react';
+import { X, HandCoins, MessageCircle, Sunrise, Sparkles, MoonStar, RotateCcw, ListChecks, Gauge, Lock } from 'lucide-react';
 import { NT, pick, useNotifLang } from './NT';
 import type { NotificationPrefs, InstantPolicy, SuchanaPolicy } from './preferences';
-import type { TriText } from './types';
+import { kindEnabled } from './preferences';
+import { KIND_LABELS } from './whyLine';
+import type { NotifyKind, TriText } from './types';
+
+/**
+ * The kinds that had NO control before Blueprint D (the four legacy
+ * categories — money requests, chat, Suchana digest, blessings —
+ * keep their richer sections above; SOS renders separately, locked).
+ * Together the sections cover the whole NotifyKind taxonomy.
+ */
+const TOGGLEABLE_KINDS: NotifyKind[] = [
+  'wallet',
+  'seva_order',
+  'org',
+  'security',
+  'darshan_live',
+  'aarti_reminder',
+  'social',
+];
+
+const CAP_OPTIONS: Array<{ value: number; label: TriText }> = [
+  { value: 0, label: { en: 'No limit', bn: 'কোনো সীমা নয়', hi: 'कोई सीमा नहीं' } },
+  { value: 5, label: { en: '5 a day', bn: 'দিনে ৫টি', hi: 'दिन में 5' } },
+  { value: 10, label: { en: '10 a day', bn: 'দিনে ১০টি', hi: 'दिन में 10' } },
+  { value: 20, label: { en: '20 a day', bn: 'দিনে ২০টি', hi: 'दिन में 20' } },
+];
 
 /* ------------------------------------------------------------------ */
 
@@ -261,6 +286,89 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 label={pick({ en: 'Blessings', bn: 'আশীর্বাদ', hi: 'आशीर्वाद' }, lang)}
               />
             </div>
+          </Section>
+
+          {/* Blueprint D — every kind, one switch each */}
+          <Section
+            icon={<ListChecks className="w-5 h-5" aria-hidden />}
+            title={{ en: 'All Suchana kinds', bn: 'সব ধরনের সূচনা', hi: 'सभी प्रकार की सूचनाएँ' }}
+          >
+            <Explain
+              text={{
+                en: 'These kinds used to arrive with no say at all. Now each has its own switch — off means silent: nothing of that kind is written or shown.',
+                bn: 'এই ধরনগুলো আগে কোনো মতামত ছাড়াই আসত। এখন প্রতিটির নিজস্ব সুইচ আছে — বন্ধ মানে নীরব: সেই ধরনের কিছুই লেখা বা দেখানো হয় না।',
+                hi: 'ये प्रकार पहले बिना किसी कहे आते थे। अब हर एक का अपना स्विच है — बंद का अर्थ है मौन: उस प्रकार का कुछ भी न लिखा जाएगा न दिखेगा।',
+              }}
+            />
+            <div className="divide-y divide-stone-100">
+              {TOGGLEABLE_KINDS.map((kind) => {
+                const on = kindEnabled(kind, prefs);
+                return (
+                  <div key={kind} className="flex items-center justify-between gap-3 min-h-[44px] py-1.5">
+                    <p className="text-[13px] text-stone-700 font-semibold">
+                      <NT text={KIND_LABELS[kind]} />
+                    </p>
+                    <Toggle
+                      on={on}
+                      onFlip={() =>
+                        set({ kindToggles: { ...(prefs.kindToggles ?? {}), [kind]: !on } })
+                      }
+                      label={pick(KIND_LABELS[kind], lang)}
+                    />
+                  </div>
+                );
+              })}
+              {/* SOS: shown, locked on, with the honest reason. */}
+              <div className="flex items-center justify-between gap-3 min-h-[44px] py-1.5">
+                <p className="text-[13px] text-stone-700 font-semibold flex items-center gap-1.5">
+                  <NT text={KIND_LABELS.sos} />
+                  <Lock className="w-3.5 h-3.5 text-stone-400" aria-hidden />
+                </p>
+                <span className="text-[11px] font-bold text-stone-400">
+                  <NT text={{ en: 'Always on', bn: 'সবসময় চালু', hi: 'हमेशा चालू' }} />
+                </span>
+              </div>
+            </div>
+            <Explain
+              text={{
+                en: 'SOS has no switch: an emergency must reach you even in the stillest hour. That is a safety law, not a setting.',
+                bn: 'SOS-এর কোনো সুইচ নেই: সবচেয়ে নিস্তব্ধ প্রহরেও জরুরি অবস্থা আপনার কাছে পৌঁছাতেই হবে। এটি একটি নিরাপত্তা বিধান, সেটিং নয়।',
+                hi: 'SOS का कोई स्विच नहीं है: सबसे शांत प्रहर में भी आपातकाल आप तक पहुँचना ही चाहिए। यह एक सुरक्षा नियम है, सेटिंग नहीं।',
+              }}
+            />
+          </Section>
+
+          {/* Blueprint D — the daily cap */}
+          <Section
+            icon={<Gauge className="w-5 h-5" aria-hidden />}
+            title={{ en: 'Daily limit', bn: 'দৈনিক সীমা', hi: 'दैनिक सीमा' }}
+          >
+            <div role="radiogroup" className="grid grid-cols-4 gap-1.5 p-1.5 rounded-2xl bg-stone-100">
+              {CAP_OPTIONS.map((opt) => {
+                const active = (prefs.dailyCap ?? 0) === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => set({ dailyCap: opt.value })}
+                    className={`min-h-[44px] rounded-xl text-[12px] font-bold transition-colors ${
+                      active ? 'bg-amber-700 text-amber-50 shadow' : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    {pick(opt.label, lang)}
+                  </button>
+                );
+              })}
+            </div>
+            <Explain
+              text={{
+                en: 'When the day\u2019s limit is reached, further Suchana wait quietly in the centre and are delivered the next morning — held, never dropped. SOS never counts toward the limit.',
+                bn: 'দিনের সীমা পূর্ণ হলে পরের সূচনাগুলো কেন্দ্রে শান্তভাবে অপেক্ষা করে এবং পরের সকালে পৌঁছায় — আটকে রাখা হয়, কখনো ফেলে দেওয়া হয় না। SOS কখনো সীমায় গণনা হয় না।',
+                hi: 'दिन की सीमा पूरी होने पर आगे की सूचनाएँ केंद्र में चुपचाप प्रतीक्षा करती हैं और अगली सुबह पहुँचती हैं — रोकी जाती हैं, कभी हटाई नहीं जातीं। SOS कभी सीमा में नहीं गिना जाता।',
+              }}
+            />
           </Section>
 
           {/* Quiet hours */}

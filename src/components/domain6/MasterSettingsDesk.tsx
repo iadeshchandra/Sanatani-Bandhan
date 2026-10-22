@@ -38,6 +38,10 @@ import { OrgBrandingSection, type BrandingSectionHandle } from './OrgBrandingSec
 // Pillar 3: trustee-curated public profile (what the world sees on /org/…).
 import { OrgPublicProfileSection } from './OrgPublicProfileSection';
 import { SampleDataCard } from './SampleDataCard';
+import { PracticeModeCard } from './PracticeModeCard';
+import { AccessReviewCard } from './AccessReviewCard';
+import { AssistedSessionCard } from './AssistedSessionCard';
+import { PrivacyNoticeCard } from '../account/PrivacyNotice';
 import { OrgLogo } from '../common/OrgLogo';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
@@ -790,6 +794,12 @@ export const MasterSettingsDesk: React.FC = () => {
               clear of exactly the isDemoSeed / sample-era records.
               Renders nothing when the workspace holds no samples. */}
           <SampleDataCard />
+          {/* Blueprint D — practice mode, the trustee access review,
+              assisted sessions, and the plain-words privacy notice. */}
+          <PracticeModeCard />
+          <AccessReviewCard />
+          <AssistedSessionCard />
+          <PrivacyNoticeCard />
           <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
             <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest"><Palette size={18} className="text-sanatani-orange" /> {localSafeTranslate('theme_appearance', 'Theme & Appearance')}</h3>
             <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase tracking-widest mb-4">

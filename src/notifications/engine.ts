@@ -22,11 +22,19 @@ import type {
   TriText,
 } from './types';
 import {
+  dailyCapFor,
   isInQuietHours,
   quietHoursEndMs,
   policyAllowsPing,
   type NotificationPrefs,
 } from './preferences';
+
+/** Epoch ms of the next local midnight — when the daily cap resets. */
+export function nextLocalMidnight(now: number): number {
+  const d = new Date(now);
+  d.setHours(24, 0, 0, 0);
+  return d.getTime();
+}
 
 /** Smart-grouping window: cards collapse within 30 minutes. */
 export const GROUP_WINDOW_MS = 30 * 60 * 1000;
@@ -45,11 +53,26 @@ export const DND_HOLD_MS = 30 * 60 * 1000;
  * Decide how one event should be delivered.
  * Priority outranks category policy; category 'off' outranks pings for
  * non-critical events; only critical breaks through quiet hours and DND.
+ *
+ * Blueprint D adds the devotee's two explicit controls, in the same
+ * spirit and AFTER critical (an SOS is never subject to either):
+ *  - the per-kind switch (prefs.kindToggles): off = silent — the item
+ *    is not written at all (inApp false). This is stricter than the
+ *    legacy category 'off' (which keeps the in-app card, pingless),
+ *    because flipping a switch labelled with the kind's own name
+ *    means "nothing of this kind", not "quietly".
+ *  - the daily cap (prefs.dailyCap + ctx.deliveredToday): once the
+ *    day's delivered count reaches the cap, important items are HELD
+ *    (in-app written, ping deferred to the next local midnight —
+ *    the flushHeld machinery releases them like a quiet-hours hold)
+ *    and gentle items join no digest. Nothing is dropped: the cap
+ *    governs interruption, not memory.
  */
 export function decideRouting(
   event: NotifyEvent,
   prefs: NotificationPrefs,
   now: number,
+  ctx?: { deliveredToday?: number },
 ): RoutingDecision {
   const quiet = isInQuietHours(now, prefs.quietHours);
   const sleeping = quiet || prefs.dnd;
@@ -65,6 +88,28 @@ export function decideRouting(
       digestWindow: null,
     };
   }
+
+  // Blueprint D: the explicit per-kind switch — off means silent.
+  // 'sos' is excluded by construction (kindEnabled's law: an
+  // emergency is not a setting, so its switch is never honoured).
+  if (event.kind !== 'sos' && prefs.kindToggles?.[event.kind] === false) {
+    return {
+      ping: false,
+      inApp: false,
+      persistent: false,
+      holdUntil: null,
+      holdReason: null,
+      digestCandidate: false,
+      digestWindow: null,
+      suppressed: 'category',
+    };
+  }
+
+  const cap = dailyCapFor(prefs);
+  const capped =
+    cap > 0 &&
+    typeof ctx?.deliveredToday === 'number' &&
+    ctx.deliveredToday >= cap;
 
   if (event.priority === 'silent') {
     return {
@@ -82,6 +127,20 @@ export function decideRouting(
     // Gentle never pings — that is what makes it gentle. It joins the
     // digest and the in-app center, on the devotee's own time. The
     // category 'instant' policy only accelerates *important* events.
+    // Past the daily cap it still lands in the center, but joins no
+    // digest — the cap is about how much reaches out, not storage.
+    if (capped) {
+      return {
+        ping: false,
+        inApp: true,
+        persistent: false,
+        holdUntil: null,
+        holdReason: null,
+        digestCandidate: false,
+        digestWindow: null,
+        suppressed: 'cap',
+      };
+    }
     return {
       ping: false,
       inApp: true,
@@ -104,6 +163,20 @@ export function decideRouting(
       holdReason: null,
       digestCandidate: false,
       digestWindow: null,
+    };
+  }
+  if (capped) {
+    // Held, never dropped — released at the next local midnight by
+    // the same self-release path that serves quiet-hours holds.
+    return {
+      ping: false,
+      inApp: true,
+      persistent: false,
+      holdUntil: nextLocalMidnight(now),
+      holdReason: 'cap',
+      digestCandidate: false,
+      digestWindow: null,
+      suppressed: 'cap',
     };
   }
   if (sleeping) {

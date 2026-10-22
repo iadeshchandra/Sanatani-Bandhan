@@ -42,6 +42,15 @@ export interface AggregatableTx {
   devoteeId?: string | null;
   devoteeName?: string | null;
   is80GEligible?: boolean | null;
+  /**
+   * Blueprint D — practice-mode row (lib/practiceMode). A practice row
+   * is a real ledger row in storage (so the practising user sees it,
+   * badged), but it is NOT money: the canonical fold below skips it
+   * entirely, so no total, summary, published snapshot or donor
+   * lifetime figure can ever include it. Same law for every consumer,
+   * because every consumer computes through this fold.
+   */
+  isPractice?: boolean | null;
 }
 
 export interface CategoryTotals {
@@ -102,6 +111,13 @@ function donorKey(tx: AggregatableTx): string | null {
 
 /** Fold one row into the aggregates with sign +1 (add) or −1 (remove). */
 function fold(agg: TreasuryAggregates, tx: AggregatableTx, sign: 1 | -1): void {
+  // Blueprint D: practice rows never enter the money truth — not the
+  // totals, not the count, not a donor's lifetime giving. Skipping at
+  // the fold makes full-set computation and every delta fold agree by
+  // construction (a practice create folds to nothing; a practice
+  // delete folds to nothing; an edit across the practice boundary is
+  // remove-old + add-new, and each side obeys the same law).
+  if (tx.isPractice === true) return;
   const amount = amt(tx);
   agg.count += sign;
   const cat = String(tx.category || '');
@@ -207,12 +223,16 @@ export function buildSummaryDoc(
   updatedAtMs: number,
   backfilled: boolean
 ): WorkspaceSummaryDoc {
+  const treasury = computeTreasuryAggregates(txs);
   return {
     workspaceId,
     version: 1,
     updatedAtMs,
     backfilled,
-    counts: { ...counts, treasury: txs.length },
-    treasury: computeTreasuryAggregates(txs),
+    // The treasury count is the aggregates' own count — identical to
+    // txs.length for any set without practice rows, and practice-free
+    // when practice rows are present (Blueprint D).
+    counts: { ...counts, treasury: treasury.count },
+    treasury,
   };
 }

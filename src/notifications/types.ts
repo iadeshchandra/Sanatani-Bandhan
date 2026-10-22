@@ -93,8 +93,20 @@ export interface RoutingDecision {
    * The in-app item is still written immediately (marked quietHold).
    */
   holdUntil: number | null;
-  /** Why the push is held: quiet hours window or manual DND. */
-  holdReason: 'quiet' | 'dnd' | null;
+  /** Why the push is held: quiet hours window, manual DND, or the
+   *  devotee's daily cap (Blueprint D — held until the next local
+   *  day, when the cap resets). */
+  holdReason: 'quiet' | 'dnd' | 'cap' | null;
+  /**
+   * Blueprint D — set when the devotee's own controls kept this
+   * item from its normal delivery: 'category' = the kind is
+   * switched off (the item is not written at all — off means
+   * silent); 'cap' = the daily cap was reached (the item is still
+   * written in-app, its ping held to the next day). The "Why am I
+   * seeing this?" line reads this plus the kind — the item itself
+   * carries the reason it exists.
+   */
+  suppressed?: 'category' | 'cap' | null;
   /** Eligible for digest batching instead of an immediate ping. */
   digestCandidate: boolean;
   /** Which Suchana digest window this belongs to (morning/evening). */

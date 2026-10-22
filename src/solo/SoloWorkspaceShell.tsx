@@ -15,6 +15,7 @@ import { ProfileTab } from './ProfileTab';
 import { ChatRoute } from './ChatRoute';
 import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { FirstRunSequence } from './FirstRunSequence';
+import { PrivacyNoticeGate } from '../components/account/PrivacyNotice';
 import { DanaSheetHost } from './DanaSheetHost';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
@@ -195,6 +196,10 @@ const SoloRouter: React.FC = () => {
         uid={uid}
         onNavigate={(t) => navigate(`/app/home/${t}`)}
       />
+
+      {/* Blueprint D — the one-time privacy notice check (version
+          stamped; "Not now" stays honest and unmarked). */}
+      <PrivacyNoticeGate />
 
       {/* 🔔 Suchana Center — the inbox behind the header bell. Mounted
           only while open so its Firestore listeners don't run pointlessly.

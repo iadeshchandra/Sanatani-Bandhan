@@ -2517,6 +2517,9 @@ export interface TranslationSchema {
           inventoryCreated: string;
           inventoryStock: string;
           samplePurged: string;
+          practiceCleared: string;
+          practiceMark: string;
+          assistedBy: string;
           settingsUpdated: string;
           accountsPublished: string;
           accountsUnpublished: string;

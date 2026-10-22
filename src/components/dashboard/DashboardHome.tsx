@@ -8,6 +8,7 @@ import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { ShlokaCard, RoleHomeSwitch } from './RoleHome';
 import { GurukulHome } from './GurukulHome';
 import { useOrgGlanceRefresh } from '../../lib/orgGlanceSync';
+import { FestivalJourneyCard } from './FestivalJourneyCard';
 import { resolveHerdCount } from '../../lib/herdCount';
 
 interface DashboardHomeProps {
@@ -166,6 +167,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
       {/* Sacred soul — identical for every role */}
       <ShlokaCard />
+
+      {/* Blueprint D — the festival journey, when a festival is near */}
+      <FestivalJourneyCard onNavigate={handleNav} />
 
       {/* Role-based work surface — or the dedicated Gurukul home */}
       {isGurukulLike ? (

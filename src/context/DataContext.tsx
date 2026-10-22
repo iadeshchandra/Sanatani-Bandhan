@@ -76,6 +76,13 @@ import {
 } from './data/summaryWriter';
 import { allowsSeedData } from '../lib/workspaceKind';
 import type { SampleRecordCounts } from '../lib/sampleData';
+import {
+  countPracticeRecords,
+  isPracticeModeOn,
+  practiceStamp,
+  practiceVisible,
+  type PracticeRecordCounts,
+} from '../lib/practiceMode';
 import { auditRecorder } from './data/auditStore';
 import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { assignReceiptNumber } from '../lib/receiptCoverage';
@@ -988,6 +995,17 @@ const demoTtlFields = (workspaceId: string | undefined | null): { _expiresAt?: n
   return {};
 };
 
+/**
+ * Blueprint D — practice-mode stamp (lib/practiceMode): while the
+ * ACTIVE workspace's practice flag is on, records minted for it
+ * carry `isPractice: true`. The flag lives on the workspace doc and
+ * reaches this provider through activeWorkspace, so the Settings
+ * toggle takes effect on the very next commit. Practice rows are
+ * excluded from every total at the aggregates fold — this stamp is
+ * the ONLY thing that marks them, and clearPracticeData removes
+ * exactly the rows that carry it.
+ */
+
 export interface QuotaResult {
   allowed: boolean;
   /** Creates remaining in this module (0 when at limit). */
@@ -1089,6 +1107,12 @@ interface DataContextType {
   // Mutators
   seedDemoData: (workspaceId: string, type: string) => void;
   clearSampleData: (workspaceId: string) => SampleRecordCounts;
+  /** Blueprint D: remove exactly this workspace's practice rows. */
+  clearPracticeData: (workspaceId: string) => PracticeRecordCounts;
+  /** Blueprint D: practice rows held for the ACTIVE workspace,
+   *  counted from the UNFILTERED sets (the exposed lists hide them
+   *  when the mode is off — the Settings card must still see them). */
+  practiceCounts: PracticeRecordCounts;
   addDevotee: (devotee: Omit<DevoteeMember, 'id' | 'qrCodeRef' | 'joinedDate'>) => string | boolean;
   updateDevotee: (id: string, updates: Partial<DevoteeMember>) => void;
   deleteDevotee: (id: string) => void;
@@ -1462,10 +1486,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           getAggregateFromServer(byType('Income'), { total: sum('amount') }),
           getAggregateFromServer(byType('Expense'), { total: sum('amount') }),
         ]);
-        if (!cancelled) {
+        let totalIncome = Number(inc.data().total || 0);
+        let totalExpense = Number(exp.data().total || 0);
+        let practiceAdjusted = true;
+        // Blueprint D: the server sums include any practice rows
+        // (an aggregate cannot exclude an absent field). Subtract
+        // the practice rows' exact sums — two more aggregate reads
+        // on this windowed-mode load path (they return 0 when no
+        // practice rows exist) — so the "exact" totals stay exact.
+        // If the practice sums cannot be read, withhold the totals
+        // (desks label partials) rather than present a
+        // practice-polluted figure as exact.
+        try {
+          const byPracticeType = (type: 'Income' | 'Expense') =>
+            query(
+              collection(db, 'treasury'),
+              where('workspaceId', '==', activeWorkspaceId),
+              where('type', '==', type),
+              where('isPractice', '==', true)
+            );
+          const [pInc, pExp] = await Promise.all([
+            getAggregateFromServer(byPracticeType('Income'), { total: sum('amount') }),
+            getAggregateFromServer(byPracticeType('Expense'), { total: sum('amount') }),
+          ]);
+          totalIncome -= Number(pInc.data().total || 0);
+          totalExpense -= Number(pExp.data().total || 0);
+        } catch (practiceErr) {
+          // Withhold the exact totals (partial labelling takes over)
+          // but let the receipt prefetch below still run.
+          console.warn('[F2] practice-sum adjustment unavailable; exact totals withheld:', practiceErr);
+          practiceAdjusted = false;
+        }
+        if (!cancelled && practiceAdjusted) {
           setTreasuryExactTotals({
-            totalIncome: Number(inc.data().total || 0),
-            totalExpense: Number(exp.data().total || 0),
+            totalIncome,
+            totalExpense,
           });
         }
       } catch (e) {
@@ -1860,6 +1915,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isGodMode = false; // Strictly disabled to enforce organization data isolation
   const currentWsId = activeWorkspaceId || activeWorkspace.id;
 
+  // Blueprint D — practice mode (lib/practiceMode): the flag rides
+  // the active workspace object (Settings writes it through
+  // updateWorkspaceDetails). Mutators stamp rows for THIS workspace
+  // only; the exposure memos below hide practice rows whenever the
+  // mode is off.
+  const practiceModeOn = isPracticeModeOn(activeWorkspace);
+  const practiceFieldsFor = (wsId: string | undefined | null): { isPractice?: boolean } =>
+    practiceStamp(!!wsId && wsId === currentWsId && practiceModeOn);
+  const practiceCounts = useMemo(
+    () =>
+      countPracticeRecords({
+        devotees: allDevotees.filter((r) => r.workspaceId === currentWsId),
+        treasury: allTreasury.filter((r) => r.workspaceId === currentWsId),
+        poojaBookings: allPoojaBookings.filter((r) => r.workspaceId === currentWsId),
+        inventory: allInventory.filter((r) => r.workspaceId === currentWsId),
+        gurukulStudents: allGurukulStudents.filter((r) => r.workspaceId === currentWsId),
+        cows: allCows.filter((r) => r.workspaceId === currentWsId),
+        guests: allGuests.filter((r) => r.workspaceId === currentWsId),
+        campaigns: allCampaigns.filter((r) => r.workspaceId === currentWsId),
+        shifts: allShifts.filter((r) => r.workspaceId === currentWsId),
+      }),
+    [allDevotees, allTreasury, allPoojaBookings, allInventory, allGurukulStudents, allCows, allGuests, allCampaigns, allShifts, currentWsId]
+  );
+
   // ----------------------------------------------------
   // WORKSPACE SUMMARY MAINTENANCE (F2 end-state; the workspaceSummaries
   // rules landed 2026-10-22 in 3e813297). The treasury commit points —
@@ -1874,8 +1953,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ----------------------------------------------------
   const summaryCountsFor = (wsId: string): SummaryCounts => {
     if (wsId !== currentWsId) return { ...NULL_COUNTS };
+    // Blueprint D: locally-computed counts exclude practice rows —
+    // the summary is money/member truth, and practice is neither.
+    // (Server-probed window totals above this fallback cannot be
+    // filtered client-side; see NOTES.md for the honest limit.)
     const ofWs = <T extends { workspaceId?: string }>(rows: T[]) =>
-      rows.filter((r) => r.workspaceId === wsId).length;
+      rows.filter(
+        (r) => r.workspaceId === wsId && (r as { isPractice?: boolean }).isPractice !== true
+      ).length;
     return {
       devotees: collectionWindows.devotees.total ?? ofWs(allDevotees),
       puja_bookings:
@@ -2144,33 +2229,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [isMultiBranch, currentWsId, mainBranchId, allDevotees, allTreasury, allPoojaBookings, allInventory, allAssets]
   );
 
+  // Blueprint D: the four branch-filtered memos (and the plain ones
+  // below) also apply the practice-visibility law — practice rows
+  // show only while practice mode is on for the active workspace.
   const devotees = useMemo(() => {
     const wsFiltered = isGodMode
       ? allDevotees
       : allDevotees.filter((d) => !d.workspaceId || d.workspaceId === currentWsId);
-    return wsFiltered.filter(matchesActiveBranch);
-  }, [allDevotees, currentWsId, isGodMode, matchesActiveBranch]);
+    return wsFiltered.filter(matchesActiveBranch).filter((d) => practiceVisible(d, practiceModeOn));
+  }, [allDevotees, currentWsId, isGodMode, matchesActiveBranch, practiceModeOn]);
 
   const puja_bookings = useMemo(() => {
     const wsFiltered = isGodMode
       ? allPoojaBookings
       : allPoojaBookings.filter((p) => !p.workspaceId || p.workspaceId === currentWsId);
-    return wsFiltered.filter(matchesActiveBranch);
-  }, [allPoojaBookings, currentWsId, isGodMode, matchesActiveBranch]);
+    return wsFiltered.filter(matchesActiveBranch).filter((p) => practiceVisible(p, practiceModeOn));
+  }, [allPoojaBookings, currentWsId, isGodMode, matchesActiveBranch, practiceModeOn]);
 
   const donations = useMemo(() => {
     const wsFiltered = isGodMode
       ? allTreasury
       : allTreasury.filter((t) => !t.workspaceId || t.workspaceId === currentWsId);
-    return wsFiltered.filter(matchesActiveBranch);
-  }, [allTreasury, currentWsId, isGodMode, matchesActiveBranch]);
+    return wsFiltered.filter(matchesActiveBranch).filter((t) => practiceVisible(t, practiceModeOn));
+  }, [allTreasury, currentWsId, isGodMode, matchesActiveBranch, practiceModeOn]);
 
   const inventory_items = useMemo(() => {
     const wsFiltered = isGodMode
       ? allInventory
       : allInventory.filter((i) => !i.workspaceId || i.workspaceId === currentWsId);
-    return wsFiltered.filter(matchesActiveBranch);
-  }, [allInventory, currentWsId, isGodMode, matchesActiveBranch]);
+    return wsFiltered.filter(matchesActiveBranch).filter((i) => practiceVisible(i, practiceModeOn));
+  }, [allInventory, currentWsId, isGodMode, matchesActiveBranch, practiceModeOn]);
 
   const poojaBookings = puja_bookings;
   const poojas = puja_bookings;
@@ -2184,10 +2272,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allFamilies, currentWsId, isGodMode]);
 
   const guests = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allGuests
       : allGuests.filter((g) => !g.workspaceId || g.workspaceId === currentWsId);
-  }, [allGuests, currentWsId, isGodMode]);
+    return wsFiltered.filter((g) => practiceVisible(g, practiceModeOn));
+  }, [allGuests, currentWsId, isGodMode, practiceModeOn]);
 
   const assets = useMemo(() => {
     const wsFiltered = isGodMode
@@ -2203,10 +2292,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allPitruRecords, currentWsId, isGodMode]);
 
   const cows = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allCows
       : allCows.filter((c) => !c.workspaceId || c.workspaceId === activeWorkspace.id);
-  }, [allCows, activeWorkspace.id, isGodMode]);
+    return wsFiltered.filter((c) => practiceVisible(c, practiceModeOn));
+  }, [allCows, activeWorkspace.id, isGodMode, practiceModeOn]);
 
   // Phase 20: Bhoomi & Vahan workspace-scoped memos
   const bhoomiProperties = useMemo(() => {
@@ -2258,16 +2348,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allRooms, activeWorkspace.id, isGodMode]);
 
   const gurukulStudents = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allGurukulStudents
       : allGurukulStudents.filter((g) => !g.workspaceId || g.workspaceId === activeWorkspace.id);
-  }, [allGurukulStudents, activeWorkspace.id, isGodMode]);
+    return wsFiltered.filter((g) => practiceVisible(g, practiceModeOn));
+  }, [allGurukulStudents, activeWorkspace.id, isGodMode, practiceModeOn]);
 
   const campaigns = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allCampaigns
       : allCampaigns.filter((c) => !c.workspaceId || c.workspaceId === activeWorkspace.id);
-  }, [allCampaigns, activeWorkspace.id, isGodMode]);
+    return wsFiltered.filter((c) => practiceVisible(c, practiceModeOn));
+  }, [allCampaigns, activeWorkspace.id, isGodMode, practiceModeOn]);
 
   const resolutions = useMemo(() => {
     return isGodMode
@@ -2293,10 +2385,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [allShlokas, activeWorkspace.id, isGodMode]);
 
   const shifts = useMemo(() => {
-    return isGodMode
+    const wsFiltered = isGodMode
       ? allShifts
       : allShifts.filter((s) => !s.workspaceId || s.workspaceId === activeWorkspace.id);
-  }, [allShifts, activeWorkspace.id, isGodMode]);
+    return wsFiltered.filter((s) => practiceVisible(s, practiceModeOn));
+  }, [allShifts, activeWorkspace.id, isGodMode, practiceModeOn]);
 
   // ----------------------------------------------------
   // MUTATOR IMPLEMENTATIONS (With Tenant Tagging & Auto-Delete Expiration)
@@ -2363,6 +2456,79 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       entityType: 'workspace',
       entityId: workspaceId,
       summaryKey: 'org.audit.history.samplePurged',
+      summaryParams: {
+        count: counts.total,
+        devotees: counts.devotees,
+        treasury: counts.treasury,
+      },
+    });
+    return counts;
+  };
+
+  /**
+   * Blueprint D: the practice lane's one-tap clear — the exact
+   * sibling of clearSampleData, over the `isPractice` tag. Removes
+   * EXACTLY this workspace's practice rows across every stamped set;
+   * a real record can never match, because real mutators never set
+   * the tag while the mode is off and the tag is the only test.
+   * Devotees, treasury and bookings carry Firestore paths, so their
+   * docs are deleted too; the rest live in state + the local
+   * snapshot, which the filters below rewrite. The summary is told
+   * about the treasury deletions exactly as for samples (the fold
+   * never counted practice rows, so this is a no-op delta — reported
+   * anyway so the maintainer's view of the set stays literal).
+   * ONE audit tally event records the clear, like the sample purge.
+   */
+  const clearPracticeData = (workspaceId: string): PracticeRecordCounts => {
+    const isPractice = (r: any) => !!r && r.isPractice === true && r.workspaceId === workspaceId;
+    const counts: PracticeRecordCounts = {
+      devotees: allDevotees.filter(isPractice).length,
+      treasury: allTreasury.filter(isPractice).length,
+      poojaBookings: allPoojaBookings.filter(isPractice).length,
+      inventory: allInventory.filter(isPractice).length,
+      gurukulStudents: allGurukulStudents.filter(isPractice).length,
+      cows: allCows.filter(isPractice).length,
+      guests: allGuests.filter(isPractice).length,
+      campaigns: allCampaigns.filter(isPractice).length,
+      shifts: allShifts.filter(isPractice).length,
+      total: 0,
+    };
+    counts.total =
+      counts.devotees + counts.treasury + counts.poojaBookings + counts.inventory +
+      counts.gurukulStudents + counts.cows + counts.guests + counts.campaigns + counts.shifts;
+    if (counts.total === 0) return counts;
+    const deleteDocs = (collectionName: string, rows: any[]) => {
+      rows.forEach((r) => {
+        deleteDoc(doc(db, collectionName, r.id)).catch((err: any) => {
+          console.warn(`[Firestore sync] clear practice ${collectionName} offline or restricted:`, err?.message || err);
+        });
+      });
+    };
+    deleteDocs('devotees', allDevotees.filter(isPractice));
+    deleteDocs('treasury', allTreasury.filter(isPractice));
+    deleteDocs('puja_bookings', allPoojaBookings.filter(isPractice));
+    setAllDevotees((prev) => prev.filter((r) => !isPractice(r)));
+    setAllTreasury((prev) => prev.filter((r) => !isPractice(r)));
+    setAllPoojaBookings((prev) => prev.filter((r) => !isPractice(r)));
+    setAllInventory((prev) => prev.filter((r) => !isPractice(r)));
+    setAllGurukulStudents((prev) => prev.filter((r) => !isPractice(r)));
+    setAllCows((prev) => prev.filter((r) => !isPractice(r)));
+    setAllGuests((prev) => prev.filter((r) => !isPractice(r)));
+    setAllCampaigns((prev) => prev.filter((r) => !isPractice(r)));
+    setAllShifts((prev) => prev.filter((r) => !isPractice(r)));
+    if (counts.treasury > 0) {
+      noteTreasuryMutationForSummary(
+        workspaceId,
+        { kind: 'deleteMany', txs: allTreasury.filter(isPractice) },
+        allTreasury.filter((r) => !isPractice(r))
+      );
+    }
+    noteAudit({
+      workspaceId,
+      action: 'practice.cleared',
+      entityType: 'workspace',
+      entityId: workspaceId,
+      summaryKey: 'org.audit.history.practiceCleared',
       summaryParams: {
         count: counts.total,
         devotees: counts.devotees,
@@ -2750,6 +2916,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       joinedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
       ...demoTtlFields(data.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(data.workspaceId || activeWorkspace.id),
     };
 
     setAllDevotees((prev) => [newMember, ...prev]);
@@ -2885,6 +3052,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       visitDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
       ...demoTtlFields(guest.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(guest.workspaceId || activeWorkspace.id),
     };
     setAllGuests((prev) => [newGuest, ...prev]);
     trackGenerateLead({ leadName: newGuest.name, purpose: newGuest.purpose, city: newGuest.city, workspaceType: activeWorkspace.type, workspaceId: activeWorkspace.id });
@@ -2928,6 +3096,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // otherwise assign the next sequence. Never timestamp fragments.
     const year = new Date().getFullYear();
     const wsId = tx.workspaceId || activeWorkspace.id;
+    // Blueprint D: a practice-mode commit is stamped and kept OUT of
+    // every real-money side effect below (receipt sequence, devotee
+    // lifetime totals, analytics) — see lib/practiceMode.
+    const practiceTx = practiceFieldsFor(wsId).isPractice === true;
     const existingNumbers = allTreasury
       .filter((t) => (t.workspaceId || '') === wsId)
       .map((t) => t.taxReceiptNumber);
@@ -2953,7 +3125,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // expenses honestly get NO number. Before this, only 80G or
     // caller-numbered records carried a receipt number at all.
     const assignedReceipt = assignReceiptNumber(
-      tx,
+      // Practice rows take no receipt number (the assignment law
+      // returns undefined for them) — a real sequence is never
+      // consumed by pretend money.
+      { ...tx, isPractice: practiceTx || undefined },
       existingNumbers,
       year,
       cachedNextSeq
@@ -2988,6 +3163,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       taxReceiptNumber: assignedReceipt,
       _createdAt: now,
       ...demoTtlFields(wsId),
+      ...practiceFieldsFor(wsId),
     };
     
     // Optimistic UI Update
@@ -3055,11 +3231,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : tx.type === 'Income'
           ? 'org.audit.history.treasuryIncome'
           : 'org.audit.history.treasuryExpense',
-      summaryParams: { category: tx.category },
+      // Practice entries are marked in the stream itself, so a
+      // trustee reading History can never mistake one for real
+      // money (renderAuditSummary appends the practice mark).
+      summaryParams: {
+        category: tx.category,
+        ...(practiceTx ? { practice: 'practice' } : {}),
+      },
       amount: tx.amount,
     });
 
-    if (tx.type === 'Income') {
+    // Practice income stops here: no analytics event, and above all
+    // no rise in a real devotee's lifetime giving — pretend money
+    // must never make a real donor's record grow.
+    if (tx.type === 'Income' && !practiceTx) {
       trackTreasuryPurchase({
         transactionId: id,
         value: tx.amount,
@@ -3242,6 +3427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastRestockedDate: new Date().toISOString().slice(0, 10),
       _createdAt: now,
       ...demoTtlFields(item.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(item.workspaceId || activeWorkspace.id),
     };
     setAllInventory((prev) => [newInv, ...prev]);
     // Audit stream: the new store item.
@@ -3276,6 +3462,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       paymentStatus: 'Paid',
       _createdAt: now,
       ...demoTtlFields(booking.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(booking.workspaceId || activeWorkspace.id),
     };
     setAllPoojaBookings((prev) => [newBooking, ...prev]);
 
@@ -3389,6 +3576,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workspaceId: cow.workspaceId || activeWorkspace.id,
       _createdAt: now,
       ...demoTtlFields(cow.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(cow.workspaceId || activeWorkspace.id),
     };
     setAllCows((prev) => [newCow, ...prev]);
     showToast(`Gomata/Nandi record added: ${cow.name}`, 'success');
@@ -3764,6 +3952,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workspaceId: student.workspaceId || activeWorkspace.id,
       _createdAt: now,
       ...demoTtlFields(student.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(student.workspaceId || activeWorkspace.id),
     };
     setAllGurukulStudents((prev) => [newStudent, ...prev]);
     showToast('Gurukul Vidyarthi Enrolled', 'success');
@@ -3791,6 +3980,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workspaceId: shift.workspaceId || activeWorkspace.id,
       _createdAt: now,
       ...demoTtlFields(shift.workspaceId || activeWorkspace.id),
+      ...practiceFieldsFor(shift.workspaceId || activeWorkspace.id),
     };
     setAllShifts((prev) => [newShift, ...prev]);
     showToast(`Sevadar shift assigned for ${shift.sevadarName}`, 'success');
@@ -3866,6 +4056,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sevaSubscriptions,
         seedDemoData,
         clearSampleData,
+        clearPracticeData,
+        practiceCounts,
         addDevotee,
         updateDevotee,
         deleteDevotee,
@@ -3924,7 +4116,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         treasuryExactTotals,
         loadMoreCollection,
         receiptSeqDegraded,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, clearSampleData, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, clearSampleData, clearPracticeData, practiceCounts, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
 
   return (
     <DataContext.Provider
@@ -3962,6 +4154,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sevaSubscriptions,
         seedDemoData,
         clearSampleData,
+        clearPracticeData,
+        practiceCounts,
         addDevotee,
         updateDevotee,
         deleteDevotee,
