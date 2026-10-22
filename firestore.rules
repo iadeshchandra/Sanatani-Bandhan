@@ -600,7 +600,7 @@ service cloud.firestore {
     // leak treasury totals; delete is never allowed.
     match /workspaceSummaries/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_FINANCE());
-      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && wsImmutable();
+      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable());
       allow delete: if false;
     }
 
