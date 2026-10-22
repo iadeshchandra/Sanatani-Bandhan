@@ -131,7 +131,7 @@ service cloud.firestore {
         !(targetRole in ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']) &&
         targetRole in ['Priest', 'PRIEST', 'PUROHIT', 'Accountant', 'ACCOUNTANT',
           'Sevadar', 'SEVADAR', 'Devotee', 'DEVOTEE', 'Member', 'MEMBER',
-          'CSO', 'Manager', 'MANAGER']
+          'CSO', 'Manager', 'MANAGER', 'Auditor', 'AUDITOR']
       );
     }
 
@@ -183,6 +183,13 @@ service cloud.firestore {
     // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
     function R_FINANCE() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT'];
+    }
+    // Blueprint B: finance + the read-only Auditor — the oversight
+    // READ set. The Auditor appears in read clauses only, never in
+    // a create/update/delete set: read-only is enforced here in
+    // the rules, not merely by hiding buttons in the UI.
+    function R_OVERSIGHT() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT', 'Auditor', 'AUDITOR'];
     }
     function R_STAFF() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
@@ -282,7 +289,7 @@ service cloud.firestore {
 
       // Tenant-scoped financial ledger (path-param tenant).
       match /treasury/{docId} {
-        allow read: if demoPublicRead(tenantId) || hasRole(tenantId, R_FINANCE());
+        allow read: if demoPublicRead(tenantId) || hasRole(tenantId, R_OVERSIGHT());
         allow create: if demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE());
         allow update: if (demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE()));
         allow delete: if false; // append-only fiduciary ledger
@@ -321,7 +328,7 @@ service cloud.firestore {
     // Financial ledger â append-only. Demo workspaces are blocked from writing
     match /treasury/{docId} {
       allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_FINANCE())
+        || hasRole(docWs(), R_OVERSIGHT())
         || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
       allow create: if hasRole(newDocWs(), R_FINANCE());
       allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
@@ -330,7 +337,7 @@ service cloud.firestore {
 
     match /treasury_ledgers/{docId} {
       allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_FINANCE())
+        || hasRole(docWs(), R_OVERSIGHT())
         || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
@@ -339,7 +346,7 @@ service cloud.firestore {
 
     match /donations/{donationId} {
       allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_FINANCE())
+        || hasRole(docWs(), R_OVERSIGHT())
         || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())
         || (isTenantMember(newDocWs()) && request.resource.data.get('donorId', '') == request.auth.uid
@@ -350,7 +357,7 @@ service cloud.firestore {
 
     match /tax_receipts/{receiptId} {
       allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_FINANCE())
+        || hasRole(docWs(), R_OVERSIGHT())
         || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
@@ -599,7 +606,7 @@ service cloud.firestore {
     // Finance roles of that workspace only — member-level read would
     // leak treasury totals; delete is never allowed.
     match /workspaceSummaries/{workspaceId} {
-      allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_FINANCE());
+      allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
       allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable());
       allow delete: if false;
     }
@@ -613,7 +620,7 @@ service cloud.firestore {
     // forensic record. Reads are finance/oversight roles of that
     // workspace (a member-level read would expose everyone's history).
     match /auditEvents/{eventId} {
-      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
+      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_OVERSIGHT());
       allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
         && request.resource.data.get('actorUid', '') == request.auth.uid;
       allow update, delete: if false;
@@ -630,6 +637,57 @@ service cloud.firestore {
       allow create: if hasRole(newDocWs(), R_FINANCE());
       allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
       allow delete: if hasRole(docWs(), R_FINANCE());
+    }
+
+    // Maker-checker approvals (Blueprint B): sensitive changes
+    // (treasury payouts at/above the workspace threshold, payment
+    // detail changes, gated role grants) are filed as PENDING
+    // requests and take effect only after a DIFFERENT oversight
+    // member decides. Separation of duties is encoded here, not
+    // just in the client: the decision branch requires an
+    // oversight role AND decidedBy == caller AND decidedBy !=
+    // requestedBy, from PENDING, touching ONLY the decision
+    // fields; the apply-marker branch may touch ONLY
+    // appliedAt/applyError and cannot move the decision; the
+    // maker alone may cancel their own PENDING request. Deletes
+    // are never allowed — the request log is governance record,
+    // and every step is mirrored into the hash-chained
+    // auditEvents stream by the client.
+    match /approvalRequests/{requestId} {
+      allow read: if demoPublicRead(docWs())
+        || hasRole(docWs(), R_OVERSIGHT())
+        || (isLoggedIn() && resource.data.get('requestedBy', '') == request.auth.uid);
+      allow create: if isTenantMember(newDocWs())
+        && request.resource.data.get('requestedBy', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'PENDING';
+      allow update: if
+        // Checker decision — oversight, not the maker, from
+        // PENDING, decision fields only.
+        (hasRole(docWs(), R_OVERSIGHT())
+          && resource.data.get('status', '') == 'PENDING'
+          && request.resource.data.get('status', '') in ['APPROVED', 'REJECTED']
+          && request.resource.data.get('decidedBy', '') == request.auth.uid
+          && request.resource.data.get('decidedBy', '') != resource.data.get('requestedBy', '')
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'])
+          && wsImmutable())
+        // Apply marker — the approved change was applied (or
+        // failed); the decision itself cannot move here.
+        || (hasRole(docWs(), R_OVERSIGHT())
+          && resource.data.get('status', '') == 'APPROVED'
+          && request.resource.data.get('status', '') == 'APPROVED'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['appliedAt', 'applyError'])
+          && wsImmutable())
+        // Maker cancel — own request, still pending.
+        || (isLoggedIn()
+          && resource.data.get('requestedBy', '') == request.auth.uid
+          && resource.data.get('status', '') == 'PENDING'
+          && request.resource.data.get('status', '') == 'CANCELLED'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'])
+          && wsImmutable());
+      allow delete: if false;
     }
 
     // ---- Messaging ----
