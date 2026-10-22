@@ -3,6 +3,7 @@ import { useSabha, uid, todayISO, activeMembers } from './sabhaStore';
 import { Training } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Training & certification — workshops like Veda path and karmakanda */
@@ -14,6 +15,10 @@ const emptyForm = { title: '', date: todayISO(), venue: '', trainer: '', attende
 export const TrainingTab: React.FC = () => {
   const { state, add, update, remove } = useSabha();
   const { showToast } = useToast();
+  const { t } = useLanguage();
+  const certMsg = t('suites.sabha.training.toastCertificate');
+  const confirmRemoveMsg = t('suites.sabha.training.confirmRemove');
+  const removedMsg = t('suites.sabha.common.toastRemoved');
   const [forming, setForming] = useState(false);
   const [editing, setEditing] = useState<Training | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -34,21 +39,21 @@ export const TrainingTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.title.trim()) { showToast('Please enter a title.', 'warning'); return; }
+    if (!form.title.trim()) { showToast(t('suites.sabha.common.toastNeedTitle'), 'warning'); return; }
     const base = {
       title: form.title.trim(), date: form.date,
       venue: form.venue.trim() || undefined, trainer: form.trainer.trim() || undefined,
       attendeeIds: form.attendeeIds, notes: form.notes.trim() || undefined,
     };
-    if (editing) { update('trainings', editing.id, base); showToast('Training updated.', 'success'); }
-    else { add('trainings', { id: uid('tr'), ...base, certificatesIssued: [], createdAt: Date.now() }); showToast('Training added.', 'success'); }
+    if (editing) { update('trainings', editing.id, base); showToast(t('suites.sabha.training.toastUpdated'), 'success'); }
+    else { add('trainings', { id: uid('tr'), ...base, certificatesIssued: [], createdAt: Date.now() }); showToast(t('suites.sabha.training.toastAdded'), 'success'); }
     setForming(false);
   };
 
   const issueCert = (t: Training, memberId: string) => {
     if (t.certificatesIssued.includes(memberId)) return;
     update('trainings', t.id, { certificatesIssued: [...t.certificatesIssued, memberId] });
-    showToast('Certificate recorded.', 'success');
+    showToast(certMsg, 'success');
   };
 
   const list = [...state.trainings].sort((a, b) => b.date.localeCompare(a.date));
@@ -64,7 +69,7 @@ export const TrainingTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No trainings yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.training.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((t) => (
@@ -103,7 +108,7 @@ export const TrainingTab: React.FC = () => {
             </div>
             <div className="flex flex-wrap gap-2 mt-2 no-print">
               <Btn variant="ghost" onClick={() => openEdit(t)}><T en="Edit" bn="সম্পাদনা" hi="संपादित करें" /></Btn>
-              <Btn variant="danger" onClick={() => { if (window.confirm('Remove this training?')) { remove('trainings', t.id); showToast('Removed.', 'info'); } }}>
+              <Btn variant="danger" onClick={() => { if (window.confirm(confirmRemoveMsg)) { remove('trainings', t.id); showToast(removedMsg, 'info'); } }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

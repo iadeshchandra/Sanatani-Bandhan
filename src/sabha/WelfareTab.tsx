@@ -4,6 +4,7 @@ import { WelfareEntry } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -21,16 +22,17 @@ export const WelfareTab: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const members = activeMembers(state);
 
   const save = () => {
     const amt = Number(form.amount);
-    if (!amt || amt <= 0) { showToast('Please enter a valid amount.', 'warning'); return; }
+    if (!amt || amt <= 0) { showToast(t('suites.sabha.common.toastNeedAmount'), 'warning'); return; }
     if (form.kind === 'disbursement') {
-      if (!form.purpose.trim()) { showToast('A disbursement needs a purpose note.', 'warning'); return; }
-      if (amt > welfareBalance(state)) { showToast('Disbursement exceeds the fund balance.', 'warning'); return; }
+      if (!form.purpose.trim()) { showToast(t('suites.sabha.welfare.toastNeedPurpose'), 'warning'); return; }
+      if (amt > welfareBalance(state)) { showToast(t('suites.sabha.welfare.toastExceedsBalance'), 'warning'); return; }
     }
     add('welfare', {
       id: uid('w'), date: form.date, kind: form.kind,
@@ -39,13 +41,13 @@ export const WelfareTab: React.FC = () => {
       approvedBy: form.approvedBy.trim() || undefined,
       createdAt: Date.now(),
     });
-    showToast(form.kind === 'contribution' ? 'Contribution recorded.' : 'Disbursement recorded.', 'success');
+    showToast(form.kind === 'contribution' ? t('suites.sabha.welfare.toastContribution') : t('suites.sabha.welfare.toastDisbursement'), 'success');
     setForming(false);
     setForm({ ...emptyForm, date: todayISO() });
   };
 
   const postToTreasury = (w: WelfareEntry) => {
-    if (w.treasuryTxId) { showToast('Already posted to treasury.', 'warning'); return; }
+    if (w.treasuryTxId) { showToast(t('suites.sabha.common.toastAlreadyPosted'), 'warning'); return; }
     const who = w.memberId ? (state.members.find((m) => m.id === w.memberId)?.name || '') : '';
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
@@ -62,9 +64,9 @@ export const WelfareTab: React.FC = () => {
     });
     if (ok) {
       update('welfare', w.id, { treasuryTxId: 'posted' });
-      showToast('Posted to treasury.', 'success');
+      showToast(t('suites.sabha.welfare.toastPosted'), 'success');
     } else {
-      showToast('Treasury posting failed — entry kept locally, retry later.', 'error');
+      showToast(t('suites.sabha.common.toastPostFailed'), 'error');
     }
   };
 
@@ -84,7 +86,7 @@ export const WelfareTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No welfare entries yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.welfare.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((w) => {
@@ -106,7 +108,7 @@ export const WelfareTab: React.FC = () => {
                 {w.treasuryTxId
                   ? <StatusPill status="posted" />
                   : <Btn onClick={() => postToTreasury(w)}>💰 <T en="Post to treasury" bn="কোষাগারে পোস্ট" hi="कोषागार में दर्ज करें" /></Btn>}
-                <Btn variant="danger" onClick={() => { if (window.confirm('Remove this entry?')) { remove('welfare', w.id); showToast('Removed.', 'info'); } }}>
+                <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.welfare.confirmRemove'))) { remove('welfare', w.id); showToast(t('suites.sabha.common.toastRemoved'), 'info'); } }}>
                   <T en="Remove" bn="মুছুন" hi="हटाएं" />
                 </Btn>
               </div>

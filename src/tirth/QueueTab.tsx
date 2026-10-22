@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTirth, todayISO, waitingTokens, nowServingSeq, estWaitMins } from './tirthStore';
 import { T, Card, Btn, Empty, fmtTime } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — live queue board: now-serving per slot, serve-next,
  * no-show marking, re-queue. Big-number display mode for gate screens. */
@@ -9,27 +10,28 @@ import { useToast } from '../context/ToastContext';
 export const QueueTab: React.FC = () => {
   const { state, update } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [date] = useState(todayISO());
   const [bigMode, setBigMode] = useState(false);
 
   const activeSlots = state.slots.filter((s) => s.active);
-  if (!activeSlots.length) return <Card><Empty text="Add darshan slots first — the queue board lives here." /></Card>;
+  if (!activeSlots.length) return <Card><Empty text={t('suites.tirth.queue.empty')} /></Card>;
 
   const serveNext = (slotId: string) => {
     const next = waitingTokens(state, slotId, date)[0];
-    if (!next) { showToast('No one waiting in this slot.', 'warning'); return; }
+    if (!next) { showToast(t('suites.tirth.queue.toastEmpty'), 'warning'); return; }
     update('tokens', next.id, { status: 'served', servedAt: new Date().toISOString() });
-    showToast(`${next.no} served.`, 'success');
+    showToast(t('suites.tirth.queue.toastServed').replace('{no}', String(next.no)), 'success');
   };
 
   const markNoShow = (tokenId: string, no: string) => {
     update('tokens', tokenId, { status: 'no-show' });
-    showToast(`${no} marked no-show.`, 'success');
+    showToast(t('suites.tirth.queue.toastNoShow').replace('{no}', String(no)), 'success');
   };
 
   const requeue = (tokenId: string, no: string) => {
     update('tokens', tokenId, { status: 'waiting' });
-    showToast(`${no} back in the waiting line.`, 'success');
+    showToast(t('suites.tirth.queue.toastBackInLine').replace('{no}', String(no)), 'success');
   };
 
   return (

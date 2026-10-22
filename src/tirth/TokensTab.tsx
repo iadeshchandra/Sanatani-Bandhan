@@ -3,6 +3,7 @@ import { useTirth, uid, todayISO, nextToken, slotIssued, slotHasRoom, tokensFor,
 import { DarshanToken, TokenKind } from './types';
 import { T, Card, Btn, Field, inputCls, StatusPill, Empty, fmtTime } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — token counter: issue walk-in / advance tokens, print slips.
  * Issuance is blocked past slot capacity; the operator is offered the
@@ -11,6 +12,7 @@ import { useToast } from '../context/ToastContext';
 export const TokensTab: React.FC = () => {
   const { state, add } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [date, setDate] = useState(todayISO());
   const [slotId, setSlotId] = useState('');
   const [name, setName] = useState('');
@@ -20,7 +22,7 @@ export const TokensTab: React.FC = () => {
 
   const activeSlots = state.slots.filter((s) => s.active);
   const slot = activeSlots.find((s) => s.id === slotId) || activeSlots[0];
-  if (!activeSlots.length) return <Card><Empty text="Add darshan slots first — then issue tokens here." /></Card>;
+  if (!activeSlots.length) return <Card><Empty text={t('suites.tirth.tokens.emptySlots')} /></Card>;
 
   const todays = tokensFor(state, date);
   const issued = slot ? slotIssued(state, slot.id, date) : 0;
@@ -31,8 +33,8 @@ export const TokensTab: React.FC = () => {
     if (!slot) return;
     if (!slotHasRoom(state, slot, date)) {
       showToast(nextSlot
-        ? `Slot full — ${nextSlot.name} has room. Switch slots to continue.`
-        : 'All slots are full for this date.', 'warning');
+        ? t('suites.tirth.tokens.toastSlotFull').replace('{slot}', nextSlot.name)
+        : t('suites.tirth.tokens.toastAllFull'), 'warning');
       return;
     }
     const { no, seq } = nextToken(state, date);
@@ -43,7 +45,7 @@ export const TokensTab: React.FC = () => {
     };
     add('tokens', token);
     const wait = estWaitMins(state, slot.id, date, seq);
-    showToast(`Token ${no} issued for ${slot.name} — est. wait ~${wait} min.`, 'success');
+    showToast(t('suites.tirth.tokens.toastIssued').replace('{no}', String(no)).replace('{slot}', slot.name).replace('{wait}', String(wait)), 'success');
     setName(''); setPhone('');
   };
 
@@ -97,7 +99,7 @@ export const TokensTab: React.FC = () => {
       </Card>
 
       <h3 className="font-extrabold text-stone-800"><T en="Today's tokens" bn="আজকের টোকেন" hi="आज के टोकन" /> <span className="text-stone-400 font-normal">({todays.length})</span></h3>
-      {todays.length === 0 && <Card><Empty text="No tokens issued for this date yet." /></Card>}
+      {todays.length === 0 && <Card><Empty text={t('suites.tirth.tokens.empty')} /></Card>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {todays.map((t) => {
           const s = state.slots.find((x) => x.id === t.slotId);

@@ -4,6 +4,7 @@ import { YogaInstructor } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — instructor roster with honorarium tracking. */
 
@@ -12,10 +13,11 @@ export const InstructorsTab: React.FC = () => {
   const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState<Partial<YogaInstructor> | null>(null);
 
   const save = () => {
-    if (!forming || !forming.name?.trim()) { showToast('Instructor name is required.', 'warning'); return; }
+    if (!forming || !forming.name?.trim()) { showToast(t('suites.yoga.instructors.toastNeedName'), 'warning'); return; }
     const ins: YogaInstructor = {
       id: forming.id || uid('ins'),
       name: forming.name.trim(),
@@ -25,16 +27,16 @@ export const InstructorsTab: React.FC = () => {
       active: forming.active !== false,
       notes: forming.notes?.trim() || undefined,
     };
-    if (forming.id) { update('instructors', forming.id, ins); showToast('Instructor updated.', 'success'); }
-    else { add('instructors', ins); showToast(`"${ins.name}" added.`, 'success'); }
+    if (forming.id) { update('instructors', forming.id, ins); showToast(t('suites.yoga.instructors.toastUpdated'), 'success'); }
+    else { add('instructors', ins); showToast(t('suites.yoga.instructors.toastAdded').replace('{name}', ins.name), 'success'); }
     setForming(null);
   };
 
   const tryDelete = (ins: YogaInstructor) => {
     const nb = state.batches.filter((b) => b.instructorId === ins.id).length;
-    if (nb > 0) { showToast(`Reassign ${nb} batch(es) first.`, 'warning'); return; }
+    if (nb > 0) { showToast(t('suites.yoga.instructors.toastReassign').replace('{count}', String(nb)), 'warning'); return; }
     remove('instructors', ins.id);
-    showToast('Instructor removed.', 'success');
+    showToast(t('suites.yoga.instructors.toastRemoved'), 'success');
   };
 
   return (

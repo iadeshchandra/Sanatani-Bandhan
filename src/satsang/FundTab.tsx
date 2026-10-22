@@ -4,6 +4,7 @@ import { FundEntry } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -22,25 +23,26 @@ export const FundTab: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const members = activeMembers(state);
 
   const save = () => {
     const amt = Number(form.amount);
-    if (!amt || amt <= 0) { showToast('Please enter a valid amount.', 'warning'); return; }
+    if (!amt || amt <= 0) { showToast(t('suites.satsang.fund.toastNeedAmount'), 'warning'); return; }
     add('fund', {
       id: uid('f'), date: form.date, kind: form.kind,
       memberId: form.memberId || undefined, amount: amt,
       note: form.note.trim() || undefined, createdAt: Date.now(),
     });
-    showToast(form.kind === 'contribution' ? 'Contribution recorded.' : 'Expense recorded.', 'success');
+    showToast(form.kind === 'contribution' ? t('suites.satsang.fund.toastContribution') : t('suites.satsang.fund.toastExpense'), 'success');
     setForming(false);
     setForm({ ...emptyForm, date: todayISO() });
   };
 
   const postToTreasury = (f: FundEntry) => {
-    if (f.treasuryTxId) { showToast('Already posted to treasury.', 'warning'); return; }
+    if (f.treasuryTxId) { showToast(t('suites.satsang.fund.toastAlreadyPosted'), 'warning'); return; }
     const who = f.memberId ? (state.members.find((m) => m.id === f.memberId)?.name || '') : '';
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
@@ -58,9 +60,9 @@ export const FundTab: React.FC = () => {
     });
     if (ok) {
       update('fund', f.id, { treasuryTxId: 'posted' });
-      showToast('Posted to treasury. Confirm 80G eligibility with your CA before issuing any 80G receipt.', 'success');
+      showToast(t('suites.satsang.fund.toastPosted'), 'success');
     } else {
-      showToast('Treasury posting failed — entry kept locally, retry later.', 'error');
+      showToast(t('suites.satsang.fund.toastPostFailed'), 'error');
     }
   };
 
@@ -80,7 +82,7 @@ export const FundTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No fund entries yet." />}
+      {list.length === 0 && <Empty text={t('suites.satsang.fund.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((f) => {
@@ -101,7 +103,7 @@ export const FundTab: React.FC = () => {
                 {f.treasuryTxId
                   ? <StatusPill status="posted" />
                   : <Btn onClick={() => postToTreasury(f)}>💰 <T en="Post to treasury" bn="কোষাগারে পোস্ট" hi="कोषागार में दर्ज करें" /></Btn>}
-                <Btn variant="danger" onClick={() => { remove('fund', f.id); showToast('Entry removed.', 'info'); }}>
+                <Btn variant="danger" onClick={() => { remove('fund', f.id); showToast(t('suites.satsang.fund.toastRemoved'), 'info'); }}>
                   <T en="Remove" bn="মুছুন" hi="हटाएं" />
                 </Btn>
               </div>

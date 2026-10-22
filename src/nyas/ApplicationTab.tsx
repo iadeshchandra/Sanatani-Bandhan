@@ -4,6 +4,7 @@ import { ApplicationEntry } from './types';
 import { T, Card, Stat, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 
 /* Nyas One — 85% application rule tracker.
@@ -24,6 +25,7 @@ export const ApplicationTab: React.FC = () => {
   const { state, add, remove } = useNyas();
   const { treasury } = useData();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [fy, setFy] = useState(currentFY());
   const [form, setForm] = useState(blank);
   const [adding, setAdding] = useState(false);
@@ -39,10 +41,10 @@ export const ApplicationTab: React.FC = () => {
   const shortfall = Math.max(0, target - applied);
 
   const save = () => {
-    if (!form.amount || form.amount <= 0) { showToast('Enter an amount.', 'error'); return; }
-    if (!form.purpose.trim()) { showToast('Describe the purpose.', 'error'); return; }
+    if (!form.amount || form.amount <= 0) { showToast(t('suites.nyas.application.toastNeedAmount'), 'error'); return; }
+    if (!form.purpose.trim()) { showToast(t('suites.nyas.application.toastNeedPurpose'), 'error'); return; }
     add('applications', { ...form, fy, id: uid('ap') });
-    showToast('Application entry recorded.', 'success');
+    showToast(t('suites.nyas.application.toastRecorded'), 'success');
     setForm({ ...blank, fy });
     setAdding(false);
   };
@@ -83,14 +85,14 @@ export const ApplicationTab: React.FC = () => {
 
       <Card>
         <h3 className="font-bold text-stone-800 mb-3"><T en="Application entries" bn="প্রয়োগের বিবরণ" hi="प्रयोग प्रविष्टियाँ" /> · FY {fy}</h3>
-        {entries.length === 0 && <Empty text="No application entries for this FY yet." />}
+        {entries.length === 0 && <Empty text={t('suites.nyas.application.empty')} />}
         {entries.map((a) => (
           <div key={a.id} className="flex items-center justify-between py-2 border-b border-stone-100 last:border-0">
             <div>
               <div className="text-sm font-bold text-stone-800">{inr(a.amount)} — {a.purpose}</div>
               <div className="text-xs text-stone-500">{fmtDate(a.date)}{a.reference ? ` · ${a.reference}` : ''}</div>
             </div>
-            <button onClick={() => { remove('applications', a.id); showToast('Entry removed.', 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px] no-print" aria-label="Delete">✕</button>
+            <button onClick={() => { remove('applications', a.id); showToast(t('suites.nyas.application.toastRemoved'), 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px] no-print" aria-label="Delete">✕</button>
           </div>
         ))}
       </Card>

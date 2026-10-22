@@ -3,6 +3,7 @@ import { useTirth, uid, slotIssued } from './tirthStore';
 import { DarshanSlot, SLOT_TYPES, SlotType } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtTime } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — darshan slot configuration (daily repeating windows). */
 
@@ -13,6 +14,7 @@ const blank: Omit<DarshanSlot, 'id'> = {
 export const SlotsTab: React.FC = () => {
   const { state, add, update, remove } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [editing, setEditing] = useState<DarshanSlot | null>(null);
   const [form, setForm] = useState(blank);
 
@@ -23,12 +25,12 @@ export const SlotsTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.name.trim()) { showToast('Slot name is required.', 'error'); return; }
-    if (form.endTime <= form.startTime) { showToast('End time must be after start time.', 'error'); return; }
-    if (form.capacity <= 0) { showToast('Capacity must be at least 1.', 'error'); return; }
+    if (!form.name.trim()) { showToast(t('suites.tirth.slots.toastNeedName'), 'error'); return; }
+    if (form.endTime <= form.startTime) { showToast(t('suites.tirth.slots.toastEndAfterStart'), 'error'); return; }
+    if (form.capacity <= 0) { showToast(t('suites.tirth.slots.toastCapacity'), 'error'); return; }
     const payload = { ...form, name: form.name.trim(), capacity: Math.round(form.capacity) };
-    if (editing && editing.id) { update('slots', editing.id, payload); showToast('Slot updated.', 'success'); }
-    else { add('slots', { ...payload, id: uid('sl') }); showToast('Slot added.', 'success'); }
+    if (editing && editing.id) { update('slots', editing.id, payload); showToast(t('suites.tirth.slots.toastUpdated'), 'success'); }
+    else { add('slots', { ...payload, id: uid('sl') }); showToast(t('suites.tirth.slots.toastAdded'), 'success'); }
     setEditing(null);
   };
 
@@ -40,7 +42,7 @@ export const SlotsTab: React.FC = () => {
       </div>
       <p className="text-xs text-stone-500 -mt-2">Slots repeat daily. Token numbers reset each morning.</p>
 
-      {state.slots.length === 0 && <Card><Empty text="No slots yet. Add your darshan windows to start issuing tokens." /></Card>}
+      {state.slots.length === 0 && <Card><Empty text={t('suites.tirth.slots.empty')} /></Card>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {state.slots.map((s) => (
@@ -63,8 +65,8 @@ export const SlotsTab: React.FC = () => {
               <Btn variant="ghost" onClick={() => openEdit(s)}><T en="Edit" bn="সম্পাদনা" hi="संपादित करें" /></Btn>
               <Btn variant="danger" onClick={() => {
                 const used = state.tokens.some((t) => t.slotId === s.id);
-                if (used) { showToast('Slot has tokens — pause it instead of deleting.', 'warning'); return; }
-                remove('slots', s.id); showToast('Slot removed.', 'success');
+                if (used) { showToast(t('suites.tirth.slots.toastHasTokens'), 'warning'); return; }
+                remove('slots', s.id); showToast(t('suites.tirth.slots.toastRemoved'), 'success');
               }}><T en="Remove" bn="মুছুন" hi="हटाएं" /></Btn>
             </div>
           </Card>

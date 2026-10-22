@@ -4,6 +4,7 @@ import { FeeRecord, PaymentMode } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtDate, fmtPeriod } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -22,6 +23,7 @@ export const FeesTab: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [period, setPeriod] = useState(monthISO());
   const [collecting, setCollecting] = useState<string | null>(null);
   const [form, setForm] = useState({ amount: 0, mode: 'Cash' as PaymentMode, receivedBy: '', notes: '' });
@@ -40,7 +42,7 @@ export const FeesTab: React.FC = () => {
   };
 
   const confirmCollect = () => {
-    if (!collecting || form.amount <= 0) { showToast('Enter a valid amount.', 'warning'); return; }
+    if (!collecting || form.amount <= 0) { showToast(t('suites.yoga.fees.toastNeedAmount'), 'warning'); return; }
     const s = state.students.find((x) => x.id === collecting);
     const b = state.batches.find((x) => x.id === s?.batchId);
     const { receiptNo, seq } = nextReceiptNo(state.settings);
@@ -52,12 +54,12 @@ export const FeesTab: React.FC = () => {
     };
     add('fees', fee);
     setSettings({ receiptSeq: seq });
-    showToast(`Receipt ${receiptNo} issued — ${inr(form.amount)}.`, 'success');
+    showToast(t('suites.yoga.fees.toastReceipt').replace('{receipt}', receiptNo).replace('{amount}', inr(form.amount)), 'success');
     setCollecting(null);
   };
 
   const postToTreasury = (fee: FeeRecord) => {
-    if (fee.treasuryTxId) { showToast('Already posted to treasury.', 'warning'); return; }
+    if (fee.treasuryTxId) { showToast(t('suites.yoga.fees.toastAlreadyPosted'), 'warning'); return; }
     const s = state.students.find((x) => x.id === fee.studentId);
     const b = state.batches.find((x) => x.id === fee.batchId);
     const ok = addTreasuryTransaction({
@@ -75,9 +77,9 @@ export const FeesTab: React.FC = () => {
     });
     if (ok) {
       update('fees', fee.id, { treasuryTxId: 'posted' });
-      showToast('Posted to treasury as class income (non-80G).', 'success');
+      showToast(t('suites.yoga.fees.toastPosted'), 'success');
     } else {
-      showToast('Treasury posting failed — receipt kept locally, retry later.', 'error');
+      showToast(t('suites.yoga.fees.toastPostFailed'), 'error');
     }
   };
 

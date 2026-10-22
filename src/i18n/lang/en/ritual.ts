@@ -83,7 +83,9 @@ export const ritual: RitualFragment = {
         plannedActual: "Planned {planned} · Actual {actual}",
         variance: "Variance: {sign}{amount} (actual − planned)",
         editLine: "Edit budget line",
-        addLine: "Add budget line"
+        addLine: "Add budget line",
+        emptyIncomeHeads: "No income heads yet.",
+        emptyExpenseHeads: "No expense heads yet.",
       },
       committee: {
         committee_volunteers: "Committee & volunteers",
@@ -219,7 +221,9 @@ export const ritual: RitualFragment = {
         confirmReset: "Reset all Utsav One data on this device?",
         toastReset: "Data reset.",
         samitiSummaryNote: "The samiti’s own summary for donors/sponsors — confirm final figures with the koshadhyaksh / CA.",
-        income_expense_line: "Income {income} · Expense {expense}"
+        income_expense_line: "Income {income} · Expense {expense}",
+        toastRestored: "Backup restored.",
+        toastInvalidBackup: "Invalid backup file — nothing changed.",
       },
       safety: {
         add_checklist_item: "Add checklist item",

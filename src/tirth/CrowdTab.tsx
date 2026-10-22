@@ -3,6 +3,7 @@ import { useTirth, uid, todayISO, nowTime, peakCrowd } from './tirthStore';
 import { CROWD_LOCATIONS } from './types';
 import { T, Card, Btn, Field, inputCls, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — crowd snapshots: headcount recorder through the day,
  * peak-hour readout. Same pattern Utsav One's safety checklist uses. */
@@ -10,6 +11,7 @@ import { useToast } from '../context/ToastContext';
 export const CrowdTab: React.FC = () => {
   const { state, add, remove } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [location, setLocation] = useState<string>(CROWD_LOCATIONS[0]);
   const [count, setCount] = useState('');
   const [notes, setNotes] = useState('');
@@ -20,12 +22,12 @@ export const CrowdTab: React.FC = () => {
 
   const record = () => {
     const n = Math.round(Number(count) || 0);
-    if (n <= 0) { showToast('Enter a headcount.', 'warning'); return; }
+    if (n <= 0) { showToast(t('suites.tirth.crowd.toastNeedCount'), 'warning'); return; }
     add('crowd', {
       id: uid('cr'), date, time: nowTime(), location, count: n,
       recordedAt: new Date().toISOString(), notes: notes.trim() || undefined,
     });
-    showToast(`${n} recorded at ${location}.`, 'success');
+    showToast(t('suites.tirth.crowd.toastRecorded').replace('{count}', String(n)).replace('{location}', location), 'success');
     setCount(''); setNotes('');
   };
 
@@ -75,7 +77,7 @@ export const CrowdTab: React.FC = () => {
             );
           })}
         </div>
-        {todays.length === 0 && <Empty text="No snapshots today — record the first one above." />}
+        {todays.length === 0 && <Empty text={t('suites.tirth.crowd.empty')} />}
       </Card>
 
       {todays.length > 0 && (
@@ -87,7 +89,7 @@ export const CrowdTab: React.FC = () => {
                 <span><span className="font-mono font-bold">{c.time}</span> · {c.location}{c.notes ? ` · ${c.notes}` : ''}</span>
                 <span className="flex items-center gap-2">
                   <span className="font-extrabold text-teal-700">{c.count}</span>
-                  <button onClick={() => { remove('crowd', c.id); showToast('Snapshot removed.', 'success'); }} className="text-xs font-bold text-red-600 underline min-h-[44px] px-2 no-print">Remove</button>
+                  <button onClick={() => { remove('crowd', c.id); showToast(t('suites.tirth.crowd.toastRemoved'), 'success'); }} className="text-xs font-bold text-red-600 underline min-h-[44px] px-2 no-print">Remove</button>
                 </span>
               </div>
             ))}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSatsang, uid, activeMembers, attendancePct } from './satsangStore';
 import { T, Card, Btn, inputCls, fmtDate, fmtTime, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Attendance — per-gathering tap-to-mark, plus per-member attendance  */
@@ -11,6 +12,7 @@ import { useToast } from '../context/ToastContext';
 export const AttendanceTab: React.FC = () => {
   const { state, add, update } = useSatsang();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [gid, setGid] = useState('');
 
   const gatherings = [...state.gatherings].sort((a, b) => b.date.localeCompare(a.date));
@@ -37,10 +39,10 @@ export const AttendanceTab: React.FC = () => {
       if (existing) update('attendance', existing.id, { present });
       else add('attendance', { id: uid('a'), gatheringId: g.id, memberId: m.id, present, createdAt: Date.now() });
     });
-    showToast(present ? 'Everyone marked present.' : 'Everyone marked absent.', 'success');
+    showToast(present ? t('suites.satsang.attendance.toastAllPresent') : t('suites.satsang.attendance.toastAllAbsent'), 'success');
   };
 
-  if (!g) return <Empty text="No gatherings yet. Schedule one first." />;
+  if (!g) return <Empty text={t('suites.satsang.attendance.empty')} />;
 
   const presentN = members.filter((m) => entryFor(m.id)?.present).length;
 

@@ -3,6 +3,7 @@ import { useNyas, uid, nextResolutionNo, todayISO } from './nyasStore';
 import { Meeting, Resolution } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Nyas One — trustee meetings: agenda, attendance, minutes, resolution register. */
 
@@ -14,6 +15,7 @@ const blankMeeting: Omit<Meeting, 'id'> = {
 export const MeetingsTab: React.FC = () => {
   const { state, add, update, remove } = useNyas();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [editing, setEditing] = useState<Meeting | null>(null);
   const [form, setForm] = useState(blankMeeting);
   const [agendaText, setAgendaText] = useState('');
@@ -32,13 +34,13 @@ export const MeetingsTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.title.trim()) { showToast('Meeting title is required.', 'error'); return; }
+    if (!form.title.trim()) { showToast(t('suites.nyas.meetings.toastNeedTitle'), 'error'); return; }
     if (editing && editing.id) {
       update('meetings', editing.id, { ...form });
-      showToast('Meeting updated.', 'success');
+      showToast(t('suites.nyas.meetings.toastUpdated'), 'success');
     } else {
       add('meetings', { ...form, id: uid('mt') });
-      showToast('Meeting scheduled.', 'success');
+      showToast(t('suites.nyas.meetings.toastScheduled'), 'success');
     }
     setEditing(null);
   };
@@ -60,7 +62,7 @@ export const MeetingsTab: React.FC = () => {
         <Btn onClick={openNew}>＋ <T en="Schedule meeting" bn="সভা নির্ধারণ" hi="बैठक निर्धारित करें" /></Btn>
       </div>
 
-      {sorted.length === 0 && <Card><Empty text="No meetings recorded yet. Schedule the next trustee meeting." /></Card>}
+      {sorted.length === 0 && <Card><Empty text={t('suites.nyas.meetings.empty')} /></Card>}
 
       {sorted.map((m) => {
         const open = openId === m.id;
@@ -74,7 +76,7 @@ export const MeetingsTab: React.FC = () => {
               <div className="flex items-center gap-2 no-print">
                 <StatusPill status={m.status} />
                 <Btn variant="ghost" onClick={() => openEdit(m)}><T en="Edit" bn="সম্পাদনা" hi="संपादित" /></Btn>
-                <button onClick={() => { remove('meetings', m.id); showToast('Meeting removed.', 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px]" aria-label="Delete">✕</button>
+                <button onClick={() => { remove('meetings', m.id); showToast(t('suites.nyas.meetings.toastRemoved'), 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px]" aria-label="Delete">✕</button>
               </div>
             </div>
             {open && (

@@ -3,6 +3,7 @@ import { useYoga, monthISO, batchStudents, feesOverdue, attendancePct } from './
 import { T, Card, Btn, Field, inputCls, fmtDate, fmtPeriod } from './ui';
 import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — reports: printable registers, CSV exports, backup/restore. */
 
@@ -21,6 +22,7 @@ export const ReportsTab: React.FC = () => {
   const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [period, setPeriod] = useState(monthISO());
   const [restoring, setRestoring] = useState(false);
   const [restoreText, setRestoreText] = useState('');
@@ -35,7 +37,7 @@ export const ReportsTab: React.FC = () => {
       rows.push([s.name, s.phone || '', b?.name || '', s.joinDate, s.feeCycle, s.status, pct === null ? '—' : `${pct}%`]);
     }
     download(`yoga-students-${period}.csv`, csv(rows));
-    showToast('Students CSV exported.', 'success');
+    showToast(t('suites.yoga.reports.toastStudentsCsv'), 'success');
   };
 
   const exportFees = () => {
@@ -46,7 +48,7 @@ export const ReportsTab: React.FC = () => {
       rows.push([f.receiptNo, f.paidDate, s?.name || '', b?.name || '', f.period, String(f.amount), f.paymentMode, f.treasuryTxId ? 'posted' : 'pending']);
     }
     download(`yoga-fees-${period}.csv`, csv(rows));
-    showToast('Fees CSV exported.', 'success');
+    showToast(t('suites.yoga.reports.toastFeesCsv'), 'success');
   };
 
   const exportAttendance = () => {
@@ -58,12 +60,12 @@ export const ReportsTab: React.FC = () => {
       rows.push([r.date, b?.name || '', s?.name || '', r.present ? 'yes' : 'no']);
     }
     download('yoga-attendance.csv', csv(rows));
-    showToast('Attendance CSV exported.', 'success');
+    showToast(t('suites.yoga.reports.toastAttendanceCsv'), 'success');
   };
 
   const doRestore = () => {
-    if (importJSON(restoreText)) { showToast('Backup restored.', 'success'); setRestoring(false); setRestoreText(''); }
-    else showToast('Invalid backup file — nothing changed.', 'error');
+    if (importJSON(restoreText)) { showToast(t('suites.yoga.reports.toastRestored'), 'success'); setRestoring(false); setRestoreText(''); }
+    else showToast(t('suites.yoga.reports.toastInvalidBackup'), 'error');
   };
 
   const overdue = feesOverdue(state, period);
@@ -110,11 +112,11 @@ export const ReportsTab: React.FC = () => {
       <Card>
         <h3 className="font-extrabold text-stone-800 mb-2"><T en="Backup & restore" bn="ব্যাকআপ ও পুনরুদ্ধার" hi="बैकअप व पुनर्स्थापना" /></h3>
         <div className="flex flex-wrap gap-2 no-print">
-          <Btn variant="ghost" onClick={() => { download(`yoga-backup-${new Date().toISOString().slice(0, 10)}.json`, exportJSON(), 'application/json'); showToast('Backup downloaded.', 'success'); }}>
+          <Btn variant="ghost" onClick={() => { download(`yoga-backup-${new Date().toISOString().slice(0, 10)}.json`, exportJSON(), 'application/json'); showToast(t('suites.yoga.reports.toastBackup'), 'success'); }}>
             💾 <T en="Download backup" bn="ব্যাকআপ ডাউনলোড" hi="बैकअप डाउनलोड करें" />
           </Btn>
           <Btn variant="ghost" onClick={() => setRestoring(true)}><T en="Restore…" bn="পুনরুদ্ধার…" hi="पुनर्स्थापित करें…" /></Btn>
-          <Btn variant="danger" onClick={() => { if (window.confirm('Reset all Yoga One data to the example seed?')) { resetAll(); showToast('Reset to seed.', 'success'); } }}>
+          <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.yoga.reports.confirmReset'))) { resetAll(); showToast(t('suites.yoga.reports.toastReset'), 'success'); } }}>
             <T en="Reset" bn="রিসেট" hi="रीसेट" />
           </Btn>
         </div>

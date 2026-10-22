@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSabha, uid } from './sabhaStore';
 import { T, Card, Btn, Field, inputCls, Modal, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Notice board — internal sabha announcements. Pinned notices stay   */
@@ -11,16 +12,17 @@ import { useToast } from '../context/ToastContext';
 export const NoticesTab: React.FC = () => {
   const { state, add, update, remove } = useSabha();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState({ title: '', body: '', pinned: false });
 
   const save = () => {
-    if (!form.title.trim()) { showToast('Please enter a title.', 'warning'); return; }
+    if (!form.title.trim()) { showToast(t('suites.sabha.common.toastNeedTitle'), 'warning'); return; }
     add('notices', {
       id: uid('n'), title: form.title.trim(), body: form.body.trim(),
       pinned: form.pinned, postedAt: Date.now(),
     });
-    showToast('Notice posted.', 'success');
+    showToast(t('suites.sabha.notices.toastPosted'), 'success');
     setForming(false);
     setForm({ title: '', body: '', pinned: false });
   };
@@ -40,7 +42,7 @@ export const NoticesTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No notices yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.notices.empty')} />}
 
       <div className="space-y-3">
         {list.map((n) => (
@@ -56,7 +58,7 @@ export const NoticesTab: React.FC = () => {
               <Btn variant="ghost" onClick={() => { update('notices', n.id, { pinned: !n.pinned }); }}>
                 {n.pinned ? <T en="Unpin" bn="আনপিন" hi="अनपिन करें" /> : <T en="Pin" bn="পিন" hi="पिन करें" />}
               </Btn>
-              <Btn variant="danger" onClick={() => { if (window.confirm('Remove this notice?')) { remove('notices', n.id); showToast('Removed.', 'info'); } }}>
+              <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.notices.confirmRemove'))) { remove('notices', n.id); showToast(t('suites.sabha.common.toastRemoved'), 'info'); } }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

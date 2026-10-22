@@ -2,12 +2,14 @@ import React from 'react';
 import { useTirth, todayISO, tokensFor, slotIssued, slotUtilPct, noShowPct, peakCrowd, sevaIncome, nowServingSeq } from './tirthStore';
 import { T, Card, Stat, Empty, fmtTime } from './ui';
 import { useInr } from '../hooks/useWorkspaceInr';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — dashboard: today's tokens, slot utilisation, queue health. */
 
 export const DashboardTab: React.FC = () => {
   const inr = useInr();
   const { state } = useTirth();
+  const { t } = useLanguage();
   const date = todayISO();
 
   const todays = tokensFor(state, date);
@@ -22,7 +24,7 @@ export const DashboardTab: React.FC = () => {
   const peak = peakCrowd(state, date);
   const seva = sevaIncome(state, date);
 
-  if (!state.slots.length) return <Card><Empty text="Add darshan slots first — the dashboard lights up once slots exist." /></Card>;
+  if (!state.slots.length) return <Card><Empty text={t('suites.tirth.dashboard.empty')} /></Card>;
 
   return (
     <div className="space-y-4">

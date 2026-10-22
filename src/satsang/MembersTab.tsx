@@ -3,6 +3,7 @@ import { useSatsang, uid, todayISO } from './satsangStore';
 import { Member, MEMBER_ROLES, ROLE_LABEL } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Mandali registry — members with name, phone, role, active flag.     */
@@ -13,18 +14,19 @@ const emptyForm = { name: '', phone: '', role: 'member' as Member['role'], joinD
 export const MembersTab: React.FC = () => {
   const { state, add, update, remove } = useSatsang();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [q, setQ] = useState('');
 
   const save = () => {
-    if (!form.name.trim()) { showToast('Please give the member a name.', 'warning'); return; }
+    if (!form.name.trim()) { showToast(t('suites.satsang.members.toastNeedName'), 'warning'); return; }
     add('members', {
       id: uid('mb'), name: form.name.trim(), phone: form.phone.trim() || undefined,
       role: form.role, joinDate: form.joinDate, active: true,
       notes: form.notes.trim() || undefined, createdAt: Date.now(),
     });
-    showToast('Member added to the mandali.', 'success');
+    showToast(t('suites.satsang.members.toastAdded'), 'success');
     setForming(false);
     setForm({ ...emptyForm, joinDate: todayISO() });
   };
@@ -48,7 +50,7 @@ export const MembersTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No members yet. Add the first one." />}
+      {list.length === 0 && <Empty text={t('suites.satsang.members.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {list.map((m) => (
@@ -68,7 +70,7 @@ export const MembersTab: React.FC = () => {
               <Btn variant="ghost" onClick={() => { update('members', m.id, { active: !m.active }); }}>
                 {m.active ? <T en="Mark inactive" bn="নিষ্ক্রিয় করুন" hi="निष्क्रिय करें" /> : <T en="Mark active" bn="সক্রিয় করুন" hi="सक्रिय करें" />}
               </Btn>
-              <Btn variant="danger" onClick={() => { remove('members', m.id); showToast('Member removed.', 'info'); }}>
+              <Btn variant="danger" onClick={() => { remove('members', m.id); showToast(t('suites.satsang.members.toastRemoved'), 'info'); }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

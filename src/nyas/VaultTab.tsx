@@ -3,6 +3,7 @@ import { useNyas, uid, todayISO } from './nyasStore';
 import { VaultDoc } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Nyas One — document vault (metadata registry).
  *
@@ -23,15 +24,16 @@ const DOC_TYPES: VaultDoc['docType'][] = [
 export const VaultTab: React.FC = () => {
   const { state, add, remove } = useNyas();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [form, setForm] = useState(blank);
   const [adding, setAdding] = useState(false);
   const [typeFilter, setTypeFilter] = useState('all');
 
   const save = () => {
-    if (!form.name.trim()) { showToast('Document name is required.', 'error'); return; }
-    if (!form.storedWhere.trim()) { showToast('Say where the copy lives (e.g. almirah file 3, Google Drive).', 'error'); return; }
+    if (!form.name.trim()) { showToast(t('suites.nyas.vault.toastNeedName'), 'error'); return; }
+    if (!form.storedWhere.trim()) { showToast(t('suites.nyas.vault.toastNeedLocation'), 'error'); return; }
     add('vault', { ...form, id: uid('vd'), addedAt: todayISO() });
-    showToast('Document registered in the vault.', 'success');
+    showToast(t('suites.nyas.vault.toastRegistered'), 'success');
     setForm(blank);
     setAdding(false);
   };
@@ -63,7 +65,7 @@ export const VaultTab: React.FC = () => {
         </p>
       </Card>
 
-      {list.length === 0 && <Card><Empty text="No documents registered yet." /></Card>}
+      {list.length === 0 && <Card><Empty text={t('suites.nyas.vault.empty')} /></Card>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((d) => (
@@ -79,7 +81,7 @@ export const VaultTab: React.FC = () => {
                 </div>
                 {d.notes && <div className="text-xs text-stone-400 mt-1">{d.notes}</div>}
               </div>
-              <button onClick={() => { remove('vault', d.id); showToast('Removed.', 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px] shrink-0 no-print" aria-label="Delete">✕</button>
+              <button onClick={() => { remove('vault', d.id); showToast(t('suites.nyas.common.toastRemoved'), 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px] shrink-0 no-print" aria-label="Delete">✕</button>
             </div>
           </Card>
         ))}

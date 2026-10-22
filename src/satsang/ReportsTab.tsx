@@ -3,6 +3,7 @@ import { useSatsang, fundBalance, attendancePct, presentCount } from './satsangS
 import { T, Card, Btn, fmtDate, fmtTime } from './ui';
 import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Reports — printable member list, gathering summary, fund statement, */
@@ -24,6 +25,7 @@ export const ReportsTab: React.FC = () => {
   const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useSatsang();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [importing, setImporting] = useState(false);
   const [importText, setImportText] = useState('');
 
@@ -48,8 +50,8 @@ export const ReportsTab: React.FC = () => {
   const doPrint = () => window.print();
 
   const doImport = () => {
-    if (importJSON(importText)) { showToast('Backup restored.', 'success'); setImporting(false); setImportText(''); }
-    else showToast('Could not read that backup file.', 'error');
+    if (importJSON(importText)) { showToast(t('suites.satsang.reports.toastRestored'), 'success'); setImporting(false); setImportText(''); }
+    else showToast(t('suites.satsang.reports.toastInvalidBackup'), 'error');
   };
 
   return (
@@ -111,7 +113,7 @@ export const ReportsTab: React.FC = () => {
           <Btn variant="ghost" onClick={() => setImporting((v) => !v)}>
             <T en="Restore backup" bn="ব্যাকআপ পুনরুদ্ধার" hi="बैकअप पुनर्स्थापित करें" />
           </Btn>
-          <Btn variant="danger" onClick={() => { if (window.confirm('Reset all satsang data to the seed?')) { resetAll(); showToast('Reset to seed.', 'info'); } }}>
+          <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.satsang.reports.confirmReset'))) { resetAll(); showToast(t('suites.satsang.reports.toastReset'), 'info'); } }}>
             <T en="Reset" bn="রিসেট" hi="रीसेट" />
           </Btn>
         </div>
@@ -121,7 +123,7 @@ export const ReportsTab: React.FC = () => {
               className="w-full h-32 rounded-xl border border-stone-200 p-2 text-xs font-mono"
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
-              placeholder="Paste backup JSON…"
+              placeholder={t('suites.satsang.reports.phPasteBackup')}
             />
             <div className="flex gap-2 mt-2">
               <Btn onClick={doImport}><T en="Restore" bn="পুনরুদ্ধার" hi="पुनर्स्थापित करें" /></Btn>

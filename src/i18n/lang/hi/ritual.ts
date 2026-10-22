@@ -83,7 +83,9 @@ export const ritual: RitualFragment = {
         plannedActual: "नियोजित {planned} · वास्तविक {actual}",
         variance: "विचलन: {sign}{amount} (वास्तविक − नियोजित)",
         editLine: "बजट पंक्ति संपादित करें",
-        addLine: "बजट पंक्ति जोड़ें"
+        addLine: "बजट पंक्ति जोड़ें",
+        emptyIncomeHeads: "अभी कोई आय मद नहीं है।",
+        emptyExpenseHeads: "अभी कोई व्यय मद नहीं है।",
       },
       committee: {
         committee_volunteers: "समिति व स्वयंसेवक",
@@ -219,7 +221,9 @@ export const ritual: RitualFragment = {
         confirmReset: "इस डिवाइस का समस्त उत्सव डेटा रीसेट करें?",
         toastReset: "डेटा रीसेट।",
         samitiSummaryNote: "दाताओं हेतु समिति का अपना सारांश — अंतिम आंकड़े कोषाध्यक्ष/CA से पुष्टि करें।",
-        income_expense_line: "आय {income} · व्यय {expense}"
+        income_expense_line: "आय {income} · व्यय {expense}",
+        toastRestored: "बैकअप पुनर्स्थापित।",
+        toastInvalidBackup: "अमान्य बैकअप फ़ाइल — कुछ नहीं बदला।",
       },
       safety: {
         add_checklist_item: "सूची जोड़ें",

@@ -4,6 +4,7 @@ import { DuesEntry } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -20,6 +21,7 @@ export const DuesTab: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [year, setYear] = useState(thisYear());
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState({ memberId: '', amount: '', date: todayISO() });
@@ -31,10 +33,10 @@ export const DuesTab: React.FC = () => {
 
   const save = () => {
     const amt = Number(form.amount);
-    if (!form.memberId) { showToast('Please choose a member.', 'warning'); return; }
-    if (!amt || amt <= 0) { showToast('Please enter a valid amount.', 'warning'); return; }
+    if (!form.memberId) { showToast(t('suites.sabha.dues.toastNeedMember'), 'warning'); return; }
+    if (!amt || amt <= 0) { showToast(t('suites.sabha.common.toastNeedAmount'), 'warning'); return; }
     if (state.dues.some((d) => d.memberId === form.memberId && d.year === year)) {
-      showToast('This member already paid for this year.', 'warning');
+      showToast(t('suites.sabha.dues.toastAlreadyPaid'), 'warning');
       return;
     }
     const { receiptNo, seq } = nextDuesReceipt(state.settings);
@@ -43,13 +45,13 @@ export const DuesTab: React.FC = () => {
       amount: amt, date: form.date, receiptNo, createdAt: Date.now(),
     });
     setSettings({ duesReceiptSeq: seq });
-    showToast(`Dues recorded — receipt ${receiptNo}.`, 'success');
+    showToast(t('suites.sabha.dues.toastRecorded').replace('{receipt}', receiptNo), 'success');
     setForming(false);
     setForm({ memberId: '', amount: '', date: todayISO() });
   };
 
   const postToTreasury = (d: DuesEntry) => {
-    if (d.treasuryTxId) { showToast('Already posted to treasury.', 'warning'); return; }
+    if (d.treasuryTxId) { showToast(t('suites.sabha.common.toastAlreadyPosted'), 'warning'); return; }
     const who = state.members.find((m) => m.id === d.memberId)?.name || '';
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
@@ -66,9 +68,9 @@ export const DuesTab: React.FC = () => {
     });
     if (ok) {
       update('dues', d.id, { treasuryTxId: 'posted' });
-      showToast('Posted to treasury as non-80G dues income.', 'success');
+      showToast(t('suites.sabha.dues.toastPosted'), 'success');
     } else {
-      showToast('Treasury posting failed — entry kept locally, retry later.', 'error');
+      showToast(t('suites.sabha.common.toastPostFailed'), 'error');
     }
   };
 
@@ -93,7 +95,7 @@ export const DuesTab: React.FC = () => {
         </div>
       </Card>
 
-      {rows.length === 0 && <Empty text={`No dues recorded for ${year} yet.`} />}
+      {rows.length === 0 && <Empty text={t('suites.sabha.dues.empty').replace('{year}', String(year))} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {rows.map((d) => {
@@ -109,7 +111,7 @@ export const DuesTab: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 mt-3 no-print">
                 {!d.treasuryTxId && <Btn onClick={() => postToTreasury(d)}>💰 <T en="Post to treasury" bn="কোষাগারে পোস্ট" hi="कोषागार में दर्ज करें" /></Btn>}
-                <Btn variant="danger" onClick={() => { if (window.confirm('Remove this dues entry?')) { remove('dues', d.id); showToast('Removed.', 'info'); } }}>
+                <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.dues.confirmRemove'))) { remove('dues', d.id); showToast(t('suites.sabha.common.toastRemoved'), 'info'); } }}>
                   <T en="Remove" bn="মুছুন" hi="हटाएं" />
                 </Btn>
               </div>

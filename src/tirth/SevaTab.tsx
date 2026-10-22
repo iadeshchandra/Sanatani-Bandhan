@@ -4,6 +4,7 @@ import { SevaBooking, SEVA_PASS_TYPES } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, Empty, fmtDate } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
@@ -20,6 +21,7 @@ export const SevaTab: React.FC = () => {
   const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const [editing, setEditing] = useState<SevaBooking | null>(null);
@@ -31,16 +33,16 @@ export const SevaTab: React.FC = () => {
   const openNew = () => { setForm(blank); setEditing({ ...blank, id: '', date: todayISO(), createdAt: '' } as SevaBooking); };
 
   const save = () => {
-    if (!form.name.trim()) { showToast('Name is required.', 'error'); return; }
-    if (form.amount < 0) { showToast('Amount cannot be negative.', 'error'); return; }
+    if (!form.name.trim()) { showToast(t('suites.tirth.seva.toastNeedName'), 'error'); return; }
+    if (form.amount < 0) { showToast(t('suites.tirth.seva.toastNegative'), 'error'); return; }
     const payload = { ...form, name: form.name.trim(), persons: Math.max(1, Math.round(form.persons)), amount: Math.round(form.amount) };
-    if (editing && editing.id) { update('seva', editing.id, payload); showToast('Booking updated.', 'success'); }
-    else { add('seva', { ...payload, id: uid('sv'), date: todayISO(), createdAt: new Date().toISOString() }); showToast('Seva booking recorded.', 'success'); }
+    if (editing && editing.id) { update('seva', editing.id, payload); showToast(t('suites.tirth.seva.toastUpdated'), 'success'); }
+    else { add('seva', { ...payload, id: uid('sv'), date: todayISO(), createdAt: new Date().toISOString() }); showToast(t('suites.tirth.seva.toastRecorded'), 'success'); }
     setEditing(null);
   };
 
   const postToTreasury = (b: SevaBooking) => {
-    if (b.treasuryTxId) { showToast('Already posted to treasury.', 'warning'); return; }
+    if (b.treasuryTxId) { showToast(t('suites.tirth.seva.toastAlreadyPosted'), 'warning'); return; }
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
       date: new Date().toISOString(),
@@ -56,9 +58,9 @@ export const SevaTab: React.FC = () => {
     });
     if (ok) {
       update('seva', b.id, { treasuryTxId: 'posted' });
-      showToast('Posted to treasury as darshan income (non-80G).', 'success');
+      showToast(t('suites.tirth.seva.toastPosted'), 'success');
     } else {
-      showToast('Treasury posting failed — booking kept locally, retry later.', 'error');
+      showToast(t('suites.tirth.seva.toastPostFailed'), 'error');
     }
   };
 
@@ -72,7 +74,7 @@ export const SevaTab: React.FC = () => {
         <Btn onClick={openNew}>＋ <T en="New booking" bn="নতুন বুকিং" hi="नई बुकिंग" /></Btn>
       </div>
 
-      {todays.length === 0 && <Card><Empty text="No seva-darshan bookings today yet." /></Card>}
+      {todays.length === 0 && <Card><Empty text={t('suites.tirth.seva.empty')} /></Card>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {todays.map((b) => (
           <Card key={b.id}>
@@ -87,7 +89,7 @@ export const SevaTab: React.FC = () => {
               {!b.treasuryTxId
                 ? <Btn variant="primary" onClick={() => postToTreasury(b)}>💰 <T en="Post to treasury" bn="কোষাগারে পোস্ট" hi="कोषागार में दर्ज करें" /></Btn>
                 : <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">✓ treasury posted</span>}
-              <Btn variant="danger" onClick={() => { remove('seva', b.id); showToast('Booking removed.', 'success'); }}><T en="Remove" bn="মুছুন" hi="हटाएं" /></Btn>
+              <Btn variant="danger" onClick={() => { remove('seva', b.id); showToast(t('suites.tirth.seva.toastRemoved'), 'success'); }}><T en="Remove" bn="মুছুন" hi="हटाएं" /></Btn>
             </div>
           </Card>
         ))}

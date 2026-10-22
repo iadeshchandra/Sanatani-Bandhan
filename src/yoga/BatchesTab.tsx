@@ -4,6 +4,7 @@ import { YogaBatch, BatchLevel, WEEKDAYS_SHORT } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtTime } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — batch registry CRUD. */
 
@@ -16,6 +17,7 @@ export const BatchesTab: React.FC = () => {
   const wsCurrency = useWorkspaceCurrency();
   const { state, add, update, remove } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState<Partial<YogaBatch> | null>(null);
   const [confirmDel, setConfirmDel] = useState<YogaBatch | null>(null);
 
@@ -23,9 +25,9 @@ export const BatchesTab: React.FC = () => {
     setForming({ name: '', level: 'beginner', days: [1, 3, 5], startTime: '06:00', endTime: '07:00', capacity: 20, feeMonthly: state.settings.defaultFeeMonthly, active: true });
 
   const save = () => {
-    if (!forming || !forming.name?.trim()) { showToast('Batch name is required.', 'warning'); return; }
-    if (!forming.days?.length) { showToast('Pick at least one day.', 'warning'); return; }
-    if ((forming.capacity || 0) <= 0) { showToast('Capacity must be at least 1.', 'warning'); return; }
+    if (!forming || !forming.name?.trim()) { showToast(t('suites.yoga.batches.toastNeedName'), 'warning'); return; }
+    if (!forming.days?.length) { showToast(t('suites.yoga.batches.toastNeedDay'), 'warning'); return; }
+    if ((forming.capacity || 0) <= 0) { showToast(t('suites.yoga.batches.toastCapacity'), 'warning'); return; }
     const batch: YogaBatch = {
       id: forming.id || uid('bt'),
       name: forming.name.trim(),
@@ -39,17 +41,17 @@ export const BatchesTab: React.FC = () => {
       active: forming.active !== false,
       notes: forming.notes?.trim() || undefined,
     };
-    if (forming.id) { update('batches', forming.id, batch); showToast('Batch updated.', 'success'); }
-    else { add('batches', batch); showToast(`Batch "${batch.name}" created.`, 'success'); }
+    if (forming.id) { update('batches', forming.id, batch); showToast(t('suites.yoga.batches.toastUpdated'), 'success'); }
+    else { add('batches', batch); showToast(t('suites.yoga.batches.toastCreated').replace('{name}', batch.name), 'success'); }
     setForming(null);
   };
 
   const doDelete = () => {
     if (!confirmDel) return;
     const n = batchStudents(state, confirmDel.id).length;
-    if (n > 0) { showToast(`Move or remove ${n} student(s) first — the register keeps history.`, 'warning'); setConfirmDel(null); return; }
+    if (n > 0) { showToast(t('suites.yoga.batches.toastHasStudents').replace('{count}', String(n)), 'warning'); setConfirmDel(null); return; }
     remove('batches', confirmDel.id);
-    showToast('Batch deleted.', 'success');
+    showToast(t('suites.yoga.batches.toastDeleted'), 'success');
     setConfirmDel(null);
   };
 

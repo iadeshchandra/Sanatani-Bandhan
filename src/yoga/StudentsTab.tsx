@@ -3,12 +3,14 @@ import { useYoga, uid, todayISO, batchStudents, batchHasRoom, batchesWithRoom, a
 import { YogaStudent, FeeCycle, StudentStatus } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — student registry. Health notes are private, device-local. */
 
 export const StudentsTab: React.FC = () => {
   const { state, add, update } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState<Partial<YogaStudent> | null>(null);
   const [filterBatch, setFilterBatch] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -17,14 +19,14 @@ export const StudentsTab: React.FC = () => {
     setForming({ name: '', phone: '', joinDate: todayISO(), batchId: batchId || state.batches.find((b) => b.active)?.id || '', feeCycle: 'monthly', status: 'active' });
 
   const save = () => {
-    if (!forming || !forming.name?.trim()) { showToast('Student name is required.', 'warning'); return; }
-    if (!forming.batchId) { showToast('Pick a batch.', 'warning'); return; }
+    if (!forming || !forming.name?.trim()) { showToast(t('suites.yoga.students.toastNeedName'), 'warning'); return; }
+    if (!forming.batchId) { showToast(t('suites.yoga.common.toastNeedBatch'), 'warning'); return; }
     const batch = state.batches.find((b) => b.id === forming.batchId);
-    if (!batch) { showToast('Batch not found.', 'error'); return; }
+    if (!batch) { showToast(t('suites.yoga.students.toastBatchNotFound'), 'error'); return; }
     if (!forming.id && !batchHasRoom(state, batch)) {
       const alt = batchesWithRoom(state, batch.id);
       showToast(
-        `"${batch.name}" is full (${batch.capacity}).` + (alt.length ? ` Try: ${alt.slice(0, 2).map((a) => a.name).join(', ')}.` : ' No other batch has room.'),
+        t('suites.yoga.students.toastBatchFull').replace('{name}', batch.name).replace('{capacity}', String(batch.capacity)) + (alt.length ? t('suites.yoga.students.toastBatchFullAlt').replace('{names}', alt.slice(0, 2).map((a) => a.name).join(', ')) : t('suites.yoga.students.toastNoRoom')),
         'warning'
       );
       return;
@@ -40,8 +42,8 @@ export const StudentsTab: React.FC = () => {
       status: forming.status || 'active',
       createdAt: Date.now(),
     };
-    if (forming.id) { update('students', forming.id, student); showToast('Student updated.', 'success'); }
-    else { add('students', student); showToast(`"${student.name}" enrolled in ${batch.name}.`, 'success'); }
+    if (forming.id) { update('students', forming.id, student); showToast(t('suites.yoga.students.toastUpdated'), 'success'); }
+    else { add('students', student); showToast(t('suites.yoga.students.toastEnrolled').replace('{name}', student.name).replace('{batch}', batch.name), 'success'); }
     setForming(null);
   };
 

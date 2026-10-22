@@ -3,17 +3,19 @@ import { useYoga, uid, todayISO } from './yogaStore';
 import { ClassDiaryEntry } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — class diary: what was actually taught each session. */
 
 export const DiaryTab: React.FC = () => {
   const { state, add, update, remove } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState<Partial<ClassDiaryEntry> | null>(null);
 
   const save = () => {
-    if (!forming || !forming.batchId) { showToast('Pick a batch.', 'warning'); return; }
-    if (!forming.topics?.trim()) { showToast('Write what was taught.', 'warning'); return; }
+    if (!forming || !forming.batchId) { showToast(t('suites.yoga.common.toastNeedBatch'), 'warning'); return; }
+    if (!forming.topics?.trim()) { showToast(t('suites.yoga.diary.toastNeedTaught'), 'warning'); return; }
     const entry: ClassDiaryEntry = {
       id: forming.id || uid('di'),
       date: forming.date || todayISO(),
@@ -23,8 +25,8 @@ export const DiaryTab: React.FC = () => {
       notes: forming.notes?.trim() || undefined,
       createdAt: Date.now(),
     };
-    if (forming.id) { update('diary', forming.id, entry); showToast('Diary entry updated.', 'success'); }
-    else { add('diary', entry); showToast('Diary entry saved.', 'success'); }
+    if (forming.id) { update('diary', forming.id, entry); showToast(t('suites.yoga.diary.toastUpdated'), 'success'); }
+    else { add('diary', entry); showToast(t('suites.yoga.diary.toastSaved'), 'success'); }
     setForming(null);
   };
 
@@ -52,7 +54,7 @@ export const DiaryTab: React.FC = () => {
                 </div>
                 <div className="flex gap-1 no-print shrink-0">
                   <button onClick={() => setForming({ ...e })} className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 text-sm" aria-label="Edit">✏️</button>
-                  <button onClick={() => { remove('diary', e.id); showToast('Entry deleted.', 'success'); }} className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-sm" aria-label="Delete">🗑️</button>
+                  <button onClick={() => { remove('diary', e.id); showToast(t('suites.yoga.diary.toastDeleted'), 'success'); }} className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-sm" aria-label="Delete">🗑️</button>
                 </div>
               </div>
             </Card>

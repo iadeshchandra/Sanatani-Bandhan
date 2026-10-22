@@ -3,6 +3,7 @@ import { useSatsang, uid, activeMembers, presentCount } from './satsangStore';
 import { Gathering } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, fmtTime, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Gathering scheduler — date, time, venue, rotating host, theme,      */
@@ -12,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 export const GatheringsTab: React.FC = () => {
   const { state, add, update, remove } = useSatsang();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState({
     date: '', time: state.settings.defaultTime || '18:00',
@@ -20,13 +22,13 @@ export const GatheringsTab: React.FC = () => {
   const members = activeMembers(state);
 
   const save = () => {
-    if (!form.date) { showToast('Please pick a date.', 'warning'); return; }
+    if (!form.date) { showToast(t('suites.satsang.gatherings.toastNeedDate'), 'warning'); return; }
     add('gatherings', {
       id: uid('g'), date: form.date, time: form.time, venue: form.venue.trim(),
       hostId: form.hostId || undefined, theme: form.theme.trim() || undefined,
       status: 'scheduled', notes: form.notes.trim() || undefined, createdAt: Date.now(),
     });
-    showToast('Gathering scheduled.', 'success');
+    showToast(t('suites.satsang.gatherings.toastScheduled'), 'success');
     setForming(false);
     setForm({ date: '', time: state.settings.defaultTime || '18:00', venue: state.settings.defaultVenue || '', hostId: '', theme: '', notes: '' });
   };
@@ -46,7 +48,7 @@ export const GatheringsTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No gatherings yet. Schedule the first one." />}
+      {list.length === 0 && <Empty text={t('suites.satsang.gatherings.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((g) => (
@@ -69,7 +71,7 @@ export const GatheringsTab: React.FC = () => {
             <div className="flex flex-wrap gap-2 mt-3 no-print">
               {g.status === 'scheduled' && (
                 <>
-                  <Btn variant="emerald" onClick={() => { update('gatherings', g.id, { status: 'completed' }); showToast('Gathering marked completed — mark attendance now.', 'success'); }}>
+                  <Btn variant="emerald" onClick={() => { update('gatherings', g.id, { status: 'completed' }); showToast(t('suites.satsang.gatherings.toastCompleted'), 'success'); }}>
                     <T en="Mark completed" bn="সম্পন্ন চিহ্নিত" hi="पूर्ण चिह्नित करें" />
                   </Btn>
                   <Btn variant="ghost" onClick={() => update('gatherings', g.id, { status: 'cancelled' })}>
@@ -77,7 +79,7 @@ export const GatheringsTab: React.FC = () => {
                   </Btn>
                 </>
               )}
-              <Btn variant="danger" onClick={() => { remove('gatherings', g.id); showToast('Gathering removed.', 'info'); }}>
+              <Btn variant="danger" onClick={() => { remove('gatherings', g.id); showToast(t('suites.satsang.gatherings.toastRemoved'), 'info'); }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

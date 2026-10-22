@@ -69,7 +69,7 @@ export const ReportsTab: React.FC = () => {
     const rd = new FileReader();
     rd.onload = () => {
       const ok = importJSON(String(rd.result || ''));
-      showToast(ok ? 'Backup restored.' : 'Invalid backup file — nothing changed.', ok ? 'success' : 'error');
+      showToast(ok ? t('ritual.utsav.reports.toastRestored') : t('ritual.utsav.reports.toastInvalidBackup'), ok ? 'success' : 'error');
     };
     rd.readAsText(file);
   };

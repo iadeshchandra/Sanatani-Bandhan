@@ -3,6 +3,7 @@ import { useNyas, uid, daysUntil, regStatus, todayISO } from './nyasStore';
 import { REG_KINDS, Registration } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Nyas One — registration tracker: 12A / 80G / FCRA / CSR-1 / Darpan / PAN / TAN / GST. */
 
@@ -14,6 +15,7 @@ const blank: Omit<Registration, 'id'> = {
 export const RegistrationsTab: React.FC = () => {
   const { state, add, update, remove } = useNyas();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [editing, setEditing] = useState<Registration | null>(null);
   const [form, setForm] = useState(blank);
 
@@ -24,13 +26,13 @@ export const RegistrationsTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.regNo.trim()) { showToast('Registration number is required.', 'error'); return; }
+    if (!form.regNo.trim()) { showToast(t('suites.nyas.registrations.toastNeedNumber'), 'error'); return; }
     if (editing && editing.id) {
       update('registrations', editing.id, { ...form });
-      showToast('Registration updated.', 'success');
+      showToast(t('suites.nyas.registrations.toastUpdated'), 'success');
     } else {
       add('registrations', { ...form, id: uid('rg') });
-      showToast('Registration added.', 'success');
+      showToast(t('suites.nyas.registrations.toastAdded'), 'success');
     }
     setEditing(null);
   };
@@ -48,7 +50,7 @@ export const RegistrationsTab: React.FC = () => {
         <Btn onClick={openNew}>＋ <T en="Add registration" bn="নিবন্ধন যোগ" hi="पंजीकरण जोड़ें" /></Btn>
       </div>
 
-      {sorted.length === 0 && <Card><Empty text="No registrations tracked yet. Add your 12A, 80G, FCRA and other registrations." /></Card>}
+      {sorted.length === 0 && <Card><Empty text={t('suites.nyas.registrations.empty')} /></Card>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sorted.map((r) => {
@@ -79,7 +81,7 @@ export const RegistrationsTab: React.FC = () => {
               </div>
               <div className="flex gap-2 mt-3 no-print">
                 <Btn variant="ghost" onClick={() => openEdit(r)}><T en="Edit" bn="সম্পাদনা" hi="संपादित करें" /></Btn>
-                <Btn variant="danger" onClick={() => { remove('registrations', r.id); showToast('Registration removed.', 'success'); }}><T en="Remove" bn="মুছুন" hi="हटाएं" /></Btn>
+                <Btn variant="danger" onClick={() => { remove('registrations', r.id); showToast(t('suites.nyas.registrations.toastRemoved'), 'success'); }}><T en="Remove" bn="মুছুন" hi="हटाएं" /></Btn>
               </div>
             </Card>
           );

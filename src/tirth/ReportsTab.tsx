@@ -3,6 +3,7 @@ import { useInr } from '../hooks/useWorkspaceInr';
 import { useTirth, todayISO, tokensFor, slotUtilPct, noShowPct, peakCrowd, sevaIncome } from './tirthStore';
 import { T, Card, Btn, Field, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Tirth One — reports: daily darshan report (printable), CSV exports,
  * backup/restore. */
@@ -22,6 +23,7 @@ export const ReportsTab: React.FC = () => {
   const inr = useInr();
   const { state, exportJSON, importJSON, resetAll } = useTirth();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [date, setDate] = useState(todayISO());
   const [printing, setPrinting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -46,7 +48,7 @@ export const ReportsTab: React.FC = () => {
       rows.push([t.no, t.date, s?.name || '', t.name || '', t.phone || '', t.kind, t.status, t.issuedAt]);
     }
     download(`tirth-tokens-${date}.csv`, csv(rows));
-    showToast('Tokens CSV downloaded.', 'success');
+    showToast(t('suites.tirth.reports.toastTokensCsv'), 'success');
   };
 
   const exportSevaCSV = () => {
@@ -55,19 +57,19 @@ export const ReportsTab: React.FC = () => {
       rows.push([s.date, s.passType, s.name, s.phone || '', String(s.persons), String(s.amount), s.treasuryTxId ? 'yes' : 'no']);
     }
     download(`tirth-seva-${date}.csv`, csv(rows));
-    showToast('Seva CSV downloaded.', 'success');
+    showToast(t('suites.tirth.reports.toastSevaCsv'), 'success');
   };
 
   const doBackup = () => {
     download(`tirth-backup-${date}.json`, exportJSON(), 'application/json');
-    showToast('Backup downloaded.', 'success');
+    showToast(t('suites.tirth.reports.toastBackup'), 'success');
   };
 
   const doImport = (file: File) => {
     const rd = new FileReader();
     rd.onload = () => {
       const ok = importJSON(String(rd.result || ''));
-      showToast(ok ? 'Backup restored.' : 'Invalid backup file — nothing changed.', ok ? 'success' : 'error');
+      showToast(ok ? t('suites.tirth.reports.toastRestored') : t('suites.tirth.reports.toastInvalidBackup'), ok ? 'success' : 'error');
     };
     rd.readAsText(file);
   };
@@ -114,12 +116,12 @@ export const ReportsTab: React.FC = () => {
           <Btn variant="ghost" onClick={exportSevaCSV}>📥 <T en="Seva CSV" bn="সেবা CSV" hi="सेवा CSV" /></Btn>
           <Btn variant="ghost" onClick={doBackup}>💾 <T en="Backup JSON" bn="ব্যাকআপ" hi="बैकअप" /></Btn>
           <Btn variant="ghost" onClick={() => fileRef.current?.click()}>📤 <T en="Restore" bn="পুনরুদ্ধার" hi="पुनर्स्थापित करें" /></Btn>
-          <Btn variant="danger" onClick={() => { if (window.confirm('Reset all Tirth One data on this device?')) { resetAll(); showToast('Reset to example data.', 'success'); } }}>
+          <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.tirth.reports.confirmReset'))) { resetAll(); showToast(t('suites.tirth.reports.toastReset'), 'success'); } }}>
             <T en="Reset" bn="রিসেট" hi="रीसेट" />
           </Btn>
           <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) doImport(f); e.target.value = ''; }} />
         </div>
-        {state.slots.length === 0 && <div className="mt-3"><Empty text="No data yet." /></div>}
+        {state.slots.length === 0 && <div className="mt-3"><Empty text={t('suites.tirth.reports.empty')} /></div>}
       </Card>
     </div>
   );

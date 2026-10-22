@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useYoga, uid, todayISO, batchStudents, batchRunsOn, attendanceMap } from './yogaStore';
 import { T, Card, Btn, Field, inputCls, StatusPill, fmtDate, fmtTime } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Yoga One — per-batch per-day attendance marking. */
 
 export const AttendanceTab: React.FC = () => {
   const { state, add, update } = useYoga();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [batchId, setBatchId] = useState<string>(state.batches.find((b) => b.active)?.id || '');
   const [date, setDate] = useState(todayISO());
 
@@ -32,7 +34,7 @@ export const AttendanceTab: React.FC = () => {
         if (existing && existing.present !== present) update('attendance', existing.id, { present, markedAt: Date.now() });
       }
     }
-    showToast(present ? 'All marked present.' : 'All marked absent.', 'success');
+    showToast(present ? t('suites.yoga.attendance.toastAllPresent') : t('suites.yoga.attendance.toastAllAbsent'), 'success');
   };
 
   const activeBatches = state.batches.filter((b) => b.active);

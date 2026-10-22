@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSatsang, uid, todayISO, bhajansByStaleness } from './satsangStore';
 import { T, Card, Btn, Field, inputCls, Modal, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Bhajan / kirtan repertoire — title, deity, language, lyrics note,   */
@@ -14,18 +15,19 @@ const emptyForm = { title: '', deity: '', language: '', lyricsNote: '' };
 export const BhajansTab: React.FC = () => {
   const { state, add, update, remove } = useSatsang();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [q, setQ] = useState('');
 
   const save = () => {
-    if (!form.title.trim()) { showToast('Please give the bhajan a title.', 'warning'); return; }
+    if (!form.title.trim()) { showToast(t('suites.satsang.bhajans.toastNeedTitle'), 'warning'); return; }
     add('bhajans', {
       id: uid('b'), title: form.title.trim(),
       deity: form.deity.trim() || undefined, language: form.language.trim() || undefined,
       lyricsNote: form.lyricsNote.trim() || undefined, timesSung: 0, createdAt: Date.now(),
     });
-    showToast('Bhajan added to the repertoire.', 'success');
+    showToast(t('suites.satsang.bhajans.toastAdded'), 'success');
     setForming(false);
     setForm(emptyForm);
   };
@@ -34,7 +36,7 @@ export const BhajansTab: React.FC = () => {
     const b = state.bhajans.find((x) => x.id === id);
     if (!b) return;
     update('bhajans', id, { lastSungDate: todayISO(), timesSung: b.timesSung + 1 });
-    showToast(`Marked sung today: ${b.title}`, 'success');
+    showToast(t('suites.satsang.bhajans.toastSung').replace('{title}', b.title), 'success');
   };
 
   const list = bhajansByStaleness(state).filter((b) => !q || b.title.toLowerCase().includes(q.toLowerCase()));
@@ -57,7 +59,7 @@ export const BhajansTab: React.FC = () => {
         </p>
       </Card>
 
-      {list.length === 0 && <Empty text="No bhajans yet. Build the repertoire." />}
+      {list.length === 0 && <Empty text={t('suites.satsang.bhajans.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((b) => (
@@ -78,7 +80,7 @@ export const BhajansTab: React.FC = () => {
               <Btn variant="emerald" onClick={() => markSung(b.id)}>
                 ✓ <T en="Sung today" bn="আজ গাওয়া হয়েছে" hi="आज गाया" />
               </Btn>
-              <Btn variant="danger" onClick={() => { remove('bhajans', b.id); showToast('Bhajan removed.', 'info'); }}>
+              <Btn variant="danger" onClick={() => { remove('bhajans', b.id); showToast(t('suites.satsang.bhajans.toastRemoved'), 'info'); }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

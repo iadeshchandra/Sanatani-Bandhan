@@ -4,6 +4,7 @@ import { REG_KINDS } from './types';
 import { T, Card, Btn, Empty } from './ui';
 import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 
 /* Nyas One — reports: printable CA status report, 10BE donor CSV,
@@ -14,6 +15,7 @@ export const ReportsTab: React.FC = () => {
   const { state, exportJSON, importJSON, resetAll } = useNyas();
   const { treasury } = useData();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [fy, setFy] = useState(currentFY());
   const [printing, setPrinting] = useState(false);
 
@@ -49,7 +51,7 @@ export const ReportsTab: React.FC = () => {
   })();
 
   const export10BE = () => {
-    if (donorRows.length === 0) { showToast('No 80G-eligible donations in treasury for this FY.', 'warning'); return; }
+    if (donorRows.length === 0) { showToast(t('suites.nyas.reports.toastNo80G'), 'warning'); return; }
     download(
       `10BE-donors-FY${fy}.csv`,
       csv([
@@ -58,7 +60,7 @@ export const ReportsTab: React.FC = () => {
       ]),
       'text/csv'
     );
-    showToast(`Exported ${donorRows.length} donor rows for 10BE.`, 'success');
+    showToast(t('suites.nyas.reports.toastExported').replace('{count}', String(donorRows.length)), 'success');
   };
 
   const exportRegistrations = () =>
@@ -96,7 +98,7 @@ export const ReportsTab: React.FC = () => {
       const rd = new FileReader();
       rd.onload = () => {
         const ok = importJSON(String(rd.result || ''));
-        showToast(ok ? 'Backup restored.' : 'Invalid backup file.', ok ? 'success' : 'error');
+        showToast(ok ? t('suites.nyas.reports.toastRestored') : t('suites.nyas.reports.toastInvalidBackup'), ok ? 'success' : 'error');
       };
       rd.readAsText(f);
     };
@@ -166,7 +168,7 @@ export const ReportsTab: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             <Btn variant="ghost" onClick={backup}>💾 <T en="Backup" bn="ব্যাকআপ" hi="बैकअप" /></Btn>
             <Btn variant="ghost" onClick={restore}>📂 <T en="Restore" bn="পুনরুদ্ধার" hi="पुनर्स्थापना" /></Btn>
-            <Btn variant="danger" onClick={() => { if (window.confirm('Reset all Nyas One data for this workspace?')) { resetAll(); showToast('Reset to seed data.', 'success'); } }}>
+            <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.nyas.reports.confirmReset'))) { resetAll(); showToast(t('suites.nyas.reports.toastReset'), 'success'); } }}>
               <T en="Reset" bn="রিসেট" hi="रीसेट" />
             </Btn>
           </div>

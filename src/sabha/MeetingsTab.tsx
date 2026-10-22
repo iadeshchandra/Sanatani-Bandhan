@@ -3,6 +3,7 @@ import { useSabha, uid, todayISO, nextResolutionNo, activeMembers } from './sabh
 import { Meeting } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Meetings & resolutions — sabha meetings with agenda, minutes and   */
@@ -14,6 +15,7 @@ const emptyForm = { date: todayISO(), agenda: '', attendeeIds: [] as string[], m
 export const MeetingsTab: React.FC = () => {
   const { state, add, update, remove, setSettings } = useSabha();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [editing, setEditing] = useState<Meeting | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -34,7 +36,7 @@ export const MeetingsTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.agenda.trim()) { showToast('Please enter the agenda.', 'warning'); return; }
+    if (!form.agenda.trim()) { showToast(t('suites.sabha.meetings.toastNeedAgenda'), 'warning'); return; }
     let resolutionNo: string | undefined;
     let seq = state.settings.resolutionSeq;
     const wantsResolution = form.resolution.trim().length > 0;
@@ -52,8 +54,8 @@ export const MeetingsTab: React.FC = () => {
       resolution: form.resolution.trim() || undefined,
       resolutionNo,
     };
-    if (editing) { update('meetings', editing.id, base); showToast('Meeting updated.', 'success'); }
-    else { add('meetings', { id: uid('mt'), ...base, createdAt: Date.now() }); showToast('Meeting recorded.', 'success'); }
+    if (editing) { update('meetings', editing.id, base); showToast(t('suites.sabha.meetings.toastUpdated'), 'success'); }
+    else { add('meetings', { id: uid('mt'), ...base, createdAt: Date.now() }); showToast(t('suites.sabha.meetings.toastRecorded'), 'success'); }
     if (seq !== state.settings.resolutionSeq) setSettings({ resolutionSeq: seq });
     setForming(false);
   };
@@ -71,7 +73,7 @@ export const MeetingsTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No meetings yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.meetings.empty')} />}
 
       <div className="space-y-3">
         {list.map((m) => (
@@ -97,7 +99,7 @@ export const MeetingsTab: React.FC = () => {
             )}
             <div className="flex flex-wrap gap-2 mt-3 no-print">
               <Btn variant="ghost" onClick={() => openEdit(m)}><T en="Edit" bn="সম্পাদনা" hi="संपादित करें" /></Btn>
-              <Btn variant="danger" onClick={() => { if (window.confirm('Remove this meeting?')) { remove('meetings', m.id); showToast('Removed.', 'info'); } }}>
+              <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.meetings.confirmRemove'))) { remove('meetings', m.id); showToast(t('suites.sabha.common.toastRemoved'), 'info'); } }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>

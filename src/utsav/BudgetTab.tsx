@@ -92,7 +92,7 @@ export const BudgetTab: React.FC = () => {
           </h3>
           <Btn onClick={() => openNew(kind)}>＋ {t('ritual.common.add')}</Btn>
         </div>
-        {items.length === 0 && <Empty text={kind === 'income' ? 'No income heads yet.' : 'No expense heads yet.'} />}
+        {items.length === 0 && <Empty text={kind === 'income' ? t('ritual.utsav.budget.emptyIncomeHeads') : t('ritual.utsav.budget.emptyExpenseHeads')} />}
         <div className="space-y-2">
           {items.map((l) => (
             <div key={l.id} className="rounded-xl border border-stone-100 p-3">

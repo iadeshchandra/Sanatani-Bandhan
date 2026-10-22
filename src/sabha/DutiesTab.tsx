@@ -3,6 +3,7 @@ import { useSabha, uid, todayISO, activeMembers } from './sabhaStore';
 import { DutyAssignment, DutyStatus } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Festival duty roster — assign purohits to duties across member      */
@@ -16,6 +17,7 @@ const emptyForm = { festival: '', mandir: '', date: todayISO(), slot: '', member
 export const DutiesTab: React.FC = () => {
   const { state, add, update, remove } = useSabha();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [editing, setEditing] = useState<DutyAssignment | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -29,15 +31,15 @@ export const DutiesTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.festival.trim()) { showToast('Please enter the festival / occasion.', 'warning'); return; }
-    if (!form.memberId) { showToast('Please choose a purohit.', 'warning'); return; }
+    if (!form.festival.trim()) { showToast(t('suites.sabha.duties.toastNeedFestival'), 'warning'); return; }
+    if (!form.memberId) { showToast(t('suites.sabha.duties.toastNeedPurohit'), 'warning'); return; }
     const base = {
       festival: form.festival.trim(), mandir: form.mandir.trim() || undefined,
       date: form.date, slot: form.slot.trim() || undefined,
       memberId: form.memberId, status: form.status, notes: form.notes.trim() || undefined,
     };
-    if (editing) { update('duties', editing.id, base); showToast('Duty updated.', 'success'); }
-    else { add('duties', { id: uid('du'), ...base, createdAt: Date.now() }); showToast('Duty assigned.', 'success'); }
+    if (editing) { update('duties', editing.id, base); showToast(t('suites.sabha.duties.toastUpdated'), 'success'); }
+    else { add('duties', { id: uid('du'), ...base, createdAt: Date.now() }); showToast(t('suites.sabha.duties.toastAssigned'), 'success'); }
     setForming(false);
   };
 
@@ -59,7 +61,7 @@ export const DutiesTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No duties assigned yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.duties.empty')} />}
 
       <div className="space-y-2">
         {list.map((d) => {
@@ -74,13 +76,13 @@ export const DutiesTab: React.FC = () => {
                   </div>
                   {d.notes && <div className="text-xs text-stone-500 mt-1">{d.notes}</div>}
                 </div>
-                <button type="button" onClick={() => cycleStatus(d)} title="Tap to advance status" className="no-print">
+                <button type="button" onClick={() => cycleStatus(d)} title={t('suites.sabha.duties.hintAdvanceStatus')} className="no-print">
                   <StatusPill status={d.status} />
                 </button>
               </div>
               <div className="flex flex-wrap gap-2 mt-3 no-print">
                 <Btn variant="ghost" onClick={() => openEdit(d)}><T en="Edit" bn="সম্পাদনা" hi="संपादित करें" /></Btn>
-                <Btn variant="danger" onClick={() => { if (window.confirm('Remove this duty?')) { remove('duties', d.id); showToast('Removed.', 'info'); } }}>
+                <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.duties.confirmRemove'))) { remove('duties', d.id); showToast(t('suites.sabha.common.toastRemoved'), 'info'); } }}>
                   <T en="Remove" bn="মুছুন" hi="हटाएं" />
                 </Btn>
               </div>

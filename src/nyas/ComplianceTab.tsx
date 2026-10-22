@@ -3,6 +3,7 @@ import { useNyas, uid, daysUntil, currentFY, todayISO } from './nyasStore';
 import { COMPLIANCE_KINDS, ComplianceItem } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* Nyas One — compliance calendar: ITR-7, 10BD/10BE, audit, FCRA return, board meetings. */
 
@@ -13,6 +14,7 @@ const blank: Omit<ComplianceItem, 'id'> = {
 export const ComplianceTab: React.FC = () => {
   const { state, add, update, remove } = useNyas();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [editing, setEditing] = useState<ComplianceItem | null>(null);
   const [form, setForm] = useState(blank);
   const [fyFilter, setFyFilter] = useState<string>('all');
@@ -28,17 +30,17 @@ export const ComplianceTab: React.FC = () => {
   const save = () => {
     if (editing && editing.id) {
       update('compliance', editing.id, { ...form });
-      showToast('Compliance item updated.', 'success');
+      showToast(t('suites.nyas.compliance.toastUpdated'), 'success');
     } else {
       add('compliance', { ...form, id: uid('cp') });
-      showToast('Compliance item added.', 'success');
+      showToast(t('suites.nyas.compliance.toastAdded'), 'success');
     }
     setEditing(null);
   };
 
   const markDone = (c: ComplianceItem) => {
     update('compliance', c.id, { status: 'done', completedAt: todayISO() });
-    showToast(`"${c.customName || c.kind}" marked done.`, 'success');
+    showToast(t('suites.nyas.compliance.toastDone').replace('{name}', c.customName || c.kind), 'success');
   };
 
   const reopen = (c: ComplianceItem) => {
@@ -64,7 +66,7 @@ export const ComplianceTab: React.FC = () => {
         </div>
       </div>
 
-      {list.length === 0 && <Card><Empty text="No compliance items for this view. Add filings, audits and meetings." /></Card>}
+      {list.length === 0 && <Card><Empty text={t('suites.nyas.compliance.empty')} /></Card>}
 
       <div className="space-y-2">
         {list.map((c) => {
@@ -89,7 +91,7 @@ export const ComplianceTab: React.FC = () => {
                   {c.status !== 'done' && <Btn variant="ghost" onClick={() => markDone(c)}><T en="Mark done" bn="সম্পন্ন চিহ্নিত" hi="पूर्ण चिह्नित करें" /></Btn>}
                   {c.status === 'done' && <Btn variant="ghost" onClick={() => reopen(c)}><T en="Reopen" bn="পুনরায় খুলুন" hi="पुनः खोलें" /></Btn>}
                   <Btn variant="ghost" onClick={() => openEdit(c)}><T en="Edit" bn="সম্পাদনা" hi="संपादित" /></Btn>
-                  <button onClick={() => { remove('compliance', c.id); showToast('Removed.', 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px]" aria-label="Delete">✕</button>
+                  <button onClick={() => { remove('compliance', c.id); showToast(t('suites.nyas.common.toastRemoved'), 'success'); }} className="w-9 h-9 rounded-full bg-stone-100 hover:bg-red-100 text-stone-500 hover:text-red-600 font-bold min-w-[44px] min-h-[44px]" aria-label="Delete">✕</button>
                 </div>
               </div>
             </Card>

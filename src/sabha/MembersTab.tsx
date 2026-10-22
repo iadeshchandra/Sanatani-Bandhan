@@ -3,6 +3,7 @@ import { useSabha, uid, todayISO } from './sabhaStore';
 import { Member, SPECIALIZATIONS, SPEC_LABEL, TIER_LABEL, VerificationTier } from './types';
 import { T, Card, Btn, Field, inputCls, Modal, StatusPill, fmtDate, Empty } from './ui';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* Member directory — purohit members with specializations, experience */
@@ -20,6 +21,7 @@ const emptyForm = {
 export const MembersTab: React.FC = () => {
   const { state, add, update, remove } = useSabha();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [forming, setForming] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -47,7 +49,7 @@ export const MembersTab: React.FC = () => {
   };
 
   const save = () => {
-    if (!form.name.trim()) { showToast('Please enter the member\u2019s name.', 'warning'); return; }
+    if (!form.name.trim()) { showToast(t('suites.sabha.members.toastNeedName'), 'warning'); return; }
     const base = {
       name: form.name.trim(), phone: form.phone.trim() || undefined,
       specializations: form.specializations,
@@ -57,10 +59,10 @@ export const MembersTab: React.FC = () => {
     };
     if (editing) {
       update('members', editing.id, base);
-      showToast('Member updated.', 'success');
+      showToast(t('suites.sabha.members.toastUpdated'), 'success');
     } else {
       add('members', { id: uid('m'), ...base, createdAt: Date.now() });
-      showToast('Member added.', 'success');
+      showToast(t('suites.sabha.members.toastAdded'), 'success');
     }
     setForming(false);
   };
@@ -84,7 +86,7 @@ export const MembersTab: React.FC = () => {
         </div>
       </Card>
 
-      {list.length === 0 && <Empty text="No members yet." />}
+      {list.length === 0 && <Empty text={t('suites.sabha.members.empty')} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {list.map((m) => (
@@ -114,7 +116,7 @@ export const MembersTab: React.FC = () => {
               <Btn variant="ghost" onClick={() => { update('members', m.id, { active: !m.active }); }}>
                 {m.active ? <T en="Deactivate" bn="নিষ্ক্রিয়" hi="निष्क्रिय करें" /> : <T en="Activate" bn="সক্রিয়" hi="सक्रिय करें" />}
               </Btn>
-              <Btn variant="danger" onClick={() => { if (window.confirm('Remove this member?')) { remove('members', m.id); showToast('Member removed.', 'info'); } }}>
+              <Btn variant="danger" onClick={() => { if (window.confirm(t('suites.sabha.members.confirmRemove'))) { remove('members', m.id); showToast(t('suites.sabha.members.toastRemoved'), 'info'); } }}>
                 <T en="Remove" bn="মুছুন" hi="हटाएं" />
               </Btn>
             </div>
