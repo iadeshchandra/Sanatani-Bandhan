@@ -76,6 +76,10 @@ import {
 } from './data/summaryWriter';
 import { allowsSeedData } from '../lib/workspaceKind';
 import type { SampleRecordCounts } from '../lib/sampleData';
+import { auditRecorder } from './data/auditStore';
+import { resolveActorName } from '../bahikhata/bahikhataStore';
+import { assignReceiptNumber } from '../lib/receiptCoverage';
+import type { AuditChange, AuditEventInput } from '../lib/auditChain';
 
 
 // Master Initial Datasets
@@ -1897,6 +1901,72 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  // ----------------------------------------------------
+  // MASTER AUDIT STREAM (Blueprint A). Every committed mutation
+  // below — treasury (incl. Bahi-Khata reversals, which are
+  // compensating rows through addTreasuryTransaction), devotees,
+  // bookings, inventory, sample purge — reports ONE event to the
+  // recorder (./data/auditWriter.ts, adapter ./data/auditStore.ts,
+  // chain math src/lib/auditChain.ts), which appends it to the
+  // hash-chained `auditEvents` stream. The recorder never throws
+  // and never blocks a mutator; a failed audit write drops the
+  // event loudly and the chain head stays at the last landed event.
+  // ----------------------------------------------------
+  const auditActor = () => ({
+    // Rules bind actorUid to request.auth.uid, so the FIREBASE uid
+    // leads; currentUser.id is only a fallback (it can be a devotee
+    // doc id, which would fail the actor binding and drop events).
+    actorUid:
+      (firebaseUser as { uid?: string } | null)?.uid || currentUser?.id || '',
+    actorName: resolveActorName(
+      [
+        currentUser?.fullName,
+        currentUser?.name,
+        (firebaseUser as { displayName?: string } | null)?.displayName,
+      ],
+      currentUser?.email ||
+        (firebaseUser as { email?: string } | null)?.email
+    ),
+    actorRole: currentRole || '',
+  });
+
+  const noteAudit = (
+    input: Omit<
+      AuditEventInput,
+      'workspaceId' | 'actorUid' | 'actorName' | 'actorRole'
+    > & { workspaceId?: string }
+  ) => {
+    auditRecorder.record({
+      ...input,
+      workspaceId: input.workspaceId || currentWsId,
+      ...auditActor(),
+    });
+  };
+
+  /** Before/after digest for an edit: scalar fields only, and only
+   *  when the value actually changed (the auditChain prunes/maps
+   *  nothing itself — cheap and honest at the call site). */
+  const scalarChanges = (
+    oldObj: Record<string, unknown> | null | undefined,
+    updates: Record<string, unknown> | null | undefined,
+    fields: string[]
+  ): Record<string, AuditChange> | undefined => {
+    if (!oldObj || !updates) return undefined;
+    const changes: Record<string, AuditChange> = {};
+    for (const f of fields) {
+      if (!(f in updates)) continue;
+      const from = oldObj[f];
+      const to = updates[f];
+      if (String(from ?? '') === String(to ?? '')) continue;
+      const scalar = (v: unknown) =>
+        v === null || ['string', 'number', 'boolean'].includes(typeof v)
+          ? (v as string | number | boolean | null)
+          : String(v);
+      changes[f] = { from: scalar(from), to: scalar(to) };
+    }
+    return Object.keys(changes).length ? changes : undefined;
+  };
+
   // First-open backfill: once a workspace's initial payload resolves,
   // adopt its stored summary — or compute it once from the full set
   // (the in-memory ledger here; a one-time full read when windowed)
@@ -2283,6 +2353,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         allTreasury.filter((r) => !isSample(r))
       );
     }
+    // Audit stream: ONE event for the purge, carrying the exact
+    // per-collection counts — the seeded rows were samples, and the
+    // honest forensic record of their removal is the tally, not a
+    // fabricated per-row history for data that was never real.
+    noteAudit({
+      workspaceId,
+      action: 'sample.purged',
+      entityType: 'workspace',
+      entityId: workspaceId,
+      summaryKey: 'org.audit.history.samplePurged',
+      summaryParams: {
+        count: counts.total,
+        devotees: counts.devotees,
+        treasury: counts.treasury,
+      },
+    });
     return counts;
   };
 
@@ -2680,7 +2766,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDoc(doc(db, 'devotees', id), stripUndefinedDeep(persistableMember)).catch((err: any) => {
       console.warn('[Firestore sync] devotee write rejected — rolling back:', err?.message || err);
       setAllDevotees((prev) => prev.filter((d) => d.id !== id));
+      // Audit stream: record the revert alongside the create below.
+      noteAudit({
+        workspaceId: newMember.workspaceId,
+        action: 'devotee.reverted',
+        entityType: 'devotee',
+        entityId: id,
+        entityLabel: newMember.fullName,
+        summaryKey: 'org.audit.history.devoteeReverted',
+      });
       showToast(`${newMember.fullName} could NOT be saved — please check the connection and try again.`, 'error', 'Not Saved');
+    });
+
+    // Audit stream: the enrolment.
+    noteAudit({
+      workspaceId: newMember.workspaceId,
+      action: 'devotee.created',
+      entityType: 'devotee',
+      entityId: id,
+      entityLabel: newMember.fullName,
+      summaryKey: 'org.audit.history.devoteeCreated',
     });
 
     trackSignUp({ memberId: newMember.id, gotra: newMember.gotra || '', sevaTier: 'Devotee', workspaceType: activeWorkspace.type, workspaceId: activeWorkspace.id });
@@ -2697,6 +2802,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateDevotee = (id: string, updates: Partial<DevoteeMember>) => {
+    const oldDevotee = allDevotees.find((d) => d.id === id) || null;
     setAllDevotees((prev) =>
       prev.map((d, idx) => (d.id === id ? { ...d, ...updates } : d))
     );
@@ -2707,13 +2813,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pushToFirestore('devotees', id, safeUpdates, () => {
       showToast('Devotee update could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
     });
+    // Audit stream: the edit, with a scalar before/after digest. The
+    // plaintext `pin` is deliberately NOT among the digested fields.
+    noteAudit({
+      workspaceId: oldDevotee?.workspaceId || currentWsId,
+      action: 'devotee.updated',
+      entityType: 'devotee',
+      entityId: id,
+      entityLabel: updates.fullName || oldDevotee?.fullName,
+      summaryKey: 'org.audit.history.devoteeUpdated',
+      changes: scalarChanges(
+        oldDevotee as unknown as Record<string, unknown> | null,
+        safeUpdates,
+        ['fullName', 'phone', 'email', 'gotra', 'sevaTier', 'activeStatus', 'role', 'totalDonated']
+      ),
+    });
     showToast('Devotee record updated', 'success');
   };
 
   const deleteDevotee = (id: string) => {
+    const departing = allDevotees.find((d) => d.id === id) || null;
     setAllDevotees((prev) => prev.filter((d) => d.id !== id));
     deleteDoc(doc(db, 'devotees', id)).catch((err: any) => {
       console.warn('[Firestore sync] delete devotee offline or restricted:', err?.message || err);
+    });
+    // Audit stream: the removal — the record leaves the directory,
+    // its history stays on the stream.
+    noteAudit({
+      workspaceId: departing?.workspaceId || currentWsId,
+      action: 'devotee.deleted',
+      entityType: 'devotee',
+      entityId: id,
+      entityLabel: departing?.fullName,
+      summaryKey: 'org.audit.history.devoteeDeleted',
     });
     showToast('Member removed from directory', 'info');
   };
@@ -2805,14 +2937,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // it wins; otherwise we fall back to the window (flagged via
     // receiptSeqDegraded — the same guarantee class as today's
     // cross-device race, never silently presented as exact).
-    const cached80GSeq =
+    const cachedNextSeq =
       collectionWindows.treasury.windowed && receiptSeqCache && receiptSeqCache.year === year
-        ? receiptSeqCache['SB-80G'] + 1
+        ? {
+            'SB-80G': receiptSeqCache['SB-80G'] + 1,
+            'SB-CHANDA': receiptSeqCache['SB-CHANDA'] + 1,
+          }
         : null;
-    const autoReceipt = tx.is80GEligible
-      ? formatReceiptNumber('SB-80G', year, cached80GSeq ?? nextReceiptSeq(existingNumbers, 'SB-80G', year))
-      : undefined;
-    const assignedReceipt = tx.taxReceiptNumber || autoReceipt;
+    // Blueprint A — 100% donation receipts: the assignment law lives
+    // in lib/receiptCoverage (pure, coverage-tested). Caller-provided
+    // number wins; 80G-eligible income takes the SB-80G series; every
+    // other DONOR-ATTACHED income record takes an SB-CHANDA number
+    // (adopting a parseable SB number the caller printed into
+    // referenceNo — the POS print-first flow); anonymous income and
+    // expenses honestly get NO number. Before this, only 80G or
+    // caller-numbered records carried a receipt number at all.
+    const assignedReceipt = assignReceiptNumber(
+      tx,
+      existingNumbers,
+      year,
+      cachedNextSeq
+    );
     // Keep the prefetch cache at the true maximum once a number is
     // assigned (auto or caller-provided, e.g. the POS print-first flow).
     if (assignedReceipt) {
@@ -2868,6 +3013,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { kind: 'delete', tx: newTx },
         allTreasury.filter((t) => t.id !== id)
       );
+      // Audit stream: the create reported below did not persist —
+      // the stream records the revert too, so the history of this
+      // record tells the whole truth.
+      noteAudit({
+        workspaceId: wsId,
+        action: 'treasury.reverted',
+        entityType: 'treasury',
+        entityId: id,
+        entityLabel: newTx.devoteeName || newTx.vendorName || newTx.category,
+        summaryKey: 'org.audit.history.treasuryReverted',
+        amount: newTx.amount,
+      });
       showToast('That voucher could NOT be saved — it has been removed from the ledger. Please retry.', 'error', 'Not Saved');
     });
 
@@ -2880,6 +3037,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       { kind: 'create', tx: newTx },
       [newTx, ...allTreasury]
     );
+
+    // Audit stream: one event per committed row. Bahi-Khata reversal
+    // rows (compensating entries from an undo) are recognisable by
+    // their paymentMode / category and get their own action, so the
+    // stream distinguishes new money from a correction.
+    const isReversalTx =
+      tx.paymentMode === 'Reversal' || (tx.category || '').startsWith('Reversal');
+    noteAudit({
+      workspaceId: wsId,
+      action: isReversalTx ? 'treasury.reversed' : 'treasury.created',
+      entityType: 'treasury',
+      entityId: id,
+      entityLabel: tx.devoteeName || tx.vendorName || tx.category,
+      summaryKey: isReversalTx
+        ? 'org.audit.history.treasuryReversed'
+        : tx.type === 'Income'
+          ? 'org.audit.history.treasuryIncome'
+          : 'org.audit.history.treasuryExpense',
+      summaryParams: { category: tx.category },
+      amount: tx.amount,
+    });
 
     if (tx.type === 'Income') {
       trackTreasuryPurchase({
@@ -2984,6 +3162,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { kind: 'update', oldTx, newTx: { ...oldTx, ...updates } },
         postSet
       );
+      // Audit stream: the edit, with a scalar before/after digest.
+      noteAudit({
+        workspaceId: oldTx.workspaceId || currentWsId,
+        action: 'treasury.updated',
+        entityType: 'treasury',
+        entityId: id,
+        entityLabel: oldTx.devoteeName || oldTx.vendorName || oldTx.category,
+        summaryKey: 'org.audit.history.treasuryUpdated',
+        amount: updates.amount ?? oldTx.amount,
+        changes: scalarChanges(
+          oldTx as unknown as Record<string, unknown>,
+          updates as unknown as Record<string, unknown>,
+          ['amount', 'category', 'date', 'paymentMode', 'devoteeName', 'purpose', 'is80GEligible', 'taxReceiptNumber']
+        ),
+      });
     }
   };
 
@@ -3008,6 +3201,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateInventoryStock = (id: string, newStock: number) => {
+    const oldItem = allInventory.find((item) => item.id === id) || null;
     setAllInventory((prev) =>
       prev.map((item, idx) =>
         item.id === id
@@ -3015,6 +3209,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : item
       )
     );
+    // Audit stream: the stock move, from → to in the summary params.
+    noteAudit({
+      workspaceId: oldItem?.workspaceId || currentWsId,
+      action: 'inventory.stockUpdated',
+      entityType: 'inventory',
+      entityId: id,
+      entityLabel: oldItem?.itemName,
+      summaryKey: 'org.audit.history.inventoryStock',
+      summaryParams: { from: oldItem?.currentStock ?? '', to: newStock },
+      changes: scalarChanges(
+        oldItem as unknown as Record<string, unknown> | null,
+        { currentStock: newStock } as Record<string, unknown>,
+        ['currentStock']
+      ),
+    });
     showToast('Inventory stock balance updated', 'success');
   };
 
@@ -3035,6 +3244,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...demoTtlFields(item.workspaceId || activeWorkspace.id),
     };
     setAllInventory((prev) => [newInv, ...prev]);
+    // Audit stream: the new store item.
+    noteAudit({
+      workspaceId: newInv.workspaceId,
+      action: 'inventory.created',
+      entityType: 'inventory',
+      entityId: id,
+      entityLabel: item.itemName,
+      summaryKey: 'org.audit.history.inventoryCreated',
+    });
     showToast(`Item "${item.itemName}" added to store`, 'success');
     return true;
   };
@@ -3068,7 +3286,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDoc(doc(db, 'puja_bookings', id), stripUndefinedDeep(newBooking)).catch((err: any) => {
       console.warn('[Firestore sync] pooja booking write rejected — rolling back:', err?.message || err);
       setAllPoojaBookings((prev) => prev.filter((b) => b.id !== id));
+      // Audit stream: the revert, alongside the create below.
+      noteAudit({
+        workspaceId: newBooking.workspaceId,
+        action: 'booking.reverted',
+        entityType: 'booking',
+        entityId: id,
+        entityLabel: booking.poojaName,
+        summaryKey: 'org.audit.history.bookingReverted',
+      });
       showToast('That booking could NOT be saved — please retry.', 'error', 'Not Saved');
+    });
+
+    // Audit stream: the booking (its auto-posted dakshina voucher is
+    // a separate treasury event through addTreasuryTransaction).
+    noteAudit({
+      workspaceId: newBooking.workspaceId,
+      action: 'booking.created',
+      entityType: 'booking',
+      entityId: id,
+      entityLabel: booking.poojaName,
+      summaryKey: 'org.audit.history.bookingCreated',
+      summaryParams: { devotee: booking.devoteeName },
+      amount: booking.dakshinaAmount,
     });
 
     // Automatically log to treasury ledger
@@ -3091,6 +3331,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updatePoojaStatus = (id: string, status: PoojaBooking['status'], additionalUpdates?: Partial<PoojaBooking>) => {
+    const oldBooking = allPoojaBookings.find((b) => b.id === id) || null;
     setAllPoojaBookings((prev) =>
       prev.map((b, idx) => (b.id === id ? { ...b, status, ...additionalUpdates } : b))
     );
@@ -3098,16 +3339,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pushToFirestore('puja_bookings', id, { status, ...(additionalUpdates || {}) }, () => {
       showToast('Pooja status could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
     });
+    // Audit stream: the status move, from → to on the digest.
+    noteAudit({
+      workspaceId: oldBooking?.workspaceId || currentWsId,
+      action: 'booking.statusChanged',
+      entityType: 'booking',
+      entityId: id,
+      entityLabel: oldBooking?.poojaName,
+      summaryKey: 'org.audit.history.bookingStatus',
+      summaryParams: { to: status },
+      changes: scalarChanges(
+        oldBooking as unknown as Record<string, unknown> | null,
+        { status, ...(additionalUpdates || {}) } as Record<string, unknown>,
+        ['status', 'priestAssigned', 'bookingDate', 'timeSlot']
+      ),
+    });
     showToast(`Pooja status updated to ${status}`, 'success');
   };
 
   const updatePoojaLiveUrl = (id: string, url: string) => {
+    const oldBooking = allPoojaBookings.find((b) => b.id === id) || null;
     setAllPoojaBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, liveStreamUrl: url } : b))
     );
     // QUEUED #45: persist — previously local-only (reverted on re-entry).
     pushToFirestore('puja_bookings', id, { liveStreamUrl: url }, () => {
       showToast('Live stream link could NOT be saved — check the connection and retry.', 'error', 'Not Saved');
+    });
+    // Audit stream: the live-link change.
+    noteAudit({
+      workspaceId: oldBooking?.workspaceId || currentWsId,
+      action: 'booking.updated',
+      entityType: 'booking',
+      entityId: id,
+      entityLabel: oldBooking?.poojaName,
+      summaryKey: 'org.audit.history.bookingUpdated',
     });
     showToast('🔴 Live stream link saved — devotees can now watch.', 'success');
   };

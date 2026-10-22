@@ -29,6 +29,7 @@ import {
   ShieldCheck, Receipt,
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
+import { TransparencyBoard } from '../components/audit/TransparencyBoard';
 import { OrgEventManager } from '../org/OrgEventManager';
 import { OrgAnnouncementsSection } from '../org/OrgBroadcastManager';
 import type { OrgEventItem } from '../org/eventBridge';
@@ -792,6 +793,10 @@ export const OrgPublicPage: React.FC = () => {
         onSaveEvents={handleSaveEvents}
         onSaveAartiSchedules={handleSaveAartiSchedules}
       />
+      {/* Transparency Board (Blueprint A): trustee-published monthly
+          accounts. Renders only when the org has published at least
+          one month — nothing is public until published. */}
+      <TransparencyBoard workspaceId={page.orgId} orgName={page.name} />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />
       )}

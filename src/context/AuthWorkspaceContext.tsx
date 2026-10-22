@@ -8,6 +8,7 @@ import { useInitialData } from './AppInitializer';
 import { get, set, del } from 'idb-keyval';
 import { generateSecureQRToken as buildSecureQRToken } from '../utils/qrUtils';
 import { resolveActorName } from '../bahikhata/bahikhataStore';
+import { auditRecorder } from './data/auditStore';
 import { activationForCreatedWorkspace } from '../lib/workspaceActivation';
 import { resolveEdgeRole, personaHomeModule } from '../lib/landingSurface';
 import { isModuleAllowedForOrgMount, resolveOrgModuleId } from '../lib/workspaceRegistry';
@@ -982,6 +983,26 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     setWorkspaces((prev) =>
       prev.map((w) => (w.id === activeWorkspaceId ? { ...w, ...updates } : w))
     );
+    // Blueprint A: workspace-settings changes join the master audit
+    // stream. This is the single choke point every settings save
+    // flows through (MasterSettingsDesk, module enablement, branding)
+    // — one hook covers them all. The recorder fail-opens: a failed
+    // audit write never affects the settings change itself.
+    auditRecorder.record({
+      workspaceId: activeWorkspaceId,
+      actorUid: user?.uid || '',
+      actorName: resolveActorName(
+        [currentDevotee?.fullName, user?.displayName],
+        user?.email
+      ),
+      actorRole: role || currentRole || '',
+      action: 'settings.updated',
+      entityType: 'settings',
+      entityId: activeWorkspaceId,
+      entityLabel: activeWorkspace?.name,
+      summaryKey: 'org.audit.history.settingsUpdated',
+      summaryParams: { fields: Object.keys(updates).join(', ') },
+    });
   };
 
   const switchRole = (newRole: UserRole) => {

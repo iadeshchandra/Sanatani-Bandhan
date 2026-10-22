@@ -46,6 +46,7 @@ import { SampleBadge } from '../common/SampleBadge';
 import { isSampleRecord } from '../../lib/sampleData';
 import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
+import { RecordHistory } from '../audit/RecordHistory';
 import { useScopedData } from '../../hooks/useScopedData';
 import { DevoteeMember, SevaTier, UserRole } from '../../types';
 import { exportToCSV } from '../../utils/csvEngine';
@@ -123,7 +124,7 @@ export const DevoteeGrid: React.FC = () => {
   const { showToast, confirm } = useToast();
 
   const taxonomy = useWorkspaceTaxonomy();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
 
   // F-MEM-4 (scale): simple pagination — the directory renders ~24 cards per
   // page instead of the entire filtered list (600 members = 600 DOM cards).
@@ -1357,6 +1358,14 @@ export const DevoteeGrid: React.FC = () => {
               >
                 <Activity className="w-4 h-4" /> Engagement Timeline
               </button>
+              {/* Blueprint A: the record's audit history — who enrolled,
+                  edited or removed this member, from the master stream. */}
+              <button
+                onClick={() => setDetailTab('history' as any)}
+                className={`py-3 px-4 whitespace-nowrap text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${detailTab === 'history' as any ? 'border-saffron-500 text-saffron-600' : 'border-transparent text-temple-600 hover:text-temple-700'}`}
+              >
+                <History className="w-4 h-4" /> {t('org.audit.history.title')}
+              </button>
             </div>
             {/* Body */}
             <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
@@ -1632,6 +1641,18 @@ export const DevoteeGrid: React.FC = () => {
                     <div className="text-center text-temple-500 py-8">No activity recorded yet.</div>
                   )}
                 </div>
+              )}
+
+              {/* Blueprint A: audit history of THIS member record —
+                  enrolment, edits, removal — from the master stream. */}
+              {detailTab === 'history' as any && (
+                <RecordHistory
+                  workspaceId={activeWorkspace.id}
+                  entityType="devotee"
+                  entityId={selectedDevotee.id}
+                  tone="light"
+                  showTitle={false}
+                />
               )}
 
             </div>

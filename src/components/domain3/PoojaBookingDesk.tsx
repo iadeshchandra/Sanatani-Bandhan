@@ -27,6 +27,7 @@ import {
   BadgeCheck,
   Phone,
   RefreshCw,
+  History,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -39,6 +40,7 @@ import { GoLiveButton } from '../../darshan/GoLiveButton';
 import { shouldShowGoLive, toDarshanLang } from '../../darshan/goLiveMount';
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
+import { RecordHistory } from '../audit/RecordHistory';
 import { CameraScanner } from '../common/CameraScanner';
 import { calculateDailyPanchang, PanchangData } from '../../utils/panchang';
 import { generatePoojaSankalpPDF } from '../../utils/pdfGenerator';
@@ -157,6 +159,8 @@ export const PoojaBookingDesk: React.FC = () => {
 
   // Cancellation Modal state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  // Blueprint A: per-booking audit history modal.
+  const [historyBookingId, setHistoryBookingId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState('');
   const [cancellationReason, setCancellationReason] = useState('');
 
@@ -663,6 +667,7 @@ export const PoojaBookingDesk: React.FC = () => {
                           key={booking.id}
                           booking={booking}
                           onPrintSankalp={() => handlePrintSankalp(booking)}
+                          onHistory={() => setHistoryBookingId(booking.id)}
                           onUpdateStatus={(status) => updatePoojaStatus(booking.id, status)}
                           onCancel={() => {
                             setCancellingId(booking.id);
@@ -706,6 +711,7 @@ export const PoojaBookingDesk: React.FC = () => {
                         key={booking.id}
                         booking={booking}
                         onPrintSankalp={() => handlePrintSankalp(booking)}
+                          onHistory={() => setHistoryBookingId(booking.id)}
                         onUpdateStatus={(status) => updatePoojaStatus(booking.id, status)}
                         onCancel={() => {
                           setCancellingId(booking.id);
@@ -726,6 +732,7 @@ export const PoojaBookingDesk: React.FC = () => {
                   key={booking.id}
                   booking={booking}
                   onPrintSankalp={() => handlePrintSankalp(booking)}
+                          onHistory={() => setHistoryBookingId(booking.id)}
                   onUpdateStatus={(status) => updatePoojaStatus(booking.id, status)}
                   onCancel={() => {
                     setCancellingId(booking.id);
@@ -1287,6 +1294,32 @@ export const PoojaBookingDesk: React.FC = () => {
         </div>
       )}
 
+      {/* Record History Modal — Blueprint A: who booked, confirmed,
+          completed or cancelled this ritual, from the audit stream. */}
+      {historyBookingId && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
+              <h4 className="font-bold text-xs">{t('org.audit.history.title')}</h4>
+              <button
+                type="button"
+                onClick={() => setHistoryBookingId(null)}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-400 hover:text-temple-100"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <RecordHistory
+              workspaceId={activeWorkspace.id}
+              entityType="booking"
+              entityId={historyBookingId}
+              showTitle={false}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Cancellation Modal */}
       {cancelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
@@ -1368,7 +1401,8 @@ const RosterBookingCard: React.FC<{
   onPrintSankalp: () => void;
   onUpdateStatus: (status: 'Confirmed' | 'Completed' | 'In-Progress') => void;
   onCancel: () => void;
-}> = ({ booking, onPrintSankalp, onUpdateStatus, onCancel }) => {
+  onHistory?: () => void;
+}> = ({ booking, onPrintSankalp, onUpdateStatus, onCancel, onHistory }) => {
   const inr = useInr();
   // Pre-existing i18n gap (QR-agent commit): module-level card used parent-scope
   // `t` — wire the hook locally so tsc is clean.
@@ -1462,6 +1496,19 @@ const RosterBookingCard: React.FC<{
             <Printer className="w-3.5 h-3.5" />
             <span>{t('ritual.pooja.sankalpSlip')}</span>
           </button>
+
+          {/* Record history — Blueprint A master audit stream */}
+          {onHistory && (
+            <button
+              type="button"
+              onClick={onHistory}
+              title={t('org.audit.history.title')}
+              className="px-2.5 py-1.5 rounded-xl bg-temple-900 hover:bg-temple-800 text-temple-200 border border-temple-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>{t('org.audit.history.button')}</span>
+            </button>
+          )}
 
           {/* Status Progression */}
           {booking.status !== 'Completed' && booking.status !== 'Cancelled' && (

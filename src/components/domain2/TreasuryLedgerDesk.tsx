@@ -66,6 +66,8 @@ import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
 import { TreasuryTransaction } from '../../types';
 import { generateTaxReceiptPDF, generateTreasuryLedgerPDF } from '../../utils/pdfGenerator';
+import { receiptCoverageFor } from '../../lib/receiptCoverage';
+import { RecordHistory } from '../audit/RecordHistory';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { useToast } from '../../context/ToastContext';
 import { compressExpenseMemo } from '../../utils/imageCompression';
@@ -342,6 +344,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   // Modals State
   const [showVoucherModal, setShowVoucherModal] = useState(false);
   const [selectedMemoUrl, setSelectedMemoUrl] = useState<string | null>(null);
+  // Blueprint A: per-record history (master audit stream) for one voucher.
+  const [historyTxId, setHistoryTxId] = useState<string | null>(null);
 
   // New Voucher Form State
   const [voucherType, setVoucherType] = useState<'Income' | 'Expense'>('Expense');
@@ -1427,6 +1431,22 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                             {tx.taxReceiptNumber || tx.referenceNo || tx.id}
                           </p>
                           <p className="text-[10px] text-temple-500">{tx.id}</p>
+                          {/* Blueprint A — receipt coverage, stated
+                              honestly per row: a donor-attached income
+                              record with no number is a legacy gap
+                              (never silently back-filled); an income
+                              record with no donor is anonymous and
+                              honestly carries no receipt. */}
+                          {isIncome && receiptCoverageFor(tx) === 'missing' && (
+                            <p className="text-[9px] font-sans font-bold text-amber-500 mt-0.5">
+                              {t('org.audit.receipts.noReceiptNo')}
+                            </p>
+                          )}
+                          {isIncome && receiptCoverageFor(tx) === 'anonymous' && (
+                            <p className="text-[9px] font-sans text-temple-500 mt-0.5">
+                              {t('org.audit.receipts.anonymousNoReceipt')}
+                            </p>
+                          )}
                         </td>
 
                         {/* Transaction Type Badge */}
@@ -1516,6 +1536,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                               </button>
                             )}
 
+                            {/* Record history — Blueprint A master audit stream */}
+                            <button
+                              type="button"
+                              onClick={() => setHistoryTxId(tx.id)}
+                              className="px-2 py-1 rounded-lg bg-temple-800 hover:bg-temple-750 text-temple-200 hover:text-white border border-temple-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+                              title={t('org.audit.history.title')}
+                            >
+                              <span>{t('org.audit.history.button')}</span>
+                            </button>
+
                             {/* Thermal print slip */}
                             <button
                               type="button"
@@ -1603,6 +1633,32 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 alt="Payment Memo"
                 className="rounded-xl w-full max-h-96 object-contain border border-temple-800"
                 referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* RECORD HISTORY MODAL — Blueprint A: who did what to this
+            voucher, from the hash-chained audit stream. */}
+        {historyTxId && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
+            <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
+                <h4 className="font-bold text-xs">{t('org.audit.history.title')}</h4>
+                <button
+                  type="button"
+                  onClick={() => setHistoryTxId(null)}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-400 hover:text-temple-100"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <RecordHistory
+                workspaceId={activeWorkspace.id}
+                entityType="treasury"
+                entityId={historyTxId}
+                showTitle={false}
               />
             </div>
           </div>
