@@ -86,14 +86,21 @@ export const AskButton: React.FC = () => {
     };
   }, []);
 
-  // Solo-only: the assistant is a devotee aid, and the solo shell is the only
-  // layout whose bottom-left zone has been verified clash-free.
+  // The FAB stays SOLO-only: the solo shell is the only layout whose
+  // bottom-left zone has been verified clash-free (the org view's
+  // bottom-left belongs to TawkTo on desktop).
+  // Blueprint C: the SHEET (and its named-door listener) now also
+  // mounts for ORG sessions — the org entry is the "🙏 Ask" header
+  // button in OrgSpaceShell, which dispatches ASSISTANT_OPEN_EVENT.
+  // No floating element is added to the org layout.
   // Form routes: never float over a focused form (QUEUED #41).
-  if (!isAuthenticated || sessionKind !== 'solo' || FORM_ROUTES.includes(pathname)) return null;
+  if (!isAuthenticated || FORM_ROUTES.includes(pathname)) return null;
+  const showFab = sessionKind === 'solo';
+  if (!showFab && sessionKind !== 'org') return null;
 
   return (
     <>
-      {!open && (
+      {showFab && !open && (
         <div
           aria-hidden={scrolling}
           className={`fixed left-5 z-[9980] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:left-[260px] md:bottom-5 flex flex-col items-center gap-1.5 transition-all duration-200 ${

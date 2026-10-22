@@ -5,6 +5,7 @@ import { useMembership } from '../../context/MembershipContext';
 import { useToast } from '../../context/ToastContext';
 import { provisionalSoloProfile } from '../../solo/soloSession';
 import { NotificationBell } from '../../notifications/NotificationBell';
+import { ASSISTANT_OPEN_EVENT } from '../../ai/components/AskButton';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
 import { useLiveNotifications } from '../../notifications/useLiveNotifications';
 import {
@@ -302,6 +303,22 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
               )}
             </nav>
           </div>
+          {/* Blueprint C: the org copilot's named door — dispatches
+              the same ASSISTANT_OPEN_EVENT the solo Profile row uses;
+              AskButton mounts the sheet for org sessions (no FAB is
+              added to the org layout). */}
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent(ASSISTANT_OPEN_EVENT))
+            }
+            aria-label="Ask the assistant"
+            title="Ask the assistant"
+            className="shrink-0 min-w-[44px] min-h-[44px] px-2.5 rounded-xl bg-amber-500/90 hover:bg-amber-400 text-amber-950 flex items-center justify-center gap-1 text-sm font-black border border-amber-300/40 transition-colors"
+          >
+            <span aria-hidden className="text-base leading-none">🙏</span>
+            <T en="Ask" bn="জিজ্ঞাসা" hi="पूछें" />
+          </button>
           {/* QUEUED #50 (D8): org Suchana bell — every width, this org only. */}
           <div className="relative shrink-0">
             <NotificationBell

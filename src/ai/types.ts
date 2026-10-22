@@ -14,6 +14,7 @@ export type Role =
   | 'priest'
   | 'accountant'
   | 'trustee'
+  | 'auditor'
   | 'purohit'
   | 'jyotish'
   | 'owner';
@@ -36,6 +37,13 @@ export type IntentId =
   | 'nearby_temples'
   | 'greeting'
   | 'fallback_unknown'
+  | 'org_giving'
+  | 'org_expenses'
+  | 'org_pending_approvals'
+  | 'priest_schedule'
+  | 'record_donation'
+  | 'record_expense'
+  | 'draft_notice'
   | 'admin_briefing'
   | 'admin_stats'
   | 'admin_moderation_help'
@@ -66,6 +74,15 @@ export interface AssistantCtx {
   role: Role;
   /** All roles held (sessions are mutually exclusive, but keep the door open). */
   roles?: Role[];
+  /**
+   * Blueprint C — the caller-scoped org context (ai/org/port.ts).
+   * Present ONLY in org sessions; built by the host from the real
+   * membership edge. Org executors fail closed without it, and the
+   * port inside it can serve only the one workspace it was built
+   * for — the role/scope it carries come from the session, never
+   * from user text.
+   */
+  org?: import('./org/port').OrgAssistantContext;
 }
 
 /** Machine-readable follow-up the host UI may act on. */
@@ -75,12 +92,18 @@ export interface AssistantAction {
   target: string;
 }
 
-export type ResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent';
+export type ResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent' | 'draft';
 
 export interface AssistantResponse {
   type: ResponseType;
   /** Fully rendered, Sanatani-vibed text. Never blank (fallback chain enforced). */
   text: string;
+  /**
+   * Blueprint C — a DRAFT produced by a write intent (type 'draft').
+   * The draft is inert data: nothing is committed until the host's
+   * preview card gets an Approve tap and calls commitDraft.ts.
+   */
+  draft?: import('./org/drafts').CopilotDraft;
   action?: AssistantAction;
   /** Follow-up chips the UI may render as tappable suggestions. */
   suggestions?: string[];
@@ -154,6 +177,8 @@ export interface TaskCtx {
   input: string;
   /** Slots captured by the router (e.g. { destination: 'profile' }). */
   slots: Record<string, string>;
+  /** Blueprint C — caller-scoped org context (see AssistantCtx.org). */
+  org?: import('./org/port').OrgAssistantContext;
 }
 
 /** Params handed to the template renderer. String/number for text
@@ -193,6 +218,12 @@ export interface TaskOutcome {
   strictNumbers?: boolean;
   /** Numeric values allowed in the text beyond the claims (strict mode). */
   extraNumbers?: number[];
+  /**
+   * Blueprint C — a draft produced by a write intent. The pipeline
+   * turns the response into type 'draft'; the host renders the
+   * preview card. Executors that set this have committed NOTHING.
+   */
+  draft?: import('./org/drafts').CopilotDraft;
 }
 
 export type TaskExecutor = (ctx: TaskCtx) => TaskOutcome | Promise<TaskOutcome>;

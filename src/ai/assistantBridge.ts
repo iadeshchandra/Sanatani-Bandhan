@@ -28,12 +28,18 @@ export interface AssistantAction {
   label?: string;
 }
 
-export type AssistantResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent';
+export type AssistantResponseType = 'answer' | 'action' | 'clarify' | 'escalate' | 'sos' | 'location_consent' | 'draft';
 
 export interface AssistantResponse {
   type: AssistantResponseType;
   /** Renderer-only text — the core never invents facts; the UI never does either. */
   text: string;
+  /**
+   * Blueprint C — an inert draft from a write intent (type 'draft').
+   * Nothing is committed until the preview card's Approve tap calls
+   * ai/org/commitDraft.ts — the bridge only carries the data.
+   */
+  draft?: import('./org/drafts').CopilotDraft;
   action?: AssistantAction;
   /** Follow-up chips rendered under the message. */
   suggestions?: string[];
@@ -44,6 +50,13 @@ export interface AssistantContext {
   lang: string;
   region: string;
   role: string | null;
+  /**
+   * Blueprint C — caller-scoped org context (org sessions only).
+   * Built by the sheet from the session's membership edge; the core
+   * forwards it to org executors, whose port serves exactly one
+   * workspace: the caller's.
+   */
+  org?: import('./org/port').OrgAssistantContext;
 }
 
 export type AskFn = (input: string, ctx: AssistantContext) => Promise<AssistantResponse>;

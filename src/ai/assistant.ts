@@ -50,6 +50,11 @@ import { TASKS } from './tasks/index';
 
 /** Map an intent (+ executor outcome) to the response type. */
 function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string): ResponseType {
+  // Blueprint C — draft outcomes and their clarifying variants.
+  if (variant === 'draft_ready' || variant === 'draft_gated') return 'draft';
+  if (variant === 'need_amount' || variant === 'need_details' || variant === 'clarify') {
+    return 'clarify';
+  }
   if (intent === 'fallback_unknown' && variant === 'dharma') return 'escalate';
   if (intent === 'dharma_question' && variant === 'escalate') return 'escalate';
   if (intent === 'nearby_temples' && variant === 'consent') return 'location_consent';
@@ -162,6 +167,10 @@ export async function ask(
     role,
     input: text,
     slots: route.slots,
+    // Blueprint C — the host-built caller scope. The pipeline only
+    // forwards it; role and workspace inside it come from the
+    // session (membership edge), never from the user's text.
+    ...(ctx.org ? { org: ctx.org } : {}),
   };
   const outcome = await TASKS[route.intent](taskCtx);
 
@@ -184,8 +193,28 @@ export async function ask(
     action: outcome.action,
     suggestions,
     data: outcome.params,
+    // Blueprint C — a draft outcome rides the response as inert data.
+    // The pipeline commits NOTHING here: no services exist in this
+    // layer. Only the sheet's Approve tap (commitDraft.ts) writes.
+    ...(outcome.draft ? { draft: outcome.draft } : {}),
   };
-  const enhanced = await maybeEnhanceWithVoice(base, lang, region);
+  // Blueprint C — org answers are NEVER voice-rephrased: their
+  // figures and provenance lines must reach the user exactly as the
+  // executor computed them (answer-hygiene law), and a draft's
+  // summary line must match the preview card word for word.
+  const ORG_INTENTS: ReadonlySet<string> = new Set([
+    'org_giving',
+    'org_expenses',
+    'org_pending_approvals',
+    'priest_schedule',
+    'record_donation',
+    'record_expense',
+    'draft_notice',
+  ]);
+  const enhanced =
+    outcome.draft || ORG_INTENTS.has(route.intent)
+      ? base
+      : await maybeEnhanceWithVoice(base, lang, region);
 
   // 6.5 QUEUED #36 — self-verification (owner answers with cited
   //     figures only). Every figure the executor claimed is re-checked

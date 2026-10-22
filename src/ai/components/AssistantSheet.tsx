@@ -24,6 +24,19 @@ import {
   markNudgeShown,
   shouldShowNudge,
 } from '../voice/storage';
+/* Blueprint C — org copilot: caller scope, task cards, drafts.
+ * The write machinery (approvalsStore, broadcastService, commitDraft)
+ * is loaded LAZILY at gesture time below — solo users never download
+ * it, and the main chunk stays inside the PWA precache budget. */
+import { useMembership } from '../../context/MembershipContext';
+import { useData } from '../../context/DataContext';
+import { useInr } from '../../hooks/useWorkspaceInr';
+import { effectiveDeskScope, membershipEffectiveRole } from '../../lib/membershipAccess';
+import { buildOrgPort, type HostApprovalRow } from '../org/hostPort';
+import type { CallerScope, OrgAssistantContext } from '../org/port';
+import { cardLabel, cardPrompt, taskCardsFor, type CopilotTaskCard } from '../org/cards';
+import { draftNeedsApproval, draftPreviewLines, type CopilotDraft } from '../org/drafts';
+import type { CopilotCommitServices } from '../org/commitDraft';
 
 /* ai/components/AssistantSheet.tsx — the devotee's chat with the assistant.
  * =====================================================================
@@ -170,6 +183,212 @@ const LocationConsentCard: React.FC<{
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* Blueprint C — per-role task cards + draft preview                    */
+/* ------------------------------------------------------------------ */
+
+type DraftStatus = 'pending' | 'busy' | 'done' | 'filed' | 'rejected' | 'error';
+
+const TaskCardsGrid: React.FC<{
+  cards: CopilotTaskCard[];
+  lang: string;
+  onPick: (prompt: string) => void;
+}> = ({ cards, lang, onPick }) => (
+  <div className="mt-4 grid grid-cols-2 gap-2 max-w-md mx-auto">
+    {cards.map((card) => (
+      <button
+        key={card.id}
+        type="button"
+        onClick={() => onPick(cardPrompt(card, lang))}
+        className="min-h-[56px] px-3.5 py-2.5 rounded-2xl border border-amber-200 bg-amber-50/70 text-amber-900 text-sm font-bold hover:bg-amber-100 transition-colors text-left flex items-center gap-2"
+      >
+        <span className="text-xl shrink-0" aria-hidden>
+          {card.icon}
+        </span>
+        <span className="leading-snug">{cardLabel(card, lang)}</span>
+      </button>
+    ))}
+  </div>
+);
+
+/**
+ * DraftPreviewCard — the ONLY commit surface for copilot writes.
+ * Shows the draft's exact fields (draftPreviewLines), lets the user
+ * edit the cheap fields in place, and calls back on Approve/Reject.
+ * The card itself writes nothing: Approve goes through
+ * commitCopilotDraft (existing commit paths; maker–checker filings
+ * for gated payouts), Reject is a local state change with no data
+ * trace anywhere.
+ */
+const DraftPreviewCard: React.FC<{
+  draft: CopilotDraft;
+  lang: string;
+  formatAmount: (n: number) => string;
+  threshold: number;
+  status: DraftStatus;
+  onApprove: (d: CopilotDraft) => void;
+  onReject: () => void;
+}> = ({ draft, lang, formatAmount, threshold, status, onApprove, onReject }) => {
+  const { tr } = useLocaleText();
+  const [edited, setEdited] = useState<CopilotDraft>(draft);
+  const [amountRaw, setAmountRaw] = useState<string>(
+    draft.kind === 'notice' ? '' : String(draft.amount)
+  );
+  const locked = status === 'busy' || status === 'done' || status === 'filed' || status === 'rejected';
+  const lines = draftPreviewLines(edited, lang, formatAmount);
+  const gated = draftNeedsApproval(edited, threshold);
+
+  const setField = (field: string, raw: string) => {
+    setEdited((prev) => {
+      if (prev.kind === 'notice') {
+        if (field === 'title') return { ...prev, title: raw };
+        if (field === 'body') return { ...prev, body: raw };
+        return prev;
+      }
+      if (field === 'amount') {
+        const n = Number(raw.replace(/,/g, ''));
+        return { ...prev, amount: Number.isFinite(n) && n > 0 ? n : prev.amount };
+      }
+      if (field === 'purpose') return { ...prev, purpose: raw };
+      if (prev.kind === 'treasury.income' && field === 'devoteeName') {
+        // An edited name no longer matches the linked record —
+        // drop the link; the typed name is what gets recorded.
+        return { ...prev, devoteeName: raw, devoteeId: undefined };
+      }
+      if (prev.kind === 'treasury.expense' && field === 'vendorName') {
+        return { ...prev, vendorName: raw };
+      }
+      return prev;
+    });
+  };
+
+  const header =
+    edited.kind === 'notice'
+      ? tr('ai.draft.notice', '📣 Notice draft', '📣 বিজ্ঞপ্তির খসড়া', '📣 सूचना मसौदा')
+      : edited.kind === 'treasury.income'
+        ? tr('ai.draft.donation', '🪔 Donation draft', '🪔 দানের খসড়া', '🪔 दान मसौदा')
+        : tr('ai.draft.expense', '🧾 Expense draft', '🧾 খরচের খসড়া', '🧾 खर्च मसौदा');
+
+  return (
+    <div className="mt-2.5 rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4">
+      <p className="text-sm font-extrabold text-stone-800 mb-2">{header}</p>
+      <div className="space-y-2">
+        {lines.map((line) => (
+          <div key={line.key} className="flex items-start gap-2">
+            <span className="w-20 shrink-0 pt-1.5 text-xs font-bold text-stone-500">
+              {line.label}
+            </span>
+            {line.editable && !locked ? (
+              line.field === 'body' ? (
+                <textarea
+                  value={edited.kind === 'notice' ? edited.body : ''}
+                  onChange={(e) => setField('body', e.target.value)}
+                  rows={3}
+                  className="flex-1 min-h-[44px] rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-stone-800 focus:border-amber-500 focus:outline-none"
+                />
+              ) : (
+                <input
+                  value={
+                    line.field === 'amount'
+                      ? amountRaw
+                      : line.field === 'title' && edited.kind === 'notice'
+                        ? edited.title
+                        : line.field === 'purpose' && edited.kind !== 'notice'
+                          ? edited.purpose
+                          : line.field === 'devoteeName' && edited.kind === 'treasury.income'
+                            ? (edited.devoteeName ?? '')
+                            : line.field === 'vendorName' && edited.kind === 'treasury.expense'
+                              ? (edited.vendorName ?? '')
+                              : line.value
+                  }
+                  inputMode={line.editable === 'number' ? 'decimal' : undefined}
+                  onChange={(e) => {
+                    if (line.field === 'amount') setAmountRaw(e.target.value);
+                    if (line.field) setField(line.field, e.target.value);
+                  }}
+                  className="flex-1 min-h-[44px] rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-stone-800 focus:border-amber-500 focus:outline-none"
+                />
+              )
+            ) : (
+              <span className="flex-1 pt-1.5 text-sm font-semibold text-stone-800 whitespace-pre-wrap">
+                {line.value}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {gated && status === 'pending' && (
+        <p className="mt-3 rounded-xl bg-orange-100 border border-orange-200 px-3 py-2 text-xs font-bold text-orange-900 leading-relaxed">
+          {tr(
+            'ai.draft.gated',
+            '🪔 This amount needs a second person’s approval here — approving will FILE it for a checker, not post it directly.',
+            '🪔 এই পরিমাণের জন্য এখানে দ্বিতীয় ব্যক্তির অনুমোদন লাগে — অনুমোদন চাপলে এটি সরাসরি লেখা না হয়ে যাচাইকারীর কাছে যাবে।',
+            '🪔 इस राशि के लिए यहाँ दूसरे व्यक्ति का अनुमोदन चाहिए — अनुमोदन दबाने पर यह सीधे दर्ज न होकर जाँचकर्ता के पास जाएगा।'
+          )}
+        </p>
+      )}
+
+      {status === 'pending' || status === 'error' ? (
+        <>
+          {status === 'error' && (
+            <p className="mt-3 text-xs font-bold text-red-700">
+              {tr(
+                'ai.draft.error',
+                '🙏 That could not be saved — nothing was changed. You can try again.',
+                '🙏 এটি সংরক্ষণ করা যায়নি — কিছুই বদলায়নি। আবার চেষ্টা করতে পারেন।',
+                '🙏 यह सहेजा नहीं जा सका — कुछ भी नहीं बदला। आप पुनः प्रयास कर सकते हैं।'
+              )}
+            </p>
+          )}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => onApprove(edited)}
+              className="flex-1 min-h-[48px] rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-extrabold px-4 transition-colors shadow-sm"
+            >
+              {tr('ai.draft.approve', '✓ Approve', '✓ অনুমোদন', '✓ अनुमोदन करें')}
+            </button>
+            <button
+              type="button"
+              onClick={onReject}
+              className="flex-1 min-h-[48px] rounded-2xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-sm font-bold px-4 transition-colors"
+            >
+              {tr('ai.draft.reject', 'Discard', 'বাতিল', 'रद्द करें')}
+            </button>
+          </div>
+        </>
+      ) : status === 'busy' ? (
+        <p className="mt-3 text-sm font-bold text-stone-500">
+          {tr('ai.draft.saving', 'Saving… 🙏', 'সংরক্ষণ হচ্ছে… 🙏', 'सहेज रहा हूँ… 🙏')}
+        </p>
+      ) : status === 'done' ? (
+        <p className="mt-3 text-sm font-extrabold text-green-700">
+          {tr('ai.draft.saved', '✅ Saved', '✅ সংরক্ষিত', '✅ सहेजा गया')}
+        </p>
+      ) : status === 'filed' ? (
+        <p className="mt-3 text-sm font-extrabold text-orange-700">
+          {tr(
+            'ai.draft.filed',
+            '🪔 Filed for a checker’s approval',
+            '🪔 যাচাইকারীর অনুমোদনের জন্য পাঠানো হয়েছে',
+            '🪔 जाँचकर्ता के अनुमोदन हेतु भेजा गया'
+          )}
+        </p>
+      ) : (
+        <p className="mt-3 text-sm font-bold text-stone-500">
+          {tr(
+            'ai.draft.discarded',
+            'Discarded — nothing was saved.',
+            'বাতিল — কিছুই সংরক্ষিত হয়নি।',
+            'रद्द — कुछ भी सहेजा नहीं गया।'
+          )}
+        </p>
+      )}
+    </div>
+  );
+};
+
 export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = ({
   open,
   onClose,
@@ -177,24 +396,139 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   const navigate = useNavigate();
   const { tr } = useLocaleText();
   const { currentLang, region } = useLanguage();
-  const { firebaseUser, role } = useAuthWorkspace();
+  const {
+    firebaseUser,
+    role,
+    effectiveRole,
+    activeWorkspaceId,
+    activeWorkspace,
+    sessionKind,
+    currentUser,
+  } = useAuthWorkspace();
+  const { myMemberships } = useMembership();
+  const data = useData();
+  const formatInr = useInr();
 
   const uidKey = useMemo(() => {
     const u = (firebaseUser as { uid?: string } | null)?.uid;
     return u || 'anon';
   }, [firebaseUser]);
 
+  /* Blueprint C — caller scope from the REAL session. The membership
+   * edge for the ACTIVE workspace yields the effective role (expiry
+   * already applied → Devotee floor) and the desk scope; without an
+   * edge we fall back to the session's effective role, unscoped.
+   * Nothing here is derived from anything the user typed. */
+  const orgScope: CallerScope | null = useMemo(() => {
+    if (sessionKind !== 'org' || !activeWorkspaceId) return null;
+    const edge =
+      myMemberships.find(
+        (m) => m.workspaceId === activeWorkspaceId && m.uid === uidKey
+      ) ?? null;
+    const now = Date.now();
+    const guard = { creatorUid: activeWorkspace?.createdBy };
+    const workspaceRole = edge
+      ? String(membershipEffectiveRole(edge, now, guard))
+      : String(effectiveRole ?? role ?? 'Devotee');
+    return {
+      uid: uidKey,
+      workspaceId: activeWorkspaceId,
+      workspaceName: activeWorkspace?.name ?? 'Workspace',
+      role: toAiRole(workspaceRole),
+      workspaceRole,
+      templateId: edge?.templateId ?? null,
+      deskScope: edge ? effectiveDeskScope(edge, now, guard) : null,
+      actorName: currentUser?.fullName || currentUser?.name || '',
+    };
+  }, [
+    sessionKind,
+    activeWorkspaceId,
+    activeWorkspace,
+    myMemberships,
+    uidKey,
+    effectiveRole,
+    role,
+    currentUser,
+  ]);
+
+  /* Pending maker–checker filings for the port. A failed read marks
+   * the queue unavailable — the approvals executor then says so
+   * honestly instead of claiming "nothing pending". */
+  const [pendingApprovals, setPendingApprovals] = useState<HostApprovalRow[]>([]);
+  const [approvalsAvailable, setApprovalsAvailable] = useState(false);
+  const refreshApprovals = useCallback(async () => {
+    if (!orgScope) return;
+    try {
+      const { firestoreApprovalsBackend } = await import(
+        '../../context/data/approvalsStore'
+      );
+      const docs = await firestoreApprovalsBackend.fetchForWorkspace(orgScope.workspaceId);
+      setPendingApprovals(
+        docs.map((d) => ({
+          id: d.id,
+          kind: d.kind,
+          summary: d.summary,
+          ...(d.amount != null ? { amount: d.amount } : {}),
+          requestedBy: d.requestedBy,
+          requestedByName: d.requestedByName,
+          requestedAt: d.requestedAt,
+          status: d.status,
+        }))
+      );
+      setApprovalsAvailable(true);
+    } catch {
+      setApprovalsAvailable(false);
+    }
+  }, [orgScope]);
+
+  useEffect(() => {
+    if (open && orgScope) void refreshApprovals();
+  }, [open, orgScope, refreshApprovals]);
+
+  const orgCtx: OrgAssistantContext | null = useMemo(() => {
+    if (!orgScope) return null;
+    const tw = data.collectionWindows?.treasury;
+    return {
+      scope: orgScope,
+      port: buildOrgPort(orgScope, {
+        treasury: data.treasury,
+        devotees: data.devotees,
+        bookings: data.puja_bookings,
+        approvals: pendingApprovals,
+        approvalsAvailable,
+        workspace: activeWorkspace ?? null,
+        formatAmount: formatInr,
+        treasuryWindowed: !!tw?.windowed,
+        treasuryTotal: typeof tw?.total === 'number' ? tw.total : null,
+      }),
+    };
+  }, [orgScope, data, pendingApprovals, approvalsAvailable, activeWorkspace, formatInr]);
+
   const ctx: AssistantContext = useMemo(
     // H3 (QUEUED #32): the workspace role ('Trustee', 'SuperAdmin', …)
     // is normalised into the AI vocabulary at this boundary — and a
     // workspace SuperAdmin can never become the AI 'owner'.
-    () => ({ uid: uidKey, lang: currentLang, region, role: role ? toAiRole(role) : null }),
-    [uidKey, currentLang, region, role]
+    // Blueprint C: in an org session the role comes from the scoped
+    // membership edge (effective, expiry-applied), and the org port
+    // rides along — the pipeline forwards it to org executors only.
+    () => ({
+      uid: uidKey,
+      lang: currentLang,
+      region,
+      role: orgScope ? orgScope.role : role ? toAiRole(role) : null,
+      ...(orgCtx ? { org: orgCtx } : {}),
+    }),
+    [uidKey, currentLang, region, role, orgScope, orgCtx]
   );
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  /** Blueprint C — live drafts by message id. Drafts deliberately do
+   *  NOT persist into the saved thread: a reloaded 'draft' message
+   *  renders the stale note (nothing was ever saved from it). */
+  const [drafts, setDrafts] = useState<Record<string, CopilotDraft>>({});
+  const [draftStatus, setDraftStatus] = useState<Record<string, DraftStatus>>({});
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
@@ -241,6 +575,10 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
         action: res.action,
         createdAt: Date.now(),
       };
+      if (res.draft) {
+        setDrafts((prev) => ({ ...prev, [msg.id]: res.draft as CopilotDraft }));
+        setDraftStatus((prev) => ({ ...prev, [msg.id]: 'pending' }));
+      }
       setMessages((prev) => {
         const next = [...prev, msg];
         void saveThread(uidKey, next);
@@ -248,6 +586,85 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
       });
     },
     [uidKey]
+  );
+
+  /* Blueprint C — commit services: the EXISTING write paths only.
+   * addTreasuryTransaction is DataContext's own mutator (Blueprint
+   * A's audit + receipts + summary writer hang off it); filings go
+   * through Blueprint B's approvalService; notices through the
+   * broadcast service the Broadcast desk uses. */
+  const commitServices: CopilotCommitServices = useMemo(
+    () => ({
+      addTreasuryTransaction: (tx) =>
+        data.addTreasuryTransaction(
+          tx as unknown as Parameters<typeof data.addTreasuryTransaction>[0]
+        ),
+      filePayoutApproval: async ({ payload, summary, amount }) => {
+        if (!orgScope) throw new Error('No org session.');
+        const { approvalService } = await import('../../context/data/approvalsStore');
+        const doc = await approvalService.request(
+          {
+            workspaceId: orgScope.workspaceId,
+            workspaceName: orgScope.workspaceName,
+            kind: 'treasury.payout',
+            payload,
+            summary,
+            amount,
+          },
+          {
+            uid: orgScope.uid,
+            name: orgScope.actorName || orgScope.workspaceRole,
+            role: orgScope.workspaceRole as never,
+          }
+        );
+        return { id: doc.id };
+      },
+      publishNotice: async ({ title, body }) => {
+        if (!orgScope) throw new Error('No org session.');
+        const { publishBroadcast } = await import('../../org/broadcastService');
+        const doc = await publishBroadcast({
+          orgId: orgScope.workspaceId,
+          orgName: orgScope.workspaceName,
+          title,
+          body,
+          createdBy: orgScope.uid,
+          createdByName: orgScope.actorName || orgScope.workspaceRole,
+        });
+        return { id: doc.id };
+      },
+    }),
+    [data, orgScope]
+  );
+
+  const approveDraft = useCallback(
+    async (msgId: string, edited: CopilotDraft) => {
+      if (!orgCtx) return;
+      setDraftStatus((prev) => ({ ...prev, [msgId]: 'busy' }));
+      const { commitCopilotDraft, commitResultText } = await import('../org/commitDraft');
+      const res = await commitCopilotDraft(edited, {
+        scope: orgCtx.scope,
+        threshold: orgCtx.port.payoutThreshold(),
+        formatAmount: orgCtx.port.formatAmount,
+        services: commitServices,
+      });
+      setDraftStatus((prev) => ({
+        ...prev,
+        [msgId]: res.status === 'committed' ? 'done' : res.status,
+      }));
+      pushAssistant({ type: 'answer', text: commitResultText(res, edited, currentLang) });
+      if (res.status === 'filed') void refreshApprovals();
+    },
+    [orgCtx, commitServices, currentLang, pushAssistant, refreshApprovals]
+  );
+
+  const rejectDraft = useCallback(
+    async (msgId: string) => {
+      // No service call, no write — the draft simply ceases to exist.
+      setDraftStatus((prev) => ({ ...prev, [msgId]: 'rejected' }));
+      const { draftRejectedText } = await import('../org/commitDraft');
+      pushAssistant({ type: 'answer', text: draftRejectedText(currentLang) });
+    },
+    [currentLang, pushAssistant]
   );
 
   const warmError = useCallback(() => {
@@ -430,9 +847,21 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   const clearHistory = useCallback(async () => {
     await clearThread(uidKey);
     setMessages([]);
+    setDrafts({});
+    setDraftStatus({});
   }, [uidKey]);
 
   if (!open) return null;
+
+  /* Blueprint C — this caller's task cards (same scope the
+   * executors enforce; a card that fails any gate does not exist). */
+  const orgCards = orgScope
+    ? taskCardsFor({
+        role: orgScope.role,
+        templateId: orgScope.templateId,
+        deskScope: orgScope.deskScope,
+      })
+    : [];
 
   const starters = [
     tr('ai.starter.where', 'Where is the dana section?', 'দান বিভাগ কোথায়?', 'दान अनुभाग कहाँ है?'),
@@ -505,18 +934,26 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                   hi="मुझसे कुछ भी पूछें — चीज़ें कहाँ हैं, उन्हें कैसे करें, आज की तिथि।"
                 />
               </p>
-              <div className="mt-4 flex flex-col gap-2 max-w-xs mx-auto">
-                {starters.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => void send(s)}
-                    className="min-h-[48px] px-4 rounded-2xl border border-amber-200 bg-amber-50/70 text-amber-900 text-sm font-bold hover:bg-amber-100 transition-colors text-left"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              {orgCards.length > 0 ? (
+                <TaskCardsGrid
+                  cards={orgCards}
+                  lang={currentLang}
+                  onPick={(p) => void send(p)}
+                />
+              ) : (
+                <div className="mt-4 flex flex-col gap-2 max-w-xs mx-auto">
+                  {starters.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => void send(s)}
+                      className="min-h-[48px] px-4 rounded-2xl border border-amber-200 bg-amber-50/70 text-amber-900 text-sm font-bold hover:bg-amber-100 transition-colors text-left"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -601,6 +1038,28 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                       onDeny={handleLocationDeny}
                     />
                   )}
+
+                  {m.kind === 'draft' &&
+                    (drafts[m.id] && orgCtx ? (
+                      <DraftPreviewCard
+                        draft={drafts[m.id]}
+                        lang={currentLang}
+                        formatAmount={orgCtx.port.formatAmount}
+                        threshold={orgCtx.port.payoutThreshold()}
+                        status={draftStatus[m.id] ?? 'pending'}
+                        onApprove={(d) => void approveDraft(m.id, d)}
+                        onReject={() => rejectDraft(m.id)}
+                      />
+                    ) : (
+                      <div className="mt-2.5 rounded-2xl border border-stone-200 bg-stone-50 p-3.5 text-xs font-bold text-stone-500 leading-relaxed">
+                        {tr(
+                          'ai.draft.stale',
+                          '🙏 This draft was not saved — ask me again and I will prepare a fresh one.',
+                          '🙏 এই খসড়াটি সংরক্ষিত হয়নি — আবার বলুন, নতুন করে তৈরি করে দেব।',
+                          '🙏 यह मसौदा सहेजा नहीं गया था — फिर से कहें, मैं नया बना दूँगा।'
+                        )}
+                      </div>
+                    ))}
 
                   {m.suggestions && m.suggestions.length > 0 && (
                     <SuggestionChips suggestions={m.suggestions} onPick={(s) => void send(s)} />

@@ -84,6 +84,20 @@ const ALL_INTENTS: IntentId[] = [
 ];
 
 /**
+ * Blueprint C — org copilot intents. Read intents are granted per
+ * role below; write intents are DRAFT-ONLY (the pipeline produces a
+ * draft; commits happen only via the preview card + commitDraft).
+ * The Auditor's set is deliberately READ-ONLY: no record_* and no
+ * draft_notice — a write attempt hits canOffer() and is denied
+ * before any executor runs.
+ */
+const ORG_READ_INTENTS: IntentId[] = [
+  'org_giving',
+  'org_expenses',
+  'org_pending_approvals',
+];
+
+/**
  * GodMode Copilot intents — the owner (GodMode operator) ONLY.
  * Never added to any other role's list; canOffer() is the gate.
  */
@@ -108,27 +122,45 @@ export const roleCapabilities: Record<Role, RoleCapability> = {
     dataScopes: ['self'],
   },
   sevadar: {
-    intents: ALL_INTENTS,
+    // Blueprint C: the day's schedule (read) + drafting notices —
+    // the notice executor additionally requires the Manager
+    // template ('org-manager'); a plain Sevadar is declined there.
+    intents: [...ALL_INTENTS, 'priest_schedule', 'draft_notice'],
     guideIds: [...DEVOTEE_GUIDES, 'events', 'devotees'],
     dataScopes: ['self', 'org'],
   },
   priest: {
-    intents: ALL_INTENTS,
+    intents: [...ALL_INTENTS, 'priest_schedule'],
     guideIds: [...DEVOTEE_GUIDES, 'events', 'devotees', 'purohit'],
     dataScopes: ['self', 'org'],
   },
   accountant: {
-    intents: ALL_INTENTS,
+    intents: [...ALL_INTENTS, ...ORG_READ_INTENTS, 'record_donation', 'record_expense'],
     guideIds: [...DEVOTEE_GUIDES, 'treasury', 'marketplace'],
     dataScopes: ['self', 'org'],
   },
   trustee: {
-    intents: ALL_INTENTS,
+    intents: [
+      ...ALL_INTENTS,
+      ...ORG_READ_INTENTS,
+      'priest_schedule',
+      'record_donation',
+      'record_expense',
+      'draft_notice',
+    ],
     guideIds: [...DEVOTEE_GUIDES, ...ORG_STAFF_GUIDES],
     dataScopes: ['self', 'org'],
   },
+  auditor: {
+    // Blueprint B's read-only overseer. READ intents only — by
+    // construction there is no write intent to offer, so no draft
+    // card can ever render for an Auditor (cards.ts double-seals it).
+    intents: [...ALL_INTENTS, ...ORG_READ_INTENTS],
+    guideIds: DEVOTEE_GUIDES,
+    dataScopes: ['self', 'org'],
+  },
   purohit: {
-    intents: ALL_INTENTS,
+    intents: [...ALL_INTENTS, 'priest_schedule'],
     guideIds: [...DEVOTEE_GUIDES, 'purohit', 'marketplace'],
     dataScopes: ['self', 'marketplace'],
   },
@@ -138,7 +170,18 @@ export const roleCapabilities: Record<Role, RoleCapability> = {
     dataScopes: ['self', 'marketplace'],
   },
   owner: {
-    intents: [...ALL_INTENTS, ...OWNER_ONLY_INTENTS],
+    // Org intents included so the owner surface never role-denies
+    // them; GodMode sessions carry no org port, so the executors
+    // answer with the honest no-org variant there.
+    intents: [
+      ...ALL_INTENTS,
+      ...ORG_READ_INTENTS,
+      'priest_schedule',
+      'record_donation',
+      'record_expense',
+      'draft_notice',
+      ...OWNER_ONLY_INTENTS,
+    ],
     guideIds: [...DEVOTEE_GUIDES, ...ORG_STAFF_GUIDES, 'godmode'],
     dataScopes: ['self', 'org', 'marketplace', 'platform'],
   },
@@ -166,10 +209,11 @@ const WORKSPACE_TO_AI_ROLE: Record<string, Role> = {
   Sevadar: 'sevadar',
   Devotee: 'devotee',
   CSO: 'sevadar',
+  Auditor: 'auditor', // Blueprint B's read-only overseer
 };
 
 const AI_ROLE_PASSTHROUGH: ReadonlySet<string> = new Set([
-  'devotee', 'sevadar', 'priest', 'accountant', 'trustee', 'purohit', 'jyotish',
+  'devotee', 'sevadar', 'priest', 'accountant', 'trustee', 'auditor', 'purohit', 'jyotish',
   // note: 'owner' deliberately absent — see the rule above.
 ]);
 

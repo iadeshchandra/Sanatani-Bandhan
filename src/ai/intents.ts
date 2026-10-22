@@ -37,6 +37,13 @@ export const INTENTS: IntentDef[] = [
   { id: 'nearby_temples', description: 'Temples near the devotee — explicit location consent, never stored' },
   { id: 'greeting', description: 'Warm greeting + capability menu' },
   { id: 'fallback_unknown', description: 'Warm honesty for anything unanswerable' },
+  { id: 'org_giving', description: 'Blueprint C: who gave in the caller’s own workspace, this week/month (staff roles, scoped)' },
+  { id: 'org_expenses', description: 'Blueprint C: the caller’s own workspace expenses for a period (staff roles, scoped)' },
+  { id: 'org_pending_approvals', description: 'Blueprint C: pending maker–checker requests in the caller’s workspace (Blueprint B)' },
+  { id: 'priest_schedule', description: 'Blueprint C: today’s / tomorrow’s puja bookings in the caller’s workspace' },
+  { id: 'record_donation', description: 'Blueprint C: draft a treasury donation for preview → approve (never commits from chat)' },
+  { id: 'record_expense', description: 'Blueprint C: draft a treasury expense for preview → approve; ≥ threshold files a maker–checker request' },
+  { id: 'draft_notice', description: 'Blueprint C: draft an org notice for preview → approve → publish via the broadcast path' },
   { id: 'admin_briefing', description: 'GodMode: what needs the owner’s attention (owner-only)' },
   { id: 'admin_stats', description: 'GodMode: platform numbers in plain language (owner-only)' },
   { id: 'admin_moderation_help', description: 'GodMode: flagged-post recommendations (owner-only)' },
@@ -287,6 +294,135 @@ export function detectDharmaQuery(input: string): boolean {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* Blueprint C — org copilot first chance                              */
+/*                                                                     */
+/* Org-staff phrasing ("who gave this week", "record a donation of    */
+/* ₹500", "pending approvals", "today's pujas") must be claimed       */
+/* BEFORE the general corpus: 'দান' would otherwise route to          */
+/* dana_help (guidance) and 'booking' to booking_help, while the      */
+/* caller asked about THEIR workspace's real data. These routes are   */
+/* still gated by canOffer() in assistant.ts — a devotee typing the   */
+/* same words gets the warm role denial, never data.                  */
+/*                                                                     */
+/* Matching is substring-based (not word-boundaried): Bengali and     */
+/* Hindi inflect ("বিজ্ঞপ্তির", "লিখুন"), and every phrase here is    */
+/* distinctive enough that substring hits stay precise.               */
+/* ------------------------------------------------------------------ */
+
+const ORG_PERIOD_TODAY = ['today', 'আজ', 'आज'];
+const ORG_PERIOD_WEEK = ['week', 'সপ্তাহ', 'सप्ताह'];
+const ORG_PERIOD_MONTH = ['month', 'মাস', 'महीन', 'মাসে'];
+
+function orgPeriodSlot(text: string, fallback: 'week' | 'month'): 'today' | 'week' | 'month' {
+  if (ORG_PERIOD_TODAY.some((w) => text.includes(w))) return 'today';
+  if (ORG_PERIOD_MONTH.some((w) => text.includes(w))) return 'month';
+  if (ORG_PERIOD_WEEK.some((w) => text.includes(w))) return 'week';
+  return fallback;
+}
+
+const RECORD_VERBS = [
+  'record', 'note', 'log', 'add', 'enter', 'দর্জ', 'दर्ज', 'লিখ', 'लिख', 'লেখ',
+];
+const DONATION_NOUNS = ['donation', 'donate', 'chanda', 'dana', 'দান', 'दान', 'চাঁদা', 'चंदा'];
+const EXPENSE_NOUNS = ['expense', 'kharcha', 'খরচ', 'ব্যয়', 'खर्च', 'খরচা'];
+const EXPENSE_HINTS = [
+  'samagri', 'সামগ্রী', 'सामग्री', 'electricity', 'বিদ্যুৎ', 'बिजली', 'rent', 'ভাড়া',
+  'किराया', 'salary', 'বেতন', 'वेतन', 'annadanam', 'maintenance', 'printing',
+];
+const NOTICE_NOUNS = ['notice', 'বিজ্ঞপ্তি', 'নোটিশ', 'सूचना'];
+const NOTICE_VERBS = ['draft', 'write', 'compose', 'মসৌদা', 'मसौदा', 'খসড়া', 'বানাও', 'बनाएं', 'তৈরি'];
+const SCHEDULE_NOUNS = ['puja', 'পূজা', 'पूजा', 'booking', 'বুকিং', 'बुकिंग'];
+const SCHEDULE_DAYS = ['today', 'tomorrow', 'আজ', 'আগামীকাল', 'आज', 'कल'];
+
+function hasAny(text: string, words: string[]): boolean {
+  return words.some((w) => text.includes(w));
+}
+
+function routeOrgIntent(text: string): RouteResult | null {
+  const hasRecordVerb = hasAny(text, RECORD_VERBS);
+  const hasAmount = /₹|৳|\brs\.?\b|taka|টাকা|रुप|[0-9০-৯०-९]/.test(text);
+
+  // 1 — explicit record phrasing, or an amount tied to a ledger noun.
+  if (hasAny(text, DONATION_NOUNS) && (hasRecordVerb || hasAmount)) {
+    return { intent: 'record_donation', confidence: 'high', slots: {}, evidence: ['org-record'] };
+  }
+  if (
+    hasAny(text, EXPENSE_NOUNS) &&
+    (hasRecordVerb || hasAmount || !hasAny(text, DONATION_NOUNS))
+  ) {
+    // A bare "expenses" question is claimed by the read rule below;
+    // this branch is for record phrasing ("record an expense …").
+    if (hasRecordVerb || hasAmount) {
+      return { intent: 'record_expense', confidence: 'high', slots: {}, evidence: ['org-record'] };
+    }
+  }
+  if (hasAmount && hasAny(text, EXPENSE_HINTS) && !hasAny(text, DONATION_NOUNS)) {
+    return { intent: 'record_expense', confidence: 'high', slots: {}, evidence: ['org-record'] };
+  }
+
+  // 2 — draft a notice / broadcast.
+  if (hasAny(text, NOTICE_NOUNS) && hasAny(text, NOTICE_VERBS)) {
+    return { intent: 'draft_notice', confidence: 'high', slots: {}, evidence: ['org-notice'] };
+  }
+
+  // 3 — the maker–checker queue.
+  if (
+    text.includes('pending approval') ||
+    text.includes('approvals pending') ||
+    text.includes("what's pending") ||
+    text.includes('what is pending') ||
+    text.includes('অনুমোদন') ||
+    text.includes('মুলতুবি') ||
+    text.includes('लंबित')
+  ) {
+    return { intent: 'org_pending_approvals', confidence: 'high', slots: {}, evidence: ['org-approvals'] };
+  }
+
+  // 4 — who gave (period-qualified, or the direct "who gave" ask).
+  const givingPeriod =
+    hasAny(text, ORG_PERIOD_WEEK) || hasAny(text, ORG_PERIOD_MONTH) || hasAny(text, ORG_PERIOD_TODAY);
+  if (
+    text.includes('who gave') ||
+    text.includes('who donated') ||
+    text.includes('কে দান') ||
+    text.includes('किसने दान') ||
+    (givingPeriod && hasAny(text, ['donation', 'দান', 'दान', 'চাঁদা', 'चंदा', 'chanda', 'giving']))
+  ) {
+    return {
+      intent: 'org_giving',
+      confidence: 'high',
+      slots: { period: orgPeriodSlot(text, 'week') },
+      evidence: ['org-giving'],
+    };
+  }
+
+  // 5 — expenses read (bare expense words are distinctive enough).
+  if (hasAny(text, EXPENSE_NOUNS)) {
+    return {
+      intent: 'org_expenses',
+      confidence: 'high',
+      slots: { period: orgPeriodSlot(text, 'month') },
+      evidence: ['org-expenses'],
+    };
+  }
+
+  // 6 — the day's puja schedule (needs a day word, so "how to book?"
+  // stays with booking_help).
+  if (hasAny(text, SCHEDULE_NOUNS) && hasAny(text, SCHEDULE_DAYS)) {
+    const tomorrow =
+      text.includes('tomorrow') || text.includes('আগামীকাল') || text.includes('कल');
+    return {
+      intent: 'priest_schedule',
+      confidence: 'high',
+      slots: { when: tomorrow ? 'tomorrow' : 'today' },
+      evidence: ['org-schedule'],
+    };
+  }
+
+  return null;
+}
+
 /**
  * Deterministic keyword router. Pure function — safe to call anywhere.
  * Priority-ordered: first matching rule wins. Greeting is checked last so
@@ -334,6 +470,20 @@ export function routeIntent(input: string, _lang: LangCode): RouteResult {
       evidence: ['seva-journeys-brand'],
     };
   }
+
+  // Blueprint C first chance: org-staff data questions and draft
+  // requests about the caller's OWN workspace (see routeOrgIntent).
+  // This block runs BEFORE the GodMode first chance deliberately:
+  // the GodMode stats keywords include the bare phrase 'इस सप्ताह'
+  // ("this week"), which would otherwise swallow a Hindi giving
+  // question ("इस सप्ताह किसने दान दिया?"). The org rules are
+  // noun-anchored (दान / expense / notice / puja / approval words),
+  // far more specific than any GodMode phrase, and they cannot
+  // claim genuine admin phrasing ("morning briefing", "flagged
+  // posts", "write an announcement", "this week's numbers" — none
+  // carries an org noun). canOffer() still gates everything.
+  const orgHit = routeOrgIntent(text);
+  if (orgHit) return orgHit;
 
   // GodMode Copilot first chance: admin-flavoured questions ("morning
   // briefing", "flagged posts", "write an announcement") are distinctive

@@ -128,7 +128,7 @@ export default defineConfig(() => {
           // user enables the on-device voice). Precaching it would force every
           // devotee to download it; it loads lazily via import() instead.
           globIgnores: ['**/web-llm-*.js'],
-          maximumFileSizeToCacheInBytes: 5000000,
+          maximumFileSizeToCacheInBytes: 6500000,
           // M-6: base-relative fallback — absolute '/index.html' 404s under
           // the GitHub Pages /Sanatani-Bandhan/ subpath.
           navigateFallback: `${base}index.html`,

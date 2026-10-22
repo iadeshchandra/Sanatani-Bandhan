@@ -22,6 +22,12 @@ import { nearbyTask } from './nearby';
 import { tirthaSummaryTask } from './tirtha_summary';
 import { greetingTask } from './greeting';
 import { fallbackUnknownTask } from './fallback_unknown';
+import { orgGivingTask } from './org_giving';
+import { orgExpensesTask } from './org_expenses';
+import { orgApprovalsTask } from './org_approvals';
+import { priestScheduleTask } from './priest_schedule';
+import { recordDonationTask, recordExpenseTask } from './org_record';
+import { draftNoticeTask } from './org_notice';
 import {
   adminAdviseTask,
   adminBriefingTask,
@@ -53,6 +59,13 @@ export const TASKS: Record<IntentId, TaskExecutor> = {
   tirtha_summary: tirthaSummaryTask,
   greeting: greetingTask,
   fallback_unknown: fallbackUnknownTask,
+  org_giving: orgGivingTask,
+  org_expenses: orgExpensesTask,
+  org_pending_approvals: orgApprovalsTask,
+  priest_schedule: priestScheduleTask,
+  record_donation: recordDonationTask,
+  record_expense: recordExpenseTask,
+  draft_notice: draftNoticeTask,
   admin_briefing: adminBriefingTask,
   admin_stats: adminStatsTask,
   admin_moderation_help: adminModerationHelpTask,

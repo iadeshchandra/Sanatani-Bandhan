@@ -40,6 +40,13 @@ export const ASSISTANT_TEMPLATE_KEYS: string[] = [
   'assistant.nearby_temples',
   'assistant.greeting',
   'assistant.fallback_unknown',
+  'assistant.org_giving',
+  'assistant.org_expenses',
+  'assistant.org_pending_approvals',
+  'assistant.priest_schedule',
+  'assistant.record_donation',
+  'assistant.record_expense',
+  'assistant.draft_notice',
   'assistant.crisis',
   'assistant.role_denied',
   'assistant.empty_input',
@@ -63,6 +70,69 @@ function pickLang(lang: LangCode): TemplateLang {
 /* ------------------------------------------------------------------ */
 /* Template table: key → variant → lang → renderer.                    */
 /* ------------------------------------------------------------------ */
+
+/* Blueprint C — shared org-copilot renderer sets (see the org
+ * section inside the table): identical scoped / no-org wording is
+ * defined once here and referenced by every table it serves. */
+const ORG_SCOPED_TREASURY: Record<TemplateLang, TFn> = {
+  en: (p) => `🙏 The treasury of ${p['workspace']} is looked after by its Trustee and Accountant — it isn't part of your desks here. If you help with the accounts, a Trustee can include the Treasury desk in your role.`,
+  hi: (p) => `🙏 ${p['workspace']} का कोष उसके ट्रस्टी और अकाउंटेंट संभालते हैं — यह यहाँ आपके डेस्क में नहीं है। यदि आप हिसाब में सहायता करते हैं, तो ट्रस्टी आपकी भूमिका में कोष डेस्क जोड़ सकते हैं।`,
+  bn: (p) => `🙏 ${p['workspace']}-এর তহবিল তার ট্রাস্টি ও হিসাবরক্ষক দেখেন — এটি এখানে আপনার ডেস্কের অংশ নয়। আপনি হিসাবে সাহায্য করলে ট্রাস্টি আপনার ভূমিকায় তহবিল ডেস্ক যোগ করতে পারেন।`,
+};
+
+const ORG_NO_ORG: Record<TemplateLang, TFn> = {
+  en: () => `🙏 I can answer that inside your organisation's workspace — open the org view and ask me there. Here in your personal space I look after your own sadhana and dana.`,
+  hi: () => `🙏 इसका उत्तर मैं आपके संगठन के कार्यक्षेत्र में दे सकता हूँ — संगठन दृश्य खोलकर वहाँ पूछें। यहाँ आपके निजी स्थान में मैं आपकी साधना और दान का ध्यान रखता हूँ।`,
+  bn: () => `🙏 এটির উত্তর আমি আপনার সংগঠনের ওয়ার্কস্পেসে দিতে পারি — সংগঠন ভিউ খুলে সেখানে জিজ্ঞাসা করুন। এখানে আপনার ব্যক্তিগত জায়গায় আমি আপনার সাধনা ও দানের খেয়াল রাখি।`,
+};
+
+const ORG_NO_ORG_SHORT: Record<TemplateLang, TFn> = {
+  en: () => `🙏 I can answer that inside your organisation's workspace — open the org view and ask me there.`,
+  hi: () => `🙏 इसका उत्तर मैं आपके संगठन के कार्यक्षेत्र में दे सकता हूँ — संगठन दृश्य खोलकर वहाँ पूछें।`,
+  bn: () => `🙏 এটির উত্তর আমি আপনার সংগঠনের ওয়ার্কস্পেসে দিতে পারি — সংগঠন ভিউ খুলে সেখানে জিজ্ঞাসা করুন।`,
+};
+
+const ORG_GIVING_SUMMARY: Record<TemplateLang, TFn> = {
+      en: (p) => `🪔 ${p['period']} at ${p['workspace']}, devotees gave ${p['total']} in ${p['count']} dana.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']})`,
+      hi: (p) => `🪔 ${p['period']}, ${p['workspace']} में भक्तों ने ${p['count']} दान में कुल ${p['total']} दिया।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष)`,
+      bn: (p) => `🪔 ${p['period']} ${p['workspace']}-এ ভক্তরা ${p['count']}টি দানে মোট ${p['total']} দিয়েছেন।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল)`,
+};
+
+const ORG_EXPENSES_SUMMARY: Record<TemplateLang, TFn> = {
+      en: (p) => `📒 ${p['period']} at ${p['workspace']}, ${p['total']} was spent in ${p['count']} expenses.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']})`,
+      hi: (p) => `📒 ${p['period']}, ${p['workspace']} में ${p['count']} खर्चों में कुल ${p['total']} व्यय हुआ।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष)`,
+      bn: (p) => `📒 ${p['period']} ${p['workspace']}-এ ${p['count']}টি খরচে মোট ${p['total']} ব্যয় হয়েছে।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল)`,
+};
+
+const ORG_APPROVALS_LIST: Record<TemplateLang, TFn> = {
+      en: (p) => `⏳ ${p['count']} requests are waiting at ${p['workspace']}:\n${p['lines']}\nEach one is decided by a different Trustee or Accountant in the Approvals panel — I can show the queue, but the decision itself stays there.`,
+      hi: (p) => `⏳ ${p['workspace']} में ${p['count']} अनुरोध प्रतीक्षारत हैं:\n${p['lines']}\nप्रत्येक का निर्णय अनुमोदन पैनल में कोई अन्य ट्रस्टी या अकाउंटेंट करता है — मैं सूची दिखा सकता हूँ, निर्णय वहीं होता है।`,
+      bn: (p) => `⏳ ${p['workspace']}-এ ${p['count']}টি অনুরোধ অপেক্ষমাণ:\n${p['lines']}\nপ্রতিটির সিদ্ধান্ত অনুমোদন প্যানেলে অন্য কোনো ট্রাস্টি বা হিসাবরক্ষক দেন — আমি তালিকা দেখাতে পারি, সিদ্ধান্ত সেখানেই হয়।`,
+};
+
+const ORG_SCHEDULE_LIST: Record<TemplateLang, TFn> = {
+      en: (p) => `🌅 ${p['day']} at ${p['workspace']} — ${p['count']} puja bookings:\n${p['lines']}`,
+      hi: (p) => `🌅 ${p['day']}, ${p['workspace']} — ${p['count']} पूजा बुकिंग:\n${p['lines']}`,
+      bn: (p) => `🌅 ${p['day']}, ${p['workspace']} — ${p['count']}টি পূজা বুকিং:\n${p['lines']}`,
+};
+
+const ORG_DONATION_DRAFT: Record<TemplateLang, TFn> = {
+      en: (p) => `🪔 I have prepared the donation draft below — please check every field. Nothing is recorded until you tap Approve.\n${p['summary']}`,
+      hi: (p) => `🪔 दान का मसौदा नीचे तैयार है — कृपया हर विवरण जाँचें। जब तक आप अनुमोदन नहीं दबाते, कुछ भी दर्ज नहीं होगा।\n${p['summary']}`,
+      bn: (p) => `🪔 দানের খসড়া নিচে তৈরি — প্রতিটি তথ্য যাচাই করুন। আপনি অনুমোদন না চাপলে কিছুই লেখা হবে না।\n${p['summary']}`,
+};
+
+const ORG_EXPENSE_DRAFT: Record<TemplateLang, TFn> = {
+      en: (p) => `🧾 I have prepared the expense draft below — please check every field. Nothing is recorded until you tap Approve.\n${p['summary']}`,
+      hi: (p) => `🧾 खर्च का मसौदा नीचे तैयार है — कृपया हर विवरण जाँचें। जब तक आप अनुमोदन नहीं दबाते, कुछ भी दर्ज नहीं होगा।\n${p['summary']}`,
+      bn: (p) => `🧾 খরচের খসড়া নিচে তৈরি — প্রতিটি তথ্য যাচাই করুন। আপনি অনুমোদন না চাপলে কিছুই লেখা হবে না।\n${p['summary']}`,
+};
+
+const ORG_NOTICE_DRAFT: Record<TemplateLang, TFn> = {
+      en: (p) => `📣 Your notice draft is ready below — please read it once before approving. It reaches the org's followers only when you tap Approve.\n${p['summary']}`,
+      hi: (p) => `📣 आपकी सूचना का मसौदा नीचे तैयार है — अनुमोदन से पहले एक बार पढ़ लें। यह संगठन के अनुयायियों तक तभी पहुँचेगी जब आप अनुमोदन दबाएँगे।\n${p['summary']}`,
+      bn: (p) => `📣 আপনার বিজ্ঞপ্তির খসড়া নিচে তৈরি — অনুমোদনের আগে একবার পড়ে নিন। আপনি অনুমোদন চাপলেই এটি সংগঠনের অনুসরণকারীদের কাছে পৌঁছাবে।\n${p['summary']}`,
+};
 
 const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
   /* ---------------- navigate ---------------- */
@@ -640,6 +710,153 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
       bn: (p, c) => `${p['text']}`,
     },
   },
+
+  /* ---------------- Blueprint C: org copilot ----------------
+   * Money answers carry their provenance in the text itself (the
+   * source surface + workspace), because the structured `sources`
+   * channel is owner-only by design. Figures come only from the
+   * executor's scoped-port reads — templates never compute.
+   * The scoped / no-org renderer sets are SHARED across the treasury
+   * tables (identical words, defined once as ORG_* above the table)
+   * — the bundle carries each sentence once. */
+  org_giving: {
+    summary: ORG_GIVING_SUMMARY,
+    summary_partial: {
+      en: (p) => `🪔 ${p['period']} at ${p['workspace']}, devotees gave ${p['total']} in ${p['count']} dana.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']} — from the most recent entries loaded; older records may add to this.)`,
+      hi: (p) => `🪔 ${p['period']}, ${p['workspace']} में भक्तों ने ${p['count']} दान में कुल ${p['total']} दिया।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष — हाल में लोड हुई प्रविष्टियों से; पुराने रिकॉर्ड इससे बढ़ सकते हैं।)`,
+      bn: (p) => `🪔 ${p['period']} ${p['workspace']}-এ ভক্তরা ${p['count']}টি দানে মোট ${p['total']} দিয়েছেন।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল — সাম্প্রতিক লোড হওয়া এন্ট্রি থেকে; পুরনো রেকর্ডে এটি বাড়তে পারে।)`,
+    },
+    empty: {
+      en: (p) => `🙏 ${p['period']} there is no dana recorded yet at ${p['workspace']}. When a donation is entered in the Treasury, it will appear here.`,
+      hi: (p) => `🙏 ${p['period']} ${p['workspace']} में अभी कोई दान दर्ज नहीं है। जब कोष में दान दर्ज होगा, वह यहाँ दिखेगा।`,
+      bn: (p) => `🙏 ${p['period']} ${p['workspace']}-এ এখনও কোনো দান লেখা হয়নি। তহবিলে দান লেখা হলেই এখানে দেখা যাবে।`,
+    },
+    scoped: ORG_SCOPED_TREASURY,
+    no_org: ORG_NO_ORG,
+    default: ORG_GIVING_SUMMARY,
+  },
+  org_expenses: {
+    summary: ORG_EXPENSES_SUMMARY,
+    summary_partial: {
+      en: (p) => `📒 ${p['period']} at ${p['workspace']}, ${p['total']} was spent in ${p['count']} expenses.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']} — from the most recent entries loaded; older records may add to this.)`,
+      hi: (p) => `📒 ${p['period']}, ${p['workspace']} में ${p['count']} खर्चों में कुल ${p['total']} व्यय हुआ।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष — हाल में लोड हुई प्रविष्टियों से; पुराने रिकॉर्ड इससे बढ़ सकते हैं।)`,
+      bn: (p) => `📒 ${p['period']} ${p['workspace']}-এ ${p['count']}টি খরচে মোট ${p['total']} ব্যয় হয়েছে।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল — সাম্প্রতিক লোড হওয়া এন্ট্রি থেকে; পুরনো রেকর্ডে এটি বাড়তে পারে।)`,
+    },
+    empty: {
+      en: (p) => `🙏 ${p['period']} no expense is recorded yet at ${p['workspace']}. Expenses entered in the Treasury will appear here.`,
+      hi: (p) => `🙏 ${p['period']} ${p['workspace']} में अभी कोई खर्च दर्ज नहीं है। कोष में दर्ज खर्च यहाँ दिखेगा।`,
+      bn: (p) => `🙏 ${p['period']} ${p['workspace']}-এ এখনও কোনো খরচ লেখা হয়নি। তহবিলে লেখা খরচ এখানে দেখা যাবে।`,
+    },
+    scoped: ORG_SCOPED_TREASURY,
+    no_org: ORG_NO_ORG,
+    default: ORG_EXPENSES_SUMMARY,
+  },
+  org_pending_approvals: {
+    list: ORG_APPROVALS_LIST,
+    empty: {
+      en: (p) => `✅ Nothing is waiting for approval at ${p['workspace']} right now. When someone files a payout or a role request, it will appear here.`,
+      hi: (p) => `✅ ${p['workspace']} में अभी कोई अनुरोध अनुमोदन के लिए प्रतीक्षारत नहीं है। जब कोई भुगतान या भूमिका का अनुरोध भेजेगा, वह यहाँ दिखेगा।`,
+      bn: (p) => `✅ ${p['workspace']}-এ এখন কোনো অনুরোধ অনুমোদনের অপেক্ষায় নেই। কেউ পরিশোধ বা ভূমিকার অনুরোধ পাঠালে এখানে দেখা যাবে।`,
+    },
+    unavailable: {
+      en: (p) => `🙏 I couldn't read the approvals queue at ${p['workspace']} just now — please don't take silence as "all clear". Try again in a moment, or open the Approvals panel.`,
+      hi: (p) => `🙏 ${p['workspace']} की अनुमोदन सूची अभी पढ़ी नहीं जा सकी — कृपया मौन को "सब ठीक" न समझें। कुछ देर बाद पुनः प्रयास करें, या अनुमोदन पैनल खोलें।`,
+      bn: (p) => `🙏 ${p['workspace']}-এর অনুমোদন তালিকা এখন পড়া যাচ্ছে না — নীরবতাকে "সব ঠিক" ভাববেন না। একটু পরে আবার চেষ্টা করুন, অথবা অনুমোদন প্যানেল খুলুন।`,
+    },
+    scoped: {
+      en: (p) => `🙏 Approvals at ${p['workspace']} aren't part of your desks here. If you filed a request yourself, its decision will reach you as a notice.`,
+      hi: (p) => `🙏 ${p['workspace']} के अनुमोदन यहाँ आपके डेस्क का हिस्सा नहीं हैं। यदि आपने स्वयं कोई अनुरोध भेजा है, तो उसका निर्णय आपको सूचना के रूप में मिलेगा।`,
+      bn: (p) => `🙏 ${p['workspace']}-এর অনুমোদন এখানে আপনার ডেস্কের অংশ নয়। আপনি নিজে কোনো অনুরোধ পাঠিয়ে থাকলে তার সিদ্ধান্ত বিজ্ঞপ্তি হিসেবে পৌঁছাবে।`,
+    },
+    no_org: ORG_NO_ORG_SHORT,
+    default: ORG_APPROVALS_LIST,
+  },
+  priest_schedule: {
+    list: ORG_SCHEDULE_LIST,
+    empty: {
+      en: (p) => `🙏 ${p['day']} there are no puja bookings at ${p['workspace']} yet. New bookings will appear here as devotees make them.`,
+      hi: (p) => `🙏 ${p['day']} ${p['workspace']} में अभी कोई पूजा बुकिंग नहीं है। भक्तों की नई बुकिंग यहाँ दिखेगी।`,
+      bn: (p) => `🙏 ${p['day']} ${p['workspace']}-এ এখনও কোনো পূজা বুকিং নেই। ভক্তদের নতুন বুকিং এখানে দেখা যাবে।`,
+    },
+    scoped: {
+      en: (p) => `🙏 The puja bookings of ${p['workspace']} aren't part of your desks here. A Trustee can include the Pooja Booking desk in your role if you help with bookings.`,
+      hi: (p) => `🙏 ${p['workspace']} की पूजा बुकिंग यहाँ आपके डेस्क का हिस्सा नहीं है। यदि आप बुकिंग में सहायता करते हैं, तो ट्रस्टी आपकी भूमिका में पूजा बुकिंग डेस्क जोड़ सकते हैं।`,
+      bn: (p) => `🙏 ${p['workspace']}-এর পূজা বুকিং এখানে আপনার ডেস্কের অংশ নয়। আপনি বুকিংয়ে সাহায্য করলে ট্রাস্টি আপনার ভূমিকায় পূজা বুকিং ডেস্ক যোগ করতে পারেন।`,
+    },
+    no_org: {
+      en: () => `🙏 I can show the day's pujas inside the organisation's workspace — open the org view and ask me there.`,
+      hi: () => `🙏 मैं दिन की पूजाएँ संगठन के कार्यक्षेत्र में दिखा सकता हूँ — संगठन दृश्य खोलकर वहाँ पूछें।`,
+      bn: () => `🙏 দিনের পূজা আমি সংগঠনের ওয়ার্কস্পেসে দেখাতে পারি — সংগঠন ভিউ খুলে সেখানে জিজ্ঞাসা করুন।`,
+    },
+    default: ORG_SCHEDULE_LIST,
+  },
+  record_donation: {
+    draft_ready: ORG_DONATION_DRAFT,
+    need_amount: {
+      en: () => `🙏 How much was the donation? Tell me the amount — for example, "Record a donation of ₹501 from Rina Das" — and I will prepare the draft for your approval.`,
+      hi: () => `🙏 दान की राशि कितनी थी? राशि बताएं — जैसे, "Rina Das से ₹501 दान दर्ज करें" — और मैं आपके अनुमोदन के लिए मसौदा तैयार कर दूँगा।`,
+      bn: () => `🙏 দানের পরিমাণ কত? পরিমাণ বলুন — যেমন, "Rina Das-এর কাছ থেকে ৫০১ টাকা দান লিখুন" — আমি আপনার অনুমোদনের জন্য খসড়া তৈরি করে দেব।`,
+    },
+    clarify: {
+      en: (p) => `🙏 There is more than one ${p['name']} at this workspace:\n${p['candidates']}\nPlease tell me the full name exactly as it appears, or record it from the Treasury desk where you can pick the exact person. I won't guess — the dana must reach the right devotee's record.`,
+      hi: (p) => `🙏 इस कार्यक्षेत्र में एक से अधिक ${p['name']} हैं:\n${p['candidates']}\nकृपया पूरा नाम ठीक वैसा बताएं जैसा दर्ज है, या कोष डेस्क से दर्ज करें जहाँ आप सही व्यक्ति चुन सकते हैं। मैं अनुमान नहीं लगाऊँगा — दान सही भक्त के रिकॉर्ड में जाना चाहिए।`,
+      bn: (p) => `🙏 এই ওয়ার্কস্পেসে একাধিক ${p['name']} আছেন:\n${p['candidates']}\nঠিক যেভাবে লেখা আছে পুরো নামটি বলুন, অথবা তহবিল ডেস্ক থেকে লিখুন যেখানে সঠিক ব্যক্তিকে বেছে নিতে পারবেন। আমি অনুমান করব না — দান সঠিক ভক্তের রেকর্ডে যাওয়া উচিত।`,
+    },
+    scoped: {
+      en: (p) => `🙏 Recording dana at ${p['workspace']} is part of the Treasury desk, which isn't in your role here. If you collected a donation, please hand it to the Accountant or a Trustee — they will record it with its receipt.`,
+      hi: (p) => `🙏 ${p['workspace']} में दान दर्ज करना कोष डेस्क का काम है, जो यहाँ आपकी भूमिका में नहीं है। यदि आपने दान ग्रहण किया है, तो कृपया अकाउंटेंट या ट्रस्टी को सौंपें — वे रसीद सहित दर्ज करेंगे।`,
+      bn: (p) => `🙏 ${p['workspace']}-এ দান লেখা তহবিল ডেস্কের কাজ, যা এখানে আপনার ভূমিকায় নেই। আপনি দান গ্রহণ করে থাকলে হিসাবরক্ষক বা ট্রাস্টির কাছে দিন — তাঁরা রসিদসহ লিখবেন।`,
+    },
+    no_org: {
+      en: () => `🙏 Donations are recorded inside the organisation's workspace — open the org view and ask me there, and I will prepare the draft for your approval.`,
+      hi: () => `🙏 दान संगठन के कार्यक्षेत्र में दर्ज होता है — संगठन दृश्य खोलकर वहाँ कहें, मैं आपके अनुमोदन के लिए मसौदा तैयार कर दूँगा।`,
+      bn: () => `🙏 দান সংগঠনের ওয়ার্কস্পেসে লেখা হয় — সংগঠন ভিউ খুলে সেখানে বলুন, আমি আপনার অনুমোদনের জন্য খসড়া তৈরি করে দেব।`,
+    },
+    default: ORG_DONATION_DRAFT,
+  },
+  record_expense: {
+    draft_ready: ORG_EXPENSE_DRAFT,
+    draft_gated: {
+      en: (p) => `🧾 This expense is at or above the amount that needs a second person's approval here. The draft below is ready — when you approve it, I will FILE it for a checker instead of posting it directly. Nothing is posted until a different Trustee or Accountant approves it.\n${p['summary']}`,
+      hi: (p) => `🧾 यह खर्च उस राशि के बराबर या उससे अधिक है जिसके लिए यहाँ दूसरे व्यक्ति का अनुमोदन चाहिए। मसौदा नीचे तैयार है — आप अनुमोदन दबाएँगे तो मैं इसे सीधे दर्ज करने के बजाय जाँचकर्ता के पास भेजूँगा। जब तक कोई अन्य ट्रस्टी या अकाउंटेंट स्वीकृत नहीं करता, कुछ भी दर्ज नहीं होगा।\n${p['summary']}`,
+      bn: (p) => `🧾 এই খরচ সেই পরিমাণের সমান বা বেশি যার জন্য এখানে দ্বিতীয় ব্যক্তির অনুমোদন লাগে। খসড়া নিচে তৈরি — আপনি অনুমোদন চাপলে আমি সরাসরি না লিখে যাচাইকারীর কাছে পাঠাব। অন্য কোনো ট্রাস্টি বা হিসাবরক্ষক অনুমোদন না দিলে কিছুই লেখা হবে না।\n${p['summary']}`,
+    },
+    need_amount: {
+      en: () => `🙏 How much was the expense? Tell me the amount — for example, "Record an expense of ₹2,000 for puja samagri" — and I will prepare the draft for your approval.`,
+      hi: () => `🙏 खर्च कितना था? राशि बताएं — जैसे, "पूजा सामग्री के लिए ₹2,000 खर्च दर्ज करें" — और मैं आपके अनुमोदन के लिए मसौदा तैयार कर दूँगा।`,
+      bn: () => `🙏 খরচ কত হয়েছে? পরিমাণ বলুন — যেমন, "পূজা সামগ্রীর জন্য ২,০০০ টাকা খরচ লিখুন" — আমি আপনার অনুমোদনের জন্য খসড়া তৈরি করে দেব।`,
+    },
+    scoped: {
+      en: (p) => `🙏 Recording expenses at ${p['workspace']} is part of the Treasury desk, which isn't in your role here. Please give the bill to the Accountant or a Trustee — they will record it.`,
+      hi: (p) => `🙏 ${p['workspace']} में खर्च दर्ज करना कोष डेस्क का काम है, जो यहाँ आपकी भूमिका में नहीं है। कृपया बिल अकाउंटेंट या ट्रस्टी को दें — वे दर्ज करेंगे।`,
+      bn: (p) => `🙏 ${p['workspace']}-এ খরচ লেখা তহবিল ডেস্কের কাজ, যা এখানে আপনার ভূমিকায় নেই। বিলটি হিসাবরক্ষক বা ট্রাস্টির কাছে দিন — তাঁরা লিখবেন।`,
+    },
+    no_org: {
+      en: () => `🙏 Expenses are recorded inside the organisation's workspace — open the org view and ask me there, and I will prepare the draft for your approval.`,
+      hi: () => `🙏 खर्च संगठन के कार्यक्षेत्र में दर्ज होता है — संगठन दृश्य खोलकर वहाँ कहें, मैं आपके अनुमोदन के लिए मसौदा तैयार कर दूँगा।`,
+      bn: () => `🙏 খরচ সংগঠনের ওয়ার্কস্পেসে লেখা হয় — সংগঠন ভিউ খুলে সেখানে বলুন, আমি আপনার অনুমোদনের জন্য খসড়া তৈরি করে দেব।`,
+    },
+    default: ORG_EXPENSE_DRAFT,
+  },
+  draft_notice: {
+    draft_ready: ORG_NOTICE_DRAFT,
+    need_details: {
+      en: () => `🙏 What should the notice say? For example: "Draft a notice: Annual general meeting on Sunday at 10 in the morning" — I will prepare it for your approval before anything is posted.`,
+      hi: () => `🙏 सूचना में क्या होना चाहिए? जैसे: "सूचना का मसौदा बनाएं: वार्षिक सभा रविवार सुबह 10 बजे" — कुछ भी प्रकाशित होने से पहले मैं इसे आपके अनुमोदन के लिए तैयार करूँगा।`,
+      bn: () => `🙏 বিজ্ঞপ্তিতে কী থাকবে? যেমন: "বিজ্ঞপ্তির খসড়া তৈরি করুন: বার্ষিক সভা রবিবার সকাল ১০টায়" — কিছু প্রকাশের আগেই আমি এটি আপনার অনুমোদনের জন্য তৈরি করব।`,
+    },
+    scoped: {
+      en: (p) => `🙏 Drafting the org's notices at ${p['workspace']} is for its Trustee and Manager. If there is something everyone should know, tell a Trustee — they can post it for all followers.`,
+      hi: (p) => `🙏 ${p['workspace']} की सूचनाएँ बनाना उसके ट्रस्टी और प्रबंधक का काम है। यदि कोई बात सभी को जाननी चाहिए, तो ट्रस्टी को बताएं — वे सभी अनुयायियों के लिए प्रकाशित कर सकते हैं।`,
+      bn: (p) => `🙏 ${p['workspace']}-এর বিজ্ঞপ্তি তৈরি করা তার ট্রাস্টি ও ব্যবস্থাপকের কাজ। সবার জানা দরকার এমন কিছু থাকলে ট্রাস্টিকে বলুন — তিনি সব অনুসরণকারীর জন্য প্রকাশ করতে পারবেন।`,
+    },
+    no_org: {
+      en: () => `🙏 Notices are drafted inside the organisation's workspace — open the org view and ask me there.`,
+      hi: () => `🙏 सूचनाएँ संगठन के कार्यक्षेत्र में बनती हैं — संगठन दृश्य खोलकर वहाँ कहें।`,
+      bn: () => `🙏 বিজ্ঞপ্তি সংগঠনের ওয়ার্কস্পেসে তৈরি হয় — সংগঠন ভিউ খুলে সেখানে বলুন।`,
+    },
+    default: ORG_NOTICE_DRAFT,
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -726,6 +943,41 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
     en: ["Today's tithi?", 'Next festival?', 'How do I give dana?'],
     hi: ['आज की तिथि?', 'अगला उत्सव?', 'दान कैसे दूँ?'],
     bn: ['আজকের তিথি?', 'পরের উৎসব?', 'দান কীভাবে দেব?'],
+  },
+  org_giving: {
+    en: ["This month's expenses", 'Pending approvals', 'Record a donation'],
+    hi: ['इस महीने के खर्चे', 'लंबित अनुमोदन', 'दान दर्ज करें'],
+    bn: ['এই মাসের খরচ', 'মুলতুবি অনুমোদন', 'দান লিখুন'],
+  },
+  org_expenses: {
+    en: ['Who gave this week?', 'Pending approvals', 'Record an expense'],
+    hi: ['इस सप्ताह किसने दान दिया?', 'लंबित अनुमोदन', 'खर्च दर्ज करें'],
+    bn: ['এই সপ্তাহে কে দান দিয়েছে?', 'মুলতুবি অনুমোদন', 'খরচ লিখুন'],
+  },
+  org_pending_approvals: {
+    en: ['Who gave this week?', "This month's expenses", 'Pending approvals'],
+    hi: ['इस सप्ताह किसने दान दिया?', 'इस महीने के खर्चे', 'लंबित अनुमोदन'],
+    bn: ['এই সপ্তাহে কে দান দিয়েছে?', 'এই মাসের খরচ', 'মুলতুবি অনুমোদন'],
+  },
+  priest_schedule: {
+    en: ["Tomorrow's bookings", "Today's pujas", 'Who gave this week?'],
+    hi: ['कल की बुकिंग', 'आज की पूजाएँ', 'इस सप्ताह किसने दान दिया?'],
+    bn: ['আগামীকালের বুকিং', 'আজকের পূজা', 'এই সপ্তাহে কে দান দিয়েছে?'],
+  },
+  record_donation: {
+    en: ['Who gave this week?', "This month's expenses", 'Record an expense'],
+    hi: ['इस सप्ताह किसने दान दिया?', 'इस महीने के खर्चे', 'खर्च दर्ज करें'],
+    bn: ['এই সপ্তাহে কে দান দিয়েছে?', 'এই মাসের খরচ', 'খরচ লিখুন'],
+  },
+  record_expense: {
+    en: ['Who gave this week?', "This month's expenses", 'Record a donation'],
+    hi: ['इस सप्ताह किसने दान दिया?', 'इस महीने के खर्चे', 'दान दर्ज करें'],
+    bn: ['এই সপ্তাহে কে দান দিয়েছে?', 'এই মাসের খরচ', 'দান লিখুন'],
+  },
+  draft_notice: {
+    en: ["Today's pujas", 'Pending approvals', 'Who gave this week?'],
+    hi: ['आज की पूजाएँ', 'लंबित अनुमोदन', 'इस सप्ताह किसने दान दिया?'],
+    bn: ['আজকের পূজা', 'মুলতুবি অনুমোদন', 'এই সপ্তাহে কে দান দিয়েছে?'],
   },
   admin_briefing: {
     en: ['Flagged posts', "This week's numbers", 'Anything unusual?'],
