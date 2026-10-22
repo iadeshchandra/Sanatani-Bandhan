@@ -2571,6 +2571,8 @@ export interface TranslationSchema {
         variance: string;
         editLine: string;
         addLine: string;
+        emptyIncomeHeads?: string;
+        emptyExpenseHeads?: string;
       };
       committee: {
         committee_volunteers: string;
@@ -2705,6 +2707,8 @@ export interface TranslationSchema {
         toastBackup: string;
         confirmReset: string;
         toastReset: string;
+        toastRestored?: string;
+        toastInvalidBackup?: string;
         samitiSummaryNote: string;
         income_expense_line: string;
       };
