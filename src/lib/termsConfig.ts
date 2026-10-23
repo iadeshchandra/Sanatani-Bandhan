@@ -92,8 +92,10 @@ export interface PlatformTerms {
 /* --------------------------- Code defaults ------------------------------ */
 /* Generated from PLAN_PRICING — the single defaults source. These are the
  * FINAL law values (2026-10-14) and double as the seed + fail-open fallback:
- *   Seva free · Standard ₹499·৳700·$6 · Premium ₹1,999·৳2,800·$24 ·
- *   Pro ₹199·৳280·$2.50 · annual = 2 months free · commission 15/8/12. */
+ *   Lite (id seva) free · Standard ₹499·৳700·$6 · Enterprise (id premium)
+ *   ₹1,999·৳2,800·$24 · Pro ₹199·৳280·$2.50 · annual = 2 months free ·
+ *   commission 15/8/12. (Display names renamed by owner decision
+ *   2026-10-23; ids + values unchanged.) */
 
 export const PRO_COMMISSION_PERCENT = 12;
 
@@ -292,10 +294,10 @@ export function validateTermsSet(plans: Record<TermsPlanId, TermsPlan>): TermsVa
     warnings.push(...v.warnings);
   }
   if (plans.premium.priceMonthlyINR < plans.standard.priceMonthlyINR) {
-    warnings.push(`Premium monthly INR (₹${plans.premium.priceMonthlyINR}) is cheaper than Standard (₹${plans.standard.priceMonthlyINR}) — tier order looks inverted.`);
+    warnings.push(`${plans.premium.name} monthly INR (₹${plans.premium.priceMonthlyINR}) is cheaper than ${plans.standard.name} (₹${plans.standard.priceMonthlyINR}) — tier order looks inverted.`);
   }
   if (plans.standard.priceMonthlyINR < plans.purohit_pro.priceMonthlyINR) {
-    warnings.push(`Standard monthly INR (₹${plans.standard.priceMonthlyINR}) is cheaper than Pro (₹${plans.purohit_pro.priceMonthlyINR}) — check this is intended.`);
+    warnings.push(`${plans.standard.name} monthly INR (₹${plans.standard.priceMonthlyINR}) is cheaper than Pro (₹${plans.purohit_pro.priceMonthlyINR}) — check this is intended.`);
   }
   return { errors, warnings };
 }

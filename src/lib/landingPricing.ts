@@ -2,10 +2,14 @@
  * landingPricing.ts — pure mapping: canonical terms → landing pricing cards.
  * ============================================================================
  * QUEUED #44 (2026-10-20). The public pricing section must show the FOUR
- * canonical tiers — Seva, Standard, Premium, Purohit/Jyotishi Pro — under
- * their law names (PRICING FINAL 2026-10-14: tiers are NEVER renamed; the
- * top institution tier is "Premium", not "Enterprise", and Pro is a real
- * tier, not an afterthought).
+ * canonical tiers under their law names, and Pro is a real tier, not an
+ * afterthought. DISPLAY RENAME (owner decision, 2026-10-23 — supersedes
+ * the #44-era "never rename" law for names only): the free tier displays
+ * as "Lite" and the top institution tier as "Enterprise"; the canonical
+ * ids (seva / standard / premium / purohit_pro) and every price are
+ * unchanged. Names still come from code copy in config/planPricing —
+ * never from a stored plan doc — so this rename is exactly a change of
+ * the `name` fields in that one file.
  *
  * Data source law (#31): every NUMBER comes from the terms store snapshot
  * (config-first via lib/termsConfig — a GodMode → Plans & Terms edit flows

@@ -22,9 +22,11 @@
 
 import {
   DEFAULT_TERMS,
+  tierForPlan,
   type PlatformTerms,
   type TermsPlanId,
 } from '../../lib/termsConfig';
+import { PLAN_PRICING } from '../../config/planPricing';
 
 /* ------------------------------------------------------------------ */
 /* The brief itself                                                    */
@@ -117,11 +119,15 @@ export interface BriefWarning {
   message: string;
 }
 
+/** Plan display labels — derived from the single source (planPricing
+ *  `name` fields via the canonical tier for each terms plan id), so the
+ *  2026-10-23 display rename ("Lite" / "Enterprise") flows into Copilot
+ *  warnings automatically. Never hard-code tier names here. */
 const PLAN_LABEL: Record<TermsPlanId, string> = {
-  seva: 'Seva',
-  standard: 'Standard',
-  premium: 'Premium',
-  purohit_pro: 'Pro',
+  seva: PLAN_PRICING[tierForPlan('seva')].name,
+  standard: PLAN_PRICING[tierForPlan('standard')].name,
+  premium: PLAN_PRICING[tierForPlan('premium')].name,
+  purohit_pro: PLAN_PRICING[tierForPlan('purohit_pro')].name,
 };
 
 const CUR_SYM = { INR: '₹', BDT: '৳', USD: '$' } as const;
@@ -188,7 +194,7 @@ export function checkAgainstBrief(terms: PlatformTerms): BriefWarning[] {
   if (terms.plans.premium.priceMonthlyINR < terms.plans.standard.priceMonthlyINR) {
     out.push({
       kind: 'tier_inversion',
-      message: `Premium (₹${terms.plans.premium.priceMonthlyINR}/mo) is cheaper than Standard (₹${terms.plans.standard.priceMonthlyINR}/mo) — the tier order is inverted.`,
+      message: `${PLAN_LABEL.premium} (₹${terms.plans.premium.priceMonthlyINR}/mo) is cheaper than ${PLAN_LABEL.standard} (₹${terms.plans.standard.priceMonthlyINR}/mo) — the tier order is inverted.`,
     });
   }
 
@@ -239,9 +245,9 @@ export function briefForPrompt(): string {
     ...STANDING_LAWS.map((l) => `· ${l}`),
     'Owner heuristics:',
     ...OWNER_HEURISTICS.map((h) => `· ${h.name}: ${h.rule}`),
-    `Pricing-law baseline: Seva free · Standard ₹${b.plans.standard.priceMonthlyINR}·৳${b.plans.standard.priceMonthlyBDT}·$${b.plans.standard.priceMonthlyUSD}/mo · ` +
-      `Premium ₹${b.plans.premium.priceMonthlyINR}·৳${b.plans.premium.priceMonthlyBDT}·$${b.plans.premium.priceMonthlyUSD}/mo · ` +
-      `Pro ₹${b.plans.purohit_pro.priceMonthlyINR}·৳${b.plans.purohit_pro.priceMonthlyBDT}·$${b.plans.purohit_pro.priceMonthlyUSD}/mo · ` +
+    `Pricing-law baseline: ${PLAN_LABEL.seva} free · ${PLAN_LABEL.standard} ₹${b.plans.standard.priceMonthlyINR}·৳${b.plans.standard.priceMonthlyBDT}·$${b.plans.standard.priceMonthlyUSD}/mo · ` +
+      `${PLAN_LABEL.premium} ₹${b.plans.premium.priceMonthlyINR}·৳${b.plans.premium.priceMonthlyBDT}·$${b.plans.premium.priceMonthlyUSD}/mo · ` +
+      `${PLAN_LABEL.purohit_pro} ₹${b.plans.purohit_pro.priceMonthlyINR}·৳${b.plans.purohit_pro.priceMonthlyBDT}·$${b.plans.purohit_pro.priceMonthlyUSD}/mo · ` +
       `annual = 2 months free · commission community ${b.commission.freeRate}% / Rail-1 ${b.commission.proRail1Rate}% / Rail-2 ${b.commission.proRail2Rate}%.`,
   ];
   return lines.join('\n');

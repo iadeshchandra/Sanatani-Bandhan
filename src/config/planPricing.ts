@@ -11,7 +11,17 @@
  * perks, feature flags) which is not owner-editable terms data.
  *
  * Freemium model: EVERY plan includes ALL features; only usage caps differ.
- * Tiers: SEVA (free) / STANDARD / PREMIUM / PUROHIT_PRO (individuals).
+ * Tiers (internal ids — STABLE, stored on workspaces + Firestore docs):
+ * SEVA (free) / STANDARD / PREMIUM / PUROHIT_PRO (individuals).
+ *
+ * DISPLAY RENAME (owner decision, 2026-10-23 — supersedes the 2026-10-14
+ * "never rename tiers" law for DISPLAY NAMES ONLY): the free tier displays
+ * as "Lite" and the top tier as "Enterprise". Ids, prices, limits and the
+ * Firestore `plans/{seva|standard|premium|purohit_pro}` docs are UNCHANGED;
+ * every legacy spelling keeps resolving ('LITE' → SEVA, 'ENTERPRISE' →
+ * PREMIUM via workspaceRegistry.resolvePlanId / planLimits.normalizePlanId).
+ * Display names live ONLY in this file (`name` fields below) — consumers
+ * must read them from here, never hard-code them.
  *
  * Per-region prices: INR (India), BDT (Bangladesh), USD (International).
  * The flat `price` field (INR) is kept for backward compatibility with
@@ -119,7 +129,7 @@ const ALL_FEATURES: TierFeatures = {
 export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
   SEVA: {
     tier: 'SEVA',
-    name: 'Seva Free',
+    name: 'Lite',
     badge: 'FREE FOREVER',
     tagline: 'Every feature, generous free limits — dharma technology for every institution',
     description: 'The complete Sanatani Bandhan suite, free forever. All features included; usage caps keep it sustainable.',
@@ -175,7 +185,7 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
     name: 'Standard',
     badge: 'POPULAR',
     tagline: 'Room to grow — higher caps for thriving institutions',
-    description: 'Everything in Seva Free, with raised limits for growing temples, ashrams, goshalas and trusts.',
+    description: 'Everything in Lite, with raised limits for growing temples, ashrams, goshalas and trusts.',
     targetAudience: 'Growing institutions',
     price: { monthly: 499, annual: 4999, currency: 'INR', currencySymbol: '₹' },
     regionalPrices: {
@@ -214,7 +224,7 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
       'UserRolesDesk',
     ],
     highlightedPerks: [
-      'Everything in Seva Free',
+      'Everything in Lite',
       'Up to 1,000 devotees · unlimited transactions',
       '10 staff seats · 3 branches',
       'Priority support',
@@ -222,7 +232,7 @@ export const PLAN_PRICING: Record<SubscriptionTier, TierPricingConfig> = {
   },
   PREMIUM: {
     tier: 'PREMIUM',
-    name: 'Premium',
+    name: 'Enterprise',
     badge: 'UNLIMITED',
     tagline: 'Unlimited everything, plus API access and custom domain',
     description: 'For large institutions, federations and tirths — unlimited caps, API access, and white-label domain.',

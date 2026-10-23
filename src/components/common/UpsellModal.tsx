@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Sparkles, ShieldCheck, Star, ArrowRight, Zap, CheckCircle2, Building2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { PLAN_PRICING, SubscriptionTier } from '../../config/planPricing';
+import { PLAN_PRICING } from '../../config/planPricing';
 import { useTerms } from '../../hooks/useTerms';
 import { planIdForTier, priceFor } from '../../lib/termsConfig';
 
@@ -20,13 +20,10 @@ interface UpsellModalProps {
 
 // C-6: single pricing model. Legacy SUBSCRIPTION_PLANS names (SEVA/MANDIR/
 // SMART_PRO) are display-deprecated — the modal sells the PLAN_PRICING tiers
-// with the same names the landing page advertises, prices read live from config.
-const DISPLAY_NAMES: Record<SubscriptionTier, string> = {
-  SEVA: 'Seva Free',
-  STANDARD: 'Standard',
-  PREMIUM: 'Premium',
-  PUROHIT_PRO: 'Purohit / Jyotishi Pro',
-};
+// with the same names the landing page advertises (each tier config's own
+// `name` from config/planPricing — the single source; display rename
+// 2026-10-23: SEVA shows "Lite", PREMIUM shows "Enterprise"), prices read
+// live from config.
 
 export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpgrade, module, ctaLabel }) => {
   const { safeTranslate } = useLanguage();
@@ -129,7 +126,7 @@ export const UpsellModal: React.FC<UpsellModalProps> = ({ isOpen, onClose, onUpg
                     {isRecommended ? <Star className="w-5 h-5 text-saffron-400 fill-saffron-400" /> : 
                      isPopular ? <Building2 className="w-5 h-5 text-indigo-500" /> :
                      <ShieldCheck className="w-5 h-5 text-emerald-500" />}
-                    {DISPLAY_NAMES[plan.tier]}
+                    {plan.name}
                   </h3>
                   
                   <p className={`mt-2 text-sm min-h-[40px] leading-relaxed ${isRecommended ? 'text-temple-300' : 'text-slate-500'}`}>

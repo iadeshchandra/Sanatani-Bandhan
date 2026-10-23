@@ -242,11 +242,16 @@ export interface TermsProposal {
   limitsPatch?: Record<string, number>;
 }
 
+// Plan words the owner may use in a terms command. Each plan matches BOTH
+// its canonical id word AND its current display name (display rename
+// 2026-10-23: seva→"Lite", premium→"Enterprise") — ids never change, and
+// the retired names keep working as spoken aliases, exactly like stored
+// plan ids do everywhere else in the app.
 const PLAN_MATCHERS: Array<{ id: TermsPlanId; re: RegExp }> = [
   { id: 'purohit_pro', re: /\b(purohit\s*pro|pro plan|pro)\b/ },
-  { id: 'premium', re: /\bpremium\b/ },
+  { id: 'premium', re: /\b(premium|enterprise)\b/ },
   { id: 'standard', re: /\bstandard\b/ },
-  { id: 'seva', re: /\bseva\b/ },
+  { id: 'seva', re: /\b(seva|lite)\b/ },
 ];
 
 function lastNumber(text: string): number | null {
@@ -815,10 +820,10 @@ export function composeAdviceWithClaims(
     return {
       text: [
         `${head} — growing revenue without hurting temples`,
-        `Where we stand: Standard ${fmtMoney(s.priceMonthlyINR, 'INR')}·${fmtMoney(s.priceMonthlyBDT, 'BDT')}/mo · Premium ${fmtMoney(p.priceMonthlyINR, 'INR')}·${fmtMoney(p.priceMonthlyBDT, 'BDT')}/mo · Pro ${fmtMoney(pro.priceMonthlyINR, 'INR')}·${fmtMoney(pro.priceMonthlyBDT, 'BDT')}/mo · commission ${c.freeRate}/${c.proRail1Rate}/${c.proRail2Rate}%.`,
+        `Where we stand: ${s.name} ${fmtMoney(s.priceMonthlyINR, 'INR')}·${fmtMoney(s.priceMonthlyBDT, 'BDT')}/mo · ${p.name} ${fmtMoney(p.priceMonthlyINR, 'INR')}·${fmtMoney(p.priceMonthlyBDT, 'BDT')}/mo · Pro ${fmtMoney(pro.priceMonthlyINR, 'INR')}·${fmtMoney(pro.priceMonthlyBDT, 'BDT')}/mo · commission ${c.freeRate}/${c.proRail1Rate}/${c.proRail2Rate}%.`,
         'Options:',
         '1) Grow the floor: more Pro subscriptions — bypass-proof, predictable, and it makes providers stakeholders.',
-        '2) Deepen Premium value for organisations (reports, history, multi-admin) before touching its price.',
+        `2) Deepen ${p.name} value for organisations (reports, history, multi-admin) before touching its price.`,
         '3) Commission last — it is upside, and raising it trains bypass.',
         'My recommendation: option 1, then 2. Per your bypass-proof rule, subscriptions are the income you keep; commission is the income you borrow.',
         'Risks: none structural — the risk is impatience. The floor compounds slowly and then all at once.',
@@ -826,8 +831,8 @@ export function composeAdviceWithClaims(
       claims: [
         { id: 'standard.priceMonthlyINR', label: 'Standard · Monthly · INR', value: s.priceMonthlyINR, rendered: fmtMoney(s.priceMonthlyINR, 'INR') },
         { id: 'standard.priceMonthlyBDT', label: 'Standard · Monthly · BDT', value: s.priceMonthlyBDT, rendered: fmtMoney(s.priceMonthlyBDT, 'BDT') },
-        { id: 'premium.priceMonthlyINR', label: 'Premium · Monthly · INR', value: p.priceMonthlyINR, rendered: fmtMoney(p.priceMonthlyINR, 'INR') },
-        { id: 'premium.priceMonthlyBDT', label: 'Premium · Monthly · BDT', value: p.priceMonthlyBDT, rendered: fmtMoney(p.priceMonthlyBDT, 'BDT') },
+        { id: 'premium.priceMonthlyINR', label: `${p.name} · Monthly · INR`, value: p.priceMonthlyINR, rendered: fmtMoney(p.priceMonthlyINR, 'INR') },
+        { id: 'premium.priceMonthlyBDT', label: `${p.name} · Monthly · BDT`, value: p.priceMonthlyBDT, rendered: fmtMoney(p.priceMonthlyBDT, 'BDT') },
         { id: 'purohit_pro.priceMonthlyINR', label: 'Purohit Pro · Monthly · INR', value: pro.priceMonthlyINR, rendered: fmtMoney(pro.priceMonthlyINR, 'INR') },
         { id: 'purohit_pro.priceMonthlyBDT', label: 'Purohit Pro · Monthly · BDT', value: pro.priceMonthlyBDT, rendered: fmtMoney(pro.priceMonthlyBDT, 'BDT') },
         { id: 'commission.ratesCombined', label: 'Commission rates (community / Rail-1 / Rail-2)', value: c.freeRate, rendered: `${c.freeRate}/${c.proRail1Rate}/${c.proRail2Rate}%` },

@@ -29,9 +29,9 @@ function terms(mutate?: (t: PlatformTerms) => void): PlatformTerms {
 describe('formatTermsSummary', () => {
   it('renders every plan in all three currencies with limits and commission', () => {
     const s = formatTermsSummary(terms(), 'en');
-    expect(s).toMatch(/Seva/);
+    expect(s).toMatch(/Lite/);
     expect(s).toMatch(/Standard/);
-    expect(s).toMatch(/Premium/);
+    expect(s).toMatch(/Enterprise/);
     expect(s).toMatch(/₹499/);
     expect(s).toMatch(/৳700/);
     expect(s).toMatch(/\$6/);
@@ -121,6 +121,17 @@ describe('parseTermsChange', () => {
     expect(parseTermsChange('What if Rail-2 goes to 10%?', terms())?.newValue).toBe(10);
     expect(parseTermsChange('community commission to 12%', terms())?.field).toBe('freeRate');
     expect(parseTermsChange('raise the free gig limit to 5', terms())?.field).toBe('freeGigLimit');
+  });
+
+  it('parses the renamed display names as the same plans (2026-10-23)', () => {
+    // "Enterprise" is plan premium; "Lite" is plan seva — and the retired
+    // spoken names keep working (the annual-USD test above uses "Premium").
+    const e = parseTermsChange('Enterprise yearly USD to 260', terms());
+    expect(e?.planId).toBe('premium');
+    expect(e?.field).toBe('priceYearlyUSD');
+    const f = parseTermsChange('Lite devotee limit to 150', terms());
+    expect(f?.planId).toBe('seva');
+    expect(f?.field).toBe('maxDevotees');
   });
 
   it('parses annual USD and limit changes', () => {

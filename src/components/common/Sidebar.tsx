@@ -72,6 +72,7 @@ import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { useMembership } from '../../context/MembershipContext';
 import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { whatsappLink, hasWhatsApp } from '../../config/contact';
+import { PLAN_PRICING } from '../../config/planPricing';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
 import { doorById, doorsForVisibleDesks, doorMatchesSearch, type DeskDoor } from '../../lib/deskDoors';
@@ -577,7 +578,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const lockTierLabelFor = (id: string): string | null => {
     const tier = requiredTierForModule(id);
     if (!tier) return null;
-    return tier === 'STANDARD' ? 'STANDARD' : 'ENTERPRISE';
+    // Lock badge names the required tier by its DISPLAY name from the
+    // single source (planPricing) — "Lite" / "Standard" / "Enterprise"
+    // since the 2026-10-23 rename; never a hard-coded tier label here.
+    return PLAN_PRICING[tier].name.toUpperCase();
   };
 
   const domainGroups = useMemo(() => {

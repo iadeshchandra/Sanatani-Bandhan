@@ -83,12 +83,14 @@ export function usePlanLimits() {
           );
         }
         // AUDIT FIX #7: warm downgrade notice — once per session. Dignity,
-        // never a lockout: the workspace keeps working on Seva Free caps.
+        // never a lockout: the workspace keeps working on free-tier caps.
+        // The plan is NAMED from the check result (terms snapshot →
+        // planPricing display name; "Lite" since the 2026-10-23 rename).
         const downgradeKey = `${wsId}:downgraded`;
         if (result.downgraded && !warnedRef.current.has(downgradeKey)) {
           warnedRef.current.add(downgradeKey);
           showToast(
-            '🙏 Your paid plan ended — you\u2019re on Seva (free) now. Everything still works; upgrade any time to raise your limits.',
+            `🙏 Your paid plan ended — you\u2019re on ${result.planName} (free) now. Everything still works; upgrade any time to raise your limits.`,
             'info'
           );
         }

@@ -943,7 +943,7 @@ export const MasterSettingsDesk: React.FC = () => {
                 )}
                 {planInfo.downgraded && (
                   <p className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mt-3 leading-relaxed">
-                    Your paid plan has ended, so Seva Free limits apply right now. Renew below to restore your previous plan.
+                    Your paid plan has ended, so {planInfo.name} limits apply right now. Renew below to restore your previous plan.
                   </p>
                 )}
               </div>

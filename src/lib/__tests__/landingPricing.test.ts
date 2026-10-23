@@ -2,9 +2,11 @@
  * landingPricing.test.ts — QUEUED #44: the landing pricing cards.
  * =====================================================================
  * Pins the public pricing section to the canonical pricing law:
- * - FOUR tiers render — Seva, Standard, Premium, Purohit/Jyotishi Pro —
- *   under their law names (the top tier is "Premium", NEVER "Enterprise";
- *   Pro exists and is the professionals' tier);
+ * - FOUR tiers render — Lite, Standard, Enterprise, Purohit/Jyotishi
+ *   Pro — under their law names (DISPLAY RENAME, owner decision
+ *   2026-10-23: free tier "Lite", top tier "Enterprise"; canonical ids
+ *   seva / premium and every price unchanged; Pro exists and is the
+ *   professionals' tier);
  * - every number comes from the terms snapshot: code defaults are the
  *   locked 2026-10-14 figures in ₹ AND ৳ AND $;
  * - a GodMode terms edit (config override) flows into the cards — the
@@ -47,14 +49,16 @@ describe('landingPriceCards — defaults are the locked law', () => {
     ]);
   });
 
-  it('uses law names — Premium, never Enterprise; Pro present', () => {
+  it('uses law names — Lite / Standard / Enterprise / Pro (owner rename 2026-10-23)', () => {
     expect(cards.map((c) => c.name)).toEqual([
-      'Seva Free',
+      'Lite',
       'Standard',
-      'Premium',
+      'Enterprise',
       'Purohit / Jyotishi Pro',
     ]);
-    expect(cards.map((c) => c.name).join(' ')).not.toMatch(/Enterprise|Lite/);
+    // The retired display names must not resurface on any card.
+    expect(cards.map((c) => c.name)).not.toContain('Seva Free');
+    expect(cards.map((c) => c.name)).not.toContain('Premium');
   });
 
   it('Standard is the one POPULAR card', () => {
@@ -83,7 +87,7 @@ describe('landingPriceCards — defaults are the locked law', () => {
     expect(pro.commissionPercent).toBe(12);
   });
 
-  it('limits ride along from terms (Seva caps, Premium unlimited)', () => {
+  it('limits ride along from terms (Lite caps, Enterprise unlimited)', () => {
     expect(landingCard(cards, 'seva').maxDevotees).toBe(100);
     expect(landingCard(cards, 'premium').maxDevotees).toBe(-1);
   });
@@ -107,9 +111,13 @@ describe('landingPriceCards — config override flows through (#31 law)', () => 
     expect(landingCard(landingPriceCards(terms), 'premium').inrMonthly).toBe(1999);
   });
 
-  it('a renamed stored plan doc cannot rename the tier on the landing', () => {
-    const terms = termsWith('premium', { name: 'Enterprise' });
-    expect(landingCard(landingPriceCards(terms), 'premium').name).toBe('Premium');
+  it('a stored plan doc cannot rename the tier on the landing (code copy wins)', () => {
+    // A stale stored doc still carrying the retired name loses to the
+    // code name — the landing name comes from planPricing, always.
+    const terms = termsWith('premium', { name: 'Premium' });
+    expect(landingCard(landingPriceCards(terms), 'premium').name).toBe('Enterprise');
+    const terms2 = termsWith('seva', { name: 'Seva Free' });
+    expect(landingCard(landingPriceCards(terms2), 'seva').name).toBe('Lite');
   });
 });
 

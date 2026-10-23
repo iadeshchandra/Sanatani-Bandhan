@@ -13,7 +13,7 @@
  *   - plan + limits + prices: the #31 terms snapshot (`lib/termsConfig`,
  *     Firestore `plans/{id}` sanitized over the locked planPricing defaults);
  *   - effective plan: `lib/subscriptionExpiry` (expired paid plans fall back
- *     to Seva caps — dignity, never a lockout);
+ *     to free-tier (Lite) caps — dignity, never a lockout);
  *   - usage: the same server counts `lib/planLimits.checkLimit` enforces.
  * Nothing in this module invents a number.
  */
@@ -43,7 +43,7 @@ export interface SettingsPlanInfo {
   status: SettingsPlanStatus;
   /** One honest line: "Free forever · no renewal", "Current period ends …". */
   periodLabel: string;
-  /** True when a paid plan expired and Seva caps now apply. */
+  /** True when a paid plan expired and free-tier (Lite) caps now apply. */
   downgraded: boolean;
   limits: TermsPlan['limits'];
   /** The plan a "next" upsell may honestly offer (null on the top tier). */
@@ -75,7 +75,8 @@ function formatPeriodDate(end: string | number | null | undefined): string | nul
 /**
  * Resolve the plan Settings must NAME for a workspace: the terms snapshot
  * entry for the workspace's planId, corrected by the subscription lifecycle
- * (an expired paid plan is honestly presented as Seva Free with a note).
+ * (an expired paid plan is honestly presented as the free Lite plan — named
+ * from the snapshot, never a hard-coded copy — with a note).
  */
 export function resolveSettingsPlan(input: {
   planId?: string | null;
@@ -99,8 +100,8 @@ export function resolveSettingsPlan(input: {
   } else if (downgraded) {
     status = 'expired';
     periodLabel = endLabel
-      ? `Paid plan ended ${endLabel} — Seva Free limits now apply`
-      : 'Paid plan ended — Seva Free limits now apply';
+      ? `Paid plan ended ${endLabel} — ${plan.name} limits now apply`
+      : `Paid plan ended — ${plan.name} limits now apply`;
   } else if (effective === 'seva') {
     status = 'free';
     periodLabel = 'Free forever · no renewal';

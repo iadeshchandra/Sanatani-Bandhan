@@ -10,6 +10,11 @@ import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentInsightsTab } from './AdminTabsG';
 import { TopupsTab, WalletsTab } from './AdminTabsI';
+import { PLAN_PRICING } from '../../../config/planPricing';
+
+/** Free-tier display name from the single source (planPricing; "Lite"
+ *  since the 2026-10-23 display rename — never hard-code it here). */
+const FREE_TIER_NAME = PLAN_PRICING.SEVA.name;
 
 /* ------------------------------- Moderation ------------------------------ */
 
@@ -395,14 +400,14 @@ const SubscriptionsTab: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-500">{subs.length} subscriptions — expired plans gracefully fall back to Seva (free) caps after a 7-day grace period. Nothing is ever locked out.</p>
+      <p className="text-xs text-slate-500">{subs.length} subscriptions — expired plans gracefully fall back to {FREE_TIER_NAME} (free) caps after a 7-day grace period. Nothing is ever locked out.</p>
       {due.length > 0 && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-center gap-3 flex-wrap">
           <TimerOff className="w-5 h-5 text-red-300 shrink-0" />
           <p className="text-xs text-red-200 flex-1 min-w-[200px]">
             <b>{due.length} subscription{due.length === 1 ? '' : 's'} past due</b> — paid period and grace are over,
             but the record still says “active”, so counts and MRR overstate reality. Expiring them changes no member's
-            access (they already run on Seva caps) and never blocks a renewal.
+            access (they already run on {FREE_TIER_NAME} caps) and never blocks a renewal.
           </p>
           <button
             type="button"
@@ -472,7 +477,7 @@ const SubscriptionsTab: React.FC = () => {
       {showDuePreview && (
         <ConfirmDialog
           title={`Expire ${due.length} due subscription${due.length === 1 ? '' : 's'}?`}
-          body="Each record's stored status flips to “expired” with today's stamp, and the batch is written to the audit log with every id. Members keep working on Seva (free) caps — most already do — and a later payment approval reactivates them cleanly. Subscriptions still in their grace period are NOT touched. The sweep re-scans all subscriptions on confirm, so the final count may include older records beyond the list below."
+          body={`Each record's stored status flips to “expired” with today's stamp, and the batch is written to the audit log with every id. Members keep working on ${FREE_TIER_NAME} (free) caps — most already do — and a later payment approval reactivates them cleanly. Subscriptions still in their grace period are NOT touched. The sweep re-scans all subscriptions on confirm, so the final count may include older records beyond the list below.`}
           confirmLabel={`Expire ${due.length} now`}
           working={acting === 'batch'}
           onConfirm={runExpireDue}
@@ -495,7 +500,7 @@ const SubscriptionsTab: React.FC = () => {
       {expireTarget && (
         <ConfirmDialog
           title="Expire this subscription now?"
-          body={`${expireTarget._isPro ? (expireTarget.providerUid || expireTarget.id) : expireTarget.workspaceId} · ${expireTarget.planId} will be marked expired immediately, whatever its end date says, and the action is audit-logged. The member keeps working on Seva (free) caps and can renew any time — a fresh approval reactivates the record.`}
+          body={`${expireTarget._isPro ? (expireTarget.providerUid || expireTarget.id) : expireTarget.workspaceId} · ${expireTarget.planId} will be marked expired immediately, whatever its end date says, and the action is audit-logged. The member keeps working on ${FREE_TIER_NAME} (free) caps and can renew any time — a fresh approval reactivates the record.`}
           confirmLabel="Expire now"
           working={acting === expireTarget.id}
           onConfirm={runExpireNow}

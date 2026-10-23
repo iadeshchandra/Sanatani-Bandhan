@@ -1,6 +1,6 @@
 import { WorkspaceType } from '../../types';
-import { requiredTierForModule } from '../../lib/workspaceRegistry';
-import { PLAN_PRICING } from '../../config/planPricing';
+import { requiredTierForModule, resolvePlanId } from '../../lib/workspaceRegistry';
+import { PLAN_PRICING, TIER_LEVELS } from '../../config/planPricing';
 
 /**
  * wizardDeskMap.ts — the Setup Wizard's brain.
@@ -262,14 +262,22 @@ export function tierNoteForDesk(
 ): { tier: string; price: string } | null {
   const required = requiredTierForModule(deskId);
   if (!required) return null;
-  const plan = (planId || 'LITE').toUpperCase();
-  if (plan === required || plan === 'DEMO') return null;
-  const level: Record<string, number> = { LITE: 1, STANDARD: 2, ENTERPRISE: 3 };
-  if ((level[plan] ?? 1) >= (level[required] ?? 1)) return null;
-  const pricing = PLAN_PRICING[required as keyof typeof PLAN_PRICING];
-  const monthly = pricing?.price?.monthly ?? 0;
+  // Canonical resolution on BOTH sides: resolvePlanId maps every stored
+  // spelling ('LITE' → SEVA, 'ENTERPRISE' → PREMIUM) and defaults
+  // missing/unknown to SEVA. (The previous local level map was keyed on
+  // the legacy 'LITE'/'ENTERPRISE' spellings only, so canonical
+  // 'SEVA'/'PREMIUM' plans silently resolved to level 1 — a half-rename
+  // landmine in a dormant path: MODULE_PLAN_TIER is empty today, so
+  // `required` is always null and this note currently never renders.)
+  const planTier = resolvePlanId(planId);
+  if (planTier === 'DEMO') return null;
+  if (TIER_LEVELS[planTier] >= TIER_LEVELS[required]) return null;
+  const pricing = PLAN_PRICING[required];
+  const monthly = pricing.price.monthly;
   const price = monthly > 0 ? `₹${monthly.toLocaleString('en-IN')}/mo` : '₹0';
-  return { tier: required, price };
+  // `tier` carries the DISPLAY name from the single source (planPricing)
+  // — the wizard badge shows "Enterprise", never a raw plan id.
+  return { tier: pricing.name, price };
 }
 
 /** Pure trigger predicate — exported for testing. */

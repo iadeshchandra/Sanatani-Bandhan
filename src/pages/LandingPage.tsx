@@ -492,7 +492,7 @@ const ORG_PROFILES: OrgProfile[] = [
 const FAQS = [
   {
     q: 'Is it really free? What is the catch?',
-    a: 'Yes — the Seva Free plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹499/month) raises the limits — up to 1,000 devotees, 10 staff seats and 3 branches — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
+    a: 'Yes — the Lite plan is ₹0 forever: pooja booking, Panchang & muhurat, Quick Chanda and WhatsApp broadcasts for up to 100 devotees, with the offline PWA and community support. No credit card, no trial clock. When you grow, Standard (₹499/month) raises the limits — up to 1,000 devotees, 10 staff seats and 3 branches — still a fraction of the ₹35,000/year typical institution software, because dharma technology should belong to every institution, not just the wealthy ones.',
   },
   {
     q: 'Does it work without internet?',
@@ -599,9 +599,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // Firestore terms hydrate in. Copy (names/taglines/perks) stays in code.
   const terms = useTerms();
   // QUEUED #44: pricing cards come from the pure terms→cards mapping
-  // (lib/landingPricing) — ALL FOUR canonical tiers (Seva, Standard,
-  // Premium, Purohit/Jyotishi Pro), names from code copy, every number
-  // from terms so a GodMode terms edit flows here with no deploy.
+  // (lib/landingPricing) — ALL FOUR canonical tiers (display names:
+  // Lite, Standard, Enterprise, Purohit/Jyotishi Pro — owner rename
+  // 2026-10-23; canonical ids unchanged), names from code copy, every
+  // number from terms so a GodMode terms edit flows here with no deploy.
   const priceCards = landingPriceCards(terms);
   const card = (id: TermsPlanId) => landingCard(priceCards, id);
   const fmtLim = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString('en-IN'));
@@ -1487,7 +1488,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
-            {/* SEVA FREE — canonical tier 'seva' (cards: lib/landingPricing, QUEUED #44) */}
+            {/* LITE — canonical tier 'seva', display name 'Lite' (cards: lib/landingPricing, QUEUED #44; display rename 2026-10-23) */}
             <Reveal className="h-full">
               <div className="h-full rounded-[2rem] bg-white border border-orange-200 p-8 flex flex-col shadow-sm hover:shadow-xl hover:shadow-orange-100 transition-all">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-orange-100 text-orange-700 px-3 py-1 rounded-full">
@@ -1551,7 +1552,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {fmtLim(card('standard').maxDevotees)} devotees · {fmtLim(card('standard').maxBranches)} branches · priority support
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
-                  {['Everything in Seva Free', 'Annadanam Kitchen', 'Dharamshala guest rooms', 'Gau Seva & dairy', '80G tax receipts', 'Fundraising campaigns', 'Inventory & store'].map((f) => (
+                  {[`Everything in ${card('seva').name}`, 'Annadanam Kitchen', 'Dharamshala guest rooms', 'Gau Seva & dairy', '80G tax receipts', 'Fundraising campaigns', 'Inventory & store'].map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                       {f}
@@ -1568,7 +1569,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </Reveal>
 
-            {/* PREMIUM — canonical tier 'premium' (the law name for the top tier) */}
+            {/* ENTERPRISE — canonical tier 'premium', display name 'Enterprise' (owner rename 2026-10-23) */}
             <Reveal delay={160} className="h-full">
               <div className="h-full rounded-[2rem] bg-stone-900 p-8 text-stone-200 flex flex-col shadow-xl">
                 <span className="self-start text-[11px] font-black tracking-widest uppercase bg-stone-800 text-amber-400 px-3 py-1 rounded-full">

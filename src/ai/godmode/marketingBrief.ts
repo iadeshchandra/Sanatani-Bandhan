@@ -19,6 +19,7 @@
  */
 
 import type { LangCode } from '../types';
+import { PLAN_PRICING } from '../../config/planPricing';
 
 function lc(lang: LangCode): 'en' | 'hi' | 'bn' {
   return lang === 'hi' ? 'hi' : lang === 'bn' ? 'bn' : 'en';
@@ -91,8 +92,9 @@ export const MARKETING_HEURISTICS: MarketingHeuristic[] = [
       'better and prices honestly reflect dignity and worth — never by forcing a user. ' +
       'No pressure mechanics, no dark patterns, no squeezing a devotee at a vulnerable ' +
       'moment: a shraddha booking is a sacred trust, not a sales funnel. When counsel ' +
-      'touches profit, it travels through value — Pro worth having, Premium worth ' +
-      'deepening, commission that stays beneath the bypass line.',
+      'touches profit, it travels through value — Pro worth having, ' +
+      PLAN_PRICING.PREMIUM.name +
+      ' worth deepening, commission that stays beneath the bypass line.',
   },
 ];
 

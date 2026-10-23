@@ -12,8 +12,11 @@ import { isShikshaFamilyMountAllowed } from './deskSurfaceGuard';
  *      Priest > Sevadar > Devotee. Enforced per-desk in App.tsx via
  *      checkPermission([...]) and in Firestore security rules. Roles are
  *      about *people*.
- *   2. TIERS (what the workspace pays for): LITE (Seva Free) < STANDARD <
- *      ENTERPRISE, plus DEMO (full surface, quota-bound instead). Enforced
+ *   2. TIERS (what the workspace pays for): SEVA (display "Lite") <
+ *      STANDARD < PREMIUM (display "Enterprise"), plus DEMO (full
+ *      surface, quota-bound instead). Display names renamed by owner
+ *      decision 2026-10-23 — canonical ids unchanged; the names live in
+ *      config/planPricing only. Enforced
  *      via MODULE_PLAN_TIER below — at nav (Sidebar lock badges + upsell)
  *      AND at desk mount (App.tsx renderActiveDesk guard). Tiers are about
  *      the *workspace's subscription*.
@@ -30,7 +33,7 @@ import { isShikshaFamilyMountAllowed } from './deskSurfaceGuard';
  * Plan resolution is centralized here:
  *   - 'DEMO' | 'SEVA' | 'STANDARD' | 'PREMIUM' | 'PUROHIT_PRO' honored verbatim.
  *     Legacy 'LITE' → 'SEVA', 'ENTERPRISE' → 'PREMIUM'.
- *   - A missing/unknown planId defaults to 'SEVA' (Seva Free) — NEVER 'DEMO'.
+ *   - A missing/unknown planId defaults to 'SEVA' (display "Lite") — NEVER 'DEMO'.
  *
  * DEMO workspaces see the full desk surface (access level 3): the binding
  * constraint for demos is the separate 5-creates-per-module demo quota, not
