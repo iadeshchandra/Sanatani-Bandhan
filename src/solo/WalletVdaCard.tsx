@@ -9,6 +9,18 @@
  *    section (#vda-alias), where the claim itself stays single-sourced.
  * Display + door only: claiming/releasing still happens in exactly one
  * place (VdaAliasSection), so the registry rules never fork.
+ *
+ * U8b repair (owner screenshot, 2026-10-23): in the unclaimed state the
+ * bilingual T gloss inflated BOTH the explanation and the Claim button
+ * ("নিন → (Claim →)"), crushing the text column to ~115px on phones —
+ * the gloss wrapped into a sliver and ran off the card, and the wide
+ * button sat flush at the card's right edge, exactly where the
+ * floating SOS button rests, so the FAB covered its tail. The gloss
+ * and the Claim action now live on their own full-width rows beneath
+ * the header row: the gloss wraps inside the card at every width
+ * (break-words, so the unbreakable `name@scope` token can never push
+ * past the edge), and the button — labelled in the devotee's language
+ * only, ≥44px — sits clear of the SOS corner.
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -53,9 +65,9 @@ export const WalletVdaCard: React.FC = () => {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">
-            <T en="Your spoken ID" bn="আপনার কথ্য আইডি" hi="आपकी कथ्य आईडी" />
+            <T en="Your spoken ID" bn="আপনার কথ্য আইডি" hi="आपकी কথ्य आईडी" />
           </p>
-          {view.state === 'claimed' ? (
+          {view.state === 'claimed' && (
             <>
               <p className="font-mono font-bold text-stone-900 truncate">{view.alias}</p>
               <p className="text-[11px] text-stone-500">
@@ -66,17 +78,9 @@ export const WalletVdaCard: React.FC = () => {
                 />
               </p>
             </>
-          ) : (
-            <p className="text-sm text-stone-600">
-              <T
-                en="Claim a name@scope — say it instead of numbers when someone pays you."
-                bn="একটি name@scope নিন — কেউ টাকা পাঠালে নম্বরের বদলে এটাই বলুন।"
-                hi="एक name@scope लें — कोई भुगतान करे तो नंबर की जगह यही बोलें।"
-              />
-            </p>
           )}
         </div>
-        {view.state === 'claimed' ? (
+        {view.state === 'claimed' && (
           <button
             type="button"
             onClick={copy}
@@ -85,16 +89,29 @@ export const WalletVdaCard: React.FC = () => {
           >
             {copied ? <Check className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5" />}
           </button>
-        ) : (
+        )}
+      </div>
+
+      {/* Unclaimed: gloss + Claim on their own full-width rows (U8b) —
+          never squeezed beside the icon, never under the SOS button. */}
+      {view.state !== 'claimed' && (
+        <>
+          <p className="text-sm text-stone-600 mt-2.5 break-words">
+            <T
+              en="Claim a name@scope — say it instead of numbers when someone pays you."
+              bn="একটি name@scope নিন — কেউ টাকা পাঠালে নম্বরের বদলে এটাই বলুন।"
+              hi="एक name@scope लें — कोई भुगतान करे तो नंबर की जगह यही बोलें।"
+            />
+          </p>
           <button
             type="button"
             onClick={goClaim}
-            className="shrink-0 min-h-[44px] px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-black transition-colors"
+            className="mt-3 min-h-[44px] px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-black transition-colors"
           >
-            <T en="Claim →" bn="নিন →" hi="लें →" />
+            {tr('Claim →', 'নিন →', 'लें →')}
           </button>
-        )}
-      </div>
+        </>
+      )}
     </Card>
   );
 };

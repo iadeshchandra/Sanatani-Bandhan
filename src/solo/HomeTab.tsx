@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { SoloHome } from './SoloHome';
@@ -16,6 +16,7 @@ import { SangamProvider } from '../sangam/sangamStore';
 import { WalletTab } from './WalletTab';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { T } from './ui';
+import { pillRevealScrollLeft } from './subTabScroll';
 import { useFeatureFlag } from '../hooks/usePlatformStatus';
 
 /* HomeTab — the Solo personal space, reached at /app/home[/:subTab].
@@ -109,15 +110,39 @@ export const HomeSubTabBar: React.FC<{ current: SoloTabId; onSelect: (t: SoloTab
       {TAB_LABELS[id]}
     </button>
   );
+  // U8c: the strip keeps its scroll position across navigation (sticky
+  // header), which could leave the SELECTED pill resting clipped at the
+  // edge. On mount and on every tab change, reveal the active pill
+  // fully inside its row — horizontal only, the page never jumps.
+  const dailyRowRef = useRef<HTMLDivElement>(null);
+  const moreRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    for (const row of [dailyRowRef.current, moreRowRef.current]) {
+      if (!row) continue;
+      const active = row.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active) continue;
+      const target = pillRevealScrollLeft(
+        row.scrollLeft,
+        row.getBoundingClientRect(),
+        active.getBoundingClientRect()
+      );
+      if (target === row.scrollLeft) continue;
+      try {
+        row.scrollTo({ left: target, behavior: 'smooth' });
+      } catch {
+        row.scrollLeft = target;
+      }
+    }
+  }, [current]);
   return (
     <nav className="max-w-5xl mx-auto px-4 pb-3 space-y-1.5" aria-label="My Space sections">
-      <div className="flex gap-2 overflow-x-auto items-center">
+      <div ref={dailyRowRef} className="flex gap-2 overflow-x-auto items-center">
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="Daily" bn="দৈনিক" hi="दैनिक" />
         </span>
         {PRIMARY_TABS.filter(visible).map(pill)}
       </div>
-      <div className="flex gap-2 overflow-x-auto items-center">
+      <div ref={moreRowRef} className="flex gap-2 overflow-x-auto items-center">
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="More" bn="আরও" hi="और" />
         </span>

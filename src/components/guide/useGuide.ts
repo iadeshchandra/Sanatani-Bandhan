@@ -11,6 +11,10 @@
  * Feature tours are ALWAYS invitational — this hook never auto-starts a
  * tour. (The one auto-showing first-run explainer in notifications/ keeps
  * its own show-once logic.)
+ *
+ * U8d: a persisted 'active' left by an interrupted session decays to
+ * 'offered' on read (see guideProgress) — mounting a surface can never
+ * resurrect a tour; only a tap in THIS session (start/restart) opens one.
  */
 
 import { useCallback, useState } from 'react';
