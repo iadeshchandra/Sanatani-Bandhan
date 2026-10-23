@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layers, LayoutDashboard,
+import { Layers, LayoutDashboard, LayoutGrid,
   Users,
   Home,
   GitFork,
@@ -202,7 +202,7 @@ export const MODULE_CATALOG: NavItem[] = [
   // 'security-audit-log'/'auditLog' already resolve to it).
   { id: 'legalVault', name: 'Security & Audit Log', domain: 6, domainTitle: 'Governance & Security', icon: ScrollText, keywords: 'audit log security activity history who did what' },
   { id: 'qrScanner', name: 'QR Gate Scanner', domain: 6, domainTitle: 'Governance & Security', icon: ShieldCheck, badge: 'Check-in' },
-  { id: 'appStore', name: 'App Store & Add-ons', domain: 6, domainTitle: 'Governance & Security', icon: Layers, badge: 'Integrations' },
+  { id: 'appStore', name: 'Plan & Add-ons', domain: 6, domainTitle: 'Governance & Security', icon: Layers, badge: 'Integrations' },
   // QUEUED #57 (audit A1-D09): 'workspace-hub' finally has its catalog
   // row — the desk (WorkspaceSelectorDesk) and its TRUSTEE mount gate
   // existed, but with no row here no user path could ever reach it.
@@ -528,10 +528,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (m.id === 'federation' && (activeWorkspace?.branches?.length || 0) < 2) {
         return false;
       }
-      // 1. Check workspace taxonomy
+      // 1. Presence check — since the 2026-10-23 redesign this no
+      // longer gates on install state (every desk is present); it
+      // denies only desks that do not exist ('sevaTrust'). Kept as a
+      // step so the pipeline's shape — presence → role → domain →
+      // search — stays readable.
       const allowedForWorkspace = isModuleAllowed(activeWorkspace, m.id);
       if (!allowedForWorkspace) return false;
-      
+
       // 2. Strict RBAC permissions enforcement — QUEUED #56: the
       // per-role decision lives in ONE shared helper
       // (src/lib/deskVisibility.ts), consumed by the Command Palette
@@ -795,6 +799,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Desks Navigation List */}
         <div className="flex-1 overflow-y-auto py-3 space-y-4 custom-scrollbar">
+          {/* All-Desks Directory (module-system redesign, 2026-10-23):
+              the one complete, family-grouped directory of every desk.
+              Shell chrome, not a catalog row — it never appears in the
+              domain groups below. Hidden while searching (the search
+              already covers the full nav). */}
+          {!searchTerm && (
+            <div className={isCollapsed ? 'px-1.5' : 'px-3'}>
+              <button
+                type="button"
+                onClick={() => handleSelectModule('desk-directory')}
+                aria-label={t('suites.seva.directory.title')}
+                title={t('suites.seva.directory.title')}
+                className={`min-h-[44px] w-full flex items-center gap-2.5 rounded-xl border border-saffron-500/40 bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-300 hover:text-saffron-200 font-bold transition-all cursor-pointer ${
+                  isCollapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5 text-xs'
+                } ${activeModule === 'desk-directory' ? 'ring-1 ring-saffron-400/60' : ''}`}
+              >
+                <LayoutGrid className="w-4 h-4 shrink-0" aria-hidden="true" />
+                {!isCollapsed && (
+                  <span className="truncate">{t('suites.seva.directory.title')}</span>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Pinned favorites (RBAC-filtered; hidden while searching) */}
           {!searchTerm && pinnedItems.length > 0 && (
             <div className={isCollapsed ? 'px-1.5' : 'px-3'}>

@@ -4004,6 +4004,8 @@ export interface TranslationSchema {
       notNow: string;
       dismissSuggestion: string;
       enableModule: string;
+      open: string;
+      openModule: string;
       availableModule: string;
       suggestionLabel: string;
     };
@@ -4396,6 +4398,40 @@ export interface TranslationSchema {
         outreach: string;
         governance: string;
         life: string;
+      };
+      plan: {
+        currentPlan: string;
+        usageTitle: string;
+        devotees: string;
+        txnsMonth: string;
+        seats: string;
+        unlimited: string;
+        ofCap: string;
+        upgrade: string;
+        currentBadge: string;
+        compareTitle: string;
+        demoNote: string;
+        includedNote: string;
+        perMonth: string;
+        perYear: string;
+        loadedWindow: string;
+      };
+    };
+    directory: {
+      title: string;
+      subtitle: string;
+      searchPlaceholder: string;
+      suggestedTitle: string;
+      coreBadge: string;
+      emptyTitle: string;
+      emptyDesc: string;
+      families: {
+        money: string;
+        people: string;
+        seva: string;
+        festivals: string;
+        institution: string;
+        records: string;
       };
     };
   };

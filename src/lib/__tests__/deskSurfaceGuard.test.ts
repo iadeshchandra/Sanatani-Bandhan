@@ -64,7 +64,11 @@ describe('deskSurfaceGuard — surface map sanity', () => {
 describe('deskSurfaceGuard — per-type matrix over the shared case group', () => {
   for (const type of ALL_TYPES) {
     for (const id of SHIKSHA_CASE_GROUP_IDS) {
-      const native = isModuleAllowed(ws(type), id);
+      // "Native" is read from the registry itself: since the
+      // 2026-10-23 redesign, isModuleAllowed answers presence (true
+      // for every real desk), not nativeness — the matrix below is
+      // about which desks an org NATIVELY mounts.
+      const native = (workspaceRegistry[type as keyof typeof workspaceRegistry] || []).includes(id);
       if (!native) continue;
       if (id === 'sevaTrust') {
         it(`${type} natively mounts 'sevaTrust' → mount DENIED (no correct component exists)`, () => {
@@ -82,10 +86,16 @@ describe('deskSurfaceGuard — per-type matrix over the shared case group', () =
   it('no org type can natively mount two case-group ids from different families', () => {
     // If a future registry edit gives one org type, say, both
     // 'sanghaDrills' and 'gurukul', a single surface cannot serve both —
-    // this pin forces that edit to be made deliberately.
+    // this pin forces that edit to be made deliberately. Nativeness
+    // is read from the registry (post-redesign, isModuleAllowed is
+    // presence, not nativeness).
     for (const type of ALL_TYPES) {
       const surfaces = [...SHIKSHA_CASE_GROUP_IDS]
-        .filter((id) => id !== 'sevaTrust' && isModuleAllowed(ws(type), id))
+        .filter(
+          (id) =>
+            id !== 'sevaTrust' &&
+            (workspaceRegistry[type as keyof typeof workspaceRegistry] || []).includes(id)
+        )
         .map((id) => EXPECTED_SURFACE_BY_ID[id]);
       expect(new Set(surfaces).size).toBeLessThanOrEqual(1);
     }
@@ -143,7 +153,12 @@ describe('deskSurfaceGuard — the audited defects, pinned', () => {
 
   it('non-family modules are untouched by the family guard', () => {
     expect(isModuleAllowedForOrgMount(ws('Sangha'), 'treasury')).toBe(true);
-    expect(isModuleAllowedForOrgMount(ws('Gurukul'), 'sanatani-vivah')).toBe(false);
+    // Deliberate flip (2026-10-23 redesign): Vivah in a Gurukul used
+    // to be denied by the TAXONOMY half of the old gate (not native,
+    // not enabled). That half is retired — presence is universal —
+    // so the mount now answers true; the family guard (this suite's
+    // subject) never had an opinion on non-family desks.
+    expect(isModuleAllowedForOrgMount(ws('Gurukul'), 'sanatani-vivah')).toBe(true);
     expect(isModuleAllowedForOrgMount(ws('Gurukul'), 'pathshala')).toBe(true);
   });
 });

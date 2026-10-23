@@ -181,15 +181,19 @@ export const VedicCalendarEventsDesk: React.FC = () => {
             <SuggestionCard
               key={s.key}
               suggestion={s}
-              onEnable={(moduleId) => {
+              onOpen={(moduleId) => {
                 if (!activeWorkspace) return;
-                // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+                // Module-system redesign (2026-10-23): the desk is
+                // already present — record the adoption (Trustee+
+                // workspace state) and open it.
                 if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
-                  showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+                  showToast('Only Trustees can adopt new desks for this organisation.', 'error', 'Permission Denied');
                   return;
                 }
                 enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
-                showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
+                window.dispatchEvent(
+                  new CustomEvent('sanatani:navigate', { detail: { module: moduleId } })
+                );
               }}
               onDismiss={dismiss}
             />

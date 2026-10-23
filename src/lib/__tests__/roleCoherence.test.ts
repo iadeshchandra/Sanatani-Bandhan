@@ -30,7 +30,7 @@ import {
   personaHomeModule,
 } from '../landingSurface';
 import { isDeskVisibleForRole, type PermissionCheck } from '../deskVisibility';
-import { isModuleAllowedForOrgMount } from '../workspaceRegistry';
+import { isModuleAllowedForOrgMount, isDeskInWorkspaceSet } from '../workspaceRegistry';
 
 const readSrc = (rel: string) =>
   fs.readFileSync(path.join(__dirname, rel), 'utf-8');
@@ -271,8 +271,13 @@ describe('D4/D2 — source pins: mount guards and palette gates say the same thi
 });
 
 describe('D05 — persona homes land on desks that mount in the entered workspace', () => {
+  // The production caller (AuthWorkspaceContext loginAsRole) feeds
+  // personaHomeModule the BELONGING predicate since the 2026-10-23
+  // redesign: under universal presence every candidate mounts, so
+  // org fit (native/adopted) is what picks the persona's home. The
+  // mount assertion itself lives in the third test below.
   const canMountIn = (type: string) => (id: string) =>
-    isModuleAllowedForOrgMount({ type } as never, id);
+    isDeskInWorkspaceSet({ type } as never, id);
 
   it('demo Mandir: Priest → poojaBooking (purohitDesk is not Mandir-native), Accountant → treasury, CSO → checkin', () => {
     expect(personaHomeModule('Priest', canMountIn('Mandir'))).toBe('poojaBooking');

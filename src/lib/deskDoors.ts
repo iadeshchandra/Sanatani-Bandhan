@@ -3,15 +3,19 @@
  *
  * A door is NOT a desk. The #57 catalog cleanup removed alias/shadow
  * rows from MODULE_CATALOG ("one desk, one canonical row") because an
- * alias row becomes a trap on the App Store shelf: install succeeds,
- * the mount guard blocks. Doors therefore live in their own list and
- * are rendered ONLY by the Sidebar (the directory) — never by the
- * App Store, the Command Palette, or any mount logic.
+ * alias row becomes a trap on a store shelf: install succeeds, the
+ * mount guard blocks. Doors therefore live in their own list and are
+ * rendered ONLY by the two navigation surfaces that compute the
+ * caller's visible-desk set — the Sidebar nav and, since the
+ * 2026-10-23 module-system redesign, the All-Desks Directory
+ * (components/dashboard/DeskDirectory, fed by lib/deskDirectory) —
+ * never by the Plan & Add-ons desk, the Command Palette, or any
+ * mount logic.
  *
  * Visibility law (the audit's requirement): a door is visible exactly
- * when its TARGET desk survives the Sidebar's own filtered list — the
- * same taxonomy + role-visibility (isDeskVisibleForRole) + domain-pill
- * + search pipeline the desk itself passed. The door adds no second
+ * when its TARGET desk survives the surface's own filtered list — the
+ * same taxonomy + role-visibility (isDeskVisibleForRole) + search
+ * pipeline the desk itself passed. The door adds no second
  * permission decision of its own; `doorsForVisibleDesks` simply asks
  * "did the target desk make it into the visible list?".
  *

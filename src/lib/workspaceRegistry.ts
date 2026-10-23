@@ -81,8 +81,8 @@ export const MODULE_PLAN_TIER: Record<string, SubscriptionTier> = {};
 
 /** Is a sidebar module (by MODULE_CATALOG nav id) allowed on the plan?
  * AUDIT FIX #7: always true now — MODULE_PLAN_TIER is empty by design
- * (freemium = all features, caps differ). RBAC (isModuleAllowed) is the
- * remaining gate. */
+ * (freemium = all features, caps differ). Role visibility
+ * (lib/deskVisibility) is the remaining per-desk gate. */
 export function isModuleAllowedForPlan(moduleId: string, planId?: string | null): boolean {
   const required = MODULE_PLAN_TIER[moduleId];
   if (!required) return true;
@@ -168,8 +168,11 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   // Rule: a desk is native to an org type only when that org would use it in
   // normal operations. The setup wizard (wizardDeskMap.ts ORG_DEFAULTS) and
   // the role-home quick actions are treated as product promises — desks they
-  // recommend for an org type are native to it. The App Store's
-  // enabledModules opt-in remains the escape hatch for everything else.
+  // recommend for an org type are native to it. Since the 2026-10-23
+  // module-system redesign, nativeness no longer GATES visibility (every
+  // desk is present — see isModuleAllowed); the registry now drives the
+  // workspace's starting adoption record, Role Home's core desks, the
+  // directory's "Core" marking, and recommendation affinity.
   Mandir: [
     'dashboard', 'devotees', 'family', 'treasury', 'taxReceipts',
     'poojaBooking', 'mandirPuja', 'panchang', 'utsavPanjika',
@@ -387,18 +390,66 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
   ]
 };
 
+/**
+ * MODULE-SYSTEM REDESIGN (2026-10-23, owner-delegated decision) — the
+ * install gate is RETIRED. This helper used to answer "is this desk
+ * part of this workspace?" with `registry natives OR enabledModules`,
+ * which made ~40 desks per org type invisible until somebody found
+ * them in the App Store and "installed" them — the discovery failure
+ * the redesign exists to fix. Presence is now unconditional: every
+ * real desk is available to every workspace, and the questions that
+ * remain are answered by their own layers —
+ *   · WHO may open it: role visibility (lib/deskVisibility) + the
+ *     desk-scope / Auditor mount gates in App.tsx — unchanged.
+ *   · Whether the shared shiksha component would serve the WRONG
+ *     family's desk: the family guard in isModuleAllowedForOrgMount
+ *     — unchanged.
+ *   · Plan: MODULE_PLAN_TIER is empty by design (caps differ, desks
+ *     don't) — unchanged.
+ *
+ * What `enabledModules` is now: an ADOPTION RECORD. Nothing reads it
+ * as a gate. It still seeds at workspace creation (SMART_DEFAULT_
+ * MODULES) and grows when a suggestion is actioned (enableModule),
+ * and its only remaining readers are recommendation bookkeeping —
+ * the suggestions engine's exclusion set and the trigger callbacks'
+ * "already in the org's working set" test. Existing values on
+ * workspace documents are untouched: installs migrated silently
+ * because presence no longer depends on them.
+ *
+ * The one denial kept here: 'sevaTrust' — the #58 law. No desk
+ * component exists for it (its catalog row was removed for exactly
+ * that reason), so no surface may promise it, installed or not. Its
+ * mount is independently denied by the family guard (no surface
+ * renders it), and ORG_RESTRICTED_GUIDANCE carries the honest answer
+ * for deep links.
+ */
 export const isModuleAllowed = (workspace: any, moduleId: string): boolean => {
   if (!workspace) return true;
-  // QUEUED #57 (audit A1-D01 / A2-D8) — ONE canonical key at every gate.
-  // Nav, the App Store and the palette used to test the RAW catalog id
-  // while the mount guard (isModuleAllowedForOrgMount) tested the
-  // CANONICAL id — and `enableModule` stored the raw id. Every alias
-  // catalog door (the old 'sanctum-hud', 'treasury-audit', 'shlokaFeed',
-  // 'dharmaMarketing', 'matrimony' rows) lived in that seam:
-  // installable and nav-visible, yet mount-blocked — in Trust's case
-  // the desk was dead in its only registry home. Resolve first, then
-  // test natives / enabledModules canonically; legacy enabled entries
-  // stored under an alias still count, because they name the same desk.
+  // QUEUED #57 (audit A1-D01 / A2-D8) — ONE canonical key at every
+  // gate: resolve aliases first, so an alias spelling can never name
+  // a different desk at nav than at mount. (Under the retired gate
+  // this resolution decided natives/enabled membership; it is kept
+  // because the #58 denial below is stated canonically.)
+  const canonical = resolveOrgModuleId(moduleId);
+  if (canonical === 'sevaTrust') return false;
+  return true;
+};
+
+/**
+ * The BELONGING predicate — the retired gate's exact semantics,
+ * kept for the one question that is still a preference, not a
+ * permission: "is this desk part of this workspace's own working
+ * set?" (registry native, an always-present shell desk, or in the
+ * adoption record). Its only consumer is the persona landing pick
+ * (AuthWorkspaceContext loginAsRole → personaHomeModule): a Priest
+ * entering a Mandir should land on the desk that BELONGS to a
+ * Mandir priest (Pooja Booking), not merely the first desk that
+ * could mount — under universal presence everything mounts, so
+ * belonging is the only signal left that expresses org fit.
+ * NEVER use this as a visibility or mount gate.
+ */
+export const isDeskInWorkspaceSet = (workspace: any, moduleId: string): boolean => {
+  if (!workspace) return true;
   const canonical = resolveOrgModuleId(moduleId);
   if (canonical === 'dashboard' || canonical === 'appStore' || canonical === 'workspace-hub') return true;
   if (['sadhana-karma', 'yatraNet', 'sevadar-roster'].includes(canonical)) return true;
@@ -549,8 +600,9 @@ export function resolveOrgModuleId(moduleId: string): string {
 /**
  * Modules that are personal / org-agnostic and must never be org-type-gated:
  * the personal devotee portal paths and the devotee-facing surfaces.
- * (dashboard/appStore/sadhana-karma/yatraNet/sevadar-roster are already
- * bypassed inside isModuleAllowed; listed here for explicitness.)
+ * (Since the 2026-10-23 redesign isModuleAllowed no longer gates any
+ * real desk, so this set's remaining job is to keep the mount guard's
+ * intent explicit for the personal surfaces.)
  */
 const ORG_AGNOSTIC_MODULES = new Set([
   'dashboard',
@@ -571,9 +623,11 @@ const ORG_AGNOSTIC_MODULES = new Set([
 /**
  * R-1 central org-type gate: may this desk mount for this workspace?
  * Resolves App.tsx aliases → canonical id, skips org-agnostic personal
- * surfaces, then defers to isModuleAllowed (registry natives + the App
- * Store's enabledModules opt-in). Composes with checkPermission (role) and
- * isModuleMountAllowed (plan tier): org-type AND role AND tier must pass.
+ * surfaces, applies the shiksha family guard (the component-family
+ * half of the org guard), then defers to isModuleAllowed — which,
+ * since the 2026-10-23 redesign, denies only desks that do not exist
+ * ('sevaTrust'). Composes with checkPermission (role) and
+ * isModuleMountAllowed (plan tier): family AND role AND tier must pass.
  */
 export function isModuleAllowedForOrgMount(workspace: any, moduleId: string): boolean {
   if (!workspace) return true;
@@ -596,11 +650,12 @@ export function isModuleAllowedForOrgMount(workspace: any, moduleId: string): bo
 /**
  * QUEUED #57 (audit A1-D01): would this module actually MOUNT if it
  * were enabled for this workspace? Simulates the enable against the
- * real mount guard. The Command Palette's install shelf gates on this:
- * the palette auto-opens whatever it installs, so it must never
- * promise a desk the guard would refuse (cross-family shiksha ids,
- * 'sevaTrust', …). The App Store keeps browse-all semantics — only
- * auto-opening install paths gate on this.
+ * real mount guard. The Command Palette's (now retired) install shelf
+ * gated on this: the palette auto-opened whatever it installed, so it
+ * could never promise a desk the guard would refuse (cross-family
+ * shiksha ids, 'sevaTrust', …). Since the 2026-10-23 redesign the
+ * enable is a no-op adoption record, so this simply answers the mount
+ * truth — kept as an export for its existing consumers and tests.
  */
 export function wouldMountIfEnabled(workspace: any, moduleId: string): boolean {
   if (!workspace || typeof workspace !== 'object') return true;
@@ -689,8 +744,10 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
  * ============================================================================
  * New workspaces start with these modules already in `enabledModules` — the
  * high-confidence 90% case per org type. Listed ids must be MODULE_CATALOG
- * ids (not registry aliases). Natives need not be listed (always available).
- * The App Store remains the escape hatch for everything else.
+ * ids (not registry aliases). Since the 2026-10-23 redesign every desk is
+ * present regardless; this list now seeds the ADOPTION RECORD the
+ * recommendation engine reads (a desk listed here is never "suggested"
+ * to the org — it is treated as already in their working set).
  */
 export const SMART_DEFAULT_MODULES: Record<string, string[]> = {
   Mandir: ['sevadar-roster', 'inventory'],

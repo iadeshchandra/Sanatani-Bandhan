@@ -151,10 +151,12 @@ describe('the canonical enable law (A1-D01)', () => {
     expect(resolveOrgModuleId('tallyExport')).toBe('tally-export');
     const noop = () => undefined;
     expect(enableModule([], 'tally-export', noop)).toEqual(['tally-export']);
-    // Yoga has no native 'taxReceipts': the Tally desk must mount on
-    // its own enable, not on a different desk's availability.
+    // Yoga has no native 'taxReceipts': the Tally desk stands on its
+    // own. Since the 2026-10-23 redesign retired install gating, it
+    // mounts with OR without an adoption entry — presence is
+    // universal; the enable is bookkeeping now.
     expect(isModuleAllowedForOrgMount(ws('Yoga', ['tally-export']), 'tally-export')).toBe(true);
-    expect(isModuleAllowedForOrgMount(ws('Yoga'), 'tally-export')).toBe(false);
+    expect(isModuleAllowedForOrgMount(ws('Yoga'), 'tally-export')).toBe(true);
   });
 
   it("Trust's AI desk is alive again: 'dharmicAssistant' is native and mounts", () => {
@@ -175,9 +177,12 @@ describe('enable -> mount agreement, every catalog desk x org type', () => {
     it(`${type}: enabling any catalog desk agrees with the mount guard`, () => {
       for (const id of CATALOG_IDS) {
         const enabled = ws(type, [resolveOrgModuleId(id)]);
-        // Taxonomy always honours an enable (the store escape hatch).
+        // Presence is universal since the redesign — with or without
+        // the adoption entry, the desk is allowed.
         expect(isModuleAllowed(enabled, id)).toBe(true);
-        // Mount agrees with the guard's own simulation of that enable.
+        expect(isModuleAllowed(ws(type), id)).toBe(true);
+        // Mount agrees with the guard's own simulation (which no
+        // longer depends on the enable either).
         expect(isModuleAllowedForOrgMount(enabled, id)).toBe(
           wouldMountIfEnabled(ws(type), id)
         );
@@ -216,8 +221,13 @@ describe('Samskara One natives (owner decision)', () => {
     }
   });
 
-  it('stays an App Store enable elsewhere (the decision named two types)', () => {
-    expect(isModuleAllowedForOrgMount(ws('Goshala'), 'samskara-one')).toBe(false);
+  it('is present everywhere since the redesign — nativeness still names two types', () => {
+    // The owner's decision was about NATIVENESS (the registry list
+    // Role Home + defaults read), and that stands. What the redesign
+    // retired is the GATE: the desk no longer needs an App Store
+    // enable anywhere — it is present in every workspace.
+    expect(workspaceRegistry.Goshala).not.toContain('samskara-one');
+    expect(isModuleAllowedForOrgMount(ws('Goshala'), 'samskara-one')).toBe(true);
     expect(isModuleAllowedForOrgMount(ws('Goshala', ['samskara-one']), 'samskara-one')).toBe(true);
   });
 });
@@ -258,9 +268,14 @@ describe('the Setup Wizard keeps its promises (A1-D06)', () => {
 });
 
 describe('source pins — the seams cannot silently reopen', () => {
-  it('the palette install shelf gates on wouldMountIfEnabled', () => {
+  it('the palette install shelf is retired (redesign) — no shelf, no install gate', () => {
+    // QUEUED #57's shelf gated on wouldMountIfEnabled so its auto-open
+    // promise stayed honest. The 2026-10-23 redesign removed the
+    // shelf with the store model itself: every desk the palette lists
+    // is already present, so there is nothing to install or simulate.
     const palette = readSrc('../../components/common/CommandPalette.tsx');
-    expect(palette).toContain('wouldMountIfEnabled');
+    expect(palette).not.toContain('installable');
+    expect(palette).not.toContain('handleInstall');
   });
 
   it('the wizard enables its picks at finish', () => {

@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users,
@@ -39,6 +41,10 @@ import { getRecommendations, localizeText } from '../../suggestions/recommend';
 import { getUpcomingFestival } from '../../suggestions/festivals';
 import { getModuleCopy } from '../../suggestions/moduleCopy';
 import { enableModule, isSuggestionDismissed, dismissSuggestion } from '../../suggestions/store';
+import { recordDeskVisit } from '../common/ui/deskHistory';
+import { useMembership } from '../../context/MembershipContext';
+import { effectiveDeskScope } from '../../lib/membershipAccess';
+import { isDeskOpenableFor } from '../../lib/deskDirectory';
 import { UtsavReadinessCard, LunarClosingCard } from '../panjika/IntelligenceCards';
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +62,38 @@ export function todayISO(d: Date = new Date()): string {
 export function normalizeRole(role: UserRole | string | null | undefined): UserRole {
   if (!role) return 'Devotee';
   return (ROLE_MIGRATION_MAP[role] || role) as UserRole;
+}
+
+/**
+ * Live count of PENDING approval requests for this workspace — the
+ * maker–checker queue (Blueprint B) the TrusteeHome "Needs your
+ * attention" section speaks for. Mirrors ApprovalsPanel's read
+ * exactly (same collection, same equality-only query, same DEMO skip)
+ * and fails quiet: any error or signed-out state reads as null
+ * ("unknown"), and the card simply doesn't render — the home never
+ * invents a number. Returns null until the first snapshot lands.
+ */
+export function usePendingApprovalsCount(
+  workspaceId: string | undefined,
+  uid: string | undefined
+): number | null {
+  const [count, setCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!workspaceId || workspaceId.startsWith('DEMO_') || !uid) {
+      setCount(null);
+      return;
+    }
+    const unsub = onSnapshot(
+      query(collection(db, 'approvalRequests'), where('workspaceId', '==', workspaceId)),
+      (snap) =>
+        setCount(
+          snap.docs.filter((d) => (d.data() as any)?.status === 'PENDING').length
+        ),
+      () => setCount(null)
+    );
+    return () => unsub();
+  }, [workspaceId, uid]);
+  return count;
 }
 
 interface ActionCardProps {
@@ -448,26 +486,40 @@ export const BranchComparisonPanel: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
-  const { activeWorkspace, checkPermission, updateWorkspaceDetails } = useAuthWorkspace();
+  const { activeWorkspace, checkPermission, updateWorkspaceDetails, effectiveRole, firebaseUser } = useAuthWorkspace();
+  const { myMemberships } = useMembership();
   const { t, currentLang } = useLanguage();
   const { devotees, donations } = useData();
-  const { showToast } = useToast();
   const [dismissTick, setDismissTick] = useState(0);
 
-  // Seva Suggestions: top recommendations (with one-tap enable) lead;
-  // random available modules fill the rest. No more pure-random wall.
+  // The caller's desk scope (Blueprint B) — the Discover pool obeys
+  // the same narrowing as the Sidebar, palette and directory.
+  const myDeskScope = useMemo(() => {
+    const edge = activeWorkspace
+      ? myMemberships.find(
+          (m: any) => m.workspaceId === activeWorkspace.id && m.uid === firebaseUser?.uid
+        )
+      : undefined;
+    return effectiveDeskScope(edge as any, Date.now(), {
+      creatorUid: activeWorkspace?.createdBy,
+    });
+  }, [myMemberships, activeWorkspace, firebaseUser]);
+
+  // Seva Suggestions: top recommendations (with one-tap open) lead;
+  // available desks fill the rest. No more pure-random wall.
+  // Module-system redesign (2026-10-23): the pool's role test is the
+  // CANONICAL openability predicate (lib/deskDirectory — role ∧ scope
+  // ∧ family ∧ branches), replacing this grid's hand-copied role lists
+  // (the #56 residual: the lists had drifted from deskVisibility and
+  // could feature desks outside the Auditor's read set).
   const { recommended, rest } = useMemo(() => {
+    const access = { role: effectiveRole, checkPermission, deskScope: myDeskScope };
     const available = MODULE_CATALOG.filter((m) => {
       if (['dashboard', 'devotees', 'treasury', 'poojaBooking', 'goshala', 'appStore', 'masterSettings', 'spiritualSettings'].includes(m.id)) return false;
       if (!isModuleAllowed(activeWorkspace, m.id)) return false;
-      let hasRole = true;
-      if (['bulkImport', 'campaigns', 'assets', 'sandeshBroadcast'].includes(m.id)) hasRole = checkPermission(['MANAGER', 'TRUSTEE']);
-      else if (['inventory'].includes(m.id)) hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'VOLUNTEER']);
-      else if (['mandirPuja', 'purohitDesk', 'purohitMarket', 'pitruShradh'].includes(m.id)) hasRole = checkPermission(['PUROHIT', 'MANAGER', 'TRUSTEE']);
-      else if (['taxReceipts'].includes(m.id)) hasRole = checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
-      else if (['trusteeGovernance', 'sevadarRoster', 'crisis-command'].includes(m.id)) hasRole = checkPermission(['TRUSTEE', 'MANAGER']);
-      return hasRole;
+      return isDeskOpenableFor(activeWorkspace, m, access);
     });
+    const openableIds = new Set(available.map((m) => m.id));
 
     let recommended: { moduleId: string; reason: string }[] = [];
     if (activeWorkspace) {
@@ -485,6 +537,7 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
         recentDeskIds: [],
         lang: currentLang,
       })
+        .filter((r) => openableIds.has(r.moduleId))
         .filter((r) => !isSuggestionDismissed(activeWorkspace.id, `rec:${r.moduleId}`))
         .slice(0, 2)
         .map((r) => ({ moduleId: r.moduleId, reason: localizeText(r.reason, currentLang) }));
@@ -498,18 +551,20 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
     }
     return { recommended, rest: pool.slice(0, Math.max(0, 6 - recommended.length)) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspace?.id, (devotees || []).length, (donations || []).length, currentLang, dismissTick]);
+  }, [activeWorkspace?.id, (devotees || []).length, (donations || []).length, currentLang, dismissTick, effectiveRole, myDeskScope]);
 
-  const handleEnable = (moduleId: string) => {
+  const handleOpen = (moduleId: string) => {
     if (!activeWorkspace) return;
-    // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
-    if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
-      showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
-      return;
+    // Module-system redesign (2026-10-23): the desk is already
+    // present — opening records the adoption when the caller is
+    // Trustee+ (workspace state) and navigates. No gate, no toast:
+    // the recommendation was already filtered to desks this caller
+    // may open.
+    if (checkPermission(['TRUSTEE', 'SuperAdmin'])) {
+      enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
     }
-    const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
-    enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
-    showToast(`“${mod?.name || moduleId}” is now on — find it in your sidebar.`, 'success', 'Module Enabled');
+    recordDeskVisit(moduleId, activeWorkspace.id || null).catch(() => {});
+    onNavigate(moduleId);
   };
 
   const handleDismissRec = (moduleId: string) => {
@@ -525,16 +580,14 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-white">
         <div>
           <h2 className="text-sm font-bold text-slate-800">Discover Workspace Features</h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">Recommended for your institution — enable with one tap</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Recommended for your institution — every desk is already yours, open one to begin</p>
         </div>
-        {checkPermission(['TRUSTEE']) && (
-          <button
-            onClick={() => onNavigate('appStore')}
-            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-100/50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[36px]"
-          >
-            App Store
-          </button>
-        )}
+        <button
+          onClick={() => onNavigate('desk-directory')}
+          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-100/50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[44px]"
+        >
+          All Desks
+        </button>
       </div>
       <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {recommended.map((rec) => {
@@ -563,10 +616,10 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
                 <p className="text-[11px] text-slate-500 leading-snug mb-2">{getModuleCopy(rec.moduleId, currentLang)}</p>
                 <button
                   type="button"
-                  onClick={() => handleEnable(rec.moduleId)}
-                  className="text-[11px] font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all min-h-[32px]"
+                  onClick={() => handleOpen(rec.moduleId)}
+                  className="text-[11px] font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all min-h-[44px]"
                 >
-                  Enable
+                  Open
                 </button>
               </div>
             </div>
@@ -879,7 +932,8 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
   onOpenQuickPay,
 }) => {
   const { activeWorkspace } = useAuthWorkspace();
-  const { treasury } = useData();
+  const { treasury, collectionWindows } = useData();
+  const { safeTranslate } = useLanguage();
   const today = todayISO();
 
   const todaysIncome = useMemo(
@@ -887,6 +941,27 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
     [treasury, today]
   );
   const todaysTotal = todaysIncome.reduce((a, c) => a + (c.amount || 0), 0);
+
+  // This week's collections (last 7 days incl. today) — the "your day"
+  // home's week view. Computed from the same loaded treasury window
+  // as today's figure; when the window is partial the card says so
+  // (the KpiGrid honesty pattern), never presenting a windowed sum
+  // as the exact week.
+  const weekStartISO = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return todayISO(d);
+  }, []);
+  const weekIncome = useMemo(
+    () =>
+      treasury.filter((tx) => {
+        const day = (tx.date || '').slice(0, 10);
+        return tx.type === 'Income' && day >= weekStartISO && day <= today;
+      }),
+    [treasury, weekStartISO, today]
+  );
+  const weekTotal = weekIncome.reduce((a, c) => a + (c.amount || 0), 0);
+  const treasuryWindowed = !!(collectionWindows as any)?.treasury?.windowed;
   const pending80G = useMemo(
     () => treasury.filter((tx) => tx.type === 'Income' && !tx.taxReceiptNumber),
     [treasury]
@@ -925,6 +1000,28 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
               {activeWorkspace.currencySymbol} {Math.round(pending80GTotal).toLocaleString('en-IN')} awaiting
             </span>
           </div>
+        </div>
+      </div>
+
+      <div
+        onClick={() => onNavigate('treasury-ledger')}
+        className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors"
+      >
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Collections this week</span>
+        <div className="flex items-end justify-between mt-1">
+          <span className="text-2xl font-black text-slate-900">
+            <CountUp value={weekTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
+          </span>
+          <span className="flex items-center gap-1.5">
+            {treasuryWindowed && (
+              <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">
+                {safeTranslate('kpi_treasury_partial', 'Loaded window')}
+              </span>
+            )}
+            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+              {weekIncome.length} entries · 7 days
+            </span>
+          </span>
         </div>
       </div>
 
@@ -974,6 +1071,20 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
   onNavigate,
 }) => {
   const { treasury, poojaBookings, donations } = useData();
+  const { activeWorkspace, firebaseUser, checkPermission } = useAuthWorkspace();
+
+  // Maker–checker queue (Blueprint B): approval requests awaiting a
+  // decider. Counted live from the same read ApprovalsPanel uses;
+  // null = unknown (signed out / demo / read failed) and never
+  // renders as a number. Trustee+ only — the queue is theirs to clear.
+  const pendingApprovals = usePendingApprovalsCount(
+    activeWorkspace?.id,
+    firebaseUser?.uid
+  );
+  const approvalsAwaiting =
+    checkPermission(['TRUSTEE', 'SuperAdmin']) && pendingApprovals !== null
+      ? pendingApprovals
+      : 0;
 
   const standbyBookings = useMemo(
     () => poojaBookings.filter((b) => b.status === 'Standby'),
@@ -1007,7 +1118,8 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
       .slice(0, 3);
   }, [donations]);
 
-  const attentionCount = standbyBookings.length + pendingPayments.length + pending80GCount;
+  const attentionCount =
+    standbyBookings.length + pendingPayments.length + pending80GCount + approvalsAwaiting;
 
   return (
     <div className="flex flex-col gap-4">
@@ -1026,6 +1138,29 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
           <p className="text-sm font-bold text-emerald-800">Everything is settled — no pending approvals, payments, or receipts.</p>
         </div>
       ) : (
+        <div className="flex flex-col gap-3">
+          {approvalsAwaiting > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigate('treasury')}
+              className="w-full rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-3 text-left cursor-pointer hover:border-amber-300 transition-colors min-h-[44px]"
+            >
+              <span className="w-10 h-10 rounded-lg bg-white border border-amber-200 shadow-sm flex items-center justify-center shrink-0">
+                <ClipboardList className="w-5 h-5 text-amber-600" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-bold text-amber-900">
+                  {approvalsAwaiting} approval{approvalsAwaiting === 1 ? '' : 's'} awaiting your decision
+                </span>
+                <span className="block text-[11px] text-amber-700 font-medium">
+                  Maker–checker queue — review and decide in the Treasury
+                </span>
+              </span>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded shrink-0">
+                Decide
+              </span>
+            </button>
+          )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {standbyBookings.length > 0 && (
             <ActionCard
@@ -1057,6 +1192,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
               onClick={() => onNavigate('taxReceipts')}
             />
           )}
+        </div>
         </div>
       )}
 

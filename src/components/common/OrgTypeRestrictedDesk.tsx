@@ -1,39 +1,39 @@
 import React from 'react';
-import { Landmark, ArrowLeft, Blocks, HeartHandshake } from 'lucide-react';
+import { Landmark, ArrowLeft, HeartHandshake } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { ORG_RESTRICTED_GUIDANCE, resolveOrgModuleId } from '../../lib/workspaceRegistry';
 
 interface OrgTypeRestrictedDeskProps {
   moduleId: string;
   onBack: () => void;
-  onOpenAppStore: () => void;
 }
 
 /**
- * R-1 — Org-type relevance guard's empty state.
+ * R-1 — the mount guard's empty state.
  *
- * Rendered at desk mount (App.tsx renderActiveDesk) when a desk is not part
- * of the active workspace's organisation type — e.g. opening Sanatani Vivah
- * inside a Gurukul workspace, or reaching a desk via deep link / Cmd+K /
- * navigate_module that the sidebar would never show for this org type.
+ * Rendered at desk mount (App.tsx renderActiveDesk) when the org mount
+ * guard refuses a desk. Since the 2026-10-23 module-system redesign
+ * retired install gating, presence is universal and this screen has
+ * exactly two honest causes left:
+ *   · a shiksha FAMILY mismatch — the desk shares a component with a
+ *     different family of institution (e.g. Sangha Drills inside a
+ *     Gurukul), where mounting would serve the wrong family's desk;
+ *   · a desk that does not exist yet ('sevaTrust', #58) — nothing may
+ *     promise it, so deep links land here with its guidance note.
  *
- * Tone is respectful, never scolding: the desk isn't "forbidden", it simply
- * doesn't belong to this kind of organisation. Where a natural home exists,
- * we say where to find it; otherwise we offer the App Store opt-in (a
- * Trustee can enable any non-native module via enabledModules, which also
- * unblocks this guard).
+ * Tone is respectful, never scolding: the desk isn't "forbidden", it
+ * simply doesn't belong to this kind of organisation. Where a natural
+ * home exists, the guidance says where to find it.
  */
 export const OrgTypeRestrictedDesk: React.FC<OrgTypeRestrictedDeskProps> = ({
   moduleId,
   onBack,
-  onOpenAppStore,
 }) => {
-  const { activeWorkspace, checkPermission } = useAuthWorkspace();
+  const { activeWorkspace } = useAuthWorkspace();
   const canonical = resolveOrgModuleId(moduleId);
   const guidance = ORG_RESTRICTED_GUIDANCE[canonical];
   const orgLabel = (activeWorkspace as { type?: string } | null)?.type || 'this organisation';
   const orgName = (activeWorkspace as { name?: string } | null)?.name || '';
-  const canInstall = checkPermission(['TRUSTEE', 'SuperAdmin', 'MANAGER']);
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in duration-200">
@@ -65,7 +65,7 @@ export const OrgTypeRestrictedDesk: React.FC<OrgTypeRestrictedDeskProps> = ({
               <p className="text-xs text-stone-600 leading-relaxed">{guidance}</p>
             </div>
           )}
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="mt-6 flex items-center justify-center">
             <button
               type="button"
               onClick={onBack}
@@ -74,22 +74,7 @@ export const OrgTypeRestrictedDesk: React.FC<OrgTypeRestrictedDeskProps> = ({
               <ArrowLeft className="w-4 h-4" />
               Back to Command Center
             </button>
-            {canInstall && (
-              <button
-                type="button"
-                onClick={onOpenAppStore}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-sm font-bold transition-colors cursor-pointer min-h-[44px]"
-              >
-                <Blocks className="w-4 h-4" />
-                Enable via App Store
-              </button>
-            )}
           </div>
-          {canInstall && (
-            <p className="mt-3 text-[11px] text-stone-500">
-              Trustees can install any desk from the App Store if this organisation truly needs it.
-            </p>
-          )}
         </div>
       </div>
     </div>

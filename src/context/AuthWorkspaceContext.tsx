@@ -17,7 +17,7 @@ import {
   resolveAnonymousSessionRole,
   stashDemoSessionRole,
 } from '../lib/demoSession';
-import { isModuleAllowedForOrgMount, resolveOrgModuleId } from '../lib/workspaceRegistry';
+import { isModuleAllowedForOrgMount, isDeskInWorkspaceSet, resolveOrgModuleId } from '../lib/workspaceRegistry';
 import {
   generatePinHash,
   verifyPinHash,
@@ -1406,15 +1406,23 @@ const pinDeniedToast = (
       // sent Priest → 'sanctum-hud' (an alias seam whose canonical
       // desk, purohitDesk, is native to few org types) and CSO →
       // 'tactical-radar' (native to NO org type) — the persona's first
-      // screen was the restricted desk. Defaults now resolve through
-      // personaHomeModule against the target workspace's mount gate,
-      // falling back to the Command Center; an explicit targetModule
-      // is canonicalised and mount-checked the same way.
+      // screen was the restricted desk. Defaults resolve through
+      // personaHomeModule; an explicit targetModule is canonicalised
+      // and mount-checked.
+      // Module-system redesign (2026-10-23): the two checks are now
+      // DIFFERENT questions. The persona pick asks BELONGING
+      // (isDeskInWorkspaceSet — native/adopted/shell): under universal
+      // presence every candidate mounts, so belonging is what keeps a
+      // Mandir Priest landing on Pooja Booking rather than the
+      // Purohit's own desk. The explicit target keeps the MOUNT check
+      // (isModuleAllowedForOrgMount): a named destination is honoured
+      // wherever it can truly mount, native or not.
       const targetWsId = activeWorkspaceId.startsWith('DEMO_')
         ? activeWorkspaceId
         : 'DEMO_ws-mandir';
       const targetWs = workspaces.find((w) => w.id === targetWsId);
       const canMount = (id: string) => isModuleAllowedForOrgMount(targetWs, id);
+      const belongsToWorkspace = (id: string) => isDeskInWorkspaceSet(targetWs, id);
       let destModule: string;
       if (targetModule) {
         const canonical = resolveOrgModuleId(targetModule);
@@ -1425,7 +1433,7 @@ const pinDeniedToast = (
       } else if (normalized === 'Devotee') {
         destModule = 'devoteePortal';
       } else {
-        destModule = personaHomeModule(normalized, canMount);
+        destModule = personaHomeModule(normalized, belongsToWorkspace);
       }
 
       // Dispatch global custom event for instant navigation

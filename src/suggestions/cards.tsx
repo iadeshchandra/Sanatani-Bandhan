@@ -1,12 +1,14 @@
 /**
  * Seva Suggestions — suggestion & upsell cards.
  * ============================================================================
- * Dismissible, never modals. One-tap enable. Locale-driven via the
+ * Dismissible, never modals. One-tap OPEN — since the 2026-10-23
+ * module-system redesign nothing is "installed": acting on a card
+ * records the adoption and opens the desk. Locale-driven via the
  * suites.seva dictionary (t('suites.seva.cards.*')); module names and
  * one-line copy resolve through getModuleName()/getModuleCopy().
  */
 import React from 'react';
-import { X, Download, Sparkles, ArrowRight } from 'lucide-react';
+import { X, Sparkles, ArrowRight } from 'lucide-react';
 import { MODULE_CATALOG } from '../components/common/Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { getModuleCopy, getModuleName } from './moduleCopy';
@@ -25,12 +27,12 @@ export function ModuleTagline({ moduleId, className = '' }: { moduleId: string; 
 
 interface SuggestionCardProps {
   suggestion: PendingSuggestion;
-  onEnable: (moduleId: string) => void;
+  onOpen: (moduleId: string) => void;
   onDismiss: (key: string) => void;
 }
 
 /** Contextual suggestion card — fired by triggers, rendered in-desk. Never a modal. */
-export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEnable, onDismiss }) => {
+export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onOpen, onDismiss }) => {
   const { t, currentLang } = useLanguage();
   const name = getModuleName(suggestion.moduleId, currentLang);
   const Icon = moduleIcon(suggestion.moduleId);
@@ -58,11 +60,11 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEn
           <div className="flex items-center gap-2 mt-3">
             <button
               type="button"
-              onClick={() => onEnable(suggestion.moduleId)}
-              className="px-4 py-2 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow min-h-[36px]"
+              onClick={() => onOpen(suggestion.moduleId)}
+              className="px-4 py-2 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow min-h-[44px]"
             >
-              <Download className="w-3.5 h-3.5" aria-hidden="true" />
-              {t('suites.seva.cards.enable')}
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              {t('suites.seva.cards.open')}
             </button>
             <button
               type="button"
@@ -88,16 +90,16 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onEn
 
 interface ModuleUpsellCardProps {
   moduleId: string;
-  onEnable: (moduleId: string) => void;
+  onOpen: (moduleId: string) => void;
   /** Compact variant for toolbars; full variant for empty states. */
   compact?: boolean;
 }
 
 /**
- * In-context empty state: where an uninstalled module would plug in, render
- * this instead of dead UI or a redirect to the store. One-tap enable.
+ * In-context cross-link: where a related desk plugs in, render this
+ * instead of dead UI. One-tap open — the desk is always present.
  */
-export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, onEnable, compact = false }) => {
+export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, onOpen, compact = false }) => {
   const { t, currentLang } = useLanguage();
   const name = getModuleName(moduleId, currentLang);
   const Icon = moduleIcon(moduleId);
@@ -106,13 +108,13 @@ export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, on
     return (
       <button
         type="button"
-        onClick={() => onEnable(moduleId)}
-        className="px-3.5 py-2.5 rounded-xl bg-saffron-500/10 hover:bg-saffron-500/20 border border-dashed border-saffron-500/40 text-saffron-300 hover:text-saffron-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+        onClick={() => onOpen(moduleId)}
+        className="px-3.5 py-2.5 rounded-xl bg-saffron-500/10 hover:bg-saffron-500/20 border border-dashed border-saffron-500/40 text-saffron-300 hover:text-saffron-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
         title={getModuleCopy(moduleId, currentLang)}
       >
         <Icon className="w-4 h-4" aria-hidden="true" />
         <span>
-          {t('suites.seva.cards.enableModule').replace('{name}', name)}
+          {t('suites.seva.cards.openModule').replace('{name}', name)}
         </span>
         <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
@@ -133,11 +135,11 @@ export const ModuleUpsellCard: React.FC<ModuleUpsellCardProps> = ({ moduleId, on
       </p>
       <button
         type="button"
-        onClick={() => onEnable(moduleId)}
+        onClick={() => onOpen(moduleId)}
         className="mt-5 px-6 py-3 rounded-xl bg-saffron-500 hover:bg-saffron-400 text-temple-950 text-xs font-black uppercase tracking-widest inline-flex items-center gap-2 transition-all shadow min-h-[44px]"
       >
-        <Download className="w-4 h-4" aria-hidden="true" />
-        {t('suites.seva.cards.enableModule').replace('{name}', name)}
+        <ArrowRight className="w-4 h-4" aria-hidden="true" />
+        {t('suites.seva.cards.openModule').replace('{name}', name)}
       </button>
     </div>
   );

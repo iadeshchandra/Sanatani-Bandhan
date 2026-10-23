@@ -255,6 +255,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const canMark80G = org80G.officialCapable;
   const { suggestions: sevaSuggestions, dismiss: dismissSevaSuggestion } = usePendingSuggestions(workspaceId);
 
+  // Suggestion-trigger availability: "already in this org's working
+  // set" (registry native or adopted). Since the 2026-10-23 redesign
+  // every desk is present, so this no longer decides whether a desk
+  // EXISTS — only whether a suggestion about it is still worth firing.
   const isModuleAvailable = (id: string) => {
     if (!activeWorkspace) return true;
     const natives = workspaceRegistry[activeWorkspace.type] || [];
@@ -262,15 +266,20 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     return natives.includes(id) || enabled.includes(id);
   };
 
-  const handleEnableSuggestion = (moduleId: string) => {
+  const handleOpenSuggestion = (moduleId: string) => {
     if (!activeWorkspace) return;
-    // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
+    // Module-system redesign (2026-10-23): nothing is installed any
+    // more — the desk is already present. Acting on a suggestion
+    // records the adoption (workspace state — Trustee+ only, the V1
+    // RBAC law this handler always carried) and opens the desk.
     if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
-      showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
+      showToast('Only Trustees can adopt new desks for this organisation.', 'error', 'Permission Denied');
       return;
     }
     enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, workspaceId);
-    showToast('Module enabled — find it in your sidebar.', 'success', 'Module Enabled');
+    window.dispatchEvent(
+      new CustomEvent('sanatani:navigate', { detail: { module: moduleId } })
+    );
   };
 
   // Seva Suggestions — trigger (b): donation volume milestone. When recorded
@@ -986,8 +995,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
                     className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-temple-700 bg-temple-900 p-1.5 shadow-2xl"
                   >
-                    {/* Hundi & Golak Dual Audit Desk — upsell in-context when not enabled,
-                        instead of a dead navigation to a blocked desk. */}
+                    {/* Hundi & Golak Dual Audit Desk — direct navigation once it is
+                        in the org's working set; until then an in-context
+                        cross-link card that opens it (and adopts it). */}
                     {onNavigate &&
                       (isModuleAvailable('hundi-audit') ? (
                         <button
@@ -1002,7 +1012,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                         </button>
                       ) : (
                         <div className="px-1.5 py-1">
-                          <ModuleUpsellCard moduleId="hundi-audit" compact onEnable={handleEnableSuggestion} />
+                          <ModuleUpsellCard moduleId="hundi-audit" compact onOpen={handleOpenSuggestion} />
                         </div>
                       ))}
 
@@ -1069,7 +1079,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <SuggestionCard
                 key={s.key}
                 suggestion={s}
-                onEnable={handleEnableSuggestion}
+                onOpen={handleOpenSuggestion}
                 onDismiss={dismissSevaSuggestion}
               />
             ))}

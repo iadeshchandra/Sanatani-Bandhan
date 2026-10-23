@@ -93,12 +93,15 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
       // 1. Their ~8 essential desks become sidebar favorites (existing system).
       // QUEUED #50 (D11b): pinned desks are scoped to THIS workspace.
       await setPinnedDesks(essentialDesks, workspaceId);
-      // 1b. QUEUED #57 (audit A1-D06): pinning alone silently dropped
-      // every non-native pick — the Sidebar intersects pins with the
-      // org taxonomy, so desks the wizard just named ("these desks
-      // will greet you first") never appeared. Enable the picks for
-      // real: canonical ids via enableModule, accumulated locally and
-      // written once. Guarded to the workspace being set up.
+      // 1b. QUEUED #57 (audit A1-D06): the wizard's picks are recorded
+      // in the workspace's adoption record — canonical ids via
+      // enableModule, accumulated locally and written once — so the
+      // recommendation engine treats them as already in the working
+      // set and never "suggests" what the org just chose. (Presence
+      // itself no longer depends on this since the 2026-10-23
+      // redesign retired install gating; the pins above are what
+      // make the picks greet the user first.) Guarded to the
+      // workspace being set up.
       if (activeWorkspace && activeWorkspace.id === workspaceId) {
         let enabled = activeWorkspace.enabledModules || [];
         for (const id of essentialDesks) {

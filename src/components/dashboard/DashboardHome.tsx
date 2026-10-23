@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Beef, GraduationCap, Sparkles, Flame, Users } from 'lucide-react';
+import { Heart, Beef, GraduationCap, Sparkles, Flame, Users, LayoutGrid, ArrowRight } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useData } from '../../context/DataContext';
@@ -39,7 +39,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   };
   const { activeWorkspace, currentDevotee } = useAuthWorkspace();
   const taxonomy = useWorkspaceTaxonomy();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const { devotees, poojaBookings, cows, gurukulStudents, collectionWindows } = useData();
   const panchang = calculatePanchang();
   // Keep the Solo "what needs me" feed fresh: refresh this org's glance
@@ -181,6 +181,29 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           onOpenMySpace={onOpenMySpace}
         />
       )}
+
+      {/* Module-system redesign (2026-10-23): the door to the complete
+          All-Desks Directory — every home carries it (Gurukul included),
+          so "where does X live?" always has one tap from home. The
+          label rides the directory dictionary keys. */}
+      <button
+        type="button"
+        onClick={() => handleNav('desk-directory')}
+        className="w-full rounded-xl bg-white border border-slate-200 shadow-sm p-4 flex items-center gap-3 text-left cursor-pointer hover:border-orange-200 hover:shadow transition-all min-h-[44px]"
+      >
+        <span className="w-10 h-10 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
+          <LayoutGrid className="w-5 h-5 text-orange-600" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-bold text-slate-800">
+            {t('suites.seva.directory.title')}
+          </span>
+          <span className="block text-[11px] text-slate-500 truncate">
+            {t('suites.seva.directory.subtitle')}
+          </span>
+        </span>
+        <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
+      </button>
     </div>
   );
 };

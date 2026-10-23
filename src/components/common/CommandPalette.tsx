@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock, CalendarCheck2, Home } from 'lucide-react';
+import { Search, CornerDownLeft, Landmark, Receipt, UserCircle, Clock, CalendarCheck2, Home, LayoutGrid } from 'lucide-react';
 import { MODULE_CATALOG, NavItem } from './Sidebar';
-import { isModuleAllowed, wouldMountIfEnabled } from '../../lib/workspaceRegistry';
+import { isModuleAllowed } from '../../lib/workspaceRegistry';
 import { isDeskVisibleForRole } from '../../lib/deskVisibility';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { effectiveDeskScope } from '../../lib/membershipAccess';
-import { useToast } from '../../context/ToastContext';
 import { getRecentDesks, recordDeskVisit } from './ui/deskHistory';
-import { enableModule } from '../../suggestions/store';
 
 export const OPEN_PALETTE_EVENT = 'sanatani:open-command-palette';
 
@@ -18,7 +16,7 @@ interface CommandPaletteProps {
 
 interface PaletteItem {
   key: string;
-  kind: 'desk' | 'action' | 'recent' | 'install';
+  kind: 'desk' | 'action' | 'recent';
   label: string;
   sub: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -56,7 +54,7 @@ function fuzzyScore(query: string, text: string): number {
  * (dispatched by the Header search trigger).
  */
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }) => {
-  const { activeWorkspace, setViewMode, updateWorkspaceDetails, checkPermission, effectiveRole } = useAuthWorkspace();
+  const { activeWorkspace, setViewMode, checkPermission, effectiveRole } = useAuthWorkspace();
   // Blueprint B: desk scope narrows the palette exactly like the nav.
   const { myMemberships } = useMembership();
   const myEdge = myMemberships.find((m) => m.workspaceId === (activeWorkspace?.id || ''));
@@ -64,7 +62,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     creatorUid: activeWorkspace?.createdBy,
   });
   const deskAccess = { deskScope: myDeskScope };
-  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -135,40 +132,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     [activeWorkspace, effectiveRole, checkPermission, myDeskScope]
   );
 
-  // Seva Suggestions: modules not yet enabled but installable from the store.
-  // Same exclusion list as AppStoreDesk — these are never "installed".
-  // QUEUED #57 (audit A1-D01): the shelf also requires the desk to
-  // actually MOUNT once enabled (wouldMountIfEnabled simulates the
-  // enable against the real mount guard). handleInstall below toasts
-  // "now on — opening it" and navigates straight there; before this
-  // gate that promise landed cross-family shiksha ids and other
-  // guard-refused desks on the restricted screen.
-  const installable = useMemo(
-    () =>
-      MODULE_CATALOG.filter(
-        (m) =>
-          !isModuleAllowed(activeWorkspace, m.id) &&
-          !['dashboard', 'appStore', 'sadhana-karma', 'sanatani-vivah', 'yatraNet'].includes(m.id) &&
-          wouldMountIfEnabled(activeWorkspace, m.id)
-      ),
-    [activeWorkspace]
-  );
-
-  const handleInstall = useCallback(
-    (moduleId: string) => {
-      if (!activeWorkspace) return;
-      // V1 RBAC: enabling a module bypasses the org-type taxonomy — Trustee+ only.
-      if (!checkPermission(['TRUSTEE', 'SuperAdmin'])) {
-        showToast('Only Trustees can enable new modules for this organisation.', 'error', 'Permission Denied');
-        return;
-      }
-      const mod = MODULE_CATALOG.find((m) => m.id === moduleId);
-      enableModule(activeWorkspace.enabledModules, moduleId, updateWorkspaceDetails, activeWorkspace.id);
-      showToast(`“${mod?.name || moduleId}” is now on — opening it.`, 'success', 'Module Enabled');
-      onSelectModule(moduleId);
-    },
-    [activeWorkspace, updateWorkspaceDetails, onSelectModule, showToast, checkPermission]
-  );
+  // Module-system redesign (2026-10-23): the palette's "install
+  // shelf" is RETIRED with the App Store model. There is nothing to
+  // install — every desk the caller's role may open is already in the
+  // desk list above (isModuleAllowed no longer gates on enabledModules),
+  // and the All-Desks Directory (quick action below) is the complete
+  // browsable surface. (QUEUED #57's wouldMountIfEnabled simulation
+  // existed only to keep the shelf's auto-open promise honest.)
 
   const quickActions: PaletteItem[] = useMemo(
     () => {
@@ -177,6 +147,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
       // an action a role cannot mount is never offered to that role.
       // (qa-personal is a view switch, not a desk — open to everyone.)
       const actions: PaletteItem[] = [
+        {
+          key: 'qa-directory',
+          kind: 'action',
+          label: 'Browse all desks',
+          sub: 'Directory · every desk, grouped by family',
+          icon: LayoutGrid,
+          run: () => onSelectModule('desk-directory'),
+        },
         ...(checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE'])
           ? [
               {
@@ -303,30 +281,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
     const matchedActions = quickActions.filter(
       (a) => fuzzyScore(q, a.label) >= 0
     );
-    // Seva Suggestions: not-yet-installed modules, searchable + one-tap install.
-    const matchedInstallable = installable
-      .map((d) => ({
-        d,
-        s: Math.max(
-          fuzzyScore(q, d.name),
-          fuzzyScore(q, d.id),
-          fuzzyScore(q, d.domainTitle),
-          fuzzyScore(q, d.keywords ?? '')
-        ),
-      }))
-      .filter((x) => x.s >= 0)
-      .sort((a, b) => b.s - a.s)
-      .slice(0, 5)
-      .map(({ d }) => ({
-        key: `install-${d.id}`,
-        kind: 'install' as const,
-        label: d.name,
-        sub: `${d.domainTitle} · not installed — select to enable`,
-        icon: d.icon,
-        run: () => handleInstall(d.id),
-      }));
-    return [...scored, ...matchedInstallable, ...matchedActions];
-  }, [query, desks, recents, quickActions, onSelectModule, installable, handleInstall]);
+    return [...scored, ...matchedActions];
+  }, [query, desks, recents, quickActions, onSelectModule]);
 
   useEffect(() => {
     setActiveIndex(0);

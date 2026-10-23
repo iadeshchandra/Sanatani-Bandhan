@@ -231,6 +231,7 @@ const MasterSettingsDesk = lazy(() => import('./components/domain6/MasterSetting
 // CrisisCommandCenter (whose 'crisis-command' case comment records
 // the same status).
 const AppStoreDesk = lazy(() => import('./components/domain6/AppStoreDesk').then(m => ({ default: m.AppStoreDesk })));
+const DeskDirectory = lazy(() => import('./components/dashboard/DeskDirectory').then(m => ({ default: m.DeskDirectory })));
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
@@ -516,22 +517,34 @@ const AppContent: React.FC = () => {
       );
     }
 
-    // R-1: org-type relevance enforcement at desk mount (defense in depth
-    // with the Sidebar's nav-level filtering). Direct navigation — deep link,
-    // Cmd+K, navigate_module events, guide CTAs — cannot open a desk that is
-    // not part of this organisation type's workspace (e.g. Sanatani Vivah
-    // inside a Gurukul). Composes with the per-case checkPermission RBAC
-    // gates below: org-type AND role must both pass. A Trustee can enable a
-    // non-native module via the App Store, which unblocks both nav and this
-    // guard (enabledModules opt-in).
+    // R-1: org-type enforcement at desk mount (defense in depth with the
+    // Sidebar's nav-level filtering). Since the 2026-10-23 module-system
+    // redesign, presence is universal — every desk belongs to every
+    // workspace (the App Store install gate is retired; enabledModules is
+    // an adoption record, not a key). What this guard still enforces is
+    // the ORG-GUARD law's correctness half: the shared shiksha component
+    // must never serve the WRONG family's desk (e.g. Sangha Drills inside
+    // a Gurukul), and desks that do not exist ('sevaTrust') stay
+    // unpromised. Composes with the per-case checkPermission RBAC gates
+    // below: family AND role must both pass.
     if (!isModuleAllowedForOrgMount(activeWorkspace, activeModule)) {
       return (
         <OrgTypeRestrictedDesk
           moduleId={activeModule}
           onBack={() => setActiveModule('dashboard')}
-          onOpenAppStore={() => setActiveModule('appStore')}
         />
       );
+    }
+
+    // Module-system redesign (2026-10-23): the All-Desks Directory is
+    // shell chrome, not a desk — it carries no MODULE_CATALOG row (the
+    // 72-desk count law), so the scope/Auditor gate below must not
+    // judge it: the directory filters its own contents by the caller's
+    // role + scope (lib/deskDirectory), exactly like the Sidebar.
+    // Devotees never reach this line — the strict guard above returns
+    // for them on every path (TypeScript's narrowing proves it here).
+    if (activeModule === 'desk-directory') {
+      return <DeskDirectory onNavigate={(id) => setActiveModule(id)} />;
     }
 
     // Blueprint B: desk-scope + Auditor enforcement at the ONE mount
