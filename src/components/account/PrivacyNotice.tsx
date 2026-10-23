@@ -10,6 +10,13 @@ import {
   privacySeenVersion,
   type TriText,
 } from '../../lib/privacyNotice';
+import {
+  FIRST_RUN_DIALOGS_CHANGED,
+  FIRST_RUN_PRIORITY,
+  activeFirstRunDialog,
+  releaseFirstRunDialog,
+  requestFirstRunDialog,
+} from '../../lib/firstRunDialogs';
 
 const pick = (t: TriText, lang: string) => (lang === 'bn' ? t.bn : lang === 'hi' ? t.hi : t.en);
 
@@ -61,25 +68,43 @@ export const PrivacyNoticeGate: React.FC = () => {
   const { user } = useAuthWorkspace();
   const { language, safeTranslate } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [turn, setTurn] = useState<string | null>(null);
   const [seenAtOpen, setSeenAtOpen] = useState(0);
 
+  // UIUX Batch 4 (D-16): first-run dialogs never stack. The gate holds
+  // a turn in the shared first-run queue (privacy first) and renders
+  // only on its turn; every close path releases the turn so the next
+  // waiting surface (language welcome, guided tour) can appear.
   useEffect(() => {
     if (!user?.uid) return;
     if (privacyPromptDue(user.uid)) {
       setSeenAtOpen(privacySeenVersion(user.uid));
       setOpen(true);
+      setTurn(requestFirstRunDialog('privacy-notice', FIRST_RUN_PRIORITY.privacy));
     } else {
       setOpen(false);
     }
   }, [user?.uid]);
 
-  if (!open || !user?.uid) return null;
+  useEffect(() => {
+    if (!open) return;
+    const onChange = () => setTurn(activeFirstRunDialog());
+    window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+    return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+  }, [open ]);
+
+  if (!open || !user?.uid || turn !== 'privacy-notice') return null;
   const changes = privacyChangesSince(seenAtOpen);
   const isFirst = seenAtOpen === 0;
 
+  const close = () => {
+    releaseFirstRunDialog('privacy-notice');
+    setOpen(false);
+  };
+
   const acknowledge = () => {
     markPrivacySeen(user.uid);
-    setOpen(false);
+    close();
   };
 
   return (
@@ -92,7 +117,7 @@ export const PrivacyNoticeGate: React.FC = () => {
       <div className="bg-white w-full sm:max-w-lg max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 relative">
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={close}
           aria-label={safeTranslate('privacy_not_now', 'Not now', 'এখন নয়', 'अभी नहीं')}
           className="absolute top-4 right-4 w-11 h-11 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
         >
@@ -127,7 +152,7 @@ export const PrivacyNoticeGate: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={close}
             className="flex-1 bg-white hover:bg-gray-50 text-gray-600 border border-gray-300 font-black py-3 px-6 rounded-xl text-xs uppercase tracking-widest min-h-[44px] transition-colors"
           >
             {safeTranslate('privacy_not_now', 'Not now', 'এখন নয়', 'अभी नहीं')}

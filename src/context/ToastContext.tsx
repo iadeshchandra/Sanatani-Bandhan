@@ -127,7 +127,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 type="button"
                 onClick={() => removeToast(t.id)}
                 aria-label="Dismiss notification"
-                className="text-stone-400 hover:text-stone-200 transition-colors p-2 -m-1 rounded-lg"
+                className="text-stone-400 hover:text-stone-200 transition-colors p-2 -m-1 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>

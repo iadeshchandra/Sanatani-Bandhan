@@ -10,6 +10,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import {
+  FIRST_RUN_DIALOGS_CHANGED,
+  FIRST_RUN_PRIORITY,
+  activeFirstRunDialog,
+  releaseFirstRunDialog,
+  requestFirstRunDialog,
+} from '../../lib/firstRunDialogs';
 
 interface DemoTourProps {
   onNavigate: (mod: string) => void;
@@ -40,6 +47,7 @@ interface TourStep {
 export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOpenQuickPay }) => {
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const [visible, setVisible] = useState(false);
+  const [turn, setTurn] = useState<string | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
 
   const demoId = activeWorkspace?.id || '';
@@ -61,7 +69,18 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     return () => clearTimeout(timer);
   }, [isDemo, isDevoteeView, seenKey]);
 
-  if (!isDemo || !visible || isDevoteeView) return null;
+  // UIUX Batch 4 (D-16): the tour holds the LAST turn in the first-run
+  // queue — it renders only once the privacy notice (and any language
+  // welcome) has closed, never stacked on top of them.
+  useEffect(() => {
+    if (!visible) return;
+    setTurn(requestFirstRunDialog('demo-tour', FIRST_RUN_PRIORITY.tour));
+    const onChange = () => setTurn(activeFirstRunDialog());
+    window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+    return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+  }, [visible ]);
+
+  if (!isDemo || !visible || isDevoteeView || turn !== 'demo-tour') return null;
 
   const dismiss = () => {
     try {
@@ -69,6 +88,7 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     } catch {
       /* ignore */
     }
+    releaseFirstRunDialog('demo-tour');
     setVisible(false);
   };
 
@@ -76,7 +96,7 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     {
       icon: LayoutDashboard,
       title: 'This is your command center',
-      body: 'Live KPIs, today\u2019s tithi and muhurat, your treasury at a glance — the whole institution on one sacred home screen.',
+      body: 'Live numbers, today\u2019s tithi and muhurat, your treasury at a glance — the whole institution on one sacred home screen.',
       navigateTo: 'dashboard',
     },
     {

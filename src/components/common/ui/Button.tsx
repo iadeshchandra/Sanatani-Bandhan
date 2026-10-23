@@ -24,7 +24,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
   // sm is reserved for dense toolbars; md/lg always meet the 44px touch target rule
-  sm: 'min-h-[36px] px-3 py-1.5 text-xs rounded-lg gap-1.5',
+  sm: 'min-h-[44px] px-3 py-1.5 text-xs rounded-lg gap-1.5',
   md: 'min-h-[44px] px-4 py-2 text-sm rounded-xl gap-2',
   lg: 'min-h-[48px] px-6 py-2.5 text-base rounded-xl gap-2',
 };

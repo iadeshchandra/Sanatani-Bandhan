@@ -92,6 +92,9 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
   const [activeChipFilter, setActiveChipFilter] = useState<'all' | 'fasts' | 'timings' | 'samagri' | 'shastras'>('all');
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  // UIUX Batch 4 (D-15): set true the moment the user asks something;
+  // the auto-scroll below stays silent until then (see the effect).
+  const userAskedRef = useRef(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
 
   // Initialize SpeechSynthesis on client
@@ -193,8 +196,14 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
     }
   }, [activeWorkspace, panchang, activeFestivals, locationName, nextAartiName, activeModule]);
 
-  // Auto scroll down smoothly
+  // Auto scroll down smoothly — ONLY after the user has asked something.
+  // UIUX Batch 4 (D-15): this effect used to fire on mount (the welcome
+  // greeting landing in state), so the desk opened scrolled to the
+  // bottom of itself — no title, mid-chips, a gap below the card. On
+  // open the desk now stays at the top like every other desk; once the
+  // user asks, new answers keep scrolling into view as before.
   useEffect(() => {
+    if (!userAskedRef.current) return;
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
@@ -218,6 +227,7 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
   const handleSendQuery = async (queryText: string) => {
     const trimmed = queryText.trim();
     if (!trimmed || isLoading) return;
+    userAskedRef.current = true;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -621,7 +631,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
                               showToast(`Navigating to ${action.label}`, 'info');
                             }
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer min-h-[44px]"
                         >
                           <span>{action.label}</span>
                           <ArrowRight className="w-3 h-3 text-amber-400" />
@@ -644,7 +654,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
                           type="button"
                           onClick={() => handleSendQuery(queryText)}
                           disabled={isLoading}
-                          className="text-[11px] px-2.5 py-1 rounded-full bg-stone-800 hover:bg-amber-950/50 text-stone-300 hover:text-amber-200 border border-stone-700/60 hover:border-amber-500/40 transition-colors text-left cursor-pointer"
+                          className="text-[11px] px-2.5 py-1 rounded-full bg-stone-800 hover:bg-amber-950/50 text-stone-300 hover:text-amber-200 border border-stone-700/60 hover:border-amber-500/40 transition-colors text-left cursor-pointer min-h-[44px]"
                         >
                           {queryText}
                         </button>
@@ -699,7 +709,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             <button
               type="button"
               onClick={() => setActiveChipFilter('all')}
-              className={`px-2 py-0.5 rounded cursor-pointer ${
+              className={`px-2 py-0.5 rounded cursor-pointer min-h-[44px] inline-flex items-center justify-center ${
                 activeChipFilter === 'all' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -708,7 +718,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             <button
               type="button"
               onClick={() => setActiveChipFilter('fasts')}
-              className={`px-2 py-0.5 rounded cursor-pointer ${
+              className={`px-2 py-0.5 rounded cursor-pointer min-h-[44px] inline-flex items-center justify-center ${
                 activeChipFilter === 'fasts' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -717,7 +727,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             <button
               type="button"
               onClick={() => setActiveChipFilter('timings')}
-              className={`px-2 py-0.5 rounded cursor-pointer ${
+              className={`px-2 py-0.5 rounded cursor-pointer min-h-[44px] inline-flex items-center justify-center ${
                 activeChipFilter === 'timings' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -726,7 +736,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             <button
               type="button"
               onClick={() => setActiveChipFilter('samagri')}
-              className={`px-2 py-0.5 rounded cursor-pointer ${
+              className={`px-2 py-0.5 rounded cursor-pointer min-h-[44px] inline-flex items-center justify-center ${
                 activeChipFilter === 'samagri' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -743,7 +753,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
               type="button"
               onClick={() => handleSendQuery(preset.query)}
               disabled={isLoading}
-              className="px-3 py-1.5 rounded-lg bg-stone-950 hover:bg-amber-950/40 border border-stone-800 hover:border-amber-500/40 text-[11px] text-stone-300 hover:text-amber-200 whitespace-nowrap transition-colors shrink-0 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 rounded-lg bg-stone-950 hover:bg-amber-950/40 border border-stone-800 hover:border-amber-500/40 text-[11px] text-stone-300 hover:text-amber-200 whitespace-nowrap transition-colors shrink-0 cursor-pointer shadow-xs min-h-[44px]"
             >
               {preset.label}
             </button>
@@ -764,7 +774,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             value={selectedLang}
             onChange={(e) => setSelectedLang(e.target.value as AssistantLang)}
             title="Select AI Response Language"
-            className="bg-stone-900 border border-stone-700/80 text-stone-300 text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:border-amber-500 shrink-0 cursor-pointer font-medium"
+            className="bg-stone-900 border border-stone-700/80 text-stone-300 text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:border-amber-500 shrink-0 cursor-pointer font-medium min-h-[44px]"
           >
             <option value="en">English</option>
             <option value="hi">हिन्दी</option>
@@ -778,7 +788,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
               placeholder="Ask about scriptures, rituals, fasts, or temple operations..."
-              className="w-full bg-stone-900 border border-stone-700/80 rounded-xl pl-3.5 pr-4 py-2.5 text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
+              className="w-full bg-stone-900 border border-stone-700/80 rounded-xl pl-3.5 pr-4 py-2.5 text-xs sm:text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors min-h-[44px]"
               disabled={isLoading}
             />
           </div>
@@ -787,7 +797,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
             type="submit"
             disabled={!promptInput.trim() || isLoading}
             title="Send Inquiry"
-            className={`p-2.5 rounded-xl font-semibold flex items-center justify-center transition-all shrink-0 ${
+            className={`p-2.5 rounded-xl font-semibold flex items-center justify-center transition-all shrink-0 min-h-[44px] min-w-[44px] ${
               promptInput.trim() && !isLoading
                 ? 'bg-amber-500 text-stone-950 hover:bg-amber-400 shadow-md shadow-amber-500/20 cursor-pointer'
                 : 'bg-stone-800 text-stone-600 cursor-not-allowed'

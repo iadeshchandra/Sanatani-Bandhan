@@ -277,7 +277,7 @@ export const PanchangAstrologyEngine: React.FC = () => {
           <button
             type="button"
             onClick={handleResetToToday}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-bold transition-all cursor-pointer min-h-[44px]"
             title="Reset Ephemeris to Today"
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
@@ -287,7 +287,7 @@ export const PanchangAstrologyEngine: React.FC = () => {
           <button
             type="button"
             onClick={() => openGuide('PANCHANG_ENGINE')}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer group"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer group min-h-[44px]"
             title="Open Shastric & Statutory Operating Procedures for Vedic Panchang"
           >
             <BookOpen className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
@@ -312,7 +312,7 @@ export const PanchangAstrologyEngine: React.FC = () => {
               type="date"
               value={selectedDateStr}
               onChange={(e) => setSelectedDateStr(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-bold text-xs sm:text-sm focus:border-amber-400 focus:outline-none transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-bold text-xs sm:text-sm focus:border-amber-400 focus:outline-none transition-colors cursor-pointer min-h-[44px]"
             />
           </div>
 
@@ -325,7 +325,7 @@ export const PanchangAstrologyEngine: React.FC = () => {
             <select
               value={selectedCityId}
               onChange={(e) => handleCityChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm focus:border-amber-400 focus:outline-none transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm focus:border-amber-400 focus:outline-none transition-colors cursor-pointer min-h-[44px]"
             >
               {STANDARD_CITIES.map((c) => (
                 <option key={c.id} value={c.id}>

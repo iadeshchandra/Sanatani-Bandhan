@@ -583,7 +583,7 @@ export default function YatraNetDesk() {
           <button
             type="button"
             onClick={handleOpenCheckInModal}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all transform hover:scale-102 active:scale-98 cursor-pointer"
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all transform hover:scale-102 active:scale-98 cursor-pointer min-h-[44px]"
           >
             <MapPin className="w-4 h-4" />
             <span>Log Temple Visit</span>
@@ -592,7 +592,7 @@ export default function YatraNetDesk() {
           <button
             type="button"
             onClick={() => setShowQRScannerModal(true)}
-            className="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-700 hover:border-amber-500/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-amber-200 border border-stone-700 hover:border-amber-500/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer min-h-[44px]"
             title="Scan Temple Location QR Code"
           >
             <QrCode className="w-4 h-4 text-amber-400" />
@@ -681,7 +681,7 @@ export default function YatraNetDesk() {
                 <button
                   type="button"
                   onClick={() => setFlyTarget(templeCoords)}
-                  className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer min-h-[44px]"
                   title="Recenter on Temple Campus"
                 >
                   <Building className="w-3.5 h-3.5 text-amber-400" />
@@ -699,7 +699,7 @@ export default function YatraNetDesk() {
                       showToast(e.message, 'warning');
                     }
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer min-h-[44px]"
                   title="Locate My Position"
                 >
                   <LocateFixed className={`w-3.5 h-3.5 text-emerald-400 ${isLocating ? 'animate-spin' : ''}`} />

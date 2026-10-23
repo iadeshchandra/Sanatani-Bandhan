@@ -312,7 +312,7 @@ export const RecurringSevaDesk: React.FC = () => {
             <p className="text-xs text-temple-400 font-bold uppercase tracking-wider">Monthly Recurring</p>
           </div>
           <p className="text-2xl font-black text-emerald-400 mt-2">{inr(Math.round(kpis.mrr))}</p>
-          <p className="text-[11px] text-temple-400 mt-1">Normalized MRR run-rate</p>
+          <p className="text-[11px] text-temple-400 mt-1">From active monthly mandates</p>
         </div>
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
           <div className="flex items-center gap-2">

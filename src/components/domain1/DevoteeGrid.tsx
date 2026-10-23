@@ -821,11 +821,11 @@ export const DevoteeGrid: React.FC = () => {
             <span className="text-sm font-semibold text-temple-900">Selected</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 text-xs text-temple-600 hover:text-temple-900 transition-colors">Clear</button>
-            <button onClick={handleBulkWhatsApp} className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
+            <button onClick={() => setSelectedIds(new Set())} className="px-3 py-1.5 text-xs text-temple-600 hover:text-temple-900 transition-colors min-h-[44px]">Clear</button>
+            <button onClick={handleBulkWhatsApp} className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors min-h-[44px]">
               <MessageCircle className="w-3.5 h-3.5" /> Broadcast
             </button>
-            <button onClick={handleBulkTag} className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
+            <button onClick={handleBulkTag} className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors min-h-[44px]">
               <Tag className="w-3.5 h-3.5" /> Update Tags
             </button>
           </div>
@@ -838,7 +838,7 @@ export const DevoteeGrid: React.FC = () => {
           <button
             key={filter}
             onClick={() => setFilterGroup(filter)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize whitespace-nowrap transition-all ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize whitespace-nowrap transition-all min-h-[44px] inline-flex items-center justify-center ${
               filterGroup === filter
                 ? 'bg-saffron-100 text-saffron-800 border border-saffron-200'
                 : 'bg-temple-50 text-temple-600 border border-temple-200 hover:bg-temple-100'
@@ -864,7 +864,7 @@ export const DevoteeGrid: React.FC = () => {
             placeholder={`Search ${taxonomy.memberNoun} by name, gotra, phone...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-temple-200 shadow-sm rounded-xl pl-9 pr-3 py-2 text-xs text-temple-900 placeholder-temple-400 focus:outline-none focus:border-saffron-500"
+            className="w-full bg-white border border-temple-200 shadow-sm rounded-xl pl-9 pr-3 py-2 text-xs text-temple-900 placeholder-temple-400 focus:outline-none focus:border-saffron-500 min-h-[44px]"
           />
         </div>
 
@@ -874,7 +874,7 @@ export const DevoteeGrid: React.FC = () => {
             <select
               value={selectedGotra}
               onChange={(e) => setSelectedGotra(e.target.value)}
-              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
+              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none min-h-[44px]"
             >
               <option value="all">{t('org.people.devoteeGrid.allGotras')}</option>
               {uniqueGotras.map((g, idx) => (
@@ -890,7 +890,7 @@ export const DevoteeGrid: React.FC = () => {
             <select
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
-              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
+              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none min-h-[44px]"
             >
               <option value="all">{t('org.people.devoteeGrid.allTiers')}</option>
               <option value="Ratna">{t('org.people.devoteeGrid.ratnaDiamond')}</option>
@@ -904,7 +904,7 @@ export const DevoteeGrid: React.FC = () => {
             <select
               value={advancedFilters.minDonation}
               onChange={(e) => setAdvancedFilters(prev => ({ ...prev, minDonation: Number(e.target.value) }))}
-              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
+              className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none min-h-[44px]"
             >
               <option value={0}>Any</option>
               <option value={1000}>{inr(1000)}+</option>
@@ -915,7 +915,7 @@ export const DevoteeGrid: React.FC = () => {
           <div className="flex items-center gap-1.5 shrink-0 ml-2 border-l border-temple-200 pl-3">
             <button
               onClick={() => setLayoutView('grid')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer min-w-[44px] min-h-[44px] inline-flex items-center justify-center ${
                 layoutView === 'grid' ? 'bg-saffron-100 text-saffron-800' : 'text-temple-600 hover:text-temple-900'
               }`}
               title="Grid View"
@@ -924,7 +924,7 @@ export const DevoteeGrid: React.FC = () => {
             </button>
             <button
               onClick={() => setLayoutView('list')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer min-w-[44px] min-h-[44px] inline-flex items-center justify-center ${
                 layoutView === 'list' ? 'bg-saffron-100 text-saffron-800' : 'text-temple-600 hover:text-temple-900'
               }`}
               title="List View"

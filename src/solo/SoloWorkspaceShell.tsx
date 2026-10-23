@@ -13,7 +13,6 @@ import { JoinOrgScreen } from './JoinOrgScreen';
 import { SuchanaPage } from './SuchanaPage';
 import { ProfileTab } from './ProfileTab';
 import { ChatRoute } from './ChatRoute';
-import { LocalOnlyBadge } from '../components/common/LocalOnlyBadge';
 import { FirstRunSequence } from './FirstRunSequence';
 import { PrivacyNoticeGate } from '../components/account/PrivacyNotice';
 import { DanaSheetHost } from './DanaSheetHost';
@@ -155,9 +154,11 @@ const SoloRouter: React.FC = () => {
       onTabChange={(t) => navigate(TAB_PATH[t])}
       header={header}
     >
-      <div className="max-w-5xl mx-auto px-4 pt-3 flex justify-end">
-        <LocalOnlyBadge />
-      </div>
+      {/* UIUX Batch 4 (U6): the shell-wide "Saved on this device" pill is
+          gone — it floated unexplained over EVERY Solo tab, in hard-coded
+          English, above cloud-backed data its own spec says it must never
+          label. The badge stays on the local-only create-forms it was
+          designed for; Profile keeps its properly translated instance. */}
       {/* Solo tab content — keyed by path so each tab change glides in.
           Presentational only: remounts the route view on navigation. */}
       <div key={location.pathname} className="anim-tab-in">

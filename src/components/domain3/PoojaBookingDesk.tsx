@@ -428,7 +428,7 @@ export const PoojaBookingDesk: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('roster')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                   activeTab === 'roster'
                     ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
                     : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
@@ -442,7 +442,7 @@ export const PoojaBookingDesk: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('book')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                 activeTab === 'book'
                   ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
                   : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
@@ -455,7 +455,7 @@ export const PoojaBookingDesk: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                 activeTab === 'history'
                   ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
                   : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
@@ -492,7 +492,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRosterDate(new Date().toISOString().slice(0, 10))}
-                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer min-h-[44px]"
                 >
                   Today
                 </button>
@@ -503,14 +503,14 @@ export const PoojaBookingDesk: React.FC = () => {
                     tom.setDate(tom.getDate() + 1);
                     setRosterDate(tom.toISOString().slice(0, 10));
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-200 border border-temple-700 text-xs font-medium cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-200 border border-temple-700 text-xs font-medium cursor-pointer min-h-[44px]"
                 >
                   Tomorrow
                 </button>
                 <button
                   type="button"
                   onClick={() => setRosterDate('')}
-                  className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium cursor-pointer min-h-[44px] ${
                     !rosterDate
                       ? 'bg-amber-500 text-temple-950 border-amber-400 font-bold'
                       : 'bg-temple-900 text-temple-400 border-temple-700 hover:text-amber-200'
@@ -525,7 +525,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsScannerOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer min-h-[44px]"
                 >
                   <Scan className="w-4 h-4 text-amber-400" />
                   <span>{t('ritual.pooja.scanPass')}</span>

@@ -223,7 +223,7 @@ export const PersonaSwitcher: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl text-white text-xs font-mono font-bold hover:border-amber-500/50 hover:bg-slate-900 transition-all cursor-pointer group"
+            className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl text-white text-xs font-mono font-bold hover:border-amber-500/50 hover:bg-slate-900 transition-all cursor-pointer group"
             title="Expand Persona Testing Rig (Ctrl+Shift+P)"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

@@ -22,6 +22,13 @@ import { SUPPORTED_LANGUAGES } from '../../i18n/translations';
 import { regionForLang, type RegionId } from '../../i18n/regionalTerms';
 import type { SupportedLang } from '../../i18n/translationQuality';
 import { detectNativeProfileOnce } from '../../lib/nativeDetect';
+import {
+  FIRST_RUN_DIALOGS_CHANGED,
+  FIRST_RUN_PRIORITY,
+  activeFirstRunDialog,
+  releaseFirstRunDialog,
+  requestFirstRunDialog,
+} from '../../lib/firstRunDialogs';
 import { useNativeLanguage } from './nativeBridge';
 
 const DISMISSED_KEY = 'sb-native-sheet-dismissed';
@@ -106,6 +113,7 @@ export const NativeWelcomeSheet: React.FC = () => {
   const [detectedRegion, setDetectedRegion] = useState<RegionId>('other');
   const [lowConfidence, setLowConfidence] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [turn, setTurn] = useState<string | null>(null);
   const ranRef = useRef(false);
 
   const copy = copyFor(currentLang);
@@ -150,7 +158,17 @@ export const NativeWelcomeSheet: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!visible || !detectedLang) return null;
+  // UIUX Batch 4 (D-16): hold a turn in the first-run queue (after the
+  // privacy notice, before the tour) — first-run surfaces never stack.
+  useEffect(() => {
+    if (!visible) return;
+    setTurn(requestFirstRunDialog('native-language', FIRST_RUN_PRIORITY.language));
+    const onChange = () => setTurn(activeFirstRunDialog());
+    window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+    return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
+  }, [visible ]);
+
+  if (!visible || !detectedLang || turn !== 'native-language') return null;
 
   const dismiss = () => {
     try {
@@ -158,6 +176,7 @@ export const NativeWelcomeSheet: React.FC = () => {
     } catch {
       /* ignore */
     }
+    releaseFirstRunDialog('native-language');
     setVisible(false);
   };
 
@@ -172,6 +191,7 @@ export const NativeWelcomeSheet: React.FC = () => {
         : regionForLang(selected as SupportedLang);
     setRegion(region);
     markRegionChosen();
+    releaseFirstRunDialog('native-language');
     setVisible(false);
   };
 
@@ -183,6 +203,12 @@ export const NativeWelcomeSheet: React.FC = () => {
     if (opts.length === 1) opts.push('hi');
     return opts;
   })();
+
+  // UIUX Batch 4 (D-16): in low-confidence mode the two big cards ARE
+  // English and हिन्दी — the full list below must not repeat them.
+  const listLanguages = lowConfidence
+    ? SUPPORTED_LANGUAGES.filter((l) => !top2.includes(l.code))
+    : SUPPORTED_LANGUAGES;
 
   return (
     <div
@@ -275,7 +301,7 @@ export const NativeWelcomeSheet: React.FC = () => {
             {lowConfidence ? copy.changeHint : copy.allLangs}
           </p>
           <ul className="mt-2 space-y-2">
-            {SUPPORTED_LANGUAGES.map((l) => {
+            {listLanguages.map((l) => {
               const active = selected === l.code;
               const isDetected = l.code === detectedLang && !lowConfidence;
               return (

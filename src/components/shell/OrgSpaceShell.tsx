@@ -390,8 +390,12 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
         />
       )}
 
-      {/* First-entry role hint — warm welcome, not a warning */}
-      {showHint && (
+      {/* First-entry role hint — warm welcome, not a warning.
+          UIUX Batch 4 (D-18): scoped to the Command Center only — the
+          banner used to sit above EVERY desk until dismissed, taxing
+          ~90px of every first session. The per-org+role persisted
+          dismissal (hintKeyFor) is unchanged. */}
+      {showHint && deskId === 'dashboard' && (
         <div className="shrink-0 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 px-4 py-3">
           <div className="max-w-5xl mx-auto flex items-start sm:items-center gap-3">
             <span aria-hidden className="text-2xl leading-none shrink-0 mt-0.5 sm:mt-0">🙏</span>

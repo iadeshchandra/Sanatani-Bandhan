@@ -251,7 +251,7 @@ export const VedicCalendarEventsDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleExportICS(ev)}
-                  className="flex items-center gap-1.5 text-temple-300 font-semibold hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 text-temple-300 font-semibold hover:text-white transition-colors min-h-[44px]"
                   title="Export to Calendar (.ics)"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -260,7 +260,7 @@ export const VedicCalendarEventsDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => showToast(`Roster opened for ${ev.title}`, 'info')}
-                  className="text-saffron-400 font-bold hover:underline cursor-pointer"
+                  className="text-saffron-400 font-bold hover:underline cursor-pointer min-h-[44px] inline-flex items-center"
                 >
                   View Seva Roster &rarr;
                 </button>

@@ -311,7 +311,7 @@ export const TaxReceiptDesk: React.FC = () => {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('navigate_module', { detail: 'masterSettings' }))}
-            className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+            className="shrink-0 px-4 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-black uppercase tracking-wider transition-colors cursor-pointer min-h-[44px]"
           >
             Open Settings → 80G
           </button>
@@ -383,7 +383,7 @@ export const TaxReceiptDesk: React.FC = () => {
             onClick={handleAuditPack}
             disabled={isAuditPacking || (treasury || []).length === 0}
             title="Download ZIP: treasury ledger, 80G receipts, 10BD donor summary, asset inventory + cover summary"
-            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-700/30 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-700 hover:from-emerald-600 hover:to-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-700/30 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
           >
             <FileText className="w-4 h-4" />
             <span>{isAuditPacking ? 'Building Audit Pack...' : 'Download Audit Pack (ZIP)'}</span>
@@ -392,7 +392,7 @@ export const TaxReceiptDesk: React.FC = () => {
             type="button"
             onClick={handleBulkGenerate}
             disabled={isBulkGenerating || eligibleTransactions.length === 0}
-            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
           >
             <Download className="w-4 h-4 text-temple-950" />
             <span>

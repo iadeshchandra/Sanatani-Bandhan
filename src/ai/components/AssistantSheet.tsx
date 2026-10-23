@@ -559,6 +559,32 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   // nudge rule itself is untouched.
   useEffect(() => {
     if (open) setShowVoiceSettings(false);
+    if (!open) {
+      setVoiceNudge(false);
+      return;
+    }
+    // UIUX Batch 4 (D-17): the warmer-voice nudge may surface ONLY at a
+    // natural boundary — the sheet opening onto a fresh conversation
+    // view — never in the reading moment right after an answer renders
+    // (its old trigger, inside send()). The honest rule is unchanged:
+    // 3+ real uses, once ever (markNudgeShown), never after dismissal,
+    // only when a warmer voice is actually available on this device.
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (countAssistantUse() < 3 || !shouldShowNudge()) return;
+        const cap = await probeVoiceCapability();
+        if (!cancelled && cap.status === 'available') {
+          markNudgeShown();
+          setVoiceNudge(true);
+        }
+      } catch {
+        /* nudge is a courtesy — never an error */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open ]);
 
   // UIUX Batch 2 (D-04): freshness dividers for the reloaded thread —
@@ -727,22 +753,6 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
       try {
         const res = await ask(text, ctxRef.current);
         pushAssistant(res);
-        // Phase-1 voice: one gentle nudge after 3+ real uses — never on
-        // first launch, never twice, never when the voice can't help.
-        // Fire-and-forget: the answer is already on screen.
-        void (async () => {
-          try {
-            const uses = countAssistantUse();
-            if (uses < 3 || !shouldShowNudge()) return;
-            const cap = await probeVoiceCapability();
-            if (cap.status === 'available') {
-              markNudgeShown();
-              setVoiceNudge(true);
-            }
-          } catch {
-            /* nudge is a courtesy — never an error */
-          }
-        })();
       } catch {
         warmError();
       } finally {

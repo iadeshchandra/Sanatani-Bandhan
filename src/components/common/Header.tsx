@@ -195,10 +195,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-col text-left justify-center min-w-0 overflow-hidden">
             {/* F-DASH-2: single-line truncate (never a cramped 2-line clamp) so the
                 workspace name ellipsizes gracefully instead of colliding with
-                the tithi line / desk search at tight widths. Full name on hover. */}
+                the tithi line / desk search at tight widths. Full name on hover.
+                UIUX Batch 4 (D-13): the cap is viewport-relative (52vw) — a name
+                keeps a meaningful budget at 320-390px instead of a fixed 140px. */}
             <h1
               title={activeWorkspace.name}
-              className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight truncate min-w-0 max-w-[140px] sm:max-w-[220px] lg:max-w-md"
+              className="text-base sm:text-lg font-bold text-white leading-tight tracking-tight truncate min-w-0 max-w-[52vw] sm:max-w-[220px] lg:max-w-md"
             >
               {activeWorkspace.name}
             </h1>

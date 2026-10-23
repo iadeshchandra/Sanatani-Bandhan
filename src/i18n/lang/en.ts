@@ -1464,7 +1464,7 @@ const dict: TranslationSchema =  {
           newSevaSubscription2: "New seva subscription",
           newSubscription: "New Subscription",
           nextDue: "Next due",
-          normalizedMrrRunrate: "Normalized MRR run-rate",
+          normalizedMrrRunrate: "From active monthly mandates",
           notes: "Notes",
           nothingToExportNoSubscriptionsMatch: "Nothing to export — no subscriptions match.",
           overdue: "Overdue",

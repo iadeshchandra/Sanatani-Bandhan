@@ -92,14 +92,17 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="text-base leading-none shrink-0" aria-hidden="true">🎪</span>
-        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide truncate">
+        {/* UIUX Batch 4 (D-13) name budget: the title keeps a 6.5rem floor —
+            the created-count stat yields below 480px instead of the title
+            collapsing to "De…" (naming the demo is the strip's whole job). */}
+        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide truncate min-w-[6.5rem]">
           Demo Sandbox
         </span>
         <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate shrink-0">
           {totalCreates} record{totalCreates === 1 ? '' : 's'} created
           <span className="text-stone-400"> · auto-deletes in 24h</span>
         </span>
-        <span className="sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap shrink-0">
+        <span className="hidden min-[480px]:inline sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap shrink-0">
           {totalCreates} created
         </span>
       </div>

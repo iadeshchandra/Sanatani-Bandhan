@@ -170,7 +170,7 @@ export const DarshanCheckInDesk: React.FC = () => {
           <button
             type="button"
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors cursor-pointer shadow-xs min-h-[44px]"
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
             <span>Reset Camera</span>

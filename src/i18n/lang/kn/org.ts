@@ -530,7 +530,7 @@ export const orgNs: OrgFragment = {
           newSevaSubscription2: "New seva subscription",
           newSubscription: "New Subscription",
           nextDue: "ಮುಂದೆ due",
-          normalizedMrrRunrate: "Normalized MRR run-rate",
+          normalizedMrrRunrate: "From active monthly mandates",
           notes: "ಟಿಪ್ಪಣಿಗಳು",
           nothingToExportNoSubscriptionsMatch: "Nothing to export — no subscriptions match.",
           overdue: "Overdue",

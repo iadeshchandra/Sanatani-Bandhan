@@ -727,7 +727,7 @@ export const DevoteePortal: React.FC<DevoteePortalProps> = ({ onBackToERP, previ
                   <span>Yatra Passport &amp; Pilgrimage Stamps</span>
                 </h3>
                 <p className="text-[10px] text-slate-400 font-mono">
-                  O2O Physical Verification at Mandir Turnstiles &amp; Kiosks
+                  Physical Verification at Mandir Turnstiles &amp; Kiosks
                 </p>
               </div>
               <span className="text-[10px] font-mono text-amber-400 font-bold">
