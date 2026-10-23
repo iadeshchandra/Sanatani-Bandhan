@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Wallet as WalletIcon, Plus, History, Copy, CheckCircle2, Clock, XCircle, RefreshCw, ChevronLeft, Eye, EyeOff, HandHeart, ScanLine } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { safeExternalUrl } from '../lib/safeUrl';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { Card, Btn, Field, inputCls, Modal } from './ui';
 import P2PScanSheet from '../chat/P2PScanSheet';
@@ -216,8 +217,8 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
               <span className="font-mono font-black text-stone-900">{method.upiId}</span><Copy className="w-4 h-4 text-stone-400" />
             </button>
           )}
-          {method.link && (
-            <a href={method.link} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline mb-2 min-h-[44px] py-3">{t('solo.wallet.openMethod').replace('{label}', method.label)}</a>
+          {safeExternalUrl(method.link) && (
+            <a href={safeExternalUrl(method.link)!} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline mb-2 min-h-[44px] py-3">{t('solo.wallet.openMethod').replace('{label}', method.label)}</a>
           )}
           <ol className="text-[11px] text-amber-900 space-y-1 list-decimal list-inside">
             {method.instructionsEn.map((s, i) => <li key={i}>{s}</li>)}

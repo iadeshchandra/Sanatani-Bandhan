@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, initializeFirestore , enableMultiTabIndexedDbPersistence, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { initAppCheck } from "./appCheck";
 import config from "../../firebase-applet-config.json";
 
 const firebaseConfig = {
@@ -15,6 +16,13 @@ const firebaseConfig = {
 
 // Initialize Firebase
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// SECURITY P1: App Check attestation — dormant unless a site key is
+// configured (VITE_FIREBASE_APPCHECK_SITE_KEY); fail-open by design.
+// Must run before Firestore/Auth traffic so tokens attach from the
+// first request. Enforcement itself is a Firebase-console switch.
+initAppCheck(app);
+
 export const auth = getAuth(app);
 
 // Initialize Firestore with specific database ID if provided and not (default).

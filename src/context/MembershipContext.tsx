@@ -97,7 +97,12 @@ export async function syncOrgPage(ws: WorkspaceConfig): Promise<void> {
         eightyGRegistered: !!(ws as any).trust80GRegistered,
         eightyGURN: (ws as any).trust80GURN || '',
         twelveARegistered: !!(ws as any).trust12ARegistered,
-        verified: true,
+        // SECURITY P1 (Finding 3): NO `verified` here — this projection
+        // used to stamp verified:true on EVERY org, so the directory's
+        // verified badge meant nothing and any trustee could claim it.
+        // Verification is granted only by the platform owner (GodMode /
+        // console, SuperAdmin rules branch); merge keeps a granted
+        // value untouched, and the rules pin trustees out of changing it.
         updatedAt: now(),
       },
       { merge: true }

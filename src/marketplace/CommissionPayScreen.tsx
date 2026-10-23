@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, ChevronLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { safeExternalUrl } from '../lib/safeUrl';
 import { Card, Btn, Field, inputCls } from '../solo/ui';
 import { fileCommissionPayment, fmtWallet, type WalletCurrency } from '../lib/wallet';
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
@@ -134,7 +135,7 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
               <span className="font-mono font-black">{method.upiId}</span><Copy className="w-4 h-4 text-stone-400" />
             </button>
           )}
-          {method.link && <a href={method.link} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline py-3">Open {method.label} →</a>}
+          {safeExternalUrl(method.link) && <a href={safeExternalUrl(method.link)!} target="_blank" rel="noreferrer" className="block text-center text-xs font-black text-amber-700 underline py-3">Open {method.label} →</a>}
           <p className="text-[11px] text-stone-600 text-center">Pay exactly <b>{fmtWallet(commissionAmount, currency)}</b> and put <b className="font-mono">{orderCode}</b> in the reference/note.</p>
         </Card>
       )}

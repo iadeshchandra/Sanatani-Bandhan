@@ -110,7 +110,11 @@ export interface JyotishIdentity {
   verificationTier: JyotishVerificationTier;
   ratingAggregate: number;
   ratingCount: number;
+  /** SECURITY P1 anchors: rules require these to name the review /
+   *  consultation that legally moved the counters beside them. */
+  lastReviewId?: string;
   completedConsultations: number;
+  lastCompletedConsultationId?: string;
   /** Dual identity: linked org record, if accepted as temple staff. */
   linkedOrgId?: string;
   linkedOrgName?: string;

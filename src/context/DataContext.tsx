@@ -84,6 +84,7 @@ import {
   type PracticeRecordCounts,
 } from '../lib/practiceMode';
 import { auditRecorder } from './data/auditStore';
+import { advanceReceiptCounter, ensureReceiptCounter } from './data/receiptCounterSync';
 import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { assignReceiptNumber } from '../lib/receiptCoverage';
 import type { AuditChange, AuditEventInput } from '../lib/auditChain';
@@ -1569,6 +1570,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setReceiptSeqCache({ year, 'SB-80G': g80, 'SB-CHANDA': chanda });
         setReceiptSeqDegraded(false);
+        // SECURITY P1 (Finding 5): seed the shared receiptCounters docs
+        // from the prefetched maxima and let the counter RAISE the
+        // cache floor — the counter only ever moves forward (rules),
+        // so once seeded it is the truth every device shares, where
+        // the prefetch alone only knew this device's scan. Fail-open:
+        // any counter error leaves the prefetch behaviour untouched.
+        const [c80, cCh] = await Promise.all([
+          ensureReceiptCounter(activeWorkspaceId, 'SB-80G', year, g80),
+          ensureReceiptCounter(activeWorkspaceId, 'SB-CHANDA', year, chanda),
+        ]);
+        if (!cancelled && (c80 != null || cCh != null)) {
+          setReceiptSeqCache({
+            year,
+            'SB-80G': Math.max(g80, c80 ?? 0),
+            'SB-CHANDA': Math.max(chanda, cCh ?? 0),
+          });
+        }
       }
     };
 
@@ -3148,6 +3166,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? { ...prev, [series]: parsedAssigned.seq }
             : prev
         );
+        // SECURITY P1: raise the shared counter to the number just
+        // issued, so the next device seeds from truth rather than its
+        // own window. Fire-and-forget + fail-open (receiptCounterSync).
+        void advanceReceiptCounter(wsId, series, parsedAssigned.year, parsedAssigned.seq);
       }
     }
     // Multi-branch: stamp the active branch (no-op → undefined for single-org).

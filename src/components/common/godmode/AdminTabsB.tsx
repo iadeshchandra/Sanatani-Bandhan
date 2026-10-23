@@ -6,6 +6,7 @@ import React, { useState, useCallback } from 'react';
 import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock, CalendarPlus, TimerOff } from 'lucide-react';
 import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, type MessageTemplate } from '../../../lib/adminApi';
 import { findDueSubscriptions, extendedEndDateIso } from '../../../lib/subscriptionAdmin';
+import { safeExternalUrl } from '../../../lib/safeUrl';
 import { BackendDownBanner, ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
 import { PaymentInsightsTab } from './AdminTabsG';
@@ -219,8 +220,8 @@ const BillingClaims: React.FC = () => {
                 Txn: <span className="font-mono text-slate-200">{c.transactionId}</span>
                 {c.amount != null && <span className="ml-2">{c.currency || ''} {c.amount}</span>}
               </p>
-              {c.proofUrl && (
-                <a href={c.proofUrl} target="_blank" rel="noreferrer" className="text-xs text-sky-400 underline mt-1 inline-block">
+              {safeExternalUrl(c.proofUrl) && (
+                <a href={safeExternalUrl(c.proofUrl)!} target="_blank" rel="noreferrer" className="text-xs text-sky-400 underline mt-1 inline-block">
                   View payment proof ↗
                 </a>
               )}

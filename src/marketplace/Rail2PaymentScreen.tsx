@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import { Copy, CheckCircle2, AlertTriangle, QrCode, Link2, ChevronLeft, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { createRail2Order, submitRail2Proof, validateTrxId } from '../lib/rail2';
+import { safeExternalUrl } from '../lib/safeUrl';
 import type { Gig } from '../lib/marketplace';
 import { formatMoney } from '../lib/money';
 import type { PriceChangeNote } from '../lib/rebook';
@@ -129,8 +130,8 @@ export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack
             <button type="button" onClick={() => copy(pm.upiId, 'UPI ID')} className="p-2.5 bg-white rounded-xl border min-h-[44px] min-w-[44px]"><Copy className="w-4 h-4" /></button>
           </div>
         )}
-        {pmType === 'own_link' && pm.paymentLink && (
-          <a href={pm.paymentLink} target="_blank" rel="noreferrer" className={`${btnP} w-full text-center block`}>
+        {pmType === 'own_link' && safeExternalUrl(pm.paymentLink) && (
+          <a href={safeExternalUrl(pm.paymentLink)!} target="_blank" rel="noreferrer" className={`${btnP} w-full text-center block`}>
             <Link2 className="w-4 h-4 inline mr-1" /> Open payment link
           </a>
         )}

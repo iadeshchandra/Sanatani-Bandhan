@@ -36,6 +36,52 @@ export function formatReceiptNumber(prefix: string, year: number, seq: number): 
   return `${prefix}-${year}-${String(seq).padStart(4, '0')}`;
 }
 
+/* =====================================================================
+ * SECURITY P1 (Finding 5) — server-anchored sequences + provisional
+ * numbers. Receipt numbers used to be minted from whatever the local
+ * device happened to have loaded, so two devices could issue the same
+ * official number. The anchor now lives in `receiptCounters` docs
+ * (context/data/receiptCounterSync.ts claims from them transactionally;
+ * firestore.rules lets the counter only ever move FORWARD, finance
+ * roles only). When a claim is impossible (offline), the receipt is
+ * issued with a PROVISIONAL number in the format below — visibly not
+ * part of the official series, unique via its suffix, and never parsed
+ * as an official number by parseReceiptNumber / the gap & duplicate
+ * checks above.
+ * =================================================================== */
+
+/** Firestore doc id of the shared counter for one workspace+series+year. */
+export function receiptCounterDocId(workspaceId: string, prefix: string, year: number): string {
+  return `${workspaceId}_${prefix}_${year}`;
+}
+
+const PROVISIONAL_RE = /^(SB-(?:80G|CHANDA|RENT))-(\d{4})-P-([A-Z0-9]+)$/;
+
+/** A clearly-marked provisional (offline-issued) receipt number. */
+export function formatProvisionalReceiptNumber(prefix: string, year: number, suffix: string): string {
+  const clean = (suffix || '').replace(/[^A-Za-z0-9]/g, '').slice(-8).toUpperCase() || 'LOCAL';
+  return `${prefix}-${year}-P-${clean}`;
+}
+
+export interface ParsedProvisionalReceipt {
+  prefix: string;
+  year: number;
+  suffix: string;
+}
+
+export function parseProvisionalReceiptNumber(
+  no: string | undefined | null
+): ParsedProvisionalReceipt | null {
+  if (!no) return null;
+  const m = PROVISIONAL_RE.exec(no.trim().toUpperCase());
+  if (!m) return null;
+  return { prefix: m[1], year: parseInt(m[2], 10), suffix: m[3] };
+}
+
+export function isProvisionalReceiptNumber(no: string | undefined | null): boolean {
+  return parseProvisionalReceiptNumber(no) != null;
+}
+
 /**
  * Next sequence for a series: max(existing seqs for prefix+year) + 1.
  * `existing` are raw receipt-number strings (unparseable ones are ignored).

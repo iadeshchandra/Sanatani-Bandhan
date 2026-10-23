@@ -3,6 +3,12 @@ import { useAnnakshetra, uid, todayISO, estimateCost } from './annakshetraStore'
 import { Card, Btn, Field, inputCls, Modal, T, useLocaleText, StatusPill } from './ui';
 import { useInr, useWorkspaceCurrency } from '../hooks/useWorkspaceInr';
 import { useData } from '../context/DataContext';
+import { claimNextReceiptSeq } from '../context/data/receiptCounterSync';
+import {
+  formatProvisionalReceiptNumber,
+  formatReceiptNumber,
+  parseReceiptNumber,
+} from '../utils/receiptNumbers';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
 
@@ -29,14 +35,30 @@ export const BhandaraTab: React.FC = () => {
   const inr = useInr();
   const wsCurrency = useWorkspaceCurrency();
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!f.name.trim() || !f.sponsorName.trim()) { showToast(tr('anna.bh.need', 'Bhandara name and sponsor required', 'নাম ও পৃষ্ঠপোষক আবশ্যক', 'नाम और प्रायोजक आवश्यक'), 'warning'); return; }
     const yyyymm = f.date.slice(0, 7).replace('-', '');
     const seq = String(state.bhandaras.length + 1).padStart(4, '0');
-    const receiptNo = f.is80G && getNextReceiptNumber
-      ? getNextReceiptNumber('SB-80G')
-      : `BHANDARA-${yyyymm}-${seq}`;
+    // SECURITY P1 (Finding 5): an 80G number is CLAIMED from the shared
+    // receiptCounters doc (never issuable twice, on any device); when
+    // the claim is impossible (offline) the record honestly carries a
+    // marked PROVISIONAL number instead of a guess at the series.
+    let receiptNo = `BHANDARA-${yyyymm}-${seq}`;
+    if (f.is80G && getNextReceiptNumber) {
+      const yr = new Date().getFullYear();
+      const localParsed = parseReceiptNumber(getNextReceiptNumber('SB-80G'));
+      const claimedSeq = await claimNextReceiptSeq(
+        activeWorkspace.id,
+        'SB-80G',
+        yr,
+        localParsed ? localParsed.seq - 1 : 0
+      );
+      receiptNo =
+        claimedSeq != null
+          ? formatReceiptNumber('SB-80G', yr, claimedSeq)
+          : formatProvisionalReceiptNumber('SB-80G', yr, receiptNo);
+    }
     const ok = f.donationAmount > 0 ? addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
       date: new Date().toISOString(),

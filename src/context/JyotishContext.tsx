@@ -35,6 +35,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -46,7 +47,8 @@ import { useToast } from './ToastContext';
 import {
   DEFAULT_PLATFORM_COMMISSION_PERCENT,
   settleReferralCredit,
-} from '../lib/sevaPro/referrals';import {
+} from '../lib/sevaPro/referrals';
+import { nextProfileAggregate } from '../lib/ratingAggregate';import {
   Consultation,
   ConsultationMessage,
   ConsultationReview,
@@ -414,11 +416,15 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
       if (next === 'COMPLETED' && profile) {        try {
+          // SECURITY P1: rules accept the +1 only with
+          // lastCompletedConsultationId naming THIS consultation —
+          // really the jyotishi's, really COMPLETED.
           await updateDoc(doc(db, 'jyotishProfiles', profile.id), {
             completedConsultations: (profile.completedConsultations || 0) + 1,
+            lastCompletedConsultationId: c.id,
             updatedAt: now(),
           });
-          setProfile((p) => (p ? { ...p, completedConsultations: (p.completedConsultations || 0) + 1 } : p));
+          setProfile((p) => (p ? { ...p, completedConsultations: (p.completedConsultations || 0) + 1, lastCompletedConsultationId: c.id } : p));
         } catch {
           /* counter write failed — non-fatal */
         }
@@ -453,24 +459,11 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const hasReviewed = useCallback((consultationId: string) => reviewedIds.has(consultationId), [reviewedIds]);
 
-  const recomputeAggregate = useCallback(async (jyotishId: string) => {
-    try {
-      const gsnap = await getDocs(query(collection(db, 'jyotishConsultations'), where('assignedJyotishId', '==', jyotishId), limit(200)));
-      const cIds = new Set(gsnap.docs.map((d) => d.id));
-      if (cIds.size === 0) return;
-      const rsnap = await getDocs(query(collection(db, 'jyotishReviews'), where('reviewerKind', '==', 'devotee'), limit(500)));
-      const mine = rsnap.docs.map((d) => d.data() as ConsultationReview).filter((r) => cIds.has(r.consultationId));
-      if (mine.length === 0) return;
-      const avg = mine.reduce((s, r) => s + (r.rating || 0), 0) / mine.length;
-      await updateDoc(doc(db, 'jyotishProfiles', jyotishId), {
-        ratingAggregate: Math.round(avg * 10) / 10,
-        ratingCount: mine.length,
-        updatedAt: now(),
-      });
-    } catch {
-      /* aggregate recompute is best-effort */
-    }
-  }, []);
+  // SECURITY P1 (Finding 1): the old absolute "recompute" write is
+  // gone — it depended on rules letting ANY signed-in user set the
+  // aggregate to ANY value. The aggregate now moves only inside
+  // submitReview's transaction, anchored to the review being written
+  // (see lib/ratingAggregate for the law the rules enforce).
 
   const submitReview = useCallback(
     async (c: Consultation, rating: number, note: string) => {
@@ -485,23 +478,47 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const id = reviewDocId(c.id, uid, kind);
       const existing = await getDoc(doc(db, 'jyotishReviews', id));
       if (existing.exists()) throw new Error('You have already rated this consultation.');
-      await setDoc(doc(db, 'jyotishReviews', id), {
+      const cleanRating = Math.max(1, Math.min(5, Math.round(rating)));
+      const payload = {
         id,
         consultationId: c.id,
         reviewerUid: uid,
         reviewerKind: kind,
         reviewerName: isDevotee ? c.devoteeName : c.assignedJyotishName || 'Jyotishi',
-        rating: Math.max(1, Math.min(5, Math.round(rating))),
+        rating: cleanRating,
         note: note.slice(0, 500),
         createdAt: now(),
-      });
+      };
       if (isDevotee && c.assignedJyotishId) {
-        await recomputeAggregate(c.assignedJyotishId);
+        // Anchored aggregate: review + the one legal aggregate step in
+        // a single transaction; rules re-verify via lastReviewId.
+        const profRef = doc(db, 'jyotishProfiles', c.assignedJyotishId);
+        const revRef = doc(db, 'jyotishReviews', id);
+        await runTransaction(db, async (tx) => {
+          const profSnap = await tx.get(profRef);
+          tx.set(revRef, payload);
+          if (profSnap.exists()) {
+            const cur = profSnap.data() as any;
+            const next = nextProfileAggregate(
+              Number(cur.ratingAggregate || 0),
+              Number(cur.ratingCount || 0),
+              cleanRating
+            );
+            tx.update(profRef, {
+              ratingAggregate: next.ratingAggregate,
+              ratingCount: next.ratingCount,
+              lastReviewId: id,
+              updatedAt: now(),
+            });
+          }
+        });
+      } else {
+        await setDoc(doc(db, 'jyotishReviews', id), payload);
       }
       setReviewedIds((s) => new Set(s).add(c.id));
       showToast('Dhanyavaad — your rating was recorded', 'success');
     },
-    [uid, showToast, recomputeAggregate]
+    [uid, showToast]
   );
 
   const reviewsForJyotish = useCallback(async (jyotishId: string): Promise<ConsultationReview[]> => {

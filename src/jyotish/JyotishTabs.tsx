@@ -5,6 +5,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { useJyotish, useConsultationMessages } from '../context/JyotishContext';
+import { safeExternalUrl } from '../lib/safeUrl';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
@@ -286,9 +287,9 @@ export const MyConsultationsTab: React.FC = () => {
                     )}
                   </div>
                 </ConsultationCard>
-                {c.mode !== 'chat' && c.sessionLink && (
+                {c.mode !== 'chat' && safeExternalUrl(c.sessionLink) && (
                   <p className="text-[11px] text-stone-500 mt-1 ml-1">
-                    🔗 Scheduled session: <a href={c.sessionLink} target="_blank" rel="noreferrer" className="text-indigo-600 underline break-all">{c.sessionLink}</a>
+                    🔗 Scheduled session: <a href={safeExternalUrl(c.sessionLink)!} target="_blank" rel="noreferrer" className="text-indigo-600 underline break-all">{c.sessionLink}</a>
                     <span className="text-stone-400"> (arranged by the parties — no telephony built in)</span>
                   </p>
                 )}

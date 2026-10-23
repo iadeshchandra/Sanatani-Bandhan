@@ -36,6 +36,12 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useToast } from '../../context/ToastContext';
 import { printThermalReceipt } from '../../utils/printUtils';
+import { claimNextReceiptSeq } from '../../context/data/receiptCounterSync';
+import {
+  formatProvisionalReceiptNumber,
+  formatReceiptNumber,
+  parseReceiptNumber,
+} from '../../utils/receiptNumbers';
 import { isValidPAN, isValidPhone, parsePhone, phoneErrorMessage, phoneNationalKey, sanitizeName } from '../../utils/validation';
 import { TreasuryTransaction, DevoteeMember } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
@@ -507,7 +513,24 @@ export const QuickChandaPOS: React.FC = () => {
       // number is stored (via taxReceiptNumber below, respected by
       // addTreasuryTransaction) and printed. Fixes the old SB-CHANDA vs
       // SB-80G print-vs-store mismatch.
-      const generatedReceiptNo = getNextReceiptNumber('SB-CHANDA');
+      // SECURITY P1 (Finding 5): CLAIM the number from the shared
+      // receiptCounters doc first — a claimed number can never be
+      // issued twice, on any device. When the claim is impossible
+      // (offline), the printed receipt honestly carries a marked
+      // PROVISIONAL number instead of a guess at the official series
+      // that another device might also be printing.
+      const localEstimate = getNextReceiptNumber('SB-CHANDA');
+      const localParsed = parseReceiptNumber(localEstimate);
+      const claimedSeq = await claimNextReceiptSeq(
+        activeWorkspace.id,
+        'SB-CHANDA',
+        now.getFullYear(),
+        localParsed ? localParsed.seq - 1 : 0
+      );
+      const generatedReceiptNo =
+        claimedSeq != null
+          ? formatReceiptNumber('SB-CHANDA', now.getFullYear(), claimedSeq)
+          : formatProvisionalReceiptNumber('SB-CHANDA', now.getFullYear(), generatedTxId);
       // H-1: NEVER fabricate a URN. A real 80G URN only exists when the
       // workspace has completed 80G registration (Settings → Legal).
       const is80GRegistered = !!activeWorkspace.trust80GRegistered;

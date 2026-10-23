@@ -14,6 +14,7 @@ import {
   MessageSquare, AlertTriangle, ShieldCheck, Ban, Plus, Pencil, Trash2, Eye,
 } from 'lucide-react';
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
+import { safeExternalUrl } from '../../../lib/safeUrl';
 import { adminApi } from '../../../lib/adminApi';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
@@ -104,7 +105,7 @@ export const ProviderPaymentsTab: React.FC = () => {
                   <img src={m.details.qrImageUrl} alt="Provider QR" className="w-28 h-28 rounded-xl border border-slate-700 mt-2 bg-white" />
                 )}
                 {m.methodType === 'own_upi' && <p className="text-xs text-slate-300 font-mono mt-1">{m.details?.upiId}</p>}
-                {m.methodType === 'own_link' && <a href={m.details?.paymentLink} target="_blank" rel="noreferrer" className="text-xs text-sky-300 underline break-all">{m.details?.paymentLink}</a>}
+                {m.methodType === 'own_link' && safeExternalUrl(m.details?.paymentLink) && <a href={safeExternalUrl(m.details?.paymentLink)!} target="_blank" rel="noreferrer" className="text-xs text-sky-300 underline break-all">{m.details?.paymentLink}</a>}
                 {m.details?.accountLabel && <p className="text-[11px] text-slate-400 mt-1">{m.details.accountLabel}</p>}
                 <p className="text-[11px] text-slate-400 mt-2 italic">"{m.reason}"</p>
               </div>

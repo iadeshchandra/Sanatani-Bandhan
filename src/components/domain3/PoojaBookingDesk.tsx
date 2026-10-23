@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
+import { safeExternalUrl } from '../../lib/safeUrl';
 import { WindowedNotice } from '../common/WindowedNotice';
 import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
@@ -1266,9 +1267,9 @@ export const PoojaBookingDesk: React.FC = () => {
                         <Printer className="w-3.5 h-3.5" />
                         <span>{t('ritual.pooja.sankalpSlip')}</span>
                       </button>
-                      {b.liveStreamUrl && (
+                      {safeExternalUrl(b.liveStreamUrl) && (
                         <a
-                          href={b.liveStreamUrl}
+                          href={safeExternalUrl(b.liveStreamUrl)!}
                           target="_blank"
                           rel="noreferrer"
                           className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1"

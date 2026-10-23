@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { Modal, Field, Btn } from '../sangam/ui';
 import { useToast } from '../context/ToastContext';
 import { extractYoutubeId, youtubeThumbnail } from '../sangam/watch/types';
+import { safeOpenUrl } from '../lib/safeUrl';
 import { shareVideo } from '../sangam/watch/watchService';
 import type { AuthorInfo } from '../sangam/sangamStore';
 import {
@@ -98,7 +99,8 @@ export const VideoGuidanceSheet: React.FC<Props> = ({
   };
 
   const openChannel = () => {
-    if (rememberedChannel) window.open(rememberedChannel, '_blank', 'noopener');
+    const safe = safeOpenUrl(rememberedChannel);
+    if (safe) window.open(safe, '_blank', 'noopener');
   };
 
   return (

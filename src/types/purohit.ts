@@ -105,7 +105,11 @@ export interface PurohitIdentity {
   verificationTier: PurohitVerificationTier;
   ratingAggregate: number;
   ratingCount: number;
+  /** SECURITY P1 anchors: rules require these to name the review / gig
+   *  that legally moved the counters beside them. */
+  lastReviewId?: string;
   completedGigs: number;
+  lastCompletedGigId?: string;
   /** Dual identity: linked org staff record, if accepted as temple staff. */
   linkedOrgId?: string;
   linkedOrgName?: string;

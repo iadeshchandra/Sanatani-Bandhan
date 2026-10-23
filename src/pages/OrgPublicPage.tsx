@@ -22,6 +22,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { safeExternalUrl } from '../lib/safeUrl';
 import {
   BadgeCheck, MapPin, Users, UserPlus, Bell, BellOff, ArrowLeft,
   Loader2, Landmark, CalendarDays, Clock, Phone, Globe, Navigation,
@@ -458,11 +459,11 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                   </a>
                 </div>
               )}
-              {page.website && (
+              {safeExternalUrl(page.website) && (
                 <div className="flex items-center gap-3">
                   <Globe size={16} className="text-stone-400 shrink-0" />
                   <a
-                    href={page.website.startsWith('http') ? page.website : `https://${page.website}`}
+                    href={safeExternalUrl(page.website)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-amber-700 font-bold break-all min-h-[44px] flex items-center"

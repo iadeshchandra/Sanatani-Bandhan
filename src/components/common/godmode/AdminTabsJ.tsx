@@ -37,6 +37,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { firestoreAdmin, type NativeResult } from '../../../lib/firestoreAdmin';
+import { safeExternalUrl } from '../../../lib/safeUrl';
 import { useToast } from '../../../context/ToastContext';
 import { professionalsAdmin, type PendingApplication, type ProfessionalKind, type ProfessionalSummary } from '../../../lib/sevaPro/professionalsAdmin';
 import {
@@ -439,8 +440,8 @@ const ReviewQueue: React.FC = () => {
 
   const renderDocValue = (v: any): React.ReactNode => {
     if (v == null || v === '') return <span className="text-slate-600">—</span>;
-    if (typeof v === 'string' && /^https?:\/\//.test(v)) {
-      return <a href={v} target="_blank" rel="noreferrer" className="text-saffron-400 underline break-all">Open document ↗</a>;
+    if (typeof v === 'string' && safeExternalUrl(v)) {
+      return <a href={safeExternalUrl(v)!} target="_blank" rel="noreferrer" className="text-saffron-400 underline break-all">Open document ↗</a>;
     }
     if (Array.isArray(v)) return <span className="text-slate-300">{v.join(', ')}</span>;
     return <span className="text-slate-300 break-words">{String(v)}</span>;

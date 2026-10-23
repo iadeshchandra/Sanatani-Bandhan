@@ -44,6 +44,9 @@ export interface Gig {
   active: boolean;
   featured?: boolean;
   avgRating: number;
+  /** Present on rated gigs: gigRatings doc id of the latest blessing (SECURITY P1 anchor). */
+  ratingCount?: number;
+  lastRatedOrderId?: string;
   totalOrders: number;
   createdAt?: any;
   updatedAt?: any;
@@ -517,8 +520,10 @@ export interface GigRating {
  * notice devotee hit "This seva is no longer available."
  *
  * Firestore rules: gigRatings create requires a completed order owned
- * by the caller; gig update branch permits ratingCount +1 and
- * avgRating within 1-5.
+ * by the caller; the gig update branch (SECURITY P1) permits the nudge
+ * ONLY anchored to the rating doc this transaction creates
+ * (lastRatedOrderId), ratingCount exactly +1, and the new average equal
+ * to the running sum plus that rating (rounding tolerance).
  */
 export async function submitGigRating(orderId: string, rating: number, review: string): Promise<void> {
   const uid = requireUser();
@@ -571,6 +576,10 @@ export async function submitGigRating(orderId: string, rating: number, review: s
     tx.update(gigRef, {
       avgRating: newAvg,
       ratingCount: newCount,
+      // SECURITY P1 anchor: the rules accept this nudge ONLY when the
+      // gigRatings doc named here is created in the SAME transaction,
+      // for THIS gig, by THIS caller — one order, one increment.
+      lastRatedOrderId: orderId,
       updatedAt: serverTimestamp(),
     });
   });

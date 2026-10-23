@@ -29,6 +29,7 @@ import { attemptNativeAppOpen } from './deepLink';
 import { buildSmartLinkUrl } from './deviceDetect';
 import { addToWaitlist } from './growthService';
 import { stashCampaign, appendPlayReferrer } from './attribution';
+import { safeExternalUrl } from '../lib/safeUrl';
 import type { GrowthPlatform } from './types';
 import './appgrowth.css';
 
@@ -147,12 +148,12 @@ const CtaCluster: React.FC<CtaClusterProps> = ({
               <Tr en="Install in one tap" bn="এক ট্যাপে ইনস্টল করুন" hi="एक टैप में इंस्टॉल करें" />
             </button>
           )}
-          {playStoreLive && playStoreUrl && (
+          {playStoreLive && safeExternalUrl(playStoreUrl) && (
             <a
               key="play"
               // Phase 5: stash the campaign before leaving for the store AND
               // ride the Play install-referrer param so ?c= survives install.
-              href={appendPlayReferrer(playStoreUrl, campaignId)}
+              href={appendPlayReferrer(safeExternalUrl(playStoreUrl)!, campaignId)}
               onClick={() => stashCampaign(campaignId)}
               target="_blank"
               rel="noreferrer"

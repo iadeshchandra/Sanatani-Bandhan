@@ -28,6 +28,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -39,7 +40,8 @@ import { useToast } from './ToastContext';
 import {
   DEFAULT_PLATFORM_COMMISSION_PERCENT,
   settleReferralCredit,
-} from '../lib/sevaPro/referrals';import {
+} from '../lib/sevaPro/referrals';
+import { nextProfileAggregate } from '../lib/ratingAggregate';import {
   GigReview,
   GigStatus,
   PurohitApplication,
@@ -439,14 +441,17 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
           /* settlement is retryable from the referral dashboard */
         }
       }      if (next === 'COMPLETED' && profile) {
-        // Increment completed gigs on the profile (public counter; rules allow
-        // counter-only updates, recomputed from reviews by anyone).
+        // Increment completed gigs on the profile. SECURITY P1: the
+        // rules accept the +1 only with lastCompletedGigId naming THIS
+        // gig — they check it is really the purohit's and really
+        // COMPLETED, so the counter can't be inflated by API calls.
         try {
           await updateDoc(doc(db, 'purohits', profile.id), {
             completedGigs: (profile.completedGigs || 0) + 1,
+            lastCompletedGigId: gig.id,
             updatedAt: now(),
           });
-          setProfile((p) => (p ? { ...p, completedGigs: (p.completedGigs || 0) + 1 } : p));
+          setProfile((p) => (p ? { ...p, completedGigs: (p.completedGigs || 0) + 1, lastCompletedGigId: gig.id } : p));
         } catch {
           /* counter write failed — non-fatal */
         }
@@ -511,33 +516,12 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const hasReviewed = useCallback((gigId: string) => reviewedGigIds.has(gigId), [reviewedGigIds]);
 
-  const recomputeAggregate = useCallback(async (purohitId: string) => {
-    // Best-effort: recompute ratingAggregate/ratingCount from public reviews.
-    // Anyone can verify these numbers from the reviews collection, which is
-    // why rules allow counter-only updates from any signed-in user.
-    try {
-      const gsnap = await getDocs(
-        query(collection(db, 'gigs'), where('assignedPurohitId', '==', purohitId), limit(200))
-      );
-      const gigIds = new Set(gsnap.docs.map((d) => d.id));
-      if (gigIds.size === 0) return;
-      const rsnap = await getDocs(
-        query(collection(db, 'reviews'), where('reviewerKind', '==', 'devotee'), limit(500))
-      );
-      const mine = rsnap.docs
-        .map((d) => d.data() as GigReview)
-        .filter((r) => gigIds.has(r.gigId));
-      if (mine.length === 0) return;
-      const avg = mine.reduce((s, r) => s + (r.rating || 0), 0) / mine.length;
-      await updateDoc(doc(db, 'purohits', purohitId), {
-        ratingAggregate: Math.round(avg * 10) / 10,
-        ratingCount: mine.length,
-        updatedAt: now(),
-      });
-    } catch {
-      /* aggregate recompute is best-effort */
-    }
-  }, []);
+  // SECURITY P1 (Finding 1): the old absolute "recompute" write is
+  // gone. It depended on rules letting ANY signed-in user set the
+  // aggregate to ANY value — the same door that let anyone fake a 5.0
+  // average. The aggregate now moves only inside submitReview's
+  // transaction, anchored to the review being written (see
+  // lib/ratingAggregate for the law the rules enforce).
 
   const submitReview = useCallback(
     async (gig: RitualGig, rating: number, note: string) => {
@@ -554,23 +538,48 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const id = reviewDocId(gig.id, uid, kind);
       const existing = await getDoc(doc(db, 'reviews', id));
       if (existing.exists()) throw new Error('You have already rated this gig.');
-      await setDoc(doc(db, 'reviews', id), {
+      const cleanRating = Math.max(1, Math.min(5, Math.round(rating)));
+      const payload = {
         id,
         gigId: gig.id,
         reviewerUid: uid,
         reviewerKind: kind,
         reviewerName: isDevotee ? gig.devoteeName : gig.assignedPurohitName || 'Purohit',
-        rating: Math.max(1, Math.min(5, Math.round(rating))),
+        rating: cleanRating,
         note: note.slice(0, 500),
         createdAt: now(),
-      });
+      };
       if (isDevotee && gig.assignedPurohitId) {
-        await recomputeAggregate(gig.assignedPurohitId);
+        // Anchored aggregate: review + the one legal aggregate step in
+        // a single transaction; the rules re-verify the pair via
+        // lastReviewId, so the average can never be set freely again.
+        const profRef = doc(db, 'purohits', gig.assignedPurohitId);
+        const revRef = doc(db, 'reviews', id);
+        await runTransaction(db, async (tx) => {
+          const profSnap = await tx.get(profRef);
+          tx.set(revRef, payload);
+          if (profSnap.exists()) {
+            const cur = profSnap.data() as any;
+            const next = nextProfileAggregate(
+              Number(cur.ratingAggregate || 0),
+              Number(cur.ratingCount || 0),
+              cleanRating
+            );
+            tx.update(profRef, {
+              ratingAggregate: next.ratingAggregate,
+              ratingCount: next.ratingCount,
+              lastReviewId: id,
+              updatedAt: now(),
+            });
+          }
+        });
+      } else {
+        await setDoc(doc(db, 'reviews', id), payload);
       }
       setReviewedGigIds((s) => new Set(s).add(gig.id));
       showToast('Dhanyavaad — your rating was recorded', 'success');
     },
-    [uid, showToast, recomputeAggregate]
+    [uid, showToast]
   );
 
   const reviewsForPurohit = useCallback(async (purohitId: string): Promise<GigReview[]> => {

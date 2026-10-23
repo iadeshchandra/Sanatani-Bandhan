@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { JyotishProvider, useJyotish, useConsultationMessages } from '../context/JyotishContext';
+import { safeExternalUrl } from '../lib/safeUrl';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
@@ -415,8 +416,8 @@ const MyConsultationsDevotee: React.FC = () => {
                 {c.status !== 'OPEN' && c.status !== 'CANCELLED' && (
                   <Btn variant="ghost" onClick={() => setOpenChatId(openChatId === c.id ? null : c.id)}>💬 Chat</Btn>
                 )}
-                {c.mode !== 'chat' && c.sessionLink && (
-                  <a href={c.sessionLink} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-indigo-700 border border-indigo-300 min-h-[44px] inline-flex items-center">
+                {c.mode !== 'chat' && safeExternalUrl(c.sessionLink) && (
+                  <a href={safeExternalUrl(c.sessionLink)!} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl text-sm font-bold bg-white text-indigo-700 border border-indigo-300 min-h-[44px] inline-flex items-center">
                     🔗 Join session
                   </a>
                 )}

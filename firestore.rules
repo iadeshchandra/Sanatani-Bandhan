@@ -364,6 +364,30 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // SECURITY P1 — receiptCounters/{workspaceId}_{series}_{year}:
+    // the server anchor for receipt numbering (Finding 5). One doc per
+    // workspace + series + year holding the highest official receipt
+    // sequence issued. Finance roles (or demo writers in a demo
+    // workspace) seed it once from the known maximum and advance it;
+    // the counter may only ever move FORWARD, so two devices claiming
+    // inside transactions can never be handed the same number. Nobody
+    // may delete a counter -- the sequence is part of the audit record.
+    match /receiptCounters/{counterId} {
+      allow read: if resource == null
+        || hasRole(resource.data.get('workspaceId', ''), R_OVERSIGHT());
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()))
+        && request.resource.data.get('workspaceId', '') != ''
+        && counterId == request.resource.data.get('workspaceId', '') + '_' + request.resource.data.get('series', '') + '_' + string(request.resource.data.get('year', 0))
+        && request.resource.data.get('series', '') in ['SB-80G', 'SB-CHANDA']
+        && request.resource.data.get('seq', -1) >= 0;
+      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE()))
+        && wsImmutable()
+        && request.resource.data.get('series', '') == resource.data.get('series', '')
+        && request.resource.data.get('year', 0) == resource.data.get('year', 0)
+        && request.resource.data.get('seq', 0) > resource.data.get('seq', 0);
+      allow delete: if false;
+    }
+
     // Devotee PII â read: any tenant member; write: staff roles only
     match /devotees/{devoteeId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
@@ -834,17 +858,25 @@ service cloud.firestore {
       allow update: if isOwner()
         || (isLoggedIn()
           && resource.data.get('providerUid', '') == request.auth.uid
-          && request.resource.data.get('providerUid', '') == request.auth.uid)
-        // Step 7 (gig ratings): a devotee submitting blessings may nudge ONLY
-        // avgRating + ratingCount (+ updatedAt), ratingCount exactly +1,
-        // avgRating within 1-5, providerUid untouched. The gigRatings doc
-        // (auditable, one per order) is the source of truth.
+          && request.resource.data.get('providerUid', '') == request.auth.uid
+          // SECURITY P1: the provider's own edits may not move the
+          // rating aggregates -- those change only via the anchored
+          // blessing branch below.
+          && request.resource.data.get('avgRating', 0) == resource.data.get('avgRating', 0)
+          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0))
+        // Step 7 (gig ratings) -- SECURITY P1 anchored form (see
+        // p1GigRatingOk): a devotee's blessing may nudge the aggregate
+        // ONLY when the same transaction creates the gigRatings doc
+        // named by lastRatedOrderId, for this gig, by this caller,
+        // with ratingCount exactly +1 and the average stepped by that
+        // rating. The gigRatings doc (auditable, one per order) is the
+        // source of truth.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avgRating', 'ratingCount', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
           && request.resource.data.get('providerUid', '') == resource.data.get('providerUid', '')
-          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0) + 1
           && request.resource.data.get('avgRating', 0) >= 1
-          && request.resource.data.get('avgRating', 0) <= 5);
+          && request.resource.data.get('avgRating', 0) <= 5
+          && p1GigRatingOk(gigId));
       allow delete: if isOwner();
     }
     // gigRatings: one blessing per completed order (doc ID = orderId).
@@ -1185,6 +1217,83 @@ service cloud.firestore {
         && exists(opath)
         && get(opath).data.get('providerUid', '') == request.auth.uid
         && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress'];
+    }
+    // SECURITY P1 -- anchored rating steps (Finding 1). A rating
+    // aggregate may move ONLY as the second half of a real rating: the
+    // same batch/transaction creates the rating doc named by the
+    // anchor field; that doc belongs to the caller and to this
+    // gig/profile; the count rises by exactly 1; the anchor must name
+    // a NEW rating; and the new average must be the old sum plus that
+    // rating (tolerance covers the 1-dp rounding drift). Mirrors the
+    // order-anchored precedent of sevaProfileCompletionOk above.
+    function p1GigRatingOk(gigId) {
+      let rid = request.resource.data.get('lastRatedOrderId', '');
+      let rpath = /databases/$(database)/documents/gigRatings/$(rid);
+      let newCount = request.resource.data.get('ratingCount', 0);
+      let oldCount = resource.data.get('ratingCount', 0);
+      let newSum = request.resource.data.get('avgRating', 0) * newCount;
+      let oldSum = resource.data.get('avgRating', 0) * oldCount;
+      return rid != '' && rid != resource.data.get('lastRatedOrderId', '')
+        && existsAfter(rpath)
+        && getAfter(rpath).data.get('gigId', '') == gigId
+        && getAfter(rpath).data.get('clientUid', '') == request.auth.uid
+        && newCount == oldCount + 1
+        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+    }
+    function p1PurohitRatingOk(purohitId) {
+      let rid = request.resource.data.get('lastReviewId', '');
+      let rpath = /databases/$(database)/documents/reviews/$(rid);
+      let newCount = request.resource.data.get('ratingCount', 0);
+      let oldCount = resource.data.get('ratingCount', 0);
+      let newSum = request.resource.data.get('ratingAggregate', 0) * newCount;
+      let oldSum = resource.data.get('ratingAggregate', 0) * oldCount;
+      return rid != '' && rid != resource.data.get('lastReviewId', '')
+        && existsAfter(rpath)
+        && getAfter(rpath).data.get('reviewerUid', '') == request.auth.uid
+        && getAfter(rpath).data.get('reviewerKind', '') == 'devotee'
+        && get(/databases/$(database)/documents/gigs/$(getAfter(rpath).data.get('gigId', ''))).data.get('assignedPurohitId', '') == purohitId
+        && newCount == oldCount + 1
+        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+    }
+    function p1JyotishRatingOk(jyotishId) {
+      let rid = request.resource.data.get('lastReviewId', '');
+      let rpath = /databases/$(database)/documents/jyotishReviews/$(rid);
+      let newCount = request.resource.data.get('ratingCount', 0);
+      let oldCount = resource.data.get('ratingCount', 0);
+      let newSum = request.resource.data.get('ratingAggregate', 0) * newCount;
+      let oldSum = resource.data.get('ratingAggregate', 0) * oldCount;
+      return rid != '' && rid != resource.data.get('lastReviewId', '')
+        && existsAfter(rpath)
+        && getAfter(rpath).data.get('reviewerUid', '') == request.auth.uid
+        && getAfter(rpath).data.get('reviewerKind', '') == 'devotee'
+        && get(/databases/$(database)/documents/jyotishConsultations/$(getAfter(rpath).data.get('consultationId', ''))).data.get('assignedJyotishId', '') == jyotishId
+        && newCount == oldCount + 1
+        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+    }
+    // SECURITY P1 -- completed-count anchors: the owner's own +1 is
+    // legal only when it names (in lastCompletedGigId /
+    // lastCompletedConsultationId) a NEWLY cited engagement that is
+    // really theirs and really COMPLETED.
+    function p1CompletedGigOk() {
+      let gid = request.resource.data.get('lastCompletedGigId', '');
+      let gpath = /databases/$(database)/documents/gigs/$(gid);
+      return request.resource.data.get('completedGigs', 0) == resource.data.get('completedGigs', 0) + 1
+        && gid != '' && gid != resource.data.get('lastCompletedGigId', '')
+        && exists(gpath)
+        && get(gpath).data.get('assignedPurohitUid', '') == request.auth.uid
+        && get(gpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED'];
+    }
+    function p1CompletedConsultationOk() {
+      let cid = request.resource.data.get('lastCompletedConsultationId', '');
+      let cpath = /databases/$(database)/documents/jyotishConsultations/$(cid);
+      return request.resource.data.get('completedConsultations', 0) == resource.data.get('completedConsultations', 0) + 1
+        && cid != '' && cid != resource.data.get('lastCompletedConsultationId', '')
+        && exists(cpath)
+        && get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid
+        && get(cpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED'];
     }
     // Create-path for provider credit: the wallet doc may not exist yet when
     function walletCreditCreateOk(uid) {
@@ -1818,16 +1927,23 @@ service cloud.firestore {
           && resource.data.get('uid', '') == request.auth.uid
           && request.resource.data.get('uid', '') == request.auth.uid
           && request.resource.data.get('id', '') == resource.data.get('id', '')
-          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', ''))
+          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          // SECURITY P1: the rating aggregate never moves on the
+          // owner's own say-so -- only via the anchored review branch
+          // below. completedGigs may stay, or rise by exactly 1
+          // anchored to a gig the owner just completed.
+          && request.resource.data.get('ratingAggregate', 0) == resource.data.get('ratingAggregate', 0)
+          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0)
+          && (request.resource.data.get('completedGigs', 0) == resource.data.get('completedGigs', 0)
+            || p1CompletedGigOk()))
+        // SECURITY P1 -- anchored rating step (see p1PurohitRatingOk).
+        // The old branch let ANY signed-in user set ratingAggregate /
+        // ratingCount / completedGigs to any in-range value -- a fake
+        // 5.0 average in a single write.
         || (isLoggedIn()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['ratingAggregate', 'ratingCount', 'completedGigs', 'updatedAt'])
-          && request.resource.data.get('ratingAggregate', 0) >= 0
-          && request.resource.data.get('ratingAggregate', 0) <= 5
-          && request.resource.data.get('ratingCount', 0) >= 0
-          && request.resource.data.get('ratingCount', 0) <= 100000
-          && request.resource.data.get('completedGigs', 0) >= 0
-          && request.resource.data.get('completedGigs', 0) <= 100000)
+            .hasOnly(['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'])
+          && p1PurohitRatingOk(purohitId))
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
@@ -2025,16 +2141,22 @@ service cloud.firestore {
           && resource.data.get('uid', '') == request.auth.uid
           && request.resource.data.get('uid', '') == request.auth.uid
           && request.resource.data.get('id', '') == resource.data.get('id', '')
-          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', ''))
+          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          // SECURITY P1: the rating aggregate never moves on the
+          // owner's own say-so -- only via the anchored review branch
+          // below. completedConsultations may stay, or rise by exactly
+          // 1 anchored to a consultation the owner just completed.
+          && request.resource.data.get('ratingAggregate', 0) == resource.data.get('ratingAggregate', 0)
+          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0)
+          && (request.resource.data.get('completedConsultations', 0) == resource.data.get('completedConsultations', 0)
+            || p1CompletedConsultationOk()))
+        // SECURITY P1 -- anchored rating step (see p1JyotishRatingOk).
+        // The old branch let ANY signed-in user set ratingAggregate /
+        // ratingCount / completedConsultations to any in-range value.
         || (isLoggedIn()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['ratingAggregate', 'ratingCount', 'completedConsultations', 'updatedAt'])
-          && request.resource.data.get('ratingAggregate', 0) >= 0
-          && request.resource.data.get('ratingAggregate', 0) <= 5
-          && request.resource.data.get('ratingCount', 0) >= 0
-          && request.resource.data.get('ratingCount', 0) <= 100000
-          && request.resource.data.get('completedConsultations', 0) >= 0
-          && request.resource.data.get('completedConsultations', 0) <= 100000)
+            .hasOnly(['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'])
+          && p1JyotishRatingOk(jyotishId))
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
@@ -2681,6 +2803,14 @@ service cloud.firestore {
            'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti',
            'aartiSchedules', 'updatedAt'])
         && request.resource.data.get('orgId', '') == orgId
+        // SECURITY P1 (Finding 3): trustees may carry 'verified' (a
+        // merged doc holds it, so it stays in the key whitelist) but
+        // may never CHANGE it -- verification is granted only by the
+        // platform owner (the SuperAdmin branch above). On create the
+        // flag must be absent/false; on update it must be unchanged.
+        && (resource == null
+          ? request.resource.data.get('verified', false) == false
+          : request.resource.data.get('verified', false) == resource.data.get('verified', false))
       );
       allow delete: if isSuperAdmin();
     }
