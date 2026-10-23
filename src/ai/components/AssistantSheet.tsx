@@ -10,6 +10,8 @@ import {
   type AssistantResponse,
 } from '../assistantBridge';
 import { loadThread, saveThread, clearThread, type ChatMessage } from '../assistantHistory';
+import { threadDayDividers, type ThreadDayDivider } from '../threadFreshness';
+import { bcp47For } from '../../i18n/translations';
 import { openSosFlow } from '../../crisis/sosEntry';
 import { openDanaSheet } from '../../lib/danaSheet';
 import { GUIDES, getGuide, useGuide, TourPill, CoachMark } from '../../components/guide';
@@ -548,6 +550,37 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
     };
   }, [open, uidKey]);
 
+  // UIUX Batch 2 (U4): the sheet ALWAYS opens on the conversation. The
+  // voice-settings view (⚙️ gear, or the one-time nudge's "Tell me
+  // more") used to stay mounted in state after a single visit, so every
+  // later Ask open landed on the ≈1.6 GB download card instead of the
+  // conversation. Resetting on open keeps voice settings one tap away
+  // (the gear) without letting them become what Ask opens onto. The
+  // nudge rule itself is untouched.
+  useEffect(() => {
+    if (open) setShowVoiceSettings(false);
+  }, [open ]);
+
+  // UIUX Batch 2 (D-04): freshness dividers for the reloaded thread —
+  // one per past-day group, so a saved answer is never presented as
+  // fresh. Derived from the messages' own createdAt; history itself
+  // is neither wiped nor hidden.
+  const dividerById = useMemo(() => {
+    const map = new Map<string, ThreadDayDivider>();
+    for (const d of threadDayDividers(messages, Date.now())) map.set(d.beforeId, d);
+    return map;
+  }, [messages]);
+  const dividerLabel = (d: ThreadDayDivider): string => {
+    const dateStr = new Intl.DateTimeFormat(bcp47For(currentLang), {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(new Date(d.dayStart));
+    return d.first
+      ? `${tr('ai.thread.earlier', 'Earlier conversation', 'পূর্বের কথোপকথন', 'पिछली वार्तालाप')} · ${dateStr}`
+      : dateStr;
+  };
+
   // Keep the newest message in view.
   useEffect(() => {
     const el = listRef.current;
@@ -974,8 +1007,20 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
             </div>
           )}
 
-          {messages.map((m) =>
-            m.role === 'user' ? (
+          {messages.map((m) => {
+            const divider = dividerById.get(m.id);
+            return (
+              <React.Fragment key={m.id}>
+                {divider && (
+                  <div className="flex items-center gap-3 py-1" role="separator" aria-label={dividerLabel(divider)}>
+                    <span className="flex-1 border-t border-stone-200" aria-hidden />
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-stone-400">
+                      {dividerLabel(divider)}
+                    </span>
+                    <span className="flex-1 border-t border-stone-200" aria-hidden />
+                  </div>
+                )}
+                {m.role === 'user' ? (
               <div key={m.id} className="flex justify-end">
                 <div className="max-w-[85%] rounded-2xl rounded-br-md bg-amber-600 text-white px-4 py-2.5 text-[15px] font-medium leading-relaxed shadow-sm">
                   {m.text}
@@ -1083,8 +1128,10 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                   )}
                 </div>
               </div>
-            )
-          )}
+                )}
+              </React.Fragment>
+            );
+          })}
 
           {sending && (
             <div className="flex justify-start">

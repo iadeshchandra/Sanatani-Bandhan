@@ -17,6 +17,8 @@ import {
   criticalUnreadInScope,
 } from '../../notifications/orgScope';
 import { MODULE_CATALOG } from '../common/Sidebar';
+import { useLanguage } from '../../context/LanguageContext';
+import { getModuleName } from '../../suggestions/moduleCopy';
 import { normalizeMembershipRole } from '../../lib/landingSurface';
 import { membershipEffectiveRole } from '../../lib/membershipAccess';
 import { T } from '../../solo/ui';
@@ -187,17 +189,27 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     window.addEventListener('sanatani:org-desk', onDesk);
     return () => window.removeEventListener('sanatani:org-desk', onDesk);
   }, []);
-  const deskLabel = useMemo(
-    () => MODULE_CATALOG.find((m) => m.id === deskId)?.name || prettifyDeskId(deskId),
-    [deskId]
-  );
+  const { currentLang } = useLanguage();
+  const deskLabel = useMemo(() => {
+    // UIUX Batch 2 (D-03/U3): desk names resolve through the same
+    // dictionary catalog as the root (getModuleName falls back to the
+    // raw id, so a non-id result is a real localised name).
+    const fromDict = getModuleName(deskId, currentLang);
+    if (fromDict && fromDict !== deskId) return fromDict;
+    return MODULE_CATALOG.find((m) => m.id === deskId)?.name || prettifyDeskId(deskId);
+  }, [deskId, currentLang]);
   // QUEUED #61 (A3-1): the breadcrumb root names the place it goes — the
   // org's Command Center — instead of repeating the org name (which the
   // ERP header directly below already renders, with type + city).
-  const commandCenterLabel = useMemo(
-    () => MODULE_CATALOG.find((m) => m.id === 'dashboard')?.name || 'Command Center',
-    []
-  );
+  // UIUX Batch 2 (D-03/U3): the label resolves through the language
+  // dictionaries (suites.seva.catalog.dashboard.name — the same source
+  // the Suggestions surface uses), so a Bangla session reads
+  // "কমান্ড সেন্টার", never the hard-coded English catalog string.
+  const commandCenterLabel = useMemo(() => {
+    const fromDict = getModuleName('dashboard', currentLang);
+    if (fromDict && fromDict !== 'dashboard') return fromDict;
+    return MODULE_CATALOG.find((m) => m.id === 'dashboard')?.name || 'Command Center';
+  }, [currentLang]);
 
   // F-RBAC-1: the devotee preview renders chromeless — the org-space header
   // (org name, breadcrumb, role chip) and the first-entry hint must not leak
@@ -298,18 +310,22 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             {/* QUEUED #61 (A3-1 + breadcrumb truncation): ONE org name —
                 the ERP header below renders it (with type + city); this
                 bar keeps the mark + breadcrumb only, so the stacked
-                mobile chrome sheds a line. The crumb path gets a real
-                flex row: root + separator never shrink, the desk segment
-                truncates (min-w-0) instead of clipping mid-word.
+                mobile chrome sheds a line.
+                UIUX Batch 2 (D-03/U3): the #61 "root never shrinks" rule
+                is what let the root slide UNDER the Ask pill at phone
+                widths (76px measured overlap) and push the role chip off
+                the edge — now BOTH crumb segments truncate (min-w-0) and
+                the chip can shrink, so nothing in this row can overlap
+                or clip at 320/360/390px.
                 QUEUED #50 (D11e) stands: root = Command Center, not exit. */}
-            <nav aria-label="Breadcrumb" className="flex items-center min-w-0 text-xs font-medium">
+            <nav aria-label="Breadcrumb" className="flex items-center flex-1 min-w-0 text-xs font-medium">
               <button
                 type="button"
                 onClick={goCommandCenter}
-                className="shrink-0 min-h-[44px] flex items-center font-bold text-amber-200/90 hover:text-amber-300 underline-offset-2 hover:underline"
-                title={`${orgName} — Command Center`}
+                className="min-w-0 min-h-[44px] flex items-center font-bold text-amber-200/90 hover:text-amber-300 underline-offset-2 hover:underline"
+                title={`${orgName} — ${commandCenterLabel}`}
               >
-                {commandCenterLabel}
+                <span className="truncate">{commandCenterLabel}</span>
               </button>
               {deskId !== 'dashboard' && (
                 <>
@@ -352,7 +368,7 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
           {/* Role chip — plain role name, no "Viewing as" framing (Track 0:
               "viewing" language reads as demo/preview chrome to real users). */}
           <span
-            className={`shrink-0 inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-black ${pillCls}`}
+            className={`shrink min-w-0 max-w-[26vw] truncate inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-black ${pillCls}`}
             title={`Your role in ${orgName}: ${displayRole}`}
           >
             {displayRole}

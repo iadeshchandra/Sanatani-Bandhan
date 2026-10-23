@@ -756,7 +756,7 @@ export const DevoteeGrid: React.FC = () => {
               {/* F-MEM-3: the count reflects the active filters — "3 / 10 Bhaktas"
                   when filtered, "Total Bhaktas: 10" when not. */}
               {filteredDevotees.length === branchScopedDevotees.length ? (
-                <>Total {taxonomy.memberNoun}: {branchScopedDevotees.length}</>
+                <>{t('org.people.devoteeGrid.total')} {taxonomy.memberNoun}: {branchScopedDevotees.length}</>
               ) : (
                 <>{filteredDevotees.length} / {branchScopedDevotees.length} {taxonomy.memberNoun}</>
               )}
@@ -766,7 +766,7 @@ export const DevoteeGrid: React.FC = () => {
             {taxonomy.directoryName}
           </h2>
           <p className="text-xs text-temple-600 mt-0.5">
-            Comprehensive directory with Gotra, Pravara, Seva Tiers, and QR Gate Passes
+            {t('org.people.devoteeGrid.comprehensiveDirectoryWithGotraPravaraSe')}
           </p>
         </div>
 
@@ -779,16 +779,16 @@ export const DevoteeGrid: React.FC = () => {
                 className="hidden sm:flex px-3.5 py-2 rounded-xl bg-white hover:bg-temple-50 border border-temple-200 text-temple-700 text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Export CSV</span>
+                <span>{t('org.people.devoteeGrid.exportCsv')}</span>
               </button>
               <button
                 type="button"
                 onClick={handleBulkPrint}
-                title="Download IDs for current view (Max 20)"
+                title={t('org.people.devoteeGrid.downloadIdsForCurrentViewMax20')}
                 className="hidden sm:flex px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-semibold items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Bulk Print IDs</span>
+                <span>{t('org.people.devoteeGrid.bulkPrintIds')}</span>
               </button>
             </>
           )}
@@ -805,7 +805,7 @@ export const DevoteeGrid: React.FC = () => {
               className="px-4 py-2 min-h-[44px] rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm shadow-saffron-600/20 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Register {taxonomy.memberNoun}</span>
+              <span>{t('org.people.devoteeGrid.register')} {taxonomy.memberNoun}</span>
             </button>
           )}
         </div>
@@ -844,7 +844,13 @@ export const DevoteeGrid: React.FC = () => {
                 : 'bg-temple-50 text-temple-600 border border-temple-200 hover:bg-temple-100'
             }`}
           >
-            {filter === 'all' ? `All ${taxonomy.memberNoun}` : filter === 'revoked' ? 'Suspended' : filter}
+            {filter === 'all'
+              ? `${t('org.people.devoteeGrid.all')} ${taxonomy.memberNoun}`
+              : filter === 'staff'
+                ? t('org.people.devoteeGrid.staff')
+                : filter === 'donors'
+                  ? t('org.people.devoteeGrid.donors')
+                  : t('org.people.devoteeGrid.suspended')}
           </button>
         ))}
       </div>
@@ -864,13 +870,13 @@ export const DevoteeGrid: React.FC = () => {
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto sm:min-w-0 sm:overflow-x-auto">
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">Gotra:</span>
+            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.gotra')}</span>
             <select
               value={selectedGotra}
               onChange={(e) => setSelectedGotra(e.target.value)}
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
-              <option value="all">All Gotras</option>
+              <option value="all">{t('org.people.devoteeGrid.allGotras')}</option>
               {uniqueGotras.map((g, idx) => (
                 <option key={g} value={g}>
                   {g}
@@ -880,21 +886,21 @@ export const DevoteeGrid: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">Tier:</span>
+            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.tier')}</span>
             <select
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
               className="bg-white border border-temple-200 shadow-sm rounded-xl px-2.5 py-1.5 text-xs text-temple-900 focus:outline-none"
             >
-              <option value="all">All Tiers</option>
-              <option value="Ratna">Ratna (Diamond)</option>
-              <option value="Vishesh">Vishesh (Special)</option>
-              <option value="Karmi">Karmi (Active)</option>
-              <option value="Sadharan">Sadharan (General)</option>
+              <option value="all">{t('org.people.devoteeGrid.allTiers')}</option>
+              <option value="Ratna">{t('org.people.devoteeGrid.ratnaDiamond')}</option>
+              <option value="Vishesh">{t('org.people.devoteeGrid.visheshSpecial')}</option>
+              <option value="Karmi">{t('org.people.devoteeGrid.karmiActive')}</option>
+              <option value="Sadharan">{t('org.people.devoteeGrid.sadharanGeneral')}</option>
             </select>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-temple-600 font-medium">Min Chanda:</span>
+            <span className="text-temple-600 font-medium">{t('org.people.devoteeGrid.minChanda')}</span>
             <select
               value={advancedFilters.minDonation}
               onChange={(e) => setAdvancedFilters(prev => ({ ...prev, minDonation: Number(e.target.value) }))}

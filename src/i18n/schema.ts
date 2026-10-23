@@ -1898,6 +1898,7 @@ export interface TranslationSchema {
           attachBillInvoiceVoucherPhotoCompressedL: string;
           attachedPaymentMemoVoucherPhoto: string;
           auditedDoubleentryCsvDownloaded: string;
+          auditedDoubleentryLedgerWithRestrictedVs: string;
           bankTransferNeftrtgs: string;
           cancel: string;
           cash: string;
@@ -1976,6 +1977,7 @@ export interface TranslationSchema {
           slip: string;
           specificPurposeForCaAuditTrailAndTallyNa: string;
           staffPriestPurohitHonorarium: string;
+          statutoryAdherenceToDonorMandatesUnderTh: string;
           startDateIsAfterTheEndDateTheDateFilterI: string;
           tallyPrimeColumnarCsvExportedForChartere: string;
           thermalVoucherSlipDispatched: string;
@@ -2054,6 +2056,7 @@ export interface TranslationSchema {
         };
         devoteeGrid: {
           accessSecurityControls: string;
+          all: string;
           accountant: string;
           actions: string;
           address: string;
@@ -2087,6 +2090,7 @@ export interface TranslationSchema {
           directoryCsvExportedSuccessfully: string;
           donationHistory: string;
           done: string;
+          donors: string;
           downloadIdsForCurrentViewMax20: string;
           downloadPass: string;
           downloadSmartPassPdf: string;
@@ -2157,6 +2161,7 @@ export interface TranslationSchema {
           ratnaDiamond: string;
           receiptNo: string;
           regenerateCredentials: string;
+          register: string;
           renew: string;
           residenceAddress: string;
           revoke: string;
@@ -2174,10 +2179,13 @@ export interface TranslationSchema {
           smartEcosystemQrs: string;
           spiritualDikshaName: string;
           spiritualName: string;
+          staff: string;
           standardPasswordResetFlowTriggeredRemote: string;
           status: string;
+          suspended: string;
           thisEmailAddressIsAlreadyRegisteredInThe: string;
           tier: string;
+          total: string;
           totalChanda: string;
           trustee: string;
           updateTags: string;

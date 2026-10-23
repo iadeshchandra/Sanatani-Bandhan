@@ -833,17 +833,17 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
                 <Landmark className="w-3.5 h-3.5 text-emerald-400" />
-                Double-Entry Treasury Ledger
+                {t('org.finance.treasury.doubleentryTreasuryLedger')}
               </span>
               <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-0.5 rounded-lg border border-temple-800">
-                Charitable Trust Accounting Standard
+                {t('org.finance.treasury.charitableTrustAccountingStandard')}
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">
-              Treasury & Fund Balance Sheet
+              {t('org.finance.treasury.treasuryFundBalanceSheet')}
             </h2>
             <p className="text-xs sm:text-sm text-temple-400 mt-1 max-w-2xl">
-              Audited double-entry ledger with Restricted vs. Unrestricted fund segregation, instant Section 80G receipts, and direct Tally Prime CSV ingestion for CAs.
+              {t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')}
             </p>
           </div>
 
@@ -1113,23 +1113,23 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <Layers className="w-5 h-5 text-amber-400" />
               <div>
                 <h3 className="text-sm font-bold text-temple-100">
-                  Trust Fund Segregation (Restricted vs. Unrestricted)
+                  {t('org.finance.treasury.trustFundSegregationRestrictedVsUnrestri')}
                 </h3>
                 <p className="text-[11px] text-temple-400">
-                  Statutory adherence to donor mandates under the Indian Trust Act & Income Tax Section 11/12
+                  {t('org.finance.treasury.statutoryAdherenceToDonorMandatesUnderTh')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 text-xs font-mono">
               <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
-                <span className="text-temple-400 mr-1.5">Unrestricted Corpus:</span>
+                <span className="text-temple-400 mr-1.5">{t('org.finance.treasury.unrestrictedCorpus')}</span>
                 <span className="font-bold text-amber-400">
                   {fmtAmount(fundBreakdown.unrestrictedNet)}
                 </span>
               </div>
               <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
-                <span className="text-temple-400 mr-1.5">Restricted Earmarked:</span>
+                <span className="text-temple-400 mr-1.5">{t('org.finance.treasury.restrictedEarmarked')}</span>
                 <span className="font-bold text-emerald-400">
                   {fmtAmount(fundBreakdown.restrictedNet)}
                 </span>
