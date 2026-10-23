@@ -38,6 +38,7 @@ import {
   Building2,
   Car,
   KeyRound,
+  Mail,
   MessageCircle,
   CalendarDays,
   Languages,
@@ -92,7 +93,14 @@ import {
   formatUsd,
   type LandingPriceCard,
 } from '../lib/landingPricing';
-import { whatsappLink, hasWhatsApp } from '../config/contact';
+import {
+  whatsappLink,
+  hasWhatsApp,
+  WHATSAPP_URL,
+  WHATSAPP_NUMBER_INTL,
+  SUPPORT_EMAIL,
+  hasSupportEmail,
+} from '../config/contact';
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
@@ -1827,6 +1835,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <p className="text-sm tracking-[0.2em] uppercase text-stone-500 font-bold">
                 "Dharmo Rakshati Rakshitah"
               </p>
+              {/* Contact channels as TEXT (UX-proof residual fix,
+                  2026-10-23): the footer previously offered only
+                  buttons that open the contact page — a visitor who
+                  wanted the address itself had to leave the page.
+                  Values come from config/contact.ts, the single
+                  source; display gates follow its H-9 rule. */}
+              <div className="mt-5 space-y-1 text-sm font-medium">
+                {hasSupportEmail() && (
+                  <p>
+                    <a
+                      href={`mailto:${SUPPORT_EMAIL}`}
+                      className="inline-flex min-h-[44px] items-center gap-2 hover:text-orange-400 transition-colors"
+                    >
+                      <Mail className="w-4 h-4 text-orange-500 shrink-0" aria-hidden="true" />
+                      {SUPPORT_EMAIL}
+                    </a>
+                  </p>
+                )}
+                {hasWhatsApp() && (
+                  <p>
+                    <a
+                      href={WHATSAPP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-[44px] items-center gap-2 hover:text-orange-400 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4 text-orange-500 shrink-0" aria-hidden="true" />
+                      WhatsApp: +{WHATSAPP_NUMBER_INTL}
+                    </a>
+                  </p>
+                )}
+              </div>
             </div>
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>

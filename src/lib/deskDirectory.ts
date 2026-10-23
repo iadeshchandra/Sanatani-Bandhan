@@ -39,6 +39,7 @@ import {
   isDeskVisibleForRole,
   type PermissionCheck,
 } from './deskVisibility';
+import { LOCATOR_MAP } from '../ai/locator';
 import {
   isModuleAllowedForPlan,
   workspaceRegistry,
@@ -140,11 +141,46 @@ export function buildDirectoryModel<T extends DirectoryDeskLike>(
 }
 
 /**
+ * The Copilot locator's alias corpus, indexed by desk id. The
+ * locator (ai/locator) curates how people actually ASK for a desk —
+ * "khajana", "তহবিল", "ledger", transliterations and concept words —
+ * in en/hi/bn. Directory search speaks the same language (UX-proof
+ * residual, 2026-10-23): before this wiring, typing a well-known
+ * alias into "Search desks…" found nothing, even though the Copilot
+ * would have routed the same word instantly. Nested features
+ * (Bahi-Khata, Practice Mode…) contribute their aliases to their
+ * PARENT desk — searching "bahi-khata" surfaces Treasury, which is
+ * where the door lives.
+ */
+const locatorAliasHaystack: Map<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const entry of LOCATOR_MAP) {
+    if (!entry.deskId) continue;
+    const parts = [
+      ...entry.aliases,
+      ...entry.primary,
+      entry.name.en,
+      entry.name.hi,
+      entry.name.bn,
+    ];
+    const prev = map.get(entry.deskId) || '';
+    map.set(entry.deskId, `${prev} ${parts.join(' ')}`.toLowerCase());
+  }
+  return map;
+})();
+
+/** The locator alias haystack for a desk ('' when the desk has none). */
+export function locatorAliasesForDesk(deskId: string): string {
+  return locatorAliasHaystack.get(deskId) || '';
+}
+
+/**
  * Directory search: does a desk match the term? Matches the catalog
  * name, the caller's display label, the localised dictionary name,
  * the id, the domain title, and the catalog keywords — the same
  * corpora the Sidebar and palette search, plus the dictionary names
- * the old App Store searched.
+ * the old App Store searched — AND the Copilot locator's curated
+ * alias corpus for the desk (see above).
  */
 export function directoryDeskMatchesSearch(
   mod: DirectoryDeskLike,
@@ -160,6 +196,7 @@ export function directoryDeskMatchesSearch(
     localizedName.toLowerCase().includes(q) ||
     mod.id.toLowerCase().includes(q) ||
     (mod.domainTitle || '').toLowerCase().includes(q) ||
-    (mod.keywords || '').toLowerCase().includes(q)
+    (mod.keywords || '').toLowerCase().includes(q) ||
+    locatorAliasesForDesk(mod.id).includes(q)
   );
 }

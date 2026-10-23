@@ -20,9 +20,9 @@ Mandir, Goshala, Ashram, Gurukul, Vidyalaya, Sangha, Samaj, Satsang, Yoga, Trust
 
 ## Pricing (final, per workspace)
 
-- Seva — free forever: ₹0 · ৳0 · $0. Up to 100 devotees, 2 seats, 1 branch.
+- Lite — free forever: ₹0 · ৳0 · $0. Up to 100 devotees, 2 seats, 1 branch.
 - Standard — ₹499 · ৳700 · $6 per month, or ₹4,999 · ৳7,000 · $60 per year. Up to 1,000 devotees, 10 seats, 3 branches.
-- Premium — ₹1,999 · ৳2,800 · $24 per month, or ₹19,999 · ৳28,000 · $240 per year. Unlimited devotees, seats and branches.
+- Enterprise — ₹1,999 · ৳2,800 · $24 per month, or ₹19,999 · ৳28,000 · $240 per year. Unlimited devotees, seats and branches.
 - Purohit/Jyotishi Pro — ₹199 · ৳280 · $2.50 per month, for independent priests and astrologers.
 - Annual billing costs 10 monthly payments (two months free). Payments: Bangladesh by Bangla QR, India by UPI, international by Payoneer or Wise.
 - Seva Bazar marketplace commission: 15% for community providers; verified providers pay 8% on Rail-1 and 12% on Rail-2. Religious services are never discounted.

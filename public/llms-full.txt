@@ -62,9 +62,9 @@ Also included:
 
 Per workspace, in the institution's own currency:
 
-- Seva — FREE forever: ₹0 · ৳0 · $0. Up to 100 devotees, 2 team seats, 1 branch.
+- Lite — FREE forever: ₹0 · ৳0 · $0. Up to 100 devotees, 2 team seats, 1 branch.
 - Standard — ₹499 · ৳700 · $6 per month, or ₹4,999 · ৳7,000 · $60 per year. Up to 1,000 devotees, 10 seats, 3 branches.
-- Premium — ₹1,999 · ৳2,800 · $24 per month, or ₹19,999 · ৳28,000 · $240 per year. Unlimited devotees, seats and branches.
+- Enterprise — ₹1,999 · ৳2,800 · $24 per month, or ₹19,999 · ৳28,000 · $240 per year. Unlimited devotees, seats and branches.
 - Purohit/Jyotishi Pro — ₹199 · ৳280 · $2.50 per month, for independent priests and astrologers: verified badge, unlimited paid sevas, lower commission.
 
 Annual billing costs 10 monthly payments — two months free. Subscription payments: Bangladesh by Bangla QR, India by UPI, international by Payoneer or Wise.
@@ -92,10 +92,10 @@ Sanatani Bandhan is an offline-first ERP and community app for Sanatana Dharma i
 17 organisation types: Mandir, Goshala, Ashram, Gurukul, Vidyalaya, Sangha, Samaj, Satsang, Yoga, Trust, Dharmada Trust, Akshaya Patra, Tirth, Kashi Kshetra, Mahotsav Samiti, Purohit Sabha, and a personal Purohit workspace for independent priests. Individual devotees use the Solo Sanatani personal app.
 
 ### What does Sanatani Bandhan cost?
-Seva is free forever (₹0). Standard is ₹499 / ৳700 / $6 per month or ₹4,999 / ৳7,000 / $60 per year. Premium is ₹1,999 / ৳2,800 / $24 per month or ₹19,999 / ৳28,000 / $240 per year. Purohit/Jyotishi Pro is ₹199 / ৳280 / $2.50 per month. Annual billing gives two months free.
+Lite is free forever (₹0). Standard is ₹499 / ৳700 / $6 per month or ₹4,999 / ৳7,000 / $60 per year. Enterprise is ₹1,999 / ৳2,800 / $24 per month or ₹19,999 / ৳28,000 / $240 per year. Purohit/Jyotishi Pro is ₹199 / ৳280 / $2.50 per month. Annual billing gives two months free.
 
 ### Is there a free plan?
-Yes. The Seva plan is free forever — not a trial — and covers an institution with up to 100 devotees, 2 team seats and 1 branch, including treasury, devotee records and the audit history.
+Yes. The Lite plan is free forever — not a trial — and covers an institution with up to 100 devotees, 2 team seats and 1 branch, including treasury, devotee records and the audit history.
 
 ### Does it work without internet?
 Yes. Sanatani Bandhan is offline-first: registers, treasury entries and seva bookings work with zero connectivity — for example in a temple courtyard with no signal — and sync securely to the cloud when the network returns.

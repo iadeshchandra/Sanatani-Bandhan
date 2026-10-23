@@ -43,6 +43,7 @@ import { DESK_FAMILY, DESK_FAMILIES, groupByFamily } from '../deskFamilies';
 import {
   buildDirectoryModel,
   directoryDeskMatchesSearch,
+  locatorAliasesForDesk,
   type DirectoryDeskLike,
 } from '../deskDirectory';
 import { enableModule } from '../../suggestions/store';
@@ -292,6 +293,43 @@ describe('directory search', () => {
     expect(directoryDeskMatchesSearch(rich, 'খাতা', 'Treasury', 'খাতা বই')).toBe(true);
     expect(directoryDeskMatchesSearch(rich, 'zzzz', 'Treasury', 'Treasury')).toBe(false);
     expect(directoryDeskMatchesSearch(rich, '', 'Treasury', 'Treasury')).toBe(true);
+  });
+});
+
+describe('directory search — the Copilot locator alias corpus (UX-proof residual)', () => {
+  const treasury = CATALOG.find((c) => c.id === 'treasury')!;
+  const taxReceipts = CATALOG.find((c) => c.id === 'taxReceipts')!;
+  const panchang = CATALOG.find((c) => c.id === 'panchang')!;
+  // A BARE desk row: no catalog name/keywords for the matchers to lean
+  // on — any hit below can only come from the locator corpus.
+  const bare = (d: DirectoryDeskLike): DirectoryDeskLike => ({
+    id: d.id,
+    domain: d.domain,
+  });
+
+  it('the locator haystack exists for catalog desks', () => {
+    expect(locatorAliasesForDesk('treasury')).toContain('khajana');
+    expect(locatorAliasesForDesk('panchang')).toContain('muhurat');
+  });
+
+  it('finds a desk by the words people actually ask with', () => {
+    // Transliteration + Bangla concept word for the treasury.
+    expect(directoryDeskMatchesSearch(bare(treasury), 'khajana', 'Treasury', 'Treasury')).toBe(true);
+    expect(directoryDeskMatchesSearch(bare(treasury), 'তহবিল', 'Treasury', 'Treasury')).toBe(true);
+    // The number people remember for the tax desk.
+    expect(directoryDeskMatchesSearch(bare(taxReceipts), '80g', 'Tax', 'Tax')).toBe(true);
+  });
+
+  it('nested features lend their aliases to the parent desk', () => {
+    // Bahi-Khata lives inside Treasury (Sidebar door) — searching its
+    // name must surface the desk that hosts it.
+    expect(directoryDeskMatchesSearch(bare(treasury), 'bahi-khata', 'Treasury', 'Treasury')).toBe(true);
+    expect(directoryDeskMatchesSearch(bare(treasury), 'paper register', 'Treasury', 'Treasury')).toBe(true);
+  });
+
+  it('aliases do not leak across desks', () => {
+    expect(directoryDeskMatchesSearch(bare(panchang), 'khajana', 'Panchang', 'Panchang')).toBe(false);
+    expect(directoryDeskMatchesSearch(bare(treasury), 'zzzz', 'Treasury', 'Treasury')).toBe(false);
   });
 });
 
