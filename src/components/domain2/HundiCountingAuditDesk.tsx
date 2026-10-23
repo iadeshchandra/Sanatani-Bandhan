@@ -42,6 +42,7 @@ import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { numberToWords } from '../../utils/pdfGenerator';
 import { DataExportButton } from '../common/DataExportButton';
+import { compareDenominationCounts, checkerPostingGate } from './hundiChecker';
 import { DevoteeMember } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -123,6 +124,16 @@ const HUNDI_BOXES = [
   { id: 'HUNDI-05', name: 'Festival Mahotsav Special Hundi #5', location: 'Utsav Pandal', lastCleared: '30 days ago' },
 ];
 
+// Real workspaces get neutral structural box slots (the desk's flow
+// requires a selected box) — never the demo temple's named boxes.
+const GENERIC_HUNDI_BOXES = [
+  { id: 'HUNDI-01', name: 'Hundi Box 1', location: '—', lastCleared: '—' },
+  { id: 'HUNDI-02', name: 'Hundi Box 2', location: '—', lastCleared: '—' },
+  { id: 'HUNDI-03', name: 'Hundi Box 3', location: '—', lastCleared: '—' },
+  { id: 'HUNDI-04', name: 'Hundi Box 4', location: '—', lastCleared: '—' },
+  { id: 'HUNDI-05', name: 'Hundi Box 5', location: '—', lastCleared: '—' },
+];
+
 const PRESET_TRUSTEES = [
   // SECURITY: demo seeds only — real custodian PINs are issued per-trustee and
   // never hardcoded. These values are inert placeholders.
@@ -141,6 +152,15 @@ export const HundiCountingAuditDesk: React.FC = () => {
   const { showToast } = useToast();
   const { openGuide } = useQuickGuide();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
+
+  // Owner decision 2026-10-23: this desk's demo seeds (the fake
+  // ₹372,910 past session, the preset trustees, the named demo boxes)
+  // belong to DEMO_ workspaces ONLY — the same gating the Cash Custody
+  // suite uses. A real mandir must never see invented money history or
+  // invented custodians presented as its own records.
+  const isDemoWorkspace = !!activeWorkspace?.id?.startsWith('DEMO_');
+  const visibleBoxes = isDemoWorkspace ? HUNDI_BOXES : GENERIC_HUNDI_BOXES;
+  const visibleTrustees = isDemoWorkspace ? PRESET_TRUSTEES : [];
 
   // Navigation View: 'COUNTING' | 'HISTORY'
   const [activeView, setActiveView] = useState<'COUNTING' | 'HISTORY'>('COUNTING');
@@ -162,8 +182,8 @@ export const HundiCountingAuditDesk: React.FC = () => {
   const [showKey1Pin, setShowKey1Pin] = useState<boolean>(false);
 
   // Keyholder 2 (Secondary / Witness)
-  const [key2Name, setKey2Name] = useState<string>(PRESET_TRUSTEES[0].name);
-  const [key2Role, setKey2Role] = useState<string>(PRESET_TRUSTEES[0].role);
+  const [key2Name, setKey2Name] = useState<string>(isDemoWorkspace ? PRESET_TRUSTEES[0].name : '');
+  const [key2Role, setKey2Role] = useState<string>(isDemoWorkspace ? PRESET_TRUSTEES[0].role : 'TRUSTEE');
   const [key2Pin, setKey2Pin] = useState<string>('');
   const [isKey2Unlocked, setIsKey2Unlocked] = useState<boolean>(false);
   const [showKey2Pin, setShowKey2Pin] = useState<boolean>(false);
@@ -203,6 +223,30 @@ export const HundiCountingAuditDesk: React.FC = () => {
   const [auditNotes, setAuditNotes] = useState<string>(
     'All lead seals inspected under active CCTV surveillance before opening. No physical seal tampering observed. Bundle count reconciled.'
   );
+
+  // Maker-checker: Custodian 2 independently re-enters the denomination
+  // counts in the Review step (pure comparison in ./hundiChecker.ts).
+  // Posting is gated — an exact mix match, or a mismatch documented by
+  // a signed-length note in the audit notes (the seal-tamper pattern).
+  const [checkerDenominations, setCheckerDenominations] = useState<Record<string, number>>({
+    '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, '10': 0,
+    '20_COIN': 0, '10_COIN': 0, '5_COIN': 0, '2_COIN': 0, '1_COIN': 0,
+  });
+  const denomValues = useMemo(() => {
+    const m: Record<string, number> = {};
+    INR_DENOMINATIONS.forEach((d) => {
+      m[d.isCoin ? `${d.value}_COIN` : `${d.value}`] = d.value;
+    });
+    return m;
+  }, []);
+  const checkerComparison = useMemo(
+    () => compareDenominationCounts(denominations, checkerDenominations, denomValues),
+    [denominations, checkerDenominations, denomValues]
+  );
+  // Dedicated resolution note for a checker mismatch — deliberately NOT
+  // the general audit notes (those ship pre-filled with the standard
+  // attestation text, which would silently satisfy a note-length gate).
+  const [checkerNote, setCheckerNote] = useState<string>('');
   const [isPostingTreasury, setIsPostingTreasury] = useState<boolean>(false);
   const [postedSession, setPostedSession] = useState<HundiSessionRecord | null>(null);
 
@@ -210,10 +254,21 @@ export const HundiCountingAuditDesk: React.FC = () => {
   const [pastSessions, setPastSessions] = useState<HundiSessionRecord[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // The known demo seed (id 'hundi-sess-prev-1') is filtered out
+        // for real workspaces even when an older build already wrote
+        // it into this device's storage.
+        return isDemoWorkspace
+          ? parsed
+          : parsed.filter((s: HundiSessionRecord) => s.id !== 'hundi-sess-prev-1');
+      }
     } catch (e) {}
 
-    // Seed realistic sample past sessions
+    // Seed realistic sample past sessions — DEMO_ workspaces only
+    // (owner decision 2026-10-23). A real workspace's history starts
+    // empty; invented money history is never presented as real.
+    if (!isDemoWorkspace) return [];
     return [
       {
         id: 'hundi-sess-prev-1',
@@ -249,8 +304,8 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
   // Selected Hundi Metadata
   const currentHundiBox = useMemo(() => {
-    return HUNDI_BOXES.find((b) => b.id === selectedHundiId) || HUNDI_BOXES[0];
-  }, [selectedHundiId]);
+    return visibleBoxes.find((b) => b.id === selectedHundiId) || visibleBoxes[0];
+  }, [selectedHundiId, visibleBoxes]);
 
   // ============================================================================
   // MATHEMATICAL CALCULATIONS (DENOMINATIONS, COINS, FOREIGN, BULLION, TOTALS)
@@ -321,9 +376,12 @@ export const HundiCountingAuditDesk: React.FC = () => {
       showToast('Please enter a valid 4-digit security PIN for Custodian 1', 'error');
       return;
     }
-    // Accept standard demo PINs or any 4 digit
+    // No per-trustee PIN store exists yet (the real check waits on the
+    // owner-held PIN-verification API): any 4-digit entry is taken as
+    // the custodian's ATTESTATION, never a verification — and the UI
+    // labels it exactly that way (owner decision 2026-10-23).
     setIsKey1Unlocked(true);
-    showToast(`Custodian 1 (${key1Name}) Authenticated with PIN!`, 'success');
+    showToast(`Custodian 1 (${key1Name}) PIN entered — attested, not verified.`, 'success');
   };
 
   const handleBiometricKey1 = async () => {
@@ -340,7 +398,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
       return;
     }
     setIsKey2Unlocked(true);
-    showToast(`Custodian 2 (${key2Name}) Authenticated with PIN!`, 'success');
+    showToast(`Custodian 2 (${key2Name}) PIN entered — attested, not verified.`, 'success');
   };
 
   const handleBiometricKey2 = async () => {
@@ -430,6 +488,24 @@ export const HundiCountingAuditDesk: React.FC = () => {
       return;
     }
 
+    // Maker-checker gate: Custodian 2's independent recount must match
+    // the maker's denomination mix, or the mismatch must be resolved
+    // and documented in the audit notes (min 20 characters).
+    const gate = checkerPostingGate(checkerComparison, checkerNote);
+    if (!gate.allowed) {
+      // The gate's two block reasons are, by construction, exactly
+      // "checker has not counted" vs "mismatch unresolved" — keyed off
+      // checkerStarted here so the message needs no union narrowing.
+      showToast(
+        !checkerComparison.checkerStarted
+          ? 'Maker-checker: Custodian 2 must independently re-enter the denomination counts in the Review step before posting.'
+          : 'Checker recount does not match the maker count — resolve the discrepancy and document the resolution in the checker note (min 20 characters) before posting.',
+        'error',
+        'Maker-Checker'
+      );
+      return;
+    }
+
     setIsPostingTreasury(true);
 
     try {
@@ -485,7 +561,10 @@ export const HundiCountingAuditDesk: React.FC = () => {
         totalBullionGrams,
         grandTotalINR,
         treasuryTxId: sessionCode,
-        auditNotes,
+        auditNotes:
+          gate.via === 'note'
+            ? `${auditNotes} [Checker discrepancy resolved: ${checkerNote.trim()}]`
+            : `${auditNotes} [Checker recount matched the maker count denomination-for-denomination.]`,
         status: 'POSTED_TO_TREASURY',
       };
 
@@ -516,6 +595,11 @@ export const HundiCountingAuditDesk: React.FC = () => {
     });
     setForeignCurrencies((prev) => prev.map((f) => ({ ...f, quantity: 0 })));
     setBullion((prev) => prev.map((b) => ({ ...b, grams: 0, itemDescription: '' })));
+    setCheckerDenominations({
+      '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, '10': 0,
+      '20_COIN': 0, '10_COIN': 0, '5_COIN': 0, '2_COIN': 0, '1_COIN': 0,
+    });
+    setCheckerNote('');
     setPostedSession(null);
   };
 
@@ -807,7 +891,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                       onChange={(e) => setSelectedHundiId(e.target.value)}
                       className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
                     >
-                      {HUNDI_BOXES.map((box) => (
+                      {visibleBoxes.map((box) => (
                         <option key={box.id} value={box.id}>
                           {box.name}
                         </option>
@@ -1017,22 +1101,33 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     <div className="space-y-3">
                       <div>
                         <label className="text-[10px] font-bold text-stone-400 block mb-1">{t('org.finance.hundiAudit.selectWitnessTrustee')}</label>
-                        <select
-                          value={key2Name}
-                          onChange={(e) => {
-                            const found = PRESET_TRUSTEES.find((t) => t.name === e.target.value);
-                            setKey2Name(e.target.value);
-                            if (found) setKey2Role(found.role);
-                          }}
-                          disabled={isKey2Unlocked}
-                          className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500 disabled:opacity-60"
-                        >
-                          {PRESET_TRUSTEES.map((t) => (
-                            <option key={t.name} value={t.name}>
-                              {t.name} ({t.role})
-                            </option>
-                          ))}
-                        </select>
+                        {visibleTrustees.length > 0 ? (
+                          <select
+                            value={key2Name}
+                            onChange={(e) => {
+                              const found = visibleTrustees.find((t) => t.name === e.target.value);
+                              setKey2Name(e.target.value);
+                              if (found) setKey2Role(found.role);
+                            }}
+                            disabled={isKey2Unlocked}
+                            className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500 disabled:opacity-60"
+                          >
+                            {visibleTrustees.map((t) => (
+                              <option key={t.name} value={t.name}>
+                                {t.name} ({t.role})
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={key2Name}
+                            onChange={(e) => setKey2Name(e.target.value)}
+                            disabled={isKey2Unlocked}
+                            placeholder="Enter witness custodian's full name"
+                            className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500 disabled:opacity-60"
+                          />
+                        )}
                       </div>
 
                       <div>
@@ -1463,7 +1558,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     <span className="text-[10px] text-stone-400 uppercase font-black">{t('org.finance.hundiAudit.custodian1Accountant')}</span>
                     <p className="text-xs font-bold text-white">{key1Name}</p>
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> PIN Verified
+                      <CheckCircle2 className="w-3 h-3" /> {t('org.finance.hundiAudit.pinVerified')}
                     </span>
                   </div>
 
@@ -1471,7 +1566,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     <span className="text-[10px] text-stone-400 uppercase font-black">{t('org.finance.hundiAudit.custodian2Trustee')}</span>
                     <p className="text-xs font-bold text-white">{key2Name}</p>
                     <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> PIN Verified
+                      <CheckCircle2 className="w-3 h-3" /> {t('org.finance.hundiAudit.pinVerified')}
                     </span>
                   </div>
                 </div>
@@ -1511,6 +1606,84 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="p-3 bg-stone-900 border-t border-stone-800 flex items-center justify-between text-xs font-black">
                     <span className="text-white uppercase">{t('org.finance.hundiAudit.grandTotalToPost')}</span>
                     <span className="text-amber-300 font-mono text-base">₹{grandTotalINR.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                {/* Maker-Checker: Custodian 2's independent recount.
+                    Posting is gated on this (see handlePostToTreasury):
+                    the denomination MIX must match, or the mismatch must
+                    be resolved and documented in the checker note. */}
+                <div className="bg-stone-950 rounded-2xl border border-indigo-500/30 overflow-hidden">
+                  <div className="p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4" />
+                      Independent Checker Recount — {key2Name} (Custodian 2)
+                    </span>
+                    <span className="text-[11px] font-mono text-stone-400">
+                      Maker ₹{checkerComparison.makerTotal.toLocaleString('en-IN')} · Checker ₹{checkerComparison.checkerTotal.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="p-3 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {INR_DENOMINATIONS.map((d) => {
+                      const denomKey = d.isCoin ? `${d.value}_COIN` : `${d.value}`;
+                      const makerQty = denominations[denomKey] || 0;
+                      const checkerQty = checkerDenominations[denomKey] || 0;
+                      const mismatch = checkerComparison.checkerStarted && makerQty !== checkerQty;
+                      return (
+                        <label
+                          key={denomKey}
+                          className={`block rounded-xl border p-2 ${mismatch ? 'border-red-500/60 bg-red-950/30' : 'border-stone-800 bg-stone-900/60'}`}
+                        >
+                          <span className="text-[10px] font-bold text-stone-400 block">{d.label}</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={checkerQty || ''}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const parsed = parseInt(e.target.value, 10);
+                              const next = isNaN(parsed) ? 0 : Math.min(999999, Math.max(0, parsed));
+                              setCheckerDenominations((prev) => ({ ...prev, [denomKey]: next }));
+                            }}
+                            className="w-full bg-transparent text-sm font-black text-indigo-200 focus:outline-none"
+                          />
+                          <span className="text-[10px] text-stone-500">maker: {makerQty.toLocaleString('en-IN')}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="px-3 pb-3">
+                    {!checkerComparison.checkerStarted && (
+                      <p className="text-[11px] text-stone-400">
+                        Custodian 2 must count the cash independently and enter their own denomination counts here — without looking at the maker's figures. Foreign currency is verified against its documents, not recounted here.
+                      </p>
+                    )}
+                    {checkerComparison.checkerStarted && checkerComparison.matches && (
+                      <p className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Checker recount matches the maker count, denomination for denomination. Ready to co-sign &amp; post.
+                      </p>
+                    )}
+                    {checkerComparison.checkerStarted && !checkerComparison.matches && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-bold text-red-400 flex items-start gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                          <span>
+                            Mismatch in {checkerComparison.mismatches.length} denomination(s):{' '}
+                            {checkerComparison.mismatches
+                              .map((m) => `${m.key} (maker ${m.maker} · checker ${m.checker})`)
+                              .join(', ')}
+                            . Recount jointly, then document the resolution below (min 20 characters) to post.
+                          </span>
+                        </p>
+                        <input
+                          type="text"
+                          value={checkerNote}
+                          onChange={(e) => setCheckerNote(e.target.value)}
+                          placeholder="Signed resolution — e.g. joint recount done; one torn ₹500 note set aside…"
+                          className="w-full bg-stone-900 border border-red-500/40 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-red-400"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

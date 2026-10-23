@@ -1,7 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CashCustodyProvider, useCashCustody } from './cashCustodyStore';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
+import { auditRecorder } from '../context/data/auditStore';
+import { resolveActorName } from '../bahikhata/bahikhataStore';
+import { recordCustodyEvent } from './custodyAuditBridge';
+import { custodyCloudSync } from '../context/data/custodySyncFirestore';
+import type { CustodyEvent } from './types';
 import { Tabs } from './ui';
 import { DashboardTab } from './DashboardTab';
 import { HundiTab } from './HundiTab';
@@ -43,7 +48,11 @@ const CashCustodyInner: React.FC = () => {
     const key = activeWorkspace.id;
     if (seededFor.current !== key) {
       seededFor.current = key;
-      ensureSeeded();
+      // Demo seeds (sample boxes + staff) belong to DEMO_ workspaces
+      // ONLY. A real mandir's first open must be an empty registry it
+      // fills itself — sample custodians in a live money desk read as
+      // real people and pollute the chain's first links.
+      if (key.startsWith('DEMO_')) ensureSeeded();
     }
   }, [activeWorkspace.id, ensureSeeded]);
 
@@ -82,9 +91,42 @@ const CashCustodyInner: React.FC = () => {
 };
 
 export const CashCustodyDesk: React.FC = () => {
-  const { activeWorkspace } = useAuthWorkspace();
+  const { activeWorkspace, currentUser, currentRole, firebaseUser } = useAuthWorkspace();
+
+  /* Blueprint A mirror: every custody event is also recorded into the
+   * workspace's master audit stream (auditEvents) via the shared
+   * recorder — see custodyAuditBridge.ts. The actor is the SIGNED-IN
+   * user (rules bind actorUid to request.auth.uid; the Firebase uid
+   * leads, exactly as DataContext / PublishedAccountsPanel resolve
+   * it); the typed counting-room names stay inside the event details.
+   * The recorder skips DEMO_ workspaces and actorless events itself,
+   * and never throws — the counting room cannot break on its mirror. */
+  const actorUid =
+    (firebaseUser as { uid?: string } | null)?.uid || currentUser?.id || '';
+  const actorName = resolveActorName(
+    [currentUser?.fullName, currentUser?.name],
+    currentUser?.email ||
+      (firebaseUser as { email?: string } | null)?.email
+  );
+  const mirrorToMasterAudit = useCallback(
+    (ev: CustodyEvent) => {
+      recordCustodyEvent(auditRecorder, ev, {
+        workspaceId: activeWorkspace.id,
+        actorUid,
+        actorName,
+        actorRole: currentRole || '',
+      });
+    },
+    [activeWorkspace.id, actorUid, actorName, currentRole]
+  );
+
   return (
-    <CashCustodyProvider workspaceId={activeWorkspace.id}>
+    <CashCustodyProvider
+      workspaceId={activeWorkspace.id}
+      onEvent={mirrorToMasterAudit}
+      syncIdentity={{ uid: actorUid, name: actorName }}
+      sync={custodyCloudSync}
+    >
       <CashCustodyInner />
     </CashCustodyProvider>
   );

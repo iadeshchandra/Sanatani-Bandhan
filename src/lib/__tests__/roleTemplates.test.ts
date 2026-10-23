@@ -113,7 +113,9 @@ describe('templates narrow, never widen (resolve-down law)', () => {
     expect(tpl.role).toBe('Auditor');
     expect(tpl.deskScope).not.toContain('quickChanda');
     expect(tpl.deskScope).toContain('treasury');
-    expect(tpl.deskScope).toContain('hundi-audit');
+    // Owner decision 2026-10-23: 'hundi-audit' left the Auditor set —
+    // the legacy desk posts money and has no read-only mode.
+    expect(tpl.deskScope).not.toContain('hundi-audit');
   });
 });
 

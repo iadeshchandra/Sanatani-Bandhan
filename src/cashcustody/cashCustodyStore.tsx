@@ -4,13 +4,40 @@ import {
   DenomKey, DENOM_VALUE, DENOMINATIONS, DepositSlip, HundiBox,
   CountingStaff, StaffAttendance,
 } from './types';
+import {
+  loadCustodyStateIdb, pickFresherState, saveCustodyStateIdb, stampCustodyState,
+} from './custodyIdb';
+import {
+  chooseCustodyAdoption, nullCustodySync,
+  type CustodySync, type CustodySyncActor,
+} from '../context/data/custodySync';
 
 /* ------------------------------------------------------------------ */
-/* Cash Custody store — offline-first, per-workspace localStorage.      */
+/* Cash Custody store — offline-first, per-workspace.                   */
 /* Hundi boxes, counting sessions, custody events (hash-chained),       */
 /* deposit slips, staff and attendance live on this device; money posts */
-/* to treasury via useData().addTreasuryTransaction (cloud path).      */
-/* New data-layer module — DataContext.tsx is never touched.           */
+/* to treasury via useData().addTreasuryTransaction (cloud path).       */
+/* New data-layer module — DataContext.tsx is never touched.            */
+/*                                                                      */
+/* PERSISTENCE (hardened): every write lands in BOTH localStorage       */
+/* (synchronous first-paint cache, unchanged key/format) and IndexedDB  */
+/* via ./custodyIdb.ts (idb-keyval — the app's durable on-device store, */
+/* no ~5 MB string quota, no silent "keep in memory" loss). On open,    */
+/* the fresher stamped copy wins.                                        */
+/*                                                                      */
+/* CLOUD SYNC (owner-approved 2026-10-23): the same stamped copy is     */
+/* also synced to cashCustodyStates/{workspaceId} via                    */
+/* src/context/data/custodySync.ts — one doc per workspace, finance     */
+/* roles only, fail-open: a failed cloud read/write NEVER touches the   */
+/* on-device copies, which stay canonical on this device. A cloud copy  */
+/* is adopted on open only when strictly fresher AND its chain          */
+/* verifies (chooseCustodyAdoption). The Firestore-backed sync is      */
+/* INJECTED by the desk (custodySyncFirestore.ts) so this module       */
+/* stays firebase-free for the node-env suites that import it.         */
+/*                                                                      */
+/* AUDIT MIRROR: the provider accepts an optional onEvent callback;     */
+/* the desk wires it to the Blueprint A master stream (auditEvents)     */
+/* through ./custodyAuditBridge.ts. The local chain stays canonical.    */
 /* ------------------------------------------------------------------ */
 
 /* ---------------- synchronous SHA-256 (no deps) ---------------- */
@@ -101,6 +128,15 @@ const EMPTY: CashCustodyState = {
 };
 
 const storageKey = (ws: string) => `sb_cashcustody_${ws}`;
+const savedAtKey = (ws: string) => `sb_cashcustody_${ws}__savedAt`;
+
+/** Write-time of the localStorage copy (0 for pre-stamp legacy data). */
+function loadSavedAt(ws: string): number {
+  try {
+    const n = Number(localStorage.getItem(savedAtKey(ws)) || 0);
+    return Number.isFinite(n) ? n : 0;
+  } catch { return 0; }
+}
 const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -167,15 +203,120 @@ interface CashCustodyCtx {
 
 const Ctx = createContext<CashCustodyCtx | null>(null);
 
-export const CashCustodyProvider: React.FC<{ workspaceId: string; children: React.ReactNode }> = ({ workspaceId, children }) => {
-  const [state, setState] = useState<CashCustodyState>(() => loadState(workspaceId));
+export const CashCustodyProvider: React.FC<{
+  workspaceId: string;
+  /** Optional mirror hook — fired for every appended custody event
+   *  (the desk wires it to the Blueprint A master audit stream). */
+  onEvent?: (ev: CustodyEvent) => void;
+  /** Signed-in writer identity for the cloud sync (rules pin
+   *  savedByUid to the Firebase uid). Absent/uid-less → sync idles. */
+  syncIdentity?: CustodySyncActor | null;
+  /** Cloud sync engine (the desk injects the Firestore-backed
+   *  instance; default is an inert no-op sync). */
+  sync?: CustodySync;
+  children: React.ReactNode;
+}> = ({ workspaceId, onEvent, syncIdentity, sync, children }) => {
+  /** Stamp of the currently-held state; hydration may only displace
+   *  it with a STRICTLY fresher IndexedDB copy. */
+  const savedAtRef = useRef(0);
+  /** The exact state object last LOADED (localStorage or IDB). The
+   *  persist effect skips it: a loaded copy is already persisted, and
+   *  re-stamping it "now" would let a stale copy outrank a fresher
+   *  IndexedDB record — and re-writing it could overwrite that record
+   *  before hydration reads it. */
+  const pristineRef = useRef<CashCustodyState | null>(null);
+  const [state, setState] = useState<CashCustodyState>(() => {
+    const s = loadState(workspaceId);
+    pristineRef.current = s;
+    savedAtRef.current = loadSavedAt(workspaceId);
+    return s;
+  });
   const wsRef = useRef(workspaceId);
+  const onEventRef = useRef(onEvent);
+  useEffect(() => { onEventRef.current = onEvent; }, [onEvent]);
+  const syncIdentityRef = useRef(syncIdentity);
+  useEffect(() => { syncIdentityRef.current = syncIdentity; }, [syncIdentity]);
+  const syncRef = useRef<CustodySync>(sync ?? nullCustodySync);
+  useEffect(() => { syncRef.current = sync ?? nullCustodySync; }, [sync]);
   useEffect(() => {
-    if (wsRef.current !== workspaceId) { wsRef.current = workspaceId; setState(loadState(workspaceId)); }
+    if (wsRef.current !== workspaceId) {
+      wsRef.current = workspaceId;
+      const s = loadState(workspaceId);
+      pristineRef.current = s;
+      savedAtRef.current = loadSavedAt(workspaceId);
+      setState(s);
+    }
   }, [workspaceId]);
   useEffect(() => {
-    try { localStorage.setItem(storageKey(wsRef.current), JSON.stringify(state)); } catch { /* quota → keep in memory */ }
+    if (state === pristineRef.current) return; // loaded copy — already persisted
+    const ws = wsRef.current;
+    const now = Date.now();
+    savedAtRef.current = now;
+    try {
+      localStorage.setItem(storageKey(ws), JSON.stringify(state));
+      localStorage.setItem(savedAtKey(ws), String(now));
+    } catch { /* quota → the IndexedDB copy below still holds the data */ }
+    void saveCustodyStateIdb(ws, stampCustodyState(state, now));
+    // Cloud sync (debounced inside custodySync; fail-open — a dropped
+    // write leaves the on-device copies canonical, never the reverse).
+    syncRef.current.push(
+      ws,
+      stampCustodyState(state, now),
+      syncIdentityRef.current ?? { uid: '', name: '' }
+    );
   }, [state]);
+
+  /* Hydrate from IndexedDB once per workspace: if the IDB copy is
+   * fresher than both the localStorage copy and anything this session
+   * has written, it wins (it is the copy that survived quota pressure
+   * or a cleared localStorage). */
+  const hydratedFor = useRef('');
+  useEffect(() => {
+    const ws = workspaceId;
+    if (hydratedFor.current === ws) return;
+    hydratedFor.current = ws;
+    let cancelled = false;
+    void loadCustodyStateIdb(ws).then((rec) => {
+      if (cancelled || !rec) return;
+      const localStamped = stampCustodyState(loadState(ws), loadSavedAt(ws));
+      const winner = pickFresherState(localStamped, rec);
+      if (winner === rec && rec.savedAt > savedAtRef.current) {
+        pristineRef.current = rec.state;
+        savedAtRef.current = rec.savedAt;
+        setState(rec.state);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [workspaceId]);
+
+  /* Hydrate from the cloud once per workspace: a strictly fresher
+   * cloud copy whose chain verifies is adopted (device-loss recovery,
+   * second-device oversight). The savedAtRef guard mirrors the IDB
+   * hydration: anything this session already wrote out-ranks it. On
+   * adoption the durable on-device copy converges to the cloud one. */
+  const cloudHydratedFor = useRef('');
+  useEffect(() => {
+    const ws = workspaceId;
+    if (cloudHydratedFor.current === ws) return;
+    cloudHydratedFor.current = ws;
+    let cancelled = false;
+    void syncRef.current.pull(ws).then((cloud) => {
+      if (cancelled || !cloud) return;
+      const localStamped = stampCustodyState(loadState(ws), loadSavedAt(ws));
+      const winner = chooseCustodyAdoption(
+        localStamped,
+        cloud,
+        (events) => verifyChain(events) === -1
+      );
+      if (winner === cloud && cloud.savedAt > savedAtRef.current) {
+        pristineRef.current = cloud.state;
+        savedAtRef.current = cloud.savedAt;
+        setState(cloud.state);
+        void saveCustodyStateIdb(ws, cloud);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [workspaceId]);
 
   const api = useMemo<CashCustodyCtx>(() => ({
     state,
@@ -196,6 +337,9 @@ export const CashCustodyProvider: React.FC<{ workspaceId: string; children: Reac
       const sorted = [...state.events].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
       const ev = chainEvent(sorted[sorted.length - 1], kind, actor, details, undefined, state.events.length);
       setState((s) => ({ ...s, events: [...s.events, ev] }));
+      // Mirror hook (Blueprint A) — fire-and-forget; a mirror failure
+      // must never break the counting room.
+      try { onEventRef.current?.(ev); } catch { /* mirror is advisory */ }
       return ev;
     },
     ensureSeeded: () => setState((s) => (s.boxes.length ? s : buildSeed())),

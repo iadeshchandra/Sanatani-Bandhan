@@ -1215,7 +1215,7 @@ const dict: TranslationSchema =  {
           physicalCountAuditVerificationTreasuryHa: "Physical Count Audit Verification & Treasury Handoff",
           physicalSealIntegrity: "Physical Seal Integrity",
           piecesQty: "Pieces (Qty)",
-          pinVerified: "PIN Verified",
+          pinVerified: "PIN entered — attested, not verified",
           pleaseEnterAValid4digitSecurityPinForCus: "Please enter a valid 4-digit security PIN for Custodian 1",
           pleaseEnterAValid4digitSecurityPinForCus2: "Please enter a valid 4-digit security PIN for Custodian 2",
           postedVoucher: "Posted & Voucher",

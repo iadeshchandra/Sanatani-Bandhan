@@ -281,7 +281,7 @@ export const orgNs: OrgFragment = {
           physicalCountAuditVerificationTreasuryHa: "భౌతిక Count ఆడిట్ Verification & ఖజానా Handoff",
           physicalSealIntegrity: "భౌతిక Seal Integrity",
           piecesQty: "Pieces (Qty)",
-          pinVerified: "PIN Verified",
+          pinVerified: "PIN entered — attested, not verified",
           pleaseEnterAValid4digitSecurityPinForCus: "దయచేసి నమోదు చేయండి a valid 4-digit security PIN for సంరక్షకుడు 1",
           pleaseEnterAValid4digitSecurityPinForCus2: "దయచేసి నమోదు చేయండి a valid 4-digit security PIN for సంరక్షకుడు 2",
           postedVoucher: "Posted & వోచర్",

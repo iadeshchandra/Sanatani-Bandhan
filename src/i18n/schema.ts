@@ -2531,6 +2531,7 @@ export interface TranslationSchema {
           settingsUpdated: string;
           accountsPublished: string;
           accountsUnpublished: string;
+          custodyEvent: string;
           membershipInvited: string;
           membershipJoined: string;
           membershipApproved: string;

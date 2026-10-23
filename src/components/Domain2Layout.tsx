@@ -25,6 +25,7 @@ import { AssetInventoryDesk } from './domain2/AssetInventoryDesk';
 import { KarmaLedgerDesk } from './domain2/KarmaLedgerDesk';
 import { AuditTrailView } from './treasury/AuditTrailDesk';
 import { T } from '../solo/ui';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 
 export interface SubTab {
   id: string;
@@ -48,7 +49,15 @@ export const SUB_TABS: SubTab[] = [
 ];
 
 export const Domain2Layout: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('blind-audit');
+  /* Owner decision 2026-10-23 (defence-in-depth): App.tsx does not
+   * mount this layout today, but its default tab is the blind hundi
+   * desk — a POSTING surface. The read-only Auditor must never land
+   * on a posting surface here either, so for an Auditor the two hundi
+   * tabs resolve to the read-only Audit Trail, which is also the
+   * default tab. The live gates are lib/deskVisibility + App.tsx. */
+  const { effectiveRole } = useAuthWorkspace();
+  const isAuditor = effectiveRole === 'Auditor';
+  const [activeTab, setActiveTab] = useState<string>(isAuditor ? 'audit-trail' : 'blind-audit');
 
   return (
     <div className="space-y-6">
@@ -80,7 +89,7 @@ export const Domain2Layout: React.FC = () => {
         {(() => {
           switch (activeTab) {
             case 'blind-audit':
-              return <BlindHundiAuditDesk />;
+              return isAuditor ? <AuditTrailView /> : <BlindHundiAuditDesk />;
             case '80g-studio':
               return <Dynamic80GReceiptStudio />;
             case 'tally':
@@ -92,7 +101,7 @@ export const Domain2Layout: React.FC = () => {
             case 'tax-receipt':
               return <TaxReceiptDesk />;
             case 'hundi-audit':
-              return <HundiCountingAuditDesk />;
+              return isAuditor ? <AuditTrailView /> : <HundiCountingAuditDesk />;
             case 'form-10bd':
               return <Form10BDComplianceDesk />;
             case 'campaigns':
@@ -104,7 +113,7 @@ export const Domain2Layout: React.FC = () => {
             case 'karma':
               return <KarmaLedgerDesk />;
             default:
-              return <BlindHundiAuditDesk />;
+              return isAuditor ? <AuditTrailView /> : <BlindHundiAuditDesk />;
           }
         })()}
       </div>

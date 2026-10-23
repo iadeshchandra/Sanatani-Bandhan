@@ -49,23 +49,27 @@ export const BlindHundiAuditDesk: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
 
-  const [counterAData, setCounterAData] = useState<DenominationCounts>({
+  // Owner decision 2026-10-23: the pre-filled counts below are demo
+  // seeds — DEMO_ workspaces only. A real counting room opens EMPTY
+  // (INITIAL_COUNTS); invented counts must never be postable as a
+  // real hundi audit.
+  const isDemoWorkspace = !!activeWorkspace?.id?.startsWith('DEMO_');
+  const SAMPLE_COUNTS: DenominationCounts = {
     '500': 420,
     '200': 150,
     '100': 600,
     '50': 240,
     '20': 500,
     '10': 1000,
-  });
+  };
 
-  const [counterBData, setCounterBData] = useState<DenominationCounts>({
-    '500': 420,
-    '200': 150,
-    '100': 600,
-    '50': 240,
-    '20': 500,
-    '10': 1000,
-  });
+  const [counterAData, setCounterAData] = useState<DenominationCounts>(
+    () => (isDemoWorkspace ? { ...SAMPLE_COUNTS } : { ...INITIAL_COUNTS })
+  );
+
+  const [counterBData, setCounterBData] = useState<DenominationCounts>(
+    () => (isDemoWorkspace ? { ...SAMPLE_COUNTS } : { ...INITIAL_COUNTS })
+  );
 
   const [isALocked, setIsALocked] = useState(false);
   const [isBLocked, setIsBLocked] = useState(false);

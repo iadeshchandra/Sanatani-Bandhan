@@ -657,7 +657,13 @@ const AppContent: React.FC = () => {
       case 'hundi-audit':
       case 'hundi-counting':
       case 'golak':
-        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE', 'Auditor']) ? <HundiCountingAuditDesk /> : <RestrictedAccess />;
+        // Owner decision 2026-10-23: the legacy hundi desk POSTS money
+        // and has no read-only mode, so the read-only Auditor is NOT
+        // admitted (matches 'cash-custody' below, and AUDITOR_READ_DESKS
+        // in lib/deskVisibility, from which 'hundi-audit' was removed).
+        // The Auditor's custody visibility lives in the read-only audit
+        // surfaces (treasury ledger, Audit Trail / custody chain views).
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <HundiCountingAuditDesk /> : <RestrictedAccess />;
       case 'cash-custody':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <CashCustodyDesk /> : <RestrictedAccess />;
       case 'ratna-bhandar':

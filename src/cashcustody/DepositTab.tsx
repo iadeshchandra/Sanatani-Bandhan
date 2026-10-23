@@ -6,6 +6,7 @@ import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { generateDepositSlipPDF } from './depositSlipPdf';
 
 /* ------------------------------------------------------------------ */
 /* Bank deposit slips — auto-generated from a closed counting session. */
@@ -82,6 +83,16 @@ export const DepositTab: React.FC = () => {
     setTimeout(() => { window.print(); setPrinting(null); }, 150);
   };
 
+  const pdfSlip = async (slip: DepositSlip) => {
+    try {
+      const box = state.boxes.find((b) => b.id === slip.boxId);
+      await generateDepositSlipPDF(slip, box, activeWorkspace.name);
+      showToast(`PDF slip ${slip.slipNo} downloaded.`, 'success');
+    } catch {
+      showToast('PDF generation failed — use Print instead; the slip is safe.', 'error');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-extrabold text-stone-800">
@@ -134,6 +145,7 @@ export const DepositTab: React.FC = () => {
                   )}
                   {d.treasuryTxId && <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">✓ treasury posted</span>}
                   <Btn variant="ghost" onClick={() => printSlip(d.id)}>🖨️ <T en="Print" bn="প্রিন্ট" hi="प्रिंट" /></Btn>
+                  <Btn variant="ghost" onClick={() => void pdfSlip(d)}>📄 <T en="PDF slip" bn="PDF স্লিপ" hi="PDF पर्ची" /></Btn>
                 </div>
               </div>
             </Card>

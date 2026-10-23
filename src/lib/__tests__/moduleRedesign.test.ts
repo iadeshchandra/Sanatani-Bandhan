@@ -220,6 +220,9 @@ describe('directory model — role and scope still rule', () => {
     for (const id of ids) expect(AUDITOR_READ_DESKS).toContain(id);
     expect(ids).toContain('treasury');
     expect(ids).not.toContain('devotees');
+    // Owner decision 2026-10-23: the legacy hundi desk is a posting
+    // surface — never in the Auditor's read set.
+    expect(ids).not.toContain('hundi-audit');
   });
 
   it('a Devotee is offered no staff desks', () => {

@@ -626,6 +626,24 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Cash custody sync (owner-approved 2026-10-23): ONE maintained
+    // state doc per workspace (boxes, sessions, the SHA-256 custody
+    // chain, deposit slips, roster) written by the Cash Custody desk
+    // so custody survives device loss and oversight can review from
+    // a second device. The doc carries its own workspaceId field
+    // (newDocWs/wsImmutable pin it) and the writer pins savedByUid
+    // to themselves — no syncing a state copy as someone else.
+    // Finance roles write; oversight roles read (R_OVERSIGHT
+    // includes the read-only Auditor — visibility, never a write);
+    // delete is never allowed: the custody record is evidence. The
+    // client treats this copy as fail-open — the on-device copies
+    // stay canonical whenever the cloud path is unavailable.
+    match /cashCustodyStates/{workspaceId} {
+      allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
+      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable()) && request.resource.data.get('savedByUid', '') == request.auth.uid;
+      allow delete: if false;
+    }
+
     // Published monthly accounts (Blueprint A): the public
     // Transparency Board. A document exists ONLY because a finance
     // role published that month — unpublished months have no

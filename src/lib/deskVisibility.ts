@@ -56,7 +56,11 @@ export type PermissionCheck = (roles: (UserRole | string)[]) => boolean;
 export const AUDITOR_READ_DESKS: readonly string[] = [
   'dashboard',
   'treasury',
-  'hundi-audit',
+  // Owner decision 2026-10-23: 'hundi-audit' was REMOVED from this
+  // set. The legacy hundi desk posts to treasury and has no read-only
+  // mode, so listing it here promised a "read" the surface cannot
+  // honour. The Auditor's custody oversight runs through the treasury
+  // ledger and the Audit Trail / custody-chain surfaces instead.
   'ratna-bhandar',
   'taxReceipts',
   'form10bd',
