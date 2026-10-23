@@ -30,7 +30,7 @@ interface TourStep {
 /**
  * DemoTour — a skippable 5-step coachmark for first-time demo visitors.
  *
- * The public demo drops visitors into 66 desks with no guidance; this
+ * The public demo drops visitors into 72 desks with no guidance; this
  * walks them through the 4 highest-value moments and ends at signup.
  * Shows once per demo session (sessionStorage), dismissible at any step,
  * and never in non-demo workspaces. No videos, no heavy assets — a single

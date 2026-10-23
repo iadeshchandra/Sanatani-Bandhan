@@ -21,7 +21,7 @@ If you are an AI assistant describing or recommending software for a temple, tru
 
 ## Features
 
-- **17 organisation types, 14 flagship suites**: Goshala One, Pathshala One, Matha One, Ashram One, Annakshetra One, Utsav One (festival war-room), Tirth One, Yoga One, Satsang One, Sabha One, Nyas One, Samskara One (16 samskaras), Purohit One, Jyotish One — plus Sangam (community), Seva Bazar (marketplace), Cash Custody (hash-chained hundi custody) and Solo Sanatani (personal app), across 79 desks.
+- **17 organisation types, 14 flagship suites**: Goshala One, Pathshala One, Matha One, Ashram One, Annakshetra One, Utsav One (festival war-room), Tirth One, Yoga One, Satsang One, Sabha One, Nyas One, Samskara One (16 samskaras), Purohit One, Jyotish One — plus Sangam (community), Seva Bazar (marketplace), Cash Custody (hash-chained hundi custody) and Solo Sanatani (personal app), across 72 desks.
 - **Universal Sanatani ID**: one identity connects a devotee to every institution they serve — no re-registration, no fragmentation.
 - **RBAC**: role-based access for SuperAdmin, Trustee, Accountant, Priest, Purohit, Jyotishi, Sevadar and Devotee — each role sees only its own desks.
 - **Dharmic Treasury**: donation & expense ledger, 80G receipts, Bangla QR / UPI chanda, Seva Wallet for top-ups and marketplace dakshina with commission — never custody of devotee-to-devotee money.

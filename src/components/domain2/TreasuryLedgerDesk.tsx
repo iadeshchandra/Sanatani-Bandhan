@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import {
   BarChart,
@@ -75,6 +75,7 @@ import {
   buildPayoutPayload, payoutApprovalThreshold, payoutNeedsApproval,
 } from '../../lib/approvals';
 import { resolveActorName } from '../../bahikhata/bahikhataStore';
+import { consumeDeskPanel, DESK_PANEL_EVENT } from '../../lib/deskPanel';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { useToast } from '../../context/ToastContext';
 import { compressExpenseMemo } from '../../utils/imageCompression';
@@ -213,6 +214,30 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   const myOrgRole = myMemberships.find((m) => m.workspaceId === workspaceId)?.role || '';
   const [p2pLedgerOpen, setP2pLedgerOpen] = useState(false);
   const [showBahiKhata, setShowBahiKhata] = useState(false);
+  // D-06: the Sidebar's Bahi-Khata door deep-links here. The door
+  // records a consume-once panel request (lib/deskPanel) BEFORE
+  // navigating and fires DESK_PANEL_EVENT for the already-mounted
+  // case; both paths land in openBahiKhataFromDoor, which honours
+  // the same Auditor exclusion as the hero door below (the panel is
+  // a write/review surface — Auditors never get it auto-opened).
+  const bahiKhataPanelRef = useRef<HTMLDivElement | null>(null);
+  const openBahiKhataFromDoor = useCallback(() => {
+    if (effectiveRole !== 'Auditor') {
+      setShowBahiKhata(true);
+      requestAnimationFrame(() => {
+        bahiKhataPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [effectiveRole]);
+  useEffect(() => {
+    if (consumeDeskPanel('treasury') === 'bahikhata') openBahiKhataFromDoor();
+    const onPanel = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { desk?: string; panel?: string } | undefined;
+      if (detail?.desk === 'treasury' && detail?.panel === 'bahikhata') openBahiKhataFromDoor();
+    };
+    window.addEventListener(DESK_PANEL_EVENT, onPanel);
+    return () => window.removeEventListener(DESK_PANEL_EVENT, onPanel);
+  }, [openBahiKhataFromDoor]);
   // F-TREAS-1: overflow menu for the secondary actions (toolbar shows ≤4).
   const [showMoreActions, setShowMoreActions] = useState(false);
   const { t, safeTranslate } = useLanguage();
@@ -1051,8 +1076,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
         )}
 
-        {/* Bahi-Khata Seva (donors) — toggled from the header door. */}
-        {showBahiKhata && <BahiKhataDesk targets={['donors']} />}
+        {/* Bahi-Khata Seva (donors) — toggled from the header door,
+            or opened directly by the Sidebar door (D-06). */}
+        {showBahiKhata && (
+          <div ref={bahiKhataPanelRef}>
+            <BahiKhataDesk targets={['donors']} />
+          </div>
+        )}
 
         {/* Hero — one big calm number (F-TREAS-1, spec §1: premium = one big
             calm number, not three competing ones). Inflow/outflow are demoted

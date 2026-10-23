@@ -801,7 +801,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
           <span>Context: {activeWorkspace.name} • {panchang.tithi}</span>
           <span className="flex items-center gap-1 text-amber-500/70">
             <Sparkles className="w-2.5 h-2.5" />
-            Gemini 3.8 Flash
+            On-Device AI
           </span>
         </div>
       </div>

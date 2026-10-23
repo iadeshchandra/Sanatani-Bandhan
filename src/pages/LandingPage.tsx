@@ -738,7 +738,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 operatingSystem: 'Web browser, Progressive Web App',
                 applicationCategory: 'BusinessApplication',
                 description:
-                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 66 desks, and 100% offline-first. ₹0 forever.',
+                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 72 desks, and 100% offline-first. ₹0 forever.',
                 offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
               },
               {
@@ -1051,7 +1051,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section className="border-y border-orange-100 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              ['66', 'Desks across 8 domains'],
+              ['72', 'Desks across 7 domains'],
               ['100%', 'Offline-first, zero internet needed'],
               ['1-click', 'CA-ready audit pack · 80G · Tally'],
               ['₹0', 'Free forever — no card, no trial'],
@@ -1269,7 +1269,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               One platform for every <span className="text-orange-600">dharmic institution.</span>
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Sixty-six desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
+              Seventy-two desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
               Pick your institution above, or explore every capability below.
             </p>
           </Reveal>
@@ -1830,7 +1830,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">All 66 desks</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">All 72 desks</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Treasury &amp; 80G</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Goshala &amp; Bhandar</button></li>
                 <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Why Dharma</button></li>

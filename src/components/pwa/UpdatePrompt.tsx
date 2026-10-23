@@ -12,6 +12,7 @@ import {
   wasDismissedFor,
   type VersionManifest,
 } from '../../lib/appVersion';
+import { criticalBodyText, isEffectivelyCritical } from '../../lib/criticalUpdate';
 
 /**
  * Bulletproof PWA update prompt.
@@ -23,7 +24,9 @@ import {
  *     where a stale index.html is served and the SW never notices.
  *
  * Normal updates: calm, dismissable bottom banner ("Suchana, not notification").
- * Critical updates (version.json critical:true): blocking modal until applied.
+ * Critical updates (version.json critical:true WITH a criticalNote —
+ * D-09): blocking modal that shows the note as its reason. A note-less
+ * critical flag degrades to the calm banner (lib/criticalUpdate).
  * Offline: everything fails silently, app keeps working.
  */
 
@@ -112,7 +115,7 @@ export function UpdatePrompt() {
   const swUpdateAvailable = swNeedRefresh === true;
   const handshakeUpdateAvailable = manifest !== null && !wasDismissedFor(manifest.version);
   const showPrompt = !updating && !dismissed && (swUpdateAvailable || handshakeUpdateAvailable);
-  const isCritical = manifest?.critical === true && handshakeUpdateAvailable;
+  const isCritical = isEffectivelyCritical(manifest) && handshakeUpdateAvailable;
 
   const applyUpdate = useCallback(async () => {
     setUpdating(true);
@@ -150,7 +153,7 @@ export function UpdatePrompt() {
           <h2 id="sb-update-critical-title" className="text-lg font-extrabold text-amber-100 mb-2">
             {t.criticalTitle}
           </h2>
-          <p className="text-sm text-stone-300 mb-5 leading-relaxed">{t.criticalBody}</p>
+          <p className="text-sm text-stone-300 mb-5 leading-relaxed">{criticalBodyText(manifest, t.criticalBody)}</p>
           <button
             type="button"
             onClick={applyUpdate}

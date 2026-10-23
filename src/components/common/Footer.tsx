@@ -25,7 +25,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTelemetry }) => {
             </button>
           )}
           <p>
-            Sanatani Bandhan Enterprise v3.2.0 • ISO-Aligned Dharmic Governance • 256-Bit Encrypted
+            Sanatani Bandhan v3.2.0 • ISO-Aligned Dharmic Governance • 256-Bit Encrypted
           </p>
         </div>
       </div>

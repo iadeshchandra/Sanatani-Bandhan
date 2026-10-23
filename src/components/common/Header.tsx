@@ -223,7 +223,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Center/Right side controls */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-        {/* Command palette trigger (⌘K) — the fastest way across 48 desks */}
+        {/* Command palette trigger (⌘K) — the fastest way across 72 desks */}
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}

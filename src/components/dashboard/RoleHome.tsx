@@ -647,7 +647,7 @@ export const ActionHub: React.FC<{
           >
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-saffron-700 text-sm">ॐ</span>
-              <span>Dharmic AI Assistant (Gemini 3.7)</span>
+              <span>Dharmic AI Assistant (On-Device AI)</span>
             </div>
             <Sparkles className="w-3.5 h-3.5 text-saffron-600 group-hover:scale-110 transition-transform" />
           </button>

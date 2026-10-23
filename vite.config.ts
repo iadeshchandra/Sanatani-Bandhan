@@ -28,17 +28,32 @@ function buildVersion(): { version: string; sha: string; buildTime: string } {
  * The app fetches this with cache:'no-store' and compares it against the
  * baked-in __APP_VERSION__ — if they differ, an update prompt is shown.
  * Set CRITICAL_UPDATE=true in the build env to force a blocking prompt.
+ * D-09 discipline: a critical flag must carry its reason — also set
+ * CRITICAL_UPDATE_NOTE="<what this update fixes>". Without a note the
+ * flag is downgraded to a normal update (loud warning below): users
+ * are never hard-blocked for an unexplained "important issue", and
+ * the client enforces the same law (lib/criticalUpdate).
  */
 function versionJsonPlugin(info: { version: string; sha: string; buildTime: string }): Plugin {
   return {
     name: 'sanatani-version-json',
     apply: 'build',
     closeBundle() {
+      const criticalRequested = process.env.CRITICAL_UPDATE === 'true';
+      const criticalNote = (process.env.CRITICAL_UPDATE_NOTE || '').trim();
+      if (criticalRequested && !criticalNote) {
+        console.warn(
+          '[version-json] ⚠️ CRITICAL_UPDATE=true without CRITICAL_UPDATE_NOTE — ' +
+            'shipping as a NORMAL (non-blocking) update. A critical flag must carry its reason (D-09).',
+        );
+      }
+      const critical = criticalRequested && criticalNote !== '';
       const manifest = {
         version: info.version,
         buildTime: info.buildTime,
         sha: info.sha,
-        critical: process.env.CRITICAL_UPDATE === 'true',
+        critical,
+        ...(critical ? { criticalNote } : {}),
       };
       try {
         fs.writeFileSync(

@@ -74,6 +74,8 @@ import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { whatsappLink, hasWhatsApp } from '../../config/contact';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
+import { doorById, doorsForVisibleDesks, doorMatchesSearch, type DeskDoor } from '../../lib/deskDoors';
+import { openDeskPanel } from '../../lib/deskPanel';
 import { UpsellModal } from './UpsellModal';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 
@@ -189,7 +191,7 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'utsavPanjika', name: 'Festival Calendar & Gate Passes', domain: 5, domainTitle: 'Matrimony & Outreach', icon: CalendarCheck2 },
   { id: 'panchayatPolls', name: 'Panchayat Voting & Quorum', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Vote },
   { id: 'sandeshBroadcast', name: 'Sandesh WhatsApp/SMS Broadcast', domain: 5, domainTitle: 'Matrimony & Outreach', icon: MessageSquare },
-  { id: 'dharmicAssistant', name: 'Dharmic AI Query Desk', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Sparkles, badge: 'Gemini 3.7' },
+  { id: 'dharmicAssistant', name: 'Dharmic AI Query Desk', domain: 5, domainTitle: 'Matrimony & Outreach', icon: Sparkles, badge: 'On-Device AI' },
 
   // Domain 6: Governance & Security
   { id: 'trusteeGovernance', name: 'Trustee Board & Governance', domain: 6, domainTitle: 'Governance & Security', icon: Scale },
@@ -216,6 +218,37 @@ export const MODULE_CATALOG: NavItem[] = [
   { id: 'yatraNet', name: 'YatraNet Offline Mesh (P2P)', domain: 7, domainTitle: 'Sanatani Life & Connect', icon: Radio, badge: 'Offline P2P' },
 ];
 
+/**
+ * D-06: the sidebar row for a DOOR (lib/deskDoors) — an entry that
+ * leads INTO a desk's panel (Bahi-Khata inside Treasury). Doors are
+ * NOT catalog rows: they never reach the App Store shelf, the mount
+ * guards, or the desk count (the #57 one-desk-one-row law).
+ */
+const doorItemFor = (door: DeskDoor): NavItem => {
+  const target = MODULE_CATALOG.find((m) => m.id === door.targetDesk);
+  return {
+    id: door.id,
+    name: door.name,
+    domain: target?.domain ?? 0,
+    domainTitle: target?.domainTitle ?? '',
+    icon: BookOpen,
+    keywords: door.keywords,
+  };
+};
+
+/** D-06: splice each door directly after its target desk's row. */
+const withDoors = (items: NavItem[], doors: DeskDoor[]): NavItem[] => {
+  if (doors.length === 0) return items;
+  const out: NavItem[] = [];
+  for (const item of items) {
+    out.push(item);
+    for (const door of doors) {
+      if (door.targetDesk === item.id) out.push(doorItemFor(door));
+    }
+  }
+  return out;
+};
+
 interface DeskRowProps {
   item: NavItem;
   rowKey: string;
@@ -228,7 +261,7 @@ interface DeskRowProps {
   /** C-6: plan-locked desks render a lock affordance and open the upgrade upsell. */
   isLocked?: boolean;
   lockTierLabel?: string | null;
-  onTogglePin: (id: string) => void;
+  onTogglePin?: (id: string) => void;
   onSelect: (id: string) => void;
 }
 
@@ -301,7 +334,7 @@ const DeskRow: React.FC<DeskRowProps> = ({
           ))}
         </button>
 
-        {!isCollapsed && (
+        {!isCollapsed && onTogglePin && (
           <button
             type="button"
             onClick={(e) => {
@@ -444,6 +477,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [isOpen, onClose]);
 
   const handleSelectModule = (id: string) => {
+    // D-06: a DOOR (Bahi-Khata) is not a desk — it never selects
+    // itself as the module. It navigates to its target desk through
+    // the app's 'sanatani:navigate' contract and asks that desk to
+    // open its panel (lib/deskPanel). A plan-locked target keeps the
+    // C-6 lock: the same upsell as the desk row itself.
+    const door = doorById(id);
+    if (door) {
+      if (lockedModuleIds.has(door.targetDesk)) {
+        setUpgradeModuleId(door.targetDesk);
+        return;
+      }
+      openDeskPanel(door.targetDesk, door.panel);
+      if (window.innerWidth < 1024) onClose();
+      return;
+    }
     // C-6: plan-locked desks don't navigate — they open the upgrade upsell.
     if (lockedModuleIds.has(id)) {
       setUpgradeModuleId(id);
@@ -529,6 +577,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const domainGroups = useMemo(() => {
+    // D-06: doors visible in this render — a door appears iff its
+    // target desk survived the same filteredModules pipeline
+    // (taxonomy + RBAC + domain pill), and the door itself matches
+    // any active search term. The door adds no permission decision
+    // of its own: the target desk's verdict IS the door's.
+    const doors = doorsForVisibleDesks(filteredModules.map((m) => m.id)).filter((door) =>
+      doorMatchesSearch(door, searchTerm),
+    );
     const groups: { domain: number; title: string; items: NavItem[] }[] = [];
     for (let d = 1; d <= 7; d++) {
       const items = filteredModules.filter((m) => m.domain === d);
@@ -536,12 +592,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         groups.push({
           domain: d,
           title: items[0].domainTitle,
-          items,
+          items: withDoors(items, doors),
         });
       }
     }
     return groups;
-  }, [filteredModules]);
+  }, [filteredModules, searchTerm]);
 
   // Pinned + recent sections derive from the RBAC-filtered module list,
   // so permissions are never bypassed. Hidden while searching to avoid noise.
@@ -843,7 +899,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         isCollapsed={isCollapsed}
                         displayLabel={resolveDisplayLabel(item)}
                         isPinned={pinnedIds.includes(item.id)}
-                        onTogglePin={handleTogglePin}
+                        onTogglePin={doorById(item.id) ? undefined : handleTogglePin}
                         isLocked={lockedModuleIds.has(item.id)}
                         lockTierLabel={lockTierLabelFor(item.id)}
                         onSelect={handleSelectModule}

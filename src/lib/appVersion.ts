@@ -8,8 +8,11 @@
  *     cache:'no-store'. If it differs from the running bundle, an update
  *     prompt is shown — even if the service worker hasn't noticed yet.
  *     This catches the Firebase CDN edge-inconsistency case (stale index.html).
- *  4. A `critical` flag in version.json (set manually per deploy) forces a
- *     blocking prompt: "This update fixes an important issue."
+ *  4. A `critical` flag in version.json (set per deploy via
+ *     CRITICAL_UPDATE=true) forces a blocking prompt — but ONLY when
+ *     the manifest also carries a `criticalNote` saying why (D-09):
+ *     the generator refuses to emit a reason-less critical flag, and
+ *     the client (lib/criticalUpdate) refuses to honour one.
  *
  * Offline-first: the version check fails silently with no network — the app
  * keeps working exactly as before.
@@ -35,7 +38,9 @@ export interface VersionManifest {
   version: string;
   buildTime: string;
   sha: string;
-  /** When true, the update prompt blocks interaction until applied. */
+  /** When true AND criticalNote is present, the update prompt blocks
+   *  interaction until applied. A critical flag without a note is not
+   *  honoured (D-09 — see lib/criticalUpdate). */
   critical: boolean;
   criticalNote?: string;
 }
