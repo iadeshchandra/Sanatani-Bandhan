@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   collection, collectionGroup, doc, setDoc, getDocs, query, orderBy, limit, where,
-  serverTimestamp, deleteDoc, onSnapshot, updateDoc, increment,
+  serverTimestamp, deleteDoc, onSnapshot, updateDoc, increment, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type {
@@ -537,14 +537,16 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     }));
     if (navigator.onLine) {
       try {
-        if (added) await setDoc(doc(db, 'sangamEvents', eventId, 'rsvps', uid), { uid, at: serverTimestamp() });
-        else await deleteDoc(doc(db, 'sangamEvents', eventId, 'rsvps', uid));
-        // Make rsvpCount true in the cloud too, in step with the toggle
-        // (rules permit exactly ±1 on that field).
-        try {
-          await updateDoc(doc(db, 'sangamEvents', eventId), { rsvpCount: increment(added ? 1 : -1) });
-        } catch { /* local-only event or offline — local count stands */ }
-      } catch { /* local */ }
+        // ONE batch: the rsvpCount may move only together with this
+        // member's own rsvps/{uid} record (rules anchor the ±1 to the
+        // record's creation/deletion in the same batch) — the count
+        // can no longer drift from the real RSVP list.
+        const batch = writeBatch(db);
+        if (added) batch.set(doc(db, 'sangamEvents', eventId, 'rsvps', uid), { uid, at: serverTimestamp() });
+        else batch.delete(doc(db, 'sangamEvents', eventId, 'rsvps', uid));
+        batch.update(doc(db, 'sangamEvents', eventId), { rsvpCount: increment(added ? 1 : -1) });
+        await batch.commit();
+      } catch { /* local-only event or offline — local count stands */ }
     }
   }, []);
 

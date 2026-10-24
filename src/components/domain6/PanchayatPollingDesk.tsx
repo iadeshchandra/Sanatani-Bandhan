@@ -5,14 +5,17 @@ import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { TrusteeResolution } from '../../types';
+import {
+  resolutionEffectiveStatus, resolutionIsOpen, resolutionQuorumMet, hasUserVoted,
+} from '../../lib/resolutionLogic';
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { UpsellModal } from '../common/UpsellModal';
 import { CommunityPollsTab } from './CommunityPollsTab';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
 
 export const PanchayatPollingDesk: React.FC = () => {
-  const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
-  const { resolutions, addResolution, voteOnResolution } = useData();
+  const { activeWorkspace, currentUser, currentRole, firebaseUser } = useAuthWorkspace();
+  const { resolutions, addResolution, voteOnResolution, devotees } = useData();
   const { showToast } = useToast();
   const { checkGate, showUpsell, upsellModule, closeUpsell } = usePlanGate();
   
@@ -27,15 +30,26 @@ export const PanchayatPollingDesk: React.FC = () => {
   const [proposedBy, setProposedBy] = useState(currentUser?.name || 'Admin');
   const [secondedBy, setSecondedBy] = useState('');
   const [auditPoll, setAuditPoll] = useState<TrusteeResolution | null>(null);
-  const [hasVotedLocally, setHasVotedLocally] = useState<Record<string, boolean>>({});
+  // EVENTS + POLLS P0: "have I voted" is read from the resolution's own
+  // recorded voters map under my real uid — never from screen memory.
+  const myUid = firebaseUser?.uid || '';
 
   const handleCreatePoll = (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkGate('events', resolutions.length)) return;
     if (!title.trim()) return showToast("Title is required", "error");
 
+    // Next number in this year's series — from the highest number in
+    // use, never from the list length (deleted drafts used to make the
+    // length-based number collide with a surviving resolution).
+    const year = new Date().getFullYear();
+    const maxSuffix = resolutions.reduce((m, r) => {
+      const match = new RegExp(`^RES-${year}-(\\d+)$`).exec(r.resolutionNumber || '');
+      return match ? Math.max(m, parseInt(match[1], 10)) : m;
+    }, 0);
+
     const newRes: Partial<TrusteeResolution> = {
-      resolutionNumber: `RES-${new Date().getFullYear()}-${String(resolutions.length + 1).padStart(3, '0')}`,
+      resolutionNumber: `RES-${year}-${String(maxSuffix + 1).padStart(3, '0')}`,
       date: new Date().toISOString(),
       title: title.trim(),
       description: description.trim(),
@@ -55,34 +69,54 @@ export const PanchayatPollingDesk: React.FC = () => {
     setTitle('');
     setDescription('');
     setSecondedBy('');
-    setHasVotedLocally(prev => ({...prev, [newRes.resolutionNumber || '']: true}));
   };
 
-  const handleVote = (id: string, inFavor: boolean) => {
-    if (hasVotedLocally[id]) {
+  const handleVote = (res: TrusteeResolution, inFavor: boolean) => {
+    if (!resolutionIsOpen(res, Date.now())) {
+      showToast("Voting on this resolution has closed.", "error");
+      return;
+    }
+    if (hasUserVoted(res, myUid)) {
       showToast("You have already cast your vote on this resolution.", "error");
       return;
     }
-    voteOnResolution(id, inFavor ? 'favor' : 'against');
-    setHasVotedLocally(prev => ({...prev, [id]: true}));
+    voteOnResolution(res.id, inFavor ? 'favor' : 'against');
     showToast(inFavor ? "Vote Cast: IN FAVOR" : "Vote Cast: AGAINST", "success");
   };
 
   const filteredResolutions = useMemo(() => {
+    const now = Date.now();
     return resolutions.filter(r => {
       const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) || r.resolutionNumber.toLowerCase().includes(searchTerm.toLowerCase());
-      const isActive = r.status === 'Pending Review';
+      // Derived status: an open resolution past its deadline counts as
+      // concluded (its outcome follows from the record) even before
+      // the persisted conclusion lands — voting is frozen either way.
+      const isActive = resolutionEffectiveStatus(r, now) === 'Pending Review';
       const matchesView = viewMode === 'Active' ? isActive : !isActive;
       return matchesSearch && matchesView;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [resolutions, searchTerm, viewMode]);
 
   const stats = useMemo(() => {
+    const now = Date.now();
     return {
       total: resolutions.length,
-      passed: resolutions.filter(r => r.status === 'Passed').length,
-      active: resolutions.filter(r => r.status === 'Pending Review').length
+      passed: resolutions.filter(r => resolutionEffectiveStatus(r, now) === 'Passed').length,
+      active: resolutions.filter(r => resolutionEffectiveStatus(r, now) === 'Pending Review').length
     };
+  }, [resolutions]);
+
+  // Real consensus figure, computed from the decided record — the old
+  // card quoted a hard-coded "85% majority" that described nothing.
+  const consensus = useMemo(() => {
+    const now = Date.now();
+    const decided = resolutions.filter(r => {
+      const s = resolutionEffectiveStatus(r, now);
+      return (s === 'Passed' || s === 'Rejected') && (r.votesInFavor + r.votesAgainst) > 0;
+    });
+    if (decided.length === 0) return null;
+    const avg = decided.reduce((sum, r) => sum + (r.votesInFavor / (r.votesInFavor + r.votesAgainst)) * 100, 0) / decided.length;
+    return { count: decided.length, avgMajority: Math.round(avg) };
   }, [resolutions]);
 
   const renderTimerProgress = (res: TrusteeResolution) => {
@@ -140,7 +174,7 @@ export const PanchayatPollingDesk: React.FC = () => {
                 Panchayat Polling & Quorum
               </h1>
               <p className="text-sm text-temple-400 mt-1 font-medium max-w-2xl">
-                Cryptographically secure decision-making engine. Propose resolutions, track board consensus, and launch public community polls with immutable audit trails.
+                Board decision-making with a recorded vote for every member. Propose resolutions, track real consensus against the actual board, and launch community polls — every conclusion is written to the workspace history.
               </p>
             </div>
           </div>
@@ -179,7 +213,9 @@ export const PanchayatPollingDesk: React.FC = () => {
                 <div>
                    <h3 className="text-sm font-black text-indigo-100">Panchayat AI Assistant</h3>
                    <p className="text-xs text-indigo-300/80 mt-0.5 leading-relaxed">
-                     Board engagement is currently optimal. The last {stats.passed} resolutions passed with an average 85% majority. 
+                     {consensus
+                       ? <>Across the {consensus.count} concluded resolutions on record, the winning side held an average {consensus.avgMajority}% majority.</>
+                       : <>No concluded resolutions yet — once the board decides, the real consensus record will be summarised here.</>}
                      {stats.active > 0 && <span className="text-saffron-400 ml-1">You have {stats.active} active proposals requiring a vote.</span>}
                    </p>
                 </div>
@@ -236,6 +272,10 @@ export const PanchayatPollingDesk: React.FC = () => {
               const totalVotes = res.votesInFavor + res.votesAgainst;
               const favorWidth = totalVotes > 0 ? (res.votesInFavor / totalVotes) * 100 : 0;
               const againstWidth = totalVotes > 0 ? (res.votesAgainst / totalVotes) * 100 : 0;
+              const effStatus = resolutionEffectiveStatus(res, Date.now());
+              const quorum = resolutionQuorumMet(res);
+              const myVote = myUid ? res.voters?.[myUid] : undefined;
+              const open = resolutionIsOpen(res, Date.now());
 
               return (
                 <div key={res.id} className="bg-temple-900 border border-temple-800 rounded-2xl p-5 hover:border-indigo-500/30 transition-all shadow-sm flex flex-col group relative">
@@ -248,12 +288,12 @@ export const PanchayatPollingDesk: React.FC = () => {
                        <h3 className="font-black text-lg text-white leading-tight">{res.title}</h3>
                      </div>
                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 border ${
-                        res.status === 'Passed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        res.status === 'Pending Review' ? 'bg-saffron-500/10 text-saffron-500 border-saffron-500/20' :
-                        res.status === 'Rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                        effStatus === 'Passed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        effStatus === 'Pending Review' ? 'bg-saffron-500/10 text-saffron-500 border-saffron-500/20' :
+                        effStatus === 'Rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                         'bg-temple-800 text-temple-400 border-temple-700'
                       }`}>
-                        {res.status}
+                        {effStatus}
                       </span>
                   </div>
 
@@ -295,6 +335,11 @@ export const PanchayatPollingDesk: React.FC = () => {
                        </div>
                        <div className="text-center">
                          <span className="text-[9px] font-bold text-temple-500 uppercase tracking-widest">{totalVotes} Total Votes Cast</span>
+                         <span className="block text-[9px] font-bold text-temple-500 uppercase tracking-widest mt-0.5">
+                           {res.boardSize
+                             ? `${totalVotes} of ${res.boardSize} board members · ${quorum ? 'quorum met' : 'quorum not yet met'}`
+                             : 'Board size not recorded for this resolution'}
+                         </span>
                        </div>
                      </div>
 
@@ -304,29 +349,35 @@ export const PanchayatPollingDesk: React.FC = () => {
                      {/* Action Buttons */}
                      <div className="flex items-center gap-2 pt-2 border-t border-temple-800">
                         {viewMode === 'Active' ? (
-                          <>
-                            <button 
-                              onClick={() => handleVote(res.id, true)}
-                              disabled={hasVotedLocally[res.id]}
-                              className="flex-1 bg-temple-800 hover:bg-emerald-500/20 text-emerald-400 border border-temple-700 hover:border-emerald-500/50 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              Vote In Favor
-                            </button>
-                            <button 
-                              onClick={() => handleVote(res.id, false)}
-                              disabled={hasVotedLocally[res.id]}
-                              className="flex-1 bg-temple-800 hover:bg-red-500/20 text-red-400 border border-temple-700 hover:border-red-500/50 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              Vote Against
-                            </button>
-                          </>
+                          myVote ? (
+                            <p className="w-full text-center text-xs font-black text-temple-300 bg-temple-800/60 border border-temple-700 py-2 rounded-xl">
+                              ✓ Your vote is recorded: {myVote === 'favor' ? 'IN FAVOR' : 'AGAINST'}
+                            </p>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleVote(res, true)}
+                                disabled={!open || !myUid}
+                                className="flex-1 bg-temple-800 hover:bg-emerald-500/20 text-emerald-400 border border-temple-700 hover:border-emerald-500/50 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Vote In Favor
+                              </button>
+                              <button
+                                onClick={() => handleVote(res, false)}
+                                disabled={!open || !myUid}
+                                className="flex-1 bg-temple-800 hover:bg-red-500/20 text-red-400 border border-temple-700 hover:border-red-500/50 py-2 rounded-xl text-xs font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Vote Against
+                              </button>
+                            </>
+                          )
                         ) : (
-                          <button 
+                          <button
                             onClick={() => setAuditPoll(res)}
                             className="w-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 py-2 rounded-xl text-xs font-black transition-all border border-indigo-500/20 flex items-center justify-center gap-2"
                           >
                             <ShieldAlert size={14} />
-                            View Cryptographic Audit Log
+                            View Voting Record
                           </button>
                         )}
                      </div>
@@ -453,56 +504,98 @@ export const PanchayatPollingDesk: React.FC = () => {
         </div>
       )}
 
-      {/* Cryptographic Audit Trail Modal */}
-      {auditPoll && (
+      {/* Voting Record Modal — the REAL record: who voted (board
+          resolutions are named votes), the tally, quorum against the
+          actual board size, and the conclusion. Nothing here is
+          simulated; resolutions that predate recorded ballots say so. */}
+      {auditPoll && (() => {
+        const voterEntries = Object.entries(auditPoll.voters || {}) as [string, 'favor' | 'against'][];
+        const favorVoters = voterEntries.filter(([, c]) => c === 'favor');
+        const againstVoters = voterEntries.filter(([, c]) => c === 'against');
+        const nameFor = (uid: string) => {
+          const m = devotees.find(d => d.id === uid || (d as any).userId === uid);
+          return (m as any)?.fullName || (m as any)?.name || 'Board member';
+        };
+        const effStatus = resolutionEffectiveStatus(auditPoll, Date.now());
+        const quorum = resolutionQuorumMet(auditPoll);
+        return (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-sm">
           <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="p-6 border-b border-temple-800 flex justify-between items-center bg-temple-800/30">
               <div>
                 <h3 className="text-xl font-black text-white flex items-center gap-2">
-                  <ShieldAlert className="text-indigo-400 w-6 h-6"/> Audit Trail
+                  <ShieldAlert className="text-indigo-400 w-6 h-6"/> Voting Record
                 </h3>
-                <p className="text-[10px] font-black text-temple-500 uppercase tracking-widest mt-1">Immutable Ledger Record</p>
+                <p className="text-[10px] font-black text-temple-500 uppercase tracking-widest mt-1">Recorded ballots & conclusion</p>
               </div>
               <button onClick={() => setAuditPoll(null)} className="text-temple-500 hover:text-temple-300 bg-temple-800 p-1.5 rounded-full transition-colors">
                  <XCircle className="w-5 h-5"/>
               </button>
             </div>
-            
+
             <div className="overflow-y-auto p-6 space-y-5 custom-scrollbar">
                <div className="bg-temple-950 p-5 rounded-2xl border border-temple-800 shadow-inner">
                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Target Resolution</p>
                  <p className="text-sm font-bold text-temple-200 leading-snug">{auditPoll.title}</p>
                  <p className="text-[10px] font-mono text-temple-500 mt-2">{auditPoll.resolutionNumber}</p>
+                 <div className="flex flex-wrap gap-2 mt-3">
+                   <span className="text-[10px] font-black bg-temple-800 px-2.5 py-1 rounded-lg border border-temple-700 text-temple-300 uppercase tracking-widest">{effStatus}</span>
+                   <span className="text-[10px] font-black bg-temple-800 px-2.5 py-1 rounded-lg border border-temple-700 text-temple-300 uppercase tracking-widest">
+                     {auditPoll.boardSize
+                       ? `${auditPoll.votesInFavor + auditPoll.votesAgainst} of ${auditPoll.boardSize} board · quorum ${quorum ? 'met' : 'not met'}`
+                       : 'Board size not recorded'}
+                   </span>
+                   {auditPoll.concludedAt && (
+                     <span className="text-[10px] font-black bg-temple-800 px-2.5 py-1 rounded-lg border border-temple-700 text-temple-300 uppercase tracking-widest">
+                       Concluded {new Date(auditPoll.concludedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                     </span>
+                   )}
+                 </div>
+                 {auditPoll.concludedAt ? (
+                   <p className="text-[11px] text-temple-400 leading-relaxed mt-3">This conclusion is recorded in the workspace History (the audit chain), where it cannot be edited or deleted.</p>
+                 ) : effStatus !== 'Pending Review' ? (
+                   <p className="text-[11px] text-temple-400 leading-relaxed mt-3">The deadline has passed, so this outcome is final; the persisted conclusion and its History entry are written by the first device that opens the workspace.</p>
+                 ) : null}
                </div>
-               
-               <div className="border border-temple-800 rounded-2xl overflow-hidden bg-temple-900">
-                  <div className="bg-temple-950/50 p-4 border-b border-temple-800 flex justify-between items-center">
-                    <span className="text-sm font-black text-emerald-400 flex items-center gap-2"><CheckCircle2 size={16}/> Votes In Favor</span>
-                    <span className="text-xs font-black bg-temple-800 px-3 py-1 rounded-lg border border-temple-700 text-temple-300">{auditPoll.votesInFavor}</span>
-                  </div>
-                  <div className="p-5">
-                     <p className="text-xs font-medium text-temple-400 leading-relaxed text-center">
-                       Cryptographic signatures verified. In the production environment, the precise timestamps, member IDs, and digital signatures of the board members who voted in favor are revealed here.
-                     </p>
-                  </div>
-               </div>
-               
-               <div className="border border-temple-800 rounded-2xl overflow-hidden bg-temple-900">
-                  <div className="bg-temple-950/50 p-4 border-b border-temple-800 flex justify-between items-center">
-                    <span className="text-sm font-black text-red-400 flex items-center gap-2"><XCircle size={16}/> Votes Against</span>
-                    <span className="text-xs font-black bg-temple-800 px-3 py-1 rounded-lg border border-temple-700 text-temple-300">{auditPoll.votesAgainst}</span>
-                  </div>
-                  <div className="p-5">
-                     <p className="text-xs font-medium text-temple-400 leading-relaxed text-center">
-                        Cryptographic signatures verified. Personal identifiers are masked in this preview instance.
-                     </p>
-                  </div>
-               </div>
+
+               {voterEntries.length === 0 ? (
+                 <div className="border border-temple-800 rounded-2xl bg-temple-900 p-5">
+                   <p className="text-xs font-medium text-temple-400 leading-relaxed text-center">
+                     This resolution predates recorded ballots, so only the totals survive: {auditPoll.votesInFavor} in favor, {auditPoll.votesAgainst} against. Resolutions proposed now record every ballot by name.
+                   </p>
+                 </div>
+               ) : (
+                 <>
+                   <div className="border border-temple-800 rounded-2xl overflow-hidden bg-temple-900">
+                      <div className="bg-temple-950/50 p-4 border-b border-temple-800 flex justify-between items-center">
+                        <span className="text-sm font-black text-emerald-400 flex items-center gap-2"><CheckCircle2 size={16}/> Votes In Favor</span>
+                        <span className="text-xs font-black bg-temple-800 px-3 py-1 rounded-lg border border-temple-700 text-temple-300">{auditPoll.votesInFavor}</span>
+                      </div>
+                      <div className="p-3 space-y-1">
+                         {favorVoters.length > 0 ? favorVoters.map(([uid]) => (
+                           <p key={uid} className="text-xs font-bold text-temple-300 px-2 py-1.5">{nameFor(uid)}</p>
+                         )) : <p className="text-xs text-temple-500 px-2 py-1.5">None recorded.</p>}
+                      </div>
+                   </div>
+
+                   <div className="border border-temple-800 rounded-2xl overflow-hidden bg-temple-900">
+                      <div className="bg-temple-950/50 p-4 border-b border-temple-800 flex justify-between items-center">
+                        <span className="text-sm font-black text-red-400 flex items-center gap-2"><XCircle size={16}/> Votes Against</span>
+                        <span className="text-xs font-black bg-temple-800 px-3 py-1 rounded-lg border border-temple-700 text-temple-300">{auditPoll.votesAgainst}</span>
+                      </div>
+                      <div className="p-3 space-y-1">
+                         {againstVoters.length > 0 ? againstVoters.map(([uid]) => (
+                           <p key={uid} className="text-xs font-bold text-temple-300 px-2 py-1.5">{nameFor(uid)}</p>
+                         )) : <p className="text-xs text-temple-500 px-2 py-1.5">None recorded.</p>}
+                      </div>
+                   </div>
+                 </>
+               )}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <UpsellModal 
         isOpen={showUpsell}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, increment, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, increment, deleteDoc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { pollTotalVotes, pollIsOpen } from '../../lib/pollLogic';
+import { publishBroadcast } from '../../org/broadcastService';
 import { 
   BarChart2, BarChart3, PieChart, Plus, Trash2, CheckCircle2, 
   X, Loader2, Users, ShieldCheck, Clock, AlertTriangle, 
@@ -19,9 +21,9 @@ let generatePollReportPdf: any = null;
 import('../../utils/pdfGenerator').then(mod => { generatePollReportPdf = (mod as any).generatePollReportPdf }).catch(() => {});
 
 export const CommunityPollsTab: React.FC = () => {
-  const { activeWorkspace, currentUser, currentRole } = useAuthWorkspace();
+  const { activeWorkspace, currentUser, currentRole, firebaseUser } = useAuthWorkspace();
   const { t } = useLanguage();
-  const { devotees } = useData();
+  const { devotees, noteAudit } = useData();
   const { checkGate } = usePlanGate();
 
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,14 @@ export const CommunityPollsTab: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   
   const [polls, setPolls] = useState<any[]>([]);
+  // EVENTS + POLLS P0 — the ballot box: MY ballot per poll, read from
+  // polls/{id}/votes/{myUid} (the only place a vote choice now lives;
+  // the poll doc carries counts only). Legacy polls still show my old
+  // vote from their frozen votedUsers map (see myVoteFor below).
+  const [myVotes, setMyVotes] = useState<Record<string, string>>({});
+  // Named ballots for the committee audit of a MANAGERS poll — loaded
+  // only while the audit view is open, and the opening is logged.
+  const [auditBallots, setAuditBallots] = useState<Record<string, string>>({});
 
   // UI Modals & Actions
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -70,17 +80,56 @@ export const CommunityPollsTab: React.FC = () => {
     return () => unsub();
   }, [activeWorkspace?.id]);
 
+  // Deadline truth no longer waits for a manager's visit: ANY signed-in
+  // member's client may land the conclusion once the deadline has
+  // passed — firestore.rules verify the stored deadline timestamp
+  // before allowing the flip, so this is safe to attempt for everyone.
   useEffect(() => {
-    if (!isManagerOrAdmin || polls.length === 0) return;
+    if (!firebaseUser || polls.length === 0) return;
     const now = Date.now();
     const expiredPolls = polls.filter(p => p.status === 'ACTIVE' && p.expiresAt && p.expiresAt < now);
 
     if (expiredPolls.length > 0) {
       expiredPolls.forEach(p => {
-        updateDoc(doc(db, 'polls', p.id), { status: 'CONCLUDED' }).catch(e => console.error(e));
+        updateDoc(doc(db, 'polls', p.id), { status: 'CONCLUDED' }).catch(() => { /* rules will land it for an eligible writer */ });
       });
     }
-  }, [polls, isManagerOrAdmin]);
+  }, [polls, firebaseUser]);
+
+  // My ballots: one tiny listener per poll on my OWN vote doc.
+  useEffect(() => {
+    const uid = firebaseUser?.uid;
+    if (!uid || polls.length === 0) return;
+    const unsubs = polls.map(p =>
+      onSnapshot(doc(db, 'polls', p.id, 'votes', uid), (snap) => {
+        setMyVotes(prev => {
+          const next = { ...prev };
+          if (snap.exists()) next[p.id] = (snap.data() as any).optionId;
+          else delete next[p.id];
+          return next;
+        });
+      }, () => { /* ballot unreadable (not a member view) — counts still show */ })
+    );
+    return () => unsubs.forEach(u => u());
+  }, [polls, firebaseUser]);
+
+  // Committee audit ballots: subscribe only while a MANAGERS poll's
+  // audit view is open (rules allow the committee to read these —
+  // named voting is the design for committee polls; community ballots
+  // are never readable by anyone but the voter).
+  useEffect(() => {
+    if (!auditPoll || auditPoll.targetAudience !== 'MANAGERS') { setAuditBallots({}); return; }
+    const unsub = onSnapshot(collection(db, 'polls', auditPoll.id, 'votes'), (snap) => {
+      const map: Record<string, string> = {};
+      snap.docs.forEach(d => { map[d.id] = (d.data() as any).optionId; });
+      setAuditBallots(map);
+    }, () => setAuditBallots({}));
+    return () => unsub();
+  }, [auditPoll]);
+
+  /** My vote on a poll: the ballot box first, the legacy map second. */
+  const myVoteFor = (poll: any): string | null =>
+    myVotes[poll.id] ?? (poll.votedUsers && currentUser?.id ? poll.votedUsers[currentUser.id] : null) ?? null;
 
   const handleCreatePoll = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,8 +159,13 @@ export const CommunityPollsTab: React.FC = () => {
         createdAt: Date.now(),
         createdBy: currentUser?.name || 'Admin',
         expiresAt: expirationMs,
+        // Timestamp twin of the deadline — firestore.rules compare
+        // this (a real timestamp) when verifying expiry/conclusion.
+        expiresAtTs: Timestamp.fromMillis(expirationMs),
         options: optionsMap,
-        votedUsers: {}
+        // Ballot-box model: the doc carries ONLY this count; each
+        // ballot lives in polls/{id}/votes/{uid}. No votedUsers map.
+        totalVotes: 0
       };
 
       const pollRef = doc(collection(db, 'polls'));
@@ -139,24 +193,35 @@ export const CommunityPollsTab: React.FC = () => {
   };
 
   const handleVote = async (pollId: string, optionId: string) => {
-    if (!currentUser?.id) return showToastMsg("Please log in to vote.", "error");
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to vote.", "error");
     const poll = polls.find(p => p.id === pollId);
     if (!poll) return;
-    if (poll.status !== 'ACTIVE' || (poll.expiresAt && Date.now() > poll.expiresAt)) {
+    if (!pollIsOpen(poll, Date.now())) {
       return showToastMsg("This poll has been concluded.", "error");
     }
-    if (poll.votedUsers && poll.votedUsers[currentUser.id]) return showToastMsg("You have already voted.", "error");
+    if (myVoteFor(poll)) return showToastMsg("You have already voted.", "error");
 
     try {
-      const pollRef = doc(db, 'polls', pollId);
-      await updateDoc(pollRef, {
-        [`votedUsers.${currentUser.id}`]: optionId,
-        [`options.${optionId}.votes`]: increment(1)
+      // ONE batch: my private ballot doc + the poll's counts, together.
+      // The rules anchor the +1 to the NEW ballot doc under my own uid —
+      // a second vote from any device is impossible (the ballot doc
+      // already exists, so the anchor fails), and the poll doc itself
+      // never learns who chose what.
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
+        optionId,
+        votedAt: serverTimestamp()
       });
-      showToastMsg("Your vote has been securely recorded!", 'success');
+      batch.update(doc(db, 'polls', pollId), {
+        [`options.${optionId}.votes`]: increment(1),
+        totalVotes: increment(1)
+      });
+      await batch.commit();
+      showToastMsg("Your vote has been recorded.", 'success');
       pushToDataLayer('select_content', { content_type: 'Poll_Vote', item_id: pollId });
-    } catch (e: any) { 
-      showToastMsg("Voting error: " + e.message, "error"); 
+    } catch (e: any) {
+      showToastMsg("Voting error: " + e.message, "error");
     }
   };
 
@@ -181,34 +246,71 @@ export const CommunityPollsTab: React.FC = () => {
   };
 
   const handleDeletePoll = (poll: any) => {
+    // Archive-only law: a poll with ballots is the community's decided
+    // history and can never be erased (the rules enforce this too).
+    // Only a poll nobody has voted on may be deleted.
+    if (pollTotalVotes(poll) > 0) {
+      return showToastMsg("This poll has votes and is part of the record — it cannot be deleted. Concluded polls stay archived.", "error");
+    }
     setConfirmDialog({
-      title: "Delete Poll Record",
-      message: `🚨 DANGER: This will completely erase "${poll.title}" and all its voting history. Are you sure?`,
+      title: "Delete Poll",
+      message: `Delete "${poll.title}"? No votes have been cast on it, so nothing will be lost.`,
       confirmText: t('actions.deleteRecord') || "DELETE POLL",
       isDanger: true,
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
           await deleteDoc(doc(db, 'polls', poll.id));
-          showToastMsg("Poll record erased.", 'success');
+          showToastMsg("Poll deleted.", 'success');
         } catch (e: any) { showToastMsg(e.message, "error"); }
       }
     });
   };
-  
+
   const handleSendReminder = (poll: any) => {
     setConfirmDialog({
-      title: "Send Final Alert",
-      message: `Send an urgent push notification to all targeted members who have NOT voted yet for "${poll.title}"?`,
-      confirmText: "SEND ALERT",
+      title: "Publish a Reminder",
+      message: `This publishes a community announcement for "${poll.title}" through the org's announcement feed, so members see it in their Suchana. Ballots are private, so the reminder goes to the whole community — it cannot target only those who have not voted.`,
+      confirmText: "PUBLISH REMINDER",
       isDanger: false,
       onConfirm: async () => {
         setConfirmDialog(null);
-        showToastMsg("Final reminder sent to unvoted members.", "success");
+        try {
+          const uid = firebaseUser?.uid;
+          if (!uid) throw new Error('Please sign in again to publish a reminder.');
+          await publishBroadcast({
+            orgId: activeWorkspace.id,
+            orgName: activeWorkspace.name || '',
+            title: `Voting reminder: ${poll.title}`,
+            body: `Voting is open in Community Polls${poll.expiresAt ? ` until ${new Date(poll.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}. Open the Panchayat desk to cast your vote.`,
+            createdBy: uid,
+            createdByName: currentUser?.name || '',
+          });
+          showToastMsg("Reminder published to the community.", "success");
+        } catch (e: any) {
+          showToastMsg("Reminder could not be published: " + (e.message || 'please try again.'), "error");
+        }
       }
     });
   };
   
+  const openAudit = (poll: any) => {
+    // Committee polls are named votes by design; opening the named
+    // ballot list is itself recorded in the workspace history
+    // (Blueprint A audit chain), so the reveal is never silent.
+    if (poll.targetAudience === 'MANAGERS') {
+      noteAudit({
+        action: 'poll.ballotsRevealed',
+        entityType: 'poll',
+        entityId: poll.id,
+        entityLabel: poll.title,
+        summaryKey: 'org.audit.history.pollBallotsRevealed',
+        summaryParams: { poll: poll.title || '' },
+      });
+    }
+    setAuditPoll(poll);
+  };
+
   const handleDownloadPDF = (poll: any) => {
     pushToDataLayer('export_data', { export_type: 'PDF', data_category: 'POLL_REPORT', community_id: activeWorkspace?.id });
     if(generatePollReportPdf) {
@@ -291,7 +393,7 @@ export const CommunityPollsTab: React.FC = () => {
       const eligibleCount = p.targetAudience === 'MANAGERS' 
         ? devotees.filter(m => ['MANAGER', 'MANAGER', 'SUPER_ADMIN'].includes(m.role)).length 
         : devotees.length;
-      const votesCast = p.votedUsers ? Object.keys(p.votedUsers).length : 0;
+      const votesCast = pollTotalVotes(p);
       totalEligibleActive += eligibleCount;
       totalVotedActive += votesCast;
     });
@@ -302,7 +404,7 @@ export const CommunityPollsTab: React.FC = () => {
     if (concludedPolls.length > 0) {
       const lastPoll = concludedPolls[0]; 
       const opts = Object.values(lastPoll.options || {}).sort((a: any, b: any) => b.votes - a.votes) as any[];
-      const total = lastPoll.votedUsers ? Object.keys(lastPoll.votedUsers).length : 0;
+      const total = pollTotalVotes(lastPoll);
 
       if (total > 0 && opts.length >= 2) {
         const first = opts[0].votes;
@@ -377,7 +479,7 @@ export const CommunityPollsTab: React.FC = () => {
             <BarChart3 className="text-saffron-500" size={26} /> {t('nav.polls') || 'Community Voting'}
           </h2>
           <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-widest">
-            Cryptographic decision making & consensus tracking.
+            One member, one vote — every ballot recorded, results counted openly.
           </p>
         </div>
 
@@ -456,15 +558,15 @@ export const CommunityPollsTab: React.FC = () => {
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><Lock size={16}/></div>
               <div>
-                <p className="text-xs font-black text-gray-900 mb-1">1. Immutable Voting & Privacy</p>
-                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Votes are cryptographically logged. Regular members only see anonymous percentages. Admins can audit individual votes.</p>
+                <p className="text-xs font-black text-gray-900 mb-1">1. One Vote Each & Privacy</p>
+                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Each ballot is stored as a private vote under the voter's own account; the poll itself keeps only counts, so community ballots stay secret. Committee polls are named votes — committee members can open the ballot audit, and every opening is recorded in the workspace history.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><BellRing size={16}/></div>
               <div>
                 <p className="text-xs font-black text-gray-900 mb-1">2. Final Reminders</p>
-                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Before a poll ends, click 'Send Reminder' to blast an urgent push notification ONLY to members who haven't voted yet.</p>
+                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Before a poll ends, click 'Remind' to publish a community announcement. Because ballots are private, the reminder reaches the whole community — it cannot target only those who have not voted.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -483,8 +585,8 @@ export const CommunityPollsTab: React.FC = () => {
         {displayPolls.length > 0 ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {displayPolls.map(poll => {
-              const myVote = poll.votedUsers && currentUser?.id ? poll.votedUsers[currentUser.id] : null;
-              const totalVotes = poll.votedUsers ? Object.keys(poll.votedUsers).length : 0;
+              const myVote = myVoteFor(poll);
+              const totalVotes = pollTotalVotes(poll);
               const options = Object.keys(poll.options || {}).map(k => ({ id: k, ...poll.options[k] }));
 
               let winnerId = null;
@@ -597,7 +699,7 @@ export const CommunityPollsTab: React.FC = () => {
 
                        {isManagerOrAdmin && (
                          <>
-                           <button onClick={() => setAuditPoll(poll)} className="flex-1 sm:flex-none bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="View Voter Details (Admin Only)">
+                           <button onClick={() => openAudit(poll)} className="flex-1 sm:flex-none bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="View the ballot audit">
                              <ListChecks size={14}/> Audit
                            </button>
 
@@ -611,9 +713,11 @@ export const CommunityPollsTab: React.FC = () => {
                                </button>
                              </>
                            )}
-                           <button onClick={() => handleDeletePoll(poll)} className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 p-2.5 rounded-xl transition-all flex justify-center items-center shadow-sm hover:shadow-md">
-                             <Trash2 size={16}/>
-                           </button>
+                           {pollTotalVotes(poll) === 0 && (
+                             <button onClick={() => handleDeletePoll(poll)} className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 p-2.5 rounded-xl transition-all flex justify-center items-center shadow-sm hover:shadow-md" title="Delete (no votes cast yet)">
+                               <Trash2 size={16}/>
+                             </button>
+                           )}
                          </>
                        )}
                      </div>
@@ -764,51 +868,72 @@ export const CommunityPollsTab: React.FC = () => {
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 shrink-0">
               <div>
                 <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                  <ListChecks className="text-blue-600" size={24}/> Cryptographic Audit Trail
+                  <ListChecks className="text-blue-600" size={24}/> Ballot Audit
                 </h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Admin Privilege Only</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                  {auditPoll.targetAudience === 'MANAGERS'
+                    ? 'Committee poll — named ballots; this opening was recorded'
+                    : 'Community poll — ballots are private; counts only'}
+                </p>
               </div>
               <button onClick={() => setAuditPoll(null)} className="p-2.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-colors shadow-sm"><X size={16}/></button>
             </div>
             <div className="overflow-y-auto flex-1 p-6 space-y-6 scrollbar-hide pb-12">
                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm relative overflow-hidden">
                  <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Audit Log for Poll:</p>
+                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Audit for Poll:</p>
                  <p className="text-sm font-black text-blue-900">{auditPoll.title}</p>
+                 <p className="text-[10px] font-bold text-blue-700 mt-1">{pollTotalVotes(auditPoll)} total votes counted</p>
                </div>
+               {auditPoll.targetAudience !== 'MANAGERS' && (
+                 <p className="text-xs font-bold text-gray-500 leading-relaxed bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                   Individual ballots on community polls are private — each vote is stored under the voter's own account, and not even the committee can see who chose what. Only the counts below are visible.
+                 </p>
+               )}
                {Object.keys(auditPoll.options || {}).map(optId => {
                   const opt = auditPoll.options[optId];
-                  const voterUids = Object.keys(auditPoll.votedUsers || {}).filter(uid => auditPoll.votedUsers[uid] === optId);
+                  // Named ballots exist only for committee polls: the
+                  // ballot box (keyed by firebase uid) plus any legacy
+                  // pre-ballot-box votes (keyed by member id). Names
+                  // only — phone numbers are never shown here.
+                  const ballotUids = auditPoll.targetAudience === 'MANAGERS'
+                    ? Object.keys(auditBallots).filter(uid => auditBallots[uid] === optId)
+                    : [];
+                  const legacyUids = auditPoll.targetAudience === 'MANAGERS'
+                    ? Object.keys(auditPoll.votedUsers || {}).filter(uid => auditPoll.votedUsers[uid] === optId && !ballotUids.includes(uid))
+                    : [];
+                  const voterKeys = [...ballotUids, ...legacyUids];
                   return (
                     <div key={optId} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                       <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
                         <span className="text-sm font-black text-gray-800">{opt.text}</span>
-                        <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-gray-200 text-gray-500 uppercase tracking-widest shadow-sm">{voterUids.length} Votes</span>
+                        <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-gray-200 text-gray-500 uppercase tracking-widest shadow-sm">{opt.votes} Votes</span>
                       </div>
-                      <div className="p-2 bg-white">
-                        {voterUids.length > 0 ? (
-                          <div className="divide-y divide-gray-50">
-                             {voterUids.map(uid => {
-                               const member = devotees.find(m => m.id === uid);
-                               const displayName = member ? member.name : 'Unknown User';
-                               const displayPhone = member ? member.phone : uid;
-                               return (
-                                 <div key={uid} className="p-3 flex items-center justify-between hover:bg-gray-50 rounded-xl transition-colors group">
-                                   <div className="flex items-center gap-3">
-                                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                       {displayName.charAt(0).toUpperCase()}
+                      {auditPoll.targetAudience === 'MANAGERS' && (
+                        <div className="p-2 bg-white">
+                          {voterKeys.length > 0 ? (
+                            <div className="divide-y divide-gray-50">
+                               {voterKeys.map(uid => {
+                                 const member = devotees.find(m => m.id === uid || (m as any).userId === uid);
+                                 const displayName = member ? ((member as any).name || (member as any).fullName || 'Member') : 'Member';
+                                 return (
+                                   <div key={uid} className="p-3 flex items-center justify-between hover:bg-gray-50 rounded-xl transition-colors group">
+                                     <div className="flex items-center gap-3">
+                                       <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                         {displayName.charAt(0).toUpperCase()}
+                                       </div>
+                                       <span className="text-sm font-bold text-gray-900">{displayName}</span>
                                      </div>
-                                     <span className="text-sm font-bold text-gray-900">{displayName}</span>
+                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ballot recorded</span>
                                    </div>
-                                   <span className="text-[10px] font-mono font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">{displayPhone}</span>
-                                 </div>
-                               );
-                             })}
-                          </div>
-                        ) : (
-                          <p className="text-[10px] font-bold text-gray-400 p-4 text-center italic uppercase tracking-widest">No votes cast for this option yet.</p>
-                        )}
-                      </div>
+                                 );
+                               })}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] font-bold text-gray-400 p-4 text-center italic uppercase tracking-widest">No votes cast for this option yet.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                })}

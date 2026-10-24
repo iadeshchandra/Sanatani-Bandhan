@@ -25,10 +25,15 @@ const download = (name: string, text: string, mime = 'text/csv') => {
 export const ReportsTab: React.FC = () => {
   const inr = useInr();
   const { t } = useLanguage();
-  const { state, exportJSON, importJSON, resetAll } = useUtsav();
+  const { state, exportJSON, importJSON, resetAll, takeUCNo } = useUtsav();
   const { showToast } = useToast();
   const [festivalId, setFestivalId] = useState(state.festivals[0]?.id || '');
   const [printing, setPrinting] = useState<'uc' | 'summary' | null>(null);
+  // The UC number is ISSUED (consumed from the persistent counter)
+  // only when the certificate is actually printed — the on-screen
+  // preview shows the next number without burning it, and reprints
+  // of the same certificate keep the same number.
+  const [issuedUcNo, setIssuedUcNo] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fest = state.festivals.find((f) => f.id === festivalId) || state.festivals[0];
@@ -40,9 +45,10 @@ export const ReportsTab: React.FC = () => {
   const pending = vendorPending(state, fest.id);
   const safetyPct = safetyDonePct(state, fest.id);
   const checkins = totalCheckins(state, fest.id);
-  const ucNo = nextUCNo(state);
+  const ucNo = issuedUcNo || nextUCNo(state);
 
   const print = (kind: 'uc' | 'summary') => {
+    if (kind === 'uc' && !issuedUcNo) setIssuedUcNo(takeUCNo());
     setPrinting(kind);
     setTimeout(() => { window.print(); setPrinting(null); }, 150);
   };
@@ -78,7 +84,7 @@ export const ReportsTab: React.FC = () => {
     <div className="space-y-4">
       <Field label={t('ritual.common.festival')}>
         <select className="w-full sm:w-80 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm min-h-[44px]"
-          value={fest.id} onChange={(e) => setFestivalId(e.target.value)}>
+          value={fest.id} onChange={(e) => { setFestivalId(e.target.value); setIssuedUcNo(''); }}>
           {state.festivals.map((f) => <option key={f.id} value={f.id}>{f.name} · {fmtDate(f.startDate)}</option>)}
         </select>
       </Field>

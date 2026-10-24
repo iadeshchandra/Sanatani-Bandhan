@@ -17,6 +17,7 @@ import {
   festivalEventUrl, slotRemaining, validateRsvp,
   type FestivalEventDoc,
 } from '../../lib/festival';
+import { applyFestivalRsvp } from '../../lib/festivalRsvp';
 
 const inputCls =
   'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 min-h-[44px]';
@@ -76,26 +77,24 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
     }
     setSubmitting(true);
     try {
-      // Build a one-off submitter bound to this public event id.
-      const { addDoc, collection, updateDoc, increment: inc, serverTimestamp: st } =
-        await import('firebase/firestore');
+      // One transaction: the RSVP record and the public counters move
+      // together (rules anchor the counters to this very record), and
+      // a darshan slot can never be booked past its capacity.
       const uid = (firebaseUser as { uid?: string }).uid || 'anon';
-      const hc = Math.min(20, Math.max(1, Math.round(headcount)));
-      await addDoc(collection(db, 'festival_rsvps'), {
+      await applyFestivalRsvp({
         eventId: event!.id,
-        workspaceId: orgId,
+        workspaceId: orgId || '',
         uid,
-        name: name.trim().slice(0, 80),
-        headcount: hc,
+        name,
+        headcount,
         ...(slotId ? { slotId } : {}),
-        createdAt: new Date().toISOString(),
       });
-      const counters: Record<string, unknown> = { rsvpHeadcount: inc(hc), updatedAt: st() };
-      if (slotId) counters[`slotBooked.${slotId}`] = inc(hc);
-      await updateDoc(doc(db, 'festival_events', event!.id), counters);
       setDone(true);
     } catch (e) {
-      setError(safeTranslate('festival.page.err', 'Something did not go through — please try again.', 'কিছু একটা হয়নি — আবার চেষ্টা করুন।', 'कुछ ठीक नहीं हुआ — पुनः प्रयास करें।'));
+      const code = (e as { message?: string })?.message || '';
+      setError(code === 'slot-full'
+        ? safeTranslate('festival.page.slotfull', 'That darshan slot has just filled — please choose another time, or join the general darshan.', 'এই দর্শন স্লটটি এইমাত্র পূর্ণ হয়েছে — অন্য সময় বেছে নিন, অথবা সাধারণ দর্শনে যোগ দিন।', 'यह दर्शन स्लॉट अभी-अभी भर गया है — कृपया दूसरा समय चुनें, या सामान्य दर्शन में पधारें।')
+        : safeTranslate('festival.page.err', 'Something did not go through — please try again.', 'কিছু একটা হয়নি — আবার চেষ্টা করুন।', 'कुछ ठीक नहीं हुआ — पुनः प्रयास करें।'));
     } finally {
       setSubmitting(false);
     }

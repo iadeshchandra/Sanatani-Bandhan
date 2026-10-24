@@ -149,4 +149,10 @@ export interface UtsavState {
   safety: SafetyItem[];
   checkins: CheckinCount[];
   settings: UtsavSettings;
+  /**
+   * Utilisation-certificate numbers ever issued on this device
+   * (monotonic — a UC number is never reused, even after the festival
+   * it belonged to is deleted). See utsavStore.nextUCNo / takeUCNo.
+   */
+  ucSeq: number;
 }

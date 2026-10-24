@@ -444,9 +444,16 @@ export interface FestivalEventDoc {
   published: boolean;
   /** Trustee-published snapshot of expected turnout ("as of …"). */
   publishedHeadcount: number;
-  /** Live per-slot bookings — public clients may only bump these counters. */
+  /** Live per-slot bookings — moves only with a matching RSVP record. */
   slotBooked: Record<string, number>;
-  /** Live RSVP headcount — public clients may only bump this counter. */
+  /**
+   * Per-slot capacity map {slotId: capacity}, stamped at publish time
+   * from darshanSlots so firestore.rules can bound slotBooked (the
+   * rules cannot index the darshanSlots list by id). Absent on pages
+   * published before the EVENTS P0 batch.
+   */
+  slotCaps?: Record<string, number>;
+  /** Live RSVP headcount — moves only with a matching RSVP record. */
   rsvpHeadcount: number;
   updatedAt: string;
 }

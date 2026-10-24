@@ -23,6 +23,7 @@ type EntityKey = 'festivals' | 'budget' | 'members' | 'tasks' | 'vendors' | 'pro
 const EMPTY: UtsavState = {
   festivals: [], budget: [], members: [], tasks: [], vendors: [], program: [], safety: [], checkins: [],
   settings: { samitiName: '' },
+  ucSeq: 0,
 };
 
 const storageKey = (ws: string) => `sb_utsav_${ws}`;
@@ -81,10 +82,19 @@ export function totalCheckins(state: UtsavState, festivalId: string): number {
   return state.checkins.filter((c) => c.festivalId === festivalId).reduce((s, c) => s + c.count, 0);
 }
 
-/** Next utilisation-certificate number: UC-YYYY-NNNN. */
+/**
+ * Next utilisation-certificate number: UC-YYYY-NNNN.
+ * L6 fix: the sequence comes from the PERSISTED ucSeq counter, not
+ * from the festival count — the old formula re-issued a number
+ * whenever a festival was deleted (two different certificates could
+ * carry the same UC number). The counter only ever moves forward,
+ * the same law as the treasury receiptCounters; it lives in the
+ * local store because Utsav is device-local by design (a cloud
+ * counter would break the offline guarantee).
+ */
 export function nextUCNo(state: UtsavState): string {
   const year = new Date().getFullYear();
-  return `UC-${year}-${String(state.festivals.length + 1).padStart(4, '0')}`;
+  return `UC-${year}-${String((state.ucSeq || 0) + 1).padStart(4, '0')}`;
 }
 
 function loadState(ws: string): UtsavState {
@@ -94,7 +104,14 @@ function loadState(ws: string): UtsavState {
       const parsed = JSON.parse(raw);
       // QUEUED #53: one-time purge of pre-law persisted seed residue
       // (real workspaces only; exact seed-id match — see lib/seedPurge).
-      return purgePersistedSeedState('utsav', ws, { ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
+      const merged = purgePersistedSeedState('utsav', ws, { ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
+      // L6 continuity: stores written before the counter existed had
+      // issued up to (festival count) UC numbers — start the counter
+      // there so no already-issued number is ever handed out again.
+      if (typeof parsed.ucSeq !== 'number') {
+        merged.ucSeq = Array.isArray(parsed.festivals) ? parsed.festivals.length : 0;
+      }
+      return merged;
     }
   } catch { /* corrupted → reseed */ }
   return { ...EMPTY };
@@ -150,6 +167,9 @@ interface UtsavCtx {
   update: <K extends EntityKey>(key: K, id: string, patch: Partial<UtsavState[K] extends Array<infer T> ? T : never>) => void;
   remove: (key: EntityKey, id: string) => void;
   setSettings: (patch: Partial<UtsavSettings>) => void;
+  /** Issue (consume) the next UC number — call when a certificate is
+   *  actually printed, so previewing never burns a number. */
+  takeUCNo: () => string;
   ensureSeeded: () => void;
   exportJSON: () => string;
   importJSON: (json: string) => boolean;
@@ -181,6 +201,11 @@ export const UtsavProvider: React.FC<{ workspaceId: string; children: React.Reac
       [key]: (s[key] as Array<{ id: string }>).filter((r) => r.id !== id),
     })),
     setSettings: (patch) => setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
+    takeUCNo: () => {
+      const seq = (state.ucSeq || 0) + 1;
+      setState((s) => ({ ...s, ucSeq: Math.max(s.ucSeq || 0, seq) }));
+      return `UC-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`;
+    },
     // Seed guard: only seed when no festivals exist (never clobber user data).
     ensureSeeded: () => {
       // QUEUED #45 seed law: fictitious seed data hydrates ONLY in an
@@ -194,7 +219,9 @@ export const UtsavProvider: React.FC<{ workspaceId: string; children: React.Reac
       try {
         const parsed = JSON.parse(json);
         if (!parsed || !Array.isArray(parsed.festivals)) return false;
-        setState({ ...EMPTY, ...parsed, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
+        // L6 continuity for old backups without the counter.
+        const ucSeq = typeof parsed.ucSeq === 'number' ? parsed.ucSeq : parsed.festivals.length;
+        setState({ ...EMPTY, ...parsed, ucSeq, settings: { ...EMPTY.settings, ...(parsed.settings || {}) } });
         return true;
       } catch { return false; }
     },

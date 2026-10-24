@@ -985,6 +985,21 @@ export interface TrusteeResolution extends TenantScoped {
   quorumMet: boolean;
   details: string;
   expiresAt?: number;
+  /**
+   * EVENTS + POLLS P0 — who actually voted: firebase uid → choice.
+   * The counts above are always a tally OF this map (see
+   * lib/resolutionLogic); firestore.rules pins the map + counts so
+   * they can only move together, one uid at a time, by the voter.
+   */
+  voters?: Record<string, 'favor' | 'against'>;
+  /** Board-role members of the workspace when proposed (quorum base). */
+  boardSize?: number;
+  /** Firebase uid of the proposer (their automatic vote is recorded). */
+  proposedByUid?: string;
+  /** Epoch ms when the conclusion was written (deadline or full board). */
+  concludedAt?: number;
+  /** Firestore Timestamp twin of expiresAt, for rules deadline checks. */
+  expiresAtTs?: unknown;
 }
 
 export interface SevadarDutyShift extends TenantScoped {

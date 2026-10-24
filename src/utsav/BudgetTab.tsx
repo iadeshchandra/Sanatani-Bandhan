@@ -55,6 +55,9 @@ export const BudgetTab: React.FC = () => {
     if (l.treasuryTxId) { showToast(t('ritual.utsav.budget.toastAlreadyPosted'), 'warning'); return; }
     if (l.actual <= 0) { showToast(t('ritual.utsav.budget.toastZeroActual'), 'warning'); return; }
     const isIncome = l.kind === 'income';
+    // L7: capture the REAL treasury transaction id — the line used to
+    // store the literal string 'posted', which pointed at nothing.
+    let postedTxId = '';
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
       date: new Date().toISOString(),
@@ -67,9 +70,9 @@ export const BudgetTab: React.FC = () => {
       purpose: `Festival ${isIncome ? 'income' : 'expense'} — ${l.head} (${fest.name})${l.notes ? ` — ${l.notes}` : ''}`,
       is80GEligible: false, taxReceiptIssued: false,
       devoteeName: isIncome ? 'Festival collection' : undefined,
-    });
+    }, (id) => { postedTxId = id; });
     if (ok) {
-      update('budget', l.id, { treasuryTxId: 'posted' });
+      update('budget', l.id, { treasuryTxId: postedTxId });
       showToast(t('ritual.utsav.budget.toastPosted'), 'success');
     } else {
       showToast(t('ritual.utsav.budget.toastPostFailed'), 'error');

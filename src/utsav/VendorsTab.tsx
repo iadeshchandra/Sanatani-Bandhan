@@ -52,6 +52,9 @@ export const VendorsTab: React.FC = () => {
   const recordPayment = (v: Vendor) => {
     const amt = Math.round(Number(payAmt[v.id]) || 0);
     if (amt <= 0) { showToast(t('ritual.utsav.vendors.toastNeedAmount'), 'warning'); return; }
+    // L7: capture the REAL treasury transaction id (was the literal
+    // string 'posted'). With several payments, this holds the latest.
+    let postedTxId = '';
     const ok = addTreasuryTransaction({
       workspaceId: activeWorkspace.id,
       date: new Date().toISOString(),
@@ -63,7 +66,7 @@ export const VendorsTab: React.FC = () => {
       paymentMode: 'UPI',
       purpose: `Vendor payment — ${v.name} (${v.category}) for ${fest.name}`,
       is80GEligible: false, taxReceiptIssued: false,
-    });
+    }, (id) => { postedTxId = id; });
     if (ok) {
       const newPaid = v.paid + amt;
       const newAdvance = Math.max(v.advance, v.status === 'quoted' ? amt : v.advance);
@@ -71,7 +74,7 @@ export const VendorsTab: React.FC = () => {
         paid: newPaid,
         advance: newAdvance,
         status: newPaid >= v.quote && v.quote > 0 ? 'paid' : 'booked',
-        treasuryTxId: 'posted',
+        treasuryTxId: postedTxId,
       });
       setPayAmt((p) => ({ ...p, [v.id]: '' }));
       showToast(t('ritual.utsav.vendors.toastPaid').replace('{amt}', amt.toLocaleString('en-IN')).replace('{name}', v.name), 'success');

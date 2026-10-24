@@ -53,6 +53,7 @@ import {
   getAggregateFromServer,
   sum,
   orderBy,
+  Timestamp,
   limit as fsLimit,
 } from 'firebase/firestore';
 import { offlineSyncManager } from '../services/OfflineSyncManager';
@@ -88,6 +89,9 @@ import { advanceReceiptCounter, ensureReceiptCounter } from './data/receiptCount
 import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { assignReceiptNumber } from '../lib/receiptCoverage';
 import type { AuditChange, AuditEventInput } from '../lib/auditChain';
+import {
+  tallyFromVoters, resolutionIsOpen, resolutionIsExpired, concludeResolution,
+} from '../lib/resolutionLogic';
 
 
 // Master Initial Datasets
@@ -1121,7 +1125,7 @@ interface DataContextType {
   updateVanshavali: (tree: VanshavaliNode) => void;
   addGuest: (guest: Omit<GuestRecord, 'id' | 'visitDate'>) => boolean;
   promoteGuestToMember: (guestId: string) => void;
-  addTreasuryTransaction: (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>) => boolean;
+  addTreasuryTransaction: (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>, onId?: (id: string) => void) => boolean;
   updateTreasuryTransaction: (id: string, updates: Partial<TreasuryTransaction>) => void;
   /** M-18: next sequential receipt number for a series (SB-80G / SB-CHANDA), per workspace+year. */
   getNextReceiptNumber: (prefix: 'SB-80G' | 'SB-CHANDA') => string;
@@ -1136,6 +1140,12 @@ interface DataContextType {
   addAnnadanam: (ann: Omit<AnnadanamSponsorship, 'id'>) => boolean;
   addResolution: (res: Omit<TrusteeResolution, 'id'>) => boolean;
   voteOnResolution: (id: string, type: 'favor' | 'against') => void;
+  /** Append an event to the Blueprint A hash-chained audit stream. */
+  noteAudit: (
+    input: Omit<AuditEventInput, 'workspaceId' | 'actorUid' | 'actorName' | 'actorRole'> & {
+      workspaceId?: string;
+    }
+  ) => void;
   addShift: (shift: Omit<SevadarDutyShift, 'id'>) => boolean;
   addCampaignDonation: (campaignId: string, donorName: string, amount: number, city: string) => void;
   addResidentPuja: (puja: Omit<ResidentPujaSchedule, 'id'>) => boolean;
@@ -3104,7 +3114,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`Guest ${guest.name} promoted to enrolled Member!`, 'success');
   };
 
-  const addTreasuryTransaction = (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>): boolean => {
+  const addTreasuryTransaction = (tx: Omit<TreasuryTransaction, 'id' | 'auditVerified' | 'createdAt' | 'updatedAt'> & Partial<TenantScoped>, onId?: (id: string) => void): boolean => {
     if (!checkAndIncrementModuleQuota('treasury').allowed) return false;
     const id = `tx-${Date.now()}`;
     const now = Date.now();
@@ -3317,6 +3327,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       'success',
       'Double-Entry Ledger Updated'
     );
+    // EVENTS P0 (L7): callers that must reference the created record
+    // (e.g. Utsav budget lines storing the REAL treasury tx id instead
+    // of a placeholder) receive it here — the only success exit.
+    onId?.(id);
     return true;
   };
 
@@ -3901,30 +3915,108 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const id = `res-${Date.now()}`;
     const now = Date.now();
+    const wsId = res.workspaceId || activeWorkspace.id;
+    // EVENTS + POLLS P0 — a resolution record now tells the truth:
+    //  - the proposer's automatic vote is recorded under their real
+    //    uid in `voters`, and the counts are a tally of that map;
+    //  - `boardSize` captures the actual board (board-role members of
+    //    this workspace, from the member roster) so quorum can be
+    //    computed instead of asserted;
+    //  - `expiresAtTs` is the Firestore-Timestamp twin of the ms
+    //    deadline, so the rules can verify expiry themselves.
+    const actor = auditActor();
+    const boardIds = new Set<string>();
+    for (const d of allDevotees) {
+      if (((d as any).workspaceId || activeWorkspace.id) !== wsId) continue;
+      if (!['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'].includes(String((d as any).role || ''))) continue;
+      boardIds.add((d as any).userId || d.id);
+    }
+    const voters: Record<string, 'favor' | 'against'> = { ...((res as any).voters || {}) };
+    if (actor.actorUid && voters[actor.actorUid] === undefined) voters[actor.actorUid] = 'favor';
+    const tally = tallyFromVoters(voters);
     const newRes: any = {
       ...res,
       id,
-      workspaceId: res.workspaceId || activeWorkspace.id,
+      workspaceId: wsId,
+      voters,
+      votesInFavor: Math.max(res.votesInFavor || 0, tally.favor),
+      votesAgainst: Math.max(res.votesAgainst || 0, tally.against),
+      boardSize: typeof (res as any).boardSize === 'number' ? (res as any).boardSize : boardIds.size,
+      proposedByUid: actor.actorUid || (res as any).proposedByUid || '',
+      ...(res.expiresAt ? { expiresAtTs: Timestamp.fromMillis(res.expiresAt) } : {}),
       _createdAt: now,
-      ...demoTtlFields(res.workspaceId || activeWorkspace.id),
+      ...demoTtlFields(wsId),
     };
     setAllResolutions((prev) => [newRes, ...prev]);
+    pushToFirestore('resolutions', id, newRes);
     showToast(`Resolution ${res.resolutionNumber} saved to governance ledger`, 'success');
     return true;
   };
 
   const voteOnResolution = (id: string, type: 'favor' | 'against') => {
+    // One member, one vote — recorded under the voter's real uid.
+    // The counters are re-tallied FROM the voters map, and a vote is
+    // accepted only while the resolution is genuinely open (stored
+    // open AND deadline ahead — see lib/resolutionLogic). The rules
+    // pin the same invariants on the Firestore copy.
+    const uid = auditActor().actorUid;
+    if (!uid) return;
     setAllResolutions(prev => prev.map(r => {
-      if (r.id === id) {
-        return {
-          ...r,
-          votesInFavor: type === 'favor' ? r.votesInFavor + 1 : r.votesInFavor,
-          votesAgainst: type === 'against' ? r.votesAgainst + 1 : r.votesAgainst
-        };
-      }
-      return r;
+      if (r.id !== id) return r;
+      if (!resolutionIsOpen(r, Date.now())) return r;
+      if (r.voters && r.voters[uid] !== undefined) return r;
+      const voters = { ...(r.voters || {}), [uid]: type };
+      const tally = tallyFromVoters(voters);
+      const patch = {
+        voters,
+        votesInFavor: tally.favor,
+        votesAgainst: tally.against,
+      };
+      pushToFirestore('resolutions', id, patch);
+      return { ...r, ...patch };
     }));
   };
+
+  // EVENTS + POLLS P0 — conclusion sweep: an open resolution whose
+  // deadline has passed IS concluded (its status is derived from the
+  // record — lib/resolutionLogic). The first client to notice lands
+  // the persisted outcome (rules recompute quorum + outcome from the
+  // stored board size and counts before accepting it) and writes the
+  // conclusion into the Blueprint A audit chain.
+  const concludedSweepRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const now = Date.now();
+    for (const r of allResolutions) {
+      if (r.status !== 'Pending Review') continue;
+      if (!resolutionIsExpired(r, now)) continue;
+      if (concludedSweepRef.current.has(r.id)) continue;
+      concludedSweepRef.current.add(r.id);
+      const c = concludeResolution(r, now);
+      const patch = {
+        status: c.status,
+        quorumMet: c.quorumMet,
+        concludedAt: c.concludedAt,
+        details: c.details,
+      };
+      setAllResolutions((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...patch } : x)));
+      pushToFirestore('resolutions', r.id, patch);
+      noteAudit({
+        action: 'resolution.concluded',
+        entityType: 'resolution',
+        entityId: r.id,
+        entityLabel: r.title,
+        summaryKey: 'org.audit.history.resolutionConcluded',
+        summaryParams: {
+          outcome: c.status,
+          favor: r.votesInFavor || 0,
+          against: r.votesAgainst || 0,
+          quorum: c.quorumMet ? 'met' : 'not met',
+        },
+        workspaceId: r.workspaceId,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allResolutions]);
 
   const addResidentPuja = (puja: Omit<ResidentPujaSchedule, 'id'>): boolean => {
     if (!checkAndIncrementModuleQuota('residentPujas').allowed) return false;
@@ -4095,6 +4187,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addAnnadanam,
         addResolution,
         voteOnResolution,
+        noteAudit,
         addShift,
         addCampaignDonation,
         addResidentPuja,
@@ -4193,6 +4286,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addAnnadanam,
         addResolution,
         voteOnResolution,
+        noteAudit,
         addShift,
         addCampaignDonation,
         addResidentPuja,

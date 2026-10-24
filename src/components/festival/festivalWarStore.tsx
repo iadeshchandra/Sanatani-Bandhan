@@ -18,7 +18,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   doc, setDoc, getDoc, getDocs, onSnapshot, collection, query, where,
-  addDoc, updateDoc, increment, serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -26,6 +26,7 @@ import {
   WarRoomPlan, WarFestival, FestivalEventDoc, RsvpEntry,
   blankPlan, validateRsvp,
 } from '../../lib/festival';
+import { applyFestivalRsvp } from '../../lib/festivalRsvp';
 
 const LS_KEY = (ws: string) => `sb_festwar_${ws}`;
 
@@ -252,7 +253,13 @@ export function useFestivalCloud(
   }, [eventId, festivalKey, opts?.subscribeRsvps]);
 
   const publishEvent = useCallback(async (e: FestivalEventDoc) => {
-    await setDoc(doc(db, 'festival_events', eventId), { ...e, id: eventId, updatedAt: new Date().toISOString() }, { merge: true });
+    // Stamp slotCaps from darshanSlots: firestore.rules bounds each
+    // slot's booked count by this map (rules cannot index the slots
+    // list by id), so capacity is enforced server-side, not just by
+    // the greyed-out button on the public page.
+    const slotCaps: Record<string, number> = {};
+    for (const s of e.darshanSlots || []) slotCaps[s.id] = s.capacity;
+    await setDoc(doc(db, 'festival_events', eventId), { ...e, slotCaps, id: eventId, updatedAt: new Date().toISOString() }, { merge: true });
   }, [eventId]);
 
   const unpublish = useCallback(async () => {
@@ -264,23 +271,16 @@ export function useFestivalCloud(
     if (err) throw new Error(err);
     if (!firebaseUser) throw new Error('signin');
     const uid = (firebaseUser as { uid?: string }).uid || 'anon';
-    const hc = Math.min(20, Math.max(1, Math.round(entry.headcount)));
-    await addDoc(collection(db, 'festival_rsvps'), {
+    // One transaction — RSVP record + counters together, capacity
+    // enforced (see lib/festivalRsvp).
+    await applyFestivalRsvp({
       eventId,
       workspaceId,
       uid,
-      name: entry.name.trim().slice(0, 80),
-      headcount: hc,
+      name: entry.name,
+      headcount: entry.headcount,
       ...(entry.slotId ? { slotId: entry.slotId } : {}),
-      createdAt: new Date().toISOString(),
     });
-    // Bump public counters (rules allow only these narrow increments).
-    const counters: Record<string, unknown> = {
-      rsvpHeadcount: increment(hc),
-      updatedAt: serverTimestamp(),
-    };
-    if (entry.slotId) counters[`slotBooked.${entry.slotId}`] = increment(hc);
-    await updateDoc(doc(db, 'festival_events', eventId), counters);
   }, [eventId, workspaceId, firebaseUser]);
 
   const rsvpHeadcount = useMemo(
