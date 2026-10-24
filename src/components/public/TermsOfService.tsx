@@ -1,8 +1,10 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Scale } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useLanguage();
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -12,8 +14,8 @@ export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) =
               <Scale className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">Terms of Service</h2>
-              <p className="text-sm font-medium text-slate-500">Effective Date: August 2026</p>
+              <h2 className="text-2xl font-bold text-slate-800">{t('surfaces.terms.termsOfService')}</h2>
+              <p className="text-sm font-medium text-slate-500">{t('surfaces.terms.effectiveDateAugust2026')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
@@ -22,42 +24,42 @@ export const TermsOfService: React.FC<{ onClose: () => void }> = ({ onClose }) =
         </div>
 
         <div className="p-6 md:p-10 overflow-y-auto custom-scrollbar prose prose-slate max-w-none prose-headings:font-bold prose-h3:text-slate-900 prose-p:text-slate-600">
-          <h3>1. Acceptance of Terms</h3>
+          <h3>{t('surfaces.terms.1AcceptanceOfTerms')}</h3>
           <p>
             By accessing or using the Sanatani Bandhan platform ("Service"), you agree to be bound by these Terms of Service. If you are accepting on behalf of a Trust, Mandir, Goshala, or other legal entity, you represent that you have the authority to bind that entity to these terms.
           </p>
           
-          <h3>2. Description of Service</h3>
+          <h3>{t('surfaces.terms.2DescriptionOfService')}</h3>
           <p>
             Sanatani Bandhan provides an Enterprise Resource Planning (ERP) platform designed specifically for Dharmic institutions. The Service includes modules for devotee management, treasury and donation tracking, event scheduling, and secure record-keeping. The Service is provided "as is" and we reserve the right to modify or discontinue features with reasonable notice.
           </p>
 
-          <h3>3. User Accounts and Security</h3>
+          <h3>{t('surfaces.terms.3UserAccountsAndSecurity')}</h3>
           <p>
             You are responsible for maintaining the confidentiality of your administrator credentials, including the Master PIN. You must immediately notify us of any unauthorized use of your account. We will not be liable for any loss or damage arising from your failure to comply with this security obligation.
           </p>
 
-          <h3>4. Acceptable Use Policy</h3>
+          <h3>{t('surfaces.terms.4AcceptableUsePolicy')}</h3>
           <p>
             The platform must be used exclusively for lawful administrative purposes related to your institution. You agree not to:
           </p>
           <ul>
-            <li>Upload malicious code, viruses, or destructive cryptographic algorithms.</li>
-            <li>Attempt to reverse engineer, decompile, or bypass the platform's security mechanisms.</li>
-            <li>Use the platform to distribute unsolicited promotional material or spam.</li>
+            <li>{t('surfaces.terms.uploadMaliciousCodeVirusesOrDestructive')}</li>
+            <li>{t('surfaces.terms.attemptToReverseEngineerDecompileOr')}</li>
+            <li>{t('surfaces.terms.useThePlatformToDistributeUnsolicited')}</li>
           </ul>
 
-          <h3>5. Intellectual Property</h3>
+          <h3>{t('surfaces.terms.5IntellectualProperty')}</h3>
           <p>
             The Sanatani Bandhan platform, including its codebase, design, architecture, and branding, remains the exclusive property of the Sanatani Bandhan platform. Your subscription grants you a revocable, non-exclusive license to use the software. You retain all rights and ownership to the data you input into the system.
           </p>
 
-          <h3>6. Limitation of Liability</h3>
+          <h3>{t('surfaces.terms.6LimitationOfLiability')}</h3>
           <p>
             To the maximum extent permitted by law, Sanatani Bandhan shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses.
           </p>
           
-          <h3>7. Governing Law</h3>
+          <h3>{t('surfaces.terms.7GoverningLaw')}</h3>
           <p>
             These Terms shall be governed by and construed in accordance with the laws of Bharat (India). Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts in New Delhi.
           </p>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { KeyRound, UserPlus } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export type AuthDoorId = 'SIGNIN' | 'SIGNUP';
 
@@ -21,10 +22,12 @@ const DOORS: { id: AuthDoorId; icon: React.ReactNode }[] = [
   { id: 'SIGNUP', icon: <UserPlus size={15} /> },
 ];
 
-export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, hints }) => (
+export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, hints }) => {
+  const { t } = useLanguage();
+  return (
   <div
     role="tablist"
-    aria-label="Choose how to enter"
+    aria-label={t('surfaces.chrome.chooseHowToEnter')}
     className="relative flex items-stretch gap-1 p-1.5 rounded-2xl bg-black/30 border border-white/10 backdrop-blur-md"
   >
     {DOORS.map((d) => {
@@ -55,4 +58,5 @@ export const AuthDoors: React.FC<AuthDoorsProps> = ({ active, onChange, labels, 
       );
     })}
   </div>
-);
+  );
+};

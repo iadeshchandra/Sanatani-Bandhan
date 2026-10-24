@@ -1079,7 +1079,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       </div>
 
                       <div className="p-3 bg-stone-900/80 rounded-2xl border border-stone-800/80 space-y-1">
-                        <span className="text-[10px] text-stone-400 uppercase font-bold block">Specializations</span>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('purohit.verification.specializations')}</span>
                         <div className="flex flex-wrap gap-1">
                           {['Maharudrabhishek', 'Vastu Shanti', 'Navagraha Havan', 'Vivah Samskara'].map((spec, i) => (
                             <span key={i} className="px-2 py-0.5 rounded-lg bg-stone-950 text-amber-300 text-[10px] font-medium border border-stone-800">
@@ -1372,7 +1372,7 @@ export const PurohitPortalUnified: React.FC = () => {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-stone-500 uppercase font-bold block">Ashram Kutir Stay</span>
+                                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('org.people.guestManager.ashramKutirStay')}</span>
                                 <span className="font-semibold text-emerald-300">
                                   {contract.kutirRoomNo || 'Assigned on Arrival'}
                                 </span>
@@ -1792,7 +1792,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   <span className="font-bold text-white">{inr(selectedGigForBid.escrowDakshina)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Date & Slot:</span>
+                  <span className="text-stone-400">{t('ritual.pooja.dateSlot')}</span>
                   <span className="font-semibold text-stone-300">{selectedGigForBid.date} ({selectedGigForBid.timeSlot})</span>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { X, Sparkles, CheckCircle2, Clock3, Users } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DemoUpsellModalProps {
   /** Quota module key (e.g. 'treasury'), or null to hide. */
@@ -60,6 +61,7 @@ export const DemoUpsellModal: React.FC<DemoUpsellModalProps> = ({
   onClose,
   onRegister,
 }) => {
+  const { t } = useLanguage();
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -164,7 +166,7 @@ export const DemoUpsellModal: React.FC<DemoUpsellModalProps> = ({
           <div className="mt-5 rounded-2xl bg-orange-50 border border-orange-200 px-4 py-3.5 flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-sm text-stone-700 leading-relaxed">
-              <span className="font-extrabold text-stone-900">Everything you created comes with you</span>{' '}
+              <span className="font-extrabold text-stone-900">{t('surfaces.demo.everythingYouCreatedComesWithYou')}</span>{' '}
               — {createdCount} {entityLabel}, migrated free, yours forever.
             </p>
           </div>

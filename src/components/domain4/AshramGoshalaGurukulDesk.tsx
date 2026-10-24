@@ -1670,7 +1670,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">City / State</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.guestManager.cityState')}</label>
                   <input
                     type="text"
                     placeholder="e.g. Bengaluru, Karnataka"
@@ -2497,7 +2497,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             <form onSubmit={handleAddNewCowSubmit} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('ritual.common.nameRequired')}</label>
                   <input
                     type="text"
                     required

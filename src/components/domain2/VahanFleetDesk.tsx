@@ -26,6 +26,7 @@ import { FleetVehicle } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvEngine';
 import { LocalOnlyBadge } from '../common/LocalOnlyBadge';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputCls =
   'w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-temple-950/80 border border-temple-800 text-temple-100 placeholder-temple-500 text-sm focus:border-saffron-500 focus:outline-none transition-colors';
@@ -64,6 +65,7 @@ const expiryLabel = (name: string, d: number | null): string => {
 };
 
 export const VahanFleetDesk: React.FC = () => {
+  const { t } = useLanguage();
   const inr = useInr();
   const wsCurrency = useWorkspaceCurrency();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
@@ -659,7 +661,7 @@ export const VahanFleetDesk: React.FC = () => {
                 </div>
               )}
               <div><label className={labelCls}>Fuel Station</label><input value={fStation} onChange={(e) => setFStation(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Payment Mode</label><select value={fMode} onChange={(e) => setFMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={fMode} onChange={(e) => setFMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
               <div><label className={labelCls}>Logged By</label><input value={fLoggedBy} onChange={(e) => setFLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-[11px] text-emerald-200">
                 Auto-posts an <span className="font-bold">Expense → "Vehicle Fuel & Maintenance"</span> entry to the Treasury Ledger.
@@ -691,7 +693,7 @@ export const VahanFleetDesk: React.FC = () => {
               <div><label className={labelCls}>Vendor / Garage</label><input value={sVendor} onChange={(e) => setSVendor(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Odometer (km)</label><input type="number" min={0} value={sOdo} onChange={(e) => setSOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div><label className={labelCls}>Next Service Due</label><input type="date" value={sNextDue} onChange={(e) => setSNextDue(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Payment Mode</label><select value={sMode} onChange={(e) => setSMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+              <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={sMode} onChange={(e) => setSMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
               <div><label className={labelCls}>Handled By</label><input value={sLoggedBy} onChange={(e) => setSLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
               <div><label className={labelCls}>Notes</label><input value={sNotes} onChange={(e) => setSNotes(e.target.value)} className={inputCls} /></div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-[11px] text-emerald-200">

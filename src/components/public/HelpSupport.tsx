@@ -5,7 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { SUPPORT_EMAIL } from '../../config/contact';
 
 export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState<'home' | 'category' | 'article'>('home');
   const [selectedTitle, setSelectedTitle] = useState('');
@@ -13,24 +13,24 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const KNOWLEDGE_BASE: Record<string, React.ReactNode> = {
     'How to generate an 80G compliant donation receipt?': (
        <div className="space-y-4 text-slate-600">
-         <p>Issuing 80G compliant tax receipts is automated through the Treasury Ledger.</p>
+         <p>{t('surfaces.help.issuing80gCompliantTaxReceiptsIs')}</p>
          <ol className="list-decimal pl-5 space-y-2">
-           <li>Navigate to the <strong>Treasury & Ledger</strong> desk.</li>
-           <li>Click <strong>+ New Entry</strong> and select 'Donation / Chanda'.</li>
-           <li>Select the Devotee. Ensure their <strong>PAN Number</strong> is updated in their CRM profile.</li>
-           <li>Enter the amount and click save. The system will automatically generate a digitally branded PDF receipt.</li>
+           <li>{t('surfaces.help.navigateToThe')}{' '}<strong>{t('surfaces.help.treasuryLedger')}</strong> desk.</li>
+           <li>Click <strong>{t('surfaces.help.newEntry')}</strong>{' '}{t('surfaces.help.andSelectDonationChanda')}</li>
+           <li>{t('surfaces.help.selectTheDevoteeEnsureTheir')}{' '}<strong>{t('surfaces.help.panNumber')}</strong>{' '}{t('surfaces.help.isUpdatedInTheirCrmProfile')}</li>
+           <li>{t('surfaces.help.enterTheAmountAndClickSave')}</li>
          </ol>
-         <p className="p-4 bg-emerald-50 text-emerald-800 rounded-xl text-sm border border-emerald-100">Pro Tip: If you have the WhatsApp integration active, the receipt is instantly sent to the devotee's phone.</p>
+         <p className="p-4 bg-emerald-50 text-emerald-800 rounded-xl text-sm border border-emerald-100">{t('surfaces.help.proTipIfYouHaveThe')}</p>
        </div>
     ),
     'Importing Devotee records from Excel/CSV': (
        <div className="space-y-4 text-slate-600">
-         <p>Migrating from paper Khatas or legacy spreadsheets is easy.</p>
+         <p>{t('surfaces.help.migratingFromPaperKhatasOrLegacy')}</p>
          <ol className="list-decimal pl-5 space-y-2">
-           <li>Go to the <strong>Bulk Import</strong> desk from your dashboard.</li>
-           <li>Download the standard CSV template.</li>
-           <li>Fill in the details: Name, Phone, Blood Group, and Gotra.</li>
-           <li>Upload the file. Our system automatically deduplicates records based on phone numbers.</li>
+           <li>{t('surfaces.help.goToThe')}{' '}<strong>{t('surfaces.help.bulkImport')}</strong>{' '}{t('surfaces.help.deskFromYourDashboard')}</li>
+           <li>{t('surfaces.help.downloadTheStandardCsvTemplate')}</li>
+           <li>{t('surfaces.help.fillInTheDetailsNamePhone')}</li>
+           <li>{t('surfaces.help.uploadTheFileOurSystemAutomatically')}</li>
          </ol>
        </div>
     ),
@@ -38,105 +38,105 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
        <div className="space-y-4 text-slate-600">
          <p>Sanatani Bandhan uses strict Role-Based Access Control (RBAC) to ensure security.</p>
          <ul className="list-disc pl-5 space-y-2">
-           <li><strong>Trustee:</strong> Full access to Treasury, Master Settings, and physical vault codes.</li>
-           <li><strong>Purohit:</strong> Access to Pooja bookings, Sankalp details, and calendar events. Cannot view treasury.</li>
-           <li><strong>Accountant:</strong> Can generate 80G receipts and view double-entry ledgers.</li>
-           <li><strong>Volunteer:</strong> Limited to scanning QR passes and devotee check-ins.</li>
+           <li><strong>Trustee:</strong>{' '}{t('surfaces.help.fullAccessToTreasuryMasterSettings')}</li>
+           <li><strong>Purohit:</strong>{' '}{t('surfaces.help.accessToPoojaBookingsSankalpDetails')}</li>
+           <li><strong>Accountant:</strong>{' '}{t('surfaces.help.canGenerate80gReceiptsAndView')}</li>
+           <li><strong>Volunteer:</strong>{' '}{t('surfaces.help.limitedToScanningQrPassesAnd')}</li>
          </ul>
-         <p>Assign these roles in the <strong>User Roles</strong> desk.</p>
+         <p>{t('surfaces.help.assignTheseRolesInThe')}{' '}<strong>{t('surfaces.help.userRoles')}</strong> desk.</p>
        </div>
     ),
     'Understanding offline-first synchronization': (
        <div className="space-y-4 text-slate-600">
-         <p>Temple festivals get crowded, and internet connectivity often drops. We built our app to handle this seamlessly.</p>
-         <p><strong>How it works:</strong> If you lose internet connection, you can continue scanning QR passes, logging donations, and adding devotees. The data is securely encrypted and stored locally on your device.</p>
-         <p>Once your device detects an active internet connection, it automatically securely syncs the queued actions to the master cloud database.</p>
+         <p>{t('surfaces.help.templeFestivalsGetCrowdedAndInternet')}</p>
+         <p><strong>{t('surfaces.help.howItWorks')}</strong> If you lose internet connection, you can continue scanning QR passes, logging donations, and adding devotees. The data is securely encrypted and stored locally on your device.</p>
+         <p>{t('surfaces.help.onceYourDeviceDetectsAnActive')}</p>
        </div>
     ),
     'Customizing your Workspace Taxonomy': (
        <div className="space-y-4 text-slate-600">
-         <p>Our platform automatically adapts its terminology based on your organization type.</p>
-         <p>Go to the <strong>Workspace Selector</strong>. If you switch from "Mandir" to "Goshala", the UI will change "Devotees" to "Gau Sevaks", and "Poojas" to "Gau Seva". This ensures the software feels native to your daily Dharmic operations.</p>
+         <p>{t('surfaces.help.ourPlatformAutomaticallyAdaptsItsTerminology')}</p>
+         <p>{t('surfaces.help.goToThe')}{' '}<strong>{t('surfaces.help.workspaceSelector')}</strong>. If you switch from "Mandir" to "Goshala", the UI will change "Devotees" to "Gau Sevaks", and "Poojas" to "Gau Seva". This ensures the software feels native to your daily Dharmic operations.</p>
        </div>
     ),
     '1-Click WhatsApp Broadcasts for Tithis & Festivals': (
        <div className="space-y-4 text-slate-600">
-         <p>Calling hundreds of devotees is exhausting. Use our broadcast tool instead.</p>
+         <p>{t('surfaces.help.callingHundredsOfDevoteesIsExhausting')}</p>
          <ol className="list-decimal pl-5 space-y-2">
-           <li>Open the <strong>WhatsApp Broadcaster</strong> desk.</li>
-           <li>Select your audience (e.g., "All Devotees with Bharadwaj Gotra" or "Monthly Donors").</li>
-           <li>Type your message or select a festival template.</li>
-           <li>Click Send. Messages are dispatched individually, avoiding annoying group chats.</li>
+           <li>{t('surfaces.help.openThe')}{' '}<strong>{t('surfaces.help.whatsappBroadcaster')}</strong> desk.</li>
+           <li>{t('surfaces.help.selectYourAudienceEGAll')}</li>
+           <li>{t('surfaces.help.typeYourMessageOrSelectA')}</li>
+           <li>{t('surfaces.help.clickSendMessagesAreDispatchedIndividually')}</li>
          </ol>
        </div>
     ),
     'AES-256 Encryption & Data Isolation': (
        <div className="space-y-4 text-slate-600">
-         <p>Your devotee data is your most sacred asset. We treat it with military-grade security.</p>
+         <p>{t('surfaces.help.yourDevoteeDataIsYourMost')}</p>
          <ul className="list-disc pl-5 space-y-2">
-           <li><strong>AES-256 Encryption:</strong> All sensitive fields (PAN, contact info) are encrypted at rest.</li>
-           <li><strong>Data Isolation:</strong> Your workspace data is cryptographically isolated from other organizations.</li>
-           <li><strong>Audit Logs:</strong> Every action taken by any admin is logged permanently in the Audit Log desk.</li>
+           <li><strong>{t('surfaces.help.aes256Encryption')}</strong>{' '}{t('surfaces.help.allSensitiveFieldsPanContactInfo')}</li>
+           <li><strong>{t('surfaces.help.dataIsolation')}</strong>{' '}{t('surfaces.help.yourWorkspaceDataIsCryptographicallyIsolated')}</li>
+           <li><strong>{t('surfaces.help.auditLogs')}</strong>{' '}{t('surfaces.help.everyActionTakenByAnyAdmin')}</li>
          </ul>
        </div>
     ),
     'Admin Dashboard Walkthrough': (
        <div className="space-y-4 text-slate-600">
-         <p>Watch this comprehensive 5-minute video walkthrough of the main dashboard, covering the 46 Shastric modules and quick navigation.</p>
+         <p>{t('surfaces.help.watchThisComprehensive5MinuteVideo')}</p>
          <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-slate-400">
            <div className="flex flex-col items-center gap-2">
              <PlayCircle className="w-12 h-12 opacity-50" />
-             <span className="text-sm font-medium">Video Player Placeholder</span>
+             <span className="text-sm font-medium">{t('surfaces.help.videoPlayerPlaceholder')}</span>
            </div>
          </div>
        </div>
     ),
     'Setting up the Puja Calendar': (
        <div className="space-y-4 text-slate-600">
-         <p>Learn how to configure your Puja Calendar, align with Tithis, and automate WhatsApp reminders for devotees.</p>
+         <p>{t('surfaces.help.learnHowToConfigureYourPuja')}</p>
          <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-slate-400">
            <div className="flex flex-col items-center gap-2">
              <PlayCircle className="w-12 h-12 opacity-50" />
-             <span className="text-sm font-medium">Video Player Placeholder</span>
+             <span className="text-sm font-medium">{t('surfaces.help.videoPlayerPlaceholder')}</span>
            </div>
          </div>
        </div>
     ),
     'Mastering the Treasury Ledger': (
        <div className="space-y-4 text-slate-600">
-         <p>A deep dive into the double-entry accounting system, 80G receipt generation, and daily cash reconciliation.</p>
+         <p>{t('surfaces.help.aDeepDiveIntoTheDouble')}</p>
          <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center text-slate-400">
            <div className="flex flex-col items-center gap-2">
              <PlayCircle className="w-12 h-12 opacity-50" />
-             <span className="text-sm font-medium">Video Player Placeholder</span>
+             <span className="text-sm font-medium">{t('surfaces.help.videoPlayerPlaceholder')}</span>
            </div>
          </div>
        </div>
     ),
     'How to open a support ticket': (
        <div className="space-y-4 text-slate-600">
-         <p>Encountered an issue? Our engineering team is here to help.</p>
+         <p>{t('surfaces.help.encounteredAnIssueOurEngineeringTeam')}</p>
          <ol className="list-decimal pl-5 space-y-2">
-           <li>Ensure you are logged in with a <strong>Trustee</strong> or <strong>Admin</strong> account.</li>
-           <li>Click on the <strong>Help</strong> icon in the bottom right corner of your dashboard.</li>
-           <li>Select <strong>Open New Ticket</strong>.</li>
-           <li>Describe your issue in detail and attach any relevant screenshots.</li>
+           <li>{t('surfaces.help.ensureYouAreLoggedInWith')}{' '}<strong>Trustee</strong> or <strong>Admin</strong> account.</li>
+           <li>{t('surfaces.help.clickOnThe')}{' '}<strong>Help</strong>{' '}{t('surfaces.help.iconInTheBottomRightCorner')}</li>
+           <li>Select <strong>{t('surfaces.help.openNewTicket')}</strong>.</li>
+           <li>{t('surfaces.help.describeYourIssueInDetailAnd')}</li>
          </ol>
        </div>
     ),
     'Check ticket status': (
        <div className="space-y-4 text-slate-600">
-         <p>You can track the progress of your open tickets directly from your dashboard.</p>
-         <p>Navigate to <strong>Master Settings &gt; Support Tickets</strong> to view a list of all historical and active tickets along with their current status and engineer notes.</p>
+         <p>{t('surfaces.help.youCanTrackTheProgressOf')}</p>
+         <p>{t('surfaces.help.navigateTo')}{' '}<strong>{t('surfaces.help.masterSettingsGtSupportTickets')}</strong>{' '}{t('surfaces.help.toViewAListOfAll')}</p>
        </div>
     ),
     'Enterprise SLA details': (
        <div className="space-y-4 text-slate-600">
          <p>Sanatani Bandhan offers dedicated Service Level Agreements (SLAs) for enterprise Dharmic institutions.</p>
          <ul className="list-disc pl-5 space-y-2">
-           <li><strong>Critical Issues (P0):</strong> 1-hour response time, 24/7.</li>
-           <li><strong>High Priority (P1):</strong> 4-hour response time during business hours.</li>
-           <li><strong>General Inquiries (P2):</strong> 24-hour response time.</li>
+           <li><strong>{t('surfaces.help.criticalIssuesP0')}</strong>{' '}{t('surfaces.help.1HourResponseTime247')}</li>
+           <li><strong>{t('surfaces.help.highPriorityP1')}</strong>{' '}{t('surfaces.help.4HourResponseTimeDuringBusiness')}</li>
+           <li><strong>{t('surfaces.help.generalInquiriesP2')}</strong>{' '}{t('surfaces.help.24HourResponseTime')}</li>
          </ul>
        </div>
     )
@@ -221,7 +221,7 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {activeView === 'home' ? 'Help & Support Center' : selectedTitle}
                 </h2>
                 {activeView === 'home' && (
-                  <p className="text-slate-400 font-medium text-base">How can we help you today?</p>
+                  <p className="text-slate-400 font-medium text-base">{t('surfaces.help.howCanWeHelpYouToday')}</p>
                 )}
               </div>
             </div>
@@ -235,7 +235,7 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search for articles, guides, or features..." 
+                placeholder={t('surfaces.help.searchForArticlesGuidesOrFeatures')} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-saffron-500 focus:bg-white/20 transition-all font-medium text-base backdrop-blur-md"
@@ -334,8 +334,8 @@ export const HelpSupport: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
           <div className="bg-indigo-50 rounded-2xl p-6 md:p-8 mt-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-indigo-100">
             <div>
-              <h3 className="text-xl font-bold text-indigo-900 mb-2">Still need help?</h3>
-              <p className="text-indigo-700/80 font-medium">Our engineering and support team is available 24/7 for Enterprise customers.</p>
+              <h3 className="text-xl font-bold text-indigo-900 mb-2">{t('surfaces.help.stillNeedHelp')}</h3>
+              <p className="text-indigo-700/80 font-medium">{t('surfaces.help.ourEngineeringAndSupportTeamIs')}</p>
             </div>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="shrink-0 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />

@@ -386,9 +386,9 @@ export const DevoteeGrid: React.FC = () => {
     try {
       const compressed = await compressAvatarImage(file);
       setPhotoUrl(compressed);
-      showToast('Profile photo compressed (<300px)', 'info');
+      showToast(t('org.people.devoteeGrid.profilePhotoCompressed300px'), 'info');
     } catch (err: any) {
-      showToast('Failed to compress avatar photo', 'error');
+      showToast(t('org.people.devoteeGrid.failedToCompressAvatarPhoto'), 'error');
     }
   };
 
@@ -397,7 +397,7 @@ export const DevoteeGrid: React.FC = () => {
     const cleanName = sanitizeName(fullName);
     const cleanPhone = phone.trim();
     if (!cleanName || !cleanPhone) {
-      showToast('Full name and phone number are required', 'warning');
+      showToast(t('org.people.devoteeGrid.fullNameAndPhoneNumberAreRequired'), 'warning');
       return;
     }
 
@@ -428,14 +428,14 @@ export const DevoteeGrid: React.FC = () => {
 
     if (email.trim()) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
-        showToast('Please enter a valid email address', 'error', 'Invalid Email');
+        showToast(t('org.people.devoteeGrid.pleaseEnterAValidEmailAddress'), 'error', 'Invalid Email');
         return;
       }
       const emailExists = devotees.find(
         (d) => (d.email || '').trim().toLowerCase() === email.trim().toLowerCase() && d.id !== editingDevotee?.id
       );
       if (emailExists) {
-        showToast('This email address is already registered in the organization.', 'error');
+        showToast(t('org.people.devoteeGrid.thisEmailAddressIsAlreadyRegisteredInThe'), 'error');
         return;
       }
     }
@@ -447,7 +447,7 @@ export const DevoteeGrid: React.FC = () => {
       );
       if (nameDup) {
         showToast(
-          `Heads up: a devotee named "${cleanName}" already exists — please verify this is not a duplicate entry.`,
+          `${t('surfaces.devoteeGrid.headsUpADevoteeNamed')}"${cleanName}"${t('surfaces.devoteeGrid.alreadyExistsPleaseVerify')}`,
           'warning',
           'Possible Duplicate'
         );
@@ -525,7 +525,7 @@ export const DevoteeGrid: React.FC = () => {
         // payload, and rolls back + reports honestly on rejection.
         const newId = addDevoteeCtx(newDevoteeData);
         if (!newId) {
-          showToast('Devotee could NOT be registered — the member limit for this workspace is reached.', 'error');
+          showToast(t('surfaces.devoteeGrid.devoteeCouldNotBeRegisteredThe'), 'error');
           // QUEUED #52 (audit D12): a FAILED registration keeps the modal
           // open and the form exactly as typed, so the sevadar can fix
           // and retry — it used to fall through to the shared tail,
@@ -549,7 +549,7 @@ export const DevoteeGrid: React.FC = () => {
         return;
       } catch (err: any) {
         console.error('Error adding devotee:', err);
-        showToast('Failed to register devotee in database.', 'error');
+        showToast(t('org.people.devoteeGrid.failedToRegisterDevoteeInDatabase'), 'error');
         // QUEUED #52: failure keeps modal + form (see the limit path).
         return;
       }
@@ -615,9 +615,9 @@ export const DevoteeGrid: React.FC = () => {
       setStandardA_QR(qrA);
     } catch (err: any) {
       if (err?.message === 'QR_PAIRING_UNAUTHENTICATED') {
-        showToast('Please sign in as temple staff to issue login codes.', 'error', 'Not signed in');
+        showToast(t('org.people.devoteeGrid.pleaseSignInAsTempleStaffToIssueLoginCod'), 'error', 'Not signed in');
       } else {
-        showToast('Could not reach the temple database. Check your connection and try again.', 'error', 'QR unavailable');
+        showToast(t('org.people.devoteeGrid.couldNotReachTheTempleDatabaseCheckYourC'), 'error', 'QR unavailable');
       }
       setQrModalDevotee(null);
       return;
@@ -661,7 +661,7 @@ export const DevoteeGrid: React.FC = () => {
 
   const handleDelete = (devotee: DevoteeMember) => {
     if (devotee.id === currentDevotee?.id) {
-      showToast('You cannot delete your own account.', 'error');
+      showToast(t('org.people.devoteeGrid.youCannotDeleteYourOwnAccount'), 'error');
       return;
     }
     confirm({
@@ -687,16 +687,16 @@ export const DevoteeGrid: React.FC = () => {
       d.pin,
     ]);
     exportToCSV(`Devotee_Directory_${activeWorkspace.type}_${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
-    showToast('Directory CSV exported successfully', 'success');
+    showToast(t('org.people.devoteeGrid.directoryCsvExportedSuccessfully'), 'success');
   };
 
   const handleBulkPrint = async () => {
     if (filteredDevotees.length === 0) {
-      showToast('No devotees to print', 'error');
+      showToast(t('org.people.devoteeGrid.noDevoteesToPrint'), 'error');
       return;
     }
     if (filteredDevotees.length > 20) {
-      showToast('Bulk print limited to 20 passes at a time for performance.', 'error');
+      showToast(t('org.people.devoteeGrid.bulkPrintLimitedTo20PassesAtATimeForPerf'), 'error');
       return;
     }
     
@@ -709,12 +709,12 @@ export const DevoteeGrid: React.FC = () => {
          console.error('Failed to print for', devotee.fullName, e);
       }
     }
-    showToast('Bulk print complete', 'success');
+    showToast(t('org.people.devoteeGrid.bulkPrintComplete'), 'success');
   };
 
   const handlePrintCard = async (devotee: DevoteeMember) => {
     try {
-      showToast('Generating preview...', 'info');
+      showToast(t('org.people.devoteeGrid.generatingPreview'), 'info');
       setIsPreviewOpen(true);
       setPreviewFileName(`${devotee.fullName.replace(/\s+/g, '_')}_ID_Card.pdf`);
       const blobUrl = await generateDevoteeCardPDF(devotee, activeWorkspace, 'bloburl');
@@ -722,7 +722,7 @@ export const DevoteeGrid: React.FC = () => {
         setPreviewPdfUrl(blobUrl);
       }
     } catch (e: any) {
-      showToast('Error generating PDF preview', 'error');
+      showToast(t('org.people.devoteeGrid.errorGeneratingPdfPreview'), 'error');
       setIsPreviewOpen(false);
     }
   };
@@ -918,7 +918,7 @@ export const DevoteeGrid: React.FC = () => {
               className={`p-1.5 rounded-lg transition-colors cursor-pointer min-w-[44px] min-h-[44px] inline-flex items-center justify-center ${
                 layoutView === 'grid' ? 'bg-saffron-100 text-saffron-800' : 'text-temple-600 hover:text-temple-900'
               }`}
-              title="Grid View"
+              title={t('org.people.devoteeGrid.gridView')}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -927,7 +927,7 @@ export const DevoteeGrid: React.FC = () => {
               className={`p-1.5 rounded-lg transition-colors cursor-pointer min-w-[44px] min-h-[44px] inline-flex items-center justify-center ${
                 layoutView === 'list' ? 'bg-saffron-100 text-saffron-800' : 'text-temple-600 hover:text-temple-900'
               }`}
-              title="List View"
+              title={t('org.people.devoteeGrid.listView')}
             >
               <List className="w-4 h-4" />
             </button>
@@ -1058,7 +1058,7 @@ export const DevoteeGrid: React.FC = () => {
                 {/* Dharmic Lineage & Vitals */}
                 <div className="py-3 space-y-1.5 text-xs text-temple-700">
                   <div className="flex items-center justify-between">
-                    <span className="text-temple-600">Gotra & Kul:</span>
+                    <span className="text-temple-600">{t('org.people.devoteeGrid.gotraKul')}</span>
                     <span className="font-semibold text-temple-900">
                       {devotee.gotra} {devotee.varnaKul ? `(${devotee.varnaKul})` : ''}
                     </span>
@@ -1079,14 +1079,14 @@ export const DevoteeGrid: React.FC = () => {
                     <span className="text-temple-600">Phone:</span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-saffron-600">{devotee.phone}</span>
-                      <a href={`https://wa.me/${devotee.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400" title="Message on WhatsApp">
+                      <a href={`https://wa.me/${devotee.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400" title={t('org.people.devoteeGrid.messageOnWhatsapp')}>
                         <MessageCircle className="w-3.5 h-3.5" />
                       </a>
                     </div>
                   </div>
                   {(devotee.emergencyPhone || devotee.bloodGroup) && (
                     <div className="flex items-center justify-between text-[11px] bg-rose-50 p-1.5 rounded-lg border border-rose-200 text-rose-900">
-                      <span className="text-rose-400 flex items-center gap-1"><HeartPulse className="w-3 h-3" /> Emg/Medical:</span>
+                      <span className="text-rose-400 flex items-center gap-1"><HeartPulse className="w-3 h-3" />{' '}{t('org.people.devoteeGrid.emgmedical')}</span>
                       <div className="flex items-center gap-2">
                         {devotee.bloodGroup && <span className="text-rose-300 font-semibold">{devotee.bloodGroup}</span>}
                         {devotee.emergencyPhone && (
@@ -1109,11 +1109,11 @@ export const DevoteeGrid: React.FC = () => {
                 {canViewFinancials && (
                   <div className="p-2.5 rounded-xl bg-white shadow-sm border border-temple-200 grid grid-cols-2 gap-2 text-center text-xs my-2">
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Total Chanda</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">{t('org.people.devoteeGrid.totalChanda')}</p>
                       <p className="font-semibold text-saffron-600">{inr((devotee.totalDonated || 0))}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Hours</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">{t('surfaces.devoteeGrid.sevaHours')}</p>
                       <p className="font-semibold text-purple-400">{devotee.volunteerHours || 0}h</p>
                     </div>
                   </div>
@@ -1121,7 +1121,7 @@ export const DevoteeGrid: React.FC = () => {
                 {!canViewFinancials && (
                   <div className="p-2.5 rounded-xl bg-white shadow-sm border border-temple-200 grid grid-cols-1 gap-2 text-center text-xs my-2">
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Hours</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">{t('surfaces.devoteeGrid.sevaHours')}</p>
                       <p className="font-semibold text-purple-400">{devotee.volunteerHours || 0}h</p>
                     </div>
                   </div>
@@ -1138,7 +1138,7 @@ export const DevoteeGrid: React.FC = () => {
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handlePrintCard(devotee); }}
                     className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-temple-50 text-saffron-600 border border-temple-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Download Smart Pass PDF"
+                    title={t('org.people.devoteeGrid.downloadSmartPassPdf')}
                   >
                     <QrCode className="w-3.5 h-3.5" />
                     <span>Pass</span>
@@ -1152,7 +1152,7 @@ export const DevoteeGrid: React.FC = () => {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); openEditModal(devotee); }}
                         className="p-1.5 rounded-xl text-temple-600 hover:text-temple-900 hover:bg-temple-100 transition-colors cursor-pointer"
-                        title="Edit Record"
+                        title={t('org.people.devoteeGrid.editRecord')}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -1160,7 +1160,7 @@ export const DevoteeGrid: React.FC = () => {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleDelete(devotee); }}
                         className="p-1.5 rounded-xl text-temple-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        title="Delete Record"
+                        title={t('org.people.devoteeGrid.deleteRecord')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -1188,10 +1188,10 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </th>
                 <th className="px-4 py-3">Member</th>
-                <th className="px-4 py-3">Lineage / Gotra</th>
+                <th className="px-4 py-3">{t('org.people.devoteeGrid.lineageGotra')}</th>
                 <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Seva Tier</th>
-                {canViewFinancials && <th className="px-4 py-3 text-right">Total Chanda</th>}
+                <th className="px-4 py-3">{t('org.people.devoteeGrid.sevaTier')}</th>
+                {canViewFinancials && <th className="px-4 py-3 text-right">{t('org.people.devoteeGrid.totalChanda')}</th>}
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -1272,7 +1272,7 @@ export const DevoteeGrid: React.FC = () => {
                         <button
                           onClick={(e) => { e.stopPropagation(); handlePrintCard(devotee); }}
                           className="p-1.5 rounded-lg text-temple-600 hover:text-saffron-600 hover:bg-temple-100 transition-colors"
-                          title="Download Pass"
+                          title={t('org.people.devoteeGrid.downloadPass')}
                         >
                           <QrCode className="w-4 h-4" />
                         </button>
@@ -1386,7 +1386,7 @@ export const DevoteeGrid: React.FC = () => {
                   </h3>
                   <div className="space-y-2 text-sm text-temple-700">
                     {selectedDevotee.spiritualName && (
-                      <p><span className="text-temple-500 w-24 inline-block">Spiritual Name:</span> <span className="italic text-saffron-600">{selectedDevotee.spiritualName}</span></p>
+                      <p><span className="text-temple-500 w-24 inline-block">{t('org.people.devoteeGrid.spiritualName')}</span> <span className="italic text-saffron-600">{selectedDevotee.spiritualName}</span></p>
                     )}
                     <p><span className="text-temple-500 w-24 inline-block">Phone:</span> <span className="font-mono text-temple-900">{selectedDevotee.phone}</span></p>
                     {selectedDevotee.email && <p><span className="text-temple-500 w-24 inline-block">Email:</span> <span>{selectedDevotee.email}</span></p>}
@@ -1403,7 +1403,7 @@ export const DevoteeGrid: React.FC = () => {
                     {selectedDevotee.pravara && <p><span className="text-temple-500 w-24 inline-block">Pravara:</span> <span>{selectedDevotee.pravara}</span></p>}
                     {selectedDevotee.varnaKul && <p><span className="text-temple-500 w-24 inline-block">Varna/Kul:</span> <span>{selectedDevotee.varnaKul}</span></p>}
                     {selectedDevotee.culturalDistinction && <p><span className="text-saffron-600/70 w-24 inline-block">Cultural:</span> <span className="text-saffron-600 font-medium">{selectedDevotee.culturalDistinction}</span></p>}
-                    {selectedDevotee.bloodGroup && <p><span className="text-rose-500/80 w-24 inline-block">Blood Group:</span> <span className="font-semibold text-rose-400">{selectedDevotee.bloodGroup}</span></p>}
+                    {selectedDevotee.bloodGroup && <p><span className="text-rose-500/80 w-24 inline-block">{t('org.people.devoteeGrid.bloodGroup')}</span> <span className="font-semibold text-rose-400">{selectedDevotee.bloodGroup}</span></p>}
                     {selectedDevotee.medicalNotes && <p><span className="text-saffron-600/80 w-24 inline-block">Medical:</span> <span className="text-saffron-600">{selectedDevotee.medicalNotes}</span></p>}
                   </div>
                 </div>
@@ -1417,7 +1417,7 @@ export const DevoteeGrid: React.FC = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-xs text-temple-600 mb-1.5 font-semibold">Change System Role</label>
+                      <label className="block text-xs text-temple-600 mb-1.5 font-semibold">{t('org.people.devoteeGrid.changeSystemRole')}</label>
                       <select
                         className="w-full bg-white border border-temple-200 rounded-xl px-3 py-2 text-sm text-temple-900 focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         value={selectedDevotee.role || 'DEVOTEE'}
@@ -1429,19 +1429,19 @@ export const DevoteeGrid: React.FC = () => {
                            showToast(`Role updated to ${e.target.value}`, 'success');
                         }}
                       >
-                        <option value="DEVOTEE">Devotee (Standard)</option>
-                        <option value="VOLUNTEER">Volunteer (Sevadar)</option>
-                        <option value="PUROHIT">Purohit / Priest</option>
+                        <option value="DEVOTEE">{t('org.people.devoteeGrid.devoteeStandard')}</option>
+                        <option value="VOLUNTEER">{t('org.people.devoteeGrid.volunteerSevadar')}</option>
+                        <option value="PUROHIT">{t('org.people.devoteeGrid.purohitPriest')}</option>
                         <option value="ACCOUNTANT">Accountant</option>
                         <option value="MANAGER">Manager</option>
                         {(currentRole as string) === 'SUPER_ADMIN' || currentRole === 'SuperAdmin' ? (
                            <option value="TRUSTEE">Trustee</option>
                         ) : null}
                       </select>
-                      <p className="text-[10px] text-temple-500 mt-1.5">Roles grant distinct applet permissions.</p>
+                      <p className="text-[10px] text-temple-500 mt-1.5">{t('org.people.devoteeGrid.rolesGrantDistinctAppletPermissions')}</p>
 
                       <div className="mt-4 pt-4 border-t border-indigo-500/20">
-                        <label className="block text-xs text-temple-600 mb-1.5 font-semibold">Password Reset</label>
+                        <label className="block text-xs text-temple-600 mb-1.5 font-semibold">{t('org.people.devoteeGrid.passwordReset')}</label>
                         <button
                           type="button"
                           onClick={() => {
@@ -1451,15 +1451,15 @@ export const DevoteeGrid: React.FC = () => {
                         >
                           <MessageCircle className="w-3.5 h-3.5" /> Send Reset Link via SMS/Email
                         </button>
-                        <p className="text-[10px] text-temple-500 mt-1.5">Standard password reset flow triggered remotely.</p>
+                        <p className="text-[10px] text-temple-500 mt-1.5">{t('org.people.devoteeGrid.standardPasswordResetFlowTriggeredRemote')}</p>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-temple-600 mb-1.5 font-semibold">Authentication (Internal)</label>
+                      <label className="block text-xs text-temple-600 mb-1.5 font-semibold">{t('org.people.devoteeGrid.authenticationInternal')}</label>
                       <div className="flex items-center gap-3 bg-temple-50 p-2.5 rounded-xl border border-temple-200">
                         {selectedDevoteeQr && selectedDevotee.pinRevoked !== true ? (
                           showCredentials ? (
-                            <img src={selectedDevoteeQr || undefined} alt="QR Code" className="w-12 h-12 rounded-lg bg-white p-0.5" />
+                            <img src={selectedDevoteeQr || undefined} alt={t('org.people.devoteeGrid.qrCode')} className="w-12 h-12 rounded-lg bg-white p-0.5" />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-white border border-temple-200 shadow-sm flex items-center justify-center">
                               <Shield className="w-5 h-5 text-temple-500" />
@@ -1470,7 +1470,7 @@ export const DevoteeGrid: React.FC = () => {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-0.5">
-                            <p className="text-xs text-temple-700">Self-Service PIN</p>
+                            <p className="text-xs text-temple-700">{t('org.people.devoteeGrid.selfservicePin')}</p>
                             {selectedDevotee.pinRevoked !== true && (
                               <button 
                                 type="button" 
@@ -1497,10 +1497,10 @@ export const DevoteeGrid: React.FC = () => {
                                updateDevotee(selectedDevotee.id, { pinSalt: newPinHash.salt, pinHash: newPinHash.hash, pinRevoked: false });
                                setSelectedDevotee(prev => prev ? {...prev, pin: newPin, pinSalt: newPinHash.salt, pinHash: newPinHash.hash, pinRevoked: false} : null);
                                setShowCredentials(true);
-                               showToast('New PIN generated successfully', 'success');
+                               showToast(t('org.people.devoteeGrid.newPinGeneratedSuccessfully'), 'success');
                              }}
                              className="p-1.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 transition-colors flex items-center justify-center gap-1 text-[10px] uppercase font-semibold tracking-wider border border-temple-200"
-                             title="Regenerate Credentials"
+                             title={t('org.people.devoteeGrid.regenerateCredentials')}
                            >
                              <RefreshCw className="w-3 h-3" /> Renew
                            </button>
@@ -1522,7 +1522,7 @@ export const DevoteeGrid: React.FC = () => {
                                      setSelectedDevotee(prev => prev ? {...prev, pinRevoked: true, pin: undefined, pinHash: '', pinSalt: ''} : null);
                                      setShowCredentials(false);
     setDetailTab('profile');
-                                     showToast('Login credentials revoked', 'warning');
+                                     showToast(t('org.people.devoteeGrid.loginCredentialsRevoked'), 'warning');
                                    }
                                  });
                                }}
@@ -1534,7 +1534,7 @@ export const DevoteeGrid: React.FC = () => {
                            )}
                         </div>
                       </div>
-                      <p className="text-[10px] text-temple-500 mt-1.5">Show the devotee the one-time pairing QR from the Security tab to log them in.</p>
+                      <p className="text-[10px] text-temple-500 mt-1.5">{t('org.people.devoteeGrid.showTheDevoteeTheOnetimePairingQrFromThe')}</p>
                     </div>
                   </div>
                 </div>
@@ -1543,12 +1543,12 @@ export const DevoteeGrid: React.FC = () => {
               {/* Seva Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center">
-                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Seva Hours</p>
+                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">{t('surfaces.devoteeGrid.sevaHours')}</p>
                   <p className="text-2xl font-semibold text-purple-400">{selectedDevotee.volunteerHours || 0}h</p>
                 </div>
                 {canViewFinancials && (
                   <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center flex flex-col justify-center items-center">
-                    <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Total Chanda</p>
+                    <p className="text-xs text-temple-500 font-semibold uppercase mb-1">{t('org.people.devoteeGrid.totalChanda')}</p>
                     <p className="text-2xl font-semibold text-saffron-600">{inr((selectedDevotee.totalDonated || 0))}</p>
                     {canManage && (
                       <button
@@ -1572,7 +1572,7 @@ export const DevoteeGrid: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center bg-white shadow-sm p-4 rounded-xl border border-temple-200">
                     <div>
-                      <h3 className="text-temple-900 font-semibold">Donation History</h3>
+                      <h3 className="text-temple-900 font-semibold">{t('org.people.devoteeGrid.donationHistory')}</h3>
                       <p className="text-xs text-temple-500">{selectedDevoteeDonations.length} records found</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1595,7 +1595,7 @@ export const DevoteeGrid: React.FC = () => {
                       <thead className="bg-temple-50 text-temple-700 border-b border-temple-200 uppercase tracking-wider text-[10px]">
                         <tr>
                           <th className="px-4 py-3 font-semibold">Date</th>
-                          <th className="px-4 py-3 font-semibold">Receipt No.</th>
+                          <th className="px-4 py-3 font-semibold">{t('org.people.devoteeGrid.receiptNo')}</th>
                           <th className="px-4 py-3 font-semibold">Category</th>
                           <th className="px-4 py-3 font-semibold">Mode</th>
                           <th className="px-4 py-3 font-semibold text-right">Amount ({wsCurrency.symbol})</th>
@@ -1644,7 +1644,7 @@ export const DevoteeGrid: React.FC = () => {
                     );
                   })}
                   {selectedDevoteeTimeline.length === 0 && (
-                    <div className="text-center text-temple-500 py-8">No activity recorded yet.</div>
+                    <div className="text-center text-temple-500 py-8">{t('org.people.devoteeGrid.noActivityRecordedYet')}</div>
                   )}
                 </div>
               )}
@@ -1687,7 +1687,7 @@ export const DevoteeGrid: React.FC = () => {
             <form onSubmit={handleSaveDevotee} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Full Legal Name *</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('surfaces.devoteeGrid.fullLegalName')}</label>
                     <input
                       type="text"
                     required
@@ -1697,12 +1697,12 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Spiritual / Diksha Name</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.spiritualDikshaName')}</label>
                     <input
                       type="text"
                     value={spiritualName}
                     onChange={(e) => setSpiritualName(e.target.value)}
-                    placeholder="e.g. Radheshyam Das"
+                    placeholder={t('org.people.devoteeGrid.egRadheshyamDas')}
                     className="w-full bg-white border border-temple-200 shadow-sm rounded-xl px-3 py-2 text-xs text-temple-900 focus:outline-none"
                   />
                 </div>
@@ -1710,7 +1710,7 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Primary Phone *</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('surfaces.devoteeGrid.primaryPhone')}</label>
                     <input
                     type="tel"
                     required
@@ -1722,7 +1722,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Email Address</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.emailAddress')}</label>
                     <input
                     type="email"
                     value={email}
@@ -1736,7 +1736,7 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Gotra *</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('surfaces.devoteeGrid.gotra')}</label>
                     <input
                       type="text"
                     required
@@ -1746,17 +1746,17 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Pravara (Rishis)</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.pravaraRishis')}</label>
                     <input
                       type="text"
                     value={pravara}
                     onChange={(e) => setPravara(e.target.value)}
-                    placeholder="e.g. Kashyapa, Avatsara"
+                    placeholder={t('org.people.devoteeGrid.egKashyapaAvatsara')}
                       className="w-full bg-white border border-temple-200 shadow-sm rounded-xl px-3 py-2 text-xs text-temple-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Varna / Kul</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.varnaKul')}</label>
                     <input
                       type="text"
                     value={varnaKul}
@@ -1766,7 +1766,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Cultural Distinction</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.culturalDistinction')}</label>
                     <input
                       type="text"
                     value={culturalDistinction}
@@ -1778,7 +1778,7 @@ export const DevoteeGrid: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Seva Tier</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.sevaTier')}</label>
                   <select
                     value={sevaTier}
                     onChange={(e) => setSevaTier(e.target.value as any)}
@@ -1791,7 +1791,7 @@ export const DevoteeGrid: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Residence Address</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.residenceAddress')}</label>
                   <input
                     type="text"
                     value={address}
@@ -1803,7 +1803,7 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Birth Date</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.birthDate')}</label>
                     <input
                     type="date"
                     value={birthDate}
@@ -1812,12 +1812,12 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Blood Group</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                     <input
                       type="text"
                     value={bloodGroup}
                     onChange={(e) => setBloodGroup(e.target.value)}
-                    placeholder="e.g. O+"
+                    placeholder={t('org.people.devoteeGrid.egO')}
                       className="w-full bg-white border border-temple-200 shadow-sm rounded-xl px-3 py-2 text-xs text-temple-900"
                   />
                 </div>
@@ -1825,19 +1825,19 @@ export const DevoteeGrid: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Medical / Alert Notes</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.medicalAlertNotes')}</label>
                     <input
                       type="text"
                     value={medicalNotes}
                     onChange={(e) => setMedicalNotes(e.target.value)}
-                    placeholder="e.g. Diabetic, Heart Patient, Allergies..."
+                    placeholder={t('org.people.devoteeGrid.egDiabeticHeartPatientAllergies')}
                       className="w-full bg-white border border-temple-200 shadow-sm rounded-xl px-3 py-2 text-xs text-temple-900"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">Emergency Phone</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.emergencyPhone')}</label>
                     <input
                     type="tel"
                     value={emergencyPhone}
@@ -1846,7 +1846,7 @@ export const DevoteeGrid: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-temple-700 mb-1">ID Card Valid Thru</label>
+                  <label className="block text-xs font-semibold text-temple-700 mb-1">{t('org.people.devoteeGrid.idCardValidThru')}</label>
                     <input
                     type="date"
                     value={idCardValidThru}
@@ -1937,12 +1937,12 @@ export const DevoteeGrid: React.FC = () => {
                 <div className="animate-in fade-in slide-in-from-right-4">
                   <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl mb-6 text-left">
                     <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
-                      <strong className="block text-amber-900 mb-1">One-Time Login Pairing</strong>
+                      <strong className="block text-amber-900 mb-1">{t('org.people.devoteeGrid.onetimeLoginPairing')}</strong>
                       This QR holds a single-use, 5-minute login token — no PIN, no password. Show it only to the devotee; it expires automatically after one scan.
                     </p>
                   </div>
                   {standardA_QR ? (
-                    <img src={standardA_QR || undefined} alt="Pairing QR" className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
+                    <img src={standardA_QR || undefined} alt={t('org.people.devoteeGrid.pairingQr')} className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
                   ) : (
                     <div className="w-48 h-48 mx-auto bg-slate-100 rounded-xl animate-pulse" />
                   )}
@@ -1954,13 +1954,13 @@ export const DevoteeGrid: React.FC = () => {
                 <div className="animate-in fade-in slide-in-from-right-4">
                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl mb-6 text-left">
                     <p className="text-[11px] text-emerald-800 font-medium leading-relaxed">
-                      <strong className="block text-emerald-900 mb-1">Dynamic Gate Pass</strong>
+                      <strong className="block text-emerald-900 mb-1">{t('surfaces.devoteeGrid.dynamicGatePass')}</strong>
                       This QR holds a time-signed token — door scanners verify it, and it
                       refreshes itself every 5 minutes, so screenshots stop working on their own.
                     </p>
                   </div>
                   {standardB_QR ? (
-                    <img src={standardB_QR || undefined} alt="Gate Pass QR" className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
+                    <img src={standardB_QR || undefined} alt={t('org.people.devoteeGrid.gatePassQr')} className="w-48 h-48 mx-auto rounded-xl border-4 border-slate-100 shadow-sm" />
                   ) : (
                     <div className="w-48 h-48 mx-auto bg-slate-100 rounded-xl animate-pulse" />
                   )}
@@ -1973,7 +1973,7 @@ export const DevoteeGrid: React.FC = () => {
                       type="button"
                       onClick={() => qrModalDevotee && issueGatePass(qrModalDevotee)}
                       className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-colors"
-                      title="Issue a fresh gate pass token now"
+                      title={t('surfaces.devoteeGrid.issueAFreshGatePassToken')}
                     >
                       Refresh
                     </button>

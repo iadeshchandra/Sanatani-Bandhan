@@ -1,19 +1,10 @@
 import React from 'react';
 import { Globe, Building2 } from 'lucide-react';
 import { useLanguage, OrganizationType } from '../context/LanguageContext';
-
-const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', native: 'English' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
-  { code: 'bn', label: 'Bengali', native: 'বাংলা' },
-  { code: 'sa', label: 'Sanskrit', native: 'संस्कृतम्' },
-  { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
-  { code: 'te', label: 'Telugu', native: 'తెలుగు' },
-  { code: 'mr', label: 'Marathi', native: 'मराठी' },
-  { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
-  { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
-  { code: 'ml', label: 'Malayalam', native: 'മലയാളം' },
-];
+// Canonical language registry — the single source every picker reads.
+// (Language Completion Sweep B1: this file used to carry a hand-copied
+// duplicate list; it drifted in order and shape from the registry.)
+import { SUPPORTED_LANGUAGES } from '../i18n/schema';
 
 const ORGANIZATION_TYPES: { code: OrganizationType; label: string }[] = [
   { code: 'Mandir', label: 'Mandir (Temple)' },
@@ -62,7 +53,7 @@ export const LanguageSwitcher: React.FC<{ className?: string }> = ({ className =
         >
           {SUPPORTED_LANGUAGES.map((lang) => (
             <option key={lang.code} value={lang.code}>
-              {lang.native} ({lang.label})
+              {lang.nativeName} ({lang.englishName})
             </option>
           ))}
         </select>

@@ -408,7 +408,7 @@ export const PersonalAccountDesk: React.FC<{
               title="Switch back to the Institution ERP (staff workspace)"
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span className="truncate">Institution ERP</span>
+              <span className="truncate">{t('devotee.shell.institutionErp')}</span>
             </button>
           </div>
         </div>
@@ -519,7 +519,7 @@ export const PersonalAccountDesk: React.FC<{
                         <p className="text-sm font-semibold text-temple-200 mt-0.5">{profileData.kulaDaivam}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Blood Group</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('org.people.devoteeGrid.bloodGroup2')}</p>
                         <p className="text-sm font-semibold text-rose-400 mt-0.5">{profileData.bloodGroup}</p>
                       </div>
                     </div>
@@ -1228,7 +1228,7 @@ export const PersonalAccountDesk: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-temple-700 mb-1">Blood Group</label>
+                  <label className="block font-bold text-temple-700 mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                   <input
                     type="text"
                     value={profileData.bloodGroup}

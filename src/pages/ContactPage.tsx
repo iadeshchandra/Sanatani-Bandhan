@@ -22,6 +22,7 @@ import { TermsOfService } from '../components/public/TermsOfService';
 import { WorkspaceType } from '../types';
 import { WHATSAPP_URL, hasWhatsApp, SUPPORT_EMAIL } from '../config/contact';
 import { trackOpenAiEvent } from '../lib/openaiAds';
+import { useLanguage } from '../context/LanguageContext';
 
 // SUPPORT_EMAIL is still the placeholder inbox — the owner has not provided
 // the real one yet. WhatsApp is live (owner-provided +8801608533529).
@@ -31,6 +32,7 @@ const ORG_OPTIONS: WorkspaceType[] = ['Mandir', 'Goshala', 'Ashram', 'Gurukul', 
 type SubmitState = 'idle' | 'sending' | 'sent' | 'failed';
 
 export const ContactPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const startDemo = useDemoStarter();
 
@@ -195,37 +197,37 @@ export const ContactPage: React.FC = () => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} noValidate>
-                  <h2 className="text-2xl font-black mb-1">Send a message</h2>
+                  <h2 className="text-2xl font-black mb-1">{t('surfaces.contact.sendAMessage')}</h2>
                   <p className="text-sm text-stone-500 mb-8">
                     Tell us about your institution and what you need.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="cp-name" className={labelCls}>Your name *</label>
+                      <label htmlFor="cp-name" className={labelCls}>{t('surfaces.contact.yourName')}</label>
                       <input
                         id="cp-name"
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Ramesh Sharma"
+                        placeholder={t('surfaces.contact.eGRameshSharma')}
                         className={inputCls}
                         autoComplete="name"
                       />
                     </div>
                     <div>
-                      <label htmlFor="cp-institution" className={labelCls}>Institution name *</label>
+                      <label htmlFor="cp-institution" className={labelCls}>{t('surfaces.contact.institutionName')}</label>
                       <input
                         id="cp-institution"
                         type="text"
                         value={institution}
                         onChange={(e) => setInstitution(e.target.value)}
-                        placeholder="e.g. Kashi Vishwanath Trust"
+                        placeholder={t('surfaces.contact.eGKashiVishwanathTrust')}
                         className={inputCls}
                         autoComplete="organization"
                       />
                     </div>
                     <div>
-                      <label htmlFor="cp-orgtype" className={labelCls}>Institution type *</label>
+                      <label htmlFor="cp-orgtype" className={labelCls}>{t('surfaces.contact.institutionType')}</label>
                       <select
                         id="cp-orgtype"
                         value={orgType}
@@ -250,7 +252,7 @@ export const ContactPage: React.FC = () => {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label htmlFor="cp-email" className={labelCls}>Email *</label>
+                      <label htmlFor="cp-email" className={labelCls}>{t('surfaces.contact.email')}</label>
                       <input
                         id="cp-email"
                         type="email"
@@ -262,12 +264,12 @@ export const ContactPage: React.FC = () => {
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label htmlFor="cp-message" className={labelCls}>Message *</label>
+                      <label htmlFor="cp-message" className={labelCls}>{t('surfaces.contact.message')}</label>
                       <textarea
                         id="cp-message"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="How can we help? Onboarding, migration from registers, partnerships…"
+                        placeholder={t('surfaces.contact.howCanWeHelpOnboardingMigration')}
                         rows={5}
                         className={`${inputCls} py-4 resize-y min-h-[120px]`}
                       />
@@ -337,7 +339,7 @@ export const ContactPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
                   <Mail className="w-6 h-6" />
                 </div>
-                <h3 className="font-black text-lg">Email us</h3>
+                <h3 className="font-black text-lg">{t('surfaces.contact.emailUs')}</h3>
                 <p className="text-sm text-stone-500 mt-1 mb-3">
                   For anything — support, onboarding, press.
                 </p>
@@ -353,7 +355,7 @@ export const ContactPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4">
                   <MessageCircle className="w-6 h-6" />
                 </div>
-                <h3 className="font-black text-lg">WhatsApp channel</h3>
+                <h3 className="font-black text-lg">{t('surfaces.contact.whatsappChannel')}</h3>
                 <p className="text-sm text-stone-500 mt-1 mb-3">
                   Festival alerts & platform updates, straight to your phone.
                 </p>
@@ -368,7 +370,7 @@ export const ContactPage: React.FC = () => {
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 ) : (
-                  <p className="text-sm text-stone-400 italic">WhatsApp support coming soon.</p>
+                  <p className="text-sm text-stone-400 italic">{t('surfaces.contact.whatsappSupportComingSoon')}</p>
                 )}
               </div>
 
@@ -376,7 +378,7 @@ export const ContactPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-2xl bg-white/10 text-amber-400 flex items-center justify-center mb-4">
                   <Play className="w-6 h-6 fill-amber-400" />
                 </div>
-                <h3 className="font-black text-lg">Prefer to explore yourself?</h3>
+                <h3 className="font-black text-lg">{t('surfaces.contact.preferToExploreYourself')}</h3>
                 <p className="text-sm text-stone-300 mt-1 mb-4">
                   Launch a live sandbox demo — no signup, sample data included.
                 </p>
@@ -394,7 +396,7 @@ export const ContactPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h3 className="font-black text-lg">Ask any AI about us</h3>
+                <h3 className="font-black text-lg">{t('surfaces.contact.askAnyAiAboutUs')}</h3>
                 <p className="text-sm text-stone-500 mt-1 mb-4">
                   ChatGPT, Claude or Gemini — ask them anything about Sanatani Bandhan.
                   We publish our facts openly, with ready-made prompts that point your
@@ -413,7 +415,7 @@ export const ContactPage: React.FC = () => {
               <div className="flex items-center gap-3 text-sm text-stone-500 px-1">
                 <Clock className="w-5 h-5 text-orange-500 shrink-0" />
                 <span>
-                  <strong className="text-stone-700">Response time:</strong> within one
+                  <strong className="text-stone-700">{t('surfaces.contact.responseTime')}</strong> within one
                   working day, usually within hours.
                 </span>
               </div>
@@ -441,7 +443,7 @@ export const ContactPage: React.FC = () => {
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium" aria-label="Footer">
               <button type="button" onClick={() => navigate('/')} className="hover:text-orange-400 transition-colors cursor-pointer">Home</button>
               <button type="button" onClick={() => navigate('/login')} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button>
-              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">Create free account</button>
+              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">{t('surfaces.contact.createFreeAccount')}</button>
               <button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Privacy</button>
               <button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Terms</button>
             </nav>

@@ -20,6 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { captureOppref, initOpenAiAds, trackOpenAiEvent } from '../lib/openaiAds';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * ForInstitutionsPage — the public landing page for ChatGPT Ads
@@ -141,6 +142,7 @@ const ContactCta: React.FC<{ label?: string; dark?: boolean }> = ({
 };
 
 export const ForInstitutionsPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -244,8 +246,8 @@ export const ForInstitutionsPage: React.FC = () => {
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-black leading-snug">The month-end problem every institution knows</h2>
-                <p className="text-sm text-stone-500 mt-1">If this sounds familiar, this page was written for you.</p>
+                <h2 className="text-2xl font-black leading-snug">{t('surfaces.institutions.theMonthEndProblemEveryInstitution')}</h2>
+                <p className="text-sm text-stone-500 mt-1">{t('surfaces.institutions.ifThisSoundsFamiliarThisPage')}</p>
               </div>
             </div>
             <ul className="space-y-3.5 text-stone-600 leading-relaxed">
@@ -272,7 +274,7 @@ export const ForInstitutionsPage: React.FC = () => {
         {/* WHAT IT REPLACES */}
         <section className="px-4 sm:px-6 pb-14 text-center">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-black tracking-tight">What it replaces</h2>
+            <h2 className="text-3xl font-black tracking-tight">{t('surfaces.institutions.whatItReplaces')}</h2>
             <p className="mt-3 text-stone-500 leading-relaxed max-w-2xl mx-auto">
               Not your people, and never your traditions — just the fragile tools between them.
             </p>
@@ -294,7 +296,7 @@ export const ForInstitutionsPage: React.FC = () => {
         {/* CAPABILITIES */}
         <section className="px-4 sm:px-6 pb-14">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-black tracking-tight text-center">What your institution gets</h2>
+            <h2 className="text-3xl font-black tracking-tight text-center">{t('surfaces.institutions.whatYourInstitutionGets')}</h2>
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {CAPABILITIES.map((cap) => (
                 <div key={cap.title} className="bg-white rounded-3xl border border-orange-100 p-6 shadow-sm text-left">
@@ -317,8 +319,8 @@ export const ForInstitutionsPage: React.FC = () => {
                 <Landmark className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-black leading-snug">Built so trust does not depend on memory</h2>
-                <p className="text-sm text-stone-300 mt-1">An institution runs on the trust of the people who give to it.</p>
+                <h2 className="text-2xl font-black leading-snug">{t('surfaces.institutions.builtSoTrustDoesNotDepend')}</h2>
+                <p className="text-sm text-stone-300 mt-1">{t('surfaces.institutions.anInstitutionRunsOnTheTrust')}</p>
               </div>
             </div>
             <ul className="space-y-3 text-stone-200 leading-relaxed">
@@ -340,25 +342,25 @@ export const ForInstitutionsPage: React.FC = () => {
         {/* PRICING STRIP */}
         <section className="px-4 sm:px-6 pb-14">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-black tracking-tight text-center">Honest pricing, in your currency</h2>
-            <p className="mt-3 text-stone-500 text-center">Annual plans include two months free. Prices are the same ones published across our site.</p>
+            <h2 className="text-3xl font-black tracking-tight text-center">{t('surfaces.institutions.honestPricingInYourCurrency')}</h2>
+            <p className="mt-3 text-stone-500 text-center">{t('surfaces.institutions.annualPlansIncludeTwoMonthsFree')}</p>
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
               <div className="bg-white rounded-3xl border border-orange-100 p-6 shadow-sm">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-stone-400">Seva — Free</p>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-stone-400">{t('surfaces.institutions.sevaFree')}</p>
                 <p className="mt-2 text-3xl font-black">₹0 <span className="text-base font-bold text-stone-400">/ forever</span></p>
-                <p className="mt-3 text-sm text-stone-500 leading-relaxed">Start free: donations, receipts and member records for a small institution, on up to 2 staff seats.</p>
+                <p className="mt-3 text-sm text-stone-500 leading-relaxed">{t('surfaces.institutions.startFreeDonationsReceiptsAndMember')}</p>
               </div>
               <div className="bg-white rounded-3xl border-2 border-orange-400 p-6 shadow-xl shadow-orange-100/60 relative">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-orange-600">Standard — for most institutions</p>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-orange-600">{t('surfaces.institutions.standardForMostInstitutions')}</p>
                 <p className="mt-2 text-3xl font-black">₹499 <span className="text-base font-bold text-stone-400">/ month</span></p>
-                <p className="mt-2 text-sm font-bold text-stone-600">৳700 / $6 per month · ₹4,999 / ৳7,000 / $60 per year</p>
-                <p className="mt-3 text-sm text-stone-500 leading-relaxed">Full accounts and audit trail, fees, events and reports — for institutions that have outgrown paper.</p>
+                <p className="mt-2 text-sm font-bold text-stone-600">{t('surfaces.institutions.7006PerMonth4999')}</p>
+                <p className="mt-3 text-sm text-stone-500 leading-relaxed">{t('surfaces.institutions.fullAccountsAndAuditTrailFees')}</p>
               </div>
               <div className="bg-white rounded-3xl border border-orange-100 p-6 shadow-sm">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-stone-400">Premium — multi-branch</p>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-stone-400">{t('surfaces.institutions.premiumMultiBranch')}</p>
                 <p className="mt-2 text-3xl font-black">₹1,999 <span className="text-base font-bold text-stone-400">/ month</span></p>
-                <p className="mt-2 text-sm font-bold text-stone-600">৳2,800 / $24 per month · ₹19,999 / ৳28,000 / $240 per year</p>
-                <p className="mt-3 text-sm text-stone-500 leading-relaxed">Unlimited scale across branches, with the complete suite set and priority support.</p>
+                <p className="mt-2 text-sm font-bold text-stone-600">{t('surfaces.institutions.280024PerMonth19')}</p>
+                <p className="mt-3 text-sm text-stone-500 leading-relaxed">{t('surfaces.institutions.unlimitedScaleAcrossBranchesWithThe')}</p>
               </div>
             </div>
             <div className="mt-8 text-center">
@@ -370,7 +372,7 @@ export const ForInstitutionsPage: React.FC = () => {
         {/* FAQ */}
         <section className="px-4 sm:px-6 pb-14">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-black tracking-tight text-center">Questions institutions ask us</h2>
+            <h2 className="text-3xl font-black tracking-tight text-center">{t('surfaces.institutions.questionsInstitutionsAskUs')}</h2>
             <div className="mt-8 space-y-4">
               {FAQS.map((faq) => (
                 <div key={faq.q} className="bg-white rounded-3xl border border-orange-100 p-6 shadow-sm text-left">
@@ -388,7 +390,7 @@ export const ForInstitutionsPage: React.FC = () => {
             <div className="w-12 h-12 mx-auto rounded-2xl bg-white/15 text-white flex items-center justify-center mb-5">
               <Building2 className="w-6 h-6" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black">Tell us about your institution</h2>
+            <h2 className="text-2xl sm:text-3xl font-black">{t('surfaces.institutions.tellUsAboutYourInstitution')}</h2>
             <p className="mt-3 text-orange-50 leading-relaxed max-w-xl mx-auto">
               Its type, its size, and what you still keep on paper. We will reply within one
               working day with an honest recommendation — including if paper is still right for you.
@@ -420,7 +422,7 @@ export const ForInstitutionsPage: React.FC = () => {
               <button type="button" onClick={() => navigate('/')} className="hover:text-orange-400 transition-colors cursor-pointer">Home</button>
               <button type="button" onClick={() => navigate('/contact')} className="hover:text-orange-400 transition-colors cursor-pointer">Contact</button>
               <button type="button" onClick={() => navigate('/login')} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button>
-              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">Create free account</button>
+              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">{t('surfaces.institutions.createFreeAccount')}</button>
             </nav>
           </div>
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">

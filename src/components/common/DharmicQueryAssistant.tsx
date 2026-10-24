@@ -31,6 +31,7 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { calculateDailyPanchang, STANDARD_CITIES, PanchangData } from '../../utils/panchang';
 import { callGeminiDirect } from '../../utils/geminiClient';
 
@@ -83,7 +84,20 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
   const { showToast } = useToast();
 
   const [promptInput, setPromptInput] = useState('');
-  const [selectedLang, setSelectedLang] = useState<AssistantLang>('en');
+  // Language Completion Sweep B1 (Copilot Break 2): this sheet used to keep
+  // its own language state defaulting to 'en', ignoring the app language the
+  // user had already chosen. It now initialises from — and follows — the
+  // app LanguageContext, clamped to the languages this sheet supports; the
+  // in-sheet selector remains as a per-sheet override until the app
+  // language itself changes.
+  const { currentLang } = useLanguage();
+  const clampAssistantLang = (l: string): AssistantLang =>
+    l === 'hi' || l === 'bn' || l === 'sa' ? l : 'en';
+  const [selectedLang, setSelectedLang] = useState<AssistantLang>(() => clampAssistantLang(currentLang));
+  useEffect(() => {
+    setSelectedLang(clampAssistantLang(currentLang));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLang]);
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);

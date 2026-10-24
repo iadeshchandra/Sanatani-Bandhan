@@ -17,6 +17,7 @@ import {
   releaseFirstRunDialog,
   requestFirstRunDialog,
 } from '../../lib/firstRunDialogs';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DemoTourProps {
   onNavigate: (mod: string) => void;
@@ -45,6 +46,7 @@ interface TourStep {
  * prefers-reduced-motion kill-switch in motion.css).
  */
 export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOpenQuickPay }) => {
+  const { t } = useLanguage();
   const { activeWorkspace, currentRole } = useAuthWorkspace();
   const [visible, setVisible] = useState(false);
   const [turn, setTurn] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     <div
       className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[380px] z-[90] anim-fade-up"
       role="dialog"
-      aria-label="Demo tour"
+      aria-label={t('surfaces.demo.demoTour')}
       aria-describedby="demo-tour-body"
     >
       <div className="rounded-2xl bg-[#1c1410] border border-saffron-500/30 shadow-2xl shadow-black/50 overflow-hidden">
@@ -167,7 +169,7 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
             <button
               type="button"
               onClick={dismiss}
-              aria-label="Skip tour"
+              aria-label={t('guide.skip')}
               className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
             >
               <X className="w-4 h-4" />

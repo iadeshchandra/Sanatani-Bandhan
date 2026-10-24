@@ -179,7 +179,7 @@ const cleanTransliteration = (s: string): string => s.replace(/'stv/g, 'stv');
 
 export const ShlokaCard: React.FC = () => {
   const { shlokas } = useData();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { showToast } = useToast();
   const [currentShlokaIndex, setCurrentShlokaIndex] = useState(() => {
     const now = new Date();
@@ -216,9 +216,9 @@ export const ShlokaCard: React.FC = () => {
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);
       window.speechSynthesis.speak(utterance);
-      showToast('Reciting sacred Sanskrit Shloka...', 'info');
+      showToast(t('surfaces.roleHome.recitingSacredSanskritShloka'), 'info');
     } else {
-      showToast('Audio recitation not supported on this browser', 'warning');
+      showToast(t('devotee.feed.toastAudioUnsupported'), 'warning');
     }
   };
 
@@ -247,7 +247,7 @@ export const ShlokaCard: React.FC = () => {
             onClick={handleNextShloka}
             className="px-3 py-1.5 rounded-lg bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-500 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
           >
-            <span className="hidden sm:inline">Next Shloka</span>
+            <span className="hidden sm:inline">{t('surfaces.roleHome.nextShloka')}</span>
             <ChevronRight className="w-3 h-3" />
           </button>
         </div>
@@ -273,6 +273,7 @@ export const ShlokaCard: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
   const { safeTranslate } = useLanguage();
   const { devotees, treasury, poojaBookings, cows, gurukulStudents, collectionWindows, treasuryExactTotals } = useData();
@@ -335,7 +336,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
           style={{ '--i': 1 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors group"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Net Treasury Fund</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.netTreasuryFund')}</span>
           <div className="flex items-end justify-between mt-1">
             <span className="text-2xl font-bold text-slate-900">
               <CountUp value={netBalance} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
@@ -359,10 +360,10 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             style={{ '--i': 2 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Shishya (Students)</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.shishyaStudents')}</span>
             <div className="flex items-end justify-between mt-1">
               <span className="text-2xl font-bold text-slate-900"><CountUp value={gurukulStudents.length} /></span>
-              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">Brahmacharis</span>
+              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">{t('surfaces.roleHome.brahmacharis')}</span>
             </div>
           </div>
         )
@@ -373,7 +374,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             style={{ '--i': 2 } as React.CSSProperties}
             className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-rose-300 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Reserved Sankalps</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.reservedSankalps')}</span>
             <div className="flex items-end justify-between mt-1">
               <span className="text-2xl font-bold text-slate-900"><CountUp value={poojaBookings.length} /></span>
               {/* F-DASH-5: a red "Active" pill on a zero count reads as an alert.
@@ -395,7 +396,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
           style={{ '--i': 3 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-saffron-300 transition-colors group"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gau Seva Units</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.gauSevaUnits')}</span>
           <div className="flex items-end justify-between mt-1">
             {/* QUEUED #59 (A4-1): same herd resolver as the Command
                 Center — the suite store is the register of record. */}
@@ -579,8 +580,8 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
     <div className="rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-white">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">Discover Workspace Features</h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">Recommended for your institution — every desk is already yours, open one to begin</p>
+          <h2 className="text-sm font-bold text-slate-800">{t('surfaces.roleHome.discoverWorkspaceFeatures')}</h2>
+          <p className="text-[10px] text-slate-500 mt-0.5">{t('surfaces.roleHome.recommendedForYourInstitutionEveryDesk')}</p>
         </div>
         <button
           onClick={() => onNavigate('desk-directory')}
@@ -660,13 +661,14 @@ export const ActionHub: React.FC<{
   onOpenQuickPay: () => void;
   onOpenMySpace?: () => void;
 }> = ({ onNavigate, onOpenQuickPay, onOpenMySpace }) => {
+  const { t } = useLanguage();
   const { checkPermission } = useAuthWorkspace();
   const { memberNoun } = useWorkspaceTaxonomy();
 
   return (
     <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-      <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">Dharmic Action Hub</h3>
-      <p className="text-[10px] text-slate-500 mb-4">Fast workflows &amp; pass generation</p>
+      <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.dharmicActionHub')}</h3>
+      <p className="text-[10px] text-slate-500 mb-4">{t('surfaces.roleHome.fastWorkflowsAmpPassGeneration')}</p>
       <div className="space-y-2">
         <button
           type="button"
@@ -675,7 +677,7 @@ export const ActionHub: React.FC<{
         >
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4" />
-            <span>Log Chanda / Dakshina</span>
+            <span>{t('surfaces.roleHome.logChandaDakshina')}</span>
           </div>
           <ChevronRight className="w-3 h-3" />
         </button>
@@ -700,7 +702,7 @@ export const ActionHub: React.FC<{
           >
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-saffron-700 text-sm">ॐ</span>
-              <span>Dharmic AI Assistant (On-Device AI)</span>
+              <span>{t('surfaces.roleHome.dharmicAiAssistantOnDeviceAi')}</span>
             </div>
             <Sparkles className="w-3.5 h-3.5 text-saffron-600 group-hover:scale-110 transition-transform" />
           </button>
@@ -713,7 +715,7 @@ export const ActionHub: React.FC<{
           >
             <div className="flex items-center gap-2">
               <Flame className="w-4 h-4 text-rose-500" />
-              <span>Reserve Sacred Sankalp</span>
+              <span>{t('surfaces.roleHome.reserveSacredSankalp')}</span>
             </div>
             <ChevronRight className="w-3 h-3 text-slate-400" />
           </button>
@@ -739,7 +741,7 @@ export const ActionHub: React.FC<{
           >
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-500" />
-              <span>WhatsApp Sandesh Engine</span>
+              <span>{t('surfaces.roleHome.whatsappSandeshEngine')}</span>
             </div>
             <ChevronRight className="w-3 h-3 text-slate-400" />
           </button>
@@ -750,6 +752,7 @@ export const ActionHub: React.FC<{
 };
 
 export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const inr = useInr();
   const { activeWorkspace, checkPermission } = useAuthWorkspace();
   const { treasury } = useData();
@@ -759,8 +762,8 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
     <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex-1">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">Recent Treasury</h3>
-          <p className="text-[10px] text-slate-500">Double-entry audit verified</p>
+          <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.recentTreasury')}</h3>
+          <p className="text-[10px] text-slate-500">{t('surfaces.roleHome.doubleEntryAuditVerified')}</p>
         </div>
         <button
           type="button"
@@ -814,6 +817,7 @@ const statusTone: Record<string, string> = {
 };
 
 export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const { poojaBookings, updatePoojaStatus } = useData();
   const { showToast } = useToast();
   const today = todayISO();
@@ -834,11 +838,11 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
 
   return (
     <div className="flex flex-col gap-4">
-      <RoleSectionTitle icon={Flame} title="Today's Pujas" hint={`${todaysBookings.length} booking${todaysBookings.length === 1 ? '' : 's'}`} />
+      <RoleSectionTitle icon={Flame} title={t('surfaces.roleHome.todaySPujas')} hint={`${todaysBookings.length} booking${todaysBookings.length === 1 ? '' : 's'}`} />
 
       {nextBooking ? (
         <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-lg shadow-orange-500/20 anim-fade-up">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">Next booking</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">{t('surfaces.roleHome.nextBooking')}</p>
           <p className="text-xl font-black">{nextBooking.poojaName}</p>
           <p className="text-sm text-white/90 mt-1">
             {nextBooking.devoteeName} · {nextBooking.timeSlot || 'Time TBD'}
@@ -864,8 +868,8 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
       ) : (
         <div className="rounded-xl bg-white border border-slate-200 p-5 text-center">
           <Flame className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-700">No pujas booked for today</p>
-          <p className="text-[11px] text-slate-500 mt-1">New sankalps appear here the moment they are reserved.</p>
+          <p className="text-sm font-bold text-slate-700">{t('surfaces.roleHome.noPujasBookedForToday')}</p>
+          <p className="text-[11px] text-slate-500 mt-1">{t('surfaces.roleHome.newSankalpsAppearHereTheMoment')}</p>
           <button
             type="button"
             onClick={() => onNavigate('poojaBooking')}
@@ -908,14 +912,14 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ActionCard
           icon={UserCheck}
-          title="Darshan & Gate Check-In"
-          subtitle="Today's gate desk"
+          title={t('surfaces.roleHome.darshanGateCheckIn')}
+          subtitle={t('surfaces.roleHome.todaySGateDesk')}
           onClick={() => onNavigate('gate-command')}
         />
         <ActionCard
           icon={CalendarDays}
-          title="Festival Calendar"
-          subtitle="Utsavs, muhurats & gate passes"
+          title={t('surfaces.roleHome.festivalCalendar')}
+          subtitle={t('surfaces.roleHome.utsavsMuhuratsGatePasses')}
           onClick={() => onNavigate('utsavPanjika')}
         />
       </div>
@@ -931,6 +935,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
   onNavigate,
   onOpenQuickPay,
 }) => {
+  const { t } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const { treasury, collectionWindows } = useData();
   const { safeTranslate } = useLanguage();
@@ -970,7 +975,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
 
   return (
     <div className="flex flex-col gap-4">
-      <RoleSectionTitle icon={Wallet} title="Today's Books" hint={today} />
+      <RoleSectionTitle icon={Wallet} title={t('surfaces.roleHome.todaySBooks')} hint={today} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 anim-stagger">
         <div
@@ -978,7 +983,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
           style={{ '--i': 0 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Collections today</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
           <div className="flex items-end justify-between mt-1">
             <span className="text-2xl font-black text-slate-900">
               <CountUp value={todaysTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
@@ -993,7 +998,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
           style={{ '--i': 1 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">80G receipts pending</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.80gReceiptsPending')}</span>
           <div className="flex items-end justify-between mt-1">
             <span className="text-2xl font-black text-slate-900"><CountUp value={pending80G.length} /></span>
             <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
@@ -1007,7 +1012,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         onClick={() => onNavigate('treasury-ledger')}
         className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors"
       >
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Collections this week</span>
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.collectionsThisWeek')}</span>
         <div className="flex items-end justify-between mt-1">
           <span className="text-2xl font-black text-slate-900">
             <CountUp value={weekTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
@@ -1033,13 +1038,13 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         >
           <span className="flex items-center gap-2.5">
             <Coins className="w-5 h-5" />
-            <span className="text-left">Quick Chanda<span className="block text-[11px] font-medium text-white/80">Log a donation in 2 taps</span></span>
+            <span className="text-left">{t('org.people.devoteeGrid.quickChanda')}<span className="block text-[11px] font-medium text-white/80">{t('surfaces.roleHome.logADonationIn2Taps')}</span></span>
           </span>
           <ChevronRight className="w-4 h-4" />
         </button>
         <ActionCard
           icon={Receipt}
-          title="Tax Certificates (80G/12A)"
+          title={t('suites.seva.catalog.taxReceipts.name')}
           subtitle={pending80G.length > 0 ? `${pending80G.length} receipts to issue` : 'All receipts issued'}
           badge={pending80G.length > 0 ? 'Action needed' : undefined}
           badgeTone="amber"
@@ -1047,14 +1052,14 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         />
         <ActionCard
           icon={FileSpreadsheet}
-          title="Tally Prime Export"
-          subtitle="Ledger → Tally XML"
+          title={t('surfaces.roleHome.tallyPrimeExport')}
+          subtitle={t('surfaces.roleHome.ledgerTallyXml')}
           onClick={() => onNavigate('tally-export')}
         />
         <ActionCard
           icon={Landmark}
-          title="Treasury & Expense Ledger"
-          subtitle="Double-entry books"
+          title={t('suites.seva.catalog.treasury.name')}
+          subtitle={t('surfaces.roleHome.doubleEntryBooks')}
           onClick={() => onNavigate('treasury-ledger')}
         />
       </div>
@@ -1070,6 +1075,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
 export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQuickPay: () => void }> = ({
   onNavigate,
 }) => {
+  const { t } = useLanguage();
   const { treasury, poojaBookings, donations } = useData();
   const { activeWorkspace, firebaseUser, checkPermission } = useAuthWorkspace();
 
@@ -1131,11 +1137,11 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
       <UtsavReadinessCard onPlan={() => onNavigate('utsav-one')} />
       <BranchComparisonPanel />
 
-      <RoleSectionTitle icon={Bell} title="Needs your attention" hint={attentionCount > 0 ? `${attentionCount} open` : 'All clear'} />
+      <RoleSectionTitle icon={Bell} title={t('surfaces.roleHome.needsYourAttention')} hint={attentionCount > 0 ? `${attentionCount} open` : 'All clear'} />
       {attentionCount === 0 ? (
         <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3">
           <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-          <p className="text-sm font-bold text-emerald-800">Everything is settled — no pending approvals, payments, or receipts.</p>
+          <p className="text-sm font-bold text-emerald-800">{t('surfaces.roleHome.everythingIsSettledNoPendingApprovals')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -1165,7 +1171,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
           {standbyBookings.length > 0 && (
             <ActionCard
               icon={Clock}
-              title="Standby bookings"
+              title={t('surfaces.roleHome.standbyBookings')}
               value={standbyBookings.length}
               badge="Review"
               badgeTone="amber"
@@ -1175,7 +1181,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
           {pendingPayments.length > 0 && (
             <ActionCard
               icon={AlertCircle}
-              title="Payments pending"
+              title={t('surfaces.roleHome.paymentsPending')}
               value={pendingPayments.length}
               badge="Follow up"
               badgeTone="rose"
@@ -1198,7 +1204,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
 
       {lapsedDonors.length > 0 && (
         <>
-          <RoleSectionTitle icon={Heart} title="Donor care" hint="Win-back" />
+          <RoleSectionTitle icon={Heart} title={t('surfaces.roleHome.donorCare')} hint="Win-back" />
           <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-4">
             <p className="text-sm font-bold text-slate-800">
               {lapsedDonors.length} donor{lapsedDonors.length === 1 ? '' : 's'} quiet for 6+ months
@@ -1225,6 +1231,7 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
 /* ------------------------------------------------------------------ */
 
 export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const { currentUser } = useAuthWorkspace();
   const { shifts } = useData();
   const today = todayISO();
@@ -1245,7 +1252,7 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
   return (
     <div className="flex flex-col gap-4">
-      <RoleSectionTitle icon={ClipboardList} title="My Seva Today" hint={today} />
+      <RoleSectionTitle icon={ClipboardList} title={t('surfaces.roleHome.mySevaToday')} hint={today} />
 
       <button
         type="button"
@@ -1258,7 +1265,7 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
           </span>
           <span className="text-left">
             Check in for seva
-            <span className="block text-[11px] font-medium text-white/75">Mark your attendance in the roster</span>
+            <span className="block text-[11px] font-medium text-white/75">{t('surfaces.roleHome.markYourAttendanceInTheRoster')}</span>
           </span>
         </span>
         <ChevronRight className="w-5 h-5" />
@@ -1267,8 +1274,8 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
       {displayShifts.length === 0 ? (
         <div className="rounded-xl bg-white border border-slate-200 p-5 text-center">
           <ClipboardList className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-700">No shifts assigned for today</p>
-          <p className="text-[11px] text-slate-500 mt-1">Rest well — seva schedules appear here when rostered.</p>
+          <p className="text-sm font-bold text-slate-700">{t('surfaces.roleHome.noShiftsAssignedForToday')}</p>
+          <p className="text-[11px] text-slate-500 mt-1">{t('surfaces.roleHome.restWellSevaSchedulesAppearHere')}</p>
         </div>
       ) : (
         <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
@@ -1304,14 +1311,14 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ActionCard
           icon={Users}
-          title="Sevadar Roster"
-          subtitle="Full schedule & attendance"
+          title={t('surfaces.roleHome.sevadarRoster')}
+          subtitle={t('surfaces.roleHome.fullScheduleAttendance')}
           onClick={() => onNavigate('sevadar-roster')}
         />
         <ActionCard
           icon={ShieldCheck}
-          title="Crisis Command"
-          subtitle="SOS & incident desk"
+          title={t('surfaces.roleHome.crisisCommand')}
+          subtitle={t('surfaces.roleHome.sosIncidentDesk')}
           onClick={() => onNavigate('crisis-command')}
         />
       </div>

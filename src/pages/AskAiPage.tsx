@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * AskAiPage — the "Ask any AI about us" prompt kit (/ask-ai).
@@ -166,6 +167,7 @@ const PromptCard: React.FC<{ kit: PromptKit }> = ({ kit }) => {
 };
 
 export const AskAiPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -232,7 +234,7 @@ export const AskAiPage: React.FC = () => {
               सत्यं वद · Speak the truth, ask anyone
             </div>
             <h1 className="text-4xl sm:text-5xl font-black tracking-tight">
-              Ask any AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">about us.</span>
+              Ask any AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">{t('surfaces.askAi.aboutUs')}</span>
             </h1>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Don't take our word for it. We publish every fact about Sanatani Bandhan in the
@@ -251,7 +253,7 @@ export const AskAiPage: React.FC = () => {
 
             {/* FACTS CARD */}
             <div className="rounded-[2rem] p-6 sm:p-8 shadow-xl bg-gradient-to-br from-stone-900 to-stone-800 text-white text-left">
-              <h2 className="text-xl font-black">Prefer to read the facts yourself?</h2>
+              <h2 className="text-xl font-black">{t('surfaces.askAi.preferToReadTheFactsYourself')}</h2>
               <p className="text-sm text-stone-300 mt-2 leading-relaxed">
                 The same facts the AIs read — no marketing, kept in lockstep with the app.
                 If any AI ever tells you something different about Sanatani Bandhan, trust
@@ -308,7 +310,7 @@ export const AskAiPage: React.FC = () => {
               <button type="button" onClick={() => navigate('/')} className="hover:text-orange-400 transition-colors cursor-pointer">Home</button>
               <button type="button" onClick={() => navigate('/contact')} className="hover:text-orange-400 transition-colors cursor-pointer">Contact</button>
               <button type="button" onClick={() => navigate('/login')} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button>
-              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">Create free account</button>
+              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">{t('surfaces.askAi.createFreeAccount')}</button>
             </nav>
           </div>
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">

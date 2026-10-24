@@ -55,7 +55,12 @@ describe('D-10 — one truthful AI label', () => {
 
   it('RoleHome names the assistant (On-Device AI)', () => {
     const home = read('src/components/dashboard/RoleHome.tsx');
-    expect(home).toContain('Dharmic AI Assistant (On-Device AI)');
+    // Language Completion Sweep Batch 1 (2026-10-24): the label is rendered
+    // from the dictionary now — the truthful string lives in the en fragment
+    // and RoleHome must call its key.
+    const dict = read('src/i18n/lang/en/core.ts');
+    expect(dict).toContain('Dharmic AI Assistant (On-Device AI)');
+    expect(home).toContain("t('surfaces.roleHome.dharmicAiAssistantOnDeviceAi')");
     expect(home).not.toContain('Gemini 3');
   });
 });

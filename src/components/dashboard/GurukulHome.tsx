@@ -6,6 +6,7 @@ import {
 import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { readParamparaCounts } from '../../lib/paramparaCounts';
+import { useLanguage } from '../../context/LanguageContext';
 
 /* ------------------------------------------------------------------ */
 /* GurukulHome — the dedicated home for Gurukul / Vidyalaya workspaces */
@@ -66,6 +67,7 @@ const fmtDate = (iso: string) => {
 };
 
 export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const { gurukulStudents } = useData();
   const { activeWorkspace } = useAuthWorkspace();
 
@@ -134,7 +136,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         <div className="relative">
           <p className="font-serif text-3xl sm:text-4xl text-amber-200">गुरुकुलम्</p>
           <h2 className="mt-1 text-lg sm:text-xl font-bold tracking-tight">
-            Gurukulam — <span className="font-medium text-amber-100/90">the residential seat of Vedic learning</span>
+            Gurukulam — <span className="font-medium text-amber-100/90">{t('surfaces.gurukulHome.theResidentialSeatOfVedicLearning')}</span>
           </h2>
           <p className="mt-2 text-xs text-amber-100/80 max-w-xl leading-relaxed">
             आचार्याद्धैव विद्या विदिता — "Knowledge is truly known only through the Acharya."
@@ -164,13 +166,13 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         <section className="lg:col-span-2 rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
           <div className="flex items-baseline justify-between mb-1">
             <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
-              दिनचर्या <span className="text-sm font-sans font-semibold text-stone-500">· Daily routine</span>
+              दिनचर्या <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.dailyRoutine')}</span>
             </h3>
             <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
               Brahma-muhurta → Sandhya
             </span>
           </div>
-          <p className="text-[11px] text-stone-500 mb-4">The shishya's day, as ordained by the shastras.</p>
+          <p className="text-[11px] text-stone-500 mb-4">{t('surfaces.gurukulHome.theShishyaSDayAsOrdained')}</p>
           <ol className="relative border-l-2 border-amber-200/70 ml-2 space-y-1">
             {DINACHARYA.map((slot) => {
               const active = currentSlot?.label === slot.label;
@@ -219,7 +221,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
               }}
             />
             <h3 className="font-serif text-lg font-bold text-amber-200 relative">
-              परम्परा <span className="text-xs font-sans font-semibold text-amber-100/70">· Guru–Shishya lineage</span>
+              परम्परा <span className="text-xs font-sans font-semibold text-amber-100/70">{t('surfaces.gurukulHome.guruShishyaLineage')}</span>
             </h3>
             <div className="mt-3 grid grid-cols-3 gap-2 relative">
               <div className="rounded-2xl bg-white/10 border border-amber-200/20 p-3 text-center">
@@ -245,7 +247,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
           <div className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 shadow-sm">
             <h3 className="font-serif text-lg font-bold text-[#5c1a2a]">
-              उत्सव-पर्व <span className="text-xs font-sans font-semibold text-stone-500">· Upcoming observances</span>
+              उत्सव-पर्व <span className="text-xs font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.upcomingObservances')}</span>
             </h3>
             <ul className="mt-3 space-y-2.5">
               {upcomingParvas.map((p) => (
@@ -261,7 +263,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
                 </li>
               ))}
               {upcomingParvas.length === 0 && (
-                <li className="text-xs text-stone-500">No upcoming parvas in the almanac window.</li>
+                <li className="text-xs text-stone-500">{t('surfaces.gurukulHome.noUpcomingParvasInTheAlmanac')}</li>
               )}
             </ul>
             <button
@@ -279,9 +281,9 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         {/* Pathyakram progress */}
         <section className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
           <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
-            पाठ्यक्रम <span className="text-sm font-sans font-semibold text-stone-500">· Curriculum by Varga</span>
+            पाठ्यक्रम <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.curriculumByVarga')}</span>
           </h3>
-          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">Shishya distribution across the four varga (levels).</p>
+          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">{t('surfaces.gurukulHome.shishyaDistributionAcrossTheFourVarga')}</p>
           <div className="space-y-3.5">
             {VARGA_META.map((v) => {
               const count = vargaCounts[v.key] || 0;
@@ -317,11 +319,11 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         {/* Kanthastha journeys — every shishya, unranked (E-11) */}
         <section className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
           <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
-            कण्ठस्थ <span className="text-sm font-sans font-semibold text-stone-500">· Each shishya's journey</span>
+            कण्ठस्थ <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.eachShishyaSJourney')}</span>
           </h3>
-          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">Shloka recitation — the heart of oral tradition. Every voice at its own pace.</p>
+          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">{t('surfaces.gurukulHome.shlokaRecitationTheHeartOfOral')}</p>
           {kanthasthaRoster.length === 0 ? (
-            <p className="text-xs text-stone-500">No shishya enrolled yet — the first voice is awaited with joy.</p>
+            <p className="text-xs text-stone-500">{t('surfaces.gurukulHome.noShishyaEnrolledYetTheFirst')}</p>
           ) : (
             <ol className="space-y-2">
               {kanthasthaRoster.map((s) => (
@@ -363,7 +365,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
           <span className="font-serif font-bold text-[#5c1a2a]">गुरुकुलवासः — </span>
           the shishya rises at brahma-muhurta, serves the Guru and the gomata, and carries the Veda on the tongue.
           This home mirrors that day: <strong>Dinacharya</strong> (routine), <strong>Pathyakram</strong> (curriculum),{' '}
-          <strong>Kanthastha</strong> (memorization) and <strong>Parampara</strong> (lineage).
+          <strong>Kanthastha</strong>{' '}{t('surfaces.gurukulHome.memorizationAnd')}{' '}<strong>Parampara</strong> (lineage).
         </p>
         <Sunrise className="w-5 h-5 text-amber-600 shrink-0 ml-auto" aria-hidden />
       </div>

@@ -373,7 +373,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
   const handleVerifyKey1 = () => {
     if (!key1Pin || key1Pin.length < 4) {
-      showToast('Please enter a valid 4-digit security PIN for Custodian 1', 'error');
+      showToast(t('org.finance.hundiAudit.pleaseEnterAValid4digitSecurityPinForCus'), 'error');
       return;
     }
     // No per-trustee PIN store exists yet (the real check waits on the
@@ -394,7 +394,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
   const handleVerifyKey2 = () => {
     if (!key2Pin || key2Pin.length < 4) {
-      showToast('Please enter a valid 4-digit security PIN for Custodian 2', 'error');
+      showToast(t('org.finance.hundiAudit.pleaseEnterAValid4digitSecurityPinForCus2'), 'error');
       return;
     }
     setIsKey2Unlocked(true);
@@ -411,13 +411,13 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
   const handleBreakSealAndUnlock = () => {
     if (!isKey1Unlocked || !isKey2Unlocked) {
-      showToast('Both Custodian Keys must be authenticated to break vault seal!', 'error');
+      showToast(t('org.finance.hundiAudit.bothCustodianKeysMustBeAuthenticatedToBr'), 'error');
       return;
     }
     // Dual custody is meaningless if the same person holds both keys
     if (key1Name.trim().toLowerCase() === key2Name.trim().toLowerCase()) {
       showToast(
-        'Dual custody requires two DISTINCT custodians — the same person cannot authenticate both keys',
+        t('org.finance.hundiAudit.dualCustodyRequiresTwoDistinctCustodians'),
         'error',
         'Custody Violation'
       );
@@ -449,7 +449,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
   const handlePostToTreasury = () => {
     if (grandTotalINR <= 0) {
-      showToast('Total count is ₹0. Please enter counted denominations before posting.', 'error');
+      showToast(t('org.finance.hundiAudit.totalCountIs0PleaseEnterCountedDenominat'), 'error');
       return;
     }
 
@@ -481,7 +481,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
     // Compromised seal must be documented before the session can be posted
     if (!isSealIntact && auditNotes.trim().length < 20) {
       showToast(
-        'Lead seal was reported compromised — document the tampering in the audit notes (min 20 characters) before posting',
+        t('surfaces.hundi.leadSealWasReportedCompromisedDocument'),
         'error',
         'Seal Tamper'
       );
@@ -533,7 +533,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
       // posted, so neither the success toast nor the POSTED status may fire.
       if (!success) {
         showToast(
-          'Posting blocked: transaction quota reached for this workspace. The count was recorded but NOT posted to the ledger.',
+          t('surfaces.hundi.postingBlockedTransactionQuotaReachedFor'),
           'error',
           'Quota Reached'
         );
@@ -575,7 +575,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
       showToast(`₹${grandTotalINR.toLocaleString('en-IN')} posted to Central Treasury Ledger!`, 'success');
     } catch (e) {
       console.error(e);
-      showToast('Failed to post Hundi transaction. Please try again.', 'error');
+      showToast(t('org.finance.hundiAudit.failedToPostHundiTransactionPleaseTryAga'), 'error');
     } finally {
       setIsPostingTreasury(false);
     }
@@ -629,25 +629,25 @@ export const HundiCountingAuditDesk: React.FC = () => {
               <p><strong>{t('org.finance.hundiAudit.voucherNo')}</strong> {postedSession?.sessionCode || `HUNDI-${Date.now().toString().slice(-6)}`}</p>
               <p><strong>{t('org.finance.hundiAudit.dateTime')}</strong> {postedSession?.date || new Date().toISOString().slice(0, 10)} {postedSession?.timestamp || ''}</p>
               <p><strong>{t('org.finance.hundiAudit.hundiBox')}</strong> {currentHundiBox.name}</p>
-              <p><strong>Box Identifier:</strong> {currentHundiBox.id} ({currentHundiBox.location})</p>
+              <p><strong>{t('org.finance.hundiAudit.boxIdentifier')}</strong> {currentHundiBox.id} ({currentHundiBox.location})</p>
             </div>
             <div>
-              <p><strong>Lead Seal Serial:</strong> {leadSealNo} (Physical Seal Intact)</p>
+              <p><strong>{t('org.finance.hundiAudit.leadSealSerial')}</strong> {leadSealNo} (Physical Seal Intact)</p>
               <p><strong>{t('org.finance.hundiAudit.cctvAuditRoom')}</strong> {cctvRoom}</p>
               <p><strong>{t('org.finance.hundiAudit.treasuryRef')}</strong> {postedSession?.treasuryTxId || 'PENDING'}</p>
-              <p><strong>{t('org.finance.hundiAudit.status')}</strong> CO-SIGNED & POSTED TO GENERAL TREASURY</p>
+              <p><strong>{t('org.finance.hundiAudit.status')}</strong>{' '}{t('org.finance.hundiAudit.cosignedPostedToGeneralTreasury')}</p>
             </div>
           </div>
 
           {/* Denominations Table */}
           <div>
-            <h3 className="text-xs font-black uppercase mb-1">Itemized Denomination Breakdown</h3>
+            <h3 className="text-xs font-black uppercase mb-1">{t('org.finance.hundiAudit.itemizedDenominationBreakdown')}</h3>
             <table className="w-full text-xs border-collapse border border-black">
               <thead>
                 <tr className="bg-gray-200">
-                  <th className="border border-black p-1 text-left">Denomination</th>
-                  <th className="border border-black p-1 text-right">Count (Pieces)</th>
-                  <th className="border border-black p-1 text-right">Value (INR ₹)</th>
+                  <th className="border border-black p-1 text-left">{t('org.finance.hundiAudit.denomination')}</th>
+                  <th className="border border-black p-1 text-right">{t('org.finance.hundiAudit.countPieces')}</th>
+                  <th className="border border-black p-1 text-right">{t('org.finance.hundiAudit.valueInr')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -671,7 +671,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 </tr>
                 {totalForeignINR > 0 && (
                   <tr>
-                    <td className="border border-black p-1">Foreign Currencies (INR Equiv)</td>
+                    <td className="border border-black p-1">{t('org.finance.hundiAudit.foreignCurrenciesInrEquiv')}</td>
                     <td className="border border-black p-1 text-right">--</td>
                     <td className="border border-black p-1 text-right">₹{totalForeignINR.toLocaleString('en-IN')}</td>
                   </tr>
@@ -693,7 +693,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
           {/* Bullion Table if any */}
           {totalBullionGrams > 0 && (
             <div className="text-xs">
-              <h4 className="font-bold">Bullion & Ornaments Lodged:</h4>
+              <h4 className="font-bold">{t('org.finance.hundiAudit.bullionOrnamentsLodged')}</h4>
               <p>{totalBullionGrams.toFixed(2)} grams precious metals sealed in tamper-evident custody.</p>
             </div>
           )}
@@ -756,10 +756,10 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 type="button"
                 onClick={() => openGuide('HUNDI_VAULT')}
                 className="px-3.5 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
-                title="Open Shastric & Statutory Quick Guide (SOP) for Hundi Vault"
+                title={t('org.finance.hundiAudit.openShastricStatutoryQuickGuideSopForHun')}
               >
                 <span className="text-sm">💡</span>
-                <span>Quick Guide / SOP</span>
+                <span>{t('org.finance.hundiAudit.quickGuideSop')}</span>
               </button>
 
               <div className="flex items-center gap-2 bg-stone-900/90 p-1.5 rounded-2xl border border-stone-800">
@@ -773,7 +773,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   }`}
                 >
                   <Coins className="w-4 h-4" />
-                  <span>Live Counting Session</span>
+                  <span>{t('org.finance.hundiAudit.liveCountingSession')}</span>
                 </button>
 
                 <button
@@ -829,7 +829,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center font-bold text-xs">
                     2
                   </div>
-                  <span className="text-xs font-black">Denomination Tally</span>
+                  <span className="text-xs font-black">{t('org.finance.hundiAudit.denominationTally')}</span>
                 </div>
               </div>
 
@@ -844,7 +844,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center font-bold text-xs">
                     3
                   </div>
-                  <span className="text-xs font-black">Review & Co-Sign</span>
+                  <span className="text-xs font-black">{t('org.finance.hundiAudit.reviewCosign')}</span>
                 </div>
               </div>
 
@@ -903,7 +903,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-stone-400">Lead Seal Serial Number</label>
+                    <label className="text-[11px] font-bold text-stone-400">{t('org.finance.hundiAudit.leadSealSerialNumber')}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -915,12 +915,12 @@ export const HundiCountingAuditDesk: React.FC = () => {
                         type="button"
                         onClick={() => setLeadSealNo(`SL-${Math.floor(100000 + Math.random() * 900000)}`)}
                         className="px-2 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs"
-                        title="Generate Random Seal No"
+                        title={t('org.finance.hundiAudit.generateRandomSealNo')}
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <span className="text-[10px] text-stone-500 font-mono">Verified against box dispatch ledger</span>
+                    <span className="text-[10px] text-stone-500 font-mono">{t('org.finance.hundiAudit.verifiedAgainstBoxDispatchLedger')}</span>
                   </div>
 
                   <div className="space-y-1">
@@ -934,7 +934,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                           onChange={() => setIsSealIntact(true)}
                           className="text-emerald-500 focus:ring-emerald-500"
                         />
-                        <span>Intact & Untampered</span>
+                        <span>{t('org.finance.hundiAudit.intactUntampered')}</span>
                       </label>
                       <label className="flex items-center gap-2 text-xs text-rose-400 font-bold cursor-pointer">
                         <input
@@ -944,7 +944,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                           onChange={() => setIsSealIntact(false)}
                           className="text-rose-500 focus:ring-rose-500"
                         />
-                        <span>Tampered / Broken</span>
+                        <span>{t('org.finance.hundiAudit.tamperedBroken')}</span>
                       </label>
                     </div>
                   </div>
@@ -1006,7 +1006,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                               onChange={(e) => setKey1Pin(e.target.value)}
                               disabled={isKey1Unlocked}
                               maxLength={6}
-                              placeholder="Enter 4-digit PIN"
+                              placeholder={t('org.finance.hundiAudit.enter4digitPin')}
                               className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-sm font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-60"
                             />
                             <button
@@ -1023,7 +1023,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             <button
                               type="button"
                               onClick={handleBiometricKey1}
-                              title="Bypass PIN using Keyholder 1 FaceID / Fingerprint"
+                              title={t('org.finance.hundiAudit.bypassPinUsingKeyholder1FaceidFingerprin')}
                               className="group relative p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-md hover:shadow-emerald-500/20 cursor-pointer active:scale-95 transition-all flex items-center justify-center shrink-0"
                             >
                               <Fingerprint className="w-4 h-4 group-hover:scale-110 transition-transform text-emerald-100" />
@@ -1044,7 +1044,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                           >
                             <Unlock className="w-4 h-4" />
-                            <span>Authenticate Keyholder 1</span>
+                            <span>{t('org.finance.hundiAudit.authenticateKeyholder1')}</span>
                           </button>
 
                           <button
@@ -1053,7 +1053,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             className="w-full py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                           >
                             <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Unlock with FaceID / TouchID</span>
+                            <span>{t('org.finance.hundiAudit.unlockWithFaceidTouchid')}</span>
                           </button>
                         </div>
                       ) : (
@@ -1124,7 +1124,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             value={key2Name}
                             onChange={(e) => setKey2Name(e.target.value)}
                             disabled={isKey2Unlocked}
-                            placeholder="Enter witness custodian's full name"
+                            placeholder={t('surfaces.hundi.enterWitnessCustodianSFullName')}
                             className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-amber-500 disabled:opacity-60"
                           />
                         )}
@@ -1142,7 +1142,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                               onChange={(e) => setKey2Pin(e.target.value)}
                               disabled={isKey2Unlocked}
                               maxLength={6}
-                              placeholder="Enter 4-digit PIN"
+                              placeholder={t('org.finance.hundiAudit.enter4digitPin')}
                               className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-sm font-mono tracking-widest text-amber-400 focus:outline-none focus:border-amber-500 disabled:opacity-60"
                             />
                             <button
@@ -1159,7 +1159,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             <button
                               type="button"
                               onClick={handleBiometricKey2}
-                              title="Bypass PIN using Keyholder 2 FaceID / Fingerprint"
+                              title={t('org.finance.hundiAudit.bypassPinUsingKeyholder2FaceidFingerprin')}
                               className="group relative p-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-md hover:shadow-emerald-500/20 cursor-pointer active:scale-95 transition-all flex items-center justify-center shrink-0"
                             >
                               <Fingerprint className="w-4 h-4 group-hover:scale-110 transition-transform text-emerald-100" />
@@ -1180,7 +1180,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                           >
                             <Unlock className="w-4 h-4" />
-                            <span>Authenticate Keyholder 2</span>
+                            <span>{t('org.finance.hundiAudit.authenticateKeyholder2')}</span>
                           </button>
 
                           <button
@@ -1189,7 +1189,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             className="w-full py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                           >
                             <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
-                            <span>Unlock with FaceID / TouchID</span>
+                            <span>{t('org.finance.hundiAudit.unlockWithFaceidTouchid')}</span>
                           </button>
                         </div>
                       ) : (
@@ -1256,13 +1256,13 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     </div>
 
                     <div className="px-3 py-1.5 rounded-xl bg-stone-950 border border-stone-800 text-center">
-                      <span className="text-[10px] text-stone-400 block">Coins Value</span>
+                      <span className="text-[10px] text-stone-400 block">{t('org.finance.hundiAudit.coinsValue')}</span>
                       <strong className="text-xs text-white font-mono">₹{totalCoinsINR.toLocaleString('en-IN')}</strong>
                     </div>
 
                     {totalForeignINR > 0 && (
                       <div className="px-3 py-1.5 rounded-xl bg-stone-950 border border-stone-800 text-center">
-                        <span className="text-[10px] text-cyan-400 block">Foreign Value</span>
+                        <span className="text-[10px] text-cyan-400 block">{t('org.finance.hundiAudit.foreignValue')}</span>
                         <strong className="text-xs text-white font-mono">₹{totalForeignINR.toLocaleString('en-IN')}</strong>
                       </div>
                     )}
@@ -1272,7 +1272,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                       onClick={() => setCurrentStep('REVIEW_AND_VERIFY')}
                       className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-lg transition-transform hover:scale-105 cursor-pointer flex items-center gap-1.5"
                     >
-                      <span>Proceed to Verification</span>
+                      <span>{t('org.finance.hundiAudit.proceedToVerification')}</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -1389,7 +1389,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                         <DollarSign className="w-4 h-4" />
-                        <span>Foreign Currency (Videshi Mudra)</span>
+                        <span>{t('org.finance.hundiAudit.foreignCurrencyVideshiMudra')}</span>
                       </h4>
                       <span className="text-[10px] text-stone-400 font-mono">
                         Total: ₹{totalForeignINR.toLocaleString('en-IN')}
@@ -1432,7 +1432,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4" />
-                        <span>Bullion & Ornaments (Swarna / Rajat)</span>
+                        <span>{t('org.finance.hundiAudit.bullionOrnamentsSwarnaRajat')}</span>
                       </h4>
                       <span className="text-[10px] text-stone-400 font-mono">
                         Weight: {totalBullionGrams.toFixed(2)}g
@@ -1452,7 +1452,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                               type="number"
                               step="0.01"
                               min="0"
-                              placeholder="Weight (grams)"
+                              placeholder={t('org.finance.hundiAudit.weightGrams')}
                               value={b.grams === 0 ? '' : b.grams}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value) || 0;
@@ -1464,7 +1464,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                             />
                             <input
                               type="text"
-                              placeholder="Pouch Seal No / Note"
+                              placeholder={t('org.finance.hundiAudit.pouchSealNoNote')}
                               value={b.itemDescription}
                               onChange={(e) => {
                                 const desc = e.target.value;
@@ -1486,7 +1486,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm('Cancel counting and relock vault? Counted data will be cleared.')) {
+                      if (confirm(t('surfaces.hundi.cancelCountingAndRelockVaultCounted'))) {
                         handleStartNewSession();
                       }
                     }}
@@ -1498,7 +1498,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     onClick={() => setCurrentStep('REVIEW_AND_VERIFY')}
                     className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs shadow-lg transition-transform hover:scale-105 cursor-pointer flex items-center gap-2"
                   >
-                    <span>Proceed to Review & Co-Sign</span>
+                    <span>{t('org.finance.hundiAudit.proceedToReviewCosign')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1574,9 +1574,9 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 {/* Itemized Denomination Review Table */}
                 <div className="bg-stone-950 rounded-2xl border border-stone-800 overflow-hidden">
                   <div className="p-3 bg-stone-900 border-b border-stone-800 flex items-center justify-between text-xs font-bold text-stone-300">
-                    <span>Denomination</span>
-                    <span>Pieces (Qty)</span>
-                    <span>Value (INR ₹)</span>
+                    <span>{t('org.finance.hundiAudit.denomination')}</span>
+                    <span>{t('org.finance.hundiAudit.piecesQty')}</span>
+                    <span>{t('org.finance.hundiAudit.valueInr')}</span>
                   </div>
 
                   <div className="divide-y divide-stone-900 max-h-72 overflow-y-auto custom-scrollbar">
@@ -1596,7 +1596,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
 
                     {totalForeignINR > 0 && (
                       <div className="p-3 flex items-center justify-between text-xs font-mono bg-cyan-950/20">
-                        <span className="text-cyan-300 font-bold">Foreign Currencies (USD/GBP/EUR)</span>
+                        <span className="text-cyan-300 font-bold">{t('org.finance.hundiAudit.foreignCurrenciesUsdgbpeur')}</span>
                         <span className="text-stone-400">Multiple</span>
                         <span className="text-cyan-300 font-bold">₹{totalForeignINR.toLocaleString('en-IN')}</span>
                       </div>
@@ -1679,7 +1679,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                           type="text"
                           value={checkerNote}
                           onChange={(e) => setCheckerNote(e.target.value)}
-                          placeholder="Signed resolution — e.g. joint recount done; one torn ₹500 note set aside…"
+                          placeholder={t('surfaces.hundi.signedResolutionEGJointRecount')}
                           className="w-full bg-stone-900 border border-red-500/40 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-red-400"
                         />
                       </div>
@@ -1694,7 +1694,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                     rows={2}
                     value={auditNotes}
                     onChange={(e) => setAuditNotes(e.target.value)}
-                    placeholder="Enter any audit observations, soil notes noted, or weigh-scale notes..."
+                    placeholder={t('org.finance.hundiAudit.enterAnyAuditObservationsSoilNotesNotedO')}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1740,7 +1740,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                 <div className="space-y-1">
                   <h2 className="text-xl sm:text-2xl font-black text-white">{t('org.finance.hundiAudit.hundiCashCountCertifiedPostedToTreasury')}</h2>
                   <p className="text-xs text-stone-400 max-w-lg mx-auto">
-                    The total amount of <strong>₹{grandTotalINR.toLocaleString('en-IN')}</strong> has been posted as a verified income receipt to the Central Treasury Ledger under category <code>HUNDI_COLLECTION</code>.
+                    The total amount of <strong>₹{grandTotalINR.toLocaleString('en-IN')}</strong>{' '}{t('surfaces.hundi.hasBeenPostedAsAVerified')}{' '}<code>HUNDI_COLLECTION</code>.
                   </p>
                 </div>
 
@@ -1861,7 +1861,7 @@ export const HundiCountingAuditDesk: React.FC = () => {
                         setTimeout(() => window.print(), 100);
                       }}
                       className="p-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white border border-stone-700 transition-colors cursor-pointer"
-                      title="Reprint Audit Voucher"
+                      title={t('org.finance.hundiAudit.reprintAuditVoucher')}
                     >
                       <Printer className="w-4 h-4" />
                     </button>

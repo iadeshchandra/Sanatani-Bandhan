@@ -19,7 +19,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
   const { activeWorkspace, isAuthenticated, exitDemo } = useAuthWorkspace();
   const { getDemoStats, resetDemoWorkspace } = useData();
   const { showToast } = useToast();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const welcomeAnnouncedRef = useRef(false);
 
   // FIX (2026-10-18): announce the demo welcome ONLY inside the actual demo
@@ -64,7 +64,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
   const handleReset = () => {
     if (
       window.confirm(
-        'Reset the demo workspace? Your created records will be removed and fresh sample data will be loaded.'
+        t('surfaces.demo.resetTheDemoWorkspaceYourCreated')
       )
     ) {
       resetDemoWorkspace();
@@ -74,7 +74,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
   const handleExitDemo = () => {
     if (
       window.confirm(
-        'Exit the demo sandbox? You will return to the real app.'
+        t('surfaces.demo.exitTheDemoSandboxYouWill')
       )
     ) {
       exitDemo();
@@ -88,7 +88,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
     <div
       className="shrink-0 z-30 bg-[#FFF8EC] border-b border-orange-200 px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
       role="status"
-      aria-label="Demo sandbox status"
+      aria-label={t('surfaces.demo.demoSandboxStatus')}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="text-base leading-none shrink-0" aria-hidden="true">🎪</span>
@@ -100,7 +100,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         </span>
         <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate shrink-0">
           {totalCreates} record{totalCreates === 1 ? '' : 's'} created
-          <span className="text-stone-400"> · auto-deletes in 24h</span>
+          <span className="text-stone-400">{' '}{t('surfaces.demo.autoDeletesIn24h')}</span>
         </span>
         <span className="hidden min-[480px]:inline sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap shrink-0">
           {totalCreates} created
@@ -113,7 +113,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         <button
           type="button"
           onClick={handleReset}
-          aria-label="Reset demo"
+          aria-label={t('suites.goshala.report.resetb')}
           className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-bold text-stone-500 hover:text-stone-800 hover:bg-orange-100 transition-colors cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
@@ -123,9 +123,9 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         <button
           type="button"
           onClick={handleExitDemo}
-          aria-label="Exit demo"
+          aria-label={t('surfaces.demo.exitDemo')}
           className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center gap-1.5 px-3 rounded-xl text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer"
-          title="Exit the demo sandbox and return to the real app"
+          title={t('surfaces.demo.exitTheDemoSandboxAndReturn')}
         >
           <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
           <span className="hidden min-[420px]:inline">Exit</span>
@@ -135,8 +135,8 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
         {isAuthenticated ? (
           <span className="min-h-[44px] inline-flex items-center px-3 sm:px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold whitespace-nowrap">
             {/* F-DASH-6: the pill must not clip mid-word at 390px — short label below 420px. */}
-            <span className="hidden min-[420px]:inline">✓ You're signed in — exploring demo</span>
-            <span className="min-[420px]:hidden">✓ Exploring demo</span>
+            <span className="hidden min-[420px]:inline">{t('surfaces.demo.youReSignedInExploringDemo')}</span>
+            <span className="min-[420px]:hidden">{t('surfaces.demo.exploringDemo')}</span>
           </span>
         ) : (
           <button
@@ -145,8 +145,8 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
             className="min-h-[44px] inline-flex items-center gap-1.5 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white text-xs font-extrabold tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.97] cursor-pointer pressable whitespace-nowrap"
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            <span className="hidden min-[400px]:inline">Create Free Account</span>
-            <span className="min-[400px]:hidden">Join Free</span>
+            <span className="hidden min-[400px]:inline">{t('surfaces.demo.createFreeAccount')}</span>
+            <span className="min-[400px]:hidden">{t('surfaces.demo.joinFree')}</span>
           </button>
         )}
       </div>

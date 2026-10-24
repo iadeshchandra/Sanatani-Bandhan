@@ -859,11 +859,11 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         <span className="font-extrabold text-amber-300">{profileData.gotra} Gotra</span>
                       </div>
                       <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">Blood Group</span>
+                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('org.people.devoteeGrid.bloodGroup2')}</span>
                         <span className="font-extrabold text-rose-400">{profileData.bloodGroup}</span>
                       </div>
                       <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">Emergency Phone</span>
+                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('org.people.devoteeGrid.emergencyPhone')}</span>
                         <a href={`tel:${profileData.emergencyPhone}`} className="font-mono font-bold text-amber-300 hover:underline">
                           {profileData.emergencyPhone}
                         </a>
@@ -1373,7 +1373,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                           className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <Download className="w-3 h-3 text-amber-400" />
-                          <span>Sankalp Slip</span>
+                          <span>{t('ritual.pooja.sankalpSlip')}</span>
                         </button>
                       </div>
                     </div>
@@ -1406,7 +1406,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         <th className="py-3 px-4">Date</th>
                         <th className="py-3 px-4">Purpose / Category</th>
                         <th className="py-3 px-4">Amount</th>
-                        <th className="py-3 px-4">Payment Mode</th>
+                        <th className="py-3 px-4">{t('org.finance.bhoomi.paymentMode')}</th>
                         <th className="py-3 px-4">80G Status</th>
                         <th className="py-3 px-4 text-right">Action</th>
                       </tr>
@@ -1812,7 +1812,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Spiritual / Diksha Name</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('org.people.devoteeGrid.spiritualDikshaName')}</label>
                   <input
                     type="text"
                     value={editFormData.spiritualName}
@@ -1834,7 +1834,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Blood Group</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                   <select
                     value={editFormData.bloodGroup}
                     onChange={(e) => setEditFormData({ ...editFormData, bloodGroup: e.target.value })}

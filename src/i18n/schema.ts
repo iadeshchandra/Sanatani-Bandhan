@@ -42,6 +42,28 @@ export interface TranslationSchema {
     shubh?: string;
     shubhMuhurat?: string;
   };
+  // Language Completion Sweep (2026-10-24) — surface copy wired out of
+  // components into the dictionary, one bucket per surface. Index
+  // signatures keep each bucket open as the sweep wires more strings;
+  // en/hi/bn are authored, the 7 draft languages ride the fallback chain.
+  surfaces?: {
+    landing?: { [key: string]: string };
+    institutions?: { [key: string]: string };
+    contact?: { [key: string]: string };
+    askAi?: { [key: string]: string };
+    orgPage?: { [key: string]: string };
+    help?: { [key: string]: string };
+    privacy?: { [key: string]: string };
+    terms?: { [key: string]: string };
+    security?: { [key: string]: string };
+    demo?: { [key: string]: string };
+    chrome?: { [key: string]: string };
+    roleHome?: { [key: string]: string };
+    gurukulHome?: { [key: string]: string };
+    devoteeGrid?: { [key: string]: string };
+    hundi?: { [key: string]: string };
+    treasury?: { [key: string]: string };
+  };
   auth: {
     accessPortal: string;
     identity: string;
@@ -4875,8 +4897,11 @@ export interface SupportedLanguage {
   englishName: string;
   /** BCP-47 tag for Intl APIs and the <html lang> attribute. */
   bcp47: string;
-  /** Script identifier for font-stack selection. */
-  script: 'latin' | 'devanagari' | 'bengali' | 'tamil' | 'telugu' | 'gujarati' | 'kannada' | 'malayalam';
+  /** Script identifier for font-stack selection. Tier-2 scripts (oriya,
+   *  gurmukhi, assamese) are admitted in the type ahead of their languages
+   *  (Language Completion Sweep groundwork) — a language itself ships only
+   *  when its full dictionary exists, never before. */
+  script: 'latin' | 'devanagari' | 'bengali' | 'tamil' | 'telugu' | 'gujarati' | 'kannada' | 'malayalam' | 'oriya' | 'gurmukhi' | 'assamese';
 }
 
 /**

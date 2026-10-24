@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { UserRole } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface TenantAffiliation {
   id: string;
@@ -65,6 +66,7 @@ const MOCK_AFFILIATIONS: TenantAffiliation[] = [
 ];
 
 export const SmartLoginRouter: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { loginAsRole, switchWorkspace, logout } = useAuthWorkspace();
   const [selectedTenantId, setSelectedTenantId] = useState<string>(MOCK_AFFILIATIONS[0].id);
@@ -123,7 +125,7 @@ export const SmartLoginRouter: React.FC = () => {
             </span>
             <div className="flex items-center gap-1.5 text-xs font-semibold bg-black/20 px-3 py-1 rounded-full">
               <Lock className="w-3.5 h-3.5 text-amber-200" />
-              <span>Zero Trust SSO</span>
+              <span>{t('surfaces.chrome.zeroTrustSso')}</span>
             </div>
           </div>
 

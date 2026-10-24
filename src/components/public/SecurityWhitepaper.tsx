@@ -1,8 +1,10 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Lock } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const SecurityWhitepaper: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useLanguage();
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -12,8 +14,8 @@ export const SecurityWhitepaper: React.FC<{ onClose: () => void }> = ({ onClose 
               <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">Security Architecture</h2>
-              <p className="text-sm font-medium text-slate-500">Enterprise-Grade Protection for Dharmic Data</p>
+              <h2 className="text-2xl font-bold text-slate-800">{t('surfaces.security.securityArchitecture')}</h2>
+              <p className="text-sm font-medium text-slate-500">{t('surfaces.security.enterpriseGradeProtectionForDharmicData')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
@@ -22,33 +24,33 @@ export const SecurityWhitepaper: React.FC<{ onClose: () => void }> = ({ onClose 
         </div>
 
         <div className="p-6 md:p-10 overflow-y-auto custom-scrollbar prose prose-slate max-w-none prose-headings:font-bold prose-h3:text-slate-900 prose-p:text-slate-600">
-          <h3>Architecture Overview</h3>
+          <h3>{t('surfaces.security.architectureOverview')}</h3>
           <p>
             Sanatani Bandhan is engineered on a Zero-Trust security model. Our infrastructure is designed to protect sensitive temple management data, financial records, and devotee information against unauthorized access, data breaches, and service interruptions.
           </p>
           
-          <h3>Data Encryption</h3>
+          <h3>{t('surfaces.security.dataEncryption')}</h3>
           <ul>
-            <li><strong>In Transit:</strong> All data transmitted between your devices and our cloud infrastructure is encrypted using TLS 1.3 with AES-256-GCM authenticated encryption.</li>
-            <li><strong>At Rest:</strong> All databases, backups, and file storage volumes are encrypted at rest using AES-256. Cryptographic keys are managed via industry-standard Key Management Services (KMS) with automatic rotation.</li>
+            <li><strong>{t('surfaces.security.inTransit')}</strong>{' '}{t('surfaces.security.allDataTransmittedBetweenYourDevices')}</li>
+            <li><strong>{t('surfaces.security.atRest')}</strong> All databases, backups, and file storage volumes are encrypted at rest using AES-256. Cryptographic keys are managed via industry-standard Key Management Services (KMS) with automatic rotation.</li>
           </ul>
 
-          <h3>Offline-First & Local Persistence</h3>
+          <h3>{t('surfaces.security.offlineFirstLocalPersistence')}</h3>
           <p>
             To accommodate temples in remote locations with unstable internet, our core engine utilizes an offline-first indexedDB architecture. Data is cryptographically signed locally before being synced to the cloud. This ensures that even if network connectivity is lost, your administration continues uninterrupted, and data integrity is mathematically guaranteed upon reconnection.
           </p>
 
-          <h3>Identity & Access Management (IAM)</h3>
+          <h3>{t('surfaces.security.identityAccessManagementIam')}</h3>
           <p>
             We implement strict Role-Based Access Control (RBAC). Workspaces define precise roles (Trustee, Head Priest, Treasurer, Sevadar). PIN-based contextual authentication is enforced for sensitive actions (e.g., modifying treasury records or deleting devotee profiles).
           </p>
 
-          <h3>Infrastructure & Compliance</h3>
+          <h3>{t('surfaces.security.infrastructureCompliance')}</h3>
           <p>
             Our cloud infrastructure is hosted in ISO 27001, SOC 2 Type II, and PCI-DSS compliant data centers located entirely within Bharat (India) to comply with data localization requirements. We perform automated daily vulnerability scanning and contract third-party security firms for annual penetration testing.
           </p>
 
-          <h3>Audit Logging</h3>
+          <h3>{t('surfaces.security.auditLogging')}</h3>
           <p>
             Every mutating action (create, update, delete) performed within the system generates an immutable, cryptographically verifiable audit log. This ensures total transparency for temple trustees and facilitates rapid forensic analysis if required.
           </p>

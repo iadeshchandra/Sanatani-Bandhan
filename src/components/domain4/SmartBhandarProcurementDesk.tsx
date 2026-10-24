@@ -36,6 +36,7 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -406,6 +407,7 @@ const INITIAL_GRNS: GoodsReceiptNote[] = [
 // ============================================================================
 
 export const SmartBhandarProcurementDesk: React.FC = () => {
+  const { t } = useLanguage();
   const wsCurrency = useWorkspaceCurrency();
   const inr = useInr();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
@@ -2042,7 +2044,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Voucher</span>
+                <span>{t('org.people.federation.printVoucher')}</span>
               </button>
 
               <button

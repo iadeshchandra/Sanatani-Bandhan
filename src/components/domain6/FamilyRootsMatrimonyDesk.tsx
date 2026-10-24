@@ -1101,7 +1101,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                             </div>
                             {member.bloodGroup && (
                               <div className="flex justify-between">
-                                <span className="text-stone-400">Blood Group:</span>
+                                <span className="text-stone-400">{t('org.people.devoteeGrid.bloodGroup')}</span>
                                 <span className="font-mono text-emerald-400 font-bold">{member.bloodGroup}</span>
                               </div>
                             )}
@@ -1530,7 +1530,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Relationship</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('ritual.shradh.relationship')}</label>
                   <input
                     type="text"
                     required
@@ -1566,7 +1566,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Pravara (Rishis)</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.devoteeGrid.pravaraRishis')}</label>
                   <input
                     type="text"
                     placeholder="e.g. Angirasa, Barhaspatya, Bharadwaja"
@@ -1588,7 +1588,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Blood Group</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                   <input
                     type="text"
                     placeholder="e.g. B+, O+, A+"
@@ -1680,7 +1680,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             <form onSubmit={handleAddPitruRecord} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Ancestor Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('ritual.shradh.ancestorName')}</label>
                   <input
                     type="text"
                     required
@@ -1691,7 +1691,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Relationship</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('ritual.shradh.relationship')}</label>
                   <input
                     type="text"
                     required
@@ -1815,7 +1815,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               </p>
               {/* H-3: honest disclaimer — simplified illustration, not a jyotishi's analysis */}
               <p className="text-[11px] text-amber-300/90 mt-2 leading-relaxed border-t border-stone-700/60 pt-2">
-                <strong>Illustrative only:</strong> this score is a simplified estimate for browsing and is
+                <strong>{t('devotee.vivah.disclaimerTitle')}</strong> this score is a simplified estimate for browsing and is
                 not a substitute for a qualified jyotishi's kundali analysis. Please consult your
                 family purohit before any marriage decision.
               </p>

@@ -27,6 +27,10 @@ const root = path.resolve(__dirname, '..', '..');
 const sidebar = fs.readFileSync(path.join(root, 'src/components/common/Sidebar.tsx'), 'utf-8');
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf-8');
 const landing = fs.readFileSync(path.join(root, 'src/pages/LandingPage.tsx'), 'utf-8');
+// Language Completion Sweep Batch 1 (2026-10-24): landing copy also lives
+// in the en dictionary fragment (surfaces.* keys) — the count guard scans
+// BOTH homes of the copy so a stale number fails wherever it hides.
+const landingDict = fs.readFileSync(path.join(root, 'src/i18n/lang/en/core.ts'), 'utf-8');
 const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf-8');
 
 /** Catalog rows: one per `{ id: '…', …, domain: N, …}` line in MODULE_CATALOG. */
@@ -68,14 +72,15 @@ describe('D-08 — one desk count, from the catalog', () => {
   });
 
   it('LandingPage states the catalog count everywhere it counts desks', () => {
-    expect(landing).toContain(`, ${DESK_COUNT} desks,`);
-    expect(landing).toContain(`All ${DESK_COUNT} desks`);
-    expect(deskNumbers(landing).every((n) => n === DESK_COUNT)).toBe(true);
+    const landingCopy = landing + '\n' + landingDict;
+    expect(landingCopy).toContain(`, ${DESK_COUNT} desks,`);
+    expect(landingCopy).toContain(`All ${DESK_COUNT} desks`);
+    expect(deskNumbers(landingCopy).every((n) => n === DESK_COUNT)).toBe(true);
     // The stat pair: ['72', 'Desks across 7 domains'] — number + domain count.
     expect(landing).toContain(`'${DESK_COUNT}', 'Desks across ${DOMAIN_COUNT} domains'`);
     // The spelled-out prose line follows the same truth.
-    expect(landing).toContain('Seventy-two desks');
-    expect(landing).not.toContain('Sixty-six');
+    expect(landingCopy).toContain('Seventy-two desks');
+    expect(landingCopy).not.toContain('Sixty-six');
   });
 
   it('README states the catalog count', () => {

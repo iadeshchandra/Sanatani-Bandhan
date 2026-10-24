@@ -570,7 +570,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const navigate = useNavigate();
   const startDemo = useDemoStarter();
   const { isAuthenticated } = useAuthWorkspace();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
 
   // FIX (2026-10-18): demo sandboxes are anonymous-only by design —
   // useDemoStarter refuses signed-in users to protect their live session
@@ -618,7 +618,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // Secondary price line: the same tier in ৳ (Bangladesh) and $ (international).
   const altPrices = (c: LandingPriceCard, tone: string) =>
     c.isFree ? (
-      <p className={`mt-1 text-xs font-bold ${tone}`}>Free in India · Bangladesh · worldwide</p>
+      <p className={`mt-1 text-xs font-bold ${tone}`}>{t('surfaces.landing.freeInIndiaBangladeshWorldwide')}</p>
     ) : (
       <p className={`mt-1 text-xs font-bold ${tone}`}>
         {billingAnnual
@@ -782,7 +782,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-stone-600" aria-label="Page sections">
+          <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-stone-600" aria-label={t('surfaces.landing.pageSections')}>
             <button type="button" onClick={() => scrollTo('institutions')} className="hover:text-orange-600 transition-colors cursor-pointer">
               {safeTranslate('landing_nav_institutions', 'Institutions', 'প্রতিষ্ঠানসমূহ', 'संस्थान')}
             </button>
@@ -909,7 +909,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* Hero audience toggle (Step 9) — devotees are the primary
                 audience; institutions keep their full pitch one tap away. */}
-            <div className="mt-5 flex justify-center" role="group" aria-label="Choose your path">
+            <div className="mt-5 flex justify-center" role="group" aria-label={t('surfaces.landing.chooseYourPath')}>
               <div className="inline-flex rounded-full border border-orange-200 bg-white p-1 shadow-sm">
                 <button
                   type="button"
@@ -988,7 +988,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
 
             {/* Institution selector */}
-            <div className="mt-7" role="group" aria-label="Choose your institution type">
+            <div className="mt-7" role="group" aria-label={t('surfaces.landing.chooseYourInstitutionType')}>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {ORG_PROFILES.map((o) => {
                   const selected = o.type === activeOrg;
@@ -1135,7 +1135,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Reveal delay={180}>
               <div className="h-full rounded-3xl p-7 flex flex-col justify-center text-center bg-gradient-to-br from-stone-900 to-stone-800 text-white shadow-xl">
                 <p className="text-2xl mb-3">ॐ</p>
-                <h3 className="text-xl font-black">Not listed?</h3>
+                <h3 className="text-xl font-black">{t('surfaces.landing.notListed')}</h3>
                 <p className="mt-2 text-sm text-stone-300 leading-relaxed">
                   Trusts, samitis, yatras, pathshalas — if it serves dharma,
                   it fits. Tell us about your institution.
@@ -1200,11 +1200,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <Network className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-stone-900">Branches, not logins</h3>
-                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">Same trust · one subscription</p>
+                    <h3 className="text-lg font-extrabold text-stone-900">{t('surfaces.landing.branchesNotLogins')}</h3>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">{t('surfaces.landing.sameTrustOneSubscription')}</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mb-5" aria-label="Illustrative branch switcher">
+                <div className="flex flex-wrap gap-2 mb-5" aria-label={t('surfaces.landing.illustrativeBranchSwitcher')}>
                   {['All branches', 'Temple M', 'Temple N'].map((b, i) => (
                     <span
                       key={b}
@@ -1241,8 +1241,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <LayoutGrid className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-stone-900">Every organisation, its own world</h3>
-                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">One account · separate data & plans</p>
+                    <h3 className="text-lg font-extrabold text-stone-900">{t('surfaces.landing.everyOrganisationItsOwnWorld')}</h3>
+                    <p className="text-xs font-bold uppercase tracking-widest text-orange-600">{t('surfaces.landing.oneAccountSeparateDataPlans')}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2.5 mb-5">
@@ -1299,7 +1299,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div
               className="tab-scroll flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:justify-center"
               role="tablist"
-              aria-label="Feature categories"
+              aria-label={t('surfaces.landing.featureCategories')}
             >
               {SHOWCASE_TABS.map((t) => {
                 const isActive = t.id === activeTab;
@@ -1435,7 +1435,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {safeTranslate('landing_h2_dharma', 'Built for Dharma, not just data.', 'ধর্মের জন্য তৈরি, শুধু ডেটার জন্য নয়।', 'धर्म के लिए बना, सिर्फ़ डेटा के लिए नहीं।')}
               </h2>
               <p className="mt-3 text-lg font-bold text-amber-200/90">धर्मो रक्षति रक्षितः</p>
-              <p className="text-sm text-orange-200/70 mt-1 italic">Dharma protects those who protect it.</p>
+              <p className="text-sm text-orange-200/70 mt-1 italic">{t('surfaces.landing.dharmaProtectsThoseWhoProtectIt')}</p>
             </Reveal>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {[
@@ -1485,7 +1485,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* Monthly / Annual toggle */}
           <div className="flex justify-center mb-10">
-            <div className="inline-flex items-center rounded-full bg-white border border-orange-200 p-1 shadow-sm" role="group" aria-label="Billing period">
+            <div className="inline-flex items-center rounded-full bg-white border border-orange-200 p-1 shadow-sm" role="group" aria-label={t('surfaces.landing.billingPeriod')}>
               <button
                 type="button"
                 onClick={() => setBillingAnnual(false)}
@@ -1501,7 +1501,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className={`min-h-[44px] px-6 rounded-full text-sm font-extrabold transition-all cursor-pointer flex items-center gap-2 ${billingAnnual ? 'bg-stone-900 text-white shadow' : 'text-stone-500 hover:text-stone-800'}`}
               >
                 Annual
-                <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">2 months free</span>
+                <span className="text-[10px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{t('surfaces.landing.2MonthsFree')}</span>
               </button>
             </div>
           </div>
@@ -1682,9 +1682,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <Reveal delay={120}>
             <div className="mt-8 rounded-2xl bg-stone-100 border border-stone-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center">
               <span className="text-sm font-bold text-stone-500">
-                Typical institution software costs <span className="text-stone-700 font-black">₹35,000/year</span> — per-desk pricing, hardware lock-in, paid consultants.
+                Typical institution software costs <span className="text-stone-700 font-black">{t('surfaces.landing.35000Year')}</span> — per-desk pricing, hardware lock-in, paid consultants.
               </span>
-              <span className="text-sm font-extrabold text-orange-700">We chose a different path.</span>
+              <span className="text-sm font-extrabold text-orange-700">{t('surfaces.landing.weChoseADifferentPath')}</span>
             </div>
           </Reveal>
         </section>
@@ -1709,7 +1709,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     “{t.quote}”
                   </blockquote>
                   <figcaption className="mt-5 pt-4 border-t border-orange-50">
-                    <div className="flex items-center gap-1 text-amber-500 mb-1.5" aria-label="5 star rating">
+                    <div className="flex items-center gap-1 text-amber-500 mb-1.5" aria-label={safeTranslate('surfaces.landing.5StarRating', '5-star rating')}>
                       {Array.from({ length: 5 }).map((_, s) => (
                         <Star key={s} className="w-3.5 h-3.5 fill-amber-500" />
                       ))}
@@ -1813,7 +1813,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="inline-flex items-center gap-2 text-stone-500 text-sm">
             <Flame className="w-4 h-4 text-orange-500" />
             <span className="font-bold text-stone-700">धर्मो रक्षति रक्षितः</span>
-            <span>— your records are encrypted, audited, and yours alone.</span>
+            <span>{t('surfaces.landing.yourRecordsAreEncryptedAuditedAnd')}</span>
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-stone-400 font-medium">
             {['Deny-by-default data security', 'Dual-custody hundi counts', 'Append-only audit ledger', 'Role-based access'].map((t) => (
@@ -1882,10 +1882,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">All 72 desks</button></li>
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Treasury &amp; 80G</button></li>
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Goshala &amp; Bhandar</button></li>
-                <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Why Dharma</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.all72Desks')}</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.treasuryAmp80g')}</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.goshalaAmpBhandar')}</button></li>
+                <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.whyDharma')}</button></li>
               </ul>
             </nav>
             <nav aria-label="Compare">
@@ -1895,16 +1895,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <li><button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">FAQ</button></li>
                 <li><button type="button" onClick={isAuthenticated ? openApp : () => setDemoModalOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{isAuthenticated ? safeTranslate('landing_footer_open_app', 'Open app', 'অ্যাপ খুলুন', 'ऐप खोलें') : 'Live demo'}</button></li>
                 <li><button type="button" onClick={handleGoToLogin} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Login</button></li>
-                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Contact us</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.contactUs')}</button></li>
               </ul>
             </nav>
             <nav aria-label="Legal">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Legal</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Privacy Policy</button></li>
-                <li><button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Terms of Service</button></li>
+                <li><button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.privacyPolicy')}</button></li>
+                <li><button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.termsOfService')}</button></li>
                 <li><button type="button" onClick={() => setSecurityOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Security</button></li>
-                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">Contact Support</button></li>
+                <li><button type="button" onClick={handleContact} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.contactSupport')}</button></li>
               </ul>
             </nav>
           </div>
