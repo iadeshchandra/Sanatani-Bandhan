@@ -17,6 +17,14 @@
  *
  * Honest rules: no delete (disable instead — history matters), test-before-save
  * uses read-only provider calls, key values are never logged or console'd.
+ *
+ * Layout law (discoverability fix, 2026-10-24): the tab's primary action —
+ * the "+ Add key" button — renders FIRST, in the action bar at the very top,
+ * above the key table and the API Health desk. An owner opening this tab to
+ * paste a key must never have to scroll past the health wall to find where
+ * keys are entered. The render is a hook-free view (ApiKeyManagerView) so
+ * the layout order, the empty state and the load-failure banner are pinned
+ * by render tests.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -70,7 +78,7 @@ interface AuditEntry {
   detail?: string;
 }
 
-interface ProviderPreset {
+export interface ProviderPreset {
   id: string;
   label: string;
   suggestedName: string;
@@ -133,6 +141,13 @@ const STR: Record<string, Record<Lang, string>> = {
     bn: 'রানটাইমে থার্ড-পার্টি কী পরিচালনা করুন — কোনো কোড ডিপ্লয় নয়।',
   },
   addKey: { en: 'Add key', hi: 'कुंजी जोड़ें', bn: 'কী যোগ করুন' },
+  loadFailTitle: { en: 'Keys could not be loaded', hi: 'कुंजियाँ लोड नहीं हो सकीं', bn: 'কী লোড করা যায়নি' },
+  loadFailBody: {
+    en: 'This usually means you are offline, or you are not signed in with the owner account — keys are visible only to the owner. If you are the owner, check your connection and reload.',
+    hi: 'इसका आमतौर पर मतलब है कि आप ऑफ़लाइन हैं, या आप स्वामी खाते से साइन इन नहीं हैं — कुंजियाँ केवल स्वामी को ही दिखाई देती हैं। यदि आप स्वामी हैं, तो अपना कनेक्शन जाँचें और फिर से लोड करें।',
+    bn: 'এর সাধারণ অর্থ হলো আপনি অফলাইনে আছেন, অথবা আপনি মালিক অ্যাকাউন্ট দিয়ে সাইন ইন করেননি — কী শুধুমাত্র মালিকই দেখতে পারেন। আপনি যদি মালিক হন, তাহলে সংযোগ পরীক্ষা করে আবার লোড করুন।',
+  },
+  reload: { en: 'Reload', hi: 'फिर से लोड करें', bn: 'আবার লোড করুন' },
   clientSafe: { en: 'Client-safe', hi: 'क्लाइंट-सुरक्षित', bn: 'ক্লায়েন্ট-নিরাপদ' },
   serverOnly: { en: 'Server-only', hi: 'केवल सर्वर', bn: 'শুধু সার্ভার' },
   enabled: { en: 'Enabled', hi: 'सक्रिय', bn: 'সক্রিয়' },
@@ -218,6 +233,331 @@ function fmtTime(at: AuditEntry['at']): string {
   }
 }
 
+/* ------------------------------------------------- presentational shell */
+
+/**
+ * Everything ApiKeyManager renders, as a pure function of props — no hooks,
+ * no Firebase — so render tests can pin the tab's layout contract (action
+ * first, empty-state button, load-failure banner) in the SSR test stack.
+ *
+ * Order law: action bar → load-failure banner / notice → key table →
+ * health desk → audit. The form is a fixed overlay; its DOM slot is inert.
+ */
+export interface ApiKeyManagerViewProps {
+  lang: Lang;
+  keys: ApiKeyEntry[];
+  audit: AuditEntry[];
+  loading: boolean;
+  loadFailed: boolean;
+  msg: string | null;
+  showForm: boolean;
+  editing: ApiKeyEntry | null;
+  revealed: Record<string, boolean>;
+  busy: boolean;
+  fName: string;
+  fProvider: string;
+  fValue: string;
+  fClientSafe: boolean;
+  fNotes: string;
+  testState: 'idle' | 'testing' | 'ok' | 'fail';
+  preset: ProviderPreset;
+  onReload: () => void;
+  onOpenAdd: () => void;
+  onOpenEdit: (k: ApiKeyEntry) => void;
+  onToggleEnabled: (k: ApiKeyEntry) => void;
+  onToggleReveal: (k: ApiKeyEntry) => void;
+  onCloseForm: () => void;
+  onProviderChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onValueChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClientSafeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onNotesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRunTest: () => void;
+  onSave: (publish: boolean) => void;
+}
+
+export const ApiKeyManagerView: React.FC<ApiKeyManagerViewProps> = (p) => {
+  const lang = p.lang;
+  const keys = p.keys;
+  const audit = p.audit;
+  const loading = p.loading;
+  const busy = p.busy;
+  const showForm = p.showForm;
+  const editing = p.editing;
+  const revealed = p.revealed;
+  const preset = p.preset;
+
+  return (
+    <div className="space-y-5">
+      {/* Action bar — FIRST. The tab exists so the owner can add keys; the
+          add action is never below the fold. */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-black text-white flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-amber-400" /> {t('title', lang)}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5 max-w-xl">{t('subtitle', lang)}</p>
+        </div>
+        <button
+          onClick={p.onOpenAdd}
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 min-h-[44px]"
+        >
+          <Plus className="w-4 h-4" /> {t('addKey', lang)}
+        </button>
+      </div>
+
+      {/* Load failure — a banner, not a grey line: if keys cannot load, the
+          owner must know immediately whether it is the connection or the
+          account, because the remedy differs. */}
+      {p.loadFailed && (
+        <div
+          role="alert"
+          className="rounded-2xl border-2 border-red-500/60 bg-red-500/10 px-4 py-3.5 flex items-start gap-3"
+        >
+          <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-red-200">{t('loadFailTitle', lang)}</p>
+            <p className="text-xs leading-relaxed text-red-200/80 mt-1">{t('loadFailBody', lang)}</p>
+          </div>
+          <button
+            onClick={p.onReload}
+            className="shrink-0 inline-flex items-center rounded-xl border border-red-400/50 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/20 min-h-[44px]"
+          >
+            {t('reload', lang)}
+          </button>
+        </div>
+      )}
+
+      {p.msg && (
+        <div className="rounded-xl border border-slate-700 bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-200">
+          {p.msg}
+        </div>
+      )}
+
+      {/* Key table */}
+      <div className="rounded-2xl border border-slate-800 overflow-hidden">
+        {loading ? (
+          <div className="p-6 text-sm text-slate-500">Loading…</div>
+        ) : keys.length === 0 ? (
+          <div className="p-6 text-sm text-slate-500">
+            <p>{t('empty', lang)}</p>
+            <button
+              onClick={p.onOpenAdd}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 min-h-[44px]"
+            >
+              <Plus className="w-4 h-4" /> {t('addKey', lang)}
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-800">
+            {keys.map((k) => (
+              <div key={k.id} className="p-4 flex flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-100 text-sm">{k.name}</span>
+                    <span className="text-[11px] text-slate-500">{k.provider}</span>
+                    {k.clientSafe ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                        <ShieldCheck className="w-3 h-3" /> {t('clientSafe', lang)}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+                        <ShieldAlert className="w-3 h-3" /> {t('serverOnly', lang)}
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        k.enabled ? 'bg-slate-700 text-slate-300' : 'bg-red-500/15 text-red-300'
+                      }`}
+                    >
+                      {k.enabled ? t('enabled', lang) : t('disabled', lang)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => p.onToggleReveal(k)}
+                    className="mt-1.5 inline-flex items-center gap-1.5 font-mono text-xs text-slate-400 hover:text-slate-200"
+                    title={t('revealWarn', lang)}
+                  >
+                    {revealed[k.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {revealed[k.id] ? k.keyValue : mask(k.keyValue)}
+                  </button>
+                  {k.notes && <div className="text-[11px] text-slate-500 mt-1">{k.notes}</div>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => p.onOpenEdit(k)}
+                    className="p-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => p.onToggleEnabled(k)}
+                    disabled={busy}
+                    className="p-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+                    title={k.enabled ? 'Disable' : 'Enable'}
+                  >
+                    {k.enabled ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] text-slate-600">{t('noDelete', lang)}</p>
+
+      {/* Health desk — below the keys it watches. It describes the keys;
+          it is not the door to them. */}
+      <ApiHealthDesk entries={keys} ready={!loading} />
+
+      {/* Add / edit form */}
+      {showForm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-5 space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-white">{editing ? 'Edit key' : t('addKey', lang)}</h3>
+              <button
+                onClick={p.onCloseForm}
+                className="p-2 rounded-xl text-slate-400 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <label className="block">
+              <span className="text-xs font-bold text-slate-400">{t('provider', lang)}</span>
+              <select
+                value={p.fProvider}
+                onChange={p.onProviderChange}
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 min-h-[44px]"
+              >
+                {PROVIDERS.map((pr) => (
+                  <option key={pr.id} value={pr.id}>
+                    {pr.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold text-slate-400">{t('name', lang)}</span>
+              <input
+                value={p.fName}
+                onChange={p.onNameChange}
+                placeholder="youtubeDataApi"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 font-mono min-h-[44px]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold text-slate-400">{t('value', lang)}</span>
+              <input
+                value={p.fValue}
+                onChange={p.onValueChange}
+                type="password"
+                autoComplete="off"
+                placeholder="Paste the key — it is never logged"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 font-mono min-h-[44px]"
+              />
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={p.fClientSafe}
+                onChange={p.onClientSafeChange}
+                className="mt-1 w-5 h-5 accent-amber-500"
+              />
+              <span>
+                <span className="text-sm font-bold text-slate-200">{t('clientSafeLabel', lang)}</span>
+                <span className="block text-[11px] text-slate-500 mt-0.5">
+                  {p.fClientSafe ? t('clientSafeWarn', lang) : t('serverOnlyWarn', lang)}
+                </span>
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold text-slate-400">{t('notes', lang)}</span>
+              <input
+                value={p.fNotes}
+                onChange={p.onNotesChange}
+                placeholder="e.g. Restricted to sanatanibandhan.web.app in Cloud Console"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 min-h-[44px]"
+              />
+            </label>
+
+            {/* Test */}
+            <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-3">
+              {preset.testUrl ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={p.onRunTest}
+                    disabled={p.testState === 'testing' || !p.fValue.trim() || busy}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-700 disabled:opacity-50 min-h-[44px]"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    {p.testState === 'testing' ? t('testing', lang) : t('test', lang)}
+                  </button>
+                  {p.testState === 'ok' && (
+                    <span className="inline-flex items-center gap-1 text-sm font-bold text-emerald-300">
+                      <CheckCircle2 className="w-4 h-4" /> {t('testOk', lang)}
+                    </span>
+                  )}
+                  {p.testState === 'fail' && (
+                    <span className="text-sm font-bold text-red-300">{t('testFail', lang)}</span>
+                  )}
+                  {preset.quotaNote && <span className="text-[11px] text-slate-500 w-full">{preset.quotaNote}</span>}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">{t('noTest', lang)}</p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => p.onSave(false)}
+                disabled={busy}
+                className="flex-1 rounded-xl border border-slate-600 px-3 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 min-h-[44px]"
+              >
+                {t('save', lang)}
+              </button>
+              {p.fClientSafe && (
+                <button
+                  onClick={() => p.onSave(true)}
+                  disabled={busy}
+                  className="flex-1 rounded-xl bg-amber-500 px-3 py-2.5 text-sm font-black text-slate-950 hover:bg-amber-400 disabled:opacity-50 min-h-[44px]"
+                >
+                  {t('save', lang)} + {t('publish', lang)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audit */}
+      <div>
+        <h3 className="text-sm font-black text-slate-300 mb-2">{t('auditTitle', lang)}</h3>
+        <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
+          {audit.length === 0 ? (
+            <div className="p-4 text-xs text-slate-600">—</div>
+          ) : (
+            audit.map((a) => (
+              <div key={a.id} className="px-4 py-2.5 text-xs text-slate-400 flex flex-wrap gap-x-3">
+                <span className="text-slate-500">{fmtTime(a.at)}</span>
+                <span className="font-bold text-slate-300">{a.action}</span>
+                <span className="font-mono">{a.keyName}</span>
+                {a.detail && <span className="text-slate-600">{a.detail}</span>}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* -------------------------------------------------------------- component */
 
 export const ApiKeyManager: React.FC = () => {
@@ -225,6 +565,7 @@ export const ApiKeyManager: React.FC = () => {
   const [keys, setKeys] = useState<ApiKeyEntry[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ApiKeyEntry | null>(null);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -258,8 +599,12 @@ export const ApiKeyManager: React.FC = () => {
         query(collection(db, 'platformConfig/apiKeysAudit'), orderBy('at', 'desc'), limit(20)),
       );
       setAudit(au.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AuditEntry, 'id'>) })));
+      setLoadFailed(false);
     } catch {
-      setMsg('Could not load keys — check your connection and owner access.');
+      // Load failures get the banner in the view (loadFailed), not the
+      // small grey notice line — a missed failure here looks exactly like
+      // "there is nowhere to enter a key".
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -361,7 +706,7 @@ export const ApiKeyManager: React.FC = () => {
       await batch.commit();
       // Hot activation (#35): drop the key caches so this device resolves
       // the new key on the very next call; other devices follow within
-      // the 60s cache TTL. The Health desk above sees the changed key
+      // the 60s cache TTL. The Health desk below sees the changed key
       // tail on reload and re-probes the API automatically.
       clearApiKeyCache();
       setShowForm(false);
@@ -411,249 +756,56 @@ export const ApiKeyManager: React.FC = () => {
     }
   };
 
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFProvider(e.target.value);
+    const p = PROVIDERS.find((x) => x.id === e.target.value);
+    if (p) {
+      setFClientSafe(p.clientSafeDefault);
+      if (!editing && p.suggestedName) setFName(p.suggestedName);
+    }
+    setTestState('idle');
+  };
+
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFValue(e.target.value);
+    setTestState('idle');
+  };
+
+  const handleToggleReveal = (k: ApiKeyEntry) =>
+    setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }));
+
   return (
-    <div className="space-y-5">
-      <ApiHealthDesk entries={keys} ready={!loading} />
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-black text-white flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-amber-400" /> {t('title', lang)}
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5 max-w-xl">{t('subtitle', lang)}</p>
-        </div>
-        <button
-          onClick={openAdd}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" /> {t('addKey', lang)}
-        </button>
-      </div>
-
-      {msg && (
-        <div className="rounded-xl border border-slate-700 bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-200">
-          {msg}
-        </div>
-      )}
-
-      {/* Key table */}
-      <div className="rounded-2xl border border-slate-800 overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-slate-500">Loading…</div>
-        ) : keys.length === 0 ? (
-          <div className="p-6 text-sm text-slate-500">{t('empty', lang)}</div>
-        ) : (
-          <div className="divide-y divide-slate-800">
-            {keys.map((k) => (
-              <div key={k.id} className="p-4 flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-slate-100 text-sm">{k.name}</span>
-                    <span className="text-[11px] text-slate-500">{k.provider}</span>
-                    {k.clientSafe ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-                        <ShieldCheck className="w-3 h-3" /> {t('clientSafe', lang)}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 text-[11px] font-bold text-amber-300">
-                        <ShieldAlert className="w-3 h-3" /> {t('serverOnly', lang)}
-                      </span>
-                    )}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                        k.enabled ? 'bg-slate-700 text-slate-300' : 'bg-red-500/15 text-red-300'
-                      }`}
-                    >
-                      {k.enabled ? t('enabled', lang) : t('disabled', lang)}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                    className="mt-1.5 inline-flex items-center gap-1.5 font-mono text-xs text-slate-400 hover:text-slate-200"
-                    title={t('revealWarn', lang)}
-                  >
-                    {revealed[k.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    {revealed[k.id] ? k.keyValue : mask(k.keyValue)}
-                  </button>
-                  {k.notes && <div className="text-[11px] text-slate-500 mt-1">{k.notes}</div>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => openEdit(k)}
-                    className="p-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => void toggleEnabled(k)}
-                    disabled={busy}
-                    className="p-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-                    title={k.enabled ? 'Disable' : 'Enable'}
-                  >
-                    {k.enabled ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <p className="text-[11px] text-slate-600">{t('noDelete', lang)}</p>
-
-      {/* Add / edit form */}
-      {showForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-5 space-y-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-white">{editing ? 'Edit key' : t('addKey', lang)}</h3>
-              <button
-                onClick={() => setShowForm(false)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-800 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <label className="block">
-              <span className="text-xs font-bold text-slate-400">{t('provider', lang)}</span>
-              <select
-                value={fProvider}
-                onChange={(e) => {
-                  setFProvider(e.target.value);
-                  const p = PROVIDERS.find((x) => x.id === e.target.value);
-                  if (p) {
-                    setFClientSafe(p.clientSafeDefault);
-                    if (!editing && p.suggestedName) setFName(p.suggestedName);
-                  }
-                  setTestState('idle');
-                }}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 min-h-[44px]"
-              >
-                {PROVIDERS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-bold text-slate-400">{t('name', lang)}</span>
-              <input
-                value={fName}
-                onChange={(e) => setFName(e.target.value)}
-                placeholder="youtubeDataApi"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 font-mono min-h-[44px]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-bold text-slate-400">{t('value', lang)}</span>
-              <input
-                value={fValue}
-                onChange={(e) => {
-                  setFValue(e.target.value);
-                  setTestState('idle');
-                }}
-                type="password"
-                autoComplete="off"
-                placeholder="Paste the key — it is never logged"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 font-mono min-h-[44px]"
-              />
-            </label>
-
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={fClientSafe}
-                onChange={(e) => setFClientSafe(e.target.checked)}
-                className="mt-1 w-5 h-5 accent-amber-500"
-              />
-              <span>
-                <span className="text-sm font-bold text-slate-200">{t('clientSafeLabel', lang)}</span>
-                <span className="block text-[11px] text-slate-500 mt-0.5">
-                  {fClientSafe ? t('clientSafeWarn', lang) : t('serverOnlyWarn', lang)}
-                </span>
-              </span>
-            </label>
-
-            <label className="block">
-              <span className="text-xs font-bold text-slate-400">{t('notes', lang)}</span>
-              <input
-                value={fNotes}
-                onChange={(e) => setFNotes(e.target.value)}
-                placeholder="e.g. Restricted to sanatanibandhan.web.app in Cloud Console"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 min-h-[44px]"
-              />
-            </label>
-
-            {/* Test */}
-            <div className="rounded-xl border border-slate-800 bg-slate-800/40 p-3">
-              {preset.testUrl ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => void runTest()}
-                    disabled={testState === 'testing' || !fValue.trim() || busy}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-600 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-slate-700 disabled:opacity-50 min-h-[44px]"
-                  >
-                    <FlaskConical className="w-4 h-4" />
-                    {testState === 'testing' ? t('testing', lang) : t('test', lang)}
-                  </button>
-                  {testState === 'ok' && (
-                    <span className="inline-flex items-center gap-1 text-sm font-bold text-emerald-300">
-                      <CheckCircle2 className="w-4 h-4" /> {t('testOk', lang)}
-                    </span>
-                  )}
-                  {testState === 'fail' && (
-                    <span className="text-sm font-bold text-red-300">{t('testFail', lang)}</span>
-                  )}
-                  {preset.quotaNote && <span className="text-[11px] text-slate-500 w-full">{preset.quotaNote}</span>}
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-500">{t('noTest', lang)}</p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => void save(false)}
-                disabled={busy}
-                className="flex-1 rounded-xl border border-slate-600 px-3 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-800 disabled:opacity-50 min-h-[44px]"
-              >
-                {t('save', lang)}
-              </button>
-              {fClientSafe && (
-                <button
-                  onClick={() => void save(true)}
-                  disabled={busy}
-                  className="flex-1 rounded-xl bg-amber-500 px-3 py-2.5 text-sm font-black text-slate-950 hover:bg-amber-400 disabled:opacity-50 min-h-[44px]"
-                >
-                  {t('save', lang)} + {t('publish', lang)}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Audit */}
-      <div>
-        <h3 className="text-sm font-black text-slate-300 mb-2">{t('auditTitle', lang)}</h3>
-        <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
-          {audit.length === 0 ? (
-            <div className="p-4 text-xs text-slate-600">—</div>
-          ) : (
-            audit.map((a) => (
-              <div key={a.id} className="px-4 py-2.5 text-xs text-slate-400 flex flex-wrap gap-x-3">
-                <span className="text-slate-500">{fmtTime(a.at)}</span>
-                <span className="font-bold text-slate-300">{a.action}</span>
-                <span className="font-mono">{a.keyName}</span>
-                {a.detail && <span className="text-slate-600">{a.detail}</span>}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+    <ApiKeyManagerView
+      lang={lang}
+      keys={keys}
+      audit={audit}
+      loading={loading}
+      loadFailed={loadFailed}
+      msg={msg}
+      showForm={showForm}
+      editing={editing}
+      revealed={revealed}
+      busy={busy}
+      fName={fName}
+      fProvider={fProvider}
+      fValue={fValue}
+      fClientSafe={fClientSafe}
+      fNotes={fNotes}
+      testState={testState}
+      preset={preset}
+      onReload={() => void load()}
+      onOpenAdd={openAdd}
+      onOpenEdit={openEdit}
+      onToggleEnabled={(k) => void toggleEnabled(k)}
+      onToggleReveal={handleToggleReveal}
+      onCloseForm={() => setShowForm(false)}
+      onProviderChange={handleProviderChange}
+      onNameChange={(e) => setFName(e.target.value)}
+      onValueChange={handleValueChange}
+      onClientSafeChange={(e) => setFClientSafe(e.target.checked)}
+      onNotesChange={(e) => setFNotes(e.target.value)}
+      onRunTest={() => void runTest()}
+      onSave={(publish) => void save(publish)}
+    />
   );
 };
