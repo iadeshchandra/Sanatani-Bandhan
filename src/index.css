@@ -26,6 +26,28 @@
   --temple-800: #46413E;
   --temple-900: #3D3836;
   --temple-950: #262321;
+
+  /* VIBE B1 — Sanctum tokens (Design North-Star: "A temple that opens
+     for you"). Named for the sanctum; brass + peacock are new scales,
+     marigold rides the existing saffron scale so themes keep working. */
+  --sanctum-ivory: #FFFBF2;
+  --sanctum-sandal: #F7EBD3;
+  --sanctum-sandal-deep: #EFDCB8;
+  --marigold: var(--saffron-500);
+  --kumkum: #B3271E;
+  --kumkum-deep: #8C1D18;
+  --brass-100: #F3E5C3;
+  --brass-200: #E9D29A;
+  --brass-300: #DDBB72;
+  --brass-400: #C9A24B;
+  --brass-500: #B08A2E;
+  --brass-600: #8F6E22;
+  --brass-700: #6E5519;
+  --peacock-100: #D9ECEA;
+  --peacock-300: #5FA8A0;
+  --peacock-500: #1F6E6B;
+  --peacock-700: #144E4C;
+  --peacock-900: #0C3433;
 }
 
 :root[data-theme="classic"] {
@@ -82,6 +104,26 @@
   --color-temple-800: var(--temple-800);
   --color-temple-900: var(--temple-900);
   --color-temple-950: var(--temple-950);
+
+  /* VIBE B1 — sanctum utilities (bg-sanctum-ivory, text-brass-600, …) */
+  --color-sanctum-ivory: var(--sanctum-ivory);
+  --color-sanctum-sandal: var(--sanctum-sandal);
+  --color-sanctum-sandal-deep: var(--sanctum-sandal-deep);
+  --color-marigold: var(--marigold);
+  --color-kumkum: var(--kumkum);
+  --color-kumkum-deep: var(--kumkum-deep);
+  --color-brass-100: var(--brass-100);
+  --color-brass-200: var(--brass-200);
+  --color-brass-300: var(--brass-300);
+  --color-brass-400: var(--brass-400);
+  --color-brass-500: var(--brass-500);
+  --color-brass-600: var(--brass-600);
+  --color-brass-700: var(--brass-700);
+  --color-peacock-100: var(--peacock-100);
+  --color-peacock-300: var(--peacock-300);
+  --color-peacock-500: var(--peacock-500);
+  --color-peacock-700: var(--peacock-700);
+  --color-peacock-900: var(--peacock-900);
 }
 
 
@@ -106,6 +148,100 @@
   .tnum {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
+  }
+
+  /* VIBE B1 — Lamplight: soft inner glow like lamplight on polished
+     stone + an evening-light shadow. CSS-only, zero assets. */
+  .lamplight {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.65),
+      inset 0 -14px 26px -14px rgba(176, 138, 46, 0.28),
+      0 12px 26px -14px rgba(122, 52, 12, 0.38);
+  }
+
+  /* VIBE B1 — Hairline gold rule: a 1px brass hairline, fading at both
+     ends like a line drawn on a nameplate. */
+  .hairline-gold {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, transparent, rgba(176, 138, 46, 0.55), transparent);
+  }
+
+  /* VIBE B1 — Lotus-petal divider: a small lotus (inline SVG, pan-
+     Sanatani) resting on a hairline gold rule. Decorative only. */
+  .lotus-divider {
+    height: 20px;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='20' viewBox='0 0 34 20'%3E%3Cg fill='none' stroke='%23B08A2E' stroke-width='1.4'%3E%3Cpath d='M17 3c2.4 2.6 3.6 5.4 3.6 8.2 0 2-.8 3.9-3.6 5.8-2.8-1.9-3.6-3.8-3.6-5.8C13.4 8.4 14.6 5.6 17 3Z'/%3E%3Cpath d='M6.5 6.5c3 .8 5.3 2.4 6.9 4.7 1.1 1.7 1.5 3.7.9 6.3-2.9-.5-4.7-1.6-5.9-3.2C6.9 12.2 6.3 9.5 6.5 6.5Z'/%3E%3Cpath d='M27.5 6.5c-.2 3-.8 5.7-2.3 7.8-1.2 1.6-3 2.7-5.9 3.2-.6-2.6-.2-4.6.9-6.3 1.6-2.3 3.9-3.9 6.9-4.7Z'/%3E%3C/g%3E%3C/svg%3E"),
+      linear-gradient(90deg, transparent, rgba(176, 138, 46, 0.45), transparent);
+    background-repeat: no-repeat, no-repeat;
+    background-position: center, center;
+    background-size: 34px 20px, 100% 1px;
+  }
+
+  /* VIBE B1 — Alpana/kolam watermark: a faint dotted kolam lattice
+     (inline SVG tile) laid over the header surface. The host element
+     must be positioned; content sits above via z-index. */
+  .alpana-watermark {
+    position: relative;
+  }
+  .alpana-watermark::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23B08A2E' stroke-opacity='0.16'%3E%3Ccircle cx='36' cy='36' r='16'/%3E%3Ccircle cx='36' cy='36' r='4'/%3E%3Cpath d='M36 4v10M36 58v10M4 36h10M58 36h10'/%3E%3C/g%3E%3Cg fill='%23B08A2E' fill-opacity='0.14'%3E%3Ccircle cx='0' cy='0' r='2'/%3E%3Ccircle cx='72' cy='0' r='2'/%3E%3Ccircle cx='0' cy='72' r='2'/%3E%3Ccircle cx='72' cy='72' r='2'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 72px 72px;
+  }
+
+  /* VIBE B1 — Sanctum header surface + festival dressing. The dressing
+     key is resolved ONLY from the festival DB (lib/festivalDressing.ts)
+     and set as data-dressing on the header; colours/type/layout are
+     identical across dressings — only the accent + wash deepen. */
+  .sanctum-header {
+    --dress-accent: var(--saffron-600);
+    background: linear-gradient(160deg, var(--sanctum-ivory), var(--sanctum-sandal));
+    transition: background 400ms ease, box-shadow 400ms ease, border-color 400ms ease;
+  }
+  .sanctum-header[data-dressing="diwali"] {
+    --dress-accent: var(--brass-500);
+    background: linear-gradient(160deg, #FFF6DC, #F1D488 135%);
+  }
+  .sanctum-header[data-dressing="janmashtami"] {
+    --dress-accent: var(--peacock-500);
+    background: linear-gradient(160deg, #F6FBF6, #CFE8E2 135%);
+  }
+  .sanctum-header[data-dressing="saraswati"] {
+    --dress-accent: var(--brass-400);
+    background: linear-gradient(160deg, #FFFFFF, #F7EBD3 140%);
+  }
+  .sanctum-header .dress-accent-text {
+    color: var(--dress-accent);
+  }
+
+  /* VIBE B1 — the brass muhurat chip: a small brass nameplate. The
+     window text always comes from the panchang engine — never typed. */
+  .muhurat-chip {
+    background: linear-gradient(180deg, var(--brass-300), var(--brass-400));
+    color: #3a2a08;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 2px 6px -2px rgba(122, 52, 12, 0.5);
+  }
+
+  /* VIBE B1 — floor step-down: on low-end devices (or reduced motion)
+     the glow + transitions step down; colours, type and layout stay
+     exactly the same — a poorer phone never gets a poorer temple. */
+  .sanctum-lite .lamplight {
+    box-shadow: none;
+  }
+  .sanctum-lite .muhurat-chip {
+    box-shadow: none;
+  }
+  .sanctum-lite.sanctum-header,
+  .sanctum-lite .sanctum-header {
+    transition: none;
   }
 
   .custom-scrollbar::-webkit-scrollbar {

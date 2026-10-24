@@ -7,6 +7,13 @@ import type { TranslationSchema } from '../schema';
  */
 
 const dict: TranslationSchema =  {
+  vibe: {
+    greetMorning: "Suprabhat",
+    greetAfternoon: "Namaskar",
+    greetEvening: "Shubh Sandhya",
+    shubh: "Shubh",
+    shubhMuhurat: "Shubh Muhurat",
+  },
     nav: {
       dashboard: "Dashboard",
       treasury: "Treasury",

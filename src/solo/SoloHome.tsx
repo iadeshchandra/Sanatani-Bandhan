@@ -11,7 +11,7 @@ import { SuggestionCards } from './SuggestionCards';
 import { PersonalWallet } from '../chat/PersonalWallet';
 import P2PScanSheet from '../chat/P2PScanSheet';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
-import { calculateDailyPanchang, panchangTodayLine } from '../utils/panchang';
+import { calculateDailyPanchang } from '../utils/panchang';
 import { Chat } from '../chat/Chat';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { useGroupUnreadTotal } from '../chat/groups/useGroups';
@@ -20,6 +20,7 @@ import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { PanchangHeader } from '../components/common/PanchangHeader';
 import { openDanaSheet } from '../lib/danaSheet';
 import {
   ChatFirstRunHint,
@@ -110,19 +111,9 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
     verificationTier: profile?.verificationTier,
   };
 
-  const panchangLine = useMemo(() => {
-    try {
-      // QUEUED #52 (audit D12): single-source today line — the canonical
-      // sunrise-anchored engine (utils/panchang), identical to the org
-      // header/dashboard line for the same day. This used to call the
-      // instant-based drikTodayLine(new Date(), …), which flips to the
-      // NEXT tithi the moment the current one ends mid-day, so home
-      // disagreed with the panjika surfaces every such evening.
-      return panchangTodayLine(new Date());
-    } catch {
-      return '';
-    }
-  }, []);
+  // VIBE B1: the canonical panchang today-line now renders inside the
+  // PanchangHeader strip (same engine, same line — QUEUED #52's single
+  // source is preserved; the header computes it from calculatePanchang).
 
   const today = todayISO();
   const japaToday = state.japa.filter((j) => j.date === today).reduce((s, j) => s + j.count, 0);
@@ -233,18 +224,20 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 
   return (
     <div className="space-y-4">
-      {/* Welcome banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-amber-800 via-orange-700 to-amber-800 text-amber-50 p-5 sm:p-6">
-        <div className="text-xs font-bold uppercase tracking-widest text-amber-200/80">
-          ॥ {tr('solo.motto', 'Atmano Mokshartham', 'আত্মনো মোক্ষার্থম্', 'आत्मनो मोक्षार्थम्')} ॥
+      {/* Welcome banner — VIBE B1: the dark amber slab became the
+          sanctum PanchangHeader (ivory/sandalwood, lamplight, festival
+          dressing, tithi greeting + brass muhurat chip). The greeting,
+          tithi-warmth line and SAN id are unchanged — they simply live
+          inside the temple now instead of on a gradient. */}
+      <PanchangHeader
+        eyebrow={<>॥ {tr('solo.motto', 'Atmano Mokshartham', 'আত্মনো মোক্ষার্থম্', 'आत्मनो मोक्षार्थम्')} ॥</>}
+        title={<>{greeting}, {profile?.displayName || tr('solo.sanatani', 'Sanatani', 'সনাতনী', 'सनातनी')}</>}
+      >
+        <div>
+          {tithiWarm && <p className="text-sm text-temple-600 font-medium">{tithiWarm}</p>}
+          <p className="text-sm text-temple-400 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
         </div>
-        <h1 className="font-display text-xl sm:text-2xl font-extrabold mt-1">
-          {greeting}, {profile?.displayName || tr('solo.sanatani', 'Sanatani', 'সনাতনী', 'सनातनी')}
-        </h1>
-        {tithiWarm && <p className="text-sm text-amber-100/95 mt-1.5 font-medium">{tithiWarm}</p>}
-        <p className="text-sm text-amber-100/90 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
-        {panchangLine && <p className="text-xs text-amber-200/80 mt-2">{panchangLine}</p>}
-      </div>
+      </PanchangHeader>
 
       {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
           One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}

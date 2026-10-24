@@ -31,6 +31,17 @@ export interface TranslationSchema {
     status: string;
     back: string;
   };
+  // VIBE B1 (2026-10-24) — greeting–panchang header chrome. Optional so
+  // the 7 AI-draft languages keep compiling; t()/safeTranslate fall back
+  // to English for them (the "show-don't-hide" contract, same pattern as
+  // the solo wallet chrome keys above). en/hi/bn are authored in full.
+  vibe?: {
+    greetMorning?: string;
+    greetAfternoon?: string;
+    greetEvening?: string;
+    shubh?: string;
+    shubhMuhurat?: string;
+  };
   auth: {
     accessPortal: string;
     identity: string;
