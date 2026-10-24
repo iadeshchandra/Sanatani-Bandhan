@@ -233,7 +233,7 @@ const DESK_ROWS: DeskRow[] = [
   ['form10bd', 'Form 10BD & CBDT Filing', 2, 'Financials & Assets', FIN, ['form 10bd', '10bd', 'cbdt', 'cbdt filing', 'ফর্ম ১০বিডি', 'फॉर्म 10bd'], ['form 10bd', '10bd']],
   ['tally-export', 'Tally Prime XML Export', 2, 'Financials & Assets', FIN, ['tally', 'tally prime', 'xml export', 'ট্যালি', 'टैली', 'tally export'], ['tally-export', 'tally prime xml export']],
   ['campaigns', 'Crowdfunding & Mandir Nirman', 2, 'Financials & Assets', FIN, ['crowdfunding', 'mandir nirman', 'নির্মাণ', 'निर्माण', 'fundraising', 'mandir construction'], ['campaigns', 'crowdfunding & mandir nirman']],
-  ['karmaLedger', 'Karma Merit & Volunteer Ledger', 2, 'Financials & Assets', FINOPS, ['karma ledger', 'merit ledger', 'volunteer ledger', 'কর্ম খাতা', 'कर्म खाता'], ['karma ledger', 'karma merit & volunteer ledger']],
+  ['karmaLedger', 'Seva Register', 2, 'Financials & Assets', FINOPS, ['seva register', 'karma ledger', 'volunteer ledger', 'সেবা খাতা', 'सेवा पंजी'], ['seva register', 'karma ledger']],
   ['assets', 'Fixed Assets & Deity Ornaments', 2, 'Financials & Assets', FIN, ['fixed assets', 'deity ornaments', 'asset register', 'সম্পত্তি', 'संपत्ति'], ['assets', 'fixed assets & deity ornaments']],
   ['inventory', 'Store & Consumables (Bhandara)', 2, 'Financials & Assets', FINOPS, ['store', 'consumables', 'bhandar', 'ভান্ডার', 'भंडार', 'stock', 'store room'], ['inventory', 'store & consumables (bhandara)']],
   ['bhoomi', 'Bhoomi & Property Leases', 2, 'Financials & Assets', FINOPS, ['bhoomi', 'property', 'land leases', 'ভূমি', 'भूमि', 'land', 'property leases'], ['bhoomi', 'bhoomi & property leases']],

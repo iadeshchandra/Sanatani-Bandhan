@@ -272,32 +272,32 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
       en: (p, c) =>
         `🙏 Your sadhana, dear ${c.term('devotee')}:\n\n` +
         `• **Japa today:** ${p['japaToday']} names\n` +
-        `• **Streak:** ${p['streak']} ${p['streak'] === 1 ? 'day' : 'days'} of unbroken practice\n` +
+        `• **Your rhythm:** japa on ${p['rhythm7']} of the last 7 days\n` +
         `• **Vrata observances:** ${p['vrataCount']}\n` +
         `• **Sankalpas:** ${p['sankalpaCount']}\n\n` +
         `Steady as a diya in still air — keep going. 🪔`,
       hi: (p, c) =>
         `🙏 आपकी साधना, प्रिय भक्त:\n\n` +
         `• **आज का जप:** ${p['japaToday']} नाम\n` +
-        `• **अटूट क्रम:** ${p['streak']} दिन\n` +
+        `• **आपकी लय:** पिछले 7 दिनों में ${p['rhythm7']} दिन जप\n` +
         `• **व्रत:** ${p['vrataCount']}\n` +
         `• **संकल्प:** ${p['sankalpaCount']}\n\n` +
         `शांत वायु में दीये की भाँति स्थिर — लगे रहिए। 🪔`,
       bn: (p, c) =>
         `🙏 আপনার সাধনা, প্রিয় ভক্ত:\n\n` +
         `• **আজকের জপ:** ${p['japaToday']} নাম\n` +
-        `• **অবিচ্ছিন্ন ধারা:** ${p['streak']} দিন\n` +
+        `• **আপনার ছন্দ:** গত ৭ দিনে ${p['rhythm7']} দিন জপ\n` +
         `• **ব্রত:** ${p['vrataCount']}\n` +
         `• **সংকল্প:** ${p['sankalpaCount']}\n\n` +
         `স্থির বাতাসে প্রদীপের মতো অটল — এগিয়ে যান। 🪔`,
     },
     empty: {
       en: (p, c) =>
-        `🙏 Your sadhana journal is still a blank page — and every great journey begins with one name.\n\nOpen **Home → Sadhana** and offer your first japa. I'll be here to count your streaks. 🪔`,
+        `🙏 Your sadhana journal is still a blank page — and every great journey begins with one name.\n\nOpen **Home → Sadhana** and offer your first japa. I'll be here to keep your journal with you. 🪔`,
       hi: (p, c) =>
-        `🙏 आपकी साधना-पत्रिका अभी कोरा पृष्ठ है — और हर महान यात्रा एक नाम से शुरू होती है।\n\n**होम → साधना** खोलकर पहला जप अर्पित करें। मैं आपके क्रम की गिनती करूँगा। 🪔`,
+        `🙏 आपकी साधना-पत्रिका अभी कोरा पृष्ठ है — और हर महान यात्रा एक नाम से शुरू होती है।\n\n**होम → साधना** खोलकर पहला जप अर्पित करें। मैं आपकी पत्रिका साथ रखूँगा। 🪔`,
       bn: (p, c) =>
-        `🙏 আপনার সাধনা-খাতা এখনও শূন্য পাতা — আর প্রতিটি মহান যাত্রা শুরু হয় একটি নামে।\n\n**হোম → সাধনা** খুলে প্রথম জপ অর্পণ করুন। আমি আপনার ধারার হিসাব রাখব। 🪔`,
+        `🙏 আপনার সাধনা-খাতা এখনও শূন্য পাতা — আর প্রতিটি মহান যাত্রা শুরু হয় একটি নামে।\n\n**হোম → সাধনা** খুলে প্রথম জপ অর্পণ করুন। আমি আপনার খাতা সঙ্গে রাখব। 🪔`,
     },
     default: {
       en: (p, c) => `🙏 Ask me "how is my sadhana?" and I'll read your journal for you.`,

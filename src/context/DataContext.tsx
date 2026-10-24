@@ -3279,29 +3279,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userRole: currentRole,
       });
 
-      // Update devotee total if linked
+      // Update devotee total if linked.
+      // WORLD-READY (E-06): the 🏆 "Milestone Alert — crossed ₹X in
+      // lifetime donations / Major Contributor" toast is REMOVED. A
+      // giving threshold celebrated with a trophy is a giving-status
+      // mechanic (Blueprint D). Thanks to a donor is personal and
+      // private; the ledger simply records the offering.
       if (tx.devoteeId) {
         const devotee = allDevotees.find(d => d.id === tx.devoteeId);
-        if (devotee) {
-          const oldTotal = devotee.totalDonated || 0;
-          const newTotal = oldTotal + tx.amount;
-          const milestones = [100000, 500000, 1000000, 5000000, 10000000];
-          for (const m of milestones) {
-            if (oldTotal < m && newTotal >= m) {
-              setTimeout(() => {
-                showToast(`🏆 Milestone Alert! ${devotee.fullName} crossed ₹${m.toLocaleString()} in lifetime donations!`, 'success', 'Major Contributor');
-              }, 1500);
-            }
-          }
-        }
-
         setAllDevotees((prev) =>
           prev.map((d, idx) =>
             d.id === tx.devoteeId
               ? {
                   ...d,
                   totalDonated: (d.totalDonated || 0) + tx.amount,
-                  sevaIndex: Math.min(1000, (d.sevaIndex || 0) + Math.floor(tx.amount / 100)),
                 }
               : d
           )
@@ -3309,10 +3300,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // QUEUED #45: persist the devotee's new lifetime total too — else
         // the re-entry snapshot reverts it while the voucher itself survives.
+        // WORLD-READY (E-05/E-06): the sevaIndex accrual that used to ride
+        // along here (score += amount ÷ 100) is REMOVED — the score is no
+        // longer computed anywhere; totalDonated stays as a factual
+        // lifetime record, which is all the Seva Register reads.
         if (devotee) {
           pushToFirestore('devotees', devotee.id, {
             totalDonated: (devotee.totalDonated || 0) + tx.amount,
-            sevaIndex: Math.min(1000, (devotee.sevaIndex || 0) + Math.floor(tx.amount / 100)),
           });
         }
       }

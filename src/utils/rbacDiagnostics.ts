@@ -238,12 +238,12 @@ export function runRBACDiagnostics(): RBACDiagnosticReport {
     testName: 'Devotee Role Admin Desk Boundary Guard',
     category: 'Access Guard',
     roleUnderAudit: 'Devotee',
-    targetResource: 'Domains 1-7 Admin Desks (Blocked) & DevoteePortal (Allowed)',
-    expected: 'Devotee blocked from all ERP admin desks; routed solely to DevoteePortal',
+    targetResource: 'Domains 1-7 Admin Desks (Blocked) & Member Home (Allowed)',
+    expected: 'Devotee blocked from all ERP admin desks; routed solely to the member home (DevoteeAccountPortal)',
     actual: test1Passed ? 'BLOCKED_FROM_ERP_ADMIN_DESKS' : 'UNAUTHORIZED_ACCESS_DETECTED',
     status: test1Passed ? 'PASSED' : 'FAILED',
     evidence: test1Passed
-      ? 'Devotee denied access to dashboard/treasury/checkin/radar/sanctum; permitted on DevoteePortal'
+      ? 'Devotee denied access to dashboard/treasury/checkin/radar/sanctum; permitted on the member home'
       : 'Devotee has unauthorized access to one or more administrative desks',
   });
 

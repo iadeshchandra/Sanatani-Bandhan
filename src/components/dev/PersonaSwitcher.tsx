@@ -165,9 +165,10 @@ export const PersonaSwitcher: React.FC = () => {
 
     // 3. Navigation according to role directives
     if (item.role === 'Devotee') {
-      // If Devotee: Navigate to /devotee and set member view mode
+      // If Devotee: the member home (the old /devotee persona page is
+      // removed — WORLD-READY B3) and set member view mode
       if (setViewMode) setViewMode('MEMBER');
-      navigate('/devotee');
+      navigate('/');
     } else {
       // If Priest, Accountant, CSO: Navigate to / and set manager view mode
       if (setViewMode) setViewMode('MANAGER');

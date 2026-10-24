@@ -8,13 +8,15 @@ export interface DevoteeProfile {
   name: string;
   gotra: string;
   ishtaDevata: string;
-  punyaMudras: number;
+  // WORLD-READY (E-01): `punyaMudras` (a points currency for devotion)
+  // and `streakDays` were removed with the fabricated portal that used
+  // them — Blueprint D bans both mechanics, so the type no longer
+  // carries them anywhere.
   yatraPassport: string[];
   phone?: string;
   email?: string;
   nakshatra?: string;
   rashi?: string;
-  streakDays?: number;
   avatarUrl?: string;
 }
 

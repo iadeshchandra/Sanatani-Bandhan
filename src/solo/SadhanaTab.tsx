@@ -37,16 +37,16 @@ export const SadhanaTab: React.FC = () => {
     () => state.japa.filter((j) => j.date === today).reduce((s, j) => s + j.count, 0),
     [state.japa, today]
   );
-  const streak = useMemo(() => {
-    const days = new Set(state.japa.filter((j) => j.count > 0).map((j) => j.date));
-    let n = 0;
-    const d = new Date();
-    if (!days.has(d.toISOString().slice(0, 10))) d.setDate(d.getDate() - 1);
-    while (days.has(d.toISOString().slice(0, 10))) {
-      n++;
-      d.setDate(d.getDate() - 1);
-    }
-    return n;
+  // WORLD-READY (E-09): rhythm, never a streak. The old consecutive-day
+  // counter made one quiet day a LOSS (Blueprint D bans streaks — the
+  // unbroken-chain framing is the pressure). What is honoured: on how
+  // many days this month japa flowered. Nothing resets; nothing is lost.
+  const daysThisMonth = useMemo(() => {
+    const now = new Date();
+    const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return new Set(
+      state.japa.filter((j) => j.count > 0 && j.date.startsWith(prefix)).map((j) => j.date),
+    ).size;
   }, [state.japa]);
 
   const logJapa = (count: number) => {
@@ -88,7 +88,7 @@ export const SadhanaTab: React.FC = () => {
           <T en="Japa counter" bn="জপ গণনা" hi="जप गणना" sa="जप-गणना" />
         </h2>
         <p className="text-xs text-stone-500 mb-4">
-          <T en={`Today: ${japaToday.toLocaleString('en-IN')} · ${streak}-day streak`} bn={`আজ: ${japaToday} · ${streak} দিন`} hi={`आज: ${japaToday} · ${streak} दिन`} />
+          <T en={`Today: ${japaToday.toLocaleString('en-IN')} · japa flowered on ${daysThisMonth} ${daysThisMonth === 1 ? 'day' : 'days'} this month`} bn={`আজ: ${japaToday} · এই মাসে ${daysThisMonth} দিনে জপ ফুটেছে`} hi={`आज: ${japaToday} · इस माह ${daysThisMonth} दिन जप खिला`} />
         </p>
         <Field label={<T en="Mantra" bn="মন্ত্র" hi="मंत्र" />}>
           <input className={inputCls} value={mantra} onChange={(e) => setMantra(e.target.value)} placeholder="ॐ नमः शिवाय" />

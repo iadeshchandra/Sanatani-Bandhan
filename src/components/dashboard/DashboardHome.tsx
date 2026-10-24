@@ -92,9 +92,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       value: collectionWindows.devotees.total ?? devotees.length,
     };
   })();
-  // Honest fallback: a devotee with no recorded seva index is "on the path",
-  // never an invented 1245 pts.
-  const sevaKarma = currentDevotee?.sevaIndex;
+  // WORLD-READY (E-05): the hero used to show a "Seva Karma" SCORE
+  // (sevaIndex pts — donations + hours compressed into points). Blueprint
+  // D bans scored devotion. What is shown instead is a plain fact from
+  // the member's record — hours of seva offered — and the honest
+  // fallback stays: no record, "On the path", never an invented number.
+  const sevaHours = currentDevotee?.volunteerHours;
   const HeroIcon = heroPrimary.Icon;
 
   return (
@@ -132,11 +135,11 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </div>
               <div>
                 <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">
-                  {safeTranslate('dash_hero_seva_karma', 'Your Seva Karma', 'আপনার সেবা কর্ম', 'आपका सेवा कर्म')}
+                  {safeTranslate('dash_hero_seva_hours', 'Your Seva', 'আপনার সেবা', 'आपकी सेवा')}
                 </p>
                 <p className="text-sm font-black text-slate-900">
-                  {sevaKarma != null ? (
-                    <>{sevaKarma.toLocaleString('en-IN')} <span className="text-slate-400 font-medium text-xs">pts</span></>
+                  {sevaHours != null ? (
+                    <>{sevaHours.toLocaleString('en-IN')} <span className="text-slate-400 font-medium text-xs">{safeTranslate('dash_hero_hours_offered', 'hours offered', 'ঘণ্টা নিবেদিত', 'घंटे अर्पित')}</span></>
                   ) : (
                     <span className="text-indigo-500 font-bold">
                       {safeTranslate('dash_hero_on_the_path', 'On the path 🙏', 'পথে আছেন 🙏', 'मार्ग पर हैं 🙏')}

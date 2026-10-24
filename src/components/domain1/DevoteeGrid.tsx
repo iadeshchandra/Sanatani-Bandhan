@@ -1113,16 +1113,16 @@ export const DevoteeGrid: React.FC = () => {
                       <p className="font-semibold text-saffron-600">{inr((devotee.totalDonated || 0))}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Index</p>
-                      <p className="font-semibold text-purple-400">{devotee.sevaIndex || 0} pts</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Hours</p>
+                      <p className="font-semibold text-purple-400">{devotee.volunteerHours || 0}h</p>
                     </div>
                   </div>
                 )}
                 {!canViewFinancials && (
                   <div className="p-2.5 rounded-xl bg-white shadow-sm border border-temple-200 grid grid-cols-1 gap-2 text-center text-xs my-2">
                     <div>
-                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Index</p>
-                      <p className="font-semibold text-purple-400">{devotee.sevaIndex || 0} pts</p>
+                      <p className="text-[10px] text-temple-600 font-semibold uppercase">Seva Hours</p>
+                      <p className="font-semibold text-purple-400">{devotee.volunteerHours || 0}h</p>
                     </div>
                   </div>
                 )}
@@ -1543,8 +1543,8 @@ export const DevoteeGrid: React.FC = () => {
               {/* Seva Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center">
-                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Seva Index</p>
-                  <p className="text-2xl font-semibold text-purple-400">{selectedDevotee.sevaIndex || 0}</p>
+                  <p className="text-xs text-temple-500 font-semibold uppercase mb-1">Seva Hours</p>
+                  <p className="text-2xl font-semibold text-purple-400">{selectedDevotee.volunteerHours || 0}h</p>
                 </div>
                 {canViewFinancials && (
                   <div className="bg-white shadow-sm p-4 rounded-xl border border-temple-200 text-center flex flex-col justify-center items-center">

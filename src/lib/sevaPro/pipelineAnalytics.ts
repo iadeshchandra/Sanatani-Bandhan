@@ -122,7 +122,7 @@ export interface TopReferrer {
   creditsEarned: number;
 }
 
-/** GodMode leaderboard: who guides devotees most lovingly (and effectively). */
+/** GodMode referrers table: who guides devotees most lovingly (and effectively). */
 export async function getTopReferrers(maxN = 20): Promise<TopReferrer[]> {
   const [referralSnap, attrSnap, creditSnap] = await Promise.all([
     getDocs(query(collection(db, 'jyotishReferrals'), orderBy('createdAt', 'desc'), limit(500))),

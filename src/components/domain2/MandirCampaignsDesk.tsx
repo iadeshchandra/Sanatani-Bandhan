@@ -114,25 +114,28 @@ export const MandirCampaignsDesk: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Top Donors Hall of Fame */}
+                {/* With gratitude — recent contributors (WORLD-READY E-04).
+                    This was a "Top Donors Hall of Fame": numbered, with
+                    amounts — a giving leaderboard, which Blueprint D bans.
+                    The underlying list is simply the most recent
+                    contributors (DataContext prepends); shown now as a
+                    thanks wall: names only, no numbers, no amounts, no
+                    order of merit. */}
                 <div className="bg-temple-950/60 border border-temple-800 rounded-2xl p-4 space-y-2">
                   <p className="text-[10px] font-bold text-saffron-500/90 uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>{t('org.finance.campaigns.topDonorsHallOfSeva')}</span>
+                    <span>{t('org.finance.campaigns.withGratitudeRecentContributors')}</span>
                   </p>
                   {(camp.topDonors || []).length === 0 && (
                     <p className="text-[11px] text-temple-400 font-medium">
-                      No contributions yet — the first seva donor will be honoured here.
+                      No contributions yet — every giver will be thanked here. 🙏
                     </p>
                   )}
                   <div className="divide-y divide-temple-800 text-xs">
                     {(camp.topDonors || []).map((d, idx) => (
                       <div key={idx} className="py-1.5 flex items-center justify-between">
                         <span className="text-temple-300 font-medium">
-                          {idx + 1}. {d.name} <span className="text-[10px] text-temple-400">({d.city})</span>
-                        </span>
-                        <span className="font-mono font-bold text-saffron-400">
-                          {inr((d.amount || 0))}
+                          🙏 {d.name} <span className="text-[10px] text-temple-400">({d.city})</span>
                         </span>
                       </div>
                     ))}

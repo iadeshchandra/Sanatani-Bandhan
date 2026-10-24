@@ -44,22 +44,27 @@ function todayISO(): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/** Consecutive-day streak ending today (or yesterday, still alive). */
-function streakDays(japa: JapaRec[]): number {
+/**
+ * WORLD-READY (E-10): rhythm, never a streak. The old helper counted
+ * CONSECUTIVE days and the template headlined them as "unbroken
+ * practice" — one quiet day broke the chain, which is exactly the
+ * loss-framing Blueprint D bans. The summary now reports on how many
+ * of the last 7 days japa flowered: a rhythm that can soften and
+ * return, but never "breaks".
+ */
+function rhythmDays(japa: JapaRec[]): number {
   const days = new Set(
     japa.filter((j) => (j.count || 0) > 0 && typeof j.date === 'string').map((j) => j.date as string)
   );
   if (days.size === 0) return 0;
-  let streak = 0;
-  const cursor = new Date();
-  // Allow "today not yet logged" — streak counts if yesterday is present.
   const iso = (d: Date) => d.toISOString().slice(0, 10);
-  if (!days.has(iso(cursor))) cursor.setDate(cursor.getDate() - 1);
-  while (days.has(iso(cursor))) {
-    streak += 1;
+  let n = 0;
+  const cursor = new Date();
+  for (let i = 0; i < 7; i++) {
+    if (days.has(iso(cursor))) n += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
-  return streak;
+  return n;
 }
 
 export function sadhanaSummaryTask(ctx: TaskCtx): TaskOutcome {
@@ -70,7 +75,7 @@ export function sadhanaSummaryTask(ctx: TaskCtx): TaskOutcome {
   const japaToday = japa
     .filter((j) => j.date === today)
     .reduce((s, j) => s + (typeof j.count === 'number' ? j.count : 0), 0);
-  const streak = streakDays(japa);
+  const rhythm7 = rhythmDays(japa);
   const vrataCount = (personal.vrata ?? []).length;
   const sankalpaCount = (personal.sankalpa ?? []).length;
 
@@ -78,7 +83,7 @@ export function sadhanaSummaryTask(ctx: TaskCtx): TaskOutcome {
     return { params: {}, variant: 'empty' };
   }
   return {
-    params: { japaToday, streak, vrataCount, sankalpaCount },
+    params: { japaToday, rhythm7, vrataCount, sankalpaCount },
     variant: 'summary',
     suggestions: suggestionsFor('sadhana_summary', ctx.lang),
   };

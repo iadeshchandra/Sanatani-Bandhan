@@ -16,7 +16,7 @@ interface DemoUpsellModalProps {
 const PREMIUM_BULLETS: Record<string, string[]> = {
   treasury: ['Unlimited donations & expenses', 'Automatic 80G tax receipts', 'Tally Prime sync for your CA'],
   devotees: ['Unlimited devotee records', 'Family trees & household census', 'Universal Sanatani ID across temples'],
-  campaigns: ['Unlimited fundraising campaigns', 'Donor analytics & leaderboards', 'WhatsApp share + UPI collection links'],
+  campaigns: ['Unlimited fundraising campaigns', 'Donor analytics & gratitude walls', 'WhatsApp share + UPI collection links'],
   pooja: ['Unlimited pooja bookings', 'QR gate passes for devotees', 'Purohit scheduling & dakshina tracking'],
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Activity, Flame, Book, Sun, CheckCircle2, TrendingUp, Calendar as CalIcon, Medal, Heart, Users, Trophy, BookOpen, Share2, MessageCircle } from 'lucide-react';
+import { Activity, Flame, Book, Sun, CheckCircle2, TrendingUp, Calendar as CalIcon, Heart, Users, BookOpen, MessageCircle } from 'lucide-react';
 import { doc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -12,7 +12,7 @@ export default function PersonalSadhanaDesk() {
   const { t, language } = useLanguage();
   const { addNotification } = useNotifications();
   
-  const [activeTab, setActiveTab] = useState<'MY_JOURNAL' | 'COMMUNITY' | 'LEADERBOARD'>('MY_JOURNAL');
+  const [activeTab, setActiveTab] = useState<'MY_JOURNAL' | 'COMMUNITY'>('MY_JOURNAL');
   const [logs, setLogs] = useState<any[]>([]);
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,23 +81,24 @@ export default function PersonalSadhanaDesk() {
       const batch = writeBatch(db);
       const logId = `LOG-${Date.now()}`;
       const logRef = doc(db, `communities/${activeWorkspace.id}/sadhana_logs/${logId}`);
-      
-      const karmaEarned = Math.floor(sadhanaForm.japaCount / 10) + sadhanaForm.meditationMins;
-      
+
+      // WORLD-READY (E-02): NO points are computed from devotion. The
+      // old `karmaEarned = ⌊japa/10⌋ + meditationMins` formula scored
+      // prayer itself and fed a leaderboard — Blueprint D bans both.
+      // A log is a journal entry: practice recorded, never priced.
       batch.set(logRef, {
         ...sadhanaForm,
         uid: currentUser.id,
         userName: currentUser.name || 'Anonymous Sadhak',
         timestamp: Date.now(),
-        karmaEarned
       });
-      
+
       await batch.commit();
       showToast(safeTranslate('sadhana_logged', 'Sadhana logged successfully!'));
-      
+
       addNotification({
         title: 'Sadhana Logged',
-        message: `You earned ${karmaEarned} Karma points for completing ${sadhanaForm.japaCount} Japa and ${sadhanaForm.meditationMins} mins of meditation.`,
+        message: `${sadhanaForm.japaCount} Japa and ${sadhanaForm.meditationMins} mins of meditation are kept in your journal. 🙏`,
         type: 'success',
       });
       
@@ -133,43 +134,30 @@ export default function PersonalSadhanaDesk() {
   // Analytics for MY_JOURNAL
   const totalJapa = logs.reduce((acc, curr) => acc + (Number(curr.japaCount) || 0), 0);
   const totalMeditation = logs.reduce((acc, curr) => acc + (Number(curr.meditationMins) || 0), 0);
-  const totalKarma = logs.reduce((acc, curr) => acc + (Number(curr.karmaEarned) || 0), 0);
-  
-  // Calculate Streak
-  const streak = useMemo(() => {
-    if (logs.length === 0) return 0;
-    
-    // Get unique dates sorted descending
-    const uniqueDates = Array.from(new Set(logs.map((l, idx) => new Date(l.timestamp).toDateString())))
-                             .map((d, idx) => new Date(d))
-                             .sort((a, b) => b.getTime() - a.getTime());
-                             
-    let currentStreak = 0;
-    let today = new Date();
-    today.setHours(0,0,0,0);
-    
-    // Check if the most recent activity is today or yesterday
-    if (uniqueDates.length > 0) {
-      const mostRecent = uniqueDates[0];
-      const diffTime = Math.abs(today.getTime() - mostRecent.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays > 1) return 0; // Lost streak
-      
-      currentStreak = 1;
-      for (let i = 1; i < uniqueDates.length; i++) {
-        const prev = uniqueDates[i-1];
-        const curr = uniqueDates[i];
-        const diff = Math.abs(prev.getTime() - curr.getTime());
-        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        if (days === 1) {
-          currentStreak++;
-        } else {
-          break;
-        }
-      }
+
+  // WORLD-READY (E-02): rhythm, never a streak. The old consecutive-day
+  // counter reset to 0 after one missed day ("// Lost streak") — the
+  // LOSS was the mechanic, and Blueprint D bans it. What is honoured
+  // instead: how many days practice flowered, in the last 7 days and in
+  // this month. A quiet day changes nothing that was earned, because
+  // nothing is earned — practice is simply remembered.
+  const rhythm = useMemo(() => {
+    const dayKey = (t: number) => new Date(t).toDateString();
+    const practised = new Set(logs.map((l) => dayKey(l.timestamp)));
+    const now = new Date();
+    let last7 = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      if (practised.has(d.toDateString())) last7++;
     }
-    return currentStreak;
+    const monthPrefix = `${now.getFullYear()}-${now.getMonth()}`;
+    let thisMonth = 0;
+    practised.forEach((k) => {
+      const d = new Date(k);
+      if (`${d.getFullYear()}-${d.getMonth()}` === monthPrefix) thisMonth++;
+    });
+    return { last7, thisMonth };
   }, [logs]);
   
   // Chart Data (Last 7 Days)
@@ -193,20 +181,6 @@ export default function PersonalSadhanaDesk() {
     }
     return data;
   }, [logs]);
-
-  // Leaderboard data
-  const leaderboard = useMemo(() => {
-    const userMap: Record<string, { name: string, karma: number, totalJapa: number, totalMed: number }> = {};
-    allLogs.forEach(log => {
-      if (!userMap[log.uid]) {
-        userMap[log.uid] = { name: log.userName || 'Anonymous', karma: 0, totalJapa: 0, totalMed: 0 };
-      }
-      userMap[log.uid].karma += (Number(log.karmaEarned) || 0);
-      userMap[log.uid].totalJapa += (Number(log.japaCount) || 0);
-      userMap[log.uid].totalMed += (Number(log.meditationMins) || 0);
-    });
-    return Object.values(userMap).sort((a, b) => b.karma - a.karma).slice(0, 10);
-  }, [allLogs]);
 
   const retryLoad = () => {
     setLoadError(null);
@@ -248,7 +222,7 @@ export default function PersonalSadhanaDesk() {
         <div className="relative z-10">
           <p className="text-[10px] font-black text-saffron-600 uppercase tracking-widest mb-1 flex items-center gap-1.5"><Sun size={14}/> {safeTranslate('sanatani_life', 'Individual Sanatani Life')}</p>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Personal Sadhana</h1>
-          <p className="text-sm text-gray-500 font-bold mt-1 max-w-xl">Track your spiritual progress, share with the community, and earn Karma.</p>
+          <p className="text-sm text-gray-500 font-bold mt-1 max-w-xl">A gentle journal of your practice — japa, meditation and reading, honoured as rhythm, never scored.</p>
         </div>
       </div>
       
@@ -260,9 +234,6 @@ export default function PersonalSadhanaDesk() {
           </button>
           <button onClick={() => setActiveTab('COMMUNITY')} className={`py-4 text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'COMMUNITY' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>
             <Users size={16}/> Community Feed
-          </button>
-          <button onClick={() => setActiveTab('LEADERBOARD')} className={`py-4 text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap border-b-2 flex items-center gap-2 ${activeTab === 'LEADERBOARD' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-700'}`}>
-            <Trophy size={16}/> Leaderboard
           </button>
         </div>
       </div>
@@ -284,13 +255,13 @@ export default function PersonalSadhanaDesk() {
                </div>
                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-all">
                   <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-3"><Flame size={20}/></div>
-                  <p className="text-3xl font-black text-gray-900">{streak} Days</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Active Streak</p>
+                  <p className="text-3xl font-black text-gray-900">{rhythm.last7} <span className="text-lg text-gray-400">/ 7 days</span></p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Days Practised · Last 7 Days</p>
                </div>
                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-all">
-                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3"><Medal size={20}/></div>
-                  <p className="text-3xl font-black text-gray-900">{totalKarma.toLocaleString()}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Karma Points</p>
+                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3"><CalIcon size={20}/></div>
+                  <p className="text-3xl font-black text-gray-900">{rhythm.thisMonth} <span className="text-lg text-gray-400">days</span></p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Days Practised · This Month</p>
                </div>
             </div>
 
@@ -328,7 +299,7 @@ export default function PersonalSadhanaDesk() {
                     </div>
 
                     <button type="submit" disabled={submitting} className="w-full py-4 mt-2 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all flex justify-center items-center gap-2 disabled:opacity-50">
-                      {submitting ? <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> : <><CheckCircle2 size={18}/> Save & Earn Karma</>}
+                      {submitting ? <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div> : <><CheckCircle2 size={18}/> Save to My Journal</>}
                     </button>
                   </form>
                 </div>
@@ -370,7 +341,6 @@ export default function PersonalSadhanaDesk() {
                           <div className="flex items-center gap-2 mb-1">
                             {log.vratFasting && <span className="px-2 py-0.5 bg-saffron-100 text-saffron-700 rounded text-[9px] font-black uppercase tracking-widest">Fasting</span>}
                             <span className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                            <span className="ml-auto text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">+${log.karmaEarned || 0} Karma</span>
                           </div>
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700 font-bold">
                              <span className="flex items-center gap-1.5"><Activity size={14} className="text-saffron-500"/> {log.japaCount} Mantras</span>
@@ -408,9 +378,6 @@ export default function PersonalSadhanaDesk() {
                       <p className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleString()}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100">
-                    +${log.karmaEarned || 0} Karma
-                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
@@ -467,53 +434,6 @@ export default function PersonalSadhanaDesk() {
                 <p className="text-sm font-bold text-gray-500 mt-1">Be the first to share your sadhana!</p>
               </div>
             )}
-          </div>
-        )}
-
-        {activeTab === 'LEADERBOARD' && (
-          <div className="max-w-4xl mx-auto animate-in slide-in-from-right-4">
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gray-900 p-8 text-center text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none"><Trophy size={120}/></div>
-                <h2 className="text-2xl font-black relative z-10">Global Karma Leaderboard</h2>
-                <p className="text-sm font-bold text-gray-400 mt-2 relative z-10">Top Sadhaks in the community by Karma points</p>
-              </div>
-              
-              <div className="p-4 sm:p-6">
-                <div className="space-y-3">
-                  {leaderboard.map((user, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-md transition-all group">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm
-                          ${idx === 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' : 
-                            idx === 1 ? 'bg-gray-200 text-gray-700 border border-gray-300' : 
-                            idx === 2 ? 'bg-saffron-100 text-saffron-800 border border-saffron-300' : 
-                            'bg-white text-gray-500 border border-gray-200'}
-                        `}>
-                          #{idx + 1}
-                        </div>
-                        <div>
-                          <h4 className="font-black text-gray-900 text-base">{user.name}</h4>
-                          <div className="flex gap-3 mt-1 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            <span className="flex items-center gap-1"><Activity size={10}/> {user.totalJapa}</span>
-                            <span className="flex items-center gap-1"><Sun size={10}/> {user.totalMed}m</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black text-emerald-600">{(user.karma || 0).toLocaleString()}</p>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Karma</p>
-                      </div>
-                    </div>
-                  ))}
-                  {leaderboard.length === 0 && (
-                    <div className="text-center py-10 text-gray-400">
-                      <p className="font-bold">No active users yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>

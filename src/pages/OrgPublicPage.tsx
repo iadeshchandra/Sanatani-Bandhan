@@ -228,7 +228,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
         {/* ------------------------- QUICK ACTIONS ------------------------- */}
         <div className="grid grid-cols-3 gap-3 mt-6">
           <button
-            onClick={() => navigate('/devotee')}
+            onClick={() => navigate('/signup')}
             className="flex flex-col items-center justify-center gap-1.5 min-h-[64px] bg-gradient-to-br from-amber-600 to-orange-700 text-white rounded-2xl font-black text-xs sm:text-sm shadow-md hover:brightness-105"
           >
             <Heart size={20} />

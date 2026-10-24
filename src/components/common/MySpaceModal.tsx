@@ -189,23 +189,12 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
 
   if (!isOpen || !activeMember) return null;
 
-  const calculateSevaScore = (donated: number, volunteerHours: number) => {
-    const base = 50; 
-    const volumePoints = Math.floor((donated || 0) / 1000) * 5; 
-    const habitPoints = (volunteerHours || 0) * 10;
-    return base + volumePoints + habitPoints;
-  };
-
-  const score = activeMember.sevaIndex || calculateSevaScore(activeMember.totalDonated || 0, activeMember.volunteerHours || 0);
-  
-  const getHaloDesign = (s: number) => {
-    if(s >= 1500) return { color: 'from-yellow-400 via-saffron-500 to-purple-600', name: 'Ratna (Pillar)' };
-    if(s >= 500) return { color: 'from-temple-300 to-blue-500', name: 'Vishesh (Core)' };
-    if(s >= 100) return { color: 'from-saffron-400 to-red-500', name: 'Karmi (Active)' };
-    return { color: 'from-temple-200 to-temple-300', name: 'Sadharan (Member)' };
-  };
-
-  const halo = getHaloDesign(score);
+  // WORLD-READY (E-05): this modal computed a "Seva Score"
+  // (50 + ⌊donated/1000⌋×5 + hours×10) and dressed the member's avatar
+  // in score-tiered "halo" ranks (Ratna/Vishesh/Karmi). Blueprint D bans
+  // scored devotion and rank-by-giving. The profile now shows plain
+  // facts from the record — hours offered, chanda given — with no
+  // computed score and no tier.
 
   const myTransactions = treasury.filter(tr => tr.devoteeId === activeMember.id);
   const filteredPersonalTransactions = myTransactions.filter(tr => {
@@ -249,7 +238,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
              <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 mb-4 relative z-10">
                {/* Profile Photo */}
                <div className="relative group cursor-pointer w-28 h-28 sm:w-32 sm:h-32 -mt-14 sm:-mt-16 rounded-full border-4 border-white bg-white shadow-md shrink-0 mx-auto sm:mx-0" onClick={() => editPhotoRef.current?.click()}>
-                 <div className={`w-full h-full rounded-full p-1 bg-gradient-to-tr ${halo.color}`}>
+                 <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-amber-400 to-orange-500">
                    {activeMember.photoUrl && activeMember.photoUrl !== "" ? (
                      <img src={activeMember.photoUrl || undefined} alt="Profile" className="w-full h-full object-cover rounded-full border-2 border-white" />
                    ) : (
@@ -295,8 +284,8 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-temple-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
                      <Award className="w-8 h-8 text-saffron-500 mb-2" />
-                     <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">Seva Score</p>
-                     <p className="text-2xl font-black text-temple-900">{score}</p>
+                     <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">Seva Hours Offered</p>
+                     <p className="text-2xl font-black text-temple-900">{activeMember.volunteerHours || 0}</p>
                    </div>
                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-temple-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
                      <Banknote className="w-8 h-8 text-emerald-500 mb-2" />
@@ -495,12 +484,12 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
             {profileTab === 'ACTIVITY' && (
               <div className="space-y-6 animate-in fade-in">
                 <div className="bg-white border border-temple-200 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-6">
-                  <div className={`w-16 h-16 rounded-full bg-gradient-to-tr ${halo.color} text-white flex items-center justify-center shrink-0 shadow-lg`}>
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-saffron-400 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-lg">
                     <Award size={28}/>
                   </div>
                   <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-lg font-black text-temple-900 mb-1">Seva Index: <span className="text-saffron-500">{score}</span></h3>
-                    <p className="text-xs font-bold text-temple-500">Your current rank is <strong className="text-temple-800">{halo.name}</strong></p>
+                    <h3 className="text-lg font-black text-temple-900 mb-1">Your Seva Record</h3>
+                    <p className="text-xs font-bold text-temple-500">{activeMember.volunteerHours || 0} hours offered — every offering remembered with gratitude. 🙏</p>
                   </div>
                 </div>
 

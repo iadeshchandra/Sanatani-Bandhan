@@ -262,7 +262,7 @@ export const PersonalAccountDesk: React.FC<{
         'Choose your Ishta Devata mantra (e.g. Maha Mrityunjaya, Gayatri Mantra, Hare Krishna).',
         'Tap the digital Mala bead / counter for each repetition; it automatically tallies 108 counts per round.',
         'Enable audio sound / haptic vibration feedback for a tactile bead-turning experience.',
-        'Track your weekly consistency streak and earn Dharmic Sadhana badges.'
+        'Follow your weekly rhythm in your journal — every day of practice remembered with gratitude.'
       ],
       deskAction: 'personal-sadhana',
       deskLabel: 'Open Sadhana Desk'
@@ -421,16 +421,16 @@ export const PersonalAccountDesk: React.FC<{
               <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">12 Completed</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
-              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Sadhana Streak</p>
-              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">24 Days 🔥</p>
+              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Sadhana Rhythm</p>
+              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">Most days 🙏</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
               <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Offerings</p>
               <p className="text-sm sm:text-lg font-black text-rose-400 mt-0.5">108 Pushpam 🌺</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
-              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Seva Points</p>
-              <p className="text-sm sm:text-lg font-black text-emerald-400 mt-0.5">1,450 Karma</p>
+              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Seva Offered</p>
+              <p className="text-sm sm:text-lg font-black text-emerald-400 mt-0.5">42 Hours</p>
             </div>
           </div>
         </div>
@@ -1029,7 +1029,7 @@ export const PersonalAccountDesk: React.FC<{
                 <div>
                   <h3 className="text-base font-black text-temple-900 flex items-center gap-2">
                     <Flame className="w-5 h-5 text-saffron-600" />
-                    Personal Sadhana, Japa & Karma Milestones
+                    Personal Sadhana & Japa Journal
                   </h3>
                   <p className="text-xs text-temple-500 mt-0.5">
                     Your daily devotion and meditation history recorded for spiritual elevation.
@@ -1044,33 +1044,15 @@ export const PersonalAccountDesk: React.FC<{
                   </div>
 
                   <div className="p-4 bg-saffron-50 rounded-2xl border border-saffron-200">
-                    <span className="text-xs font-bold text-saffron-800">Active Streak</span>
-                    <p className="text-2xl font-black text-saffron-950 mt-1">24 Days 🔥</p>
-                    <p className="text-[11px] text-saffron-700 mt-1">Top 5% devotee consistency</p>
+                    <span className="text-xs font-bold text-saffron-800">Your Rhythm</span>
+                    <p className="text-2xl font-black text-saffron-950 mt-1">Most days 🙏</p>
+                    <p className="text-[11px] text-saffron-700 mt-1">A gentle rhythm is forming — that is enough.</p>
                   </div>
 
                   <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
                     <span className="text-xs font-bold text-emerald-800">Seva Contribution</span>
                     <p className="text-2xl font-black text-emerald-950 mt-1">42 Hours</p>
                     <p className="text-[11px] text-emerald-700 mt-1">Goshala & Kitchen volunteer</p>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-temple-500 mb-3">Earned Dharmic Badges</h4>
-                  <div className="flex flex-wrap gap-2.5">
-                    <span className="px-3 py-1.5 bg-saffron-100 text-saffron-900 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-saffron-300">
-                      🏆 108 Malas Master
-                    </span>
-                    <span className="px-3 py-1.5 bg-saffron-100 text-saffron-900 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-saffron-300">
-                      🐄 Go-Seva Ratna
-                    </span>
-                    <span className="px-3 py-1.5 bg-emerald-100 text-emerald-900 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-emerald-300">
-                      🍲 Annapurna Sevak
-                    </span>
-                    <span className="px-3 py-1.5 bg-purple-100 text-purple-900 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-purple-300">
-                      📜 Gita Adhyayan Gold
-                    </span>
                   </div>
                 </div>
               </div>

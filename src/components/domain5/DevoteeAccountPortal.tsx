@@ -111,31 +111,37 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     if (match) return match;
 
     const wsId = activeWorkspace?.id || 'mandir-main';
+    // WORLD-READY (G-M2 sibling): this fallback used to INVENT a person
+    // — a fake phone, a fake PIN ('1008'), ₹11,000 of donations, 36 seva
+    // hours, a blood group — and present it as the signed-in user's own
+    // credential record. A member with no record yet gets an honest
+    // EMPTY record built only from their real account fields; every
+    // fact they have not given stays blank or zero.
     return {
       id: currentUser?.id || 'dev-self',
       workspaceId: wsId,
       fullName: currentUser?.name || 'Sanatani Devotee',
-      spiritualName: 'Sadhak Sevak',
-      phone: currentUser?.phone || '+91 98765 43210',
-      email: currentUser?.email || 'devotee@sanatan.org',
-      pin: '1008',
+      spiritualName: '',
+      phone: currentUser?.phone || '',
+      email: currentUser?.email || '',
+      pin: '',
       role: 'Devotee',
-      sevaIndex: 108,
-      sevaTier: 'Vishesh',
-      gotra: activeWorkspace?.gotra || 'Kashyapa',
-      pravara: 'Trayarisheya (Kashyapa, Avatsara, Naidhruva)',
-      nakshatra: 'Rohini',
-      kuladevata: activeWorkspace?.kuladevata || 'Sri Shiva Parvati',
-      address: activeWorkspace?.address || 'Kashi Kshetra, Varanasi',
-      bloodGroup: 'B+ Positive',
-      emergencyContact: 'Family Elder (+91 98765 00000)',
-      emergencyPhone: '+91 98765 00000',
+      sevaIndex: 0,
+      sevaTier: 'Sadharan',
+      gotra: activeWorkspace?.gotra || '',
+      pravara: '',
+      nakshatra: '',
+      kuladevata: activeWorkspace?.kuladevata || '',
+      address: activeWorkspace?.address || '',
+      bloodGroup: undefined,
+      emergencyContact: '',
+      emergencyPhone: '',
       activeStatus: 'Active',
-      totalDonated: 11000,
-      volunteerHours: 36,
+      totalDonated: 0,
+      volunteerHours: 0,
       qrCodeRef: `QR-SB-${wsId.toUpperCase().slice(0, 4)}-108`,
-      joinedDate: 'Chaitra Shukla Pratipada, 2081',
-      createdAt: Date.now() - 90 * 86400000,
+      joinedDate: '',
+      createdAt: Date.now(),
       updatedAt: Date.now(),
     };
   }, [currentDevotee, devotees, currentUser, activeWorkspace]);
@@ -190,14 +196,19 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   const [editFormData, setEditFormData] = useState({
     fullName: profileData.fullName || '',
     spiritualName: profileData.spiritualName || '',
-    gotra: profileData.gotra || 'Kashyapa',
+    // WORLD-READY (G-M2 extended): NO invented pre-fills. The old form
+    // opened with gotra 'Kashyapa', blood group 'O+ Positive' and a fake
+    // emergency phone — and Save persisted them as if the devotee had
+    // typed them. Empty fields are honest; saved facts must be the
+    // devotee's own.
+    gotra: profileData.gotra || '',
     pravara: profileData.pravara || '',
     nakshatra: profileData.nakshatra || '',
     kuladevata: profileData.kuladevata || '',
     phone: profileData.phone || '',
-    bloodGroup: profileData.bloodGroup || 'O+ Positive',
-    emergencyPhone: profileData.emergencyPhone || '+91 98765 00000',
-    emergencyContact: profileData.emergencyContact || 'Spouse',
+    bloodGroup: profileData.bloodGroup || '',
+    emergencyPhone: profileData.emergencyPhone || '',
+    emergencyContact: profileData.emergencyContact || '',
     address: profileData.address || '',
   });
 
@@ -220,20 +231,26 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // ==========================================
   const sadhanaStorageKey = `sb_sadhana_tracker_${effectiveDevotee.id}`;
   const [sadhanaState, setSadhanaState] = useState(() => {
+    // WORLD-READY (G-M2 + E-08): a TRUE first-run state. The old default
+    // fabricated a record — 108 japa, 3 malas, 25 meditation minutes, a
+    // 9-day "streak" nothing ever computed, five vrats pre-ticked, and a
+    // sankalpa written in the user's voice — then persisted it as if it
+    // were the user's own history. Everything a user has not done starts
+    // at zero/empty now. (targetMalas stays as the editable sankalpa
+    // goal's starting value — a form preset, not a claimed fact.)
     const defaultState = {
       selectedMantraIndex: 0,
-      japaCount: 108,
-      completedMalas: 3,
+      japaCount: 0,
+      completedMalas: 0,
       targetMalas: 16,
-      meditationMinutes: 25,
-      weeklyStreakDays: 9,
-      dailySankalpa: 'Lord Shiva, may my speech be sacred, actions pure, and thoughts aligned with Dharma.',
+      meditationMinutes: 0,
+      dailySankalpa: '',
       completedVrats: {
-        ekadashi_nirjala: true,
+        ekadashi_nirjala: false,
         ekadashi_phalahar: false,
-        pradosh_vrata: true,
-        somwar_shiva: true,
-        sandhya_vandanam: true,
+        pradosh_vrata: false,
+        somwar_shiva: false,
+        sandhya_vandanam: false,
       },
       lastUpdated: new Date().toDateString(),
     };
@@ -371,119 +388,76 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
            f.memberIds?.includes(effectiveDevotee.id) ||
            f.familyName.toLowerCase().includes(effectiveDevotee.fullName?.split(' ')[0]?.toLowerCase() || '')
     ) || {
+      // WORLD-READY (G-M2 extended): when no family record exists, the
+      // fallback is built ONLY from the devotee's own profile — no
+      // invented gotra, kuladevata, address, phone, members or donation
+      // total (the old fallback fabricated all of them, incl. ₹45,000).
       id: 'fam-default',
       workspaceId: activeWorkspace?.id || 'ws-main',
-      familyName: `${effectiveDevotee.fullName?.split(' ').slice(-1)[0] || 'Sanatani'} Parivar`,
+      familyName: effectiveDevotee.fullName
+        ? `${effectiveDevotee.fullName.split(' ').slice(-1)[0]} Parivar`
+        : 'My Parivar',
       kartaDevoteeId: effectiveDevotee.id,
-      gotra: profileData.gotra || 'Kashyapa',
-      kuladevata: profileData.kuladevata || 'Sri Shiva Parvati',
-      residenceAddress: profileData.address || 'Kashi Kshetra',
-      contactPhone: profileData.phone || '+91 98765 43210',
-      memberIds: [effectiveDevotee.id, 'mem-2', 'mem-3', 'mem-4'],
-      totalFamilyDonations: 45000,
-      createdAt: Date.now() - 180 * 86400000,
+      gotra: profileData.gotra || '',
+      kuladevata: profileData.kuladevata || '',
+      residenceAddress: profileData.address || '',
+      contactPhone: profileData.phone || '',
+      memberIds: [effectiveDevotee.id],
+      totalFamilyDonations: 0,
+      createdAt: Date.now(),
       updatedAt: Date.now(),
     };
   }, [families, effectiveDevotee, activeWorkspace, profileData]);
 
-  // Family Members Demo List
-  const householdMembers = [
-    { name: profileData.fullName, relation: 'Karta (Head)', gotra: profileData.gotra, bloodGroup: profileData.bloodGroup, phone: profileData.phone, status: 'Active' },
-    { name: 'Smt. Gayatri Devi', relation: 'Dharmapatni (Spouse)', gotra: profileData.gotra, bloodGroup: 'A+ Positive', phone: profileData.emergencyPhone, status: 'Active' },
-    { name: 'Ch. Aditya Sharma', relation: 'Putra (Son)', gotra: profileData.gotra, bloodGroup: 'B+ Positive', phone: '+91 98765 11111', status: 'Student' },
-    { name: 'Smt. Kausalya Sharma', relation: 'Matashri (Mother)', gotra: profileData.gotra, bloodGroup: 'O+ Positive', phone: '+91 98765 22222', status: 'Senior Devotee' },
-  ];
+  // Household members — REAL records only. The old list invented a
+  // spouse, a son and a mother (names, blood groups, phone numbers) for
+  // every devotee who opened this tab. Until family members are linked
+  // through a real record, the registry honestly shows the karta alone.
+  const householdMembers = profileData.fullName
+    ? [
+        {
+          name: profileData.fullName,
+          relation: 'Karta (Head)',
+          gotra: profileData.gotra || '',
+          bloodGroup: profileData.bloodGroup || '',
+          phone: profileData.phone || '',
+          status: 'Active',
+        },
+      ]
+    : [];
 
   // User's Pitru Ancestor Records
   const userPitruRecords = useMemo(() => {
-    const list = pitruRecords.filter(
-      p => p.devoteeId === effectiveDevotee.id || 
-           p.devoteeName?.toLowerCase().includes(effectiveDevotee.fullName?.toLowerCase() || '')
+    // WORLD-READY (G-M2 extended): real records only. The old fallback
+    // invented two ancestors — names, death dates, tithis, even a booked
+    // Pinda Daan — for every devotee with no records. An empty registry
+    // is honest; a fabricated grandfather is not.
+    const name = effectiveDevotee.fullName?.toLowerCase() || '';
+    return pitruRecords.filter(
+      p => p.devoteeId === effectiveDevotee.id ||
+           (name !== '' && !!p.devoteeName?.toLowerCase().includes(name))
     );
-    if (list.length > 0) return list;
-    return [
-      {
-        id: 'pitru-1',
-        workspaceId: activeWorkspace?.id || 'demo',
-        devoteeId: effectiveDevotee.id,
-        devoteeName: effectiveDevotee.fullName || 'Devotee',
-        ancestorName: 'Late Pt. Harishchandra Sharma',
-        relationship: 'Pitamaha (Grandfather)',
-        tithiLunar: 'Ashwin Krishna Ashtami (Pitru Paksha)',
-        paksha: 'Krishna' as const,
-        deathGregorianDate: '2016-10-04',
-        gotra: profileData.gotra || 'Kashyapa',
-        annualShradhAlert: true,
-        pindaDaanBooked: true,
-        shradhLocation: 'Kashi Manikarnika & Gaya Kshetra',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-      {
-        id: 'pitru-2',
-        workspaceId: activeWorkspace?.id || 'demo',
-        devoteeId: effectiveDevotee.id,
-        devoteeName: effectiveDevotee.fullName || 'Devotee',
-        ancestorName: 'Late Smt. Saraswati Devi',
-        relationship: 'Pitamahi (Grandmother)',
-        tithiLunar: 'Bhadrapada Shukla Dwadashi',
-        paksha: 'Shukla' as const,
-        deathGregorianDate: '2020-08-30',
-        gotra: profileData.gotra || 'Kashyapa',
-        annualShradhAlert: true,
-        pindaDaanBooked: false,
-        shradhLocation: 'Kashi Kshetra',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }
-    ];
-  }, [pitruRecords, effectiveDevotee, activeWorkspace, profileData]);
+  }, [pitruRecords, effectiveDevotee]);
 
   // ==========================================
   // TAB 5: PILGRIMAGE FOOTPRINT (YATRANET)
   // ==========================================
-  const pilgrimageFootprint = [
-    {
-      id: 'footprint-1',
-      shrineName: 'Kashi Vishwanath Devasthanam',
-      location: 'Varanasi, Uttar Pradesh',
-      coords: [25.3109, 83.0104] as [number, number],
-      darshanType: 'Mangala Aarti & Rudrabhishek',
-      visitedDate: '2026-08-14',
-      verifiedBy: 'YatraNet Gate Beacon #04',
-      badge: 'Jyotirlinga Darshan',
-    },
-    {
-      id: 'footprint-2',
-      shrineName: 'Shri Ram Janmabhoomi Mandir',
-      location: 'Ayodhya, Uttar Pradesh',
-      coords: [26.7956, 82.1944] as [number, number],
-      darshanType: 'Shringaar Aarti & Parikrama',
-      visitedDate: '2026-05-22',
-      verifiedBy: 'Ayodhya YatraNet Hub #01',
-      badge: 'Ram Lalla Darshan',
-    },
-    {
-      id: 'footprint-3',
-      shrineName: 'Tirumala Venkateswara Swamy',
-      location: 'Tirupati, Andhra Pradesh',
-      coords: [13.6833, 79.3472] as [number, number],
-      darshanType: 'Suprabhatam & Laddu Mahaprasad',
-      visitedDate: '2026-01-19',
-      verifiedBy: 'Tirumala YatraNet Beacon #12',
-      badge: 'Divya Kshetra',
-    },
-    {
-      id: 'footprint-4',
-      shrineName: 'Shri Kedarnath Dham',
-      location: 'Rudraprayag, Uttarakhand',
-      coords: [30.7352, 79.0669] as [number, number],
-      darshanType: 'Kedarnath Shivalinga Abhishek',
-      visitedDate: '2025-10-10',
-      verifiedBy: 'Garhwal Mesh Repeater #03',
-      badge: 'Char Dham Kshetra',
-    },
-  ];
+  // WORLD-READY (G-M2 extended): the yatra log holds REAL check-ins
+  // only. The old constant invented four "verified" pilgrimages —
+  // Kashi, Ayodhya, Tirumala, Kedarnath, with dates and badges — for
+  // every devotee. GPS check-ins will append here as they are recorded;
+  // until then the log is honestly empty.
+  type PilgrimageFootprintEntry = {
+    id: string;
+    shrineName: string;
+    location: string;
+    coords: [number, number];
+    darshanType: string;
+    visitedDate: string;
+    verifiedBy: string;
+    badge: string;
+  };
+  const pilgrimageFootprint: PilgrimageFootprintEntry[] = [];
 
   const [activeShrineIndex, setActiveShrineIndex] = useState(0);
 
@@ -846,7 +820,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   </div>
 
                   <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm">
-                    {profileData.sevaTier || 'Vishesh'} Sevak
+                    🙏 Sanatani Member
                   </span>
                 </div>
 
@@ -1035,21 +1009,21 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    Nitya Sadhana • Daily Spiritual Accountability
+                    Nitya Sadhana • Your Daily Rhythm
                   </span>
                   <h2 className="text-xl sm:text-2xl font-black text-amber-100 mt-1">
                     Japa Mala & Sacred Vrat Tracking
                   </h2>
                   <p className="text-xs text-stone-400 mt-0.5">
-                    Logged daily for your personal karma account and temple spiritual records.
+                    Your own quiet record of daily practice — kept for you, never scored, never watched.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="bg-stone-950/80 px-4 py-2 rounded-2xl border border-amber-500/30 text-center">
-                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Sadhana Streak</span>
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Malas Completed</span>
                     <span className="text-lg font-black text-amber-400 flex items-center justify-center gap-1">
-                      🔥 {sadhanaState.weeklyStreakDays} Days
+                      📿 {sadhanaState.completedMalas}
                     </span>
                   </div>
                   <div className="bg-stone-950/80 px-4 py-2 rounded-2xl border border-amber-500/30 text-center">
@@ -1528,6 +1502,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   </div>
                 ))}
               </div>
+
+              {householdMembers.length === 0 && (
+                <p className="text-xs text-stone-400">
+                  No household record yet — when your family is linked by your mandir, they will appear here. Nothing is ever filled in on your behalf.
+                </p>
+              )}
             </div>
 
             {/* Ancestral Pitru Shradh Tithi Countdown Registry */}
@@ -1548,6 +1528,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 </span>
               </div>
 
+              {userPitruRecords.length === 0 && (
+                <p className="text-xs text-stone-400">
+                  No pitru records yet — when your mandir records your ancestors' tithis, their
+                  shradh reminders will rest here. Your family's truth only, never invented names.
+                </p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {userPitruRecords.map((pitru) => (
                   <div
@@ -1632,7 +1618,18 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </button>
             </div>
 
-            {/* Interactive Shrine Map & Footprint History */}
+            {/* Interactive Shrine Map & Footprint History — real check-ins
+                only; an honest empty state until the first one (G-M2). */}
+            {pilgrimageFootprint.length === 0 ? (
+              <div className="bg-stone-950/90 rounded-3xl border border-stone-800 p-8 shadow-xl text-center space-y-2">
+                <p className="text-2xl" aria-hidden>🚩</p>
+                <p className="text-sm font-bold text-stone-200">No yatra recorded yet</p>
+                <p className="text-xs text-stone-400 max-w-md mx-auto">
+                  When you check in at a shrine with the GPS button above, your darshan will be
+                  kept here — your own true pilgrimage footprint, nothing invented.
+                </p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Left 7 Cols: Leaflet Interactive Mini-Map */}
@@ -1723,6 +1720,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
             </div>
+            )}
           </div>
         )}
 

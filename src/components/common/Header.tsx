@@ -324,7 +324,7 @@ export const Header: React.FC<HeaderProps> = ({
               if (onNavigate) {
                 onNavigate('devoteePortal');
               } else {
-                window.location.href = '/devotee';
+                window.location.href = '/';
               }
               showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
             }}
@@ -459,7 +459,7 @@ export const Header: React.FC<HeaderProps> = ({
                     if (onNavigate) {
                       onNavigate('devoteePortal');
                     } else {
-                      window.location.href = '/devotee';
+                      window.location.href = '/';
                     }
                     showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
                   }}

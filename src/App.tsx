@@ -75,8 +75,8 @@ import { LandingPage as LegacyLandingPage } from './components/public/LandingPag
 import { LandingPage } from './pages/LandingPage';
 import { AskAiPage } from './pages/AskAiPage';
 import { ContactPage } from './pages/ContactPage';
-import { DevoteePortal } from './pages/DevoteePortal';
 import { PortalLogin } from './components/public/PortalLogin';
+import { PreviewFrame } from './components/common/PreviewFrame';
 import { useToast } from './context/ToastContext';
 import { useData } from './context/DataContext';
 import { WorkspaceType, WorkspaceConfig } from './types';
@@ -319,11 +319,16 @@ const AppContent: React.FC = () => {
     if (landingSurface === 'pending') return; // role still resolving — hold, never guess
     const needsLanding = landingAppliedForRef.current !== landingWsId;
     if (landingSurface === 'devotee') {
-      // Devotee-only member: the Devotee view IS their org home.
-      const allowedDevoteeDesks = ['devoteePortal', 'devotee-super-app', 'devotee-portal', 'personal-portal', 'devotee-account'];
+      // Devotee-only member: the member home IS their org home — the
+      // REAL member surface (DevoteeAccountPortal). WORLD-READY (B3):
+      // this used to force 'devoteePortal', the fabricated persona page
+      // (Somnath Sharma) — a real devotee landed on someone else's fake
+      // identity. That page is removed; the member home is the only
+      // devotee landing.
+      const allowedDevoteeDesks = ['devotee-portal', 'personal-portal', 'devotee-account'];
       if (!allowedDevoteeDesks.includes(activeModule)) {
         guardForcedDevoteeRef.current = true;
-        setActiveModule('devoteePortal');
+        setActiveModule('devotee-portal');
       }
       landingAppliedForRef.current = landingWsId;
       return;
@@ -336,7 +341,7 @@ const AppContent: React.FC = () => {
       if (activeModule !== 'dashboard') setActiveModule('dashboard');
     } else if (
       guardForcedDevoteeRef.current &&
-      (activeModule === 'devoteePortal' || activeModule === 'devotee-super-app')
+      (activeModule === 'devotee-portal' || activeModule === 'personal-portal' || activeModule === 'devotee-account')
     ) {
       // The role resolved to staff after a devotee landing had been
       // forced on partial evidence — release it. A preview the user
@@ -492,7 +497,9 @@ const AppContent: React.FC = () => {
     // devotee-friendly 'book' tab via its internal isDevotee path.
     if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
       if (!['devotee-portal', 'personal-portal', 'devotee-account', 'poojaBooking', 'pooja-booking'].includes(activeModule)) {
-        return <DevoteePortal previewMode onBackToERP={() => setActiveModule('dashboard')} />;
+        // WORLD-READY (B3): the guard fallback is the REAL member
+        // surface — never the removed fabricated-persona portal.
+        return <DevoteeAccountPortal />;
       }
       if (['poojaBooking', 'pooja-booking'].includes(activeModule)) {
         return <PoojaBookingDesk />;
@@ -575,7 +582,15 @@ const AppContent: React.FC = () => {
     switch (activeModule) {
       case 'devoteePortal':
       case 'devotee-super-app':
-        return <DevoteePortal previewMode onBackToERP={() => setActiveModule('dashboard')} />;
+        // WORLD-READY (B3, Axis A): the staff "Devotee view" is a true
+        // PREVIEW of the real member surface — persistent labelled bar,
+        // in-bar Exit, read-only by construction (PreviewFrame). It is
+        // not a third view and it cannot change anything.
+        return (
+          <PreviewFrame onExit={() => setActiveModule('dashboard')}>
+            <DevoteeAccountPortal />
+          </PreviewFrame>
+        );
       case 'devotee-portal':
       case 'personal-portal':
       case 'devotee-account':
@@ -1115,7 +1130,7 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // Allow /festival/:orgId/:eventId as public (shareable devotee event pages)
   const isOrgPublic = currentPath === '/orgs' || currentPath.startsWith('/org/');
   const isFestivalPublic = currentPath.startsWith('/festival/');
-  if (!isPublicPath && !isOrgPublic && !isFestivalPublic && !currentPath.startsWith('/devotee')) {
+  if (!isPublicPath && !isOrgPublic && !isFestivalPublic) {
     const next = encodeURIComponent(currentPath + window.location.search);
     window.location.href = `/login?next=${next}`;
     return null;
@@ -1327,9 +1342,13 @@ const AppRoutes: React.FC = () => {
                 purohitApplications. Verification now lives in the unified console. */}
             <Route element={<PurohitReviewsRedirect />} path="purohit-reviews" />
           </Route>
-          <Route path="/devotee" element={<DevoteePortal />} />
-          <Route path="/devotee-portal" element={<DevoteePortal />} />
-          <Route path="/portal" element={<DevoteePortal />} />
+          {/* WORLD-READY (B3): the fabricated-persona portal that used to
+              live here is REMOVED (Exhibits 3–4 / G-M1). Old links land
+              on the real devotee door — joining — never on a fake
+              identity presented as the visitor's own. */}
+          <Route path="/devotee" element={<Navigate to="/signup" replace />} />
+          <Route path="/devotee-portal" element={<Navigate to="/signup" replace />} />
+          <Route path="/portal" element={<Navigate to="/" replace />} />
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
           {/* Pillar 3: canonical public org page — accepts orgId or publicSlug. */}

@@ -187,13 +187,13 @@ export default function MemberAppShell() {
               </div>
             </div>
 
-            {/* Quick Karma & Panchang Summary */}
+            {/* Quick Seva & Panchang Summary */}
             <div className="mt-3 grid grid-cols-2 gap-2 text-center">
               <div className="bg-white p-2 rounded-xl border border-temple-200/80 shadow-xs">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">Karma Points</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-temple-400">Seva Offered</p>
                 <p className="text-xs font-semibold text-saffron-600 flex items-center justify-center gap-1 mt-0.5">
                   <Sparkles className="w-3 h-3 text-saffron-500" />
-                  {currentDevotee?.sevaIndex || 780} pts
+                  {currentDevotee?.volunteerHours ?? 0} hrs
                 </p>
               </div>
               <div className="bg-white p-2 rounded-xl border border-temple-200/80 shadow-xs">

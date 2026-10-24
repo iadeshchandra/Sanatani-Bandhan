@@ -533,7 +533,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     showToast(
       `Gau Seva donation of ${inr(finalAmount)} received with deep gratitude! Kamadhenu bless your lineage. 🐄`,
       'success',
-      'Punya Karma Logged'
+      'Seva Received with Gratitude'
     );
   };
 

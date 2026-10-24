@@ -269,7 +269,9 @@ describe('template fallback chain — never blank', () => {
     { key: 'festival_next', variant: 'ekadashi', params: { date: '2026-10-25', name: 'Test Ekadashi' } },
     { key: 'festival_next', variant: 'none' },
     { key: 'dana_help' },
-    { key: 'sadhana_summary', variant: 'summary', params: { japaToday: 108, streak: 2, vrataCount: 1, sankalpaCount: 0 } },
+    // WORLD-READY (E-10): the summary param is `rhythm7` (japa days in
+    // the last 7) — `streak` was retired with the streak mechanic itself.
+    { key: 'sadhana_summary', variant: 'summary', params: { japaToday: 108, rhythm7: 2, vrataCount: 1, sankalpaCount: 0 } },
     { key: 'sadhana_summary', variant: 'empty' },
     { key: 'booking_help' },
     { key: 'language_help' },

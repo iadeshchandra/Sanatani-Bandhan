@@ -3,7 +3,7 @@
  * =====================================================================
  * "Remedies → rituals": how many prescribed remedies became booked pujas
  * (conversion rate), per-direction referral flow, credits paid from the
- * platform's contribution, and a leaderboard of guiding professionals.
+ * platform's contribution, and a table of guiding professionals.
  *
  * Measured with reverence — this is care becoming ritual, never sales.
  */

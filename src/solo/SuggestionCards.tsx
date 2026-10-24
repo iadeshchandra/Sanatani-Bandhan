@@ -30,7 +30,7 @@ const SUGGESTIONS: Suggestion[] = [
     icon: '📿',
     title: { en: 'Deepen your sadhana', bn: 'সাধনা গভীর করুন', hi: 'साधना गहरी करें' },
     body: {
-      en: 'You have been recording japa regularly. Track streaks, sankalpas and daily discipline in one place.',
+      en: 'You have been recording japa regularly. Keep sankalpas and your daily rhythm in one gentle place.',
       bn: 'আপনি নিয়মিত জপ রেকর্ড করছেন। এক জায়গায় ধারাবাহিকতা ও সংকল্প ট্র্যাক করুন।',
       hi: 'आप नियमित जप दर्ज कर रहे हैं। एक स्थान पर निरंतरता व संकल्प ट्रैक करें।',
     },

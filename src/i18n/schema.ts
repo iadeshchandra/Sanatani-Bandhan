@@ -1383,7 +1383,7 @@ export interface TranslationSchema {
           mandirNirmanSevaProjects: string;
           pleaseEnterAllDonorDetails: string;
           target: string;
-          topDonorsHallOfSeva: string;
+          withGratitudeRecentContributors: string;
           transparentMilestoneCrowdfunding: string;
         };
         form10BD: {
@@ -1575,27 +1575,7 @@ export interface TranslationSchema {
           zeroVarianceConfirmed: string;
         };
         karmaLedger: {
-          activeVolunteer: string;
-          devoteeMember: string;
-          diamondPatron: string;
-          generalDevotee: string;
-          gotra: string;
-          karmaIndexScore: string;
           karmaMeritVolunteerSevaLedger: string;
-          karmiTier300599Pts: string;
-          nishkamaKarmaRecognition: string;
-          priorityFestivalSeatingMonthlyPrasadCour: string;
-          rank: string;
-          ratnaTier850Pts: string;
-          sadharanTier0299Pts: string;
-          sevaShiftCoordinatorBhandaraManagementPa: string;
-          sevaTier: string;
-          smartPassIdStandardDarshanAccessCommunit: string;
-          specialSevadar: string;
-          totalChanda: string;
-          vipSanctumDarshanAnnualTrusteeSabhaInvit: string;
-          visheshTier600849Pts: string;
-          volunteerHours: string;
         };
         quickChanda: {
           amount: string;

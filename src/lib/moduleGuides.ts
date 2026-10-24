@@ -122,14 +122,14 @@ export const MODULE_GUIDES: ModuleGuide[] = [
       'संस्था में सेवा देने वाले सभी — वेतनभोगी कर्मचारी और उत्सवों में स्वयंसेवक, पाली-सूची सहित।'
     ),
     whyItMatters: t3(
-      'Trustees never miss a salary date. Festival coordinators fill rosters before the crowd arrives. Every sevadar\'s hours become their Seva Karma.',
-      'ট্রাস্টিরা বেতনের তারিখ ভোলেন না। উৎসব-সমন্বয়করা ভিড়ের আগেই পালা পূর্ণ করেন। প্রতিটি সেবা-ঘণ্টা সেবা-কর্ম হয়।',
-      'ट्रस्टी वेतन तिथि नहीं भूलते। उत्सव समन्वयक भीड़ से पहले पाली भरते हैं। प्रत्येक सेवा-घंटा सेवा-कर्म बनता है।'
+      'Trustees never miss a salary date. Festival coordinators fill rosters before the crowd arrives. Every sevadar\'s hours are kept in the seva register, with gratitude.',
+      'ট্রাস্টিরা বেতনের তারিখ ভোলেন না। উৎসব-সমন্বয়করা ভিড়ের আগেই পালা পূর্ণ করেন। প্রতিটি সেবাদারের ঘণ্টা কৃতজ্ঞতায় সেবা-খাতায় থাকে।',
+      'ट्रस्टी वेतन तिथि नहीं भूलते। उत्सव समन्वयक भीड़ से पहले पाली भरते हैं। हर सेवादार के घंटे कृतज्ञता से सेवा पंजी में रहते हैं।'
     ),
     firstSteps: [
       t3('List your paid staff with roles and monthly salary dates.', 'বেতনভুক্ত কর্মীদের পদ ও বেতনের তারিখসহ তালিকা করুন।', 'वेतनभोगी कर्मचारियों को पद व वेतन तिथि सहित सूचीबद्ध करें।'),
       t3('Create the next festival\'s volunteer shifts — crowd, prasad, shoe counter.', 'পরের উৎসবের স্বেচ্ছাসেবী পালা বানান।', 'अगले उत्सव की स्वयंसेवक पाली बनाएँ।'),
-      t3('Assign sevadars to shifts; they earn Karma on completion.', 'সেবাদারদের পালায় দিন; সমাপ্তিতে কর্ম-পয়েন্ট।', 'सेवादारों को पाली सौंपें; पूर्णता पर कर्म-अंक।'),
+      t3('Assign sevadars to shifts; completed seva is entered in the register with gratitude.', 'সেবাদারদের পালায় দিন; সম্পন্ন সেবা কৃতজ্ঞতায় খাতায় ওঠে।', 'सेवादारों को पाली सौंपें; पूर्ण सेवा कृतज्ञता से पंजी में दर्ज होती है।'),
     ],
     proTips: [
       t3('Confirm festival rosters 7 days early — volunteers need time to arrange.', 'উৎসবের ৭ দিন আগে পালা নিশ্চিত করুন।', 'उत्सव से 7 दिन पहले पाली सुनिश्चित करें।'),

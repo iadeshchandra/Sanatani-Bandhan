@@ -79,11 +79,13 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
   }, [gurukulStudents]);
   const totalShishya = gurukulStudents.length || 1;
 
-  const leaderboard = useMemo(
-    () =>
-      [...gurukulStudents]
-        .sort((a, b) => (b.shlokaRecitationScore || 0) - (a.shlokaRecitationScore || 0))
-        .slice(0, 5),
+  // WORLD-READY (E-11): kanthastha progress is each shishya's OWN
+  // journey — shown in roster order, every child, unranked. The old
+  // top-5-by-score "leaderboard" (with a gold #1) ranked children
+  // against each other; Blueprint D bans leaderboards, and a child's
+  // memorization is guided, never competed.
+  const kanthasthaRoster = useMemo(
+    () => [...gurukulStudents].sort((a, b) => (a.studentName || '').localeCompare(b.studentName || '')),
     [gurukulStudents]
   );
 
@@ -312,33 +314,23 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
           </button>
         </section>
 
-        {/* Kanthastha leaderboard */}
+        {/* Kanthastha journeys — every shishya, unranked (E-11) */}
         <section className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
           <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
-            कण्ठस्थ <span className="text-sm font-sans font-semibold text-stone-500">· Memorization leaderboard</span>
+            कण्ठस्थ <span className="text-sm font-sans font-semibold text-stone-500">· Each shishya's journey</span>
           </h3>
-          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">Shloka recitation scores — the heart of oral tradition.</p>
-          {leaderboard.length === 0 ? (
-            <p className="text-xs text-stone-500">No shishya enrolled yet — the leaderboard awaits its first voice.</p>
+          <p className="text-[11px] text-stone-500 mb-4 mt-0.5">Shloka recitation — the heart of oral tradition. Every voice at its own pace.</p>
+          {kanthasthaRoster.length === 0 ? (
+            <p className="text-xs text-stone-500">No shishya enrolled yet — the first voice is awaited with joy.</p>
           ) : (
             <ol className="space-y-2">
-              {leaderboard.map((s, i) => (
+              {kanthasthaRoster.map((s) => (
                 <li
                   key={s.id}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 border ${
-                    i === 0
-                      ? 'bg-amber-500/15 border-amber-400/60'
-                      : 'bg-white/70 border-amber-100'
-                  }`}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 border bg-white/70 border-amber-100"
                 >
-                  <span
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                      i === 0
-                        ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {i + 1}
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 bg-amber-100 text-amber-800" aria-hidden>
+                    ॐ
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-stone-800 truncate">{s.studentName}</p>

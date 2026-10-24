@@ -32,7 +32,7 @@ const LEGACY_GUIDES: Record<string, { title: string; description: string; steps:
     description: 'The global view of your entire community operations.',
     steps: [
       'View top-level metrics for funds, active campaigns, and members.',
-      'Monitor your Organization Resilience Score and personal Seva Karma.',
+      'See your organisation’s health and your own seva record at a glance.',
       'Use the Quick Action buttons to log donations or scan QR codes instantly.',
     ],
   },
@@ -51,7 +51,7 @@ const LEGACY_GUIDES: Record<string, { title: string; description: string; steps:
     steps: [
       'Select a date to view available volunteer shifts.',
       'Assign devotees to specific roles (e.g., Crowd Control, Prasadam Distribution).',
-      'Volunteers earn Karma Points upon successful completion of their shift.',
+      'Completed shifts are entered in the seva register — every hour of service remembered with gratitude.',
     ],
   },
   'crisis-command': {

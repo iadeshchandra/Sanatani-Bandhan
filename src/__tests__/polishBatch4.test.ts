@@ -124,10 +124,14 @@ describe('D-19 + U5 — plain words, no internal jargon', () => {
     expect(tour).toContain('Live numbers');
   });
 
-  it('the Yatra Passport subtitle drops the O2O jargon (U5)', () => {
-    const portal = read('src/pages/DevoteePortal.tsx');
-    expect(portal).not.toContain('O2O');
-    expect(portal).toContain('Physical Verification at Mandir Turnstiles &amp; Kiosks');
+  it('the Yatra Passport jargon is gone with its surface (U5, closed by World-Readiness B3)', () => {
+    // The pin used to read src/pages/DevoteePortal.tsx for the 'O2O'
+    // jargon. That page — a fabricated persona surface (Somnath Sharma,
+    // Punya Mudras, streak badge) — was REMOVED in World-Readiness B3
+    // (Exhibits 3–4), taking the jargon and the banned mechanics with
+    // it. The pin now guards the removal itself.
+    expect(fs.existsSync(path.join(root, 'src/pages/DevoteePortal.tsx'))).toBe(false);
+    expect(fs.existsSync(path.join(root, 'src/components/devotee/VivahEngine.tsx'))).toBe(false);
   });
 
   it('no language dictionary carries the jargon tokens', () => {
