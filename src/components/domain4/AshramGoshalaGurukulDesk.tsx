@@ -243,7 +243,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     e.preventDefault();
     if (!selectedRoomForBooking) return;
     if (!bookForm.guestName.trim() || !bookForm.guestPhone.trim()) {
-      showToast('Please enter Pilgrim guest name and contact phone number.', 'error');
+      showToast(t('surfaces.ashram.pleaseEnterPilgrimGuestNameAnd'), 'error');
       return;
     }
 
@@ -357,7 +357,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoomForm.roomNumber.trim()) {
-      showToast('Please provide a Room/Kutir number or name.', 'error');
+      showToast(t('surfaces.ashram.pleaseProvideARoomKutirNumber'), 'error');
       return;
     }
 
@@ -494,7 +494,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     e.preventDefault();
     const finalAmount = Number(fodderForm.customAmount) || fodderForm.selectedTier;
     if (finalAmount <= 0) {
-      showToast('Please enter a valid donation amount.', 'error');
+      showToast(t('surfaces.ashram.pleaseEnterAValidDonationAmount'), 'error');
       return;
     }
 
@@ -541,7 +541,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     e.preventDefault();
     if (!selectedCowForSeva) return;
     if (!adoptForm.sponsorName.trim()) {
-      showToast('Please enter devotee sponsor name.', 'error');
+      showToast(t('surfaces.ashram.pleaseEnterDevoteeSponsorName'), 'error');
       return;
     }
 
@@ -563,7 +563,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
   const handleAddNewCowSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCowForm.name.trim()) {
-      showToast('Please enter Gomata / Nandi name.', 'error');
+      showToast(t('surfaces.ashram.pleaseEnterGomataNandiName'), 'error');
       return;
     }
 
@@ -743,7 +743,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
   const handleEnrollStudent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!enrollForm.studentName.trim()) {
-      showToast('Please enter student name.', 'error');
+      showToast(t('surfaces.ashram.pleaseEnterStudentName'), 'error');
       return;
     }
 
@@ -823,7 +823,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight flex items-center gap-3">
-              <span>Ashram, Goshala & Gurukul Resource Desk</span>
+              <span>{t('surfaces.ashram.ashramGoshalaGurukulResourceDesk')}</span>
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
@@ -834,15 +834,15 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
           {/* Quick Metrics Bar */}
           <div className="flex items-center gap-3 bg-stone-950/70 p-3 rounded-2xl border border-stone-800 backdrop-blur-md shrink-0">
             <div className="text-center px-3 border-r border-stone-800">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Kutir Rooms</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.kutirRooms')}</span>
               <span className="text-lg font-black text-amber-300">{roomsList.length}</span>
             </div>
             <div className="text-center px-3 border-r border-stone-800">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Desi Cows</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.desiCows')}</span>
               <span className="text-lg font-black text-emerald-400">{allCowsList.length}</span>
             </div>
             <div className="text-center px-3">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Brahmacharis</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.roleHome.brahmacharis')}</span>
               <span className="text-lg font-black text-sky-400">{studentsList.length}</span>
             </div>
           </div>
@@ -860,7 +860,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>1. Ashram Kutirs & Dharamshala</span>
+            <span>{t('surfaces.ashram.1AshramKutirsDharamshala')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'KUTIRS' ? 'bg-stone-950 text-amber-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -878,7 +878,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             }`}
           >
             <Heart className="w-4 h-4" />
-            <span>2. Goshala (Cows & Seva)</span>
+            <span>{t('surfaces.ashram.2GoshalaCowsSeva')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'GOSHALA' ? 'bg-stone-950 text-amber-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -896,7 +896,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             }`}
           >
             <GraduationCap className="w-4 h-4" />
-            <span>3. Gurukul (Students & Veda Studies)</span>
+            <span>{t('surfaces.ashram.3GurukulStudentsVedaStudies')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'GURUKUL' ? 'bg-stone-950 text-amber-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -919,7 +919,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search room number, kutir name, or pilgrim guest..."
+                  placeholder={t('surfaces.ashram.searchRoomNumberKutirNameOr')}
                   value={kutirSearch}
                   onChange={(e) => setKutirSearch(e.target.value)}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
@@ -932,11 +932,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 onChange={(e) => setKutirCategoryFilter(e.target.value as KutirCategory)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="All">All Categories</option>
-                <option value="Sadhana Kutir">Sadhana Kutir</option>
-                <option value="Dharamshala Deluxe">Dharamshala Deluxe</option>
-                <option value="Family Suite">Family Suite</option>
-                <option value="Dormitory Bed">Dormitory Bed</option>
+                <option value="All">{t('surfaces.ashram.allCategories')}</option>
+                <option value="Sadhana Kutir">{t('surfaces.ashram.sadhanaKutir')}</option>
+                <option value="Dharamshala Deluxe">{t('surfaces.ashram.dharamshalaDeluxe')}</option>
+                <option value="Family Suite">{t('surfaces.ashram.familySuite')}</option>
+                <option value="Dormitory Bed">{t('surfaces.ashram.dormitoryBed')}</option>
               </select>
 
               {/* Status Filter */}
@@ -967,7 +967,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Add Room</span>
+                  <span>{t('surfaces.ashram.addRoom')}</span>
                 </button>
               </div>
             )}
@@ -1013,7 +1013,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleToggleCleaningStatus(room)}
-                        title="Click to toggle housekeeping status"
+                        title={t('surfaces.ashram.clickToToggleHousekeepingStatus')}
                         className={`text-[10px] px-2 py-0.5 rounded-full font-bold border transition-colors cursor-pointer ${
                           room.cleaningStatus === 'Ready'
                             ? 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40'
@@ -1030,17 +1030,17 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                     {room.isOccupied ? (
                       <div className="bg-stone-950/70 p-3.5 rounded-2xl border border-stone-800 space-y-2 mb-4 text-xs">
                         <div className="flex items-center justify-between text-stone-300">
-                          <span className="text-[10px] uppercase font-bold text-stone-500">Current Pilgrim</span>
+                          <span className="text-[10px] uppercase font-bold text-stone-500">{t('surfaces.ashram.currentPilgrim')}</span>
                           <span className="font-black text-amber-200">{room.currentGuestName}</span>
                         </div>
                         <div className="flex items-center justify-between text-stone-400 text-[11px]">
-                          <span>Stay Schedule:</span>
+                          <span>{t('surfaces.ashram.staySchedule')}</span>
                           <span className="font-mono text-stone-200">
                             {room.checkInDate || 'Now'} → {room.checkOutDate || 'Open'}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-stone-400 text-[11px]">
-                          <span>Suggested Seva Dakshina:</span>
+                          <span>{t('surfaces.ashram.suggestedSevaDakshina')}</span>
                           <span className="font-bold text-emerald-400">
                             {inr(room.suggestedDonationPerDay)}/day
                           </span>
@@ -1053,7 +1053,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                           <span className="font-bold text-stone-200">{room.capacity} Persons</span>
                         </div>
                         <div className="flex items-center justify-between text-stone-400">
-                          <span>Seva Donation / Day:</span>
+                          <span>{t('surfaces.ashram.sevaDonationDay')}</span>
                           <span className="font-bold text-amber-300">
                             {inr(room.suggestedDonationPerDay)}
                           </span>
@@ -1092,7 +1092,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                           className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <QrCode className="w-3.5 h-3.5 text-amber-400" />
-                          <span>View Pass</span>
+                          <span>{t('surfaces.ashram.viewPass')}</span>
                         </button>
 
                         <button
@@ -1110,7 +1110,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                         className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>Book Room & Issue Stay Pass</span>
+                        <span>{t('surfaces.ashram.bookRoomIssueStayPass')}</span>
                       </button>
                     )}
                   </div>
@@ -1129,23 +1129,23 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
           {/* Summary Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-stone-900/90 border border-stone-800 p-4 rounded-2xl">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Total Gomata & Nandi</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.totalGomataNandi')}</span>
               <div className="text-2xl font-black text-amber-300 mt-1 flex items-center gap-2">
                 <span>{goshalaMetrics.total}</span>
-                <span className="text-xs text-stone-500 font-normal">Desi Breeds</span>
+                <span className="text-xs text-stone-500 font-normal">{t('surfaces.ashram.desiBreeds')}</span>
               </div>
             </div>
 
             <div className="bg-stone-900/90 border border-stone-800 p-4 rounded-2xl">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Daily Milk Yield</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.dailyMilkYield')}</span>
               <div className="text-2xl font-black text-emerald-400 mt-1 flex items-center gap-2">
                 <span>{goshalaMetrics.totalMilk} L</span>
-                <span className="text-xs text-stone-500 font-normal">for Abhisheka</span>
+                <span className="text-xs text-stone-500 font-normal">{t('surfaces.ashram.forAbhisheka')}</span>
               </div>
             </div>
 
             <div className="bg-stone-900/90 border border-stone-800 p-4 rounded-2xl">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Devotee Adopted</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.devoteeAdopted')}</span>
               <div className="text-2xl font-black text-sky-400 mt-1 flex items-center gap-2">
                 <span>{goshalaMetrics.adoptionPct}%</span>
                 <span className="text-xs text-stone-500 font-normal">({goshalaMetrics.adopted} Cows)</span>
@@ -1153,7 +1153,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             </div>
 
             <div className="bg-stone-900/90 border border-stone-800 p-4 rounded-2xl flex flex-col justify-between">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Quick Punya Action</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.ashram.quickPunyaAction')}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -1163,7 +1163,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 className="mt-1 w-full py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Heart className="w-3.5 h-3.5 fill-stone-950" />
-                <span>Sponsor Fodder (Grass)</span>
+                <span>{t('surfaces.ashram.sponsorFodderGrass')}</span>
               </button>
             </div>
           </div>
@@ -1175,7 +1175,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search cow name, ear tag ID, breed..."
+                  placeholder={t('surfaces.ashram.searchCowNameEarTagId')}
                   value={goshalaSearch}
                   onChange={(e) => setGoshalaSearch(e.target.value)}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
@@ -1188,13 +1188,13 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 onChange={(e) => setGoshalaBreedFilter(e.target.value)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="All">All Breeds</option>
-                <option value="Gir">Gir (Gujarat)</option>
+                <option value="All">{t('surfaces.ashram.allBreeds')}</option>
+                <option value="Gir">{t('surfaces.ashram.girGujarat')}</option>
                 <option value="Sahiwal">Sahiwal</option>
                 <option value="Tharparkar">Tharparkar</option>
                 <option value="Rathi">Rathi</option>
                 <option value="Kankrej">Kankrej</option>
-                <option value="Red Sindhi">Red Sindhi</option>
+                <option value="Red Sindhi">{t('surfaces.ashram.redSindhi')}</option>
               </select>
 
               {/* Adoption Filter */}
@@ -1223,7 +1223,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Register Cow</span>
+                <span>{t('surfaces.ashram.registerCow')}</span>
               </button>
             )}
           </div>
@@ -1250,7 +1250,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                           <div className="flex items-center gap-1.5">
                             <h3 className="text-base font-black text-white">{cow.name}</h3>
                             {isAdopted && (
-                              <span title="Sponsored Gomata">
+                              <span title={t('surfaces.ashram.sponsoredGomata')}>
                                 <Award className="w-4 h-4 text-amber-400 fill-amber-400" />
                               </span>
                             )}
@@ -1275,13 +1275,13 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                     {/* Stats List */}
                     <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-stone-950/70 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] text-stone-500 uppercase font-bold block">Daily Milk</span>
+                        <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.ashram.dailyMilk')}</span>
                         <span className="font-black text-emerald-300">
                           {milkYield > 0 ? `${milkYield} Liters` : 'Dry / Calf'}
                         </span>
                       </div>
                       <div className="bg-stone-950/70 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] text-stone-500 uppercase font-bold block">Gender / Age</span>
+                        <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.ashram.genderAge')}</span>
                         <span className="font-bold text-stone-200">
                           {cow.gender || 'Gau Mata'} • {cow.ageYears || 3} yrs
                         </span>
@@ -1306,8 +1306,8 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                         </div>
                       ) : (
                         <div className="flex items-center justify-between">
-                          <span className="text-stone-400 text-[11px]">No devotee guardian yet.</span>
-                          <span className="text-[10px] text-amber-400 font-bold">Open for Adoption</span>
+                          <span className="text-stone-400 text-[11px]">{t('surfaces.ashram.noDevoteeGuardianYet')}</span>
+                          <span className="text-[10px] text-amber-400 font-bold">{t('surfaces.ashram.openForAdoption')}</span>
                         </div>
                       )}
                     </div>
@@ -1377,7 +1377,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search shishya (student), roll no, guardian..."
+                  placeholder={t('surfaces.ashram.searchShishyaStudentRollNoGuardian')}
                   value={gurukulSearch}
                   onChange={(e) => setGurukulSearch(e.target.value)}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
@@ -1390,11 +1390,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 onChange={(e) => setCourseLevelFilter(e.target.value)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="All">All Varga (Levels)</option>
-                <option value="Prathama (Grammar)">Prathama (Grammar)</option>
-                <option value="Madhyama (Shastras)">Madhyama (Shastras)</option>
-                <option value="Shastri (Philosophy)">Shastri (Philosophy)</option>
-                <option value="Acharya (Vedanta)">Acharya (Vedanta)</option>
+                <option value="All">{t('surfaces.ashram.allVargaLevels')}</option>
+                <option value="Prathama (Grammar)">{t('surfaces.ashram.prathamaGrammar')}</option>
+                <option value="Madhyama (Shastras)">{t('surfaces.ashram.madhyamaShastras')}</option>
+                <option value="Shastri (Philosophy)">{t('surfaces.ashram.shastriPhilosophy')}</option>
+                <option value="Acharya (Vedanta)">{t('surfaces.ashram.acharyaVedanta')}</option>
               </select>
             </div>
 
@@ -1405,7 +1405,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Enroll New Shishya</span>
+                <span>{t('surfaces.ashram.enrollNewShishya')}</span>
               </button>
             )}
           </div>
@@ -1445,7 +1445,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                     <div className="mt-4 space-y-2 text-xs">
                       <div>
                         <div className="flex justify-between text-[11px] text-stone-400 mb-1">
-                          <span>Sandhyavandanam Regularity:</span>
+                          <span>{t('surfaces.ashram.sandhyavandanamRegularity')}</span>
                           <span className="font-bold text-amber-300">{stud.sandhyaVandanaRegularity}%</span>
                         </div>
                         <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
@@ -1458,7 +1458,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
                       <div>
                         <div className="flex justify-between text-[11px] text-stone-400 mb-1">
-                          <span>Shloka Recitation Score:</span>
+                          <span>{t('surfaces.ashram.shlokaRecitationScore')}</span>
                           <span className="font-bold text-emerald-400">{stud.shlokaRecitationScore}/100</span>
                         </div>
                         <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
@@ -1470,13 +1470,13 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                       </div>
 
                       <div className="pt-2 border-t border-stone-800/80 text-[11px] text-stone-400 flex justify-between">
-                        <span>Guardian (Palak):</span>
+                        <span>{t('surfaces.ashram.guardianPalak')}</span>
                         <span className="text-stone-200 font-medium">{stud.guardianName} ({stud.guardianPhone})</span>
                       </div>
                       {/* R-1: samskara journey per shishya */}
                       <div className="pt-2 border-t border-stone-800/80 text-[11px]">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-stone-400 font-bold uppercase text-[10px] tracking-wide">Samskara journey</span>
+                          <span className="text-stone-400 font-bold uppercase text-[10px] tracking-wide">{t('surfaces.ashram.samskaraJourney')}</span>
                           {canManage && (
                             <button
                               type="button"
@@ -1511,7 +1511,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                             </span>
                           ))}
                           {!stud.dateOfUpanayanam && !(stud.samskaras || []).length && (
-                            <span className="text-stone-500 text-[10px] italic">No samskaras recorded yet</span>
+                            <span className="text-stone-500 text-[10px] italic">{t('surfaces.ashram.noSamskarasRecordedYet')}</span>
                           )}
                         </div>
                       </div>
@@ -1553,7 +1553,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                       className="w-full py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Log Pariksha (Exam) Score</span>
+                      <span>{t('surfaces.ashram.logParikshaExamScore')}</span>
                     </button>
                   </div>
                 </div>
@@ -1567,7 +1567,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               <div>
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-amber-400" />
-                  <span>Recent Veda Recitation & Shastra Pariksha Ledger</span>
+                  <span>{t('surfaces.ashram.recentVedaRecitationShastraParikshaLedger')}</span>
                 </h3>
                 <p className="text-xs text-stone-400">
                   Authenticated recitation scores evaluated by Acharyas with Swara accuracy assessment.
@@ -1633,11 +1633,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <form onSubmit={handleConfirmBooking} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Pilgrim Full Name *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.pilgrimFullName')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Rameshwar Shastri"
+                  placeholder={t('surfaces.ashram.eGRameshwarShastri')}
                   value={bookForm.guestName}
                   onChange={(e) => setBookForm({ ...bookForm, guestName: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white placeholder-stone-600 focus:outline-none focus:border-amber-500"
@@ -1646,7 +1646,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Contact Phone *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.contactPhone')}</label>
                   <input
                     type="tel"
                     required
@@ -1660,7 +1660,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   <label className="text-stone-300 font-bold block mb-1">Gotra</label>
                   <input
                     type="text"
-                    placeholder="e.g. Kashyapa / Vashistha"
+                    placeholder={t('surfaces.ashram.eGKashyapaVashistha')}
                     value={bookForm.guestGotra}
                     onChange={(e) => setBookForm({ ...bookForm, guestGotra: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white placeholder-stone-600 focus:outline-none focus:border-amber-500"
@@ -1673,14 +1673,14 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   <label className="text-stone-300 font-bold block mb-1">{t('org.people.guestManager.cityState')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. Bengaluru, Karnataka"
+                    placeholder={t('surfaces.ashram.eGBengaluruKarnataka')}
                     value={bookForm.city}
                     onChange={(e) => setBookForm({ ...bookForm, city: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white placeholder-stone-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">No. of Devotees</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.noOfDevotees')}</label>
                   <input
                     type="number"
                     min="1"
@@ -1694,7 +1694,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Check-In Date</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.checkInDate')}</label>
                   <input
                     type="date"
                     required
@@ -1704,7 +1704,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Check-Out Date</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.checkOutDate')}</label>
                   <input
                     type="date"
                     required
@@ -1726,10 +1726,10 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Spiritual Sankalpa / Purpose of Stay</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.spiritualSankalpaPurposeOfStay')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Shrimad Bhagavatam Saptah Path & Narmada Snana"
+                  placeholder={t('surfaces.ashram.eGShrimadBhagavatamSaptahPath')}
                   value={bookForm.spiritualVow}
                   onChange={(e) => setBookForm({ ...bookForm, spiritualVow: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white placeholder-stone-600 focus:outline-none focus:border-amber-500"
@@ -1799,11 +1799,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             {/* Pass Metadata Grid */}
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 text-left text-xs space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-stone-400">Devotee Pilgrim:</span>
+                <span className="text-stone-400">{t('surfaces.ashram.devoteePilgrim')}</span>
                 <span className="font-black text-amber-200">{activeStayPass.guestName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Gotra & City:</span>
+                <span className="text-stone-400">{t('surfaces.ashram.gotraCity')}</span>
                 <span className="text-stone-200">{activeStayPass.guestGotra} • {activeStayPass.city}</span>
               </div>
               <div className="flex justify-between">
@@ -1815,7 +1815,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <span className="font-bold text-stone-200">{activeStayPass.devoteesCount} Persons</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Seva Dakshina:</span>
+                <span className="text-stone-400">{t('surfaces.ashram.sevaDakshina')}</span>
                 <span className="font-bold text-amber-400">{inr(activeStayPass.donationAmount)}</span>
               </div>
             </div>
@@ -1825,12 +1825,12 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 type="button"
                 onClick={() => {
                   window.print();
-                  showToast('Dispatched stay pass to printer dialog.', 'info');
+                  showToast(t('surfaces.ashram.dispatchedStayPassToPrinterDialog'), 'info');
                 }}
                 className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print Pass</span>
+                <span>{t('surfaces.ashram.printPass')}</span>
               </button>
               <button
                 type="button"
@@ -1875,7 +1875,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             <form onSubmit={handleSponsorFodderSubmit} className="space-y-4 text-xs">
               {/* Preset Tier Pills */}
               <div>
-                <label className="text-stone-300 font-bold block mb-2">Select Seva Tier</label>
+                <label className="text-stone-300 font-bold block mb-2">{t('surfaces.ashram.selectSevaTier')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { amount: 501, label: '1 Day Green Grass', desc: 'Fresh Chari / Napier' },
@@ -1906,7 +1906,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <label className="text-stone-300 font-bold block mb-1">Or Custom Amount ({wsCurrency.symbol})</label>
                 <input
                   type="number"
-                  placeholder="e.g. 11000"
+                  placeholder={t('surfaces.ashram.eG11000')}
                   value={fodderForm.customAmount}
                   onChange={(e) => setFodderForm({ ...fodderForm, customAmount: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white placeholder-stone-600 focus:outline-none focus:border-amber-500"
@@ -1915,7 +1915,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Devotee Donor Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.devoteeDonorName')}</label>
                   <input
                     type="text"
                     required
@@ -1925,7 +1925,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Gotra (For Sankalpa)</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.gotraForSankalpa')}</label>
                   <input
                     type="text"
                     value={fodderForm.gotra}
@@ -1936,10 +1936,10 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Occasion / Sankalpa</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.occasionSankalpa')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Birthday, Pitru Moksha, Vivah Anniversary"
+                  placeholder={t('surfaces.ashram.eGBirthdayPitruMokshaVivah')}
                   value={fodderForm.purpose}
                   onChange={(e) => setFodderForm({ ...fodderForm, purpose: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1994,11 +1994,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <form onSubmit={handleAdoptCowSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Devotee Guardian Name *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.devoteeGuardianName')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Raghavan Sharma"
+                  placeholder={t('surfaces.ashram.eGDrRaghavanSharma')}
                   value={adoptForm.sponsorName}
                   onChange={(e) => setAdoptForm({ ...adoptForm, sponsorName: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -2092,7 +2092,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 text-left text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-stone-400">Devotee Donor:</span>
+                <span className="text-stone-400">{t('surfaces.ashram.devoteeDonor')}</span>
                 <span className="font-black text-white">{gauReceipt.donorName}</span>
               </div>
               <div className="flex justify-between">
@@ -2100,7 +2100,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 <span className="text-stone-200">{gauReceipt.gotra}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Seva Purpose:</span>
+                <span className="text-stone-400">{t('surfaces.ashram.sevaPurpose')}</span>
                 <span className="text-amber-300 font-medium">{gauReceipt.purpose}</span>
               </div>
               <div className="flex justify-between">
@@ -2117,12 +2117,12 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 type="button"
                 onClick={() => {
                   window.print();
-                  showToast('Dispatched receipt to printer dialog.', 'info');
+                  showToast(t('surfaces.ashram.dispatchedReceiptToPrinterDialog'), 'info');
                 }}
                 className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>Print 80G Receipt</span>
+                <span>{t('surfaces.ashram.print80gReceipt')}</span>
               </button>
               <button
                 type="button"
@@ -2164,7 +2164,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <form onSubmit={handleSubmitExamScore} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Subject / Suktam Chanted *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.subjectSuktamChanted')}</label>
                 <input
                   type="text"
                   required
@@ -2176,7 +2176,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Score (out of 100)</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.scoreOutOf100')}</label>
                   <input
                     type="number"
                     min="0"
@@ -2188,21 +2188,21 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Swara Shuddhi</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.swaraShuddhi')}</label>
                   <select
                     value={examForm.swaraAccuracy}
                     onChange={(e) => setExamForm({ ...examForm, swaraAccuracy: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Uttama (Flawless)">Uttama (Flawless)</option>
-                    <option value="Madhyama (Good)">Madhyama (Good)</option>
-                    <option value="Abhyasa (Needs Practice)">Abhyasa (Needs Practice)</option>
+                    <option value="Uttama (Flawless)">{t('surfaces.ashram.uttamaFlawless')}</option>
+                    <option value="Madhyama (Good)">{t('surfaces.ashram.madhyamaGood')}</option>
+                    <option value="Abhyasa (Needs Practice)">{t('surfaces.ashram.abhyasaNeedsPractice')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Evaluating Acharya</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.evaluatingAcharya')}</label>
                 <input
                   type="text"
                   required
@@ -2213,7 +2213,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Acharya Remarks</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.acharyaRemarks')}</label>
                 <textarea
                   rows={2}
                   value={examForm.remarks}
@@ -2271,18 +2271,18 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
             <form onSubmit={handleEnrollStudent} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Shishya (Student) Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.shishyaStudentName')}</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Chinmay Dixit"
+                    placeholder={t('surfaces.ashram.eGChinmayDixit')}
                     value={enrollForm.studentName}
                     onChange={(e) => setEnrollForm({ ...enrollForm, studentName: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Roll Number</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.rollNumber')}</label>
                   <input
                     type="text"
                     required
@@ -2294,32 +2294,32 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Varga (Course Level) / Shakha</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.vargaCourseLevelShakha')}</label>
                 <select
                   value={enrollForm.courseLevel}
                   onChange={(e) => setEnrollForm({ ...enrollForm, courseLevel: e.target.value as any })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 >
-                  <option value="Prathama (Grammar)">Prathama (Sanskrit Grammar & Ashtadhyayi)</option>
-                  <option value="Madhyama (Shastras)">Madhyama (Shastras & Suktas)</option>
-                  <option value="Shastri (Philosophy)">Shastri (Philosophy & Karmakanda)</option>
-                  <option value="Acharya (Vedanta)">Acharya (Vedanta & Ghana-patha)</option>
+                  <option value="Prathama (Grammar)">{t('surfaces.ashram.prathamaSanskritGrammarAshtadhyayi')}</option>
+                  <option value="Madhyama (Shastras)">{t('surfaces.ashram.madhyamaShastrasSuktas')}</option>
+                  <option value="Shastri (Philosophy)">{t('surfaces.ashram.shastriPhilosophyKarmakanda')}</option>
+                  <option value="Acharya (Vedanta)">{t('surfaces.ashram.acharyaVedantaGhanaPatha')}</option>
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Guardian (Palak) Name</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.guardianPalakName')}</label>
                   <input
                     type="text"
-                    placeholder="Father/Guardian Name"
+                    placeholder={t('surfaces.ashram.fatherGuardianName')}
                     value={enrollForm.guardianName}
                     onChange={(e) => setEnrollForm({ ...enrollForm, guardianName: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Guardian Phone</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.guardianPhone')}</label>
                   <input
                     type="tel"
                     placeholder="+91 98765 00000"
@@ -2336,7 +2336,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   🪔 Samskara records
                 </p>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Date of Upanayanam</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.dateOfUpanayanam')}</label>
                   <input
                     type="date"
                     value={enrollForm.dateOfUpanayanam}
@@ -2345,7 +2345,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <span className="text-stone-300 font-bold block mb-1.5">Samskaras already completed</span>
+                  <span className="text-stone-300 font-bold block mb-1.5">{t('surfaces.ashram.samskarasAlreadyCompleted')}</span>
                   <div className="flex flex-wrap gap-1.5">
                     {['Namakarana', 'Annaprashana', 'Chudakarana (Mundana)', 'Upanayana', 'Vedarambha'].map((sm) => {
                       const on = enrollSamskaras.includes(sm);
@@ -2420,7 +2420,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <form onSubmit={handleRecordSamskara} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Samskara *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.samskara')}</label>
                 <select
                   value={samskaraForm.name}
                   onChange={(e) => setSamskaraForm({ ...samskaraForm, name: e.target.value })}
@@ -2432,7 +2432,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Date performed *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.datePerformed')}</label>
                 <input
                   type="date"
                   required
@@ -2442,10 +2442,10 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Note (optional)</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.noteOptional')}</label>
                 <input
                   type="text"
-                  placeholder="e.g. Performed at Kashi, Acharya presiding"
+                  placeholder={t('surfaces.ashram.eGPerformedAtKashiAcharya')}
                   value={samskaraForm.note}
                   onChange={(e) => setSamskaraForm({ ...samskaraForm, note: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -2507,7 +2507,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Ear Tag ID</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.earTagId')}</label>
                   <input
                     type="text"
                     required
@@ -2520,18 +2520,18 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Desi Breed</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.desiBreed')}</label>
                   <select
                     value={newCowForm.breed}
                     onChange={(e) => setNewCowForm({ ...newCowForm, breed: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Gir">Gir (Gujarat)</option>
-                    <option value="Sahiwal">Sahiwal (Punjab)</option>
-                    <option value="Tharparkar">Tharparkar (Rajasthan)</option>
+                    <option value="Gir">{t('surfaces.ashram.girGujarat')}</option>
+                    <option value="Sahiwal">{t('surfaces.ashram.sahiwalPunjab')}</option>
+                    <option value="Tharparkar">{t('surfaces.ashram.tharparkarRajasthan')}</option>
                     <option value="Rathi">Rathi</option>
                     <option value="Kankrej">Kankrej</option>
-                    <option value="Red Sindhi">Red Sindhi</option>
+                    <option value="Red Sindhi">{t('surfaces.ashram.redSindhi')}</option>
                   </select>
                 </div>
                 <div>
@@ -2541,16 +2541,16 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                     onChange={(e) => setNewCowForm({ ...newCowForm, gender: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Gau Mata (Cow)">Gau Mata (Cow)</option>
-                    <option value="Nandi (Bull)">Nandi (Bull)</option>
-                    <option value="Vatsa (Calf)">Vatsa (Calf)</option>
+                    <option value="Gau Mata (Cow)">{t('surfaces.ashram.gauMataCow')}</option>
+                    <option value="Nandi (Bull)">{t('surfaces.ashram.nandiBull')}</option>
+                    <option value="Vatsa (Calf)">{t('surfaces.ashram.vatsaCalf')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Age (Years)</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.ageYears')}</label>
                   <input
                     type="number"
                     value={newCowForm.ageYears}
@@ -2572,7 +2572,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Milk Yield (L)</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.milkYieldL')}</label>
                   <input
                     type="number"
                     value={newCowForm.dailyMilkYieldLiters}
@@ -2627,11 +2627,11 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
 
             <form onSubmit={handleCreateRoom} className="space-y-3.5 text-xs">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Room Number / Kutir Name *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.roomNumberKutirName')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Kutir 105 (Narmada Kutir)"
+                  placeholder={t('surfaces.ashram.eGKutir105NarmadaKutir')}
                   value={newRoomForm.roomNumber}
                   onChange={(e) => setNewRoomForm({ ...newRoomForm, roomNumber: e.target.value })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -2639,16 +2639,16 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Room Type</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.ashram.roomType')}</label>
                 <select
                   value={newRoomForm.roomType}
                   onChange={(e) => setNewRoomForm({ ...newRoomForm, roomType: e.target.value as any })}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 >
-                  <option value="Sadhana Kutir">Sadhana Kutir</option>
-                  <option value="Dharamshala Deluxe">Dharamshala Deluxe</option>
-                  <option value="Family Suite">Family Suite</option>
-                  <option value="Dormitory Bed">Dormitory Bed</option>
+                  <option value="Sadhana Kutir">{t('surfaces.ashram.sadhanaKutir')}</option>
+                  <option value="Dharamshala Deluxe">{t('surfaces.ashram.dharamshalaDeluxe')}</option>
+                  <option value="Family Suite">{t('surfaces.ashram.familySuite')}</option>
+                  <option value="Dormitory Bed">{t('surfaces.ashram.dormitoryBed')}</option>
                 </select>
               </div>
 

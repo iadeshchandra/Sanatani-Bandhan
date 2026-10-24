@@ -142,10 +142,17 @@ describe('D-19 + U5 — plain words, no internal jargon', () => {
   });
 
   it('the recurring-seva dictionary value is the plain sentence in every fragment', () => {
+    // Language Completion Sweep B2 (2026-10-24): hi/bn now carry their
+    // authored plain-language translations of the sentence; en and the
+    // seven draft fragments (fallback-valued) keep the English sentence.
+    const authored: Record<string, string> = {
+      hi: 'normalizedMrrRunrate: "सक्रिय मासिक अधिदेशों से"',
+      bn: 'normalizedMrrRunrate: "সক্রিয় মাসিক ম্যান্ডেট থেকে"',
+    };
     const langs = ['en', 'bn', 'hi', 'gu', 'kn', 'ml', 'mr', 'sa', 'ta', 'te'];
     for (const lang of langs) {
       const frag = read(`src/i18n/lang/${lang}/org.ts`);
-      expect(frag).toContain('normalizedMrrRunrate: "From active monthly mandates"');
+      expect(frag).toContain(authored[lang] ?? 'normalizedMrrRunrate: "From active monthly mandates"');
     }
     expect(read('src/i18n/lang/en.ts')).toContain(
       'normalizedMrrRunrate: "From active monthly mandates"'

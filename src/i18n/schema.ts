@@ -63,6 +63,16 @@ export interface TranslationSchema {
     devoteeGrid?: { [key: string]: string };
     hundi?: { [key: string]: string };
     treasury?: { [key: string]: string };
+    // Language Completion Sweep Batch 2 (2026-10-24) — per-desk buckets.
+    ashram?: { [key: string]: string };
+    devoteePortal?: { [key: string]: string };
+    smartBhandar?: { [key: string]: string };
+    purohitPortal?: { [key: string]: string };
+    familyRoots?: { [key: string]: string };
+    purohitMgmt?: { [key: string]: string };
+    personalAccount?: { [key: string]: string };
+    vahanFleet?: { [key: string]: string };
+    portalLogin?: { [key: string]: string };
   };
   auth: {
     accessPortal: string;

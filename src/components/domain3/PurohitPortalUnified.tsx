@@ -427,7 +427,7 @@ export const PurohitPortalUnified: React.FC = () => {
   const handleCompleteApplication = (e: React.FormEvent) => {
     e.preventDefault();
     if (!wizardForm.name.trim() || !wizardForm.phone.trim()) {
-      showToast('Please enter your full name and contact phone.', 'error');
+      showToast(t('surfaces.purohitPortal.pleaseEnterYourFullNameAnd'), 'error');
       return;
     }
 
@@ -460,7 +460,7 @@ export const PurohitPortalUnified: React.FC = () => {
     updateVerificationStage('STAGE_1_SUBMITTED');
     setIsApplyWizardOpen(false);
     showToast(
-      'Application submitted successfully! Sent to Local Temple Trust for Tier-1 verification. 🙏',
+      t('surfaces.purohitPortal.applicationSubmittedSuccessfullySentToLocal'),
       'success',
       'Credentials Submitted'
     );
@@ -489,7 +489,7 @@ export const PurohitPortalUnified: React.FC = () => {
     if (applications.find((a) => a.id === appId)?.applicantId === currentUser?.id) {
       updateVerificationStage('STAGE_2_TEMPLE_APPROVED');
     }
-    showToast('Tier 1: Approved by Local Mandir Trust! Awaiting App Owner God-Mode signoff. 🏛️', 'success');
+    showToast(t('surfaces.purohitPortal.tier1ApprovedByLocalMandir'), 'success');
   };
 
   const handleApproveTier2GodMode = (appId: string) => {
@@ -512,7 +512,7 @@ export const PurohitPortalUnified: React.FC = () => {
       updateVerificationStage('VERIFIED_MASTER');
     }
     showToast(
-      'Tier 2: Granted Master Platform Certification & Gold Parishad Badge! 🌟',
+      t('surfaces.purohitPortal.tier2GrantedMasterPlatformCertification'),
       'success',
       'Acharya Accredited'
     );
@@ -548,7 +548,7 @@ export const PurohitPortalUnified: React.FC = () => {
       } catch (e) {}
 
       showToast(
-        `Proposal submitted for "${selectedGigForBid.title}" with Dakshina ${inr(bidDakshinaInput)}! 🪔`,
+        t('surfaces.purohitPortal.proposalSubmittedFor') + `${selectedGigForBid.title}" with Dakshina ${inr(bidDakshinaInput)}! 🪔`,
         'success',
         'Bid Registered'
       );
@@ -586,7 +586,7 @@ export const PurohitPortalUnified: React.FC = () => {
     } catch (e) {}
 
     showToast(
-      `Accepted gig "${gig.title}". ${inr(gig.escrowDakshina)} locked in Platform Escrow Vault! 🔒`,
+      t('surfaces.purohitPortal.acceptedGig') + `${gig.title}". ${inr(gig.escrowDakshina)} locked in Platform Escrow Vault! 🔒`,
       'success',
       'Escrow Gig Assigned'
     );
@@ -602,7 +602,7 @@ export const PurohitPortalUnified: React.FC = () => {
   const handleSubmitLeaveRequest = () => {
     if (!selectedContractForLeave) return;
     if (leaveDaysInput <= 0) {
-      showToast('Please enter a valid number of leave days.', 'error');
+      showToast(t('surfaces.purohitPortal.pleaseEnterAValidNumberOf'), 'error');
       return;
     }
 
@@ -717,22 +717,22 @@ export const PurohitPortalUnified: React.FC = () => {
                     {currentVerificationStage === 'VERIFIED_MASTER' ? (
                       <>
                         <Award className="w-3 h-3 text-stone-950 fill-stone-950" />
-                        <span>Parishad Master Verified</span>
+                        <span>{t('surfaces.purohitPortal.parishadMasterVerified')}</span>
                       </>
                     ) : currentVerificationStage === 'STAGE_2_TEMPLE_APPROVED' ? (
                       <>
                         <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                        <span>Temple Tier Approved</span>
+                        <span>{t('surfaces.purohitPortal.templeTierApproved')}</span>
                       </>
                     ) : currentVerificationStage === 'STAGE_1_SUBMITTED' ? (
                       <>
                         <Clock className="w-3 h-3 text-sky-400" />
-                        <span>In Review (Tier 1)</span>
+                        <span>{t('surfaces.purohitPortal.inReviewTier1')}</span>
                       </>
                     ) : (
                       <>
                         <AlertTriangle className="w-3 h-3 text-rose-400" />
-                        <span>Not Verified</span>
+                        <span>{t('surfaces.purohitPortal.notVerified')}</span>
                       </>
                     )}
                   </span>
@@ -759,7 +759,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                <span>🙏 Devotee Space</span>
+                <span>{t('surfaces.purohitPortal.devoteeSpace')}</span>
               </button>
 
               <button
@@ -771,13 +771,13 @@ export const PurohitPortalUnified: React.FC = () => {
                     : 'text-stone-400 hover:text-stone-200'
                 }`}
               >
-                <span>🪔 Purohit Pro</span>
+                <span>{t('surfaces.purohitPortal.purohitPro')}</span>
               </button>
             </div>
 
             {/* Test Simulation Controls (For Easy Testing & Demonstration) */}
             <div className="hidden lg:flex items-center gap-1.5 bg-stone-900/80 px-2.5 py-1 rounded-2xl border border-amber-500/20 text-[11px]">
-              <span className="text-stone-400 font-bold">Simulate Stage:</span>
+              <span className="text-stone-400 font-bold">{t('surfaces.purohitPortal.simulateStage')}</span>
               <button
                 type="button"
                 onClick={() => updateVerificationStage('NOT_APPLIED')}
@@ -916,7 +916,7 @@ export const PurohitPortalUnified: React.FC = () => {
                         className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black text-xs shadow-lg flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                       >
                         <Zap className="w-4 h-4 fill-stone-950" />
-                        <span>Start Onboarding Wizard</span>
+                        <span>{t('surfaces.purohitPortal.startOnboardingWizard')}</span>
                       </button>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -943,14 +943,14 @@ export const PurohitPortalUnified: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black uppercase tracking-wider">Step 1</span>
+                        <span className="text-xs font-black uppercase tracking-wider">{t('surfaces.purohitPortal.step1')}</span>
                         {currentVerificationStage !== 'NOT_APPLIED' ? (
                           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                         ) : (
                           <Clock className="w-5 h-5 text-stone-500" />
                         )}
                       </div>
-                      <h4 className="text-sm font-black text-white">Veda Shakha Application</h4>
+                      <h4 className="text-sm font-black text-white">{t('surfaces.purohitPortal.vedaShakhaApplication')}</h4>
                       <p className="text-[11px] text-stone-400 mt-1">
                         Credentials, Gurukul certification, gotra, and specialization submitted.
                       </p>
@@ -970,24 +970,24 @@ export const PurohitPortalUnified: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black uppercase tracking-wider">Tier 1 Verification</span>
+                        <span className="text-xs font-black uppercase tracking-wider">{t('surfaces.purohitPortal.tier1Verification')}</span>
                         {currentVerificationStage === 'STAGE_2_TEMPLE_APPROVED' || currentVerificationStage === 'VERIFIED_MASTER' ? (
                           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                         ) : (
                           <Clock className="w-5 h-5 text-sky-400" />
                         )}
                       </div>
-                      <h4 className="text-sm font-black text-white">Local Mandir Trust Audit</h4>
+                      <h4 className="text-sm font-black text-white">{t('surfaces.purohitPortal.localMandirTrustAudit')}</h4>
                       <p className="text-[11px] text-stone-400 mt-1">
                         Temple Sevadars and Trustees inspect physical lineage and karmakanda practice.
                       </p>
                       <span className="inline-block mt-2 text-[10px] font-bold">
                         {currentVerificationStage === 'STAGE_2_TEMPLE_APPROVED' || currentVerificationStage === 'VERIFIED_MASTER' ? (
-                          <span className="text-emerald-400">✓ Temple Approved</span>
+                          <span className="text-emerald-400">{t('surfaces.purohitPortal.templeApproved')}</span>
                         ) : currentVerificationStage === 'STAGE_1_SUBMITTED' ? (
-                          <span className="text-sky-300">⏳ In Review by Mandir Trust</span>
+                          <span className="text-sky-300">{t('surfaces.purohitPortal.inReviewByMandirTrust')}</span>
                         ) : (
-                          <span className="text-stone-500">Waiting for Step 1</span>
+                          <span className="text-stone-500">{t('surfaces.purohitPortal.waitingForStep1')}</span>
                         )}
                       </span>
                     </div>
@@ -1003,22 +1003,22 @@ export const PurohitPortalUnified: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-black uppercase tracking-wider">Tier 2 Master</span>
+                        <span className="text-xs font-black uppercase tracking-wider">{t('surfaces.purohitPortal.tier2Master')}</span>
                         {currentVerificationStage === 'VERIFIED_MASTER' ? (
                           <Award className="w-5 h-5 text-amber-400 fill-amber-400" />
                         ) : (
                           <Lock className="w-5 h-5 text-stone-500" />
                         )}
                       </div>
-                      <h4 className="text-sm font-black text-white">God-Mode Master Badge</h4>
+                      <h4 className="text-sm font-black text-white">{t('surfaces.purohitPortal.godModeMasterBadge')}</h4>
                       <p className="text-[11px] text-stone-400 mt-1">
                         National Parishad accreditation unlocking Escrow ritual marketplace & long-term Kutir contracts.
                       </p>
                       <span className="inline-block mt-2 text-[10px] font-bold">
                         {currentVerificationStage === 'VERIFIED_MASTER' ? (
-                          <span className="text-amber-300 font-black">🌟 Master Gold Certified</span>
+                          <span className="text-amber-300 font-black">{t('surfaces.purohitPortal.masterGoldCertified')}</span>
                         ) : currentVerificationStage === 'STAGE_2_TEMPLE_APPROVED' ? (
-                          <span className="text-amber-400">⏳ Ready for God-Mode Signoff</span>
+                          <span className="text-amber-400">{t('surfaces.purohitPortal.readyForGodModeSignoff')}</span>
                         ) : (
                           <span className="text-stone-500">Locked</span>
                         )}
@@ -1045,12 +1045,12 @@ export const PurohitPortalUnified: React.FC = () => {
                             Pt. Radheshyam Dwivedi
                           </h3>
                           {currentVerificationStage === 'VERIFIED_MASTER' && (
-                            <span title="Parishad Gold Certified">
+                            <span title={t('surfaces.purohitPortal.parishadGoldCertified')}>
                               <Award className="w-4 h-4 text-amber-400 fill-amber-400" />
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-amber-400 font-bold">Veda Vibhushan & Acharya</p>
+                        <p className="text-xs text-amber-400 font-bold">{t('surfaces.purohitPortal.vedaVibhushanAcharya')}</p>
                         <span className="inline-block text-[10px] text-stone-400 mt-0.5">
                           Shukla Yajurveda • Bharadwaja Gotra
                         </span>
@@ -1059,15 +1059,15 @@ export const PurohitPortalUnified: React.FC = () => {
 
                     <div className="space-y-2 text-xs">
                       <div className="p-3 bg-stone-900/80 rounded-2xl border border-stone-800/80 space-y-1">
-                        <span className="text-[10px] text-stone-400 uppercase font-bold block">Accreditation</span>
-                        <p className="text-stone-200">Sampurnanand Sanskrit Vishwavidyalaya, Kashi</p>
-                        <p className="text-[11px] text-emerald-400 font-mono">Reg ID: UP-PV-881204</p>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitPortal.accreditation')}</span>
+                        <p className="text-stone-200">{t('surfaces.purohitPortal.sampurnanandSanskritVishwavidyalayaKashi')}</p>
+                        <p className="text-[11px] text-emerald-400 font-mono">{t('surfaces.purohitPortal.regIdUpPv881204')}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="p-2.5 bg-stone-900/80 rounded-xl border border-stone-800">
                           <span className="text-[10px] text-stone-400 uppercase font-bold block">Experience</span>
-                          <span className="font-black text-white">24 Years</span>
+                          <span className="font-black text-white">{t('surfaces.purohitPortal.24Years')}</span>
                         </div>
                         <div className="p-2.5 bg-stone-900/80 rounded-xl border border-stone-800">
                           <span className="text-[10px] text-stone-400 uppercase font-bold block">Rating</span>
@@ -1097,27 +1097,27 @@ export const PurohitPortalUnified: React.FC = () => {
                     {/* Escrow & Contract Highlights */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="bg-stone-950/80 p-4 rounded-2xl border border-stone-800">
-                        <span className="text-[10px] text-stone-400 uppercase font-bold block">Escrow Protected Dakshina</span>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitPortal.escrowProtectedDakshina')}</span>
                         <div className="text-xl font-black text-amber-300 mt-1">
                           {inr(escrowMetrics.locked)}
                         </div>
-                        <p className="text-[10px] text-stone-500 mt-0.5">Held safely in platform vault</p>
+                        <p className="text-[10px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.heldSafelyInPlatformVault')}</p>
                       </div>
 
                       <div className="bg-stone-950/80 p-4 rounded-2xl border border-stone-800">
-                        <span className="text-[10px] text-stone-400 uppercase font-bold block">Active Sanctum Contracts</span>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitPortal.activeSanctumContracts')}</span>
                         <div className="text-xl font-black text-emerald-400 mt-1">
                           {contracts.filter(c => c.status === 'ACTIVE').length} Long-Term
                         </div>
-                        <p className="text-[10px] text-stone-500 mt-0.5">With Kutir & Ashram stay</p>
+                        <p className="text-[10px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.withKutirAshramStay')}</p>
                       </div>
 
                       <div className="bg-stone-950/80 p-4 rounded-2xl border border-stone-800">
-                        <span className="text-[10px] text-stone-400 uppercase font-bold block">Total Disbursed Earnings</span>
+                        <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitPortal.totalDisbursedEarnings')}</span>
                         <div className="text-xl font-black text-white mt-1">
                           {inr(escrowMetrics.released)}
                         </div>
-                        <p className="text-[10px] text-stone-500 mt-0.5">Net direct-to-bank settlements</p>
+                        <p className="text-[10px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.netDirectToBankSettlements')}</p>
                       </div>
                     </div>
 
@@ -1125,7 +1125,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/30 via-stone-950 to-stone-950 border border-amber-500/20 space-y-3">
                       <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
                         <Sparkles className="w-4 h-4 text-amber-400" />
-                        <span>Vedic Scholar Marketplace & Escrow Protocol</span>
+                        <span>{t('surfaces.purohitPortal.vedicScholarMarketplaceEscrowProtocol')}</span>
                       </div>
                       <p className="text-xs text-stone-300 leading-relaxed">
                         Sanatani Bandhan protects both Yajamanas and Acharyas. All Dakshina is funded into Platform Escrow before the ritual commences and automatically disbursed upon completion with zero payment risk.
@@ -1146,7 +1146,7 @@ export const PurohitPortalUnified: React.FC = () => {
                           className="px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <Building2 className="w-3.5 h-3.5" />
-                          <span>Sanctum Contracts & Kutir</span>
+                          <span>{t('surfaces.purohitPortal.sanctumContractsKutir')}</span>
                         </button>
                       </div>
                     </div>
@@ -1169,7 +1169,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-black text-amber-100 flex items-center gap-2">
                       <Flame className="w-5 h-5 text-amber-400" />
-                      <span>Sanatani Ritual Gigs & Escrow Marketplace</span>
+                      <span>{t('surfaces.purohitPortal.sanataniRitualGigsEscrowMarketplace')}</span>
                     </h3>
                     <p className="text-xs text-stone-400 mt-0.5">
                       Devotees and Mandir Trusts post sacred ceremonies with 100% upfront Dakshina secured in Platform Escrow.
@@ -1179,7 +1179,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>100% Escrow Protected</span>
+                      <span>{t('surfaces.purohitPortal.100EscrowProtected')}</span>
                     </span>
                   </div>
                 </div>
@@ -1232,7 +1232,7 @@ export const PurohitPortalUnified: React.FC = () => {
                               <span className="font-semibold text-stone-200">{gig.city}</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-stone-500 uppercase font-bold block">Ceremony Date</span>
+                              <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitPortal.ceremonyDate')}</span>
                               <span className="font-semibold text-stone-200">{gig.date}</span>
                             </div>
                             <div className="col-span-2 pt-1 border-t border-stone-800/60 flex items-center justify-between text-[11px]">
@@ -1269,7 +1269,7 @@ export const PurohitPortalUnified: React.FC = () => {
                             {isAssigned ? (
                               <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>You are Assigned</span>
+                                <span>{t('surfaces.purohitPortal.youAreAssigned')}</span>
                               </span>
                             ) : (
                               <>
@@ -1310,7 +1310,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-black text-amber-100 flex items-center gap-2">
                       <Building2 className="w-5 h-5 text-amber-400" />
-                      <span>Long-Term Temple Contracts & Ashram Kutir Deployments</span>
+                      <span>{t('surfaces.purohitPortal.longTermTempleContractsAshramKutir')}</span>
                     </h3>
                     <p className="text-xs text-stone-400 mt-0.5">
                       Official 3-month and 6-month resident priest appointments with monthly honorariums, dedicated Ashram Kutir stay, and aarti rotations.
@@ -1360,13 +1360,13 @@ export const PurohitPortalUnified: React.FC = () => {
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-stone-300">
                               <div>
-                                <span className="text-[10px] text-stone-500 uppercase font-bold block">Tenure Dates</span>
+                                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitPortal.tenureDates')}</span>
                                 <span className="font-semibold text-stone-200">
                                   {contract.startDate} to {contract.endDate}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-stone-500 uppercase font-bold block">Monthly Honorarium</span>
+                                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitPortal.monthlyHonorarium')}</span>
                                 <span className="font-black text-amber-400">
                                   {inr(contract.monthlyHonorarium)} / mo
                                 </span>
@@ -1378,7 +1378,7 @@ export const PurohitPortalUnified: React.FC = () => {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[10px] text-stone-500 uppercase font-bold block">Leave Balance</span>
+                                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitPortal.leaveBalance')}</span>
                                 <span className="font-bold text-stone-200">
                                   {remainingLeave} Days Available (of {contract.totalLeaveDays})
                                 </span>
@@ -1386,7 +1386,7 @@ export const PurohitPortalUnified: React.FC = () => {
                             </div>
 
                             <div className="p-2.5 bg-stone-900/60 rounded-xl border border-stone-800 text-[11px] text-stone-400">
-                              🕒 <strong>Mandir Duty Shifts:</strong> {contract.shiftsDescription} • {contract.foodAllowanceIncluded ? '✓ Satvik Prasadam & Bhog Included' : 'Self Arranged'}
+                              🕒 <strong>{t('surfaces.purohitPortal.mandirDutyShifts')}</strong> {contract.shiftsDescription} • {contract.foodAllowanceIncluded ? '✓ Satvik Prasadam & Bhog Included' : 'Self Arranged'}
                             </div>
                           </div>
 
@@ -1425,7 +1425,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     <div className="text-2xl font-black text-amber-400 mt-1">
                       {inr(escrowMetrics.locked)}
                     </div>
-                    <p className="text-[11px] text-stone-500 mt-0.5">Secure funds pending ceremony completion</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.secureFundsPendingCeremonyCompletion')}</p>
                   </div>
 
                   <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
@@ -1435,7 +1435,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     <div className="text-2xl font-black text-emerald-400 mt-1">
                       {inr(escrowMetrics.released)}
                     </div>
-                    <p className="text-[11px] text-stone-500 mt-0.5">Settled directly to Bank / UPI</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.settledDirectlyToBankUpi')}</p>
                   </div>
 
                   <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
@@ -1445,7 +1445,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     <div className="text-2xl font-black text-stone-300 mt-1">
                       {inr(escrowMetrics.platformFees)}
                     </div>
-                    <p className="text-[11px] text-stone-500 mt-0.5">5% temple software & insurance levy</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.5TempleSoftwareInsuranceLevy')}</p>
                   </div>
 
                   <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl flex flex-col justify-between">
@@ -1453,7 +1453,7 @@ export const PurohitPortalUnified: React.FC = () => {
                       <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">
                         Instant Payout
                       </span>
-                      <p className="text-[11px] text-stone-500 mt-0.5">Disburse locked escrow to your UPI handle</p>
+                      <p className="text-[11px] text-stone-500 mt-0.5">{t('surfaces.purohitPortal.disburseLockedEscrowToYourUpi')}</p>
                     </div>
                     <button
                       type="button"
@@ -1475,13 +1475,13 @@ export const PurohitPortalUnified: React.FC = () => {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="border-b border-stone-800 text-stone-400 uppercase text-[10px] tracking-wider">
-                          <th className="py-3 px-3">Ritual / Gig</th>
-                          <th className="py-3 px-3">Yajamana / Mandir</th>
-                          <th className="py-3 px-3">Gross Dakshina</th>
-                          <th className="py-3 px-3">Platform Fee (5%)</th>
-                          <th className="py-3 px-3">Net Honorarium</th>
+                          <th className="py-3 px-3">{t('surfaces.purohitPortal.ritualGig')}</th>
+                          <th className="py-3 px-3">{t('surfaces.purohitPortal.yajamanaMandir')}</th>
+                          <th className="py-3 px-3">{t('surfaces.purohitPortal.grossDakshina')}</th>
+                          <th className="py-3 px-3">{t('surfaces.purohitPortal.platformFee5')}</th>
+                          <th className="py-3 px-3">{t('surfaces.purohitPortal.netHonorarium')}</th>
                           <th className="py-3 px-3">Status</th>
-                          <th className="py-3 px-3 text-right">Settlement Reference</th>
+                          <th className="py-3 px-3 text-right">{t('surfaces.purohitPortal.settlementReference')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-800/60">
@@ -1529,7 +1529,7 @@ export const PurohitPortalUnified: React.FC = () => {
                     </span>
                     <h3 className="text-lg font-black text-amber-100 mt-1 flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-amber-400" />
-                      <span>National Parishad Master Verification Queue</span>
+                      <span>{t('surfaces.purohitPortal.nationalParishadMasterVerificationQueue')}</span>
                     </h3>
                     <p className="text-xs text-stone-400 mt-0.5">
                       Review credentials submitted by Acharyas across all mandir tenancies and issue final Master Gold Badges.
@@ -1568,7 +1568,7 @@ export const PurohitPortalUnified: React.FC = () => {
                             {app.vedicQualification} • {app.gurukulAffiliation} • {app.experienceYears} Years Exp
                           </p>
                           <p className="text-[11px] text-stone-500">
-                            Gotra: <strong>{app.gotra}</strong> • Contact: <strong>{app.phone}</strong> • Certificate Ref: <strong className="font-mono text-stone-400">{app.certificateRef}</strong>
+                            Gotra: <strong>{app.gotra}</strong>{' '}{t('surfaces.purohitPortal.contact')}{' '}<strong>{app.phone}</strong>{' '}{t('surfaces.purohitPortal.certificateRef')}{' '}<strong className="font-mono text-stone-400">{app.certificateRef}</strong>
                           </p>
                         </div>
 
@@ -1597,7 +1597,7 @@ export const PurohitPortalUnified: React.FC = () => {
                           {app.stage === 'VERIFIED_MASTER' && (
                             <span className="px-3 py-1.5 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black flex items-center gap-1">
                               <Award className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Master Certified Acharya</span>
+                              <span>{t('surfaces.purohitPortal.masterCertifiedAcharya')}</span>
                             </span>
                           )}
                         </div>
@@ -1642,7 +1642,7 @@ export const PurohitPortalUnified: React.FC = () => {
               <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Full Legal & Vedic Name *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.fullLegalVedicName')}</label>
                   <input
                     type="text"
                     required
@@ -1652,7 +1652,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Phone (WhatsApp) *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.phoneWhatsapp')}</label>
                   <input
                     type="tel"
                     required
@@ -1665,18 +1665,18 @@ export const PurohitPortalUnified: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Veda Shakha *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.vedaShakha')}</label>
                   <select
                     value={wizardForm.vedicBranch}
                     onChange={(e) => setWizardForm({ ...wizardForm, vedicBranch: e.target.value as any })}
                     className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                   >
                     <option value="Rigveda">Rigveda</option>
-                    <option value="Yajurveda">Yajurveda (Shukla / Krishna)</option>
+                    <option value="Yajurveda">{t('surfaces.purohitPortal.yajurvedaShuklaKrishna')}</option>
                     <option value="Samaveda">Samaveda</option>
                     <option value="Atharvaveda">Atharvaveda</option>
-                    <option value="Smartha">Smartha Advaita</option>
-                    <option value="Tantrik">Tantrik / Shakta Agama</option>
+                    <option value="Smartha">{t('surfaces.purohitPortal.smarthaAdvaita')}</option>
+                    <option value="Tantrik">{t('surfaces.purohitPortal.tantrikShaktaAgama')}</option>
                   </select>
                 </div>
                 <div>
@@ -1691,7 +1691,7 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Gurukul / University Affiliation</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.gurukulUniversityAffiliation')}</label>
                 <input
                   type="text"
                   value={wizardForm.gurukulAffiliation}
@@ -1702,30 +1702,30 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Vedic Qualifications & Title</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.vedicQualificationsTitle')}</label>
                 <input
                   type="text"
                   value={wizardForm.vedicQualification}
                   onChange={(e) => setWizardForm({ ...wizardForm, vedicQualification: e.target.value })}
-                  placeholder="Acharya in Shukla Yajurveda & Karmakanda"
+                  placeholder={t('surfaces.purohitPortal.acharyaInShuklaYajurvedaKarmakanda')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Ritual Specializations (comma-separated)</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.ritualSpecializationsCommaSeparated')}</label>
                 <input
                   type="text"
                   value={wizardForm.specializations}
                   onChange={(e) => setWizardForm({ ...wizardForm, specializations: e.target.value })}
-                  placeholder="Maharudrabhishek, Vastu Shanti, Navagraha Havan, Vivah"
+                  placeholder={t('surfaces.purohitPortal.maharudrabhishekVastuShantiNavagrahaHavanViv')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Years of Karmakanda Practice</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.yearsOfKarmakandaPractice')}</label>
                   <input
                     type="number"
                     value={wizardForm.experienceYears}
@@ -1734,7 +1734,7 @@ export const PurohitPortalUnified: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Aadhaar or Parishad Reg #</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.aadhaarOrParishadReg')}</label>
                   <input
                     type="text"
                     value={wizardForm.aadhaarOrParishadId}
@@ -1773,7 +1773,7 @@ export const PurohitPortalUnified: React.FC = () => {
           <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">Submit Proposal for Ritual Gig</h3>
+                <h3 className="text-base font-black text-white">{t('surfaces.purohitPortal.submitProposalForRitualGig')}</h3>
                 <p className="text-xs text-amber-400">{selectedGigForBid.title}</p>
               </div>
               <button
@@ -1788,7 +1788,7 @@ export const PurohitPortalUnified: React.FC = () => {
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Host Escrow Budget:</span>
+                  <span className="text-stone-400">{t('surfaces.purohitPortal.hostEscrowBudget')}</span>
                   <span className="font-bold text-white">{inr(selectedGigForBid.escrowDakshina)}</span>
                 </div>
                 <div className="flex justify-between">
@@ -1808,7 +1808,7 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Acharya Note to Yajamana</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.acharyaNoteToYajamana')}</label>
                 <textarea
                   rows={3}
                   value={bidNoteInput}
@@ -1847,7 +1847,7 @@ export const PurohitPortalUnified: React.FC = () => {
           <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">Apply for Seva Leave</h3>
+                <h3 className="text-base font-black text-white">{t('surfaces.purohitPortal.applyForSevaLeave')}</h3>
                 <p className="text-xs text-amber-400">{selectedContractForLeave.contractTitle}</p>
               </div>
               <button
@@ -1862,7 +1862,7 @@ export const PurohitPortalUnified: React.FC = () => {
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Available Leave Balance:</span>
+                  <span className="text-stone-400">{t('surfaces.purohitPortal.availableLeaveBalance')}</span>
                   <span className="font-bold text-emerald-400">
                     {selectedContractForLeave.totalLeaveDays - selectedContractForLeave.usedLeaveDays} Days
                   </span>
@@ -1870,7 +1870,7 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Number of Days</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.numberOfDays')}</label>
                 <input
                   type="number"
                   min={1}
@@ -1882,12 +1882,12 @@ export const PurohitPortalUnified: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Reason (Tirth Yatra / Family Ceremony)</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.reasonTirthYatraFamilyCeremony')}</label>
                 <input
                   type="text"
                   value={leaveReasonInput}
                   onChange={(e) => setLeaveReasonInput(e.target.value)}
-                  placeholder="e.g. Ganga Snan pilgrimage or Pitru Shradh"
+                  placeholder={t('surfaces.purohitPortal.eGGangaSnanPilgrimageOr')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -1921,8 +1921,8 @@ export const PurohitPortalUnified: React.FC = () => {
           <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">Disburse Escrow Dakshina</h3>
-                <p className="text-xs text-stone-400">Withdraw available escrow honorarium to UPI</p>
+                <h3 className="text-base font-black text-white">{t('surfaces.purohitPortal.disburseEscrowDakshina')}</h3>
+                <p className="text-xs text-stone-400">{t('surfaces.purohitPortal.withdrawAvailableEscrowHonorariumToUpi')}</p>
               </div>
               <button
                 type="button"
@@ -1936,17 +1936,17 @@ export const PurohitPortalUnified: React.FC = () => {
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Available Escrow:</span>
+                  <span className="text-stone-400">{t('surfaces.purohitPortal.availableEscrow')}</span>
                   <span className="font-bold text-amber-300">{inr(escrowMetrics.locked)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Instant IMPS Fee:</span>
+                  <span className="text-stone-400">{t('surfaces.purohitPortal.instantImpsFee')}</span>
                   <span className="font-bold text-emerald-400">{inr(0)} (Waived)</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Your UPI ID or Bank VPA</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitPortal.yourUpiIdOrBankVpa')}</label>
                 <input
                   type="text"
                   value={payoutUpiId}

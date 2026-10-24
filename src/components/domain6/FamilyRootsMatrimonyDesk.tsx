@@ -678,7 +678,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
   const handleAddFamilyMember = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemberForm.fullName.trim()) {
-      showToast('Please enter member full name', 'error');
+      showToast(t('surfaces.familyRoots.pleaseEnterMemberFullName'), 'error');
       return;
     }
 
@@ -765,7 +765,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
   const handleAddPitruRecord = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPitruForm.ancestorName.trim()) {
-      showToast('Please provide ancestor name', 'error');
+      showToast(t('surfaces.familyRoots.pleaseProvideAncestorName'), 'error');
       return;
     }
 
@@ -924,7 +924,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight flex items-center gap-3">
-              <span>Family Roots, Ancestral Memorial & Sacred Vivah Desk</span>
+              <span>{t('surfaces.familyRoots.familyRootsAncestralMemorialSacredVivah')}</span>
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
@@ -936,14 +936,14 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
           <div className="flex items-center gap-3 bg-stone-950/80 p-3 rounded-2xl border border-stone-800 backdrop-blur-md shrink-0">
             <div className="text-center px-3 border-r border-stone-800">
               <span className="text-[10px] text-stone-400 uppercase font-black block">Generations</span>
-              <span className="text-lg font-black text-amber-300">3 Generations</span>
+              <span className="text-lg font-black text-amber-300">{t('surfaces.familyRoots.3Generations')}</span>
             </div>
             <div className="text-center px-3 border-r border-stone-800">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Pitru Records</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.familyRoots.pitruRecords')}</span>
               <span className="text-lg font-black text-sky-400">{pitruRecords.length} Souls</span>
             </div>
             <div className="text-center px-3">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Vivah Matches</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.familyRoots.vivahMatches')}</span>
               <span className="text-lg font-black text-rose-400">{vivahProfiles.length} Endorsed</span>
             </div>
           </div>
@@ -961,7 +961,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             }`}
           >
             <GitCommit className="w-4 h-4" />
-            <span>1. 🌳 Vanshavali (Genealogy Graph)</span>
+            <span>{t('surfaces.familyRoots.1VanshavaliGenealogyGraph')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'VANSHAVALI' ? 'bg-stone-950 text-amber-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -979,7 +979,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             }`}
           >
             <HeartHandshake className="w-4 h-4" />
-            <span>2. 🕊️ Pitru Tarpana (Ancestral Shradh)</span>
+            <span>{t('surfaces.familyRoots.2PitruTarpanaAncestralShradh')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'PITRU_TARPANA' ? 'bg-stone-950 text-amber-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -997,7 +997,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             }`}
           >
             <Heart className="w-4 h-4 fill-current" />
-            <span>3. 💍 Vivah (Sanatani Matrimony & Milan)</span>
+            <span>{t('surfaces.familyRoots.3VivahSanataniMatrimonyMilan')}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
               activeTab === 'VIVAH' ? 'bg-stone-950 text-rose-300' : 'bg-stone-800 text-stone-400'
             }`}>
@@ -1016,10 +1016,10 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-stone-900/80 p-4 rounded-3xl border border-stone-800">
             <div>
               <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
-                <span>Pavitra Vanshavali Vriksha (3-Tier Sacred Lineage Tree)</span>
+                <span>{t('surfaces.familyRoots.pavitraVanshavaliVriksha3TierSacred')}</span>
               </h2>
               <p className="text-xs text-stone-400 mt-0.5">
-                Kula Gotra: <span className="font-bold text-amber-300">Bharadwaja</span> • Pravara: <span className="text-stone-300">Angirasa, Barhaspatya, Bharadwaja</span> • Kuladevata: <span className="text-stone-300">Sri Kashi Vishwanath</span>
+                Kula Gotra: <span className="font-bold text-amber-300">Bharadwaja</span>{' '}{t('surfaces.familyRoots.pravara')}{' '}<span className="text-stone-300">{t('surfaces.familyRoots.angirasaBarhaspatyaBharadwaja')}</span>{' '}{t('surfaces.familyRoots.kuladevata')}{' '}<span className="text-stone-300">{t('surfaces.familyRoots.sriKashiVishwanath')}</span>
               </p>
             </div>
 
@@ -1029,7 +1029,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Add Family Member</span>
+              <span>{t('surfaces.familyRoots.addFamilyMember')}</span>
             </button>
           </div>
 
@@ -1076,7 +1076,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
                             {/* Mandir Verified Seal */}
                             {member.mandirVerified && (
-                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black shrink-0" title="Vanshavali Verified by Kashi Mandir Trust">
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black shrink-0" title={t('surfaces.familyRoots.vanshavaliVerifiedByKashiMandirTrust')}>
                                 <Award className="w-3 h-3 text-amber-400 fill-amber-400" />
                                 <span>Verified</span>
                               </div>
@@ -1128,7 +1128,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                               onClick={() => handleBridgeToPitruRegistry(member)}
                               className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                             >
-                              <span>Bridge to Pitru Registry</span>
+                              <span>{t('surfaces.familyRoots.bridgeToPitruRegistry')}</span>
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           ) : (
@@ -1154,7 +1154,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-stone-900/80 p-4 rounded-3xl border border-stone-800">
             <div>
               <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
-                <span>Ancestral Pitru Tarpana & Annual Shradh Register</span>
+                <span>{t('surfaces.familyRoots.ancestralPitruTarpanaAnnualShradhRegister')}</span>
               </h2>
               <p className="text-xs text-stone-400 mt-0.5">
                 Calculate lunar shradh tithis, track Gaya/Kashi pinda daan memorials, and dispatch automated rituals to verified Vedic Acharyas.
@@ -1167,7 +1167,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Departed Ancestor</span>
+              <span>{t('surfaces.familyRoots.addDepartedAncestor')}</span>
             </button>
           </div>
 
@@ -1202,7 +1202,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                     {/* Active Countdown Badge */}
                     <div className="my-3 p-3 rounded-2xl bg-amber-950/30 border border-amber-500/30 flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-amber-400 uppercase font-black block">Annual Shradh Tithi</span>
+                        <span className="text-[10px] text-amber-400 uppercase font-black block">{t('surfaces.familyRoots.annualShradhTithi')}</span>
                         <span className="text-xs font-bold text-amber-200">
                           {record.lunarMasa} {record.lunarPaksha} {record.lunarTithi}
                         </span>
@@ -1217,15 +1217,15 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                     {/* Metadata Grid */}
                     <div className="space-y-1.5 text-xs bg-stone-950 p-3 rounded-2xl border border-stone-800">
                       <div className="flex justify-between">
-                        <span className="text-stone-400">Date of Demise:</span>
+                        <span className="text-stone-400">{t('surfaces.familyRoots.dateOfDemise')}</span>
                         <span className="font-mono text-stone-200">{record.deathGregorianDate}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-stone-400">Gotra & Pravara:</span>
+                        <span className="text-stone-400">{t('surfaces.familyRoots.gotraPravara')}</span>
                         <span className="text-stone-300">{record.gotra}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-stone-400">Last Tarpanam:</span>
+                        <span className="text-stone-400">{t('surfaces.familyRoots.lastTarpanam')}</span>
                         <span className="text-emerald-400 font-medium">{record.lastShradhPerformed || 'Last Pitru Paksha'}</span>
                       </div>
                     </div>
@@ -1241,9 +1241,9 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
                         <span className="text-xs text-emerald-300 font-bold flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span>Purohit Allocated</span>
+                          <span>{t('surfaces.familyRoots.purohitAllocated')}</span>
                         </span>
-                        <span className="text-[10px] text-stone-400 font-mono">Escrow Locked</span>
+                        <span className="text-[10px] text-stone-400 font-mono">{t('surfaces.familyRoots.escrowLocked')}</span>
                       </div>
                     ) : (
                       <button
@@ -1252,7 +1252,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                         className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         <Flame className="w-3.5 h-3.5 fill-stone-950" />
-                        <span>Book Pinda Daan / Shradh Ritual</span>
+                        <span>{t('surfaces.familyRoots.bookPindaDaanShradhRitual')}</span>
                       </button>
                     )}
                   </div>
@@ -1274,7 +1274,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <div className="relative flex-1 min-w-[220px]">
                 <input
                   type="text"
-                  placeholder="Search candidate name, profession, gotra, city..."
+                  placeholder={t('surfaces.familyRoots.searchCandidateNameProfessionGotraCity')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-4 pr-4 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
@@ -1287,9 +1287,9 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                 onChange={(e) => setSelectedGenderFilter(e.target.value as any)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="All">All Genders</option>
-                <option value="Female">Brides (Vadhu)</option>
-                <option value="Male">Grooms (Vara)</option>
+                <option value="All">{t('surfaces.familyRoots.allGenders')}</option>
+                <option value="Female">{t('surfaces.familyRoots.bridesVadhu')}</option>
+                <option value="Male">{t('surfaces.familyRoots.groomsVara')}</option>
               </select>
 
               {/* Manglik Filter */}
@@ -1298,7 +1298,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                 onChange={(e) => setSelectedManglikFilter(e.target.value as any)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="All">All Manglik Status</option>
+                <option value="All">{t('surfaces.familyRoots.allManglikStatus')}</option>
                 <option value="Non-Manglik">Non-Manglik</option>
                 <option value="Manglik">Manglik</option>
               </select>
@@ -1306,7 +1306,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
             {/* Current Karta Profile Indicator */}
             <div className="bg-stone-950 px-3.5 py-2 rounded-2xl border border-stone-800 text-xs shrink-0 flex items-center gap-2">
-              <span className="text-stone-400">Active Evaluator:</span>
+              <span className="text-stone-400">{t('surfaces.familyRoots.activeEvaluator')}</span>
               <span className="font-black text-amber-300">{currentUserKarta.fullName}</span>
               <span className="text-[10px] text-stone-500 font-mono">({currentUserKarta.gotra} Gotra)</span>
             </div>
@@ -1340,7 +1340,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       {!candidate.isPhotoUnlocked && (
                         <div className="absolute inset-0 bg-stone-950/70 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
                           <Lock className="w-6 h-6 text-amber-400 mb-1.5" />
-                          <span className="text-xs font-black text-white">Shastric Privacy Shield</span>
+                          <span className="text-xs font-black text-white">{t('surfaces.familyRoots.shastricPrivacyShield')}</span>
                           <p className="text-[10px] text-stone-300 mt-1 max-w-[220px]">
                             Photo blurred for modesty & protection. Send Prastav to request family access.
                           </p>
@@ -1351,7 +1351,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       {candidate.mandirVerified && (
                         <div className="absolute top-3 left-3 bg-stone-950/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1 shadow-lg">
                           <Award className="w-3 h-3 text-amber-400 fill-amber-400" />
-                          <span>Mandir Endorsed</span>
+                          <span>{t('surfaces.familyRoots.mandirEndorsed')}</span>
                         </div>
                       )}
 
@@ -1359,7 +1359,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       {isSagotra && (
                         <div className="absolute top-3 right-3 bg-rose-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-lg animate-pulse">
                           <AlertTriangle className="w-3 h-3" />
-                          <span>Sagotra Alert</span>
+                          <span>{t('surfaces.familyRoots.sagotraAlert')}</span>
                         </div>
                       )}
                     </div>
@@ -1405,7 +1405,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       {/* Contact Preview / Reveal */}
                       {candidate.isPhotoUnlocked && (
                         <div className="mt-2 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-200 space-y-0.5">
-                          <div className="font-bold text-emerald-300">Guardian Contact Revealed:</div>
+                          <div className="font-bold text-emerald-300">{t('surfaces.familyRoots.guardianContactRevealed')}</div>
                           <div>{candidate.contactPerson} • {candidate.contactPhone}</div>
                         </div>
                       )}
@@ -1421,14 +1421,14 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                         className="flex-1 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-black text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <Compass className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Check Compatibility</span>
+                        <span>{t('surfaces.familyRoots.checkCompatibility')}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleOpenVanshavaliViewer(candidate)}
                         className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors cursor-pointer"
-                        title="View Candidate Family Vanshavali"
+                        title={t('surfaces.familyRoots.viewCandidateFamilyVanshavali')}
                       >
                         <GitCommit className="w-3.5 h-3.5" />
                       </button>
@@ -1442,7 +1442,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                         className="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-stone-950 font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         <Heart className="w-3.5 h-3.5 fill-current" />
-                        <span>Plan Sacred Vivah (Muhurat & Mandir)</span>
+                        <span>{t('surfaces.familyRoots.planSacredVivahMuhuratMandir')}</span>
                       </button>
                     ) : candidate.proposalStatus === 'Sent' ? (
                       <div className="flex items-center gap-2">
@@ -1453,7 +1453,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                           type="button"
                           onClick={() => handleSimulateAcceptProposal(candidate)}
                           className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold cursor-pointer"
-                          title="Simulate candidate family accepting proposal"
+                          title={t('surfaces.familyRoots.simulateCandidateFamilyAcceptingProposal')}
                         >
                           Simulate Accept
                         </button>
@@ -1499,17 +1499,17 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Vanshavali Expansion
               </span>
-              <h3 className="text-lg font-black text-white mt-1">Add Family Member to Tree</h3>
+              <h3 className="text-lg font-black text-white mt-1">{t('surfaces.familyRoots.addFamilyMemberToTree')}</h3>
             </div>
 
             <form onSubmit={handleAddFamilyMember} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Full Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.fullName')}</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Somesh Sharma"
+                    placeholder={t('surfaces.familyRoots.eGSomeshSharma')}
                     value={newMemberForm.fullName}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, fullName: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1522,8 +1522,8 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, gender: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Male">Male (Purusha)</option>
-                    <option value="Female">Female (Stree)</option>
+                    <option value="Male">{t('surfaces.familyRoots.malePurusha')}</option>
+                    <option value="Female">{t('surfaces.familyRoots.femaleStree')}</option>
                   </select>
                 </div>
               </div>
@@ -1534,22 +1534,22 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Putra (Son) / Dadi Ji"
+                    placeholder={t('surfaces.familyRoots.eGPutraSonDadiJi')}
                     value={newMemberForm.relationship}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, relationship: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Generation Tier</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.generationTier')}</label>
                   <select
                     value={newMemberForm.generation}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, generation: Number(e.target.value) as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value={1}>Generation 1 (Elders / Grandparents)</option>
-                    <option value={2}>Generation 2 (Karta / Dharma Patni)</option>
-                    <option value={3}>Generation 3 (Children / Sons / Daughters)</option>
+                    <option value={1}>{t('surfaces.familyRoots.generation1EldersGrandparents')}</option>
+                    <option value={2}>{t('surfaces.familyRoots.generation2KartaDharmaPatni')}</option>
+                    <option value={3}>{t('surfaces.familyRoots.generation3ChildrenSonsDaughters')}</option>
                   </select>
                 </div>
               </div>
@@ -1569,7 +1569,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   <label className="text-stone-300 font-bold block mb-1">{t('org.people.devoteeGrid.pravaraRishis')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. Angirasa, Barhaspatya, Bharadwaja"
+                    placeholder={t('surfaces.familyRoots.eGAngirasaBarhaspatyaBharadwaja')}
                     value={newMemberForm.pravara}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, pravara: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1591,7 +1591,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   <label className="text-stone-300 font-bold block mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. B+, O+, A+"
+                    placeholder={t('surfaces.familyRoots.eGBOA')}
                     value={newMemberForm.bloodGroup}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, bloodGroup: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1608,13 +1608,13 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, isDeceased: e.target.checked })}
                     className="rounded border-stone-700 text-amber-500 focus:ring-amber-500"
                   />
-                  <span className="font-bold text-stone-200">Mark as Departed (Divangata)</span>
+                  <span className="font-bold text-stone-200">{t('surfaces.familyRoots.markAsDepartedDivangata')}</span>
                 </label>
 
                 {newMemberForm.isDeceased && (
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div>
-                      <label className="text-stone-400 block mb-1 text-[11px]">Gregorian Date of Demise</label>
+                      <label className="text-stone-400 block mb-1 text-[11px]">{t('surfaces.familyRoots.gregorianDateOfDemise')}</label>
                       <input
                         type="date"
                         value={newMemberForm.deathDate}
@@ -1623,10 +1623,10 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-stone-400 block mb-1 text-[11px]">Lunar Tithi of Demise</label>
+                      <label className="text-stone-400 block mb-1 text-[11px]">{t('surfaces.familyRoots.lunarTithiOfDemise')}</label>
                       <input
                         type="text"
-                        placeholder="e.g. Bhadrapada Krishna Ashtami"
+                        placeholder={t('surfaces.familyRoots.eGBhadrapadaKrishnaAshtami')}
                         value={newMemberForm.lunarTithiOfDeath}
                         onChange={(e) => setNewMemberForm({ ...newMemberForm, lunarTithiOfDeath: e.target.value })}
                         className="w-full bg-stone-900 border border-stone-800 rounded-xl px-2.5 py-1.5 text-white"
@@ -1674,7 +1674,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                 Pitru Memorial Registry
               </span>
-              <h3 className="text-lg font-black text-white mt-1">Register Departed Ancestor</h3>
+              <h3 className="text-lg font-black text-white mt-1">{t('surfaces.familyRoots.registerDepartedAncestor')}</h3>
             </div>
 
             <form onSubmit={handleAddPitruRecord} className="space-y-3.5 text-xs">
@@ -1684,7 +1684,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Pt. Ramakant Sharma"
+                    placeholder={t('surfaces.familyRoots.eGPtRamakantSharma')}
                     value={newPitruForm.ancestorName}
                     onChange={(e) => setNewPitruForm({ ...newPitruForm, ancestorName: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1695,7 +1695,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Dada Ji / Paternal Grandfather"
+                    placeholder={t('surfaces.familyRoots.eGDadaJiPaternalGrandfather')}
                     value={newPitruForm.relationship}
                     onChange={(e) => setNewPitruForm({ ...newPitruForm, relationship: e.target.value })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1705,7 +1705,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Lunar Masa</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.lunarMasa')}</label>
                   <select
                     value={newPitruForm.lunarMasa}
                     onChange={(e) => setNewPitruForm({ ...newPitruForm, lunarMasa: e.target.value })}
@@ -1723,8 +1723,8 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                     onChange={(e) => setNewPitruForm({ ...newPitruForm, lunarPaksha: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-white"
                   >
-                    <option value="Krishna">Krishna (Waning)</option>
-                    <option value="Shukla">Shukla (Waxing)</option>
+                    <option value="Krishna">{t('surfaces.familyRoots.krishnaWaning')}</option>
+                    <option value="Shukla">{t('surfaces.familyRoots.shuklaWaxing')}</option>
                   </select>
                 </div>
                 <div>
@@ -1743,7 +1743,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Date of Demise</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.dateOfDemise2')}</label>
                   <input
                     type="date"
                     required
@@ -1753,17 +1753,17 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Preferred Tirtha Kshetra</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.preferredTirthaKshetra')}</label>
                   <select
                     value={newPitruForm.preferredTirtha}
                     onChange={(e) => setNewPitruForm({ ...newPitruForm, preferredTirtha: e.target.value as any })}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white"
                   >
-                    <option value="Gaya Kshetra">Gaya Kshetra (Phalgu River)</option>
-                    <option value="Kashi Manikarnika">Kashi Manikarnika (Ganga)</option>
-                    <option value="Haridwar Brahma Kund">Haridwar Brahma Kund</option>
-                    <option value="Prayagraj Sangam">Prayagraj Triveni Sangam</option>
-                    <option value="Local Mandir">Local Mandir Sanctum</option>
+                    <option value="Gaya Kshetra">{t('surfaces.familyRoots.gayaKshetraPhalguRiver')}</option>
+                    <option value="Kashi Manikarnika">{t('surfaces.familyRoots.kashiManikarnikaGanga')}</option>
+                    <option value="Haridwar Brahma Kund">{t('surfaces.familyRoots.haridwarBrahmaKund')}</option>
+                    <option value="Prayagraj Sangam">{t('surfaces.familyRoots.prayagrajTriveniSangam')}</option>
+                    <option value="Local Mandir">{t('surfaces.familyRoots.localMandirSanctum')}</option>
                   </select>
                 </div>
               </div>
@@ -1826,7 +1826,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <div className="p-5 rounded-2xl bg-rose-950/70 border-2 border-rose-600 text-rose-200 space-y-2 animate-shake">
                 <div className="flex items-center gap-2 text-rose-400 font-black text-sm uppercase tracking-wider">
                   <AlertTriangle className="w-5 h-5 text-rose-500" />
-                  <span>SAGOTRA HARD BLOCK: Marriage Prohibited</span>
+                  <span>{t('surfaces.familyRoots.sagotraHardBlockMarriageProhibited')}</span>
                 </div>
                 <p className="text-xs leading-relaxed">
                   {activeMilanResult.sagotraDetails}
@@ -1868,7 +1868,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             {/* Manglik Reconciliation Panel */}
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-stone-300">Manglik Dosha Status:</span>
+                <span className="font-bold text-stone-300">{t('surfaces.familyRoots.manglikDoshaStatus')}</span>
                 <span className={`font-black px-2 py-0.5 rounded-full text-[10px] uppercase ${
                   activeMilanResult.manglikMatch.status === 'Harmonious'
                     ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
@@ -1880,7 +1880,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               <p className="text-stone-400 text-[11px]">{activeMilanResult.manglikMatch.description}</p>
               {activeMilanResult.manglikMatch.remedy && (
                 <div className="mt-2 p-2 rounded-xl bg-amber-950/30 border border-amber-500/30 text-amber-300 text-[11px]">
-                  <span className="font-bold">Remedial Shanti: </span>
+                  <span className="font-bold">{t('surfaces.familyRoots.remedialShanti')}{' '}</span>
                   {activeMilanResult.manglikMatch.remedy}
                 </div>
               )}
@@ -1959,11 +1959,11 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
             <div className="bg-stone-950 p-4 rounded-2xl border border-stone-800 space-y-2">
               <div className="flex justify-between">
-                <span className="text-stone-400">Paternal Gotra:</span>
+                <span className="text-stone-400">{t('surfaces.familyRoots.paternalGotra')}</span>
                 <span className="font-black text-amber-200">{selectedCandidateForVanshavali.gotra}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Pravara Rishis:</span>
+                <span className="text-stone-400">{t('surfaces.familyRoots.pravaraRishis')}</span>
                 <span className="text-stone-200">{selectedCandidateForVanshavali.pravara}</span>
               </div>
               <div className="flex justify-between">
@@ -1971,13 +1971,13 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                 <span className="text-stone-200">{selectedCandidateForVanshavali.kuladevata}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Mandir Verification:</span>
+                <span className="text-stone-400">{t('surfaces.familyRoots.mandirVerification')}</span>
                 <span className="text-emerald-400 font-bold">{selectedCandidateForVanshavali.verificationBadge}</span>
               </div>
             </div>
 
             <div>
-              <span className="font-bold text-stone-300 block mb-1">About Family & Traditions:</span>
+              <span className="font-bold text-stone-300 block mb-1">{t('surfaces.familyRoots.aboutFamilyTraditions')}</span>
               <p className="text-stone-300 bg-stone-950/50 p-3 rounded-xl border border-stone-800 leading-relaxed">
                 {selectedCandidateForVanshavali.aboutFamily}
               </p>
@@ -2024,7 +2024,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
             <form onSubmit={handleConfirmPurohitBooking} className="space-y-3">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Ritual Service</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.ritualService')}</label>
                 <input
                   type="text"
                   disabled
@@ -2044,7 +2044,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Execution Date</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.executionDate')}</label>
                   <input
                     type="date"
                     value={purohitBookingForm.bookingDate}
@@ -2055,7 +2055,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Sacred Sankalpa Notes</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.familyRoots.sacredSankalpaNotes')}</label>
                 <textarea
                   rows={2}
                   value={purohitBookingForm.specialSankalp}
@@ -2116,7 +2116,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
             <div className="space-y-3">
               <div className="p-3 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-amber-400">Step 1: Shubh Vivah Muhurat</span>
+                <span className="text-[10px] uppercase font-bold text-amber-400">{t('surfaces.familyRoots.step1ShubhVivahMuhurat')}</span>
                 <p className="text-stone-300">
                   Calculate auspicious lagna and dates through the Vedic Panchang engine.
                 </p>
@@ -2126,14 +2126,14 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
               </div>
 
               <div className="p-3 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-amber-400">Step 2: Temple Kalyana Mandapam</span>
+                <span className="text-[10px] uppercase font-bold text-amber-400">{t('surfaces.familyRoots.step2TempleKalyanaMandapam')}</span>
                 <p className="text-stone-300">
                   Book sanctum hall at Kashi Mandir or Tirumala Kalyana Mandapam with Satvik Prasadam catering.
                 </p>
               </div>
 
               <div className="p-3 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-amber-400">Step 3: Mukhya Purohit Assignment</span>
+                <span className="text-[10px] uppercase font-bold text-amber-400">{t('surfaces.familyRoots.step3MukhyaPurohitAssignment')}</span>
                 <p className="text-stone-300">
                   Book Vedic Acharya for Saptapadi, Kanyadaan, and Laja Homa ceremonies.
                 </p>
@@ -2152,7 +2152,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setIsPlanVivahModalOpen(false);
-                  showToast('Bridged wedding details to Panchang Muhurat and Purohit Desk! 🕉️', 'success');
+                  showToast(t('surfaces.familyRoots.bridgedWeddingDetailsToPanchangMuhurat'), 'success');
                 }}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black shadow-lg cursor-pointer"
               >

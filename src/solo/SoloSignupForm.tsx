@@ -158,7 +158,7 @@ const InnerForm: React.FC = () => {
           <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder={t('solo.signup.cityPlaceholder')} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.gotra')} <span className="normal-case font-medium text-temple-400">(optional, private)</span>
+          <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">{t('solo.signup.gotra')} <span className="normal-case font-medium text-temple-400">{t('surfaces.portalLogin.optionalPrivate')}</span>
           </label>
           <input value={form.gotra} onChange={(e) => setForm({ ...form, gotra: e.target.value })} placeholder={t('solo.signup.gotraPlaceholder')} className={inputCls} />
         </div>

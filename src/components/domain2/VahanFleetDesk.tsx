@@ -191,7 +191,7 @@ export const VahanFleetDesk: React.FC = () => {
   const handleSaveVehicle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!vReg.trim() || !vMake.trim() || !vRto || !vIns || !vPuc) {
-      showToast('Registration, make/model and RTO/Insurance/PUC dates are required', 'warning', 'Vahan Fleet');
+      showToast(t('surfaces.vahanFleet.registrationMakeModelAndRtoInsurance'), 'warning', 'Vahan Fleet');
       return;
     }
     const payload = {
@@ -243,7 +243,7 @@ export const VahanFleetDesk: React.FC = () => {
     e.preventDefault();
     if (!loggingVehicle) return;
     if (!fLiters || !fRate || fOdo === '') {
-      showToast('Odometer, liters and cost/liter are required', 'warning', 'Fuel Log');
+      showToast(t('surfaces.vahanFleet.odometerLitersAndCostLiterAre'), 'warning', 'Fuel Log');
       return;
     }
     const minOdo = Math.max(loggingVehicle.odometerKm, lastOdoFor(loggingVehicle.id));
@@ -279,7 +279,7 @@ export const VahanFleetDesk: React.FC = () => {
       purpose: `Fuel — ${loggingVehicle.registrationNo} — ${Number(fLiters)}L @ ${inr(Number(fRate))}/L`,
       vendorName: fStation.trim() || undefined,
     });
-    showToast('Treasury auto-posted: Fuel Expense', 'info', 'Treasury Sync');
+    showToast(t('surfaces.vahanFleet.treasuryAutoPostedFuelExpense'), 'info', 'Treasury Sync');
     setIsFuelModalOpen(false);
   };
 
@@ -295,7 +295,7 @@ export const VahanFleetDesk: React.FC = () => {
     e.preventDefault();
     if (!serviceVehicle) return;
     if (!sCost) {
-      showToast('Enter the service cost', 'warning', 'Service Log');
+      showToast(t('surfaces.vahanFleet.enterTheServiceCost'), 'warning', 'Service Log');
       return;
     }
     const ok = addServiceRecord({
@@ -325,7 +325,7 @@ export const VahanFleetDesk: React.FC = () => {
       purpose: `Service (${sType}) — ${serviceVehicle.registrationNo}`,
       vendorName: sVendor.trim() || undefined,
     });
-    showToast('Treasury auto-posted: Service Expense', 'info', 'Treasury Sync');
+    showToast(t('surfaces.vahanFleet.treasuryAutoPostedServiceExpense'), 'info', 'Treasury Sync');
     setIsServiceModalOpen(false);
   };
 
@@ -343,7 +343,7 @@ export const VahanFleetDesk: React.FC = () => {
 
   const handleExportRegister = () => {
     if (fleetVehicles.length === 0) {
-      showToast('No vehicles to export yet', 'warning', 'CSV Export');
+      showToast(t('surfaces.vahanFleet.noVehiclesToExportYet'), 'warning', 'CSV Export');
       return;
     }
     exportToCSV(
@@ -380,10 +380,10 @@ export const VahanFleetDesk: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={handleExportRegister} className={btnGhost}>
-            <Download className="w-4 h-4" /> <span>Fleet CSV</span>
+            <Download className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.fleetCsv')}</span>
           </button>
           <button type="button" onClick={openAddModal} className={btnPrimary}>
-            <Plus className="w-4 h-4" /> <span>Add Vehicle</span>
+            <Plus className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.addVehicle')}</span>
           </button>
         </div>
       </div>
@@ -415,28 +415,28 @@ export const VahanFleetDesk: React.FC = () => {
             <Bus className="w-4 h-4 text-saffron-400" /> Fleet Size
           </div>
           <p className="text-3xl font-extrabold text-temple-100 mt-2">{kpis.size}</p>
-          <p className="text-xs text-temple-500 mt-1">Registered vehicles</p>
+          <p className="text-xs text-temple-500 mt-1">{t('surfaces.vahanFleet.registeredVehicles')}</p>
         </div>
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4 text-saffron-400" /> Active Vehicles
           </div>
           <p className="text-3xl font-extrabold text-emerald-300 mt-2">{kpis.active}</p>
-          <p className="text-xs text-temple-500 mt-1">On-road & serviceable</p>
+          <p className="text-xs text-temple-500 mt-1">{t('surfaces.vahanFleet.onRoadServiceable')}</p>
         </div>
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
             <Fuel className="w-4 h-4 text-saffron-400" /> Fuel Spend (30d)
           </div>
           <p className="text-3xl font-extrabold text-temple-100 mt-2">{inr(Math.round(kpis.fuel30d))}</p>
-          <p className="text-xs text-temple-500 mt-1">Last 30 days</p>
+          <p className="text-xs text-temple-500 mt-1">{t('surfaces.vahanFleet.last30Days')}</p>
         </div>
         <div className={`bg-temple-900/90 border rounded-2xl p-5 shadow-lg ${kpis.servicesDue > 0 ? 'border-amber-500/40' : 'border-temple-800'}`}>
           <div className="flex items-center gap-2 text-temple-400 text-[10px] font-bold uppercase tracking-wider">
             <Wrench className={`w-4 h-4 ${kpis.servicesDue > 0 ? 'text-amber-400' : 'text-saffron-400'}`} /> Services Due
           </div>
           <p className={`text-3xl font-extrabold mt-2 ${kpis.servicesDue > 0 ? 'text-amber-300' : 'text-temple-100'}`}>{kpis.servicesDue}</p>
-          <p className="text-xs text-temple-500 mt-1">Due within 30 days</p>
+          <p className="text-xs text-temple-500 mt-1">{t('surfaces.vahanFleet.dueWithin30Days')}</p>
         </div>
       </div>
 
@@ -447,7 +447,7 @@ export const VahanFleetDesk: React.FC = () => {
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search registration, make, driver…"
+            placeholder={t('surfaces.vahanFleet.searchRegistrationMakeDriver')}
             className={`${inputCls} pl-10`}
           />
         </div>
@@ -460,10 +460,10 @@ export const VahanFleetDesk: React.FC = () => {
       {filtered.length === 0 ? (
         <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-12 text-center">
           <Bus className="w-10 h-10 text-temple-600 mx-auto mb-3" />
-          <p className="text-temple-200 font-bold">No vehicles found</p>
-          <p className="text-xs text-temple-500 mt-1">Register your first yatra bus or tractor to track fuel & compliance.</p>
+          <p className="text-temple-200 font-bold">{t('surfaces.vahanFleet.noVehiclesFound')}</p>
+          <p className="text-xs text-temple-500 mt-1">{t('surfaces.vahanFleet.registerYourFirstYatraBusOr')}</p>
           <button type="button" onClick={openAddModal} className={`${btnPrimary} mx-auto mt-4`}>
-            <Plus className="w-4 h-4" /> <span>Add Vehicle</span>
+            <Plus className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.addVehicle')}</span>
           </button>
         </div>
       ) : (
@@ -531,21 +531,21 @@ export const VahanFleetDesk: React.FC = () => {
                     <div className="mt-2 border-t border-temple-800 pt-3 space-y-3">
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="bg-temple-950/60 rounded-xl p-2">
-                          <p className="text-[10px] text-temple-500 uppercase">Fuel Cost</p>
+                          <p className="text-[10px] text-temple-500 uppercase">{t('surfaces.vahanFleet.fuelCost')}</p>
                           <p className="text-sm font-extrabold text-temple-100">{inr(a.fuelCost)}</p>
                         </div>
                         <div className="bg-temple-950/60 rounded-xl p-2">
-                          <p className="text-[10px] text-temple-500 uppercase">Service Cost</p>
+                          <p className="text-[10px] text-temple-500 uppercase">{t('surfaces.vahanFleet.serviceCost')}</p>
                           <p className="text-sm font-extrabold text-temple-100">{inr(a.serviceCost)}</p>
                         </div>
                         <div className="bg-temple-950/60 rounded-xl p-2">
-                          <p className="text-[10px] text-temple-500 uppercase">Cost / km</p>
+                          <p className="text-[10px] text-temple-500 uppercase">{t('surfaces.vahanFleet.costKm')}</p>
                           <p className="text-sm font-extrabold text-saffron-300">{inr(a.costPerKm)}</p>
                         </div>
                       </div>
                       {a.logs.length > 0 && (
                         <div>
-                          <p className="text-[11px] font-bold text-temple-400 uppercase mb-1">Last 10 Fuel Logs</p>
+                          <p className="text-[11px] font-bold text-temple-400 uppercase mb-1">{t('surfaces.vahanFleet.last10FuelLogs')}</p>
                           <div className="space-y-1 max-h-44 overflow-y-auto">
                             {a.logs.slice(0, 10).map((l) => (
                               <div key={l.id} className="flex justify-between text-[11px] bg-temple-950/60 rounded-lg px-2.5 py-1.5 text-temple-300">
@@ -558,7 +558,7 @@ export const VahanFleetDesk: React.FC = () => {
                       )}
                       {a.services.length > 0 && (
                         <div>
-                          <p className="text-[11px] font-bold text-temple-400 uppercase mb-1">Service History</p>
+                          <p className="text-[11px] font-bold text-temple-400 uppercase mb-1">{t('surfaces.vahanFleet.serviceHistory')}</p>
                           <div className="space-y-1 max-h-32 overflow-y-auto">
                             {a.services.map((s) => (
                               <div key={s.id} className="flex justify-between text-[11px] bg-temple-950/60 rounded-lg px-2.5 py-1.5 text-temple-300">
@@ -575,10 +575,10 @@ export const VahanFleetDesk: React.FC = () => {
                 <div className="space-y-2 pt-1">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => openFuelModal(v)} className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-saffron-600 hover:bg-saffron-500 text-temple-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-                      <Fuel className="w-4 h-4" /> <span>Log Fuel</span>
+                      <Fuel className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.logFuel')}</span>
                     </button>
                     <button type="button" onClick={() => openServiceModal(v)} className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-temple-700 hover:bg-temple-600 text-temple-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer">
-                      <Wrench className="w-4 h-4" /> <span>Log Service</span>
+                      <Wrench className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.logService')}</span>
                     </button>
                   </div>
                   <div className="flex gap-2">
@@ -589,10 +589,10 @@ export const VahanFleetDesk: React.FC = () => {
                     >
                       <BarChart3 className="w-4 h-4" /> <span>{isExpanded ? 'Hide Analytics' : 'Analytics'}</span>
                     </button>
-                    <button type="button" onClick={() => openEditModal(v)} className={btnGhost} aria-label="Edit vehicle">
+                    <button type="button" onClick={() => openEditModal(v)} className={btnGhost} aria-label={t('surfaces.vahanFleet.editVehicle')}>
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button type="button" onClick={() => handleDelete(v)} className={`${btnGhost} hover:!bg-red-900/60`} aria-label="Delete vehicle">
+                    <button type="button" onClick={() => handleDelete(v)} className={`${btnGhost} hover:!bg-red-900/60`} aria-label={t('surfaces.vahanFleet.deleteVehicle')}>
                       <Trash2 className="w-4 h-4 text-red-400" />
                     </button>
                   </div>
@@ -614,18 +614,18 @@ export const VahanFleetDesk: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleSaveVehicle} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><label className={labelCls}>Registration No *</label><input value={vReg} onChange={(e) => setVReg(e.target.value.toUpperCase())} className={`${inputCls} font-mono uppercase`} placeholder="e.g. UP 65 AT 4242" /></div>
-              <div><label className={labelCls}>Vehicle Type</label><select value={vType} onChange={(e) => setVType(e.target.value)} className={inputCls}>{VEHICLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
-              <div><label className={labelCls}>Make / Model *</label><input value={vMake} onChange={(e) => setVMake(e.target.value)} className={inputCls} placeholder="e.g. Ashok Leyland Viking" /></div>
-              <div><label className={labelCls}>Fuel Type</label><select value={vFuel} onChange={(e) => setVFuel(e.target.value)} className={inputCls}>{FUEL_TYPES.map((f) => <option key={f} value={f}>{f}</option>)}</select></div>
-              <div><label className={labelCls}>Year of Manufacture</label><input type="number" min={1950} max={new Date().getFullYear()} value={vYear} onChange={(e) => setVYear(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>Odometer (km)</label><input type="number" min={0} value={vOdo} onChange={(e) => setVOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>RTO RC Expiry *</label><input type="date" value={vRto} onChange={(e) => setVRto(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Insurance Expiry *</label><input type="date" value={vIns} onChange={(e) => setVIns(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>PUC Expiry *</label><input type="date" value={vPuc} onChange={(e) => setVPuc(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Fitness Expiry</label><input type="date" value={vFit} onChange={(e) => setVFit(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Driver Name</label><input value={vDriver} onChange={(e) => setVDriver(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Driver Phone</label><input value={vDriverPhone} onChange={(e) => setVDriverPhone(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.registrationNo')}</label><input value={vReg} onChange={(e) => setVReg(e.target.value.toUpperCase())} className={`${inputCls} font-mono uppercase`} placeholder={t('surfaces.vahanFleet.eGUp65At4242')} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.vehicleType')}</label><select value={vType} onChange={(e) => setVType(e.target.value)} className={inputCls}>{VEHICLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.makeModel')}</label><input value={vMake} onChange={(e) => setVMake(e.target.value)} className={inputCls} placeholder={t('surfaces.vahanFleet.eGAshokLeylandViking')} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.fuelType')}</label><select value={vFuel} onChange={(e) => setVFuel(e.target.value)} className={inputCls}>{FUEL_TYPES.map((f) => <option key={f} value={f}>{f}</option>)}</select></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.yearOfManufacture')}</label><input type="number" min={1950} max={new Date().getFullYear()} value={vYear} onChange={(e) => setVYear(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.odometerKm')}</label><input type="number" min={0} value={vOdo} onChange={(e) => setVOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.rtoRcExpiry')}</label><input type="date" value={vRto} onChange={(e) => setVRto(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.insuranceExpiry')}</label><input type="date" value={vIns} onChange={(e) => setVIns(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.pucExpiry')}</label><input type="date" value={vPuc} onChange={(e) => setVPuc(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.fitnessExpiry')}</label><input type="date" value={vFit} onChange={(e) => setVFit(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.driverName')}</label><input value={vDriver} onChange={(e) => setVDriver(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.driverPhone')}</label><input value={vDriverPhone} onChange={(e) => setVDriverPhone(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>Status</label><select value={vStatus} onChange={(e) => setVStatus(e.target.value as FleetVehicle['status'])} className={inputCls}>{V_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
               <div><label className={labelCls}>Notes</label><input value={vNotes} onChange={(e) => setVNotes(e.target.value)} className={inputCls} /></div>
               <div className="sm:col-span-2 flex gap-2 pt-2">
@@ -642,17 +642,17 @@ export const VahanFleetDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setIsFuelModalOpen(false)}>
           <div className="bg-temple-900 border border-temple-700 rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">Log Fuel</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">{t('surfaces.vahanFleet.logFuel')}</h3><LocalOnlyBadge /></div>
               <button type="button" onClick={() => setIsFuelModalOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-temple-800 text-temple-300 hover:bg-temple-700" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-xs text-temple-400 mb-4 font-mono">{loggingVehicle.registrationNo} • last: {Math.max(loggingVehicle.odometerKm, lastOdoFor(loggingVehicle.id)).toLocaleString()} km</p>
             <form onSubmit={handleLogFuel} className="space-y-4">
-              <div><label className={labelCls}>Log Date</label><input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Odometer (km) *</label><input type="number" min={0} value={fOdo} onChange={(e) => setFOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.logDate')}</label><input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.odometerKm2')}</label><input type="number" min={0} value={fOdo} onChange={(e) => setFOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className={labelCls}>Liters *</label><input type="number" min={0} step="0.01" value={fLiters} onChange={(e) => setFLiters(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+                <div><label className={labelCls}>{t('surfaces.vahanFleet.liters')}</label><input type="number" min={0} step="0.01" value={fLiters} onChange={(e) => setFLiters(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
                 <div><label className={labelCls}>Cost / Liter ({wsCurrency.symbol}) *</label><input type="number" min={0} step="0.01" value={fRate} onChange={(e) => setFRate(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
               </div>
               {fLiters !== '' && fRate !== '' && (
@@ -660,14 +660,14 @@ export const VahanFleetDesk: React.FC = () => {
                   Total: {inr((Number(fLiters) * Number(fRate)))}
                 </div>
               )}
-              <div><label className={labelCls}>Fuel Station</label><input value={fStation} onChange={(e) => setFStation(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.fuelStation')}</label><input value={fStation} onChange={(e) => setFStation(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={fMode} onChange={(e) => setFMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
-              <div><label className={labelCls}>Logged By</label><input value={fLoggedBy} onChange={(e) => setFLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.loggedBy')}</label><input value={fLoggedBy} onChange={(e) => setFLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-[11px] text-emerald-200">
-                Auto-posts an <span className="font-bold">Expense → "Vehicle Fuel & Maintenance"</span> entry to the Treasury Ledger.
+                Auto-posts an <span className="font-bold">{t('surfaces.vahanFleet.expenseVehicleFuelMaintenance')}</span> entry to the Treasury Ledger.
               </div>
               <div className="flex gap-2">
-                <button type="submit" className={`${btnPrimary} flex-1`}><Fuel className="w-4 h-4" /> <span>Save Fuel Log</span></button>
+                <button type="submit" className={`${btnPrimary} flex-1`}><Fuel className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.saveFuelLog')}</span></button>
                 <button type="button" onClick={() => setIsFuelModalOpen(false)} className={btnGhost}>Cancel</button>
               </div>
             </form>
@@ -680,27 +680,27 @@ export const VahanFleetDesk: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setIsServiceModalOpen(false)}>
           <div className="bg-temple-900 border border-temple-700 rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">Log Service</h3><LocalOnlyBadge /></div>
+              <div className="flex items-center gap-2 flex-wrap"><h3 className="text-lg font-extrabold text-temple-100">{t('surfaces.vahanFleet.logService')}</h3><LocalOnlyBadge /></div>
               <button type="button" onClick={() => setIsServiceModalOpen(false)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-temple-800 text-temple-300 hover:bg-temple-700" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <p className="text-xs text-temple-400 mb-4 font-mono">{serviceVehicle.registrationNo}</p>
             <form onSubmit={handleLogService} className="space-y-4">
-              <div><label className={labelCls}>Service Date</label><input type="date" value={sDate} onChange={(e) => setSDate(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Service Type</label><select value={sType} onChange={(e) => setSType(e.target.value)} className={inputCls}>{SERVICE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.serviceDate')}</label><input type="date" value={sDate} onChange={(e) => setSDate(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.serviceType')}</label><select value={sType} onChange={(e) => setSType(e.target.value)} className={inputCls}>{SERVICE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
               <div><label className={labelCls}>Cost ({wsCurrency.symbol}) *</label><input type="number" min={0} value={sCost} onChange={(e) => setSCost(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>Vendor / Garage</label><input value={sVendor} onChange={(e) => setSVendor(e.target.value)} className={inputCls} /></div>
-              <div><label className={labelCls}>Odometer (km)</label><input type="number" min={0} value={sOdo} onChange={(e) => setSOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
-              <div><label className={labelCls}>Next Service Due</label><input type="date" value={sNextDue} onChange={(e) => setSNextDue(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.vendorGarage')}</label><input value={sVendor} onChange={(e) => setSVendor(e.target.value)} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.odometerKm')}</label><input type="number" min={0} value={sOdo} onChange={(e) => setSOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.nextServiceDue')}</label><input type="date" value={sNextDue} onChange={(e) => setSNextDue(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>{t('org.finance.bhoomi.paymentMode')}</label><select value={sMode} onChange={(e) => setSMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
-              <div><label className={labelCls}>Handled By</label><input value={sLoggedBy} onChange={(e) => setSLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
+              <div><label className={labelCls}>{t('surfaces.vahanFleet.handledBy')}</label><input value={sLoggedBy} onChange={(e) => setSLoggedBy(e.target.value)} className={inputCls} placeholder={currentRole || 'Office Staff'} /></div>
               <div><label className={labelCls}>Notes</label><input value={sNotes} onChange={(e) => setSNotes(e.target.value)} className={inputCls} /></div>
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-[11px] text-emerald-200">
-                Auto-posts an <span className="font-bold">Expense → "Vehicle Fuel & Maintenance"</span> entry to the Treasury Ledger.
+                Auto-posts an <span className="font-bold">{t('surfaces.vahanFleet.expenseVehicleFuelMaintenance')}</span> entry to the Treasury Ledger.
               </div>
               <div className="flex gap-2">
-                <button type="submit" className={`${btnPrimary} flex-1`}><Wrench className="w-4 h-4" /> <span>Save Service Log</span></button>
+                <button type="submit" className={`${btnPrimary} flex-1`}><Wrench className="w-4 h-4" /> <span>{t('surfaces.vahanFleet.saveServiceLog')}</span></button>
                 <button type="button" onClick={() => setIsServiceModalOpen(false)} className={btnGhost}>Cancel</button>
               </div>
             </form>
@@ -723,9 +723,9 @@ export const VahanFleetDesk: React.FC = () => {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-temple-500 uppercase text-[10px] tracking-wider border-b border-temple-800">
-                <th className="py-2 pr-3">Registration</th>
+                <th className="py-2 pr-3">{t('surfaces.vahanFleet.registration')}</th>
                 <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">RTO RC</th>
+                <th className="py-2 pr-3">{t('surfaces.vahanFleet.rtoRc')}</th>
                 <th className="py-2 pr-3">Insurance</th>
                 <th className="py-2 pr-3">PUC</th>
                 <th className="py-2">Fitness</th>
@@ -733,7 +733,7 @@ export const VahanFleetDesk: React.FC = () => {
             </thead>
             <tbody>
               {fleetVehicles.length === 0 && (
-                <tr><td colSpan={6} className="py-6 text-center text-temple-500">No vehicles registered.</td></tr>
+                <tr><td colSpan={6} className="py-6 text-center text-temple-500">{t('surfaces.vahanFleet.noVehiclesRegistered')}</td></tr>
               )}
               {fleetVehicles.map((v) => {
                 const cell = (date?: string) => {

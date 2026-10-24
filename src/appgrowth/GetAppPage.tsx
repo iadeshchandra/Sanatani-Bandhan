@@ -30,47 +30,11 @@ import { buildSmartLinkUrl } from './deviceDetect';
 import { addToWaitlist } from './growthService';
 import { stashCampaign, appendPlayReferrer } from './attribution';
 import { safeExternalUrl } from '../lib/safeUrl';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import type { GrowthPlatform } from './types';
 import './appgrowth.css';
 
 const GetAppSections = React.lazy(() => import('./GetAppSections'));
-
-/* ------------------------------------------------------------------ */
-/* Language switcher                                                   */
-/* ------------------------------------------------------------------ */
-
-const LANGS = [
-  { code: 'en', label: 'EN' },
-  { code: 'bn', label: 'বাং' },
-  { code: 'hi', label: 'हिं' },
-];
-
-const LanguageSwitcher: React.FC = () => {
-  const { currentLang, changeLanguage } = useLanguage();
-  return (
-    <div
-      className="flex items-center gap-1 rounded-full border border-orange-200/60 bg-white/70 p-1 backdrop-blur"
-      role="group"
-      aria-label="Language"
-    >
-      {LANGS.map((l) => (
-        <button
-          key={l.code}
-          type="button"
-          onClick={() => changeLanguage(l.code)}
-          aria-pressed={currentLang === l.code}
-          className={`min-h-[36px] min-w-[44px] rounded-full px-3 text-xs font-extrabold transition-all ${
-            currentLang === l.code
-              ? 'bg-stone-900 text-white shadow'
-              : 'text-stone-600 hover:bg-orange-100'
-          }`}
-        >
-          {l.label}
-        </button>
-      ))}
-    </div>
-  );
-};
 
 /* ------------------------------------------------------------------ */
 /* Primary CTA cluster — device-appropriate, shared by hero + final CTA */
@@ -372,7 +336,7 @@ export const GetAppPage: React.FC = () => {
               SANATANI BANDHAN
             </span>
           </a>
-          <LanguageSwitcher />
+          <PublicLanguageButton />
         </div>
       </header>
 

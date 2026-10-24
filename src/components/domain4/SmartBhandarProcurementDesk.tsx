@@ -824,25 +824,25 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight flex items-center gap-3">
-              <span>Smart Bhandar, Recipe BOM & Auto-Procurement</span>
+              <span>{t('surfaces.smartBhandar.smartBhandarRecipeBomAutoProcurement')}</span>
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
-              Enterprise inventory control with mathematical stock reservation (<code className="text-amber-300 font-mono">Available = Physical - Committed</code>), automated WhatsApp purchase order dispatch, and 1-click GRN reconciliation with Central Treasury Ledger.
+              Enterprise inventory control with mathematical stock reservation (<code className="text-amber-300 font-mono">{t('surfaces.smartBhandar.availablePhysicalCommitted')}</code>), automated WhatsApp purchase order dispatch, and 1-click GRN reconciliation with Central Treasury Ledger.
             </p>
           </div>
 
           {/* Quick Stat Pill Widget */}
           <div className="flex flex-wrap items-center gap-3 bg-stone-950/80 p-3 rounded-2xl border border-stone-800 backdrop-blur-md shrink-0">
             <div className="text-center px-3 border-r border-stone-800">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Inventory Value</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.smartBhandar.inventoryValue')}</span>
               <span className="text-base sm:text-lg font-black text-amber-300">
                 {wsCurrency.symbol}{(inventorySummary.totalPhysicalValue / 100000).toFixed(2)} Lakh
               </span>
             </div>
 
             <div className="text-center px-3 border-r border-stone-800">
-              <span className="text-[10px] text-stone-400 uppercase font-black block">Low-Stock Alerts</span>
+              <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.smartBhandar.lowStockAlerts')}</span>
               <span className={`text-base sm:text-lg font-black ${inventorySummary.lowStockCount > 0 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`}>
                 {inventorySummary.lowStockCount} Items
               </span>
@@ -854,7 +854,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-lg flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02]"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Bhandar Item</span>
+              <span>{t('surfaces.smartBhandar.addBhandarItem')}</span>
             </button>
           </div>
         </div>
@@ -871,7 +871,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             }`}
           >
             <Boxes className="w-4 h-4" />
-            <span>TAB 1: 📦 Live Inventory & Stock Alerts</span>
+            <span>{t('surfaces.smartBhandar.tab1LiveInventoryStockAlerts')}</span>
             {inventorySummary.lowStockCount > 0 && (
               <span className="ml-1 px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black">
                 {inventorySummary.lowStockCount}
@@ -889,7 +889,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             }`}
           >
             <Scroll className="w-4 h-4" />
-            <span>TAB 2: 📜 Recipe BOM (Bill of Materials) Engine</span>
+            <span>{t('surfaces.smartBhandar.tab2RecipeBomBillOf')}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-stone-950 text-amber-300">
               {recipes.length} Standard Recipes
             </span>
@@ -905,7 +905,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             }`}
           >
             <ShoppingCart className="w-4 h-4" />
-            <span>TAB 3: 🛒 Vendor PO Dispatch & WhatsApp</span>
+            <span>{t('surfaces.smartBhandar.tab3VendorPoDispatchWhatsapp')}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-stone-950 text-amber-300">
               {purchaseOrders.length} POs
             </span>
@@ -921,7 +921,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             }`}
           >
             <Receipt className="w-4 h-4" />
-            <span>TAB 4: 📥 GRN (Goods Receipt) & Treasury Sync</span>
+            <span>{t('surfaces.smartBhandar.tab4GrnGoodsReceiptTreasury')}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               Double-Entry Auto
             </span>
@@ -945,7 +945,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   Bhandar Shastric Guardrail: Dual-Tier Stock Computation
                 </span>
                 <p className="text-stone-300">
-                  <strong className="text-white">Available Stock</strong> = Physical Stock (Vault Floor) - Committed Stock (Reserved for upcoming Yagnas, Pujas & Annadanam).
+                  <strong className="text-white">{t('surfaces.smartBhandar.availableStock')}</strong> = Physical Stock (Vault Floor) - Committed Stock (Reserved for upcoming Yagnas, Pujas & Annadanam).
                   When Available Stock drops below the Reorder Threshold, instant auto-draft PO actions are activated.
                 </p>
               </div>
@@ -973,7 +973,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                 <input
                   type="text"
-                  placeholder="Search item, Sanskrit name, storage vault..."
+                  placeholder={t('surfaces.smartBhandar.searchItemSanskritNameStorageVault')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
@@ -985,13 +985,13 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-300 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
-                <option value="ALL">All Bhandar Categories</option>
-                <option value="Dairy & Ghee">Dairy & Ghee</option>
-                <option value="Annadanam Ration">Annadanam Ration</option>
-                <option value="Puja Samagri">Puja Samagri</option>
-                <option value="Sacred Herbs">Sacred Herbs</option>
-                <option value="Spices & Oils">Spices & Oils</option>
-                <option value="Dry Fruits & Sweets">Dry Fruits & Sweets</option>
+                <option value="ALL">{t('surfaces.smartBhandar.allBhandarCategories')}</option>
+                <option value="Dairy & Ghee">{t('surfaces.smartBhandar.dairyGhee')}</option>
+                <option value="Annadanam Ration">{t('surfaces.smartBhandar.annadanamRation')}</option>
+                <option value="Puja Samagri">{t('surfaces.smartBhandar.pujaSamagri')}</option>
+                <option value="Sacred Herbs">{t('surfaces.smartBhandar.sacredHerbs')}</option>
+                <option value="Spices & Oils">{t('surfaces.smartBhandar.spicesOils')}</option>
+                <option value="Dry Fruits & Sweets">{t('surfaces.smartBhandar.dryFruitsSweets')}</option>
               </select>
             </div>
 
@@ -1002,7 +1002,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>New Bhandar SKU</span>
+                <span>{t('surfaces.smartBhandar.newBhandarSku')}</span>
               </button>
             </div>
           </div>
@@ -1013,15 +1013,15 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-stone-950 border-b border-stone-800 text-stone-400 uppercase font-black tracking-wider text-[10px]">
-                    <th className="py-3 px-4">Item & Sanskrit Spec</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.itemSanskritSpec')}</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4 text-center">Unit</th>
-                    <th className="py-3 px-4 text-right">Physical Stock</th>
+                    <th className="py-3 px-4 text-right">{t('surfaces.smartBhandar.physicalStock')}</th>
                     <th className="py-3 px-4 text-right">Committed</th>
-                    <th className="py-3 px-4 text-right">Available Stock</th>
-                    <th className="py-3 px-4 text-right">Reorder Threshold</th>
+                    <th className="py-3 px-4 text-right">{t('surfaces.smartBhandar.availableStock')}</th>
+                    <th className="py-3 px-4 text-right">{t('surfaces.smartBhandar.reorderThreshold')}</th>
                     <th className="py-3 px-4 text-right">Unit Rate ({wsCurrency.symbol})</th>
-                    <th className="py-3 px-4 text-center">Health Status</th>
+                    <th className="py-3 px-4 text-center">{t('surfaces.smartBhandar.healthStatus')}</th>
                     <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
@@ -1122,10 +1122,10 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                                 type="button"
                                 onClick={() => handleAutoDraftPO(item)}
                                 className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[10px] flex items-center gap-1 shadow transition-transform active:scale-95 cursor-pointer"
-                                title="Generate Instant PO"
+                                title={t('surfaces.smartBhandar.generateInstantPo')}
                               >
                                 <ShoppingCart className="w-3 h-3" />
-                                <span>Draft PO</span>
+                                <span>{t('surfaces.smartBhandar.draftPo')}</span>
                               </button>
                             )}
 
@@ -1137,7 +1137,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                                 setAdjustType('ADD');
                               }}
                               className="px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 font-bold text-[10px] transition-colors cursor-pointer"
-                              title="Stock Inward/Outward Adjustment"
+                              title={t('surfaces.smartBhandar.stockInwardOutwardAdjustment')}
                             >
                               Adjust
                             </button>
@@ -1163,7 +1163,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             <div>
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Scroll className="w-4 h-4 text-amber-400" />
-                <span>Recipe Bill of Materials (BOM) Standard Directory</span>
+                <span>{t('surfaces.smartBhandar.recipeBillOfMaterialsBomStandard')}</span>
               </h3>
               <p className="text-xs text-stone-400 mt-1">
                 Configure standardized ingredient requirements for Yagnas, Rudrabhishekam, and Annadanam. Calculate exact batch requirements and commit stock in real time.
@@ -1176,7 +1176,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Configure New Recipe BOM</span>
+              <span>{t('surfaces.smartBhandar.configureNewRecipeBom')}</span>
             </button>
           </div>
 
@@ -1246,7 +1246,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
                     <ChefHat className="w-3.5 h-3.5" />
-                    <span>Scale Batch & Reserve Stock</span>
+                    <span>{t('surfaces.smartBhandar.scaleBatchReserveStock')}</span>
                   </button>
                 </div>
               </div>
@@ -1265,7 +1265,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             <div>
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-amber-400" />
-                <span>Vendor Purchase Order (PO) Management & Dispatch</span>
+                <span>{t('surfaces.smartBhandar.vendorPurchaseOrderPoManagementDispatch')}</span>
               </h3>
               <p className="text-xs text-stone-400 mt-0.5">
                 Generate procurement orders for trusted temple vendors and dispatch immediately via official WhatsApp strings.
@@ -1278,7 +1278,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Manual PO</span>
+              <span>{t('surfaces.smartBhandar.createManualPo')}</span>
             </button>
           </div>
 
@@ -1288,11 +1288,11 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-stone-950 border-b border-stone-800 text-stone-400 uppercase font-black tracking-wider text-[10px]">
-                    <th className="py-3 px-4">PO Number & Date</th>
-                    <th className="py-3 px-4">Vendor & Phone</th>
-                    <th className="py-3 px-4">Line Items</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.poNumberDate')}</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.vendorPhone')}</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.lineItems')}</th>
                     <th className="py-3 px-4 text-right">Total Value ({wsCurrency.symbol})</th>
-                    <th className="py-3 px-4">Expected Delivery</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.expectedDelivery')}</th>
                     <th className="py-3 px-4 text-center">Status</th>
                     <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
@@ -1363,7 +1363,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                                 type="button"
                                 onClick={() => handleDispatchPOViaWhatsApp(po)}
                                 className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition-colors cursor-pointer"
-                                title="Send via WhatsApp to Vendor"
+                                title={t('surfaces.smartBhandar.sendViaWhatsappToVendor')}
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
                                 <span>{isDispatched ? 'Resend WA' : 'Dispatch WA'}</span>
@@ -1376,10 +1376,10 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                                 type="button"
                                 onClick={() => handleOpenGRNModal(po)}
                                 className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs flex items-center gap-1.5 shadow transition-colors cursor-pointer"
-                                title="Accept Goods Receipt Note & Post to Treasury"
+                                title={t('surfaces.smartBhandar.acceptGoodsReceiptNotePostTo')}
                               >
                                 <Receipt className="w-3.5 h-3.5" />
-                                <span>Inward GRN</span>
+                                <span>{t('surfaces.smartBhandar.inwardGrn')}</span>
                               </button>
                             )}
 
@@ -1415,8 +1415,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </span>
               <p className="text-stone-300 leading-relaxed">
                 When a Goods Receipt Note (GRN) is accepted, the system simultaneously updates two operational databases in real time:
-                (1) <strong>Physical Stock Balance</strong> in the Bhandar Vault is incremented by the verified quantity, and
-                (2) An <strong>Expense Ledger Entry</strong> is automatically posted to the Central Treasury (<code className="text-amber-300 font-mono">Bhandar & Ration Procurement</code>), eliminating manual accountant reconciliation.
+                (1) <strong>{t('surfaces.smartBhandar.physicalStockBalance')}</strong> in the Bhandar Vault is incremented by the verified quantity, and
+                (2) An <strong>{t('surfaces.smartBhandar.expenseLedgerEntry')}</strong>{' '}{t('surfaces.smartBhandar.isAutomaticallyPostedToTheCentral')}<code className="text-amber-300 font-mono">{t('surfaces.smartBhandar.bhandarRationProcurement')}</code>), eliminating manual accountant reconciliation.
               </p>
             </div>
           </div>
@@ -1426,7 +1426,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-emerald-400" />
-                <span>Historical GRN & Treasury Inward Register</span>
+                <span>{t('surfaces.smartBhandar.historicalGrnTreasuryInwardRegister')}</span>
               </h3>
               <span className="text-xs text-stone-400 font-mono">
                 {grns.length} Verified Inwards
@@ -1437,13 +1437,13 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-stone-950 border-b border-stone-800 text-stone-400 uppercase font-black tracking-wider text-[10px]">
-                    <th className="py-3 px-4">GRN & PO Ref</th>
-                    <th className="py-3 px-4">Receipt Date</th>
-                    <th className="py-3 px-4">Vendor & Challan</th>
-                    <th className="py-3 px-4">Inspected By</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.grnPoRef')}</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.receiptDate')}</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.vendorChallan')}</th>
+                    <th className="py-3 px-4">{t('surfaces.smartBhandar.inspectedBy')}</th>
                     <th className="py-3 px-4 text-right">Inward Value ({wsCurrency.symbol})</th>
-                    <th className="py-3 px-4 text-center">Quality Status</th>
-                    <th className="py-3 px-4 text-center">Treasury Sync</th>
+                    <th className="py-3 px-4 text-center">{t('surfaces.smartBhandar.qualityStatus')}</th>
+                    <th className="py-3 px-4 text-center">{t('surfaces.smartBhandar.treasurySync')}</th>
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
@@ -1562,7 +1562,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   </div>
                 ))}
                 <div className="pt-2 border-t border-stone-800 flex justify-between font-bold text-white text-sm">
-                  <span>Total Inward Value:</span>
+                  <span>{t('surfaces.smartBhandar.totalInwardValue')}</span>
                   <span className="text-emerald-400">{inr(selectedPOForGRN.totalAmount)}</span>
                 </div>
               </div>
@@ -1593,7 +1593,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-stone-300 text-[11px] leading-relaxed">
-                ⚡ <strong>Treasury Handoff:</strong> Clicking "Accept GRN" will automatically update stock in Bhandar and log an expense transaction in the Mandir Treasury under <em>Bhandar & Ration Procurement</em>.
+                ⚡ <strong>{t('surfaces.smartBhandar.treasuryHandoff')}</strong>{' '}{t('surfaces.smartBhandar.clickingAcceptGrnWillAutomaticallyUpdate')}{' '}<em>{t('surfaces.smartBhandar.bhandarRationProcurement')}</em>.
               </div>
 
               </div>
@@ -1610,7 +1610,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-stone-950 font-black flex items-center gap-1.5 shadow-lg cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Accept GRN & Post Treasury</span>
+                  <span>{t('surfaces.smartBhandar.acceptGrnPostTreasury')}</span>
                 </button>
               </div>
             </form>
@@ -1722,7 +1722,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-black flex items-center gap-1.5 shadow-lg cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Confirm Stock Reservation</span>
+                  <span>{t('surfaces.smartBhandar.confirmStockReservation')}</span>
                 </button>
               </div>
             </div>
@@ -1738,7 +1738,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-md w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-400">Stock Adjustment</span>
+                <span className="text-[10px] font-black uppercase text-amber-400">{t('surfaces.smartBhandar.stockAdjustment')}</span>
                 <h3 className="text-base font-black text-white mt-0.5">{adjustItem.name}</h3>
                 <span className="text-xs text-stone-400 font-mono">Current Physical: {adjustItem.physicalStock} {adjustItem.unit}</span>
               </div>
@@ -1815,8 +1815,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-400">Inventory Catalog</span>
-                <h3 className="text-lg font-black text-white mt-0.5">Register New Bhandar Item</h3>
+                <span className="text-[10px] font-black uppercase text-amber-400">{t('surfaces.smartBhandar.inventoryCatalog')}</span>
+                <h3 className="text-lg font-black text-white mt-0.5">{t('surfaces.smartBhandar.registerNewBhandarItem')}</h3>
               </div>
               <button
                 type="button"
@@ -1864,21 +1864,21 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="text-stone-300 font-bold block mb-1">Item Name *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.itemName')}</label>
                   <input
                     type="text"
                     name="name"
                     required
-                    placeholder="e.g. Kashmiri Kesar / Saffron"
+                    placeholder={t('surfaces.smartBhandar.eGKashmiriKesarSaffron')}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="text-stone-300 font-bold block mb-1">Sanskrit / Shastric Name</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.sanskritShastricName')}</label>
                   <input
                     type="text"
                     name="sanskrit"
-                    placeholder="e.g. Kumkuma (कुङ्कुम)"
+                    placeholder={t('surfaces.smartBhandar.eGKumkuma')}
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1886,21 +1886,21 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Category *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.category')}</label>
                   <select
                     name="category"
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="Puja Samagri">Puja Samagri</option>
-                    <option value="Annadanam Ration">Annadanam Ration</option>
-                    <option value="Dairy & Ghee">Dairy & Ghee</option>
-                    <option value="Dry Fruits & Sweets">Dry Fruits & Sweets</option>
-                    <option value="Spices & Oils">Spices & Oils</option>
-                    <option value="Sacred Herbs">Sacred Herbs</option>
+                    <option value="Puja Samagri">{t('surfaces.smartBhandar.pujaSamagri')}</option>
+                    <option value="Annadanam Ration">{t('surfaces.smartBhandar.annadanamRation')}</option>
+                    <option value="Dairy & Ghee">{t('surfaces.smartBhandar.dairyGhee')}</option>
+                    <option value="Dry Fruits & Sweets">{t('surfaces.smartBhandar.dryFruitsSweets')}</option>
+                    <option value="Spices & Oils">{t('surfaces.smartBhandar.spicesOils')}</option>
+                    <option value="Sacred Herbs">{t('surfaces.smartBhandar.sacredHerbs')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Measurement Unit *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.measurementUnit')}</label>
                   <select
                     name="unit"
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -1908,7 +1908,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     <option value="kg">kg</option>
                     <option value="L">L</option>
                     <option value="grams">grams</option>
-                    <option value="tin (15L)">tin (15L)</option>
+                    <option value="tin (15L)">{t('surfaces.smartBhandar.tin15l')}</option>
                     <option value="bundle">bundle</option>
                     <option value="pack">pack</option>
                   </select>
@@ -1917,7 +1917,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Physical Stock</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.physicalStock')}</label>
                   <input
                     type="number"
                     name="physicalStock"
@@ -1926,7 +1926,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   />
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Reorder Level</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.reorderLevel')}</label>
                   <input
                     type="number"
                     name="reorder"
@@ -1946,11 +1946,11 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Storage Room / Vault</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.storageRoomVault')}</label>
                 <input
                   type="text"
                   name="location"
-                  placeholder="e.g. Vault 3 - Fragrant Herbs Cabinet"
+                  placeholder={t('surfaces.smartBhandar.eGVault3FragrantHerbs')}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -2009,20 +2009,20 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 <span className="text-white font-bold">{viewingGRNVoucher.vendorName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Challan / Invoice:</span>
+                <span className="text-stone-400">{t('surfaces.smartBhandar.challanInvoice')}</span>
                 <span className="text-amber-300 font-mono">{viewingGRNVoucher.invoiceChallanNo}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Inspecting Officer:</span>
+                <span className="text-stone-400">{t('surfaces.smartBhandar.inspectingOfficer')}</span>
                 <span className="text-stone-200">{viewingGRNVoucher.inspectedBy}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-stone-400">Treasury Entry Ref:</span>
+                <span className="text-stone-400">{t('surfaces.smartBhandar.treasuryEntryRef')}</span>
                 <span className="text-emerald-400 font-mono font-bold">{viewingGRNVoucher.treasuryTxRef}</span>
               </div>
 
               <div className="pt-2 border-t border-stone-800 space-y-1.5">
-                <span className="text-[10px] text-stone-400 uppercase font-black block">Inward Line Items:</span>
+                <span className="text-[10px] text-stone-400 uppercase font-black block">{t('surfaces.smartBhandar.inwardLineItems')}</span>
                 {viewingGRNVoucher.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between text-xs">
                     <span className="text-stone-300">{it.itemName} ({it.receivedQty} {it.unit})</span>
@@ -2032,7 +2032,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div className="pt-2 border-t border-stone-800 flex justify-between font-bold text-white text-sm">
-                <span>Total Settled Inward:</span>
+                <span>{t('surfaces.smartBhandar.totalSettledInward')}</span>
                 <span className="text-emerald-400">{inr(viewingGRNVoucher.totalAmount)}</span>
               </div>
             </div>
@@ -2067,8 +2067,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-400">Procurement Desk</span>
-                <h3 className="text-lg font-black text-white mt-0.5">Draft Purchase Order</h3>
+                <span className="text-[10px] font-black uppercase text-amber-400">{t('surfaces.smartBhandar.procurementDesk')}</span>
+                <h3 className="text-lg font-black text-white mt-0.5">{t('surfaces.smartBhandar.draftPurchaseOrder')}</h3>
               </div>
               <button
                 type="button"
@@ -2123,7 +2123,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             >
               <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Select Preferred Vendor *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.selectPreferredVendor')}</label>
                 <select
                   name="vendorId"
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -2138,7 +2138,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Select Bhandar Item *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.selectBhandarItem')}</label>
                   <select
                     name="itemId"
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
@@ -2151,7 +2151,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   </select>
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Quantity to Order *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.quantityToOrder')}</label>
                   <input
                     type="number"
                     name="qty"
@@ -2164,10 +2164,10 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Special Delivery Notes</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.specialDeliveryNotes')}</label>
                 <textarea
                   name="notes"
-                  placeholder="e.g. Please supply fresh batches for upcoming Purnima festival."
+                  placeholder={t('surfaces.smartBhandar.eGPleaseSupplyFreshBatches')}
                   rows={2}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 />
@@ -2202,8 +2202,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl animate-scaleUp max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between px-6 sm:px-8 pt-5 sm:pt-8 shrink-0">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-400">Recipe Engineering</span>
-                <h3 className="text-lg font-black text-white mt-0.5">Configure Shastric Recipe BOM</h3>
+                <span className="text-[10px] font-black uppercase text-amber-400">{t('surfaces.smartBhandar.recipeEngineering')}</span>
+                <h3 className="text-lg font-black text-white mt-0.5">{t('surfaces.smartBhandar.configureShastricRecipeBom')}</h3>
               </div>
               <button
                 type="button"
@@ -2240,36 +2240,36 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                 persistRecipes([newRecipe, ...recipes]);
                 setIsAddRecipeModalOpen(false);
-                showToast(`Recipe BOM "${name}" created successfully!`, 'success');
+                showToast(t('surfaces.smartBhandar.recipeBom') + `${name}" created successfully!`, 'success');
               }}
               className="flex flex-col min-h-0 grow text-xs"
             >
               <div className="overflow-y-auto min-h-0 px-6 sm:px-8 py-4 space-y-3.5">
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Recipe / Ritual Title *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.recipeRitualTitle')}</label>
                 <input
                   type="text"
                   name="name"
                   required
-                  placeholder="e.g. Satyanarayan Vrat Katha & Prasad"
+                  placeholder={t('surfaces.smartBhandar.eGSatyanarayanVratKathaPrasad')}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Type *</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.type')}</label>
                   <select
                     name="type"
                     className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                   >
-                    <option value="PUJA_SAMAGRI">Puja Samagri</option>
-                    <option value="ANNADANAM_MEALS">Annadanam Meals</option>
-                    <option value="HAVAN_SACRED_FIRE">Havan Sacred Fire</option>
+                    <option value="PUJA_SAMAGRI">{t('surfaces.smartBhandar.pujaSamagri')}</option>
+                    <option value="ANNADANAM_MEALS">{t('surfaces.smartBhandar.annadanamMeals')}</option>
+                    <option value="HAVAN_SACRED_FIRE">{t('surfaces.smartBhandar.havanSacredFire')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-stone-300 font-bold block mb-1">Base Batch Size</label>
+                  <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.baseBatchSize')}</label>
                   <input
                     type="number"
                     name="baseBatchSize"
@@ -2280,7 +2280,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Base Unit Label *</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.baseUnitLabel')}</label>
                 <input
                   type="text"
                   name="baseUnitLabel"
@@ -2291,10 +2291,10 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               </div>
 
               <div>
-                <label className="text-stone-300 font-bold block mb-1">Description / Shastric Instructions</label>
+                <label className="text-stone-300 font-bold block mb-1">{t('surfaces.smartBhandar.descriptionShastricInstructions')}</label>
                 <textarea
                   name="description"
-                  placeholder="Details on preparation, required offering vessels, etc."
+                  placeholder={t('surfaces.smartBhandar.detailsOnPreparationRequiredOfferingVessels')}
                   rows={2}
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
                 />

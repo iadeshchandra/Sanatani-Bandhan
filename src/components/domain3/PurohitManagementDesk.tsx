@@ -261,7 +261,7 @@ export const PurohitManagementDesk: React.FC = () => {
   const handleRegisterPurohit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPriestForm.name.trim() || !newPriestForm.phone.trim()) {
-      showToast('Please enter Acharya name and contact phone.', 'error');
+      showToast(t('surfaces.purohitMgmt.pleaseEnterAcharyaNameAndContact'), 'error');
       return;
     }
 
@@ -690,7 +690,7 @@ export const PurohitManagementDesk: React.FC = () => {
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 text-stone-950" />
-                <span className="hidden sm:inline">Register Acharya</span>
+                <span className="hidden sm:inline">{t('surfaces.purohitMgmt.registerAcharya')}</span>
                 <span className="sm:hidden">Add</span>
               </button>
             )}
@@ -699,7 +699,7 @@ export const PurohitManagementDesk: React.FC = () => {
               type="button"
               onClick={handlePrintRoster}
               className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-white transition-colors cursor-pointer"
-              title="Print Current Desk View"
+              title={t('surfaces.purohitMgmt.printCurrentDeskView')}
             >
               <Printer className="w-4 h-4" />
             </button>
@@ -764,7 +764,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by Acharya name, city, gotra, qualification, or ritual (e.g. Rudrabhishek, Vastu)..."
+                    placeholder={t('surfaces.purohitMgmt.searchByAcharyaNameCityGotra')}
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-stone-900 border border-stone-800 text-xs sm:text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
                   />
                   {searchQuery && (
@@ -788,9 +788,9 @@ export const PurohitManagementDesk: React.FC = () => {
                     onChange={(e) => setSelectedAvailability(e.target.value)}
                     className="px-3 py-2 rounded-xl bg-stone-900 border border-stone-800 text-xs font-bold text-stone-200 focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
-                    <option value="ALL">All Status</option>
+                    <option value="ALL">{t('surfaces.purohitMgmt.allStatus')}</option>
                     <option value="AVAILABLE">Available</option>
-                    <option value="ON CALL">On Call</option>
+                    <option value="ON CALL">{t('surfaces.purohitMgmt.onCall')}</option>
                     <option value="TRAVELING">Traveling</option>
                   </select>
                 </div>
@@ -851,7 +851,7 @@ export const PurohitManagementDesk: React.FC = () => {
                                 {priest.name || priest.fullName}
                               </h3>
                               {priest.verifiedByMandirTrust && (
-                                <span title="Parishad Verified">
+                                <span title={t('surfaces.purohitMgmt.parishadVerified')}>
                                   <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                                 </span>
                               )}
@@ -881,7 +881,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
                       {/* Qualification & Experience */}
                       <p className="text-xs text-stone-300 line-clamp-2 bg-stone-900/60 p-2.5 rounded-2xl border border-stone-800/80 mb-3">
-                        <span className="text-amber-400 font-bold block text-[11px] mb-0.5">Vedic Qualification:</span>
+                        <span className="text-amber-400 font-bold block text-[11px] mb-0.5">{t('surfaces.purohitMgmt.vedicQualification')}</span>
                         {priest.vedicQualification || 'Rig-Yajur Veda Samhita Adhyayan'}
                       </p>
 
@@ -960,8 +960,8 @@ export const PurohitManagementDesk: React.FC = () => {
             {filteredPurohits.length === 0 && (
               <div className="text-center py-12 bg-stone-950/40 rounded-3xl border border-stone-800">
                 <Users className="w-10 h-10 text-stone-600 mx-auto mb-2" />
-                <h4 className="text-base font-bold text-stone-300">No Purohits matching filter criteria</h4>
-                <p className="text-xs text-stone-500 mt-1">Try resetting your search query or Veda Shakha filter.</p>
+                <h4 className="text-base font-bold text-stone-300">{t('surfaces.purohitMgmt.noPurohitsMatchingFilterCriteria')}</h4>
+                <p className="text-xs text-stone-500 mt-1">{t('surfaces.purohitMgmt.tryResettingYourSearchQueryOr')}</p>
               </div>
             )}
           </div>
@@ -978,7 +978,7 @@ export const PurohitManagementDesk: React.FC = () => {
               <div>
                 <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
                   <Flame className="w-5 h-5 text-amber-400" />
-                  <span>Smart Ritual & Puja Assignment Engine</span>
+                  <span>{t('surfaces.purohitMgmt.smartRitualPujaAssignmentEngine')}</span>
                 </h2>
                 <p className="text-xs text-stone-400 mt-0.5">
                   Algorithmic matching of pending devotee sankalpa bookings with accredited Purohits based on Veda Shakha, specialization, and availability.
@@ -1050,13 +1050,13 @@ export const PurohitManagementDesk: React.FC = () => {
                             <span className="font-bold text-white">{booking.devoteeName}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">Gotra / Nakshatra</span>
+                            <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraNakshatra')}</span>
                             <span className="font-semibold text-amber-300">
                               {booking.gotra} {booking.nakshatra ? `• ${booking.nakshatra}` : ''}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">Date & Muhurat</span>
+                            <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.dateMuhurat')}</span>
                             <span className="font-semibold text-stone-200">
                               {booking.bookingDate || booking.tithiDate || 'Upcoming'} ({booking.timeSlot})
                             </span>
@@ -1082,7 +1082,7 @@ export const PurohitManagementDesk: React.FC = () => {
                           <div className="flex items-center gap-2 bg-stone-900/90 px-3.5 py-2 rounded-2xl border border-emerald-500/30">
                             <UserCheck className="w-4 h-4 text-emerald-400" />
                             <div>
-                              <span className="text-[10px] text-stone-400 uppercase font-bold block">Lead Purohit</span>
+                              <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.leadPurohit')}</span>
                               <span className="text-xs font-black text-emerald-300">{assigned}</span>
                             </div>
                             {isAdminOrTrustee && (
@@ -1102,7 +1102,7 @@ export const PurohitManagementDesk: React.FC = () => {
                             className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black text-xs shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
                           >
                             <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
-                            <span>Auto-Match & Assign Purohit</span>
+                            <span>{t('surfaces.purohitMgmt.autoMatchAssignPurohit')}</span>
                           </button>
                         )}
                       </div>
@@ -1115,8 +1115,8 @@ export const PurohitManagementDesk: React.FC = () => {
               {displayBookings.length === 0 && (
                 <div className="text-center py-12 bg-stone-950/40 rounded-3xl border border-stone-800">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h4 className="text-base font-bold text-stone-300">All Ritual Bookings are Assigned!</h4>
-                  <p className="text-xs text-stone-500 mt-1">There are no pending rituals waiting for Purohit allocation.</p>
+                  <h4 className="text-base font-bold text-stone-300">{t('surfaces.purohitMgmt.allRitualBookingsAreAssigned')}</h4>
+                  <p className="text-xs text-stone-500 mt-1">{t('surfaces.purohitMgmt.thereAreNoPendingRitualsWaiting')}</p>
                 </div>
               )}
             </div>
@@ -1135,7 +1135,7 @@ export const PurohitManagementDesk: React.FC = () => {
               <div>
                 <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
                   <Clock className="w-5 h-5 text-amber-400" />
-                  <span>Sanctum Aarti & Daily Duty Rotations</span>
+                  <span>{t('surfaces.purohitMgmt.sanctumAartiDailyDutyRotations')}</span>
                 </h2>
                 <p className="text-xs text-stone-400 mt-0.5">
                   Official shift ledger for temple Sanctum Sanctorum, Bhoga preparations, and evening Ganga Aarti rotations.
@@ -1209,7 +1209,7 @@ export const PurohitManagementDesk: React.FC = () => {
                       {/* Right: On-Duty Priests & Swap Action */}
                       <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-stone-800 shrink-0">
                         <div className="text-left md:text-right">
-                          <span className="text-[10px] uppercase font-bold text-stone-400 block">Lead Acharya</span>
+                          <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.purohitMgmt.leadAcharya')}</span>
                           <span className="text-xs font-black text-amber-300">{shift.leadPurohit}</span>
                           {shift.assistantPurohit && (
                             <span className="text-[10px] text-stone-400 block mt-0.5">
@@ -1251,46 +1251,46 @@ export const PurohitManagementDesk: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
                 <div className="flex items-center justify-between text-stone-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Gross Dakshina Volume</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.grossDakshinaVolume')}</span>
                   <Coins className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-white">
                   {inr(financialTotals.gross)}
                 </div>
-                <p className="text-[11px] text-stone-500 mt-1">From all scheduled temple rituals</p>
+                <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.fromAllScheduledTempleRituals')}</p>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
                 <div className="flex items-center justify-between text-stone-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Disbursed to Acharyas</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.disbursedToAcharyas')}</span>
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="text-2xl font-black text-emerald-400">
                   {inr(financialTotals.settled)}
                 </div>
-                <p className="text-[11px] text-stone-500 mt-1">Successfully settled via direct transfer</p>
+                <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.successfullySettledViaDirectTransfer')}</p>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
                 <div className="flex items-center justify-between text-stone-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Pending Disbursals</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.pendingDisbursals')}</span>
                   <AlertCircle className="w-4 h-4 text-rose-400" />
                 </div>
                 <div className="text-2xl font-black text-rose-400">
                   {inr(financialTotals.pending)}
                 </div>
-                <p className="text-[11px] text-stone-500 mt-1">Awaiting trust approval & disbursement</p>
+                <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.awaitingTrustApprovalDisbursement')}</p>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
                 <div className="flex items-center justify-between text-stone-400 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider">Average Honorarium</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.averageHonorarium')}</span>
                   <TrendingUp className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl font-black text-amber-300">
                   {inr(financialTotals.avgPerPuja)}
                 </div>
-                <p className="text-[11px] text-stone-500 mt-1">Per ritual ceremony completed</p>
+                <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.perRitualCeremonyCompleted')}</p>
               </div>
             </div>
 
@@ -1311,11 +1311,11 @@ export const PurohitManagementDesk: React.FC = () => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-stone-800 text-stone-400 uppercase text-[10px] tracking-wider">
-                      <th className="py-3 px-3">Acharya Name</th>
+                      <th className="py-3 px-3">{t('surfaces.purohitMgmt.acharyaName')}</th>
                       <th className="py-3 px-3">Pujas</th>
-                      <th className="py-3 px-3">Gross Dakshina</th>
-                      <th className="py-3 px-3">Trust Nidhi (15%)</th>
-                      <th className="py-3 px-3">Net Payable</th>
+                      <th className="py-3 px-3">{t('surfaces.purohitMgmt.grossDakshina')}</th>
+                      <th className="py-3 px-3">{t('surfaces.purohitMgmt.trustNidhi15')}</th>
+                      <th className="py-3 px-3">{t('surfaces.purohitMgmt.netPayable')}</th>
                       <th className="py-3 px-3">Disbursed</th>
                       <th className="py-3 px-3">Pending</th>
                       <th className="py-3 px-3 text-right">Status</th>
@@ -1489,7 +1489,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
                   <div className="flex items-center gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-800">
                     <div className="text-right">
-                      <span className="text-[10px] text-stone-400 block">Suggested Dakshina</span>
+                      <span className="text-[10px] text-stone-400 block">{t('surfaces.purohitMgmt.suggestedDakshina')}</span>
                       <span className="text-xs font-bold text-amber-300">
                         {inr(priest.suggestedDakshina ?? 5100)}
                       </span>
@@ -1540,24 +1540,24 @@ export const PurohitManagementDesk: React.FC = () => {
               <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Acharya Full Name *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.acharyaFullName')}</label>
                   <input
                     type="text"
                     required
                     value={newPriestForm.name}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, name: e.target.value })}
-                    placeholder="Pt. Devendra Shastri"
+                    placeholder={t('surfaces.purohitMgmt.ptDevendraShastri')}
                     className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Vidwat Title</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vidwatTitle')}</label>
                   <input
                     type="text"
                     value={newPriestForm.vidwatTitle}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, vidwatTitle: e.target.value })}
-                    placeholder="Veda Vibhushan / Acharya"
+                    placeholder={t('surfaces.purohitMgmt.vedaVibhushanAcharya')}
                     className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1565,18 +1565,18 @@ export const PurohitManagementDesk: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Veda Shakha *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vedaShakha')}</label>
                   <select
                     value={newPriestForm.vedicBranch}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, vedicBranch: e.target.value as any })}
                     className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                   >
                     <option value="Rigveda">Rigveda</option>
-                    <option value="Yajurveda">Yajurveda (Shukla / Krishna)</option>
+                    <option value="Yajurveda">{t('surfaces.purohitMgmt.yajurvedaShuklaKrishna')}</option>
                     <option value="Samaveda">Samaveda</option>
                     <option value="Atharvaveda">Atharvaveda</option>
-                    <option value="Smartha">Smartha Advaita</option>
-                    <option value="Tantrik">Tantrik / Shakta</option>
+                    <option value="Smartha">{t('surfaces.purohitMgmt.smarthaAdvaita')}</option>
+                    <option value="Tantrik">{t('surfaces.purohitMgmt.tantrikShakta')}</option>
                   </select>
                 </div>
 
@@ -1586,7 +1586,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     type="text"
                     value={newPriestForm.gotra}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, gotra: e.target.value })}
-                    placeholder="Bharadwaja / Kashyapa"
+                    placeholder={t('surfaces.purohitMgmt.bharadwajaKashyapa')}
                     className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1594,7 +1594,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Contact Phone *</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.contactPhone')}</label>
                   <input
                     type="tel"
                     required
@@ -1618,30 +1618,30 @@ export const PurohitManagementDesk: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Vedic Qualifications & Gurukul</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vedicQualificationsGurukul')}</label>
                 <input
                   type="text"
                   value={newPriestForm.vedicQualification}
                   onChange={(e) => setNewPriestForm({ ...newPriestForm, vedicQualification: e.target.value })}
-                  placeholder="Acharya in Shukla Yajurveda (Sampurnanand Sanskrit Univ.)"
+                  placeholder={t('surfaces.purohitMgmt.acharyaInShuklaYajurvedaSampurnanandSanskrit')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Ritual Specializations (comma separated)</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.ritualSpecializationsCommaSeparated')}</label>
                 <input
                   type="text"
                   value={newPriestForm.specializations}
                   onChange={(e) => setNewPriestForm({ ...newPriestForm, specializations: e.target.value })}
-                  placeholder="Rudrabhishek, Navagraha Havan, Vivah Samskara, Vastu Shanti"
+                  placeholder={t('surfaces.purohitMgmt.rudrabhishekNavagrahaHavanVivahSamskaraVastu')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Years of Experience</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.yearsOfExperience')}</label>
                   <input
                     type="number"
                     value={newPriestForm.experienceYears}
@@ -1711,22 +1711,22 @@ export const PurohitManagementDesk: React.FC = () => {
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800">
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">Veda Shakha</span>
+                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.vedaShakha2')}</span>
                   <span className="font-extrabold text-amber-300">{selectedPriestModal.vedicBranch}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800">
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">Gotra / Sampradaya</span>
+                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraSampradaya')}</span>
                   <span className="font-bold text-stone-200">{selectedPriestModal.gotra} Gotra</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-stone-900 border border-stone-800 space-y-1">
-                <span className="text-[10px] text-stone-400 uppercase font-bold block">Academic Qualification</span>
+                <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.academicQualification')}</span>
                 <p className="text-stone-300">{selectedPriestModal.vedicQualification}</p>
               </div>
 
               <div className="p-3 rounded-2xl bg-stone-900 border border-stone-800 space-y-1.5">
-                <span className="text-[10px] text-stone-400 uppercase font-bold block">Specialized Rituals</span>
+                <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.specializedRituals')}</span>
                 <div className="flex flex-wrap gap-1">
                   {(selectedPriestModal.specializations || []).map((s, idx) => (
                     <span key={idx} className="px-2 py-0.5 rounded-lg bg-stone-950 text-amber-300 border border-stone-800 text-[11px]">
@@ -1738,7 +1738,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
               <div className="flex items-center justify-between p-3 rounded-2xl bg-stone-900 border border-stone-800">
                 <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">Honorarium Range</span>
+                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.honorariumRange')}</span>
                   <span className="font-black text-amber-400">
                     {selectedPriestModal.dakshinaRange || inr(selectedPriestModal.suggestedDakshina || 0)}
                   </span>
@@ -1749,7 +1749,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1.5"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    <span>Call Acharya</span>
+                    <span>{t('surfaces.purohitMgmt.callAcharya')}</span>
                   </a>
                 )}
               </div>
@@ -1766,7 +1766,7 @@ export const PurohitManagementDesk: React.FC = () => {
           <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">Disburse Priest Honorarium</h3>
+                <h3 className="text-base font-black text-white">{t('surfaces.purohitMgmt.disbursePriestHonorarium')}</h3>
                 <p className="text-xs text-stone-400">{settlingBooking.poojaName}</p>
               </div>
               <button
@@ -1781,17 +1781,17 @@ export const PurohitManagementDesk: React.FC = () => {
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Gross Dakshina:</span>
+                  <span className="text-stone-400">{t('surfaces.purohitMgmt.grossDakshina2')}</span>
                   <span className="font-bold text-white">{inr(settlingBooking.dakshinaAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Mandir Kalyan Nidhi (15%):</span>
+                  <span className="text-stone-400">{t('surfaces.purohitMgmt.mandirKalyanNidhi15')}</span>
                   <span className="font-bold text-stone-400">
                     -{inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.15))}
                   </span>
                 </div>
                 <div className="border-t border-stone-800 pt-1 flex justify-between text-sm font-black">
-                  <span className="text-amber-400">Net Payable:</span>
+                  <span className="text-amber-400">{t('surfaces.purohitMgmt.netPayable2')}</span>
                   <span className="text-emerald-400">
                     {inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.85))}
                   </span>
@@ -1806,7 +1806,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   type="text"
                   value={settlementRefInput}
                   onChange={(e) => setSettlementRefInput(e.target.value)}
-                  placeholder="UPI-SB-8821 or Bank Tx Ref"
+                  placeholder={t('surfaces.purohitMgmt.upiSb8821OrBankTx')}
                   className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -1840,7 +1840,7 @@ export const PurohitManagementDesk: React.FC = () => {
           <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">Reassign Aarti Duty Shift</h3>
+                <h3 className="text-base font-black text-white">{t('surfaces.purohitMgmt.reassignAartiDutyShift')}</h3>
                 <p className="text-xs text-amber-400 font-medium">{shiftEditModal.pujaName} ({shiftEditModal.timings})</p>
               </div>
               <button
@@ -1854,7 +1854,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Select Lead Acharya</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.selectLeadAcharya')}</label>
                 <select
                   value={newLeadPurohit}
                   onChange={(e) => setNewLeadPurohit(e.target.value)}

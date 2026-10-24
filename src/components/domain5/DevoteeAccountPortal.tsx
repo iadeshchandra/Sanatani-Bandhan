@@ -180,14 +180,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   const handleManualRefreshToken = () => {
     setDynamicQRToken(generateSecureQRToken(profileData));
     setTokenRefreshCounter(60);
-    showToast('Secure Pass Token regenerated with cryptographic salt 🙏', 'success', 'Token Refreshed');
+    showToast(t('surfaces.devoteePortal.securePassTokenRegeneratedWithCryptographic'), 'success', 'Token Refreshed');
   };
 
   // Copy token
   const handleCopyToken = () => {
     navigator.clipboard.writeText(dynamicQRToken);
     setCopiedToken(true);
-    showToast('Vault token copied to clipboard', 'info');
+    showToast(t('surfaces.devoteePortal.vaultTokenCopiedToClipboard'), 'info');
     setTimeout(() => setCopiedToken(false), 2000);
   };
 
@@ -223,7 +223,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       updateDevotee(effectiveDevotee.id, editFormData);
     }
     setIsEditProfileOpen(false);
-    showToast('Personal Devotee Profile updated successfully! 🙏', 'success');
+    showToast(t('surfaces.devoteePortal.personalDevoteeProfileUpdatedSuccessfully'), 'success');
   };
 
   // ==========================================
@@ -288,9 +288,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   };
 
   const handleResetJapa = () => {
-    if (confirm('Reset today’s chanting count?')) {
+    if (confirm(t('surfaces.devoteePortal.resetTodaySChantingCount'))) {
       updateSadhana({ japaCount: 0, completedMalas: 0 });
-      showToast('Japa count reset for today', 'info');
+      showToast(t('surfaces.devoteePortal.japaCountResetForToday'), 'info');
     }
   };
 
@@ -301,7 +301,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       [vratKey]: !sadhanaState.completedVrats[vratKey],
     };
     updateSadhana({ completedVrats: updatedVrats });
-    showToast('Vrat checklist updated 🙏', 'success');
+    showToast(t('surfaces.devoteePortal.vratChecklistUpdated'), 'success');
   };
 
   // ==========================================
@@ -330,12 +330,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Download PDF ID Card
   const handleDownloadIdCard = async () => {
     try {
-      showToast('Generating official biometric ID Card PDF...', 'info');
+      showToast(t('surfaces.devoteePortal.generatingOfficialBiometricIdCardPdf'), 'info');
       await generateDevoteeCardPDF(profileData, activeWorkspace || ({} as any), 'save');
-      showToast('ID Card PDF downloaded successfully! 🙏', 'success');
+      showToast(t('surfaces.devoteePortal.idCardPdfDownloadedSuccessfully'), 'success');
     } catch (e: any) {
       console.error(e);
-      showToast('Failed to generate ID Card PDF', 'error');
+      showToast(t('surfaces.devoteePortal.failedToGenerateIdCardPdf'), 'error');
     }
   };
 
@@ -344,10 +344,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     try {
       showToast(`Generating Section 80G Tax Receipt for ${inr(tx.amount)}...`, 'info');
       await generate80GTaxReceipt(tx, activeWorkspace, { download: true });
-      showToast('80G Tax Exemption Certificate downloaded! 📜', 'success');
+      showToast(t('surfaces.devoteePortal.80gTaxExemptionCertificateDownloaded'), 'success');
     } catch (e: any) {
       console.error(e);
-      showToast('Failed to generate 80G Certificate', 'error');
+      showToast(t('surfaces.devoteePortal.failedToGenerate80gCertificate'), 'error');
     }
   };
 
@@ -356,26 +356,26 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     try {
       showToast(`Generating Vedic Sankalpa Slip for ${booking.poojaName}...`, 'info');
       await generatePoojaSankalpPDF(booking, activeWorkspace || ({} as any));
-      showToast('Sankalpa Slip downloaded! 🪔', 'success');
+      showToast(t('surfaces.devoteePortal.sankalpaSlipDownloaded'), 'success');
     } catch (e: any) {
       console.error(e);
-      showToast('Failed to generate Sankalpa slip', 'error');
+      showToast(t('surfaces.devoteePortal.failedToGenerateSankalpaSlip'), 'error');
     }
   };
 
   // Download Annual Summary
   const handleDownloadAnnualSummary = async () => {
     if (userDonations.length === 0) {
-      showToast('No donation records found to compile annual summary', 'error');
+      showToast(t('surfaces.devoteePortal.noDonationRecordsFoundToCompile'), 'error');
       return;
     }
     try {
-      showToast('Compiling Form 10BE Annual Donation Summary...', 'info');
+      showToast(t('surfaces.devoteePortal.compilingForm10beAnnualDonationSummary'), 'info');
       await generateAnnualDonationSummaryPDF(profileData, userDonations, activeWorkspace || ({} as any));
-      showToast('Annual Tax Summary downloaded! 📄', 'success');
+      showToast(t('surfaces.devoteePortal.annualTaxSummaryDownloaded'), 'success');
     } catch (e: any) {
       console.error(e);
-      showToast('Error generating annual summary', 'error');
+      showToast(t('surfaces.devoteePortal.errorGeneratingAnnualSummary'), 'error');
     }
   };
 
@@ -466,7 +466,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   const handleGeoCheckInNow = () => {
     setIsLocating(true);
     if (!navigator.geolocation) {
-      showToast('Geolocation is not supported by your browser', 'error');
+      showToast(t('surfaces.devoteePortal.geolocationIsNotSupportedByYour'), 'error');
       setIsLocating(false);
       return;
     }
@@ -552,12 +552,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         type: 'error',
       });
 
-      showToast('DISTRESS SOS TRANSMITTED TO TEMPLE COMMAND & SEVADARS', 'success', 'Code Red Dispatched');
+      showToast(t('surfaces.devoteePortal.distressSosTransmittedToTempleCommand'), 'success', 'Code Red Dispatched');
       setShowSosModal(false);
       setSosDetails('');
     } catch (e: any) {
       console.error(e);
-      showToast('Error dispatching SOS. Please shout or notify nearby sevadars immediately.', 'error');
+      showToast(t('surfaces.devoteePortal.errorDispatchingSosPleaseShoutOr'), 'error');
     } finally {
       setIsBroadcastingSos(false);
     }
@@ -596,7 +596,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Switch to Organization View Handler
   const handleSwitchToOrganisation = () => {
     if (!isAdminOrSevadar) {
-      showToast('Access Restricted: Mandir Console requires Sevadar, Trustee, or Priest credentials.', 'error', 'Permission Denied');
+      showToast(t('surfaces.devoteePortal.accessRestrictedMandirConsoleRequiresSevadar'), 'error', 'Permission Denied');
       return;
     }
     setViewMode('MANAGER');
@@ -620,7 +620,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   {profileData.fullName ? profileData.fullName.charAt(0) : '🕉️'}
                 </div>
               </div>
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-stone-950 rounded-full" title="Personal Space Active" />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-stone-950 rounded-full" title={t('surfaces.devoteePortal.personalSpaceActive')} />
             </div>
 
             <div>
@@ -647,7 +647,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-amber-700 text-stone-950 shadow-md flex items-center gap-1.5 cursor-default transition-all"
             >
               <UserCircle className="w-4 h-4 text-stone-950" />
-              <span>Personal Space</span>
+              <span>{t('surfaces.devoteePortal.personalSpace')}</span>
             </button>
 
             {isAdminOrSevadar ? (
@@ -658,7 +658,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 title={`Switch to ${activeWorkspace?.name || 'Mandir'} Administrative Console`}
               >
                 <Building2 className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
-                <span className="hidden xs:inline">Organisation View</span>
+                <span className="hidden xs:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="xs:hidden">Org</span>
                 <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
                   {currentRole || 'Staff'}
@@ -667,10 +667,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             ) : (
               <div 
                 className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-medium text-stone-500 flex items-center gap-1.5 cursor-not-allowed opacity-60"
-                title="Organisation Console is reserved for Temple Trustees and Sevadars"
+                title={t('surfaces.devoteePortal.organisationConsoleIsReservedForTemple')}
               >
                 <Lock className="w-3.5 h-3.5 text-stone-600" />
-                <span className="hidden sm:inline">Organisation View</span>
+                <span className="hidden sm:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="sm:hidden">Org</span>
               </div>
             )}
@@ -683,10 +683,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               type="button"
               onClick={() => setShowSosModal(true)}
               className="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-black shadow-lg shadow-red-950/60 border border-red-400/40 flex items-center gap-1.5 animate-pulse cursor-pointer transition-all active:scale-95"
-              title="Emergency SOS Panic: Broadcast live distress telemetry to nearby sevadars"
+              title={t('surfaces.devoteePortal.emergencySosPanicBroadcastLiveDistress')}
             >
               <ShieldAlert className="w-4 h-4 text-white" />
-              <span className="tracking-wide">SOS PANIC</span>
+              <span className="tracking-wide">{t('surfaces.devoteePortal.sosPanic')}</span>
             </button>
 
             {/* Quick Settings Icon */}
@@ -694,7 +694,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               type="button"
               onClick={() => setShowSettingsModal(true)}
               className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-amber-400 transition-colors cursor-pointer"
-              title="Personal Preferences & Quick Settings"
+              title={t('surfaces.devoteePortal.personalPreferencesQuickSettings')}
             >
               <Sliders className="w-4 h-4" />
             </button>
@@ -766,7 +766,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Edit Identity</span>
+                  <span>{t('surfaces.devoteePortal.editIdentity')}</span>
                 </button>
 
                 <button
@@ -775,14 +775,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
                 >
                   <Download className="w-3.5 h-3.5 text-stone-950" />
-                  <span>Download PDF Pass</span>
+                  <span>{t('surfaces.devoteePortal.downloadPdfPass')}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => window.print()}
                   className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-white transition-colors cursor-pointer"
-                  title="Print Digital ID"
+                  title={t('surfaces.devoteePortal.printDigitalId')}
                 >
                   <Printer className="w-4 h-4" />
                 </button>
@@ -855,7 +855,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     {/* Metadata Grid */}
                     <div className="grid grid-cols-2 gap-2.5 pt-2 text-xs">
                       <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">Gotra / Lineage</span>
+                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.gotraLineage')}</span>
                         <span className="font-extrabold text-amber-300">{profileData.gotra} Gotra</span>
                       </div>
                       <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
@@ -880,7 +880,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <div 
                       onClick={() => setIsQrModalOpen(true)}
                       className="p-2.5 bg-white rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform"
-                      title="Tap to view fullscreen scan QR"
+                      title={t('surfaces.devoteePortal.tapToViewFullscreenScanQr')}
                     >
                       <QRCodeSVG
                         value={dynamicQRToken}
@@ -905,7 +905,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         type="button"
                         onClick={handleManualRefreshToken}
                         className="flex-1 py-1 px-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                        title="Rotate security token now"
+                        title={t('surfaces.devoteePortal.rotateSecurityTokenNow')}
                       >
                         <RefreshCw className="w-2.5 h-2.5" />
                         <span>Rotate</span>
@@ -926,7 +926,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {/* Card Footer */}
                 <div className="mt-6 pt-4 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-400">
                   <span>Issued: {profileData.joinedDate || 'Chaitra 2081'}</span>
-                  <span className="text-amber-400/90 font-mono font-bold">SECURE SHA-256 VAULT VERIFIED</span>
+                  <span className="text-amber-400/90 font-mono font-bold">{t('surfaces.devoteePortal.secureSha256VaultVerified')}</span>
                 </div>
 
               </div>
@@ -938,25 +938,25 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <div className="bg-stone-950/70 p-5 rounded-3xl border border-stone-800 space-y-3">
                   <h4 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
                     <Award className="w-4 h-4 text-amber-400" />
-                    <span>Your Credential Privileges</span>
+                    <span>{t('surfaces.devoteePortal.yourCredentialPrivileges')}</span>
                   </h4>
 
                   <ul className="space-y-2.5 text-xs text-stone-300">
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>Fast-Track Darshan:</strong> Present this pass at Sanctum Gate 2 for priority queued aarti entry.</span>
+                      <span><strong>{t('surfaces.devoteePortal.fastTrackDarshan')}</strong>{' '}{t('surfaces.devoteePortal.presentThisPassAtSanctumGate')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>Annapurna Anna-Daan Mahaprasad:</strong> Direct QR scan verification for devotee dining token.</span>
+                      <span><strong>{t('surfaces.devoteePortal.annapurnaAnnaDaanMahaprasad')}</strong>{' '}{t('surfaces.devoteePortal.directQrScanVerificationForDevotee')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>YatraNet Mesh Node:</strong> Offline P2P location broadcast during massive Kumbh and Parikrama surge.</span>
+                      <span><strong>{t('surfaces.devoteePortal.yatranetMeshNode')}</strong>{' '}{t('surfaces.devoteePortal.offlineP2pLocationBroadcastDuringMassive')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span><strong>Section 80G Tax Exemption:</strong> Automatic tax receipt generation with valid PAN linked.</span>
+                      <span><strong>{t('surfaces.devoteePortal.section80gTaxExemption')}</strong>{' '}{t('surfaces.devoteePortal.automaticTaxReceiptGenerationWithValid')}</span>
                     </li>
                   </ul>
                 </div>
@@ -966,7 +966,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black text-rose-200 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-rose-400" />
-                      <span>Emergency & Safety Record</span>
+                      <span>{t('surfaces.devoteePortal.emergencySafetyRecord')}</span>
                     </h4>
                     <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold text-[10px]">
                       {profileData.bloodGroup}
@@ -979,7 +979,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                   <div className="p-3 bg-stone-900/90 rounded-2xl border border-stone-800 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-stone-400 uppercase font-bold block">Designated Contact</span>
+                      <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.devoteePortal.designatedContact')}</span>
                       <span className="text-xs font-bold text-white">{profileData.emergencyContact || 'Family Kin'}</span>
                     </div>
                     <a
@@ -987,7 +987,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors"
                     >
                       <Phone className="w-3.5 h-3.5" />
-                      <span>Call SOS</span>
+                      <span>{t('surfaces.devoteePortal.callSos')}</span>
                     </a>
                   </div>
                 </div>
@@ -1021,7 +1021,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                 <div className="flex items-center gap-3">
                   <div className="bg-stone-950/80 px-4 py-2 rounded-2xl border border-amber-500/30 text-center">
-                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Malas Completed</span>
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.malasCompleted')}</span>
                     <span className="text-lg font-black text-amber-400 flex items-center justify-center gap-1">
                       📿 {sadhanaState.completedMalas}
                     </span>
@@ -1037,12 +1037,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
               {/* Daily Sankalpa Input */}
               <div className="mt-4 pt-4 border-t border-stone-800 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                <span className="text-xs font-black uppercase text-amber-400 shrink-0">Today's Sankalpa:</span>
+                <span className="text-xs font-black uppercase text-amber-400 shrink-0">{t('surfaces.devoteePortal.todaySSankalpa')}</span>
                 <input
                   type="text"
                   value={sadhanaState.dailySankalpa}
                   onChange={(e) => updateSadhana({ dailySankalpa: e.target.value })}
-                  placeholder="Enter your daily spiritual dedication..."
+                  placeholder={t('surfaces.devoteePortal.enterYourDailySpiritualDedication')}
                   className="w-full bg-stone-950/70 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -1056,7 +1056,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <div className="flex items-center justify-between border-b border-stone-800 pb-3">
                   <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                     <Flame className="w-5 h-5 text-amber-400" />
-                    <span>Interactive Japa Mala Counter</span>
+                    <span>{t('surfaces.devoteePortal.interactiveJapaMalaCounter')}</span>
                   </h3>
                   <button
                     type="button"
@@ -1129,7 +1129,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {/* Mala Progress Bar */}
                 <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-stone-400 font-bold">Daily Malas Completed:</span>
+                    <span className="text-stone-400 font-bold">{t('surfaces.devoteePortal.dailyMalasCompleted')}</span>
                     <span className="text-amber-300 font-black">
                       {sadhanaState.completedMalas} / {sadhanaState.targetMalas} Malas Goal
                     </span>
@@ -1149,7 +1149,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <div className="flex items-center justify-between border-b border-stone-800 pb-3">
                   <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-amber-400" />
-                    <span>Sacred Vrats & Upavasa Checklist</span>
+                    <span>{t('surfaces.devoteePortal.sacredVratsUpavasaChecklist')}</span>
                   </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                     Panchang Aligned
@@ -1231,8 +1231,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {/* Meditation Log Action */}
                 <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-stone-300 block">Log Meditation Session</span>
-                    <span className="text-[11px] text-stone-500">Record minutes spent in silent Dhyana</span>
+                    <span className="text-xs font-bold text-stone-300 block">{t('surfaces.devoteePortal.logMeditationSession')}</span>
+                    <span className="text-[11px] text-stone-500">{t('surfaces.devoteePortal.recordMinutesSpentInSilentDhyana')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {[15, 30, 45, 60].map(mins => (
@@ -1266,35 +1266,35 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             {/* Header & Stats Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">Total Lifetime Seva</span>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.totalLifetimeSeva')}</span>
                 <span className="text-2xl font-black text-amber-400">
                   {inr(userDonations.reduce((sum, d) => sum + d.amount, 0))}
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">Dharmic Chanda & Sponsorships</span>
+                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.dharmicChandaSponsorships')}</span>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">80G Eligible Deductions</span>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.80gEligibleDeductions')}</span>
                 <span className="text-2xl font-black text-emerald-400">
                   {inr(userDonations.filter(d => d.is80GEligible).reduce((sum, d) => sum + d.amount, 0))}
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">Section 80G(5)(vi) Verified</span>
+                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.section80g5ViVerified')}</span>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">Active Puja Bookings</span>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.activePujaBookings')}</span>
                 <span className="text-2xl font-black text-amber-300">
                   {userPoojaBookings.length || 2} Pujas
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">Sankalpas on Roster</span>
+                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.sankalpasOnRoster')}</span>
               </div>
 
               <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">Volunteer Seva Hours</span>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.volunteerSevaHours')}</span>
                 <span className="text-2xl font-black text-amber-300">
                   {profileData.volunteerHours || 36} Hours
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">Annadanam & Queue Seva</span>
+                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.annadanamQueueSeva')}</span>
               </div>
             </div>
 
@@ -1309,7 +1309,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-stone-950" />
-                <span>Download Form 10BE Annual Summary</span>
+                <span>{t('surfaces.devoteePortal.downloadForm10beAnnualSummary')}</span>
               </button>
             </div>
 
@@ -1318,7 +1318,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="flex items-center justify-between border-b border-stone-800 pb-3">
                 <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                   <Flame className="w-4 h-4 text-amber-400" />
-                  <span>Personal Puja Bookings & Sankalpa Slips</span>
+                  <span>{t('surfaces.devoteePortal.personalPujaBookingsSankalpaSlips')}</span>
                 </h3>
                 <span className="text-xs text-stone-500">
                   {userPoojaBookings.length} Recorded
@@ -1387,7 +1387,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="flex items-center justify-between border-b border-stone-800 pb-3">
                 <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-amber-400" />
-                  <span>Section 80G Tax Exemption Receipts</span>
+                  <span>{t('surfaces.devoteePortal.section80gTaxExemptionReceipts')}</span>
                 </h3>
                 <span className="text-xs text-stone-500 font-mono">
                   TRUST PAN: {activeWorkspace?.taxExemptionNumber || 'CIT(E)/80G/SB-2024'}
@@ -1404,10 +1404,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <thead className="bg-stone-900 text-stone-400 uppercase text-[10px] tracking-wider border-b border-stone-800">
                       <tr>
                         <th className="py-3 px-4">Date</th>
-                        <th className="py-3 px-4">Purpose / Category</th>
+                        <th className="py-3 px-4">{t('surfaces.devoteePortal.purposeCategory')}</th>
                         <th className="py-3 px-4">Amount</th>
                         <th className="py-3 px-4">{t('org.finance.bhoomi.paymentMode')}</th>
-                        <th className="py-3 px-4">80G Status</th>
+                        <th className="py-3 px-4">{t('surfaces.devoteePortal.80gStatus')}</th>
                         <th className="py-3 px-4 text-right">Action</th>
                       </tr>
                     </thead>
@@ -1430,7 +1430,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                               className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                             >
                               <Download className="w-3 h-3 text-amber-400" />
-                              <span>80G PDF</span>
+                              <span>{t('surfaces.devoteePortal.80gPdf')}</span>
                             </button>
                           </td>
                         </tr>
@@ -1459,17 +1459,17 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <span>Household Family Registry • {userFamily.familyName}</span>
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
-                    Gotra: <strong className="text-amber-300">{userFamily.gotra}</strong> • Kuladevata: <strong className="text-amber-300">{userFamily.kuladevata}</strong>
+                    Gotra: <strong className="text-amber-300">{userFamily.gotra}</strong>{' '}{t('surfaces.devoteePortal.kuladevata')}{' '}<strong className="text-amber-300">{userFamily.kuladevata}</strong>
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => showToast('Family census sync active. Contact Mandir Purohit to add new births/kin.', 'info')}
+                  onClick={() => showToast(t('surfaces.devoteePortal.familyCensusSyncActiveContactMandir'), 'info')}
                   className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Add Kin Note</span>
+                  <span>{t('surfaces.devoteePortal.addKinNote')}</span>
                 </button>
               </div>
 
@@ -1516,7 +1516,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <div>
                   <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-amber-400" />
-                    <span>Ancestral Pitru Shradh Tithi Calendar</span>
+                    <span>{t('surfaces.devoteePortal.ancestralPitruShradhTithiCalendar')}</span>
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
                     Automated lunar Tithi reminders and Pinda Daan puja booking countdown.
@@ -1553,14 +1553,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                       <div className="mt-3 p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 space-y-1 text-xs">
                         <p className="text-stone-300">
-                          <strong>Lunar Demise Tithi: </strong>
+                          <strong>{t('surfaces.devoteePortal.lunarDemiseTithi')}{' '}</strong>
                           <span className="text-amber-300 font-bold">{pitru.tithiLunar}</span>
                         </p>
                         <p className="text-stone-400">
-                          <strong>Sacred Kshetra: </strong>{pitru.shradhLocation}
+                          <strong>{t('surfaces.devoteePortal.sacredKshetra')}{' '}</strong>{pitru.shradhLocation}
                         </p>
                         <p className="text-stone-400">
-                          <strong>SMS/WhatsApp Alert: </strong>{pitru.annualShradhAlert ? '✅ Active 7 Days Prior' : 'Disabled'}
+                          <strong>{t('surfaces.devoteePortal.smsWhatsappAlert')}{' '}</strong>{pitru.annualShradhAlert ? '✅ Active 7 Days Prior' : 'Disabled'}
                         </p>
                       </div>
                     </div>
@@ -1568,7 +1568,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <div className="pt-2 border-t border-stone-800 flex items-center justify-between">
                       <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>Annual Shradh Tithi Approaching</span>
+                        <span>{t('surfaces.devoteePortal.annualShradhTithiApproaching')}</span>
                       </span>
 
                       <button
@@ -1623,7 +1623,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             {pilgrimageFootprint.length === 0 ? (
               <div className="bg-stone-950/90 rounded-3xl border border-stone-800 p-8 shadow-xl text-center space-y-2">
                 <p className="text-2xl" aria-hidden>🚩</p>
-                <p className="text-sm font-bold text-stone-200">No yatra recorded yet</p>
+                <p className="text-sm font-bold text-stone-200">{t('surfaces.devoteePortal.noYatraRecordedYet')}</p>
                 <p className="text-xs text-stone-400 max-w-md mx-auto">
                   When you check in at a shrine with the GPS button above, your darshan will be
                   kept here — your own true pilgrimage footprint, nothing invented.
@@ -1637,7 +1637,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
                     <MapIcon className="w-4 h-4 text-amber-400" />
-                    <span>Interactive Yatra Map</span>
+                    <span>{t('surfaces.devoteePortal.interactiveYatraMap')}</span>
                   </h3>
                   <span className="text-[11px] text-amber-400 font-bold">
                     {pilgrimageFootprint.length} Shrines Visited
@@ -1712,7 +1712,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                       <div className="mt-2.5 pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px] text-stone-400">
                         <span>{shrine.visitedDate}</span>
-                        <span className="text-emerald-400 font-bold">✓ Verified</span>
+                        <span className="text-emerald-400 font-bold">{t('surfaces.devoteePortal.verified')}</span>
                       </div>
                     </div>
                   );
@@ -1788,7 +1788,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-amber-400" />
-                <span>Update Personal Devotee Details</span>
+                <span>{t('surfaces.devoteePortal.updatePersonalDevoteeDetails')}</span>
               </h3>
               <button
                 type="button"
@@ -1802,7 +1802,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Full Legal Name</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.fullLegalName')}</label>
                   <input
                     type="text"
                     required
@@ -1849,7 +1849,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Emergency Kin Phone</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyKinPhone')}</label>
                   <input
                     type="tel"
                     required
@@ -1859,7 +1859,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Emergency Relation</label>
+                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyRelation')}</label>
                   <input
                     type="text"
                     value={editFormData.emergencyContact}
@@ -1870,7 +1870,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">Residence Address / Kshetra</label>
+                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.residenceAddressKshetra')}</label>
                 <input
                   type="text"
                   value={editFormData.address}
@@ -1908,7 +1908,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="flex items-center justify-between border-b border-red-900/40 pb-3">
               <div className="flex items-center gap-2 text-red-400">
                 <ShieldAlert className="w-6 h-6 animate-pulse" />
-                <h3 className="text-lg font-black tracking-wide text-white">EMERGENCY SOS PANIC</h3>
+                <h3 className="text-lg font-black tracking-wide text-white">{t('surfaces.devoteePortal.emergencySosPanic')}</h3>
               </div>
               <button
                 type="button"
@@ -1925,7 +1925,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
             {/* Situation Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-400 block">Select Emergency Nature:</label>
+              <label className="text-xs font-bold text-stone-400 block">{t('surfaces.devoteePortal.selectEmergencyNature')}</label>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
                   { id: 'MEDICAL', label: '🚑 Medical / Cardiac' },
@@ -1951,18 +1951,18 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
             {/* Optional details */}
             <div>
-              <label className="text-xs font-bold text-stone-400 block mb-1">Additional details (Optional):</label>
+              <label className="text-xs font-bold text-stone-400 block mb-1">{t('surfaces.devoteePortal.additionalDetailsOptional')}</label>
               <textarea
                 rows={2}
                 value={sosDetails}
                 onChange={(e) => setSosDetails(e.target.value)}
-                placeholder="E.g. Near Sanctum Pillar #08, elderly devotee faint..."
+                placeholder={t('surfaces.devoteePortal.eGNearSanctumPillar08')}
                 className="w-full bg-stone-900 border border-stone-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-red-500"
               />
             </div>
 
             <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/30 text-[11px] text-red-200">
-              <strong>Telemetry Included: </strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and Live GPS.
+              <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and Live GPS.
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -1995,7 +1995,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="flex items-center justify-between border-b border-stone-800 pb-3">
               <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-amber-400" />
-                <span>Devotee Preferences</span>
+                <span>{t('surfaces.devoteePortal.devoteePreferences')}</span>
               </h3>
               <button
                 type="button"
@@ -2011,7 +2011,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div>
                 <label className="text-stone-400 font-bold block mb-1.5 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Language / भाषा / ভাষা:</span>
+                  <span>{t('surfaces.devoteePortal.language')}</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -2060,7 +2060,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl border border-stone-800">
                 <div className="flex items-center gap-2">
                   {soundAlertsEnabled ? <Bell className="w-4 h-4 text-amber-400" /> : <BellOff className="w-4 h-4 text-stone-500" />}
-                  <span className="font-bold text-stone-200">Aarti & Siren Sounds</span>
+                  <span className="font-bold text-stone-200">{t('surfaces.devoteePortal.aartiSirenSounds')}</span>
                 </div>
                 <button
                   type="button"
@@ -2121,7 +2121,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           type="button"
           onClick={() => setShowSosModal(true)}
           className="flex flex-col items-center justify-center py-1 px-2 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-          title="Emergency SOS"
+          title={t('surfaces.devoteePortal.emergencySos')}
         >
           <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 animate-pulse" />
           <span className="text-[10px] mt-0.5 font-black text-red-400">SOS</span>

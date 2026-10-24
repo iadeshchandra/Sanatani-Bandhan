@@ -291,6 +291,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     return c === 'hi' || c === 'bn' ? c : 'en';
   });
   const t = (key: string) => (translations as any)[language][key] || key;
+  // Language Completion Sweep B2: global dictionary for the surfaces wired
+  // out of this file's local dict (auth/surfaces.portalLogin keys). Local `t`
+  // above keeps serving the still-local keys.
+  const gt = (key: string) => langCtx?.t(key) ?? key;
   const changeLanguage = (l: 'en'|'hi'|'bn') => {
     setLanguage(l);
     try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
@@ -436,7 +440,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       if (verified) {
         // Session re-confirmed on this device. The existing Firebase session
         // (and its role) is unchanged — no privilege is granted here.
-        showToast('Identity re-confirmed on this device.', 'success');
+        showToast(gt('auth.identityReconfirmed'), 'success');
         onSuccess();
       } else {
         setError('Biometric authentication failed or was cancelled.');
@@ -532,7 +536,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       try {
         const pinSuccess = await loginWithPin(cred, []);
         if (pinSuccess) {
-          showToast("Master PIN verified", "success");
+          showToast(gt('surfaces.portalLogin.masterPinVerified'), "success");
           onSuccess();
           return;
         }
@@ -686,7 +690,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       case 'admin':
         ensureOrgSessionKind();
         loginAsRole('SuperAdmin', displayName);
-        showToast('Secure Login Successful', 'success');
+        showToast(gt('auth.loginSuccess'), 'success');
         onSuccess();
         return;
       case 'org': {
@@ -695,18 +699,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         // current workspace — the workspace switcher remains available.
         try { await switchWorkspace(dest.workspaceId); } catch { /* keep current */ }
         loginAsRole(dest.role, displayName);
-        showToast('Secure Login Successful', 'success');
+        showToast(gt('auth.loginSuccess'), 'success');
         onSuccess();
         return;
       }
       case 'purohit':
         enterPurohitSession(purohitProfile);
-        showToast('Welcome back to your purohit workspace', 'success');
+        showToast(gt('surfaces.portalLogin.welcomeBackToYourPurohitWorkspace'), 'success');
         onSuccess();
         return;
       case 'jyotish':
         enterJyotishSession(jyotishProfile);
-        showToast('Welcome back to your jyotishi workspace', 'success');
+        showToast(gt('surfaces.portalLogin.welcomeBackToYourJyotishiWorkspace'), 'success');
         onSuccess();
         return;
       case 'solo':
@@ -1037,7 +1041,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         /* storage unavailable — wizard simply won't trigger */
       }
 
-      showToast("Workspace Provisioned Successfully", "success");
+      showToast(gt('auth.workspaceProvisioned'), "success");
       // Membership sprint: publish the public organisation page so the
       // org appears in discovery, follows and join requests.
       await syncOrgPage(newWorkspace);
@@ -1050,7 +1054,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   };
 
   const handleForgotPassword = async () => {
-    if (!navigator.onLine) return showToast("Internet required to reset password.", "error");
+    if (!navigator.onLine) return showToast(gt('auth.resetPasswordInternet'), "error");
     if (!loginIdentity.includes('@')) {
       return setError("Please enter your Admin Email Address in the Identity field first.");
     }
@@ -1058,7 +1062,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, loginIdentity);
-      showToast("Reset link sent to your email inbox!", "success");
+      showToast(gt('auth.resetLinkSent'), "success");
     } catch (err: any) {
       handleError(err);
     } finally {
@@ -1146,7 +1150,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             className="fixed top-0 inset-x-0 z-[110] bg-red-600/95 backdrop-blur text-white p-2 text-center flex items-center justify-center gap-2 shadow-lg"
           >
             <WifiOff size={14} />
-            <span className="text-[13px] font-bold">Offline Mode: Cached Login Active</span>
+            <span className="text-[13px] font-bold">{gt('auth.offlineMode')}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1251,7 +1255,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                        <div className="absolute inset-2 border-[2px] border-emerald-500/50 rounded-full animate-pulse"></div>
                        <Fingerprint size={48} className="text-emerald-400 relative z-10" />
                      </div>
-                     <h3 className="text-white text-lg font-black uppercase tracking-widest mb-2 text-center">Touch Sensor</h3>
+                     <h3 className="text-white text-lg font-black uppercase tracking-widest mb-2 text-center">{gt('surfaces.portalLogin.touchSensor')}</h3>
                      <p className="text-white/50 text-xs font-bold text-center leading-relaxed">
                        Waiting for device biometric verification.<br/>Use Touch ID, Face ID, or your device PIN.
                      </p>
@@ -1271,17 +1275,17 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     exit={{ opacity: 0, scale: 0.96 }}
                     className="absolute inset-0 bg-[#120826]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-4 shadow-2xl border border-white/15"
                   >
-                     <button onClick={stopScanner} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label="Close scanner">
+                     <button onClick={stopScanner} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label={gt('auth.closeScanner')}>
                        <X size={24}/>
                      </button>
-                     <h3 className="text-white font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/> Scan Official ID</h3>
+                     <h3 className="text-white font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/>{' '}{gt('auth.scanId')}</h3>
                      <div className="relative w-64 h-64 rounded-3xl overflow-hidden border-4 border-saffron-500 shadow-[0_0_50px_rgba(245,158,11,0.3)]">
                         <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
                         <canvas ref={canvasRef} className="hidden" />
                         <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
                         <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_#f59e0b] animate-pulse"></div>
                      </div>
-                     <p className="text-white/50 text-xs mt-6 font-bold text-center">Align QR code within the frame</p>
+                     <p className="text-white/50 text-xs mt-6 font-bold text-center">{gt('auth.alignQr')}</p>
                   </motion.div>
                 )}
                 </AnimatePresence>
@@ -1299,15 +1303,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     >
                       <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
                         <ShieldCheck size={16} className="text-emerald-300 shrink-0" />
-                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">Secure login for Admins, Members, Purohits &amp; Solo Sanatanis</p>
+                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">{gt('surfaces.portalLogin.secureLoginForAdminsMembersPurohits')}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                          <button type="button" onClick={startScanner} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
                            <span className="p-2.5 rounded-xl bg-saffron-500/20 text-saffron-300 group-hover:scale-110 transition-transform shrink-0"><QrCode size={19}/></span>
                            <span className="min-w-0">
-                             <span className="block text-[13px] font-bold text-white leading-tight">Scan Pass</span>
-                             <span className="block text-[10.5px] text-white/45 font-medium">QR login</span>
+                             <span className="block text-[13px] font-bold text-white leading-tight">{gt('auth.scanPass')}</span>
+                             <span className="block text-[10.5px] text-white/45 font-medium">{gt('auth.qrLogin')}</span>
                            </span>
                          </button>
                          <button type="button" onClick={handleBiometricLogin} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
@@ -1324,7 +1328,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
 
                       <div className="flex items-center gap-4 py-1 opacity-70">
                          <div className="h-px bg-white/15 flex-1"></div>
-                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">OR USE CREDENTIALS</span>
+                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">{gt('auth.orUseCredentials')}</span>
                          <div className="h-px bg-white/15 flex-1"></div>
                       </div>
 
@@ -1345,7 +1349,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           onChange={e => setLoginCredential(e.target.value)}
                           autoComplete="current-password"
                           rightSlot={
-                            <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label="Toggle password visibility" className="min-w-[44px] min-h-[44px] flex items-center justify-center">
+                            <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} aria-label={gt('auth.togglePassword')} className="min-w-[44px] min-h-[44px] flex items-center justify-center">
                               {showLoginPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                             </button>
                           }
@@ -1367,7 +1371,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           className="w-full py-3 px-4 rounded-2xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white font-bold text-[13px] tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 min-h-[52px]"
                         >
                           <Fingerprint className="w-5 h-5 text-emerald-300/80" />
-                          <span>Re-confirm Session with FaceID / TouchID</span>
+                          <span>{gt('surfaces.portalLogin.reConfirmSessionWithFaceidTouchid')}</span>
                         </button>
                         <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
                           Device-unlock grade: re-confirms your existing signed-in session on this device.
@@ -1439,20 +1443,20 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         <div>
                           <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('reg_org_type')}</label>
                           <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full px-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
-                            <option value="Mandir">Mandir / Temple (मंदिर)</option>
-                            <option value="Ashram">Ashram (आश्रम)</option>
-                            <option value="Goshala">Goshala (गौशाला)</option>
-                            <option value="Gurukul">Gurukul / Vidyalaya (गुरुकुल)</option>
-                            <option value="Sangha">Sangha / Matha (संघ / मठ)</option>
-                            <option value="Satsang">Satsang / Katha (सत्संग)</option>
-                            <option value="Yoga">Yoga Center (योग केंद्र)</option>
-                            <option value="Tirth">Tirth / Kshetra (तीर्थ)</option>
-                            <option value="PurohitSabha">Purohit Sabha (पुरोहित सभा)</option>
-                            <option value="MahotsavSamiti">Mahotsav Samiti (महोत्सव समिति)</option>
-                            <option value="DharmadaTrust">Dharmada Trust (धर्मादा ट्रस्ट)</option>
-                            <option value="AkshayaPatra">Annakshetra / Bhandara (अन्नक्षेत्र)</option>
-                            <option value="Samaj">Samaj / Parishad (समाज)</option>
-                            <option value="Trust">General Trust / NGO (ट्रस्ट)</option>
+                            <option value="Mandir">{gt('surfaces.portalLogin.mandirTemple')}</option>
+                            <option value="Ashram">{gt('surfaces.portalLogin.ashram')}</option>
+                            <option value="Goshala">{gt('surfaces.portalLogin.goshala')}</option>
+                            <option value="Gurukul">{gt('surfaces.portalLogin.gurukulVidyalaya')}</option>
+                            <option value="Sangha">{gt('surfaces.portalLogin.sanghaMatha')}</option>
+                            <option value="Satsang">{gt('surfaces.portalLogin.satsangKatha')}</option>
+                            <option value="Yoga">{gt('surfaces.portalLogin.yogaCenter')}</option>
+                            <option value="Tirth">{gt('surfaces.portalLogin.tirthKshetra')}</option>
+                            <option value="PurohitSabha">{gt('surfaces.portalLogin.purohitSabha')}</option>
+                            <option value="MahotsavSamiti">{gt('surfaces.portalLogin.mahotsavSamiti')}</option>
+                            <option value="DharmadaTrust">{gt('surfaces.portalLogin.dharmadaTrust')}</option>
+                            <option value="AkshayaPatra">{gt('surfaces.portalLogin.annakshetraBhandara')}</option>
+                            <option value="Samaj">{gt('surfaces.portalLogin.samajParishad')}</option>
+                            <option value="Trust">{gt('surfaces.portalLogin.generalTrustNgo')}</option>
                           </select>
                         </div>
 
@@ -1470,18 +1474,18 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                              <MapPin size={14}/> Location Details
                            </div>
                            <div>
-                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">Country *</label>
+                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{gt('auth.country')}</label>
                              <div className="relative">
                                <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
                                <select required value={regData.country} onChange={e=>{clearFieldError('country'); handleCountryChange(e);}} className={`w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border ${fieldErrors.country ? 'border-red-400/60' : 'border-white/15'} rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900`}>
-                                 <option value="" disabled>Select Country...</option>
-                                 <option value="India">India (भारत)</option>
-                                 <option value="Bangladesh">Bangladesh (বাংলাদেশ)</option>
-                                 <option value="Nepal">Nepal (नेपाल)</option>
-                                 <option value="Sri Lanka">Sri Lanka</option>
-                                 <option value="USA">United States</option>
-                                 <option value="UK">United Kingdom</option>
-                                 <option value="Other">Other Region</option>
+                                 <option value="" disabled>{gt('auth.selectCountry')}</option>
+                                 <option value="India">{gt('surfaces.portalLogin.india')}</option>
+                                 <option value="Bangladesh">{gt('surfaces.portalLogin.bangladesh')}</option>
+                                 <option value="Nepal">{gt('surfaces.portalLogin.nepal')}</option>
+                                 <option value="Sri Lanka">{gt('surfaces.portalLogin.sriLanka')}</option>
+                                 <option value="USA">{gt('surfaces.portalLogin.unitedStates')}</option>
+                                 <option value="UK">{gt('surfaces.portalLogin.unitedKingdom')}</option>
+                                 <option value="Other">{gt('surfaces.portalLogin.otherRegion')}</option>
                                </select>
                              </div>
                              {fieldErrors.country && (
@@ -1552,7 +1556,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                             autoComplete="new-password"
                             error={fieldErrors.password}
                             rightSlot={
-                              <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label="Toggle password visibility" className="min-w-[44px] min-h-[44px] flex items-center justify-center">
+                              <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} aria-label={gt('auth.togglePassword')} className="min-w-[44px] min-h-[44px] flex items-center justify-center">
                                 {showRegPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                               </button>
                             }

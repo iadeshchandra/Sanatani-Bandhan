@@ -63,10 +63,10 @@ export const PersonalAccountDesk: React.FC<{
     e.preventDefault();
     try {
       localStorage.setItem(profileStorageKey, JSON.stringify(profileData));
-      showToast('Profile updated successfully! 🙏', 'success');
+      showToast(t('surfaces.personalAccount.profileUpdatedSuccessfully'), 'success');
       setIsEditingProfile(false);
     } catch (e) {
-      showToast('Failed to save profile', 'error');
+      showToast(t('surfaces.personalAccount.failedToSaveProfile'), 'error');
     }
   };
 
@@ -85,7 +85,7 @@ export const PersonalAccountDesk: React.FC<{
     if (!geminiApiKey.trim()) {
       localStorage.removeItem('user_gemini_api_key');
       setKeyValidationStatus('idle');
-      showToast('Removed custom API key (will use default if available)', 'info');
+      showToast(t('surfaces.personalAccount.removedCustomApiKeyWillUse'), 'info');
       return;
     }
 
@@ -95,7 +95,7 @@ export const PersonalAccountDesk: React.FC<{
       await callGeminiDirect('Reply with the single word: OK', undefined, geminiApiKey.trim());
       localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
       setKeyValidationStatus('valid');
-      showToast('✅ Gemini API Key verified and saved securely in your browser!', 'success');
+      showToast(t('surfaces.personalAccount.geminiApiKeyVerifiedAndSaved'), 'success');
     } catch (e: any) {
       console.warn('Gemini key verification failed:', e?.message || e);
       if (e?.message === 'GEMINI_KEY_MISSING') {
@@ -119,7 +119,7 @@ export const PersonalAccountDesk: React.FC<{
         // Offline or network err: save locally anyway with warning (existing behavior).
         localStorage.setItem('user_gemini_api_key', geminiApiKey.trim());
         setKeyValidationStatus('valid');
-        showToast('Saved custom API key to local storage', 'info');
+        showToast(t('surfaces.personalAccount.savedCustomApiKeyToLocal'), 'info');
       }
     } finally {
       setIsValidatingKey(false);
@@ -361,7 +361,7 @@ export const PersonalAccountDesk: React.FC<{
                   {profileData.name.charAt(0).toUpperCase()}
                 </div>
               </div>
-              <span className="absolute -bottom-1 -right-1 p-0.5 sm:p-1 bg-emerald-500 text-white rounded-full border-2 border-temple-900" title="Verified Devotee">
+              <span className="absolute -bottom-1 -right-1 p-0.5 sm:p-1 bg-emerald-500 text-white rounded-full border-2 border-temple-900" title={t('surfaces.personalAccount.verifiedDevotee')}>
                 <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </span>
             </div>
@@ -396,7 +396,7 @@ export const PersonalAccountDesk: React.FC<{
               className="flex-1 sm:flex-none justify-center items-center flex gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs font-bold transition-all border border-white/10"
             >
               <Edit3 className="w-3.5 h-3.5" />
-              <span>Edit Details</span>
+              <span>{t('surfaces.personalAccount.editDetails')}</span>
             </button>
 
             <button
@@ -405,7 +405,7 @@ export const PersonalAccountDesk: React.FC<{
                 showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
               }}
               className="flex-1 sm:flex-none justify-center items-center flex gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-500 hover:from-saffron-600 hover:to-saffron-600 text-temple-950 text-[11px] sm:text-xs font-black transition-all shadow-md cursor-pointer border border-saffron-300"
-              title="Switch back to the Institution ERP (staff workspace)"
+              title={t('surfaces.personalAccount.switchBackToTheInstitutionErp')}
             >
               <Building2 className="w-3.5 h-3.5" />
               <span className="truncate">{t('devotee.shell.institutionErp')}</span>
@@ -417,20 +417,20 @@ export const PersonalAccountDesk: React.FC<{
         <div className="max-w-4xl mx-auto mt-4 pt-3 sm:pt-4 border-t border-white/10">
           <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-3 overflow-x-auto no-scrollbar snap-x pb-1">
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
-              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Puja Sankalps</p>
-              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">12 Completed</p>
+              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">{t('surfaces.personalAccount.pujaSankalps')}</p>
+              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">{t('surfaces.personalAccount.12Completed')}</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
-              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Sadhana Rhythm</p>
-              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">Most days 🙏</p>
+              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">{t('surfaces.personalAccount.sadhanaRhythm')}</p>
+              <p className="text-sm sm:text-lg font-black text-saffron-400 mt-0.5">{t('surfaces.personalAccount.mostDays')}</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
               <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Offerings</p>
-              <p className="text-sm sm:text-lg font-black text-rose-400 mt-0.5">108 Pushpam 🌺</p>
+              <p className="text-sm sm:text-lg font-black text-rose-400 mt-0.5">{t('surfaces.personalAccount.108Pushpam')}</p>
             </div>
             <div className="bg-white/5 rounded-xl p-2 sm:p-2.5 border border-white/5 shrink-0 w-[110px] sm:w-auto text-center snap-center">
-              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">Seva Offered</p>
-              <p className="text-sm sm:text-lg font-black text-emerald-400 mt-0.5">42 Hours</p>
+              <p className="text-[10px] sm:text-[11px] text-temple-400 font-bold">{t('surfaces.personalAccount.sevaOffered')}</p>
+              <p className="text-sm sm:text-lg font-black text-emerald-400 mt-0.5">{t('surfaces.personalAccount.42Hours')}</p>
             </div>
           </div>
         </div>
@@ -499,23 +499,23 @@ export const PersonalAccountDesk: React.FC<{
                   <div className="sm:col-span-2 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Devotee Name</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('surfaces.personalAccount.devoteeName')}</p>
                         <p className="text-base font-bold text-white mt-0.5">{profileData.name}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Sanatani Devotee ID</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('surfaces.personalAccount.sanataniDevoteeId')}</p>
                         <p className="text-base font-bold text-saffron-400 font-mono mt-0.5">{profileData.sanataniId}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Gotra & Pravara</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('surfaces.personalAccount.gotraPravara')}</p>
                         <p className="text-sm font-semibold text-temple-200 mt-0.5">{profileData.gotra} Gotra</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Nakshatra / Rashi</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('surfaces.personalAccount.nakshatraRashi')}</p>
                         <p className="text-sm font-semibold text-temple-200 mt-0.5">{profileData.nakshatra}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">Kula Daivam</p>
+                        <p className="text-[10px] text-temple-400 uppercase font-bold tracking-wider">{t('surfaces.personalAccount.kulaDaivam')}</p>
                         <p className="text-sm font-semibold text-temple-200 mt-0.5">{profileData.kulaDaivam}</p>
                       </div>
                       <div>
@@ -525,7 +525,7 @@ export const PersonalAccountDesk: React.FC<{
                     </div>
 
                     <div className="pt-2 border-t border-temple-800 text-xs text-temple-400">
-                      <span>Emergency Contact: <strong className="text-temple-300">{profileData.emergencyContact}</strong></span>
+                      <span>{t('surfaces.personalAccount.emergencyContact')}{' '}<strong className="text-temple-300">{profileData.emergencyContact}</strong></span>
                     </div>
                   </div>
 
@@ -535,7 +535,7 @@ export const PersonalAccountDesk: React.FC<{
                       <QrCode className="w-20 h-20 text-temple-900" />
                       <span className="text-[9px] font-bold font-mono tracking-tighter text-temple-600 mt-1">{profileData.sanataniId}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-temple-600 mt-2 text-center">Scan at Mandir Gate for Priority Darshan & Prasad</span>
+                    <span className="text-[10px] font-bold text-temple-600 mt-2 text-center">{t('surfaces.personalAccount.scanAtMandirGateForPriority')}</span>
                   </div>
                 </div>
 
@@ -579,15 +579,15 @@ export const PersonalAccountDesk: React.FC<{
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="p-3 bg-temple-50 rounded-xl border border-temple-100">
-                    <span className="text-temple-500 font-medium">Registered Email</span>
+                    <span className="text-temple-500 font-medium">{t('surfaces.personalAccount.registeredEmail')}</span>
                     <p className="font-bold text-temple-800 mt-1">{profileData.email}</p>
                   </div>
                   <div className="p-3 bg-temple-50 rounded-xl border border-temple-100">
-                    <span className="text-temple-500 font-medium">Phone / WhatsApp</span>
+                    <span className="text-temple-500 font-medium">{t('surfaces.personalAccount.phoneWhatsapp')}</span>
                     <p className="font-bold text-temple-800 mt-1">{profileData.phone}</p>
                   </div>
                   <div className="p-3 bg-temple-50 rounded-xl border border-temple-100">
-                    <span className="text-temple-500 font-medium">City & State</span>
+                    <span className="text-temple-500 font-medium">{t('surfaces.personalAccount.cityState')}</span>
                     <p className="font-bold text-temple-800 mt-1">{profileData.city}</p>
                   </div>
                 </div>
@@ -632,26 +632,26 @@ export const PersonalAccountDesk: React.FC<{
                         <Sparkles className="w-4 h-4 text-saffron-500" />
                         How to get your Free Gemini API Key in 3 Simple Steps
                       </h4>
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">100% Free • No Credit Card Required</span>
+                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{t('surfaces.personalAccount.100FreeNoCreditCardRequired')}</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
                       <div className="p-3 bg-temple-50 rounded-xl border border-temple-200">
                         <span className="w-6 h-6 rounded-full bg-saffron-500 text-white font-black text-xs inline-flex items-center justify-center mb-2">1</span>
-                        <p className="font-bold text-temple-900 mb-1">Open Google AI Studio</p>
-                        <p className="text-temple-500 text-[11px]">Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-saffron-600 font-bold underline inline-flex items-center gap-0.5">aistudio.google.com <ExternalLink className="w-2.5 h-2.5" /></a> and sign in with your Google account.</p>
+                        <p className="font-bold text-temple-900 mb-1">{t('surfaces.personalAccount.openGoogleAiStudio')}</p>
+                        <p className="text-temple-500 text-[11px]">Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-saffron-600 font-bold underline inline-flex items-center gap-0.5">aistudio.google.com <ExternalLink className="w-2.5 h-2.5" /></a>{' '}{t('surfaces.personalAccount.andSignInWithYourGoogle')}</p>
                       </div>
 
                       <div className="p-3 bg-temple-50 rounded-xl border border-temple-200">
                         <span className="w-6 h-6 rounded-full bg-saffron-500 text-white font-black text-xs inline-flex items-center justify-center mb-2">2</span>
-                        <p className="font-bold text-temple-900 mb-1">Click "Create API Key"</p>
-                        <p className="text-temple-500 text-[11px]">Select "Create API key in new project". Google generates your secret key in 2 seconds.</p>
+                        <p className="font-bold text-temple-900 mb-1">{t('surfaces.personalAccount.clickCreateApiKey')}</p>
+                        <p className="text-temple-500 text-[11px]">{t('surfaces.personalAccount.selectCreateApiKeyInNew')}</p>
                       </div>
 
                       <div className="p-3 bg-temple-50 rounded-xl border border-temple-200">
                         <span className="w-6 h-6 rounded-full bg-saffron-500 text-white font-black text-xs inline-flex items-center justify-center mb-2">3</span>
-                        <p className="font-bold text-temple-900 mb-1">Paste Key Below</p>
-                        <p className="text-temple-500 text-[11px]">Paste the copied string (e.g. <code>AIzaSy...</code>) into the box below and click "Save & Test Key".</p>
+                        <p className="font-bold text-temple-900 mb-1">{t('surfaces.personalAccount.pasteKeyBelow')}</p>
+                        <p className="text-temple-500 text-[11px]">{t('surfaces.personalAccount.pasteTheCopiedStringEG')}{' '}<code>AIzaSy...</code>{t('surfaces.personalAccount.intoTheBoxBelowAndClick')}</p>
                       </div>
                     </div>
                   </div>
@@ -667,7 +667,7 @@ export const PersonalAccountDesk: React.FC<{
                         setGeminiApiKey(e.target.value);
                         setKeyValidationStatus('idle');
                       }}
-                      placeholder="Paste your personal Gemini API key (AIzaSy...)"
+                      placeholder={t('surfaces.personalAccount.pasteYourPersonalGeminiApiKey')}
                       className="w-full pl-3 pr-10 py-2.5 bg-white border border-saffron-300 rounded-xl text-xs font-mono text-temple-900 focus:outline-none focus:ring-2 focus:ring-saffron-500"
                     />
                     <button
@@ -687,12 +687,12 @@ export const PersonalAccountDesk: React.FC<{
                     {isValidatingKey ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Validating...</span>
+                        <span>{t('surfaces.personalAccount.validating')}</span>
                       </>
                     ) : (
                       <>
                         <Check className="w-4 h-4" />
-                        <span>Save & Test Key</span>
+                        <span>{t('surfaces.personalAccount.saveTestKey')}</span>
                       </>
                     )}
                   </button>
@@ -715,8 +715,8 @@ export const PersonalAccountDesk: React.FC<{
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-temple-900">Personal Dharmic AI Assistant</h4>
-                      <p className="text-[10px] text-temple-500">Grounded in Vedic Scriptures, Muhurat Astrology, and ERP Workflows</p>
+                      <h4 className="text-xs font-black text-temple-900">{t('surfaces.personalAccount.personalDharmicAiAssistant')}</h4>
+                      <p className="text-[10px] text-temple-500">{t('surfaces.personalAccount.groundedInVedicScripturesMuhuratAstrology')}</p>
                     </div>
                   </div>
 
@@ -783,7 +783,7 @@ export const PersonalAccountDesk: React.FC<{
 
                 {/* Suggested Prompts */}
                 <div className="px-4 py-2 bg-temple-100/70 border-t border-temple-200 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[11px]">
-                  <span className="text-temple-400 font-bold shrink-0">Try asking:</span>
+                  <span className="text-temple-400 font-bold shrink-0">{t('surfaces.personalAccount.tryAsking')}</span>
                   {[
                     'Samagri required for Satyanarayan Puja',
                     'How to download 80G tax receipt?',
@@ -809,7 +809,7 @@ export const PersonalAccountDesk: React.FC<{
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSendAiMessage();
                     }}
-                    placeholder="Ask any Dharmic, Shastric, or Mandir ERP question..."
+                    placeholder={t('surfaces.personalAccount.askAnyDharmicShastricOrMandir')}
                     className="flex-1 px-4 py-2.5 bg-temple-50 border border-temple-200 rounded-xl text-xs text-temple-900 focus:outline-none focus:ring-2 focus:ring-saffron-500"
                   />
                   <button
@@ -869,7 +869,7 @@ export const PersonalAccountDesk: React.FC<{
                     type="text"
                     value={nonAiSearch}
                     onChange={(e) => setNonAiSearch(e.target.value)}
-                    placeholder="Search guides, 80G rules, Hundi procedures, Japa counter, kitchen recipes..."
+                    placeholder={t('surfaces.personalAccount.searchGuides80gRulesHundiProcedures')}
                     className="w-full pl-10 pr-4 py-2.5 bg-temple-50 border border-temple-200 rounded-xl text-xs text-temple-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -877,7 +877,7 @@ export const PersonalAccountDesk: React.FC<{
                 {/* Accordion FAQ Items */}
                 <div className="space-y-3">
                   {filteredFaqs.length === 0 ? (
-                    <p className="text-xs text-temple-400 text-center py-6">No SOPs found matching your query.</p>
+                    <p className="text-xs text-temple-400 text-center py-6">{t('surfaces.personalAccount.noSopsFoundMatchingYourQuery')}</p>
                   ) : (
                     filteredFaqs.map((item, idx) => {
                       const isExpanded = expandedFaqId === item.id;
@@ -1038,21 +1038,21 @@ export const PersonalAccountDesk: React.FC<{
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="p-4 bg-saffron-50 rounded-2xl border border-saffron-200">
-                    <span className="text-xs font-bold text-saffron-800">Total Japa Count</span>
-                    <p className="text-2xl font-black text-saffron-950 mt-1">21,600 Beads</p>
-                    <p className="text-[11px] text-saffron-700 mt-1">200 Malas completed</p>
+                    <span className="text-xs font-bold text-saffron-800">{t('surfaces.personalAccount.totalJapaCount')}</span>
+                    <p className="text-2xl font-black text-saffron-950 mt-1">{t('surfaces.personalAccount.21600Beads')}</p>
+                    <p className="text-[11px] text-saffron-700 mt-1">{t('surfaces.personalAccount.200MalasCompleted')}</p>
                   </div>
 
                   <div className="p-4 bg-saffron-50 rounded-2xl border border-saffron-200">
-                    <span className="text-xs font-bold text-saffron-800">Your Rhythm</span>
-                    <p className="text-2xl font-black text-saffron-950 mt-1">Most days 🙏</p>
-                    <p className="text-[11px] text-saffron-700 mt-1">A gentle rhythm is forming — that is enough.</p>
+                    <span className="text-xs font-bold text-saffron-800">{t('surfaces.personalAccount.yourRhythm')}</span>
+                    <p className="text-2xl font-black text-saffron-950 mt-1">{t('surfaces.personalAccount.mostDays')}</p>
+                    <p className="text-[11px] text-saffron-700 mt-1">{t('surfaces.personalAccount.aGentleRhythmIsFormingThat')}</p>
                   </div>
 
                   <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
-                    <span className="text-xs font-bold text-emerald-800">Seva Contribution</span>
-                    <p className="text-2xl font-black text-emerald-950 mt-1">42 Hours</p>
-                    <p className="text-[11px] text-emerald-700 mt-1">Goshala & Kitchen volunteer</p>
+                    <span className="text-xs font-bold text-emerald-800">{t('surfaces.personalAccount.sevaContribution')}</span>
+                    <p className="text-2xl font-black text-emerald-950 mt-1">{t('surfaces.personalAccount.42Hours')}</p>
+                    <p className="text-[11px] text-emerald-700 mt-1">{t('surfaces.personalAccount.goshalaKitchenVolunteer')}</p>
                   </div>
                 </div>
               </div>
@@ -1138,14 +1138,14 @@ export const PersonalAccountDesk: React.FC<{
                 <div className="pt-6 border-t border-temple-200 flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-temple-900">Sign Out of Sanatani Bandhan</h4>
-                    <p className="text-[11px] text-temple-500">Securely sign out from this device</p>
+                    <p className="text-[11px] text-temple-500">{t('surfaces.personalAccount.securelySignOutFromThisDevice')}</p>
                   </div>
                   <button
                     onClick={logout}
                     className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
+                    <span>{t('surfaces.personalAccount.signOut')}</span>
                   </button>
                 </div>
               </div>
@@ -1175,7 +1175,7 @@ export const PersonalAccountDesk: React.FC<{
             <form onSubmit={handleSaveProfile} className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-temple-700 mb-1">Full Name *</label>
+                  <label className="block font-bold text-temple-700 mb-1">{t('surfaces.personalAccount.fullName')}</label>
                   <input
                     type="text"
                     required
@@ -1185,7 +1185,7 @@ export const PersonalAccountDesk: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-temple-700 mb-1">Gotra *</label>
+                  <label className="block font-bold text-temple-700 mb-1">{t('surfaces.devoteeGrid.gotra')}</label>
                   <input
                     type="text"
                     required
@@ -1207,7 +1207,7 @@ export const PersonalAccountDesk: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-temple-700 mb-1">Kula Daivam</label>
+                  <label className="block font-bold text-temple-700 mb-1">{t('surfaces.personalAccount.kulaDaivam')}</label>
                   <input
                     type="text"
                     value={profileData.kulaDaivam}
@@ -1219,7 +1219,7 @@ export const PersonalAccountDesk: React.FC<{
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-temple-700 mb-1">Phone / WhatsApp</label>
+                  <label className="block font-bold text-temple-700 mb-1">{t('surfaces.personalAccount.phoneWhatsapp')}</label>
                   <input
                     type="text"
                     value={profileData.phone}
@@ -1239,7 +1239,7 @@ export const PersonalAccountDesk: React.FC<{
               </div>
 
               <div>
-                <label className="block font-bold text-temple-700 mb-1">Emergency Contact</label>
+                <label className="block font-bold text-temple-700 mb-1">{t('surfaces.personalAccount.emergencyContact2')}</label>
                 <input
                   type="text"
                   value={profileData.emergencyContact}

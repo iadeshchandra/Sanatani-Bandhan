@@ -6,21 +6,23 @@
  */
 import React from 'react';
 import { SUPPORT_EMAIL, WHATSAPP_URL, hasWhatsApp } from '../../config/contact';
+import { useLanguage } from '../../context/LanguageContext';
 import type { SuspensionInfo } from '../../lib/softBan';
 
 export const SuspendedNotice: React.FC<{ info: SuspensionInfo; onDismiss?: () => void }> = ({ info, onDismiss }) => {
+  const { t } = useLanguage();
   const appealText = encodeURIComponent('Namaste — I would like to appeal a paused account on Sanatani Bandhan.');
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-md w-full rounded-3xl border border-amber-200/60 bg-amber-50 p-8 text-center shadow-xl">
         <p className="text-4xl mb-3">🪔</p>
-        <h1 className="text-xl font-black text-amber-900">Your account has been paused</h1>
+        <h1 className="text-xl font-black text-amber-900">{t('surfaces.portalLogin.yourAccountHasBeenPaused')}</h1>
         <p className="text-sm text-amber-800/80 mt-3 leading-relaxed">
           With care for our community, access to your account is temporarily paused.
           {info.reason ? (
             <>
               <br />
-              <span className="font-semibold">Reason given:</span> {info.reason}
+              <span className="font-semibold">{t('surfaces.portalLogin.reasonGiven')}</span> {info.reason}
             </>
           ) : null}
         </p>

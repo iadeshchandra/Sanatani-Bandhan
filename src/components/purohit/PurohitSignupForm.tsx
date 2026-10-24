@@ -191,13 +191,13 @@ const InnerForm: React.FC = () => {
         </div>
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Languages <span className="normal-case font-medium text-temple-400">(comma-separated)</span>
+            Languages <span className="normal-case font-medium text-temple-400">{t('surfaces.portalLogin.commaSeparated')}</span>
           </label>
           <input value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} className={inputCls} />
         </div>
         <div className="sm:col-span-2">
           <label className="block text-[10px] font-black text-temple-600 uppercase tracking-widest mb-1.5">
-            Specializations <span className="normal-case font-medium text-temple-400">(comma-separated)</span>
+            Specializations <span className="normal-case font-medium text-temple-400">{t('surfaces.portalLogin.commaSeparated')}</span>
           </label>
           <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} placeholder={t('purohit.signup.specsPlaceholder')} className={inputCls} />
         </div>
