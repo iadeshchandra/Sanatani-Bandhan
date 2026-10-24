@@ -15,7 +15,7 @@ import { bcp47For } from '../../i18n/translations';
 import { openSosFlow } from '../../crisis/sosEntry';
 import { openDanaSheet } from '../../lib/danaSheet';
 import { GUIDES, getGuide, useGuide, TourPill, CoachMark } from '../../components/guide';
-import { AiVoiceSettings } from '../voice/components/AiVoiceSettings';
+import { VoiceStatusNote } from '../voice/components/VoiceStatusNote';
 import { probeVoiceCapability } from '../voice/capabilities';
 import { findNearbyTemples } from '../tasks/nearby';
 import { renderTemplate } from '../templates';
@@ -785,34 +785,22 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
           /* non-DOM environment — nothing to navigate */
         }
       } else if (action.kind === 'openGuide') {
+        // WORLD-READY (Exhibit 2): the executor now offers this action
+        // ONLY for guides with a real tour twin (ai/guideTours.ts), so
+        // an unresolvable target "cannot happen". If one ever slips
+        // through (a stale cached build meeting a newer registry), drop
+        // the action silently — the sheet must NEVER answer a tap with
+        // a "still being written" dead end again.
         if (getGuide(action.target)) {
           setActiveGuide(action.target);
-        } else {
-          pushAssistant({
-            type: 'answer',
-            text: tr(
-              'ai.guideMissing',
-              '🙏 That guide is still being written — it will appear here when it is ready.',
-              '🙏 সেই গাইডটি এখনও লেখা হচ্ছে — প্রস্তুত হলে এখানেই আসবে।',
-              '🙏 वह गाइड अभी लिखा जा रहा है — तैयार होते ही यहीं आएगा।'
-            ),
-          });
         }
       } else if (action.kind === 'openSheet') {
         if (action.target === 'dana') {
           onClose();
           openDanaSheet({});
-        } else {
-          pushAssistant({
-            type: 'answer',
-            text: tr(
-              'ai.sheetMissing',
-              '🙏 That sheet is still being prepared — please look for it on its own screen for now.',
-              '🙏 সেই শিটটি এখনও তৈরি হচ্ছে — আপাতত নিজের স্ক্রিনে খুঁজুন।',
-              '🙏 वह शीट अभी तैयार हो रही है — फिलहाल उसे उसकी अपनी स्क्रीन पर देखें।'
-            ),
-          });
         }
+        // Any other target: dropped silently, same law as openGuide —
+        // no "still being prepared" dead-end copy in the sheet, ever.
       }
     },
     [navigate, onClose, pushAssistant, tr]
@@ -980,7 +968,11 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                 ←{' '}
                 {tr('ai.voice.back', 'Back to conversation', 'কথোপকথনে ফিরুন', 'वार्तालाप पर वापस जाएँ')}
               </button>
-              <AiVoiceSettings />
+              {/* WORLD-READY (Exhibit 1): the sheet shows a calm voice
+                  STATUS only (VoiceStatusNote) — never download states,
+                  progress, errors or offers. The download manager lives
+                  in its settings homes (Profile / Master Settings). */}
+              <VoiceStatusNote />
             </div>
           ) : (
             <>

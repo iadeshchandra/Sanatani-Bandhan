@@ -18,7 +18,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { captureOppref, initOpenAiAds, trackOpenAiEvent } from '../lib/openaiAds';
 
 /**
@@ -142,7 +142,6 @@ const ContactCta: React.FC<{ label?: string; dark?: boolean }> = ({
 
 export const ForInstitutionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
 
   useEffect(() => {
     document.title = 'For Institutions · Sanatani Bandhan';
@@ -179,19 +178,10 @@ export const ForInstitutionsPage: React.FC = () => {
             </span>
           </button>
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 text-xs">
-              <select
-                aria-label="Select language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as any)}
-                className="bg-transparent font-bold text-xs text-stone-700 focus:outline-none cursor-pointer"
-              >
-                <option value="en">English</option>
-                <option value="hi">हिंदी</option>
-                <option value="bn">বাংলা</option>
-                <option value="sa">संस्कृतम्</option>
-              </select>
-            </div>
+            {/* WORLD-READY (Axis B): canonical 10-language switcher — the
+                old <select> offered only 4 languages, was hidden on
+                phones and stood ~28px tall (below the 44px floor). */}
+            <PublicLanguageButton />
             <button
               type="button"
               onClick={() => navigate('/login')}

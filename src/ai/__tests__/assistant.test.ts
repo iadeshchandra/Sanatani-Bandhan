@@ -181,10 +181,20 @@ describe('RBAC gate', () => {
     expect(res.text.length).toBeGreaterThan(20);
     expect(res.action).toBeUndefined();
   });
-  it('ask(): devotee asking about panjika → openGuide action', async () => {
+  it('ask(): devotee asking about panjika → the text guide itself, no tour action', async () => {
+    // WORLD-READY (Exhibit 2): panjika has a module guide but NO
+    // interactive tour twin. The old contract emitted
+    // {openGuide, 'panjika'}, which the sheet resolved against the tour
+    // registry and dead-ended on "that guide is still being written".
+    // The new contract: the inline text guide IS the answer.
     const res = await ask('how do I use the panjika', devotee);
-    expect(res.type).toBe('action');
-    expect(res.action).toEqual({ kind: 'openGuide', target: 'panjika' });
+    expect(res.type).toBe('answer');
+    expect(res.action).toBeUndefined();
+    expect(res.text.length).toBeGreaterThan(20);
+  });
+  it('ask(): devotee asking about the wallet → openGuide action to the wallet tour', async () => {
+    const res = await ask('how do I use the wallet', devotee);
+    expect(res.action).toEqual({ kind: 'openGuide', target: 'wallet' });
   });
 });
 

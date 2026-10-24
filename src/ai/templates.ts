@@ -160,12 +160,27 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
   /* ---------------- howto ---------------- */
   howto: {
     guide: {
+      // The closing line must never claim a tour was opened when none
+      // exists (hasTour comes from ai/guideTours.ts via the executor):
+      // with no tour twin, the inline text above IS the whole guide.
       en: (p, c) =>
-        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**First steps:**\n${p['steps']}\n\n**A gentle tip:**\n${p['tips']}\n\nI've opened the full guide for you — take it one step at a time. 🌼`,
+        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**First steps:**\n${p['steps']}\n\n**A gentle tip:**\n${p['tips']}\n\n${
+          p['hasTour'] === '1'
+            ? "I've opened the full guide for you — take it one step at a time. 🌼"
+            : "That's the whole guide, right here — take it one step at a time. 🌼"
+        }`,
       hi: (p, c) =>
-        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**पहले कदम:**\n${p['steps']}\n\n**एक सुझाव:**\n${p['tips']}\n\nआपके लिए पूरा मार्गदर्शक खोल दिया है — एक-एक कदम बढ़िए। 🌼`,
+        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**पहले कदम:**\n${p['steps']}\n\n**एक सुझाव:**\n${p['tips']}\n\n${
+          p['hasTour'] === '1'
+            ? 'आपके लिए पूरा मार्गदर्शक खोल दिया है — एक-एक कदम बढ़िए। 🌼'
+            : 'पूरा मार्गदर्शक यहीं है — एक-एक कदम बढ़िए। 🌼'
+        }`,
       bn: (p, c) =>
-        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**প্রথম পদক্ষেপ:**\n${p['steps']}\n\n**একটি পরামর্শ:**\n${p['tips']}\n\nআপনার জন্য সম্পূর্ণ নির্দেশিকা খুলে দিয়েছি — এক পা এক পা করে এগোন। 🌼`,
+        `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**প্রথম পদক্ষেপ:**\n${p['steps']}\n\n**একটি পরামর্শ:**\n${p['tips']}\n\n${
+          p['hasTour'] === '1'
+            ? 'আপনার জন্য সম্পূর্ণ নির্দেশিকা খুলে দিয়েছি — এক পা এক পা করে এগোন। 🌼'
+            : 'সম্পূর্ণ নির্দেশিকা এখানেই আছে — এক পা এক পা করে এগোন। 🌼'
+        }`,
     },
     clarify: {
       en: (p, c) =>

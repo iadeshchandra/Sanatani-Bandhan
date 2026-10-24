@@ -43,6 +43,7 @@ import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { orgTypeLabel, OrgPage as OrgPageType } from '../types/membership';
 import { OrgLogo } from '../components/common/OrgLogo';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { JoinRequestModal } from '../components/org/JoinRequestModal';
 import {
   applyPageMeta,
@@ -157,6 +158,12 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
         >
           <ArrowLeft size={18} />
         </button>
+        {/* WORLD-READY (Axis B): a public visitor reads this page in
+            THEIR language — the switcher sits in the hero band,
+            pre-login, canonical registry. */}
+        <div className="absolute top-4 right-4 z-10">
+          <PublicLanguageButton tone="dark" />
+        </div>
 
         <div className="relative max-w-3xl mx-auto px-5 pt-14 pb-10 text-center">
           <div className="flex justify-center mb-5">

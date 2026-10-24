@@ -31,6 +31,8 @@ import {
   removeVoice,
   resumeDownload,
   updateVoice,
+  VOICE_ERROR_KINDS,
+  type VoiceDownloadErrorKind,
 } from '../downloader';
 import { modelSizeLabel, VOICE_MODEL } from '../models';
 import { setDlPersist } from '../storage';
@@ -411,14 +413,65 @@ export const AiVoiceSettings: React.FC<{
               '🙏 डाउनलोड लड़खड़ा गया — कुछ नहीं टूटा।'
             )}
           </p>
-          {ui.dl.error && <p className="mt-0.5 text-xs text-stone-500">{ui.dl.error}</p>}
-          <button
-            type="button"
-            onClick={resume}
-            className="mt-2.5 min-h-[48px] w-full rounded-2xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-extrabold px-4 transition-colors"
-          >
-            {tr('ai.voice.retry', '↻ Try again', '↻ আবার চেষ্টা', '↻ पुनः प्रयास करें')}
-          </button>
+          {/* WORLD-READY (Exhibit 1): dl.error is a KIND token, mapped
+              here to ONE plain line in the user's language. The raw
+              engine message is never rendered — and a legacy raw string
+              persisted by an older build falls into 'unknown' too.
+              'gpu'/'storage' are permanent on this device for now, so
+              they get the calm unavailable line and NO retry button
+              that could only fail the same way again. */}
+          {(() => {
+            const kind = (VOICE_ERROR_KINDS as readonly string[]).includes(ui.dl.error ?? '')
+              ? (ui.dl.error as VoiceDownloadErrorKind)
+              : 'unknown';
+            if (kind === 'gpu') {
+              return (
+                <p className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                  {unavailableReason({ status: 'unavailable', webgpu: false, freeStorageGB: null, reason: 'no-webgpu' })}
+                </p>
+              );
+            }
+            if (kind === 'storage') {
+              return (
+                <p className="mt-0.5 text-xs leading-relaxed text-stone-500">
+                  {unavailableReason({ status: 'unavailable', webgpu: true, freeStorageGB: null, reason: 'low-storage' })}
+                </p>
+              );
+            }
+            const line =
+              kind === 'network'
+                ? tr(
+                    'ai.voice.errorNetwork',
+                    'The download could not reach the internet. Check your connection, then try again — your assistant works fully while you wait.',
+                    'ডাউনলোড ইন্টারনেটে পৌঁছাতে পারেনি। সংযোগ দেখে আবার চেষ্টা করুন — অপেক্ষার সময়ও সহকারী সম্পূর্ণ কাজ করে।',
+                    'डाउनलोड इंटरनेट तक नहीं पहुँच सका। कनेक्शन देखकर फिर प्रयास करें — प्रतीक्षा में भी सहायक पूरी तरह काम करता है।'
+                  )
+                : kind === 'integrity'
+                  ? tr(
+                      'ai.voice.errorIntegrity',
+                      'The download did not pass its safety check, so we kept it off your phone. Trying again on Wi-Fi usually fixes it.',
+                      'ডাউনলোড নিরাপত্তা-পরীক্ষায় পাস করেনি, তাই ফোনে রাখা হয়নি। Wi-Fi-তে আবার চেষ্টা করলে সাধারণত ঠিক হয়।',
+                      'डाउनलोड सुरक्षा-जाँच में पास नहीं हुआ, इसलिए फ़ोन पर नहीं रखा गया। Wi-Fi पर फिर प्रयास करने से आमतौर पर ठीक हो जाता है।'
+                    )
+                  : tr(
+                      'ai.voice.errorGeneric',
+                      'The download did not finish. Nothing is broken — you can try again, and your assistant works fully either way.',
+                      'ডাউনলোড শেষ হয়নি। কিছুই ভাঙেনি — আবার চেষ্টা করতে পারেন, আর সহকারী যেকোনো ভাবেই সম্পূর্ণ কাজ করে।',
+                      'डाउनलोड पूरा नहीं हुआ। कुछ नहीं टूटा — फिर प्रयास कर सकते हैं, और सहायक हर हाल में पूरी तरह काम करता है।'
+                    );
+            return (
+              <>
+                <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{line}</p>
+                <button
+                  type="button"
+                  onClick={resume}
+                  className="mt-2.5 min-h-[48px] w-full rounded-2xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-extrabold px-4 transition-colors"
+                >
+                  {tr('ai.voice.retry', '↻ Try again', '↻ আবার চেষ্টা', '↻ पुनः प्रयास करें')}
+                </button>
+              </>
+            );
+          })()}
         </div>
       )}
 

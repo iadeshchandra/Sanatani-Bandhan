@@ -104,6 +104,45 @@ function noteProgress(p: DownloadProgress): void {
 }
 
 /**
+ * WORLD-READY (Exhibit 1) — error KIND tokens, never raw error text.
+ * =====================================================================
+ * The persisted `error` field used to store the engine's raw message
+ * (e.g. WebLLM's "Unable to find a compatible GPU… webgpureport.org"),
+ * and the settings card rendered it verbatim — a raw technical error
+ * in the middle of a Bangla UI. From now on the field stores ONLY one
+ * of these kind tokens; the card maps a token to ONE plain line in the
+ * user's language. Classification:
+ *   'gpu'       — no usable GPU / adapter / device (PERMANENT on this
+ *                 device: the card must not offer a retry that can
+ *                 only fail the same way)
+ *   'storage'   — quota / disk full (retry is futile until space frees)
+ *   'integrity' — the downloaded cache failed its safety check
+ *   'network'   — fetch/connection failure (retry is meaningful)
+ *   'unknown'   — anything else, incl. legacy raw strings persisted by
+ *                 older builds (they fall into this bucket at render
+ *                 time and are never shown).
+ */
+export type VoiceDownloadErrorKind = 'gpu' | 'storage' | 'integrity' | 'network' | 'unknown';
+
+export const VOICE_ERROR_KINDS: readonly VoiceDownloadErrorKind[] = [
+  'gpu',
+  'storage',
+  'integrity',
+  'network',
+  'unknown',
+];
+
+export function classifyDownloadError(e: unknown): VoiceDownloadErrorKind {
+  const msg = (e instanceof Error ? e.message : String(e ?? '')).toLowerCase();
+  if (msg.includes('voice-download-integrity-failed')) return 'integrity';
+  if (/gpu|webgpu|adapter|device lost|devicelost|out of memory|\boom\b/.test(msg)) return 'gpu';
+  if (/quota|no space|disk full|storage.*full|insufficient storage/.test(msg)) return 'storage';
+  if (/fetch|network|net::|offline|failed to load|load failed|http \d{3}|timed out|timeout|connection/.test(msg))
+    return 'network';
+  return 'unknown';
+}
+
+/**
  * Run the download. Progress covers fetch (weights) + load (GPU compile).
  * Persisted so an app restart reconciles to 'paused' (resumable).
  * Throws on failure — callers show the warm error and stay on Phase 0.
@@ -139,7 +178,9 @@ export async function confirmDownload(onProgress: (p: DownloadProgress) => void)
       const cur = getDlPersist();
       if (cur.state !== 'paused') setDlPersist({ state: 'paused', progress: 0 });
     } else {
-      setDlPersist({ state: 'error', error: e instanceof Error ? e.message : 'download failed' });
+      // Store the error KIND token only — never the raw engine message
+      // (Exhibit 1: raw text must never reach the user's screen).
+      setDlPersist({ state: 'error', error: classifyDownloadError(e) });
     }
     throw e;
   }
@@ -160,7 +201,7 @@ export async function confirmDownload(onProgress: (p: DownloadProgress) => void)
     } catch {
       /* ignore */
     }
-    setDlPersist({ state: 'error', error: 'voice-download-integrity-failed' });
+    setDlPersist({ state: 'error', error: 'integrity' });
     throw new Error('voice-download-integrity-failed');
   }
   // Hand the warm engine to the singleton for the rest of the session.

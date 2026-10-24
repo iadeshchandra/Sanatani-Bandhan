@@ -60,6 +60,12 @@ function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string)
   if (intent === 'nearby_temples' && variant === 'consent') return 'location_consent';
   if (intent === 'fallback_unknown') return 'clarify';
   if (intent === 'navigate' && !hasAction) return 'clarify';
+  // WORLD-READY (Exhibit 2): a FOUND module guide (variant 'guide') is
+  // a complete answer in itself — the interactive-tour action is an
+  // optional extra that exists only for the few guides with a tour
+  // twin. Without this line every tour-less guide answer was labelled
+  // 'clarify' merely for lacking a button.
+  if (intent === 'howto' && variant === 'guide') return hasAction ? 'action' : 'answer';
   if (intent === 'howto' && !hasAction) return 'clarify';
   if (hasAction) return 'action';
   return 'answer';

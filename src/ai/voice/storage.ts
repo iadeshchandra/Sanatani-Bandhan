@@ -127,7 +127,14 @@ export interface VoiceDlPersist {
   /** Model version that was downloaded ('' when none). */
   version: string;
   updatedAt: number;
-  /** Human error line when state === 'error'. */
+  /**
+   * Error KIND token when state === 'error' ('gpu' | 'storage' |
+   * 'integrity' | 'network' | 'unknown' — see downloader.ts
+   * classifyDownloadError). NEVER a raw engine message: raw technical
+   * text must never reach the user's screen (Exhibit 1). Values
+   * persisted by older builds may be raw strings; renderers must map
+   * anything that is not a known token to the generic line.
+   */
   error?: string;
   /** Model version whose update offer was dismissed (don't re-nag). */
   ignoredVersion?: string;

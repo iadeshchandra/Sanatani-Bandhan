@@ -9,6 +9,7 @@
  * BEFORE this executor runs; a denied guide never reaches here.
  */
 import { getGuide } from '../../lib/moduleGuides';
+import { tourIdForModuleGuide } from '../guideTours';
 import { allowedGuides } from '../rbac';
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
@@ -27,15 +28,24 @@ export function howtoTask(ctx: TaskCtx): TaskOutcome {
   if (guide && allowedGuides(ctx.role).includes(guide.id)) {
     const steps = guide.firstSteps.map((s, i) => `${i + 1}. ${s[lang]}`).join('\n');
     const tips = guide.proTips.map((t) => `• ${t[lang]}`).join('\n');
+    // WORLD-READY (Exhibit 2): an `openGuide` action launches an
+    // interactive TOUR, whose registry has a different id space from
+    // these module guides. Offer the action ONLY where a tour twin
+    // genuinely exists (ai/guideTours.ts) — otherwise the text guide
+    // below is the complete answer and no button is rendered. The old
+    // behaviour emitted the action for every guide, and nearly every
+    // tap landed on a "still being written" dead end in the sheet.
+    const tourId = tourIdForModuleGuide(guide.id);
     return {
       params: {
         guideName: guide.name[lang],
         whatItIs: guide.whatItIs[lang],
         steps,
         tips,
+        hasTour: tourId ? '1' : '0',
       },
       variant: 'guide',
-      action: { kind: 'openGuide', target: guide.id },
+      ...(tourId ? { action: { kind: 'openGuide' as const, target: tourId } } : {}),
       suggestions: suggestionsFor('howto', ctx.lang),
     };
   }

@@ -105,6 +105,7 @@ import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
 import { DemoSelectionModal, type DemoView } from '../components/public/DemoSelectionModal';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { WorkspaceType } from '../types';
 
 interface LandingPageProps {
@@ -258,7 +259,7 @@ const SHOWCASE_TABS: ShowcaseTab[] = [
       { icon: PiggyBank, title: 'MRR tracking', desc: 'See your institution\u2019s monthly recurring seva income at a glance.' },
       { icon: CalendarCheck, title: 'Pause / resume / cancel', desc: 'Devotees control their seva; staff handle exceptions gracefully.' },
       { icon: Bell, title: 'Auto due reminders', desc: 'Gentle WhatsApp nudges before every due date — no awkward calls.' },
-      { icon: Award, title: 'Karma ledger', desc: 'Micro-seva points & punya certificates for every volunteer.' },
+      { icon: Award, title: 'Seva record', desc: 'Every volunteer’s hours and service, kept as a grateful record — seva is honoured, never scored.' },
       { icon: Target, title: 'Fundraising campaigns', desc: 'Jirnoddhar drives with live donor milestones & goals.' },
     ],
   },
@@ -783,35 +784,37 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-stone-600" aria-label="Page sections">
             <button type="button" onClick={() => scrollTo('institutions')} className="hover:text-orange-600 transition-colors cursor-pointer">
-              Institutions
+              {safeTranslate('landing_nav_institutions', 'Institutions', 'প্রতিষ্ঠানসমূহ', 'संस्थान')}
             </button>
             <button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-600 transition-colors cursor-pointer">
-              Features
+              {safeTranslate('landing_nav_features', 'Features', 'বৈশিষ্ট্য', 'विशेषताएँ')}
             </button>
             <button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
-              Why Dharma
+              {safeTranslate('landing_nav_why_dharma', 'Why Dharma', 'ধর্ম কেন', 'धर्म क्यों')}
             </button>
             <button type="button" onClick={() => scrollTo('pricing')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
-              Pricing
+              {safeTranslate('landing_nav_pricing', 'Pricing', 'মূল্য', 'मूल्य निर्धारण')}
             </button>
             <button type="button" onClick={() => scrollTo('faq')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
-              FAQ
+              {safeTranslate('landing_nav_faq', 'FAQ', 'জিজ্ঞাসা', 'प्रश्नोत्तर')}
             </button>
             <button type="button" onClick={handleContact} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
-              Contact
+              {safeTranslate('landing_nav_contact', 'Contact', 'যোগাযোগ', 'संपर्क करें')}
             </button>
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Language switcher hidden on landing until hero/nav/CTAs are translated
-                (2026-10-15 audit: selector was decorative — content stayed English).
-                Re-enable when landing i18n lands. */}
+            {/* WORLD-READY (Exhibit 6): the language switcher lives in the
+                public header — and it is NOT decorative this time: nav,
+                hero and CTAs below are wired through safeTranslate, and
+                the choice persists pre-login via LanguageContext. */}
+            <PublicLanguageButton />
             <button
               type="button"
               onClick={handleGoToLogin}
               className="hidden sm:inline-flex min-h-[44px] px-6 items-center rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
             >
-              LOGIN
+              {safeTranslate('landing_nav_login', 'LOGIN', 'লগইন', 'लॉगिन')}
             </button>
             <button
               type="button"
@@ -828,12 +831,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="lg:hidden border-t border-orange-100 bg-white px-4 py-4 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {[
-                ['Institutions', 'institutions'],
-                ['Features', 'showcase'],
-                ['Why Dharma', 'dharma'],
-                ['Pricing', 'pricing'],
-                ['FAQ', 'faq'],
-                ['Contact', 'contact-link'],
+                [safeTranslate('landing_nav_institutions', 'Institutions', 'প্রতিষ্ঠানসমূহ', 'संस्थान'), 'institutions'],
+                [safeTranslate('landing_nav_features', 'Features', 'বৈশিষ্ট্য', 'विशेषताएँ'), 'showcase'],
+                [safeTranslate('landing_nav_why_dharma', 'Why Dharma', 'ধর্ম কেন', 'धर्म क्यों'), 'dharma'],
+                [safeTranslate('landing_nav_pricing', 'Pricing', 'মূল্য', 'मूल्य निर्धारण'), 'pricing'],
+                [safeTranslate('landing_nav_faq', 'FAQ', 'জিজ্ঞাসা', 'प्रश्नोत्तर'), 'faq'],
+                [safeTranslate('landing_nav_contact', 'Contact', 'যোগাযোগ', 'संपर्क करें'), 'contact-link'],
               ].map(([label, id]) => (
                 <button
                   key={id}
@@ -850,14 +853,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               onClick={() => { setIsMobileMenuOpen(false); handleGoToLogin(); }}
               className="w-full py-3 rounded-xl bg-stone-900 text-white text-sm font-extrabold cursor-pointer"
             >
-              LOGIN
+              {safeTranslate('landing_nav_login', 'LOGIN', 'লগইন', 'लॉगिन')}
             </button>
+            <PublicLanguageButton className="w-full justify-center" />
             <button
               type="button"
               onClick={() => { setIsMobileMenuOpen(false); handleSignup(); }}
               className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-white text-sm font-extrabold cursor-pointer pressable"
             >
-              CREATE FREE ACCOUNT
+              {safeTranslate('landing_nav_create_free', 'CREATE FREE ACCOUNT', 'বিনামূল্যে অ্যাকাউন্ট খুলুন', 'मुफ़्त खाता बनाएँ')}
             </button>
           </div>
         )}
@@ -871,7 +875,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="relative max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-orange-200 bg-orange-50 text-orange-700 text-[11px] sm:text-xs font-extrabold tracking-[0.18em] uppercase mb-5">
               <Sparkles className="w-3.5 h-3.5" />
-              ॥ वसुधैव कुटुम्बकम् ॥ · One platform · Every institution
+              ॥ वसुधैव कुटुम्बकम् ॥ · {safeTranslate('landing_hero_badge', 'One platform · Every institution', 'একটি প্ল্যাটফর্ম · প্রতিটি প্রতিষ্ঠান', 'एक मंच · हर संस्थान')}
             </div>
 
             {tithiLine && (
@@ -887,16 +891,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Diya className="float-slow hidden sm:flex" flameDelay="0.3s" />
               {heroAudience === 'devotee' ? (
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
-                  Your Sanatani life,{' '}
+                  {safeTranslate('landing_h1_devotee_a', 'Your Sanatani life,', 'আপনার সানাতনী জীবন,', 'आपका सनातनी जीवन,')}{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
-                    beautifully in one place.
+                    {safeTranslate('landing_h1_devotee_b', 'beautifully in one place.', 'সুন্দরভাবে এক জায়গায়।', 'सुंदर ढंग से एक ही जगह।')}
                   </span>
                 </h1>
               ) : (
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
-                  From paper registers to{' '}
+                  {safeTranslate('landing_h1_inst_a', 'From paper registers to', 'কাগজের খাতা থেকে', 'कागज़ी रजिस्टर से')}{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
-                    audit-ready in 60 seconds.
+                    {safeTranslate('landing_h1_inst_b', 'audit-ready in 60 seconds.', '৬০ সেকেন্ডে অডিট-প্রস্তুত।', '60 सेकंड में ऑडिट-तैयार।')}
                   </span>
                 </h1>
               )}
@@ -917,7 +921,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       : 'text-stone-500 hover:text-orange-700'
                   }`}
                 >
-                  🙏 For Devotees
+                  {safeTranslate('landing_hero_for_devotees', '🙏 For Devotees', '🙏 ভক্তদের জন্য', '🙏 भक्तों के लिए')}
                 </button>
                 <button
                   type="button"
@@ -929,7 +933,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       : 'text-stone-500 hover:text-stone-800'
                   }`}
                 >
-                  🏛️ For Institutions
+                  {safeTranslate('landing_hero_for_institutions', '🏛️ For Institutions', '🏛️ প্রতিষ্ঠানের জন্য', '🏛️ संस्थानों के लिए')}
                 </button>
               </div>
             </div>
@@ -937,9 +941,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {heroAudience === 'devotee' ? (
               <>
                 <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
-                  Daily Panjika, live temple darshan, your Tirtha diary, and a
-                  warm community of fellow seekers — your personal sacred space,
-                  free forever.
+                  {safeTranslate(
+                    'landing_hero_devotee_sub',
+                    'Daily Panjika, live temple darshan, your Tirtha diary, and a warm community of fellow seekers — your personal sacred space, free forever.',
+                    'দৈনিক পঞ্জিকা, লাইভ মন্দির দর্শন, আপনার তীর্থ ডায়েরি, আর সহসাধকদের উষ্ণ সম্প্রদায় — আপনার ব্যক্তিগত পবিত্র পরিসর, চিরদিন বিনামূল্যে।',
+                    'दैनिक पंचांग, लाइव मंदिर दर्शन, आपकी तीर्थ डायरी, और साधकों का उष्ण समुदाय — आपका निजी पवित्र स्थान, हमेशा मुफ़्त।'
+                  )}
                 </p>
                 <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
                   <button
@@ -947,7 +954,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     onClick={handleSignup}
                     className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    🙏 Join as a Devotee
+                    {safeTranslate('landing_hero_join_devotee', '🙏 Join as a Devotee', '🙏 ভক্ত হিসেবে যোগ দিন', '🙏 भक्त बनकर जुड़ें')}
                     <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
@@ -958,22 +965,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <span className="w-6 h-6 rounded-full bg-stone-900 text-white flex items-center justify-center">
                       <Play className="w-3 h-3 fill-white ml-0.5" />
                     </span>
-                    {isAuthenticated ? 'OPEN YOUR APP' : 'EXPLORE THE APP'}
+                    {isAuthenticated
+                      ? safeTranslate('landing_open_your_app', 'OPEN YOUR APP', 'আপনার অ্যাপ খুলুন', 'आपका ऐप खोलें')
+                      : safeTranslate('landing_explore_the_app', 'EXPLORE THE APP', 'অ্যাপটি দেখুন', 'ऐप देखें')}
                   </button>
                 </div>
                 <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Free forever · 60-second welcome · No card, no salesman
+                  {safeTranslate('landing_hero_trust', 'Free forever · 60-second welcome · No card, no salesman', 'চিরদিন বিনামূল্যে · ৬০ সেকেন্ডে স্বাগত · কার্ড লাগবে না, বিক্রয়কর্মী নয়', 'हमेशा मुफ़्त · 60 सेकंड में स्वागत · कोई कार्ड नहीं, कोई सेल्समैन नहीं')}
                 </p>
               </>
             ) : (
               <>
 
             <p className="mt-6 text-base sm:text-lg text-stone-500 max-w-2xl mx-auto leading-relaxed">
-              Scattered donation records. 80G receipt chaos. Donors quietly drifting
-              away. Sanatani Bandhan unites your Mandir, Goshala, Ashram, Gurukul or
-              Sangha — one-click CA-ready audit packs, sequential 80G receipts and
-              donor win-back, all from one secure dashboard.
+              {safeTranslate(
+                'landing_hero_inst_sub',
+                'Scattered donation records. 80G receipt chaos. Donors quietly drifting away. Sanatani Bandhan unites your Mandir, Goshala, Ashram, Gurukul or Sangha — one-click CA-ready audit packs, sequential 80G receipts and donor win-back, all from one secure dashboard.',
+                'ছড়ানো দানের রেকর্ড। 80G রসিদের বিশৃঙ্খলা। দাতারা নীরবে দূরে সরে যাচ্ছেন। সানাতনী বন্ধন আপনার মন্দির, গোশালা, আশ্রম, গুরুকুল বা সংঘকে এক করে — এক ক্লিকে CA-প্রস্তুত অডিট প্যাক, ক্রমিক 80G রসিদ আর দাতা ফিরিয়ে আনা, সবই একটি নিরাপদ ড্যাশবোর্ড থেকে।',
+                'बिखरे दान रिकॉर्ड। 80G रसीदों की अव्यवस्था। दाता चुपचाप दूर होते जा रहे। सनातनी बंधन आपके मंदिर, गोशाला, आश्रम, गुरुकुल या संघ को एक करता है — एक क्लिक में CA-तैयार ऑडिट पैक, क्रमिक 80G रसीदें और दाता वापसी, सब एक सुरक्षित डैशबोर्ड से।'
+              )}
             </p>
 
             {/* Institution selector */}
@@ -1021,7 +1032,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 onClick={handleSignup}
                 className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
               >
-                CREATE FREE ACCOUNT
+                {safeTranslate('landing_nav_create_free', 'CREATE FREE ACCOUNT', 'বিনামূল্যে অ্যাকাউন্ট খুলুন', 'मुफ़्त खाता बनाएँ')}
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
@@ -1082,7 +1093,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               ॥ पञ्चधा सेवा ॥ — Five institutions, one platform
             </p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Built for <span className="text-orange-600">your</span> institution.
+              {safeTranslate('landing_h2_built_for', 'Built for your institution.', 'আপনার প্রতিষ্ঠানের জন্যই তৈরি।', 'आपके संस्थान के लिए ही बना।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Every organisation type gets its own configured workspace — the right
@@ -1170,7 +1181,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               One login · Every institution
             </p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Temple M, Temple N, the Gurukul — <span className="text-orange-600">one login.</span>
+              {safeTranslate('landing_h2_one_login', 'Many temples, one login.', 'অনেক মন্দির, একটাই লগইন।', 'कई मंदिर, एक ही लॉगिन।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Open a second temple? Add it as a branch — flip between branches with one
@@ -1275,7 +1286,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               ॥ सर्वं एकत्र ॥ — Everything in one place
             </p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              One platform for every <span className="text-orange-600">dharmic institution.</span>
+              {safeTranslate('landing_h2_one_platform', 'One platform for every dharmic institution.', 'প্রতিটি ধার্মিক প্রতিষ্ঠানের জন্য একটি প্ল্যাটফর্ম।', 'हर धार्मिक संस्थान के लिए एक मंच।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Seventy-two desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
@@ -1370,7 +1381,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Compliance, handled
             </p>
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              The compliance stack your <span className="text-orange-600">CA will thank you for.</span>
+              {safeTranslate('landing_h2_compliance', 'The compliance stack your CA will thank you for.', 'এমন কমপ্লায়েন্স ব্যবস্থা, যার জন্য আপনার CA ধন্যবাদ দেবেন।', 'ऐसी अनुपालन व्यवस्था, जिसके लिए आपके CA धन्यवाद देंगे।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               March doesn't have to hurt. Every figure your auditor asks for is one
@@ -1421,7 +1432,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Reveal className="text-center max-w-2xl mx-auto mb-12">
               <p className="text-2xl mb-3">🪔</p>
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-                Built for Dharma, <span className="text-amber-400">not just data.</span>
+                {safeTranslate('landing_h2_dharma', 'Built for Dharma, not just data.', 'ধর্মের জন্য তৈরি, শুধু ডেটার জন্য নয়।', 'धर्म के लिए बना, सिर्फ़ डेटा के लिए नहीं।')}
               </h2>
               <p className="mt-3 text-lg font-bold text-amber-200/90">धर्मो रक्षति रक्षितः</p>
               <p className="text-sm text-orange-200/70 mt-1 italic">Dharma protects those who protect it.</p>
@@ -1464,7 +1475,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section id="pricing" className="scroll-mt-24 px-4 sm:px-6 py-16 sm:py-24 max-w-6xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-8">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Priced for <span className="text-orange-600">every institution.</span>
+              {safeTranslate('landing_h2_pricing', 'Priced for every institution.', 'প্রতিটি প্রতিষ্ঠানের সাধ্যের মূল্য।', 'हर संस्थान की पहुँच वाली कीमत।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
               Start free, grow when you are ready. Every plan includes the offline-first
@@ -1682,7 +1693,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section className="px-4 sm:px-6 pb-16 sm:pb-24 max-w-6xl mx-auto">
           <Reveal className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Voices from the <span className="text-orange-600">parivar.</span>
+              {safeTranslate('landing_h2_voices', 'Voices from the parivar.', 'পরিবারের কণ্ঠস্বর।', 'परिवार की आवाज़ें।')}
             </h2>
           </Reveal>
           {/* NOTE: replace with real testimonials once collected from pilot institutions. */}
@@ -1716,7 +1727,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section id="faq" className="scroll-mt-24 px-4 sm:px-6 pb-16 sm:pb-24 max-w-3xl mx-auto">
           <Reveal className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              Common <span className="text-orange-600">questions.</span>
+              {safeTranslate('landing_h2_faq', 'Common questions.', 'সাধারণ প্রশ্ন।', 'आम प्रश्न।')}
             </h2>
           </Reveal>
           <div className="space-y-3">
@@ -1760,7 +1771,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <Diya flameDelay="1.2s" />
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
-                  Bring your institution online tonight.
+                  {safeTranslate('landing_h2_cta', 'Bring your institution online tonight.', 'আজ রাতেই আপনার প্রতিষ্ঠানকে অনলাইনে আনুন।', 'आज रात ही अपने संस्थान को ऑनलाइन लाएँ।')}
                 </h2>
                 <p className="mt-3 text-orange-100 max-w-xl mx-auto">
                   Set up in 60 seconds with the guided wizard. Join institutions across
