@@ -8,6 +8,17 @@
  * every surface rendered all of them, and the three read paths
  * (limit-80 live hook, unlimited center hook, attention-only summary)
  * each produced a different number.
+ *
+ * AMENDMENT — WORLD-READINESS B2 / Exhibit 5 (2026-10-24): #43 treated
+ * each DAY's wallet-low bell as a separate notice ("the key carries the
+ * day"). The owner's own Suchana then showed 4+ identical "wallet almost
+ * empty" rows — one per day his wallet sat low — and he flagged the pile
+ * itself as the defect. For a CONTINUING CONDITION the day is a re-fire
+ * epoch, not a new event: the wallet-low family now folds across days
+ * (collapseKeyFor DEDUPE_FAMILY_FOLDS) and the emitter keys it stably.
+ * The day-carries-identity principle SURVIVES where it is true — tithi
+ * lead buckets ("in 4 days" ≠ "in 2 days") and the no-dedupeKey fallback
+ * still key by day, and their pins below are unchanged.
  */
 import {
   collapseDuplicateItems,
@@ -78,7 +89,8 @@ function auditInbox(): NotificationItem[] {
       }),
     );
   }
-  // A genuinely different notice (yesterday's low bell — different day key).
+  // Yesterday's low bell — a different DAY key, but (post Exhibit-5
+  // amendment) the SAME continuing condition: it folds into the family.
   rows.push(item({ id: 'low-yesterday', dedupeKey: 'lowbalance:2026-10-19', createdAt: 500_000, updatedAt: 500_000 }));
   // An unrelated order bell.
   rows.push(
@@ -101,7 +113,8 @@ describe('collapseDuplicateItems — stored duplicates fold to one row', () => {
     expect(lows).toHaveLength(1);
     expect(lows[0].id).toBe('low-20'); // newest copy represents
     expect(lows[0].read).toBe(false); // one unread copy ⇒ the row is unread
-    expect(lows[0].groupedCount).toBe(21);
+    // 21 same-day copies + yesterday's folded copy (Exhibit-5 amendment).
+    expect(lows[0].groupedCount).toBe(22);
   });
 
   test('when every copy is read, the collapsed row is read', () => {
@@ -123,10 +136,10 @@ describe('collapseDuplicateItems — stored duplicates fold to one row', () => {
     expect(twoBuckets).toHaveLength(2); // "in 4 days" ≠ "in 2 days"
   });
 
-  test('different days of the same daily bell stay separate (the key carries the day)', () => {
+  test('different days of the wallet-low bell FOLD (Exhibit-5 amendment: one continuing condition)', () => {
     const collapsed = collapseDuplicateItems(auditInbox());
-    const lows = collapsed.filter((i) => (i.dedupeKey ?? '').startsWith('lowbalance:'));
-    expect(lows).toHaveLength(2); // today + yesterday
+    const lows = collapsed.filter((i) => (i.dedupeKey ?? '').startsWith('lowbalance'));
+    expect(lows).toHaveLength(1); // today + yesterday are one row now
   });
 
   test('fallback key (no dedupeKey): kind + subject + title + civil day', () => {
@@ -142,17 +155,17 @@ describe('collapseDuplicateItems — stored duplicates fold to one row', () => {
   test('distinct logical notices are never merged', () => {
     const collapsed = collapseDuplicateItems(auditInbox());
     expect(collapsed.find((i) => i.id === 'order-1')).toBeTruthy();
-    // 26 stored rows → 4 logical rows.
-    expect(collapsed).toHaveLength(4);
+    // 26 stored rows → 3 logical rows (wallet-low family folds to one).
+    expect(collapsed).toHaveLength(3);
   });
 
-  test('the grouped center view shows the wallet rows folded — 2, not 22', () => {
+  test('the grouped center view shows the wallet rows folded — 1, not 22', () => {
     const collapsed = collapseDuplicateItems(auditInbox());
     const groups = groupCenterItems(collapsed);
     const walletRows = groups
       .flatMap((g) => g.items)
       .filter((i) => i.kind === 'wallet');
-    expect(walletRows).toHaveLength(2); // today's rep + yesterday's — not 22
+    expect(walletRows).toHaveLength(1); // the whole family — not 22
   });
 });
 
@@ -160,20 +173,21 @@ describe('badge law — counts derive from the collapsed list', () => {
   test('unread over the collapsed list is the number the devotee sees', () => {
     const collapsed = collapseDuplicateItems(auditInbox());
     const unread = collapsed.filter((i) => !i.read).length;
-    // wallet-low today (unread), tithi bucket (unread), yesterday's low
-    // (unread), order bell (unread) — 4, not 26 and not 3.
-    expect(unread).toBe(4);
+    // wallet-low family (unread), tithi bucket (unread), order bell
+    // (unread) — 3, not 26 and not 4.
+    expect(unread).toBe(3);
     const summary = summarizeForHeader(collapsed);
     expect(summary.attention + summary.digest).toBe(unread);
-    expect(summary.attention).toBe(3); // wallet ×2 + order (important)
+    expect(summary.attention).toBe(2); // wallet family + order (important)
     expect(summary.digest).toBe(1); // tithi (gentle)
   });
 
   test('marking the representative read settles every copy (sibling ids)', () => {
     const raw = auditInbox();
     const ids = collapseSiblingIds(raw, 'low-20');
-    expect(ids).toHaveLength(21);
+    expect(ids).toHaveLength(22); // 21 same-day + yesterday's folded copy
     expect(ids).toContain('low-0');
+    expect(ids).toContain('low-yesterday');
     // After marking those ids read, the collapse reads as read.
     const marked = raw.map((i) => (ids.includes(i.id) ? { ...i, read: true } : i));
     const collapsed = collapseDuplicateItems(marked);

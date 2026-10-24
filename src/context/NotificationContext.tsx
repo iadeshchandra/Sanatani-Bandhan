@@ -26,6 +26,13 @@ export interface AppNotification {
   isRead: boolean;
   type: 'info' | 'success' | 'warning' | 'error';
   link?: string;
+  /**
+   * WORLD-READY (Exhibit 5): how many stored copies this row folds —
+   * the read-time collapse (uiTypes.collapseDuplicateItems) merges
+   * duplicate rows into one representative carrying the total. >1 means
+   * "this notice rang N times; it is shown once". Absent/1 = single.
+   */
+  groupedCount?: number;
 }
 
 interface NotificationContextType {
@@ -65,6 +72,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         isRead: item.read === true,
         type: PRIORITY_TO_TYPE[item.priority] ?? 'info',
         link: item.deepLink,
+        groupedCount: item.groupedCount,
       })),
     [live.items, lang],
   );

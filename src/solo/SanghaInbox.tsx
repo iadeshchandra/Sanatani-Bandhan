@@ -89,6 +89,15 @@ export const SanghaInboxSection: React.FC<SanghaInboxSectionProps> = ({ limit = 
                   {n.title}
                 </p>
                 <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">{n.message}</p>
+                {(n.groupedCount ?? 1) > 1 && (
+                  <p className="text-[11px] font-semibold text-stone-400 mt-1">
+                    <T
+                      en={`Rang ${n.groupedCount} times — shown once, so your Suchana stays calm.`}
+                      bn={`${n.groupedCount} বার এসেছে — একবারই দেখানো হলো, যাতে সূচনা শান্ত থাকে।`}
+                      hi={`${n.groupedCount} बार आया — एक बार ही दिखाया, ताकि सूचना शांत रहे।`}
+                    />
+                  </p>
+                )}
               </div>
               {n.link && (
                 <span className="text-amber-600 text-lg shrink-0" aria-hidden>→</span>

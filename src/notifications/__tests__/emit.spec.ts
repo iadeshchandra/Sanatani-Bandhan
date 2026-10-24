@@ -134,7 +134,7 @@ describe('notifyHelpers — contract per module', () => {
     ['top-up rejected → important', () => notifyTopupRejected('u', '৳1,000', 'c1')],
     ['payout received → gentle', () => notifyPayoutReceived('u', '৳2,000', 'o1')],
     ['commission due → important', () => notifyCommissionDue('u', '৳240', 'o1', '2026-10-17')],
-    ['low balance → important', () => notifyLowBalance('u', '৳150', '2026-10-17')],
+    ['low balance → important', () => notifyLowBalance('u', '৳150')],
     [
       'org announcement → important',
       () => notifyOrgAnnouncement('u', { orgId: 'org1', orgName: 'Mandir', title: 'Diwali prep', announcementId: 'a1' }),

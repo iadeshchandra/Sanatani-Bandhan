@@ -656,7 +656,7 @@ export function startWalletNotify(uid: string): () => void {
       lowState = verdict.next;
       saveLowBalanceState(uid, lowState);
       if (verdict.fire) {
-        void notifyLowBalance(uid, fmtWallet(w.balance, w.currency), dayKey());
+        void notifyLowBalance(uid, fmtWallet(w.balance, w.currency));
       }
     })
   );

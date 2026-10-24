@@ -352,11 +352,23 @@ export function notifyCommissionDue(recipientUid: string, amount: string, orderI
   );
 }
 
-/** Wallet running low → IMPORTANT. */
-export function notifyLowBalance(recipientUid: string, amount: string, dayKey: string): Promise<EmitResult> {
+/**
+ * Wallet running low → IMPORTANT.
+ *
+ * WORLD-READY (Exhibit 5): the dedupeKey is the STABLE family key
+ * 'lowbalance' — one logical notice, per this file's own law ("dedupeKey
+ * is stable per logical event"). The old per-day key (`lowbalance:{day}`)
+ * made every 24h re-fire (and every second device) a NEW stored card, so
+ * the owner's Suchana filled with identical "wallet almost empty" rows
+ * that neither ingestion nor the read-time collapse could fold. Episode
+ * discipline (one bell per low-episode, ≤1 re-fire per 24h, recovery
+ * re-arms) lives in lib/walletLowBalance.decideLowBalance — the key
+ * must not re-introduce per-day identity underneath it.
+ */
+export function notifyLowBalance(recipientUid: string, amount: string): Promise<EmitResult> {
   return send(
     recipientUid,
-    base('wallet', 'important', 'lowBalance', { amount }, `lowbalance:${dayKey}`, {
+    base('wallet', 'important', 'lowBalance', { amount }, 'lowbalance', {
       deepLink: '/app/home/wallet',
     }),
   );

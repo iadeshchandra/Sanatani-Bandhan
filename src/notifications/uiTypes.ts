@@ -203,9 +203,29 @@ export function groupCenterItems(items: NotificationItem[]): CenterGroup[] {
  *
  * Fallback (no dedupeKey — legacy rows): kind + subject (a payload id)
  * + rendered title + civil day of creation.
+ *
+ * WORLD-READY (Exhibit 5) — FAMILY FOLDS: a few legacy emitters embedded
+ * a re-fire epoch (the civil day) in the key for what is ONE continuing
+ * condition, so each day's row formed its own group of one and the pile
+ * the owner screenshotted survived this collapse. Those families fold
+ * to their stable family key below. This is deliberately NOT a blanket
+ * day-strip: for tithi buckets, order statuses and aarti slots the
+ * day/bucket IS the event's identity (tomorrow's tithi reminder is a
+ * different notice from today's), so those keys stay verbatim.
  */
+const DEDUPE_FAMILY_FOLDS: ReadonlyArray<readonly [RegExp, string]> = [
+  // Seva Wallet low balance: `lowbalance` (current) and the legacy
+  // `lowbalance:<day>` rows already stored on users' accounts.
+  [/^lowbalance(:.*)?$/, 'lowbalance'],
+];
+
 export function collapseKeyFor(item: NotificationItem): string {
-  if (item.dedupeKey) return `dk:${item.dedupeKey}`;
+  if (item.dedupeKey) {
+    for (const [pattern, family] of DEDUPE_FAMILY_FOLDS) {
+      if (pattern.test(item.dedupeKey)) return `dk:${family}`;
+    }
+    return `dk:${item.dedupeKey}`;
+  }
   const p = (item.payload ?? {}) as Record<string, unknown>;
   const subject = [p.orderId, p.claimId, p.chatId, p.announcementId, p.requestId].find(
     (v) => typeof v === 'string' && v,
