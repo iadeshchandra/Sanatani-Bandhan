@@ -311,7 +311,19 @@ export const devoteeNs: DevoteeFragment = {
         errorDispatchingSosPleaseShoutOr: "SOS পাঠাতে ত্রুটি। অনুগ্রহ করে চিৎকার করুন বা কাছের সেবাদারদের অবিলম্বে জানান।",
         accessRestrictedMandirConsoleRequiresSevadar: "অ্যাক্সেস সীমিত: মন্দির কনসোলের জন্য সেবাদার, ট্রাস্টি বা পুরোহিত শংসাপত্র প্রয়োজন।",
         familyCensusSyncActiveContactMandir: "পরিবার জনশুমারি সিঙ্ক সক্রিয়। নতুন জন্ম/আত্মীয় যোগ করতে মন্দির পুরোহিতের সাথে যোগাযোগ করুন।",
-      },
+      
+        toastReceipt80g: "{amount}-এর জন্য ধারা 80G কর রসিদ তৈরি হচ্ছে...",
+        toastSankalpaSlip: "{pooja}-এর জন্য বৈদিক সংকল্প স্লিপ তৈরি হচ্ছে...",
+        toastGpsFailed: "GPS অবস্থান ব্যর্থ: {error}। মন্দিরের স্থানাঙ্ক ব্যবহার হচ্ছে।",
+        toastNightMode: "মন্দির নাইট মোড চালু হয়েছে 🌙",
+        toastSolarMode: "পবিত্র সৌর আলো মোড চালু হয়েছে ☀️",
+        toastSoundOn: "শব্দ বিজ্ঞপ্তি চালু 🔔",
+        toastSoundOff: "শব্দ বিজ্ঞপ্তি বন্ধ 🔕",
+        toastSwitchedConsole: "{org} কনসোলে এসেছেন 🙏",
+        toastHeadConsoleMode: "কনসোল মোড সক্রিয়",
+        toastDhyanaLogged: "ধ্যানের +{mins} মিনিট নথিভুক্ত হয়েছে 🙏",
+        toastPindaDaan: "{ancestor}-এর জন্য পিণ্ড দান অনুরোধ নথিভুক্ত হয়েছে 🙏",
+        toastLanguageSet: "ভাষা {label} সেট হয়েছে",},
       personalAccount: {
         editDetails: "বিবরণ সম্পাদনা করুন",
         pujaSankalps: "পূজা সংকল্প",
@@ -366,6 +378,11 @@ export const devoteeNs: DevoteeFragment = {
         removedCustomApiKeyWillUse: "কাস্টম API key সরানো হয়েছে (উপলব্ধ থাকলে ডিফল্ট ব্যবহার হবে)",
         geminiApiKeyVerifiedAndSaved: "✅ Gemini API Key যাচাই হয়ে আপনার ব্রাউজারে নিরাপদে সংরক্ষিত!",
         savedCustomApiKeyToLocal: "কাস্টম API key স্থানীয় সংরক্ষণে সংরক্ষিত",
-      },
+      
+        toastCopied: "{label} ক্লিপবোর্ডে কপি হয়েছে!",
+        toastSwitchedBack: "{org} কনসোলে ফিরে এসেছেন 🙏",
+        toastHeadModeChanged: "মোড বদল হয়েছে",
+        toastCertDownloaded: "{id}-এর জন্য 80G সনদ ডাউনলোড হয়েছে!",
+        toastLanguageSet: "ভাষা {label} সেট হয়েছে",},
     },
 };

@@ -718,6 +718,13 @@ export const professional: ProfessionalFragment = {
         rudrabhishekNavagrahaHavanVivahSamskaraVastu: "রুদ্রাভিষেক, নবগ্রহ হবন, বিবাহ সংস্কার, বাস্তু শান্তি",
         upiSb8821OrBankTx: "UPI-SB-8821 বা ব্যাংক Tx রেফ",
         pleaseEnterAcharyaNameAndContact: "অনুগ্রহ করে আচার্যের নাম ও যোগাযোগ ফোন লিখুন।",
-      },
+      
+        toastPriestRegistered: "আচার্য {name} মন্দির পরিষদে নথিভুক্ত হয়েছেন! 🙏",
+        toastHeadPriestEnrolled: "পুরোহিত নথিভুক্ত",
+        toastPriestAssigned: "{name}-কে বৈদিক অনুষ্ঠানে নিযুক্ত করা হয়েছে! 🪔",
+        toastHeadPriestAssigned: "পুরোহিত নিযুক্ত",
+        toastRosterUpdated: "{puja}-এর দায়িত্ব তালিকা {lead}-এর জন্য হালনাগাদ হয়েছে 🙏",
+        toastDakshinaDisbursed: "{amount} দক্ষিণা সম্মানী বিতরণ চিহ্নিত হয়েছে (সূত্র: {ref}) 💰",
+        toastHeadHonorariumSettled: "সম্মানী নিষ্পত্তি হয়েছে",},
     },
 };

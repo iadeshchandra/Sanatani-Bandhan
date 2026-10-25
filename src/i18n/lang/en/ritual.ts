@@ -508,7 +508,13 @@ export const ritual: RitualFragment = {
         eGSatyanarayanVratKathaPrasad: "e.g. Satyanarayan Vrat Katha & Prasad",
         detailsOnPreparationRequiredOfferingVessels: "Details on preparation, required offering vessels, etc.",
         recipeBom: "Recipe BOM ",
-      },
+      
+        toastPoDraftFor: "Draft PO {po} generated for {item}! Review & dispatch to vendor. 🛒",
+        toastHeadPoDrafted: "PO Drafted",
+        toastPoDispatched: "PO {po} dispatched to {vendor} via WhatsApp! 📲",
+        toastHeadPoSent: "WhatsApp PO Sent",
+        toastCatalogRegistered: "Registered \"{name}\" into Bhandar master catalog! 📦",
+        toastPoDraftCreated: "Draft PO {po} created successfully!",},
       familyRoots: {
         familyRootsAncestralMemorialSacredVivah: "Family Roots, Ancestral Memorial & Sacred Vivah Desk",
         "3Generations": "3 Generations",
@@ -593,7 +599,11 @@ export const ritual: RitualFragment = {
         pleaseEnterMemberFullName: "Please enter member full name",
         pleaseProvideAncestorName: "Please provide ancestor name",
         bridgedWeddingDetailsToPanchangMuhurat: "Bridged wedding details to Panchang Muhurat and Purohit Desk! 🕉️",
-      },
+      
+        toastMemberAddedTree: "Added {name} to Vanshavali Tree! 🌳",
+        toastHeadFamilyLineage: "Family Lineage",
+        toastAlreadyRegistered: "{name} is already registered in Pitru Tarpana Registry.",
+        toastAncestorAdded: "Added {name} to Pitru Tarpana Registry. 🙏",},
       vahanFleet: {
         fleetCsv: "Fleet CSV",
         addVehicle: "Add Vehicle",
@@ -649,6 +659,10 @@ export const ritual: RitualFragment = {
         enterTheServiceCost: "Enter the service cost",
         treasuryAutoPostedServiceExpense: "Treasury auto-posted: Service Expense",
         noVehiclesToExportYet: "No vehicles to export yet",
-      },
+      
+        toastOdometerMin: "Odometer must be ≥ {min} km (last recorded reading)",
+        toastHeadFuelLog: "Fuel Log",
+        toastVehiclesExported: "{count} vehicles exported to CSV",
+        toastHeadCsvExport: "CSV Export",},
     },
 };

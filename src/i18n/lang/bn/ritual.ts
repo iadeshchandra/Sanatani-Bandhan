@@ -508,7 +508,13 @@ export const ritual: RitualFragment = {
         eGSatyanarayanVratKathaPrasad: "যেমন: সত্যনারায়ণ ব্রত কথা ও প্রসাদ",
         detailsOnPreparationRequiredOfferingVessels: "প্রস্তুতির বিবরণ, প্রয়োজনীয় নৈবেদ্য পাত্র ইত্যাদি।",
         recipeBom: "রেসিপি BOM ",
-      },
+      
+        toastPoDraftFor: "{item}-এর জন্য ড্রাফট PO {po} তৈরি! পর্যালোচনা করে বিক্রেতাকে পাঠান। 🛒",
+        toastHeadPoDrafted: "PO ড্রাফট তৈরি",
+        toastPoDispatched: "PO {po} {vendor}-কে WhatsApp-এ পাঠানো হয়েছে! 📲",
+        toastHeadPoSent: "WhatsApp PO পাঠানো হয়েছে",
+        toastCatalogRegistered: "\"{name}\" ভাণ্ডার মাস্টার ক্যাটালগে নথিভুক্ত হয়েছে! 📦",
+        toastPoDraftCreated: "ড্রাফট PO {po} সফলভাবে তৈরি হয়েছে!",},
       familyRoots: {
         familyRootsAncestralMemorialSacredVivah: "পারিবারিক শিকড়, পৈতৃক স্মারক ও পবিত্র বিবাহ ডেস্ক",
         "3Generations": "3 প্রজন্ম",
@@ -593,7 +599,11 @@ export const ritual: RitualFragment = {
         pleaseEnterMemberFullName: "অনুগ্রহ করে সদস্যের পুরো নাম লিখুন",
         pleaseProvideAncestorName: "অনুগ্রহ করে পূর্বপুরুষের নাম দিন",
         bridgedWeddingDetailsToPanchangMuhurat: "বিবাহের বিবরণ পঞ্চাঙ্গ মুহূর্ত ও পুরোহিত ডেস্কে যুক্ত হয়েছে! 🕉️",
-      },
+      
+        toastMemberAddedTree: "{name} বংশাবলি বৃক্ষে যোগ হয়েছে! 🌳",
+        toastHeadFamilyLineage: "পারিবারিক বংশ",
+        toastAlreadyRegistered: "{name} ইতিমধ্যে পিতৃ তর্পণ রেজিস্ট্রিতে নথিভুক্ত আছেন।",
+        toastAncestorAdded: "{name} পিতৃ তর্পণ রেজিস্ট্রিতে যোগ হয়েছে। 🙏",},
       vahanFleet: {
         fleetCsv: "বহর CSV",
         addVehicle: "যানবাহন যোগ করুন",
@@ -649,6 +659,10 @@ export const ritual: RitualFragment = {
         enterTheServiceCost: "সার্ভিস খরচ লিখুন",
         treasuryAutoPostedServiceExpense: "কোষাগার স্বয়ংক্রিয় পোস্ট: সার্ভিস ব্যয়",
         noVehiclesToExportYet: "রপ্তানির জন্য এখনো কোনো যানবাহন নেই",
-      },
+      
+        toastOdometerMin: "ওডোমিটার ≥ {min} কিমি হতে হবে (সর্বশেষ নথিভুক্ত রিডিং)",
+        toastHeadFuelLog: "জ্বালানি লগ",
+        toastVehiclesExported: "{count}টি যান CSV-তে রপ্তানি হয়েছে",
+        toastHeadCsvExport: "CSV রপ্তানি",},
     },
 };

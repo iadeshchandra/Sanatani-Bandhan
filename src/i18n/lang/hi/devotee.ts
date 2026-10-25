@@ -311,7 +311,19 @@ export const devoteeNs: DevoteeFragment = {
         errorDispatchingSosPleaseShoutOr: "SOS भेजने में त्रुटि। कृपया चिल्लाएँ या निकटवर्ती सेवादारों को तुरंत सूचित करें।",
         accessRestrictedMandirConsoleRequiresSevadar: "पहुँच प्रतिबंधित: मंदिर कंसोल हेतु सेवादार, ट्रस्टी या पुरोहित क्रेडेंशियल आवश्यक।",
         familyCensusSyncActiveContactMandir: "परिवार जनगणना सिंक सक्रिय। नए जन्म/संबंधी जोड़ने हेतु मंदिर पुरोहित से संपर्क करें।",
-      },
+      
+        toastReceipt80g: "{amount} के लिए धारा 80G कर रसीद बनाई जा रही है...",
+        toastSankalpaSlip: "{pooja} के लिए वैदिक संकल्प पर्ची बनाई जा रही है...",
+        toastGpsFailed: "GPS स्थान विफल: {error}। मंदिर के निर्देशांक उपयोग हो रहे हैं।",
+        toastNightMode: "मंदिर नाइट मोड चालू हुआ 🌙",
+        toastSolarMode: "पावन सौर प्रकाश मोड चालू हुआ ☀️",
+        toastSoundOn: "ध्वनि सूचनाएँ चालू 🔔",
+        toastSoundOff: "ध्वनि सूचनाएँ बंद 🔕",
+        toastSwitchedConsole: "{org} कंसोल पर आ गए 🙏",
+        toastHeadConsoleMode: "कंसोल मोड सक्रिय",
+        toastDhyanaLogged: "ध्यान के +{mins} मिनट दर्ज हुए 🙏",
+        toastPindaDaan: "{ancestor} के लिए पिंड दान अनुरोध दर्ज हुआ 🙏",
+        toastLanguageSet: "भाषा {label} सेट हुई",},
       personalAccount: {
         editDetails: "विवरण संपादित करें",
         pujaSankalps: "पूजा संकल्प",
@@ -366,6 +378,11 @@ export const devoteeNs: DevoteeFragment = {
         removedCustomApiKeyWillUse: "कस्टम API key हटाई गई (उपलब्ध होने पर डिफ़ॉल्ट उपयोग होगा)",
         geminiApiKeyVerifiedAndSaved: "✅ Gemini API Key सत्यापित व आपके ब्राउज़र में सुरक्षित रूप से सहेजी गई!",
         savedCustomApiKeyToLocal: "कस्टम API key स्थानीय संग्रह में सहेजी गई",
-      },
+      
+        toastCopied: "{label} क्लिपबोर्ड पर कॉपी हुआ!",
+        toastSwitchedBack: "{org} कंसोल पर वापस आ गए 🙏",
+        toastHeadModeChanged: "मोड बदला गया",
+        toastCertDownloaded: "{id} के लिए 80G प्रमाणपत्र डाउनलोड हुआ!",
+        toastLanguageSet: "भाषा {label} सेट हुई",},
     },
 };

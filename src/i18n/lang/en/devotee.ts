@@ -311,7 +311,19 @@ export const devoteeNs: DevoteeFragment = {
         errorDispatchingSosPleaseShoutOr: "Error dispatching SOS. Please shout or notify nearby sevadars immediately.",
         accessRestrictedMandirConsoleRequiresSevadar: "Access Restricted: Mandir Console requires Sevadar, Trustee, or Priest credentials.",
         familyCensusSyncActiveContactMandir: "Family census sync active. Contact Mandir Purohit to add new births/kin.",
-      },
+      
+        toastReceipt80g: "Generating Section 80G Tax Receipt for {amount}...",
+        toastSankalpaSlip: "Generating Vedic Sankalpa Slip for {pooja}...",
+        toastGpsFailed: "GPS location failed: {error}. Using Mandir coordinates.",
+        toastNightMode: "Switched to Temple Night Mode 🌙",
+        toastSolarMode: "Switched to Sacred Solar Light Mode ☀️",
+        toastSoundOn: "Sound notifications Enabled 🔔",
+        toastSoundOff: "Sound notifications Muted 🔕",
+        toastSwitchedConsole: "Switched to {org} Console 🙏",
+        toastHeadConsoleMode: "Console Mode Activated",
+        toastDhyanaLogged: "Logged +{mins} minutes of Dhyana 🙏",
+        toastPindaDaan: "Pinda Daan request registered for {ancestor} 🙏",
+        toastLanguageSet: "Language set to {label}",},
       personalAccount: {
         editDetails: "Edit Details",
         pujaSankalps: "Puja Sankalps",
@@ -366,6 +378,11 @@ export const devoteeNs: DevoteeFragment = {
         removedCustomApiKeyWillUse: "Removed custom API key (will use default if available)",
         geminiApiKeyVerifiedAndSaved: "✅ Gemini API Key verified and saved securely in your browser!",
         savedCustomApiKeyToLocal: "Saved custom API key to local storage",
-      },
+      
+        toastCopied: "Copied {label} to clipboard!",
+        toastSwitchedBack: "Switched back to {org} Console 🙏",
+        toastHeadModeChanged: "Mode Changed",
+        toastCertDownloaded: "Downloaded 80G Certificate for {id}!",
+        toastLanguageSet: "Language set to {label}",},
     },
 };

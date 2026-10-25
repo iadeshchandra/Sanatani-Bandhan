@@ -718,6 +718,13 @@ export const professional: ProfessionalFragment = {
         rudrabhishekNavagrahaHavanVivahSamskaraVastu: "रुद्राभिषेक, नवग्रह हवन, विवाह संस्कार, वास्तु शांति",
         upiSb8821OrBankTx: "UPI-SB-8821 या बैंक Tx संदर्भ",
         pleaseEnterAcharyaNameAndContact: "कृपया आचार्य का नाम व संपर्क फ़ोन दर्ज करें।",
-      },
+      
+        toastPriestRegistered: "आचार्य {name} मंदिर परिषद में दर्ज हुए! 🙏",
+        toastHeadPriestEnrolled: "पुरोहित नामांकित",
+        toastPriestAssigned: "{name} को वैदिक समारोह के लिए नियुक्त किया गया! 🪔",
+        toastHeadPriestAssigned: "पुरोहित नियुक्त",
+        toastRosterUpdated: "{puja} की ड्यूटी सूची {lead} के लिए अद्यतन हुई 🙏",
+        toastDakshinaDisbursed: "{amount} की दक्षिणा मानदेय वितरित चिह्नित हुई (संदर्भ: {ref}) 💰",
+        toastHeadHonorariumSettled: "मानदेय निपटाया गया",},
     },
 };

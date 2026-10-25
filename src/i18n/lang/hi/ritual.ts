@@ -508,7 +508,13 @@ export const ritual: RitualFragment = {
         eGSatyanarayanVratKathaPrasad: "उदा. सत्यनारायण व्रत कथा व प्रसाद",
         detailsOnPreparationRequiredOfferingVessels: "तैयारी का विवरण, आवश्यक नैवेद्य पात्र आदि।",
         recipeBom: "रेसिपी BOM ",
-      },
+      
+        toastPoDraftFor: "{item} के लिए ड्राफ्ट PO {po} बना! समीक्षा कर विक्रेता को भेजें। 🛒",
+        toastHeadPoDrafted: "PO ड्राफ्ट बना",
+        toastPoDispatched: "PO {po} {vendor} को WhatsApp से भेजा गया! 📲",
+        toastHeadPoSent: "WhatsApp PO भेजा गया",
+        toastCatalogRegistered: "\"{name}\" भंडार मास्टर कैटलॉग में दर्ज हुआ! 📦",
+        toastPoDraftCreated: "ड्राफ्ट PO {po} सफलतापूर्वक बना!",},
       familyRoots: {
         familyRootsAncestralMemorialSacredVivah: "पारिवारिक जड़ें, पैतृक स्मारक व पवित्र विवाह डेस्क",
         "3Generations": "3 पीढ़ियाँ",
@@ -593,7 +599,11 @@ export const ritual: RitualFragment = {
         pleaseEnterMemberFullName: "कृपया सदस्य का पूरा नाम दर्ज करें",
         pleaseProvideAncestorName: "कृपया पूर्वज का नाम दें",
         bridgedWeddingDetailsToPanchangMuhurat: "विवाह विवरण पंचांग मुहूर्त व पुरोहित डेस्क से जुड़ा! 🕉️",
-      },
+      
+        toastMemberAddedTree: "{name} वंशावली वृक्ष में जोड़े गए! 🌳",
+        toastHeadFamilyLineage: "पारिवारिक वंश",
+        toastAlreadyRegistered: "{name} पहले से पितृ तर्पण रजिस्ट्री में दर्ज हैं।",
+        toastAncestorAdded: "{name} पितृ तर्पण रजिस्ट्री में जोड़े गए। 🙏",},
       vahanFleet: {
         fleetCsv: "बेड़ा CSV",
         addVehicle: "वाहन जोड़ें",
@@ -649,6 +659,10 @@ export const ritual: RitualFragment = {
         enterTheServiceCost: "सेवा लागत दर्ज करें",
         treasuryAutoPostedServiceExpense: "ख़ज़ाना स्वतः पोस्ट: सेवा व्यय",
         noVehiclesToExportYet: "निर्यात हेतु अभी कोई वाहन नहीं",
-      },
+      
+        toastOdometerMin: "ओडोमीटर ≥ {min} किमी होना चाहिए (अंतिम दर्ज रीडिंग)",
+        toastHeadFuelLog: "ईंधन लॉग",
+        toastVehiclesExported: "{count} वाहन CSV में निर्यात हुए",
+        toastHeadCsvExport: "CSV निर्यात",},
     },
 };

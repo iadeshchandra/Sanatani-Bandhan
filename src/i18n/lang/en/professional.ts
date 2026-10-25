@@ -718,6 +718,13 @@ export const professional: ProfessionalFragment = {
         rudrabhishekNavagrahaHavanVivahSamskaraVastu: "Rudrabhishek, Navagraha Havan, Vivah Samskara, Vastu Shanti",
         upiSb8821OrBankTx: "UPI-SB-8821 or Bank Tx Ref",
         pleaseEnterAcharyaNameAndContact: "Please enter Acharya name and contact phone.",
-      },
+      
+        toastPriestRegistered: "Acharya {name} registered into Temple Parishad! 🙏",
+        toastHeadPriestEnrolled: "Priest Enrolled",
+        toastPriestAssigned: "Assigned {name} to the Vedic ceremony! 🪔",
+        toastHeadPriestAssigned: "Priest Assigned",
+        toastRosterUpdated: "Updated duty roster for {puja} to {lead} 🙏",
+        toastDakshinaDisbursed: "Dakshina honorarium of {amount} marked Disbursed (Ref: {ref}) 💰",
+        toastHeadHonorariumSettled: "Honorarium Settled",},
     },
 };

@@ -309,6 +309,19 @@ export const REGIONAL_TERM_KEYS = Object.keys(REGIONAL_TERMS);
  *
  * Pan-Sanatani terms short-circuit to the canonical form — the invariant.
  */
+/**
+ * True when an English festival name IS the festival of lights itself
+ * (the DB's principal Diwali/Deepavali entry — not the cluster days,
+ * which carry their own names: Dhanteras, Kali Puja, Govardhan…).
+ * Surfaces that render festival names for an English-UI user substitute
+ * rt('festivalOfLights') when this matches, so a devotee in Tamil Nadu
+ * reads "Deepavali" and one in the Hindi belt reads "Diwali"
+ * (Language Sweep B3 — regional-term adoption).
+ */
+export function isFestivalOfLightsName(nameEn: string): boolean {
+  return /^(diwali|deepavali)\b/i.test((nameEn || '').trim());
+}
+
 export function regionalTerm(
   key: string,
   lang: string,

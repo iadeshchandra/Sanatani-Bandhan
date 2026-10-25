@@ -339,7 +339,9 @@ export const core: CoreFragment = {
         reasonGiven: "প্রদত্ত কারণ:",
         commaSeparated: "(কমা-বিভক্ত)",
         optionalPrivate: "(ঐচ্ছিক, ব্যক্তিগত)",
-      },
+      
+        toastWelcomeId: "স্বাগতম! আপনার সনাতনী ID: {id}",
+        toastGoogleLinked: "Google যুক্ত হয়েছে ({email})। নিচে সংগঠনের বিবরণ পূরণ করুন।",},
       ashram: {
         ashramGoshalaGurukulResourceDesk: "আশ্রম, গোশালা ও গুরুকুল সম্পদ ডেস্ক",
         kutirRooms: "কুটির কক্ষ",
@@ -462,7 +464,11 @@ export const core: CoreFragment = {
         pleaseEnterStudentName: "অনুগ্রহ করে ছাত্রের নাম লিখুন।",
         dispatchedStayPassToPrinterDialog: "অবস্থান পাস প্রিন্টার ডায়ালগে পাঠানো হয়েছে।",
         dispatchedReceiptToPrinterDialog: "রসিদ প্রিন্টার ডায়ালগে পাঠানো হয়েছে।",
-      },
+      
+        toastRoomAllocated: "কক্ষ {room} {guest}-কে বরাদ্দ হয়েছে! ডিজিটাল স্টে পাস ইস্যু হয়েছে। 🙏",
+        toastRoomStatusUpdated: "{room}-এর অবস্থা '{status}' করা হয়েছে",
+        toastRoomAdded: "নতুন {room} তালিকায় যোগ হয়েছে!",
+        toastCowRegistered: "{name} গোশালা রেজিস্ট্রিতে নথিভুক্ত হয়েছে!",},
 },
     nav: {
       dashboard: "ড্যাশবোর্ড",

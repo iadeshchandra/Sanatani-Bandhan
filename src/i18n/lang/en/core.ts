@@ -339,7 +339,9 @@ export const core: CoreFragment = {
         reasonGiven: "Reason given:",
         commaSeparated: "(comma-separated)",
         optionalPrivate: "(optional, private)",
-      },
+      
+        toastWelcomeId: "Welcome! Your Sanatani ID: {id}",
+        toastGoogleLinked: "Google linked ({email}). Complete the organisation details below.",},
       ashram: {
         ashramGoshalaGurukulResourceDesk: "Ashram, Goshala & Gurukul Resource Desk",
         kutirRooms: "Kutir Rooms",
@@ -462,7 +464,11 @@ export const core: CoreFragment = {
         pleaseEnterStudentName: "Please enter student name.",
         dispatchedStayPassToPrinterDialog: "Dispatched stay pass to printer dialog.",
         dispatchedReceiptToPrinterDialog: "Dispatched receipt to printer dialog.",
-      },
+      
+        toastRoomAllocated: "Room {room} allocated to {guest}! Digital Stay Pass issued. 🙏",
+        toastRoomStatusUpdated: "Updated {room} status to '{status}'",
+        toastRoomAdded: "Added new {room} to inventory!",
+        toastCowRegistered: "Registered {name} in Goshala Registry!",},
 },
     nav: {
       dashboard: "Dashboard",
