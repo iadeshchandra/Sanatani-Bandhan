@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { X, Bell, Check, Flame, Shield, Trash2, Filter } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 
@@ -151,7 +152,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                         {notification.message}
                       </p>
                       <p className={`text-[10px] mt-2 font-medium ${isDark ? 'text-temple-500' : 'text-temple-400'}`}>
-                        {new Date(notification.timestamp).toLocaleDateString()} • {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(notification.timestamp).toLocaleDateString(appLocale())} • {new Date(notification.timestamp).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                     {!notification.isRead && (

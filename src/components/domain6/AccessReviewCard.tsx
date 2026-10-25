@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { ShieldCheck, ShieldAlert, CalendarClock, MoonStar, XCircle, ChevronRight } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
@@ -181,9 +182,9 @@ export const AccessReviewCard: React.FC = () => {
             {lastAt
               ? safeTranslate(
                   'ar_last_done',
-                  `Last marked reviewed on ${new Date(lastAt).toLocaleDateString()}.`,
-                  `সর্বশেষ পর্যালোচিত চিহ্নিত: ${new Date(lastAt).toLocaleDateString()}।`,
-                  `अंतिम बार समीक्षित चिह्नित: ${new Date(lastAt).toLocaleDateString()}।`,
+                  `Last marked reviewed on ${new Date(lastAt).toLocaleDateString(appLocale())}.`,
+                  `সর্বশেষ পর্যালোচিত চিহ্নিত: ${new Date(lastAt).toLocaleDateString(appLocale())}।`,
+                  `अंतिम बार समीक्षित चिह्नित: ${new Date(lastAt).toLocaleDateString(appLocale())}।`,
                 )
               : safeTranslate('ar_none_yet', 'Not reviewed yet.', 'এখনো পর্যালোচনা হয়নি।', 'अभी समीक्षा नहीं हुई।')}
             {flagged > 0
@@ -225,7 +226,7 @@ export const AccessReviewCard: React.FC = () => {
                 row.expiry === 'none'
                   ? safeTranslate('ar_no_expiry', 'No expiry set', 'মেয়াদ নির্ধারিত নয়', 'कोई समाप्ति तय नहीं')
                   : row.member.roleExpiresAt
-                    ? new Date(row.member.roleExpiresAt).toLocaleDateString()
+                    ? new Date(row.member.roleExpiresAt).toLocaleDateString(appLocale())
                     : '';
               return (
                 <li key={row.member.uid}>

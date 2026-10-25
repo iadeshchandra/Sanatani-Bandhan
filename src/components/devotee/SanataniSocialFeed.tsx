@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { appLocale } from '../../lib/format';
 import { 
   MessageSquare, MessageCircle, Heart, Share2, Send, Image as ImageIcon, Sparkles, 
   Calendar, Flame, Sun, Filter, Plus, Clock, MapPin, 
@@ -695,7 +696,7 @@ export const SanataniSocialFeed: React.FC = () => {
                     </span>
                   )}
                   <span className="font-bold flex items-center gap-1.5 text-temple-600">
-                    <Clock className="w-3.5 h-3.5" /> {new Date(emergency.originalTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <Clock className="w-3.5 h-3.5" /> {new Date(emergency.originalTimestamp).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 

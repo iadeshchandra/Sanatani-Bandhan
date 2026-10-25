@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   UserCircle, QrCode, Shield, Sparkles, Key, BookOpen, 
   HelpCircle, Settings, LogOut, CheckCircle2, ChevronRight,
@@ -130,7 +131,7 @@ export const PersonalAccountDesk: React.FC<{
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedText(label);
-    showToast(`Copied ${label} to clipboard!`, 'success');
+    showToast(t('surfaces.personalAccount.toastCopied').replace('{label}', label), 'success');
     setTimeout(() => setCopiedText(null), 2000);
   };
 
@@ -179,7 +180,7 @@ export const PersonalAccountDesk: React.FC<{
       id: 'u_' + Date.now(),
       sender: 'user' as const,
       text: textToSend,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })
     };
 
     setAiChatMessages(prev => [...prev, userMsg]);
@@ -198,7 +199,7 @@ export const PersonalAccountDesk: React.FC<{
         shloka: undefined as string | undefined,
         source: undefined as string | undefined,
         points: [] as string[],
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })
       };
       setAiChatMessages(prev => [...prev, botMsg]);
     } catch (err: any) {
@@ -213,7 +214,7 @@ export const PersonalAccountDesk: React.FC<{
           'Use the Sadhana desk for daily Japa tracking',
           'Consult with your temple purohit or trustee for custom Sankalpas'
         ],
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })
       };
       setAiChatMessages(prev => [...prev, fallbackBotMsg]);
     } finally {
@@ -402,7 +403,7 @@ export const PersonalAccountDesk: React.FC<{
             <button
               onClick={() => {
                 setViewMode('MANAGER');
-                showToast(`Switched back to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Mode Changed');
+                showToast(t('surfaces.personalAccount.toastSwitchedBack').replace('{org}', activeWorkspace?.name || 'Organisation'), 'success', t('surfaces.personalAccount.toastHeadModeChanged'));
               }}
               className="flex-1 sm:flex-none justify-center items-center flex gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-500 hover:from-saffron-600 hover:to-saffron-600 text-temple-950 text-[11px] sm:text-xs font-black transition-all shadow-md cursor-pointer border border-saffron-300"
               title={t('surfaces.personalAccount.switchBackToTheInstitutionErp')}
@@ -1008,7 +1009,7 @@ export const PersonalAccountDesk: React.FC<{
                         <span className="text-base font-black text-saffron-900">{rec.amount}</span>
                         <button
                           onClick={() => {
-                            showToast(`Downloaded 80G Certificate for ${rec.id}!`, 'success');
+                            showToast(t('surfaces.personalAccount.toastCertDownloaded').replace('{id}', rec.id), 'success');
                           }}
                           className="flex items-center gap-1 px-3 py-1.5 bg-temple-100 hover:bg-temple-200 text-temple-800 rounded-xl text-xs font-bold transition-colors"
                         >
@@ -1089,7 +1090,7 @@ export const PersonalAccountDesk: React.FC<{
                         key={l.code}
                         onClick={() => {
                           setLanguage(l.code as any);
-                          showToast(`Language set to ${l.name}`, 'success');
+                          showToast(t('surfaces.personalAccount.toastLanguageSet').replace('{label}', l.name), 'success');
                         }}
                         className={`p-3 rounded-xl text-xs font-bold border text-center transition-all ${
                           language === l.code

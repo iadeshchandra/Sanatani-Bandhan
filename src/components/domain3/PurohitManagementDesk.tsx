@@ -296,7 +296,7 @@ export const PurohitManagementDesk: React.FC = () => {
       localStorage.setItem(storagePurohitKey, JSON.stringify(updated));
     } catch (err) {}
 
-    showToast(`Acharya ${newPriestForm.name} registered into Temple Parishad! 🙏`, 'success', 'Priest Enrolled');
+    showToast(t('surfaces.purohitMgmt.toastPriestRegistered').replace('{name}', newPriestForm.name), 'success', t('surfaces.purohitMgmt.toastHeadPriestEnrolled'));
     setIsAddPriestOpen(false);
     setNewPriestForm({
       name: '',
@@ -416,7 +416,7 @@ export const PurohitManagementDesk: React.FC = () => {
       purohitAssigned: priestName,
       priestAssigned: priestName,
     });
-    showToast(`Assigned ${priestName} to the Vedic ceremony! 🪔`, 'success', 'Priest Assigned');
+    showToast(t('surfaces.purohitMgmt.toastPriestAssigned').replace('{name}', priestName), 'success', t('surfaces.purohitMgmt.toastHeadPriestAssigned'));
     setSelectedBookingForMatch(null);
   };
 
@@ -508,7 +508,7 @@ export const PurohitManagementDesk: React.FC = () => {
     try {
       localStorage.setItem(rosterStorageKey, JSON.stringify(updated));
     } catch (e) {}
-    showToast(`Updated duty roster for ${shiftEditModal.pujaName} to ${newLeadPurohit} 🙏`, 'success');
+    showToast(t('surfaces.purohitMgmt.toastRosterUpdated').replace('{puja}', shiftEditModal.pujaName).replace('{lead}', newLeadPurohit), 'success');
     setShiftEditModal(null);
   };
 
@@ -544,7 +544,7 @@ export const PurohitManagementDesk: React.FC = () => {
     try {
       localStorage.setItem(dakshinaStorageKey, JSON.stringify(updated));
     } catch (e) {}
-    showToast(`Dakshina honorarium of ${inr(settlingBooking.dakshinaAmount)} marked Disbursed (Ref: ${ref}) 💰`, 'success', 'Honorarium Settled');
+    showToast(t('surfaces.purohitMgmt.toastDakshinaDisbursed').replace('{amount}', inr(settlingBooking.dakshinaAmount)).replace('{ref}', ref), 'success', t('surfaces.purohitMgmt.toastHeadHonorariumSettled'));
     setSettlingBooking(null);
     setSettlementRefInput('');
   };

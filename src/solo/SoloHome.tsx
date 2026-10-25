@@ -40,6 +40,7 @@ import type { ChatParticipant } from '../chat/types';
  *  claims an alias or dismisses it — never a nag. Deep-links to the
  *  VDA card on the Profile tab (#vda-alias). */
 const VdaHomeNudge: React.FC<{ profile: { vdaAlias?: string } | null; goProfile: () => void }> = ({ profile, goProfile }) => {
+  const { rt } = useLanguage();
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try { return window.localStorage.getItem('sb-vda-nudge') === 'dismissed'; } catch { return false; }
   });
@@ -57,7 +58,7 @@ const VdaHomeNudge: React.FC<{ profile: { vdaAlias?: string } | null; goProfile:
         </div>
         <div className="text-[11px] text-indigo-200/80 mt-0.5">
           <T
-            en="Say it at any temple counter — no numbers to remember."
+            en={`Say it at any ${rt('temple')} counter — no numbers to remember.`}
             bn="যেকোনো মন্দির কাউন্টারে বলুন — নম্বর মনে রাখতে হবে না।"
             hi="किसी भी मंदिर काउंटर पर बोलें — नंबर याद रखने की ज़रूरत नहीं।"
           />

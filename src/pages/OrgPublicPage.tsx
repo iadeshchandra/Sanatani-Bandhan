@@ -19,6 +19,7 @@
  * data wrapper that resolves the org and wires the actions.
  */
 import React, { useEffect, useState } from 'react';
+import { appLocale } from '../lib/format';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -95,9 +96,13 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   onSaveAartiSchedules,
 }) => {
   const navigate = useNavigate();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, rt } = useLanguage();
   // Trilingual UI chrome — org's own content stays exactly as the org wrote it.
   const T = (key: string, en: string, bn: string, hi: string) => safeTranslate(key, en, bn, hi);
+  // Regional word for "temple" (kovil in Tamil Nadu, devasthana in
+  // Karnataka…) — the English chrome speaks the region's word (B3 rt()).
+  const templeWord = rt('temple');
+  const templeWordCap = templeWord.charAt(0).toUpperCase() + templeWord.slice(1);
 
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -299,7 +304,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                 onClick={() => navigate(`/org/${page.publicSlug || page.orgId}/campus/manage`)}
                 className="min-h-[48px] px-6 rounded-2xl bg-white border border-stone-300 text-stone-800 font-black text-sm shadow-sm hover:bg-stone-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
               >
-                {T('orgpublic_campus_manage', '🗺️ Map Your Temple', '🗺️ মন্দিরের মানচিত্র', '🗺️ अपना मंदिर मैप करें')}
+                {T('orgpublic_campus_manage', `🗺️ Map Your ${templeWordCap}`, '🗺️ মন্দিরের মানচিত্র', '🗺️ अपना मंदिर मैप करें')}
               </button>
             )}
             {isTrustee && (
@@ -308,7 +313,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                 onClick={onToggleAartiPin}
                 disabled={aartiPinBusy}
                 className="min-h-[48px] px-6 rounded-2xl bg-white border border-red-200 text-red-800 font-black text-sm shadow-sm hover:bg-red-50 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50"
-                title={T('orgpublic_aarti_pin_hint', 'When your temple goes live, a pinned card appears at the top of the Sangam feed.', 'আপনার মন্দির লাইভ হলে সংগম ফিডের শীর্ষে একটি পিন করা কার্ড দেখা যাবে।', 'जब आपका मंदिर लाइव होगा, तो संगम फ़ीड के शीर्ष पर एक पिन किया कार्ड दिखेगा।')}
+                title={T('orgpublic_aarti_pin_hint', `When your ${templeWord} goes live, a pinned card appears at the top of the Sangam feed.`, 'আপনার মন্দির লাইভ হলে সংগম ফিডের শীর্ষে একটি পিন করা কার্ড দেখা যাবে।', 'जब आपका मंदिर लाइव होगा, तो संगम फ़ीड के शीर्ष पर एक पिन किया कार्ड दिखेगा।')}
               >
                 {aartiPinned
                   ? T('orgpublic_aarti_unpin', '📌 Unpin live aarti', '📌 লাইভ আরতি আনপিন করুন', '📌 लाइव आरती अनपिन करें')
@@ -492,8 +497,8 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
         {/* ------------------------- COMMUNITY ACTIONS ------------------------- */}
         <section className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 mt-4">
           <div className="flex items-center gap-5 text-xs font-bold text-stone-500 mb-4">
-            <span className="flex items-center gap-1.5"><Bell size={14} /> {followers.toLocaleString()} {T('orgpublic_followers', 'followers', 'অনুসারী', 'अनुयायी')}</span>
-            <span className="flex items-center gap-1.5"><Users size={14} /> {(page.memberCount || 0).toLocaleString()} {T('orgpublic_members', 'members', 'সদস্য', 'सदस्य')}</span>
+            <span className="flex items-center gap-1.5"><Bell size={14} /> {followers.toLocaleString(appLocale())} {T('orgpublic_followers', 'followers', 'অনুসারী', 'अनुयायी')}</span>
+            <span className="flex items-center gap-1.5"><Users size={14} /> {(page.memberCount || 0).toLocaleString(appLocale())} {T('orgpublic_members', 'members', 'সদস্য', 'सदस्य')}</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <button

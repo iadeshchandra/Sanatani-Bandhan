@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { appLocale } from '../../lib/format';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Users,
@@ -1604,11 +1605,11 @@ export const DevoteeGrid: React.FC = () => {
                       <tbody className="divide-y divide-temple-800/60 text-temple-700">
                         {selectedDevoteeDonations.map((donation, idx) => (
                           <tr key={`${donation.id}-${idx}`} className="hover:bg-temple-100/40 transition-colors">
-                            <td className="px-4 py-3">{new Date(donation.date).toLocaleDateString()}</td>
+                            <td className="px-4 py-3">{new Date(donation.date).toLocaleDateString(appLocale())}</td>
                             <td className="px-4 py-3 font-mono text-xs text-temple-600">{donation.id}</td>
                             <td className="px-4 py-3">{donation.category}</td>
                             <td className="px-4 py-3">{donation.paymentMode}</td>
-                            <td className="px-4 py-3 font-semibold text-saffron-600 text-right">{(donation.amount || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-semibold text-saffron-600 text-right">{(donation.amount || 0).toLocaleString('en-IN')}</td>
                           </tr>
                         ))}
                         {selectedDevoteeDonations.length === 0 && (
@@ -1636,7 +1637,7 @@ export const DevoteeGrid: React.FC = () => {
                         <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/80 p-4 rounded-xl border border-temple-200 shadow-xl hover:border-saffron-500/50 transition-colors">
                           <div className="flex items-center justify-between space-x-2 mb-1">
                             <div className="font-semibold text-temple-900 text-sm">{event.title}</div>
-                            <time className="font-mono text-[10px] text-temple-500">{new Date(event.date).toLocaleDateString()}</time>
+                            <time className="font-mono text-[10px] text-temple-500">{new Date(event.date).toLocaleDateString(appLocale())}</time>
                           </div>
                           <div className="text-xs text-temple-600">{event.desc}</div>
                         </div>

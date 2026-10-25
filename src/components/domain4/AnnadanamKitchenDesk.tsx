@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Utensils, Plus, Heart, Users, Sparkles, CheckCircle2, Clock, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -145,7 +146,7 @@ export const AnnadanamKitchenDesk: React.FC = () => {
             Today's Maha Prasadam Meals Distributed
           </span>
           <p className="text-4xl sm:text-5xl font-black text-saffron-400">
-            {totalMealsServedToday.toLocaleString()} <span className="text-base text-temple-300 font-normal">Meals</span>
+            {totalMealsServedToday.toLocaleString(appLocale())} <span className="text-base text-temple-300 font-normal">Meals</span>
           </p>
           <p className="text-xs text-temple-400">
             Prepared with pure Desi Ghee, Sona Masoori Akshat, and seasonal sattvic vegetables.

@@ -3,6 +3,7 @@
  * All data comes from the backend via adminApi. Honest loading/error states.
  */
 import React, { useState, useCallback } from 'react';
+import { appLocale } from '../../../lib/format';
 import { Search, RefreshCw, Ban, CheckCircle2, XCircle } from 'lucide-react';
 import { adminApi, type UserRecord, type WorkspaceRecord, type VerificationApplication } from '../../../lib/adminApi';
 import { validateSuspendReason } from '../../../lib/softBan';
@@ -99,7 +100,7 @@ export const UsersTab: React.FC = () => {
                 </span>
                 {user.emailVerified && <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">email verified</span>}
               </div>
-              {user.lastSignInTime && <p className="text-[11px] text-slate-500 mt-2">Last sign-in: {new Date(user.lastSignInTime).toLocaleString()}</p>}
+              {user.lastSignInTime && <p className="text-[11px] text-slate-500 mt-2">Last sign-in: {new Date(user.lastSignInTime).toLocaleString(appLocale())}</p>}
             </div>
             <button
               type="button"

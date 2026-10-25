@@ -53,7 +53,7 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     const keysOf = (s: typeof en) => Object.keys(s).flatMap((b) => Object.keys(s[b]).map((leaf) => `${b}.${leaf}`)).sort();
     expect(keysOf(hi)).toEqual(keysOf(en));
     expect(keysOf(bn)).toEqual(keysOf(en));
-    expect(keysOf(en).length).toBe(410);
+    expect(keysOf(en).length).toBe(416);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

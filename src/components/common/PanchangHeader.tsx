@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { festivalDressingToday } from '../../lib/festivalDressing';
+import { isFestivalOfLightsName } from '../../i18n/regionalTerms';
 
 /**
  * PanchangHeader — the greeting–panchang home header (VIBE B1).
@@ -41,7 +42,7 @@ interface PanchangStrip {
 }
 
 function usePanchangStrip(): PanchangStrip {
-  const { currentLang } = useLanguage();
+  const { currentLang, rt } = useLanguage();
   return useMemo<PanchangStrip>(() => {
     const dressing = festivalDressingToday();
     const f = dressing.festival;
@@ -50,7 +51,11 @@ function usePanchangStrip(): PanchangStrip {
         ? f.nameBn
         : currentLang === 'hi'
           ? (f.nameHi ?? f.nameEn)
-          : f.nameEn
+          : // English UI: the festival-of-lights takes the region's own
+            // word (Deepavali in the south, Diwali in the north) via rt().
+            isFestivalOfLightsName(f.nameEn)
+            ? rt('festivalOfLights')
+            : f.nameEn
       : '';
     try {
       const p = calculatePanchang(new Date());
@@ -75,7 +80,7 @@ function usePanchangStrip(): PanchangStrip {
         dressing: dressing.key,
       };
     }
-  }, [currentLang]);
+  }, [currentLang, rt]);
 }
 
 /** Low-end step-down: fewer cores / little memory / reduced motion. */

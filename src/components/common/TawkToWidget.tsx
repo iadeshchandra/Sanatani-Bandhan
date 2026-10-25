@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, Bot, Sparkles, HelpCircle, WifiOff } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -83,14 +84,14 @@ export const TawkToWidget: React.FC = () => {
     if (!inputText.trim()) return;
 
     const userMsg = inputText.trim();
-    const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeNow = new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' });
     setMessages((prev) => [...prev, { sender: 'user', text: userMsg, time: timeNow }]);
     setInputText('');
     setIsTyping(true);
 
     const botReply = (text: string, offline: boolean) => {
       setOfflineMode(offline);
-      setMessages((prev) => [...prev, { sender: 'bot', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      setMessages((prev) => [...prev, { sender: 'bot', text, time: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }) }]);
     };
 
     try {

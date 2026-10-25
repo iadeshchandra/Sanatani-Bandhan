@@ -142,12 +142,20 @@ describe('D-19 + U5 — plain words, no internal jargon', () => {
   });
 
   it('the recurring-seva dictionary value is the plain sentence in every fragment', () => {
-    // Language Completion Sweep B2 (2026-10-24): hi/bn now carry their
-    // authored plain-language translations of the sentence; en and the
-    // seven draft fragments (fallback-valued) keep the English sentence.
+    // Language Completion Sweep B2 (2026-10-24): hi/bn carry their authored
+    // plain-language translations of the sentence. Batch 3 (2026-10-25)
+    // authored the seven draft fragments too — every language now carries
+    // its own plain sentence; only en keeps the English original.
     const authored: Record<string, string> = {
       hi: 'normalizedMrrRunrate: "सक्रिय मासिक अधिदेशों से"',
       bn: 'normalizedMrrRunrate: "সক্রিয় মাসিক ম্যান্ডেট থেকে"',
+      gu: 'normalizedMrrRunrate: "સક્રિય માસિક આદેશોમાંથી"',
+      kn: 'normalizedMrrRunrate: "ಸಕ್ರಿಯ ಮಾಸಿಕ ಆದೇಶಗಳಿಂದ"',
+      ml: 'normalizedMrrRunrate: "സജീവമായ പ്രതിമാസ നിർദ്ദേശങ്ങളിൽ നിന്ന്"',
+      mr: 'normalizedMrrRunrate: "सक्रिय मासिक आदेशांवरून"',
+      sa: 'normalizedMrrRunrate: "सक्रियेभ्यः मासिकादेशेभ्यः"',
+      ta: 'normalizedMrrRunrate: "செயலில் உள்ள மாதாந்திர உத்தரவுகளிலிருந்து"',
+      te: 'normalizedMrrRunrate: "క్రియాశీల నెలవారీ ఆదేశాల నుండి"',
     };
     const langs = ['en', 'bn', 'hi', 'gu', 'kn', 'ml', 'mr', 'sa', 'ta', 'te'];
     for (const lang of langs) {

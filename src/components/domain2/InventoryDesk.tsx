@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Package, Plus, Search, AlertTriangle, CheckCircle2, TrendingDown, X, Download, ScanBarcode } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -71,7 +72,7 @@ export const InventoryDesk: React.FC = () => {
     // Subtitle
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+    doc.text(`Generated on: ${new Date().toLocaleString(appLocale())}`, 14, 22);
 
     // Table Data
     const tableColumn = ["Item Name", "Category", "Current Stock", "Min Reorder", "Status", "Cost/Unit", "Supplier"];

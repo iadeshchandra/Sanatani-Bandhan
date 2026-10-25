@@ -24,6 +24,7 @@
  * every action.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   Lock, KeyRound, LayoutDashboard, Users, Building2, BadgeCheck,
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
@@ -296,7 +297,7 @@ const DueJobsCard: React.FC = () => {
       {shown && totals && (
         <div className="mt-4 text-xs space-y-2">
           <p className="text-slate-400">
-            Last run: <span className="text-slate-200 font-semibold">{new Date(shown.at).toLocaleString()}</span>
+            Last run: <span className="text-slate-200 font-semibold">{new Date(shown.at).toLocaleString(appLocale())}</span>
             {' '}({shown.trigger}) — scanned {totals.scanned} · due {totals.due} ·{' '}
             <span className="text-emerald-400">delivered {totals.delivered}</span> · skipped {totals.skipped} ·{' '}
             <span className={totals.failed > 0 ? 'text-red-400' : 'text-slate-400'}>failed {totals.failed}</span>
@@ -312,7 +313,7 @@ const DueJobsCard: React.FC = () => {
           ))}
           {log.length > 1 && (
             <p className="text-slate-500">
-              Recent runs on this device: {log.slice(0, 5).map((r) => `${new Date(r.at).toLocaleDateString()} ${new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${r.trigger}, ${runTotals(r).delivered} delivered)`).join(' · ')}
+              Recent runs on this device: {log.slice(0, 5).map((r) => `${new Date(r.at).toLocaleDateString(appLocale())} ${new Date(r.at).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })} (${r.trigger}, ${runTotals(r).delivered} delivered)`).join(' · ')}
             </p>
           )}
         </div>

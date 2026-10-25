@@ -304,7 +304,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     setIsBookModalOpen(false);
     setActiveStayPass(pass);
     showToast(
-      `Room ${selectedRoomForBooking.roomNumber} allocated to ${bookForm.guestName}! Digital Stay Pass issued. 🙏`,
+      t('surfaces.ashram.toastRoomAllocated').replace('{room}', String(selectedRoomForBooking.roomNumber)).replace('{guest}', bookForm.guestName),
       'success',
       'Kutir Allocated'
     );
@@ -351,7 +351,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
       localStorage.setItem(roomsStorageKey, JSON.stringify(updatedRooms));
     } catch (e) {}
 
-    showToast(`Updated ${room.roomNumber} status to '${nextStatus}'`, 'info');
+    showToast(t('surfaces.ashram.toastRoomStatusUpdated').replace('{room}', String(room.roomNumber)).replace('{status}', nextStatus), 'info');
   };
 
   const handleCreateRoom = (e: React.FormEvent) => {
@@ -385,7 +385,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
       capacity: 2,
       suggestedDonationPerDay: 800,
     });
-    showToast(`Added new ${newRoom.roomNumber} to inventory!`, 'success');
+    showToast(t('surfaces.ashram.toastRoomAdded').replace('{room}', String(newRoom.roomNumber)), 'success');
   };
 
   // =========================================================================
@@ -582,7 +582,7 @@ export const AshramGoshalaGurukulDesk: React.FC = () => {
     });
 
     setIsAddCowModalOpen(false);
-    showToast(`Registered ${newCowForm.name} in Goshala Registry!`, 'success');
+    showToast(t('surfaces.ashram.toastCowRegistered').replace('{name}', newCowForm.name), 'success');
   };
 
   // =========================================================================

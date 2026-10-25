@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { appLocale } from '../../../lib/format';
 import {
   RefreshCw,
   Wallet,
@@ -484,7 +485,7 @@ const ReviewQueue: React.FC = () => {
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 {[a.city, a.experienceYears != null ? `${a.experienceYears} yrs` : null, a.idProofType].filter(Boolean).join(' · ')}
-                {a.createdAt && ` · applied ${new Date(a.createdAt).toLocaleDateString()}`}
+                {a.createdAt && ` · applied ${new Date(a.createdAt).toLocaleDateString(appLocale())}`}
               </p>
             </div>
             <button type="button" onClick={() => setOpen(open === a.id ? null : a.id)}
@@ -644,7 +645,7 @@ const ProfessionalControls: React.FC = () => {
               </span>
               {pro.boostUntil && new Date(pro.boostUntil).getTime() > Date.now() && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/40 text-[11px] font-black">
-                  <Sparkles className="w-3 h-3" /> Boosted till {new Date(pro.boostUntil).toLocaleDateString()}
+                  <Sparkles className="w-3 h-3" /> Boosted till {new Date(pro.boostUntil).toLocaleDateString(appLocale())}
                 </span>
               )}
             </div>

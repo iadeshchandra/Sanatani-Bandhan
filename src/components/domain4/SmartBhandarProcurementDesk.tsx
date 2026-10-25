@@ -588,7 +588,7 @@ export const SmartBhandarProcurementDesk: React.FC = () => {
 
     persistPOs([newPO, ...purchaseOrders]);
     setActiveTab('VENDOR_PO');
-    showToast(`Draft PO ${newPO.poNumber} generated for ${item.name}! Review & dispatch to vendor. 🛒`, 'success', 'PO Drafted');
+    showToast(t('surfaces.smartBhandar.toastPoDraftFor').replace('{po}', newPO.poNumber).replace('{item}', item.name), 'success', t('surfaces.smartBhandar.toastHeadPoDrafted'));
   };
 
   // 2. Dispatch PO via WhatsApp
@@ -628,7 +628,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
     persistPOs(updatedPOs);
 
     window.open(waUrl, '_blank');
-    showToast(`PO ${po.poNumber} dispatched to ${po.vendorName} via WhatsApp! 📲`, 'success', 'WhatsApp PO Sent');
+    showToast(t('surfaces.smartBhandar.toastPoDispatched').replace('{po}', po.poNumber).replace('{vendor}', po.vendorName), 'success', t('surfaces.smartBhandar.toastHeadPoSent'));
   };
 
   // 3. Initiate GRN from PO
@@ -1857,7 +1857,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                 persistItems([newItem, ...items]);
                 setIsAddItemModalOpen(false);
-                showToast(`Registered "${name}" into Bhandar master catalog! 📦`, 'success');
+                showToast(t('surfaces.smartBhandar.toastCatalogRegistered').replace('{name}', name), 'success');
               }}
               className="flex flex-col min-h-0 grow text-xs"
             >
@@ -2117,7 +2117,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
 
                 persistPOs([newPO, ...purchaseOrders]);
                 setIsNewPOModalOpen(false);
-                showToast(`Draft PO ${newPO.poNumber} created successfully!`, 'success');
+                showToast(t('surfaces.smartBhandar.toastPoDraftCreated').replace('{po}', newPO.poNumber), 'success');
               }}
               className="flex flex-col min-h-0 grow text-xs"
             >

@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { appLocale } from '../lib/format';
 import {
   BarChart3,
   Clock3,
@@ -83,7 +84,7 @@ function fmtDay(ms: number, lang: string): string {
       { day: 'numeric', month: 'short', year: 'numeric' },
     );
   } catch {
-    return new Date(ms).toLocaleDateString();
+    return new Date(ms).toLocaleDateString(appLocale());
   }
 }
 

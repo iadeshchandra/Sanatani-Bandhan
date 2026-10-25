@@ -20,6 +20,7 @@
  * awaiting the owner) are offered first.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { appLocale } from '../../../lib/format';
 import { AlarmClock, ChevronRight, KeyRound, LogOut, Receipt, Search, LifeBuoy } from 'lucide-react';
 import { AppLogo } from '../AppLogo';
 import type { PlatformRole } from '../../../lib/platformAdminRoles';
@@ -255,7 +256,7 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
           {loadedAt && (
             <span className="ml-auto shrink-0 text-[10px] text-slate-500 pl-2">
               Checked{' '}
-              {new Date(loadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(loadedAt).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>

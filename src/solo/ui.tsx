@@ -33,8 +33,8 @@ export const T: React.FC<{ en: string; bn: string; hi?: string; sa?: string; cla
 
 /** Locale text helpers for Solo tabs. */
 export const useLocaleText = () => {
-  const { currentLang, safeTranslate } = useLanguage();
-  return { lang: currentLang, tr: safeTranslate };
+  const { currentLang, safeTranslate, rt } = useLanguage();
+  return { lang: currentLang, tr: safeTranslate, rt };
 };
 
 export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (

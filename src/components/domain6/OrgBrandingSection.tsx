@@ -20,6 +20,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   Camera,
   Loader2,
@@ -345,7 +346,7 @@ export const OrgBrandingSection = forwardRef<BrandingSectionHandle, Props>(({ on
           <div className="h-1 bg-gradient-to-r from-amber-700 via-amber-400 to-amber-700" />
           {uploadedAt && (
             <p className="px-5 py-2 text-[10px] text-stone-400 font-medium">
-              <T en="Logo updated" bn="লোগো হালনাগাদ" hi="लोगो अद्यतन" /> • {new Date(uploadedAt).toLocaleDateString()}
+              <T en="Logo updated" bn="লোগো হালনাগাদ" hi="लोगो अद्यतन" /> • {new Date(uploadedAt).toLocaleDateString(appLocale())}
             </p>
           )}
         </div>

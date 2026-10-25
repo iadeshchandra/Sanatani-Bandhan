@@ -17,6 +17,7 @@
  * Renders nothing when there is nothing relevant — no empty chrome.
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   collection, onSnapshot, query, where,
 } from 'firebase/firestore';
@@ -201,12 +202,12 @@ export const ApprovalsPanel: React.FC = () => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-stone-900 truncate">{r.summary}</p>
           <p className="text-[11px] text-stone-500 mt-0.5">
-            {kindLabel(r)} · {r.requestedByName} · {new Date(r.requestedAt).toLocaleString()}
+            {kindLabel(r)} · {r.requestedByName} · {new Date(r.requestedAt).toLocaleString(appLocale())}
           </p>
           {r.status !== 'PENDING' && r.decidedByName && (
             <p className="text-[11px] text-stone-400 mt-0.5">
               {r.decidedByName}
-              {r.decidedAt ? ` · ${new Date(r.decidedAt).toLocaleString()}` : ''}
+              {r.decidedAt ? ` · ${new Date(r.decidedAt).toLocaleString(appLocale())}` : ''}
               {r.note ? ` · “${r.note}”` : ''}
             </p>
           )}

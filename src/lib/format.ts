@@ -12,6 +12,31 @@
 
 import { bcp47For } from '../i18n/schema';
 
+/* ── App-locale resolution (Language Sweep B3) ──────────────────────
+ * The user's CHOSEN app language — never the device locale — drives
+ * date/time and plain-number formatting. React surfaces should prefer
+ * bcp47For(currentLang) from useLanguage(); non-React modules (PDF
+ * generators, stores, contexts) read the same persisted choice
+ * LanguageContext writes ('sb-lang', legacy 'sanatani_lang').
+ * Money is exempt by standing law: amounts keep Latin digits with
+ * lakh/crore grouping (see formatCurrency / the 'en-IN' convention). */
+export function appLangCode(): string {
+  try {
+    return (
+      window.localStorage.getItem('sb-lang') ||
+      window.localStorage.getItem('sanatani_lang') ||
+      'en'
+    );
+  } catch {
+    return 'en';
+  }
+}
+
+/** BCP-47 tag of the user's chosen app language, e.g. 'bn' → 'bn'. */
+export function appLocale(): string {
+  return bcp47For(appLangCode());
+}
+
 /* ── Currency ────────────────────────────────────────────────────── */
 
 export type CurrencyCode = 'INR' | 'BDT' | 'USD';

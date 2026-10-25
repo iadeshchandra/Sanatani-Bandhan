@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   Package,
   ChefHat,
@@ -186,7 +187,7 @@ export const SmartBhandarDesk: React.FC = () => {
       recipeName: recipe.name,
       batches: numBatches,
       yieldReport: `${numBatches}x (${recipe.batchYield})`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', Today',
+      timestamp: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }) + ', Today',
     };
     setProductionHistory((prev) => [newLog, ...prev]);
 

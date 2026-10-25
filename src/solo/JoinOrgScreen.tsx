@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { appLocale } from '../lib/format';
 import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useMembership } from '../context/MembershipContext';
@@ -32,7 +33,7 @@ const memberSince = (ts: number) => {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '';
   try {
-    return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return d.toLocaleDateString(appLocale(), { month: 'short', year: 'numeric' });
   } catch {
     return '';
   }

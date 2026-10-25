@@ -3,6 +3,7 @@
  * Spark-native (firestoreAdmin direct). Dark/gold sovereign aesthetic.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { appLocale } from '../../../lib/format';
 import {
   Users, Building2, Wallet, BellRing, RefreshCw, Search,
   Database, FileJson, Pencil, Plus, Trash2, ChevronRight, ChevronLeft,
@@ -241,7 +242,7 @@ export const InsightsTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTa
                 <div className="flex-1 min-w-0">
                   <p className="text-slate-200 font-medium">{humanizeAction(e.action, e.details)}</p>
                   <p className="text-slate-500 text-[11px] mt-0.5">
-                    {e.actorEmail || 'owner'}{e.createdAt ? ` · ${new Date(e.createdAt).toLocaleString()}` : ''}
+                    {e.actorEmail || 'owner'}{e.createdAt ? ` · ${new Date(e.createdAt).toLocaleString(appLocale())}` : ''}
                   </p>
                 </div>
               </div>
@@ -273,7 +274,7 @@ function detectType(v: any): FieldType {
 
 function fieldPreview(v: any): string {
   const t = detectType(v);
-  if (t === 'timestamp') { try { return v.toDate().toLocaleString(); } catch { return 'timestamp'; } }
+  if (t === 'timestamp') { try { return v.toDate().toLocaleString(appLocale()); } catch { return 'timestamp'; } }
   if (t === 'object') { const s = JSON.stringify(v); return s.length > 60 ? s.slice(0, 60) + '…' : s; }
   if (t === 'null') return 'null';
   return String(v);

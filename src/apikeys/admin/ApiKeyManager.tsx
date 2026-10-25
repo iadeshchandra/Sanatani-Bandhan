@@ -27,6 +27,7 @@
  * by render tests.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   collection,
   doc,
@@ -227,7 +228,7 @@ function mask(value: string): string {
 function fmtTime(at: AuditEntry['at']): string {
   try {
     const d = at?.toDate?.();
-    return d ? d.toLocaleString() : '—';
+    return d ? d.toLocaleString(appLocale()) : '—';
   } catch {
     return '—';
   }

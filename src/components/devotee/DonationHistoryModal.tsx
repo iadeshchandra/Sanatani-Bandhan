@@ -1,4 +1,5 @@
 import React from 'react';
+import { appLocale } from '../../lib/format';
 import { X, Calendar, Download, Heart, Receipt } from 'lucide-react';
 import { TreasuryTransaction, WorkspaceConfig } from '../../types';
 import { generateTaxReceiptPDF } from '../../utils/pdfGenerator';
@@ -101,7 +102,7 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
                   <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-t-0 border-temple-100 pt-3 sm:pt-0">
                     <div className="text-left sm:text-right">
                       <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-0.5">{t('devotee.donations.amount')}</p>
-                      <p className="text-lg font-semibold text-emerald-600">₹{tx.amount.toLocaleString()}</p>
+                      <p className="text-lg font-semibold text-emerald-600">₹{tx.amount.toLocaleString('en-IN')}</p>
                     </div>
                     
                     <button 

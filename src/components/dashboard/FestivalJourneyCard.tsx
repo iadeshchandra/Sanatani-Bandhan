@@ -5,6 +5,8 @@ import { useData } from '../../context/DataContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { fetchPublishedAccounts } from '../../context/data/publishedAccountsStore';
 import { upcomingFestivals } from '../../lib/panjikaFestivals';
+import { isFestivalOfLightsName } from '../../i18n/regionalTerms';
+import { bcp47For } from '../../i18n/schema';
 import {
   buildJourneySteps,
   journeyDismissKey,
@@ -39,7 +41,7 @@ export const FestivalJourneyCard: React.FC<{
 }> = ({ onNavigate }) => {
   const { activeWorkspace } = useAuthWorkspace();
   const data = useData();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, currentLang, rt } = useLanguage();
   const [publishedMonths, setPublishedMonths] = useState<string[] | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -153,8 +155,10 @@ export const FestivalJourneyCard: React.FC<{
         <Flower2 className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" aria-hidden />
         <div className="flex-1 min-w-0">
           <h2 className="font-display font-bold text-gray-900 text-lg leading-tight">
-            {festival.nameEn} ·{' '}
-            {date.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}
+            {currentLang === 'en' && isFestivalOfLightsName(festival.nameEn)
+              ? rt('festivalOfLights')
+              : festival.nameEn} ·{' '}
+            {date.toLocaleDateString(bcp47For(currentLang), { day: 'numeric', month: 'long' })}
           </h2>
           <p className="text-xs text-gray-500 font-semibold">
             {safeTranslate(

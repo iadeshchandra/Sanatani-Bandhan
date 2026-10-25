@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { 
   ShieldAlert, Activity, Users, Clock, MapPin, 
   AlertTriangle, CheckCircle2, TrendingUp, Filter,
@@ -225,7 +226,7 @@ export const CrisisCommandCenter: React.FC = () => {
                     <p className="text-slate-600 text-xs mt-1 font-medium"><span className="font-bold text-slate-800">{inc.senderName}</span> requires assistance.</p>
                     <div className="flex items-center gap-3 mt-2 text-[10px] font-bold text-slate-500 uppercase">
                       {inc.location && <span className="flex items-center gap-1 text-indigo-600"><MapPin className="w-3 h-3" /> Location Tracked</span>}
-                      <span className="flex items-center gap-1 text-slate-400"><Clock className="w-3 h-3" /> {new Date(inc.timestamp).toLocaleTimeString()}</span>
+                      <span className="flex items-center gap-1 text-slate-400"><Clock className="w-3 h-3" /> {new Date(inc.timestamp).toLocaleTimeString(appLocale())}</span>
                     </div>
                   </div>
                   {canResolve ? (
@@ -358,7 +359,7 @@ export const CrisisCommandCenter: React.FC = () => {
                         {isResolved ? 'RESOLVED' : 'ACTIVE CRITICAL'}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400">
-                        {new Date(inc.timestamp).toLocaleTimeString()}
+                        {new Date(inc.timestamp).toLocaleTimeString(appLocale())}
                       </span>
                     </div>
                     <h4 className="text-sm font-bold text-slate-800">{inc.situation?.replace('_', ' ') || 'Emergency SOS'}</h4>

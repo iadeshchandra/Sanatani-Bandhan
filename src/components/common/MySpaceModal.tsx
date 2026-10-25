@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { appLocale } from '../../lib/format';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   QrCode, X, Download, Award, ShieldCheck, Sparkles, Heart, Clock, 
@@ -290,7 +291,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-temple-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
                      <Banknote className="w-8 h-8 text-emerald-500 mb-2" />
                      <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">Total Donated</p>
-                     <p className="text-2xl font-black text-temple-900">₹{(activeMember.totalDonated || 0).toLocaleString()}</p>
+                     <p className="text-2xl font-black text-temple-900">₹{(activeMember.totalDonated || 0).toLocaleString('en-IN')}</p>
                    </div>
                    <div className="bg-white p-5 rounded-3xl shadow-sm border border-temple-100 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
                      <Clock className="w-8 h-8 text-blue-500 mb-2" />
@@ -343,11 +344,11 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                                        </div>
                                        <div>
                                           <p className="text-sm font-bold text-temple-900 group-hover:text-temple-700 transition-colors">{tr.category}</p>
-                                          <p className="text-[10px] font-bold text-temple-500 mt-0.5">{new Date(tr.date).toLocaleDateString()}</p>
+                                          <p className="text-[10px] font-bold text-temple-500 mt-0.5">{new Date(tr.date).toLocaleDateString(appLocale())}</p>
                                        </div>
                                     </div>
                                     <p className={`text-sm font-black ${tr.type === 'Income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                       {tr.type === 'Income' ? '+' : '-'}₹{tr.amount.toLocaleString()}
+                                       {tr.type === 'Income' ? '+' : '-'}₹{tr.amount.toLocaleString('en-IN')}
                                     </p>
                                  </div>
                                ))}
@@ -497,7 +498,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                    <div className="absolute top-0 right-0 -mt-6 -mr-6 opacity-5 pointer-events-none"><Banknote size={120} className="text-emerald-600"/></div>
                    <div className="text-center sm:text-left relative z-10">
                      <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1.5 flex items-center justify-center sm:justify-start gap-1.5"><Banknote size={14}/> Lifetime Donated</p>
-                     <p className="text-4xl font-black text-emerald-600 tracking-tight">₹{(activeMember.totalDonated || 0).toLocaleString()}</p>
+                     <p className="text-4xl font-black text-emerald-600 tracking-tight">₹{(activeMember.totalDonated || 0).toLocaleString('en-IN')}</p>
                    </div>
                 </div>
 
@@ -534,7 +535,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                            <div key={`${tr.id}-${idx}`} className="p-4 bg-white border border-temple-100 hover:border-temple-200 hover:shadow-sm rounded-2xl transition-all flex justify-between items-center group min-w-0">
                              <div className="min-w-0 pr-4">
                                <p className="text-sm font-black text-temple-900 truncate">{tr.purpose || tr.category}</p>
-                               <p className="text-[10px] font-bold text-temple-400 tracking-wider mt-1">{new Date(tr.date).toLocaleString()}</p>
+                               <p className="text-[10px] font-bold text-temple-400 tracking-wider mt-1">{new Date(tr.date).toLocaleString(appLocale())}</p>
                              </div>
 
                              <div className="flex items-center gap-4 shrink-0">

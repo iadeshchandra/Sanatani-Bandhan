@@ -3,6 +3,7 @@
  * All actions go through the backend API (owner-gated, audited server-side).
  */
 import React, { useState, useCallback } from 'react';
+import { appLocale } from '../../../lib/format';
 import { RefreshCw, Flag, EyeOff, AlertTriangle, Ban, CheckCircle2, Send, Clock, CalendarPlus, TimerOff } from 'lucide-react';
 import { adminApi, type ModerationReport, type PaymentClaim, type AuditEntry, type MessageTemplate } from '../../../lib/adminApi';
 import { findDueSubscriptions, extendedEndDateIso } from '../../../lib/subscriptionAdmin';
@@ -392,7 +393,7 @@ const SubscriptionsTab: React.FC = () => {
     setActing(null);
     setExtendTarget(null);
     if (r.ok) {
-      showToast(`Extended — new end date ${r.data?.newEndDate ? new Date(r.data.newEndDate).toLocaleDateString() : ''}.`, 'success');
+      showToast(`Extended — new end date ${r.data?.newEndDate ? new Date(r.data.newEndDate).toLocaleDateString(appLocale()) : ''}.`, 'success');
       load();
     } else showToast(r.error || 'Could not extend subscription.', 'error');
   };
@@ -438,9 +439,9 @@ const SubscriptionsTab: React.FC = () => {
                 </span>
               </p>
               <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                {s.startDate ? new Date(s.startDate).toLocaleDateString() : '?'} → {s.endDate ? new Date(s.endDate).toLocaleDateString() : 'no expiry'}
+                {s.startDate ? new Date(s.startDate).toLocaleDateString(appLocale()) : '?'} → {s.endDate ? new Date(s.endDate).toLocaleDateString(appLocale()) : 'no expiry'}
                 {s.transactionId ? <span className="ml-2">· {s.transactionId}</span> : null}
-                {typeof s.expiredAt === 'string' && s.expiredAt ? <span className="ml-2 text-red-300/80">· expired {new Date(s.expiredAt).toLocaleDateString()}</span> : null}
+                {typeof s.expiredAt === 'string' && s.expiredAt ? <span className="ml-2 text-red-300/80">· expired {new Date(s.expiredAt).toLocaleDateString(appLocale())}</span> : null}
               </p>
             </div>
             {badge(s)}
@@ -491,7 +492,7 @@ const SubscriptionsTab: React.FC = () => {
                   {d.kind === 'pro' ? '🪔 ' : '🏛 '}{d.subject}
                   <span className="text-slate-500"> · {d.planId}</span>
                 </p>
-                <p className="text-[11px] text-red-300 shrink-0">ended {d.endDate ? new Date(d.endDate).toLocaleDateString() : '?'} · {d.daysOverdue}d ago</p>
+                <p className="text-[11px] text-red-300 shrink-0">ended {d.endDate ? new Date(d.endDate).toLocaleDateString(appLocale()) : '?'} · {d.daysOverdue}d ago</p>
               </div>
             ))}
           </div>
@@ -512,7 +513,7 @@ const SubscriptionsTab: React.FC = () => {
       {extendTarget && (
         <ConfirmDialog
           title="Extend subscription"
-          body={`${extendTarget._isPro ? (extendTarget.providerUid || extendTarget.id) : extendTarget.workspaceId} · ${extendTarget.planId} — currently ends ${extendTarget.endDate ? new Date(extendTarget.endDate).toLocaleDateString() : '—'}.${storedStatus(extendTarget) === 'expired' || extendTarget._status === 'expired' || extendTarget._status === 'grace' ? ' Extending reactivates it (status back to active).' : ''} This is the correction tool for pre-fix annual plans that received a 1-month end date: add 11 months to make the paid year whole.`}
+          body={`${extendTarget._isPro ? (extendTarget.providerUid || extendTarget.id) : extendTarget.workspaceId} · ${extendTarget.planId} — currently ends ${extendTarget.endDate ? new Date(extendTarget.endDate).toLocaleDateString(appLocale()) : '—'}.${storedStatus(extendTarget) === 'expired' || extendTarget._status === 'expired' || extendTarget._status === 'grace' ? ' Extending reactivates it (status back to active).' : ''} This is the correction tool for pre-fix annual plans that received a 1-month end date: add 11 months to make the paid year whole.`}
           confirmLabel={`Extend by ${extendMonths} month${extendMonths === 1 ? '' : 's'}`}
           working={acting === extendTarget.id}
           onConfirm={runExtend}
@@ -537,7 +538,7 @@ const SubscriptionsTab: React.FC = () => {
               New end date:{' '}
               <b className="text-slate-100">
                 {extendedEndDateIso(extendTarget.endDate, extendMonths)
-                  ? new Date(extendedEndDateIso(extendTarget.endDate, extendMonths)!).toLocaleDateString()
+                  ? new Date(extendedEndDateIso(extendTarget.endDate, extendMonths)!).toLocaleDateString(appLocale())
                   : '—'}
               </b>
             </p>
@@ -787,7 +788,7 @@ export const AuditTab: React.FC = () => {
                   e.severity === 'critical' ? 'bg-red-500/20 text-red-300' : e.severity === 'warning' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-300'
                 }`}>{e.severity || 'info'}</span>
                 <span className="text-xs font-mono font-bold text-slate-200">{e.action}</span>
-                <span className="text-[11px] text-slate-500 ml-auto">{e.createdAt ? new Date(e.createdAt).toLocaleString() : ''}</span>
+                <span className="text-[11px] text-slate-500 ml-auto">{e.createdAt ? new Date(e.createdAt).toLocaleString(appLocale()) : ''}</span>
               </div>
               <p className="text-[11px] text-slate-500 font-mono mt-1.5 truncate">
                 actor: {e.actorEmail || e.actorUid || '—'}{e.workspaceId ? ` · ws: ${e.workspaceId}` : ''}

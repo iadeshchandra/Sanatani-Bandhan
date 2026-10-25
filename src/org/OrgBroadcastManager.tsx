@@ -20,6 +20,7 @@
  * /org/{orgId} lands here).
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { appLocale } from '../lib/format';
 import { Megaphone, Send, Users } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -43,7 +44,7 @@ const PUBLIC_LIST_COUNT = 3;
 
 function formatWhen(ms: number): string {
   try {
-    return new Date(ms).toLocaleString(undefined, {
+    return new Date(ms).toLocaleString(appLocale(), {
       day: 'numeric',
       month: 'short',
       hour: 'numeric',
