@@ -15,10 +15,15 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import {
-  festivalEventUrl, slotRemaining, validateRsvp,
-  type FestivalEventDoc,
+  festivalDayList, festivalEventUrl, slotRemaining, validateRsvp,
+  type FestivalEventDoc, type RsvpEntry,
 } from '../../lib/festival';
-import { applyFestivalRsvp } from '../../lib/festivalRsvp';
+import {
+  applyFestivalRsvp, claimFestivalWaitlist, removeFestivalRsvp, waitlistPosition,
+} from '../../lib/festivalRsvp';
+import { festivalConcluded } from '../../lib/festivalMemory';
+import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
+import { FestivalMemoryCard } from './FestivalMemoryCard';
 
 const inputCls =
   'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 min-h-[44px]';
@@ -38,6 +43,38 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // EVENTS P1 — my own RSVP record (readable only by me, per the
+  // rules), the days I chose on a multi-day festival, and the form's
+  // edit mode when I already hold a place.
+  const [myRsvp, setMyRsvp] = useState<RsvpEntry | null>(null);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [claimNote, setClaimNote] = useState<string | null>(null);
+  const prefilledFor = React.useRef<string>('');
+
+  const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+
+  // My RSVP, live: the page now remembers me — my place, my days,
+  // my waitlist position — instead of asking me to RSVP twice.
+  useEffect(() => {
+    if (previewEvent || !eventId || !uid) { setMyRsvp(null); return; }
+    const unsub = onSnapshot(
+      doc(db, 'festival_rsvps', `${eventId}__${uid}`),
+      (snap) => {
+        const r = snap.exists() ? ({ id: snap.id, ...(snap.data() as Omit<RsvpEntry, 'id'>) }) : null;
+        setMyRsvp(r);
+        if (r && prefilledFor.current !== r.id) {
+          prefilledFor.current = r.id;
+          setName(r.name || '');
+          setHeadcount(r.headcount || 1);
+          setSlotId(r.slotId || '');
+          setSelectedDays(r.days || []);
+        }
+      },
+      () => setMyRsvp(null)
+    );
+    return unsub;
+  }, [eventId, uid, previewEvent]);
 
   const tr = (l: { en: string; bn: string; hi: string }) => safeTranslate('festival.page', l.en, l.bn, l.hi);
 
@@ -61,6 +98,14 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
     return unsub;
   }, [eventId, orgId]);
 
+  // Default day choice on a multi-day festival: every day (the
+  // devotee then un-ticks the days they cannot come).
+  useEffect(() => {
+    if (!event || prefilledFor.current) return;
+    const days = festivalDayList(event.dateISO, event.endDateISO);
+    if (days.length > 1) setSelectedDays((prev) => (prev.length ? prev : days));
+  }, [event]);
+
   const shareUrl = event ? festivalEventUrl(window.location.origin, orgId || '', event.id) : '';
 
   const doRsvp = async () => {
@@ -76,21 +121,32 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
       navigate(`/login?next=${encodeURIComponent(`/festival/${orgId}/${eventId}`)}`);
       return;
     }
+    const days = festivalDayList(event!.dateISO, event!.endDateISO);
+    if (days.length > 1 && selectedDays.length === 0) {
+      setError(safeTranslate('festival.page.dayerr', 'Please choose at least one day.', 'অন্তত একটি দিন বেছে নিন।', 'कृपया कम से कम एक दिन चुनें।'));
+      return;
+    }
     setSubmitting(true);
     try {
       // One transaction: the RSVP record and the public counters move
       // together (rules anchor the counters to this very record), and
-      // a darshan slot can never be booked past its capacity.
-      const uid = (firebaseUser as { uid?: string }).uid || 'anon';
-      await applyFestivalRsvp({
+      // a darshan slot can never be booked past its capacity. A full
+      // slot I deliberately chose joins its waitlist instead.
+      const slot = slotId ? event!.darshanSlots.find((s) => s.id === slotId) : undefined;
+      const slotFull = slot ? slotRemaining(slot, event!.slotBooked || {}) < headcount : false;
+      const outcome = await applyFestivalRsvp(db, {
         eventId: event!.id,
         workspaceId: orgId || '',
         uid,
         name,
         headcount,
         ...(slotId ? { slotId } : {}),
+        ...(days.length > 1 ? { days: selectedDays } : {}),
+        joinWaitlistIfFull: slotFull,
       });
+      setEditing(false);
       setDone(true);
+      if (outcome === 'waitlisted') setClaimNote('waitlisted');
     } catch (e) {
       const code = (e as { message?: string })?.message || '';
       setError(code === 'slot-full'
@@ -99,6 +155,52 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const doCancel = async () => {
+    if (!event || !uid) return;
+    setSubmitting(true);
+    try {
+      await removeFestivalRsvp(db, { eventId: event.id, uid });
+      setDone(false);
+      setEditing(false);
+      setClaimNote(null);
+    } catch {
+      setError(safeTranslate('festival.page.err', 'Something did not go through — please try again.', 'কিছু একটা হয়নি — আবার চেষ্টা করুন।', 'कुछ ठीक नहीं हुआ — पुनः प्रयास करें।'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const doClaim = async () => {
+    if (!event || !uid) return;
+    setSubmitting(true);
+    setClaimNote(null);
+    try {
+      const claimed = await claimFestivalWaitlist(db, { eventId: event.id, uid });
+      setClaimNote(claimed ? 'claimed' : 'notyet');
+    } catch {
+      setClaimNote('notyet');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const doIcs = () => {
+    if (!event) return;
+    downloadIcs(
+      buildIcsCalendar([
+        {
+          uid: `festival-${event.id}@sanatanibandhan`,
+          title: tr(event.name),
+          description: tr(event.story),
+          location: event.orgName,
+          date: event.dateISO,
+          endDate: event.endDateISO,
+        },
+      ]),
+      icsFileName(event.name.en)
+    );
   };
 
   const doShare = async () => {
@@ -184,16 +286,18 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
               {event.darshanSlots.map((s) => {
                 const left = slotRemaining(s, event.slotBooked);
                 const selected = slotId === s.id;
+                const full = left <= 0;
                 return (
-                  <button key={s.id} disabled={left <= 0}
+                  <button key={s.id}
                     onClick={() => setSlotId(selected ? '' : s.id)}
+                    aria-pressed={selected}
                     className={`rounded-2xl border-2 px-4 py-3.5 text-left min-h-[44px] transition ${
-                      selected ? 'border-orange-600 bg-orange-50' : left <= 0 ? 'border-stone-100 bg-stone-50 opacity-50' : 'border-stone-200 bg-white hover:border-orange-300'
+                      selected ? 'border-orange-600 bg-orange-50' : full ? 'border-amber-200 bg-amber-50/50 hover:border-amber-400' : 'border-stone-200 bg-white hover:border-orange-300'
                     }`}>
                     <div className="font-bold text-stone-800 text-sm">{tr(s.label)}</div>
-                    <div className={`text-xs font-semibold ${left <= 0 ? 'text-stone-400' : left < 10 ? 'text-amber-600' : 'text-emerald-700'}`}>
-                      {left <= 0
-                        ? tr({ en: 'Full — join the general darshan', bn: 'পূর্ণ — সাধারণ দর্শনে যোগ দিন', hi: 'पूर्ण — सामान्य दर्शन में पधारें' })
+                    <div className={`text-xs font-semibold ${full ? 'text-amber-700' : left < 10 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                      {full
+                        ? tr({ en: 'Full — tap to join the waitlist', bn: 'পূর্ণ — অপেক্ষা-তালিকায় যোগ দিতে ট্যাপ করুন', hi: 'पूर्ण — प्रतीक्षा सूची में जुड़ने हेतु टैप करें' })
                         : tr({ en: `${left} places left`, bn: `${left}টি স্থান বাকি`, hi: `${left} स्थान शेष` })}
                     </div>
                   </button>
@@ -203,9 +307,77 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
           </div>
         )}
 
+        {/* EVENTS P2 — once the festival has concluded, its memory
+            card takes the invitation's place. */}
+        {festivalConcluded(event, Date.now()) && (
+          <FestivalMemoryCard event={event} rsvps={null} tr={tr} />
+        )}
+
         {/* RSVP */}
+        {!festivalConcluded(event, Date.now()) && (
         <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
-          {done ? (
+          {myRsvp && !editing ? (
+            <div className="text-center py-2">
+              <div className="text-5xl mb-3">{(myRsvp.status || 'confirmed') === 'waitlisted' ? '🕯️' : '🙏'}</div>
+              <h2 className="text-lg font-black text-stone-800">
+                {(myRsvp.status || 'confirmed') === 'waitlisted'
+                  ? tr({ en: 'You are on the waitlist', bn: 'আপনি অপেক্ষা-তালিকায় আছেন', hi: 'आप प्रतीक्षा सूची में हैं' })
+                  : tr({ en: 'Your place is counted', bn: 'আপনার স্থান গোনা হয়েছে', hi: 'आपका स्थान गिना गया है' })}
+              </h2>
+              <p className="text-sm text-stone-500 mt-1">
+                {myRsvp.name} · {myRsvp.headcount}{' '}
+                {tr({ en: 'people', bn: 'জন', hi: 'लोग' })}
+                {myRsvp.slotId && event.darshanSlots.find((s) => s.id === myRsvp.slotId)
+                  ? ` · ${tr(event.darshanSlots.find((s) => s.id === myRsvp.slotId)!.label)}`
+                  : ''}
+                {myRsvp.days && myRsvp.days.length > 0
+                  ? ` · ${myRsvp.days.map((d) => d.slice(5)).join(', ')}`
+                  : ''}
+              </p>
+              {(myRsvp.status || 'confirmed') === 'waitlisted' && myRsvp.slotId && (
+                <>
+                  <p className="text-sm font-bold text-amber-700 mt-2">
+                    {tr({ en: 'Your place in line', bn: 'লাইনে আপনার স্থান', hi: 'पंक्ति में आपका स्थान' })}:{' '}
+                    {waitlistPosition(event, myRsvp.slotId, uid) || '—'}
+                  </p>
+                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                    {tr({
+                      en: 'If a place frees, the first in line is confirmed first. This page and your Suchana will tell you the moment it happens.',
+                      bn: 'জায়গা খালি হলে লাইনের প্রথম জনই প্রথমে নিশ্চিত হবেন। এই পৃষ্ঠা ও আপনার সূচনা তা হলেই জানিয়ে দেবে।',
+                      hi: 'स्थान खाली होने पर पंक्ति में पहला व्यक्ति ही पहले पक्का होगा। यह पृष्ठ और आपकी सूचना उसी क्षण बता देगी।',
+                    })}
+                  </p>
+                  <button
+                    disabled={submitting}
+                    onClick={doClaim}
+                    className="mt-3 w-full rounded-xl bg-gradient-to-r from-amber-600 to-orange-700 text-white font-bold py-3 text-sm min-h-[44px] shadow disabled:opacity-50">
+                    {tr({ en: 'Check if my place is ready', bn: 'আমার স্থান তৈরি কিনা দেখুন', hi: 'देखें मेरा स्थान तैयार है या नहीं' })}
+                  </button>
+                  {claimNote === 'notyet' && (
+                    <p className="text-xs font-semibold text-amber-700 mt-2">
+                      {tr({ en: 'Not yet — your place in line is safe.', bn: 'এখনও নয় — লাইনে আপনার স্থান নিরাপদ।', hi: 'अभी नहीं — पंक्ति में आपका स्थान सुरक्षित है।' })}
+                    </p>
+                  )}
+                  {claimNote === 'claimed' && (
+                    <p className="text-xs font-semibold text-emerald-700 mt-2">
+                      {tr({ en: 'Your place is confirmed — see you at darshan.', bn: 'আপনার স্থান নিশ্চিত — দর্শনে দেখা হবে।', hi: 'आपका स्थान पक्का है — दर्शन में भेंट होगी।' })}
+                    </p>
+                  )}
+                </>
+              )}
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                <button onClick={() => setEditing(true)} className="px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 min-h-[44px]">
+                  {tr({ en: 'Change', bn: 'বদলান', hi: 'बदलें' })}
+                </button>
+                <button onClick={doIcs} className="px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 min-h-[44px]">
+                  📅 {tr({ en: 'Add to calendar', bn: 'ক্যালেন্ডারে যোগ করুন', hi: 'कैलेंडर में जोड़ें' })}
+                </button>
+                <button disabled={submitting} onClick={doCancel} className="px-4 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 min-h-[44px] disabled:opacity-50">
+                  {tr({ en: 'Cancel my RSVP', bn: 'আমার RSVP বাতিল', hi: 'मेरा RSVP रद्द करें' })}
+                </button>
+              </div>
+            </div>
+          ) : done && !myRsvp ? (
             <div className="text-center py-4">
               <div className="text-5xl mb-3">🙏</div>
               <h2 className="text-lg font-black text-stone-800">
@@ -239,6 +411,37 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                   aria-label="More" onClick={() => setHeadcount((h) => Math.min(20, h + 1))}>+</button>
                 <span className="text-xs text-stone-400">{tr({ en: 'including you', bn: 'আপনিসহ', hi: 'आप सहित' })}</span>
               </div>
+              {/* EVENTS P1 — day-wise RSVP on multi-day festivals:
+                  come for the days you can, not all-or-nothing. */}
+              {festivalDayList(event.dateISO, event.endDateISO).length > 1 && (
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-stone-600 mb-1.5">
+                    {tr({ en: 'Which days will you come?', bn: 'কোন কোন দিন আসবেন?', hi: 'किन दिनों में पधारेंगे?' })}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {festivalDayList(event.dateISO, event.endDateISO).map((d) => {
+                      const on = selectedDays.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() =>
+                            setSelectedDays((prev) =>
+                              prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()
+                            )
+                          }
+                          className={`px-3 py-2 rounded-xl border-2 text-xs font-bold min-h-[44px] transition ${
+                            on ? 'border-orange-600 bg-orange-50 text-orange-900' : 'border-stone-200 bg-white text-stone-500'
+                          }`}
+                        >
+                          {new Date(`${d}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {error && <div className="mt-3 text-xs font-semibold text-red-600">{error}</div>}
               <button
                 disabled={submitting}
@@ -247,7 +450,9 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                 {submitting
                   ? tr({ en: 'Saving…', bn: 'সংরক্ষণ…', hi: 'सहेज रहे…' })
                   : firebaseUser
-                    ? `🙏 ${tr({ en: 'Count me in', bn: 'আমাকে গুনুন', hi: 'मुझे गिनें' })}`
+                    ? editing
+                      ? tr({ en: 'Save my changes', bn: 'আমার বদল সংরক্ষণ', hi: 'मेरे बदलाव सहेजें' })
+                      : `🙏 ${tr({ en: 'Count me in', bn: 'আমাকে গুনুন', hi: 'मुझे गिनें' })}`
                     : tr({ en: 'Sign in to RSVP', bn: 'RSVP করতে সাইন ইন', hi: 'RSVP हेतु साइन इन' })}
               </button>
               {!firebaseUser && (
@@ -258,6 +463,7 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
             </>
           )}
         </div>
+        )}
 
         {/* Share */}
         <button onClick={doShare}
@@ -266,8 +472,14 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
             ? `✓ ${tr({ en: 'Link copied — invite your family', bn: 'লিংক কপি — পরিবারকে আমন্ত্রণ', hi: 'लिंक कॉपी — परिवार को आमंत्रित करें' })}`
             : `📤 ${tr({ en: 'Share this celebration', bn: 'এই উৎসব শেয়ার করুন', hi: 'यह उत्सव साझा करें' })}`}
           </button>
+        {!festivalConcluded(event, Date.now()) && (
+          <button onClick={doIcs}
+            className="w-full rounded-2xl border border-orange-200 bg-white/70 py-3.5 text-sm font-bold text-orange-800 min-h-[44px]">
+            📅 {tr({ en: 'Add to calendar', bn: 'ক্যালেন্ডারে যোগ করুন', hi: 'कैलेंडर में जोड़ें' })}
+          </button>
+        )}
         <p className="text-center text-[11px] text-stone-400 pb-4">
-          {tr({ en: 'With the blessings of', bn: 'আশীর্বাদে', hi: 'आशीर्वाद सहित' })} · {event.orgName}
+          {tr({ en: 'With the blessings of', bn: 'আশীর্বাদে', hi: 'आशीর্বাদ सहित' })} · {event.orgName}
         </p>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Festival, FestivalStatus } from './types';
 import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from './ui';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 
 /* Utsav One — festival registry: name, dates, deity, venue, footfall. */
 
@@ -78,6 +79,27 @@ export const FestivalsTab: React.FC = () => {
                   </Btn>
                 )}
                 <Btn variant="danger" onClick={() => { remove('festivals', f.id); showToast(t('ritual.utsav.festivals.toastRemoved'), 'success'); }}>{t('ritual.common.remove')}</Btn>
+                {/* EVENTS P1 — add-to-calendar for the festival span. */}
+                <Btn
+                  variant="ghost"
+                  onClick={() =>
+                    downloadIcs(
+                      buildIcsCalendar([
+                        {
+                          uid: `utsav-${f.id}@sanatanibandhan`,
+                          title: f.name,
+                          description: [f.deity, f.occasion, f.notes].filter(Boolean).join(' · '),
+                          location: f.venue,
+                          date: f.startDate,
+                          endDate: f.endDate,
+                        },
+                      ]),
+                      icsFileName(f.name)
+                    )
+                  }
+                >
+                  📅 {t('surfaces.events.addToCalendar')}
+                </Btn>
               </div>
             </Card>
           );

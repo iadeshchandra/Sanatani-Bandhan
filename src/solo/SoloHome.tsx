@@ -21,6 +21,7 @@ import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { PanchangHeader } from '../components/common/PanchangHeader';
+import { OrgEventsShelf } from './OrgEventsShelf';
 import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
 import { SoloUsualRow } from './SoloUsualRow';
 import { openDanaSheet } from '../lib/danaSheet';
@@ -247,6 +248,11 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           usage (cold start: the starter set, plainly labelled). */}
       <OfflineSevakStatus variant="bar" />
       <SoloUsualRow goTab={goTab} />
+
+      {/* EVENTS P1 — "From your orgs": upcoming events from the
+          organisations this devotee belongs to (public page events,
+          recurrence-expanded; honest empty state). */}
+      <OrgEventsShelf />
 
       {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
           One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}

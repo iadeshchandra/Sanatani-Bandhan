@@ -124,7 +124,8 @@ export function toCloudCircle(c: SangamCircle): Record<string, unknown> {
 /**
  * sangamEvents create whitelist:
  * title, kind, description, venue, startsAt, endsAt, orgId, orgName,
- * isOfficial, creatorUid, creatorName, rsvpCount, createdAt
+ * isOfficial, creatorUid, creatorName, rsvpCount, createdAt,
+ * capacity, recurrence (EVENTS P1)
  */
 export function toCloudEvent(e: SangamEvent): Record<string, unknown> {
   return stripUndefined({
@@ -141,6 +142,8 @@ export function toCloudEvent(e: SangamEvent): Record<string, unknown> {
     creatorName: e.creatorName,
     rsvpCount: e.rsvpCount,
     createdAt: e.createdAt,
+    capacity: e.capacity && e.capacity > 0 ? e.capacity : undefined,
+    recurrence: e.recurrence,
   });
 }
 

@@ -44,7 +44,7 @@ const TABS = [
 
 const UtsavInner: React.FC = () => {
   const [tab, setTab] = useState('warroom');
-  const { ensureSeeded } = useUtsav();
+  const { ensureSeeded, cloudSync } = useUtsav();
   const { activeWorkspace } = useAuthWorkspace();
   const { t } = useLanguage();
   const seededFor = useRef('');
@@ -79,6 +79,26 @@ const UtsavInner: React.FC = () => {
         <div className="mb-4 rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-xs text-orange-900 no-print">
           <span className="font-bold">📊 {t('ritual.utsav.honesty.title')}: </span>
           {t('ritual.utsav.honesty.body')}
+        </div>
+
+        {/* EVENTS P1 — team sharing status: the plan mirrors to the
+            whole committee (utsav_stores); state it plainly. */}
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-2.5 text-xs text-emerald-900 no-print" role="status">
+          {cloudSync.status === 'shared' && (
+            <>🤝 <span className="font-bold">Shared with your committee.</span> This plan is saved for the whole samiti — any committee member opening Utsav on their own phone sees the same plan. Newest edit wins.</>
+          )}
+          {cloudSync.status === 'syncing' && (
+            <>🤝 <span className="font-bold">Sharing…</span> Saving this plan for your committee.</>
+          )}
+          {cloudSync.status === 'too-large' && (
+            <>⚠️ <span className="font-bold">This plan is very large.</span> It is kept safely on this device but is too large to share as one plan — the committee will not see the newest changes.</>
+          )}
+          {cloudSync.status === 'error' && (
+            <>⚠️ <span className="font-bold">Sharing paused.</span> Your plan is safe on this device; the committee copy could not be updated just now and will catch up on the next change.</>
+          )}
+          {cloudSync.status === 'local' && (
+            <>🤝 <span className="font-bold">Committee sharing is on.</span> Changes you make here are saved for the whole samiti, not only this phone.</>
+          )}
         </div>
 
         <Tabs tabs={TABS} active={tab} onChange={setTab} />

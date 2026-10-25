@@ -32,6 +32,9 @@ import {
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
 import { TransparencyBoard } from '../components/audit/TransparencyBoard';
+import { DecisionCards } from '../components/audit/DecisionCards';
+import { nextOccurrence, localTodayISO } from '../lib/eventRecurrence';
+import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 import { OrgEventManager } from '../org/OrgEventManager';
 import { OrgAnnouncementsSection } from '../org/OrgBroadcastManager';
 import type { OrgEventItem } from '../org/eventBridge';
@@ -96,7 +99,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   onSaveAartiSchedules,
 }) => {
   const navigate = useNavigate();
-  const { safeTranslate, rt } = useLanguage();
+  const { safeTranslate, rt, t } = useLanguage();
   // Trilingual UI chrome — org's own content stays exactly as the org wrote it.
   const T = (key: string, en: string, bn: string, hi: string) => safeTranslate(key, en, bn, hi);
   // Regional word for "temple" (kovil in Tamil Nadu, devasthana in
@@ -402,23 +405,76 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
             </p>
           ) : (
             <ul className="space-y-3">
-              {events.map((ev, i) => (
+              {events.map((ev, i) => {
+                // EVENTS P1 — a recurring event shows its NEXT
+                // occurrence (derived from the one definition, never a
+                // stored copy) + its rhythm, and offers the .ics with
+                // the RRULE so devotees' calendars repeat it too.
+                const occ = ev.recurrence ? nextOccurrence(ev.date, ev.recurrence, localTodayISO(), ev.time) : null;
+                const shownDate = occ ? occ.date : ev.date;
+                const recurLabel = ev.recurrence
+                  ? ev.recurrence.freq === 'weekly'
+                    ? t('surfaces.events.repeatWeekly')
+                    : ev.recurrence.freq === 'monthly'
+                      ? t('surfaces.events.repeatMonthly')
+                      : t('surfaces.events.repeatYearly')
+                  : '';
+                return (
                 <li key={i} className="flex gap-4 items-start bg-amber-50/60 border border-amber-100 rounded-2xl p-4">
                   <div className="shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-amber-600 to-orange-800 text-white flex flex-col items-center justify-center">
-                    <span className="text-lg font-black leading-none">{eventDay(ev.date)}</span>
-                    <span className="text-[10px] font-black uppercase">{eventMonth(ev.date)}</span>
+                    <span className="text-lg font-black leading-none">{eventDay(shownDate)}</span>
+                    <span className="text-[10px] font-black uppercase">{eventMonth(shownDate)}</span>
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-black text-stone-900">{ev.title}</p>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      {[ev.date, ev.time].filter(Boolean).join(' · ')}
+                      {[shownDate, ev.time].filter(Boolean).join(' · ')}
+                      {ev.recurrence && occ ? ` · ${t('surfaces.events.nextLabel')}` : ''}
                     </p>
+                    {ev.recurrence && (
+                      <p className="text-[11px] font-bold text-amber-700 mt-0.5">
+                        🔁 {recurLabel}
+                        {(ev.recurrence.interval || 1) > 1
+                          ? ` · ${t('surfaces.events.intervalLabel')} ${ev.recurrence.interval} ${
+                              ev.recurrence.freq === 'weekly'
+                                ? t('surfaces.events.unitWeek')
+                                : ev.recurrence.freq === 'monthly'
+                                  ? t('surfaces.events.unitMonth')
+                                  : t('surfaces.events.unitYear')}`
+                          : ''}
+                      </p>
+                    )}
                     {ev.description && (
                       <p className="text-xs text-stone-600 mt-1.5 leading-relaxed">{ev.description}</p>
                     )}
+                    {/^\d{4}-\d{2}-\d{2}$/.test(ev.date) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadIcs(
+                            buildIcsCalendar([
+                              {
+                                uid: `orgpage-${page.orgId}-${i}@sanatanibandhan`,
+                                title: ev.title,
+                                description: ev.description,
+                                location: page.name,
+                                date: ev.date,
+                                time: ev.time,
+                                recurrence: ev.recurrence,
+                              },
+                            ]),
+                            icsFileName(ev.title)
+                          )
+                        }
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 min-h-[36px] hover:bg-amber-100 transition"
+                      >
+                        📅 {t('surfaces.events.addToCalendar')}
+                      </button>
+                    )}
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
           {/* Trustee event bridge: manage org events + share to Sangam. */}
@@ -810,6 +866,10 @@ export const OrgPublicPage: React.FC = () => {
           accounts. Renders only when the org has published at least
           one month — nothing is public until published. */}
       <TransparencyBoard workspaceId={page.orgId} orgName={page.name} />
+      {/* EVENTS P2 — concluded decisions, beneath the accounts: the
+          house's polls + resolutions in plain language (a poll whose
+          creator chose committee-only results shows only to them). */}
+      <DecisionCards workspaceId={page.orgId} isCommittee={isTrustee} />
       {showJoinModal && (
         <JoinRequestModal page={page} onClose={() => setShowJoinModal(false)} />
       )}

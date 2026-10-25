@@ -204,11 +204,16 @@ export function useWarPlan(wf: WarFestival | null): {
 export interface FestivalCloud {
   event: FestivalEventDoc | null;
   rsvps: RsvpEntry[];
+  /** Confirmed heads only (EVENTS P1 — waitlisted parties are not expected). */
   rsvpHeadcount: number;
+  /** Confirmed heads the team has marked arrived (EVENTS P1 check-in). */
+  arrivedHeadcount: number;
   loading: boolean;
   publishEvent: (event: FestivalEventDoc) => Promise<void>;
   unpublish: () => Promise<void>;
   submitRsvp: (entry: { name: string; headcount: number; slotId?: string }) => Promise<void>;
+  /** EVENTS P1 — day-of check-in toggle on one RSVP record. */
+  toggleCheckin: (rsvpId: string, checkedIn: boolean) => Promise<void>;
 }
 
 /**
@@ -273,7 +278,7 @@ export function useFestivalCloud(
     const uid = (firebaseUser as { uid?: string }).uid || 'anon';
     // One transaction — RSVP record + counters together, capacity
     // enforced (see lib/festivalRsvp).
-    await applyFestivalRsvp({
+    await applyFestivalRsvp(db, {
       eventId,
       workspaceId,
       uid,
@@ -283,10 +288,28 @@ export function useFestivalCloud(
     });
   }, [eventId, workspaceId, firebaseUser]);
 
+  const toggleCheckin = useCallback(async (rsvpId: string, checkedIn: boolean) => {
+    await updateDoc(doc(db, 'festival_rsvps', rsvpId), {
+      checkedIn,
+      checkedInAt: new Date().toISOString(),
+    });
+  }, []);
+
   const rsvpHeadcount = useMemo(
-    () => rsvps.reduce((s, r) => s + (r.headcount || 0), 0),
+    () =>
+      rsvps
+        .filter((r) => (r.status || 'confirmed') === 'confirmed')
+        .reduce((s, r) => s + (r.headcount || 0), 0),
     [rsvps]
   );
 
-  return { event, rsvps, rsvpHeadcount, loading, publishEvent, unpublish, submitRsvp };
+  const arrivedHeadcount = useMemo(
+    () =>
+      rsvps
+        .filter((r) => (r.status || 'confirmed') === 'confirmed' && r.checkedIn)
+        .reduce((s, r) => s + (r.headcount || 0), 0),
+    [rsvps]
+  );
+
+  return { event, rsvps, rsvpHeadcount, arrivedHeadcount, loading, publishEvent, unpublish, submitRsvp, toggleCheckin };
 }

@@ -123,7 +123,9 @@ test('input matches the sangamEvents create whitelist exactly', () => {
 test('update mirrors the sangamEvents update-rule whitelist', () => {
   const update = buildSangamEventUpdate(item(), ORG) as Record<string, unknown>;
   expect(update).not.toBeNull();
-  const allowed = ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt'];
+  // Events+Polls P1: 'recurrence' joins the mirror — the rules
+  // creator-update whitelist carries it, and removal writes null.
+  const allowed = ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt', 'recurrence'];
   for (const k of Object.keys(update!)) {
     expect(allowed).toContain(k);
   }

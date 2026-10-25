@@ -14,9 +14,13 @@ import { T, Card, Btn, Field, Empty, inputCls, fmtDate } from '../../utsav/ui';
 import {
   pickWarFestivals, warChecklistTemplate, projectFootfall, distributeFootfall,
   prasadTotals, rosterGaps, rosterFillPct, readinessScore,
-  checklistDonePct, overdueChecklistItems, blankPlan,
+  checklistDonePct, overdueChecklistItems, blankPlan, festivalDayList,
   ROSTER_ROLES, ROSTER_SHIFTS, type WarFestival, type PrasadItem, type PrasadUnit,
 } from '../../lib/festival';
+import { deriveDayCounts } from '../../lib/festivalRsvp';
+import { festivalConcluded } from '../../lib/festivalMemory';
+import { FestivalMemoryCard } from './FestivalMemoryCard';
+import { useLanguage } from '../../context/LanguageContext';
 import { FestivalWarProvider, useFestivalWar, useWarPlan, useFestivalCloud } from './festivalWarStore';
 import { RosterCard } from './RosterCard';
 import { BudgetWarCard } from './BudgetWarCard';
@@ -45,6 +49,8 @@ const ReadinessRing: React.FC<{ score: number }> = ({ score }) => {
 
 const WarRoomInner: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
+  const { currentLang } = useLanguage();
+  const lang = (currentLang || 'en').slice(0, 2);
   const { state: utsav } = useUtsav();
   // Mission control shows the live festival AND what's next — the trustee
   // plans the current celebration while preparing the upcoming one.
@@ -208,6 +214,98 @@ const WarRoomInner: React.FC = () => {
           </div>
         )}
       </Card>
+
+      {/* ── Who is coming (EVENTS P1) — the organiser's real RSVP
+          list: expected vs arrived, per-day counts derived from the
+          records, day-of check-in. Committee-only by surface: this
+          tab exists only inside the org console. ─────────────────── */}
+      {cloud.rsvps.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-extrabold text-stone-800">
+              <T en="Who is coming" bn="কারা আসছেন" hi="कौन आ रहा है" />
+            </h3>
+            <div className="text-right">
+              <span className="text-lg font-black text-emerald-700">{cloud.arrivedHeadcount.toLocaleString('en-IN')}</span>
+              <span className="text-stone-400 font-bold"> / {cloud.rsvpHeadcount.toLocaleString('en-IN')} </span>
+              <span className="text-[11px] text-stone-500">
+                <T en="arrived / expected" bn="এসেছেন / প্রত্যাশিত" hi="आए / अपेक्षित" />
+              </span>
+            </div>
+          </div>
+          {(() => {
+            const days = festivalDayList(wf.dateISO, wf.endDateISO);
+            const dayCounts = deriveDayCounts(cloud.rsvps, days);
+            const waitlisted = cloud.rsvps.filter((r) => (r.status || 'confirmed') === 'waitlisted');
+            const confirmed = cloud.rsvps.filter((r) => (r.status || 'confirmed') === 'confirmed');
+            return (
+              <>
+                {days.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {dayCounts.map((d) => (
+                      <span key={d.date} className="text-[11px] font-bold bg-orange-50 border border-orange-100 text-orange-900 rounded-lg px-2 py-1">
+                        {fmtDate(d.date)} · {d.heads} <T en="expected" bn="প্রত্যাশিত" hi="अपेक्षित" />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <ul className="divide-y divide-stone-100">
+                  {confirmed.map((r) => (
+                    <li key={r.id} className="py-2 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-sm font-bold text-stone-800">{r.name}</span>
+                        <span className="text-xs text-stone-400"> · {r.headcount}</span>
+                        {r.days && r.days.length > 0 && (
+                          <span className="text-[11px] text-stone-400"> · {r.days.map((d) => d.slice(5)).join(', ')}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => void cloud.toggleCheckin(r.id, !r.checkedIn).catch(() => undefined)}
+                        aria-pressed={!!r.checkedIn}
+                        className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] border transition ${
+                          r.checkedIn
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'bg-white border-stone-200 text-stone-600 hover:border-emerald-400'
+                        }`}
+                      >
+                        {r.checkedIn ? (
+                          <T en="✓ Arrived" bn="✓ এসেছেন" hi="✓ आ गए" />
+                        ) : (
+                          <T en="Mark arrived" bn="এসেছেন বলে চিহ্নিত" hi="आगमन दर्ज करें" />
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {waitlisted.length > 0 && (
+                  <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+                    <p className="text-xs font-bold text-amber-800">
+                      {waitlisted.length}{' '}
+                      <T en="on the waitlist" bn="অপেক্ষা-তালিকায়" hi="प्रतीक्षा सूची में" />
+                      : {waitlisted.map((r) => `${r.name} (${r.headcount})`).join(' · ')}
+                    </p>
+                    <p className="text-[11px] text-amber-700 mt-0.5">
+                      <T
+                        en="In the order they joined — when a place frees, the first in line confirms first."
+                        bn="যোগ দেওয়ার ক্রমে — জায়গা খালি হলে লাইনের প্রথম জনই প্রথমে নিশ্চিত হবেন।"
+                        hi="जुड़ने के क्रम में — स्थान खाली होने पर पंक्ति में पहला ही पहले पक्का होगा।" />
+                    </p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </Card>
+      )}
+
+      {/* EVENTS P2 — the memory card, once the festival has passed. */}
+      {cloud.event && festivalConcluded(cloud.event, Date.now()) && (
+        <FestivalMemoryCard
+          event={cloud.event}
+          rsvps={cloud.rsvps}
+          tr={(l) => (lang === 'bn' ? l.bn : lang === 'hi' ? l.hi : l.en)}
+        />
+      )}
 
       {/* ── Prasad planner ────────────────────────────────────────── */}
       <Card>

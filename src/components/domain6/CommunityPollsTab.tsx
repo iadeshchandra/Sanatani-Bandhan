@@ -2,7 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, increment, deleteDoc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { pollTotalVotes, pollIsOpen } from '../../lib/pollLogic';
+import {
+  pollTotalVotes, pollIsOpen, pollKind, pollResultsVisible, pollResultVisibility, pollIsEditable,
+  ABSTAIN_OPTION_ID, validateMultiChoice, validateTextResponse, ballotCast,
+  type MyBallot,
+} from '../../lib/pollLogic';
 import { publishBroadcast } from '../../org/broadcastService';
 import { 
   BarChart2, BarChart3, PieChart, Plus, Trash2, CheckCircle2, 
@@ -37,9 +41,18 @@ export const CommunityPollsTab: React.FC = () => {
   // the poll doc carries counts only). Legacy polls still show my old
   // vote from their frozen votedUsers map (see myVoteFor below).
   const [myVotes, setMyVotes] = useState<Record<string, string>>({});
+  // EVENTS P1 — my full ballot per poll (the choice optionId above is
+  // one shape of it; multi carries optionIds, text carries my words).
+  const [myBallots, setMyBallots] = useState<Record<string, MyBallot>>({});
+  // EVENTS P1 — in-progress multi picks + text drafts, per poll.
+  const [multiPick, setMultiPick] = useState<Record<string, string[]>>({});
+  const [textDraft, setTextDraft] = useState<Record<string, string>>({});
   // Named ballots for the committee audit of a MANAGERS poll — loaded
   // only while the audit view is open, and the opening is logged.
   const [auditBallots, setAuditBallots] = useState<Record<string, string>>({});
+  // EVENTS P1 — free-text responses for the committee audit of a text
+  // poll (an announced suggestion box; opening is logged the same way).
+  const [auditTexts, setAuditTexts] = useState<{ uid: string; text: string }[]>([]);
 
   // UI Modals & Actions
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -51,8 +64,21 @@ export const CommunityPollsTab: React.FC = () => {
 
   // Create Poll Form State
   const [pollForm, setPollForm] = useState({
-    title: '', description: '', targetAudience: 'ALL_MEMBERS', 
-    endDate: '', endTime: '', options: ['', '']
+    title: '', description: '', targetAudience: 'ALL_MEMBERS',
+    endDate: '', endTime: '', options: ['', ''],
+    // EVENTS P1 — the shape + the launch-time result rule.
+    kind: 'choice' as 'choice' | 'multi' | 'text',
+    abstain: false,
+    resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee'
+  });
+
+  // EVENTS P1 — edit-before-first-vote (committee; locked forever
+  // once the first ballot lands — pollEditOk in firestore.rules).
+  const [editPoll, setEditPoll] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', endDate: '', endTime: '',
+    options: [] as { id: string; text: string }[],
+    resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee'
   });
 
   const isManagerOrAdmin = ['MANAGER', 'SUPER_ADMIN', 'MANAGER'].includes(currentRole || '');
@@ -102,10 +128,22 @@ export const CommunityPollsTab: React.FC = () => {
     if (!uid || polls.length === 0) return;
     const unsubs = polls.map(p =>
       onSnapshot(doc(db, 'polls', p.id, 'votes', uid), (snap) => {
+        const data = snap.exists() ? (snap.data() as any) : null;
         setMyVotes(prev => {
           const next = { ...prev };
-          if (snap.exists()) next[p.id] = (snap.data() as any).optionId;
+          if (data?.optionId) next[p.id] = data.optionId;
           else delete next[p.id];
+          return next;
+        });
+        setMyBallots(prev => {
+          const next = { ...prev };
+          if (data) {
+            next[p.id] = {
+              ...(data.optionId ? { optionId: data.optionId } : {}),
+              ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds } : {}),
+              ...(typeof data.text === 'string' ? { text: data.text } : {}),
+            };
+          } else delete next[p.id];
           return next;
         });
       }, () => { /* ballot unreadable (not a member view) — counts still show */ })
@@ -127,16 +165,45 @@ export const CommunityPollsTab: React.FC = () => {
     return () => unsub();
   }, [auditPoll]);
 
+  // EVENTS P1 — free-text responses, committee audit only. The rules
+  // allow the poll's own committee to read text ballots (announced
+  // suggestion box); for every other poll kind this stays empty.
+  useEffect(() => {
+    if (!auditPoll || pollKind(auditPoll) !== 'text' || !isManagerOrAdmin) { setAuditTexts([]); return; }
+    const unsub = onSnapshot(collection(db, 'polls', auditPoll.id, 'votes'), (snap) => {
+      const rows: { uid: string; text: string }[] = [];
+      snap.docs.forEach(d => {
+        const data = d.data() as any;
+        if (typeof data.text === 'string' && data.text.trim()) rows.push({ uid: d.id, text: data.text });
+      });
+      setAuditTexts(rows);
+    }, () => setAuditTexts([]));
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditPoll]);
+
   /** My vote on a poll: the ballot box first, the legacy map second. */
   const myVoteFor = (poll: any): string | null =>
     myVotes[poll.id] ?? (poll.votedUsers && currentUser?.id ? poll.votedUsers[currentUser.id] : null) ?? null;
+
+  /** EVENTS P1 — my full ballot under any shape (legacy map = choice). */
+  const myBallotFor = (poll: any): MyBallot | null => {
+    if (myBallots[poll.id]) return myBallots[poll.id];
+    const legacy = poll.votedUsers && currentUser?.id ? poll.votedUsers[currentUser.id] : null;
+    return legacy ? { optionId: legacy } : null;
+  };
 
   const handleCreatePoll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkGate('events', polls.length)) return; 
 
+    const isText = pollForm.kind === 'text';
     const validOptions = pollForm.options.filter(opt => opt.trim() !== '');
-    if (validOptions.length < 2) return showToastMsg("A poll requires at least 2 valid options.", "error");
+    // EVENTS P1: the rules cap the options map at 5 entries — an
+    // abstain entry counts toward the five.
+    const maxRealOptions = pollForm.abstain && !isText ? 4 : 5;
+    if (!isText && validOptions.length < 2) return showToastMsg("A poll requires at least 2 valid options.", "error");
+    if (!isText && validOptions.length > maxRealOptions) return showToastMsg(`At most ${maxRealOptions} options${pollForm.abstain ? ' when the Abstain option is on' : ''}.`, "error");
     if (!pollForm.title.trim() || !pollForm.endDate) return showToastMsg("Title and End Date are required.", "error");
 
     setSubmitting(true);
@@ -146,9 +213,14 @@ export const CommunityPollsTab: React.FC = () => {
       if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
 
       const optionsMap: any = {};
-      validOptions.forEach((opt, idx) => {
-        optionsMap[`opt_${idx}`] = { text: opt.trim(), votes: 0 };
-      });
+      if (!isText) {
+        validOptions.forEach((opt, idx) => {
+          optionsMap[`opt_${idx}`] = { text: opt.trim(), votes: 0 };
+        });
+        if (pollForm.abstain) {
+          optionsMap[ABSTAIN_OPTION_ID] = { text: t('surfaces.events.abstainOption'), votes: 0, isAbstain: true };
+        }
+      }
 
       const newPoll = {
         workspaceId: activeWorkspace.id,
@@ -165,17 +237,21 @@ export const CommunityPollsTab: React.FC = () => {
         options: optionsMap,
         // Ballot-box model: the doc carries ONLY this count; each
         // ballot lives in polls/{id}/votes/{uid}. No votedUsers map.
-        totalVotes: 0
+        totalVotes: 0,
+        // EVENTS P1 — chosen at launch and frozen by the rules: the
+        // question's shape and when members may see the results.
+        kind: pollForm.kind,
+        resultVisibility: pollForm.resultVisibility
       };
 
       const pollRef = doc(collection(db, 'polls'));
       await setDoc(pollRef, newPoll);
       showToastMsg("Panchayat Poll successfully launched!", 'success');
-      
+
       pushToDataLayer('generate_lead', { poll_target: newPoll.targetAudience, options_count: validOptions.length });
-      
+
       setShowCreateModal(false);
-      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''] });
+      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote' });
       setActiveTab('ACTIVE');
     } catch (err: any) {
       showToastMsg(err.message, "error");
@@ -222,6 +298,145 @@ export const CommunityPollsTab: React.FC = () => {
       pushToDataLayer('select_content', { content_type: 'Poll_Vote', item_id: pollId });
     } catch (e: any) {
       showToastMsg("Voting error: " + e.message, "error");
+    }
+  };
+
+  // EVENTS P1 — multi-select ballot: ONE ballot doc, several option
+  // counters +1, turnout +1 (pollMultiVoteAnchorOk). One voice still.
+  const handleVoteMulti = async (pollId: string) => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to vote.", "error");
+    const poll = polls.find(p => p.id === pollId);
+    if (!poll) return;
+    if (!pollIsOpen(poll, Date.now())) return showToastMsg("This poll has been concluded.", "error");
+    if (ballotCast(myBallotFor(poll))) return showToastMsg("You have already voted.", "error");
+    const picks = multiPick[pollId] || [];
+    const problem = validateMultiChoice(poll, picks);
+    if (problem) {
+      return showToastMsg(
+        problem === 'abstain-exclusive'
+          ? "Abstaining means choosing only Abstain."
+          : "Please choose at least one option (up to 5).",
+        "error"
+      );
+    }
+    try {
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
+        optionIds: picks,
+        votedAt: serverTimestamp()
+      });
+      const updates: Record<string, unknown> = { totalVotes: increment(1) };
+      picks.forEach(id => { updates[`options.${id}.votes`] = increment(1); });
+      batch.update(doc(db, 'polls', pollId), updates);
+      await batch.commit();
+      showToastMsg("Your vote has been recorded.", 'success');
+    } catch (e: any) {
+      showToastMsg("Voting error: " + e.message, "error");
+    }
+  };
+
+  // EVENTS P1 — free-text ballot: the turnout counter moves, the
+  // options map never does (pollTextVoteAnchorOk). An announced
+  // suggestion box — the committee reads the responses.
+  const handleVoteText = async (pollId: string) => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to respond.", "error");
+    const poll = polls.find(p => p.id === pollId);
+    if (!poll) return;
+    if (!pollIsOpen(poll, Date.now())) return showToastMsg("This poll has been concluded.", "error");
+    if (ballotCast(myBallotFor(poll))) return showToastMsg("You have already responded.", "error");
+    const text = (textDraft[pollId] || '').trim();
+    const problem = validateTextResponse(text);
+    if (problem) {
+      return showToastMsg(problem === 'too-long' ? "Please keep your response within 280 characters." : "Please write a response first.", "error");
+    }
+    try {
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
+        text,
+        votedAt: serverTimestamp()
+      });
+      batch.update(doc(db, 'polls', pollId), { totalVotes: increment(1) });
+      await batch.commit();
+      showToastMsg("Your response has been recorded.", 'success');
+    } catch (e: any) {
+      showToastMsg("Error: " + e.message, "error");
+    }
+  };
+
+  const toggleMultiPick = (pollId: string, optionId: string) => {
+    setMultiPick(prev => {
+      const cur = prev[pollId] || [];
+      let next: string[];
+      if (optionId === ABSTAIN_OPTION_ID) {
+        // Abstain is exclusive: picking it clears every other pick.
+        next = cur.includes(optionId) ? [] : [optionId];
+      } else {
+        const withoutAbstain = cur.filter(id => id !== ABSTAIN_OPTION_ID);
+        next = withoutAbstain.includes(optionId)
+          ? withoutAbstain.filter(id => id !== optionId)
+          : [...withoutAbstain, optionId];
+      }
+      return { ...prev, [pollId]: next.slice(0, 5) };
+    });
+  };
+
+  // EVENTS P1 — edit-before-first-vote. The rules (pollEditOk) verify
+  // zero ballots; this form simply never appears once voting begins.
+  const openEditPoll = (poll: any) => {
+    const exp = poll.expiresAt ? new Date(poll.expiresAt) : null;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditForm({
+      title: poll.title || '',
+      description: poll.description || '',
+      endDate: exp ? `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}` : '',
+      endTime: exp ? `${pad(exp.getHours())}:${pad(exp.getMinutes())}` : '',
+      options: Object.keys(poll.options || {}).map(id => ({ id, text: poll.options[id].text || '' })),
+      resultVisibility: (['live', 'afterVote', 'afterClose', 'committee'].includes(poll.resultVisibility) ? poll.resultVisibility : 'afterVote')
+    });
+    setEditPoll(poll);
+  };
+
+  const handleEditPoll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPoll) return;
+    if (!pollIsEditable(editPoll, Date.now())) {
+      setEditPoll(null);
+      return showToastMsg(t('surfaces.events.editLockedNote'), "error");
+    }
+    if (!editForm.title.trim() || !editForm.endDate) return showToastMsg("Title and End Date are required.", "error");
+    setSubmitting(true);
+    try {
+      const dateTimeString = editForm.endTime ? `${editForm.endDate}T${editForm.endTime}` : `${editForm.endDate}T23:59:59`;
+      const expirationMs = new Date(dateTimeString).getTime();
+      if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
+      const updates: Record<string, unknown> = {
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        expiresAt: expirationMs,
+        expiresAtTs: Timestamp.fromMillis(expirationMs),
+        resultVisibility: editForm.resultVisibility
+      };
+      if (pollKind(editPoll) !== 'text') {
+        const optionsMap: Record<string, { text: string; votes: number; isAbstain?: boolean }> = {};
+        for (const o of editForm.options) {
+          if (!o.text.trim()) throw new Error("Every option needs its text.");
+          optionsMap[o.id] = {
+            text: o.text.trim(),
+            votes: 0,
+            ...(editPoll.options?.[o.id]?.isAbstain ? { isAbstain: true } : {})
+          };
+        }
+        updates.options = optionsMap;
+      }
+      await updateDoc(doc(db, 'polls', editPoll.id), updates);
+      showToastMsg("Poll updated.", 'success');
+      setEditPoll(null);
+    } catch (err: any) {
+      showToastMsg(err.message, "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -298,7 +513,9 @@ export const CommunityPollsTab: React.FC = () => {
     // Committee polls are named votes by design; opening the named
     // ballot list is itself recorded in the workspace history
     // (Blueprint A audit chain), so the reveal is never silent.
-    if (poll.targetAudience === 'MANAGERS') {
+    // EVENTS P1: reading a text poll's named responses is a reveal
+    // of exactly the same kind and is logged the same way.
+    if (poll.targetAudience === 'MANAGERS' || pollKind(poll) === 'text') {
       noteAudit({
         action: 'poll.ballotsRevealed',
         entityType: 'poll',
@@ -586,11 +803,18 @@ export const CommunityPollsTab: React.FC = () => {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {displayPolls.map(poll => {
               const myVote = myVoteFor(poll);
+              const myBallot = myBallotFor(poll);
+              const iVoted = ballotCast(myBallot);
+              const kind = pollKind(poll);
               const totalVotes = pollTotalVotes(poll);
               const options = Object.keys(poll.options || {}).map(k => ({ id: k, ...poll.options[k] }));
+              // EVENTS P1 — the launch-time result rule decides what
+              // this viewer may see; the committee always sees counts.
+              const showResults = pollResultsVisible(poll, { hasVoted: iVoted, isCommittee: isManagerOrAdmin }, Date.now());
+              const visRule = pollResultVisibility(poll);
 
               let winnerId = null;
-              if (poll.status === 'CONCLUDED' && totalVotes > 0) {
+              if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
                  winnerId = options.reduce((max, obj) => obj.votes > max.votes ? obj : max, options[0]).id;
               }
 
@@ -625,54 +849,136 @@ export const CommunityPollsTab: React.FC = () => {
                      )}
                    </div>
 
-                   {/* VOTING SECTION */}
+                   {/* VOTING SECTION — EVENTS P1 shapes */}
                    <div className="space-y-3 mt-auto">
-                     {options.map((opt) => {
-                       const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
-                       const isMyChoice = myVote === opt.id;
-                       const isWinner = winnerId === opt.id;
-
-                       if (poll.status === 'ACTIVE' && !myVote) {
-                          return (
-                            <button 
-                              key={opt.id} 
-                              onClick={() => handleVote(poll.id, opt.id)}
-                              className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-saffron-500 hover:bg-saffron-50/50 hover:shadow-sm transition-all flex justify-between items-center group/btn"
-                            >
-                              <span className="text-sm font-black text-gray-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
-                              <div className="w-5 h-5 rounded-full border-2 border-gray-300 group-hover/btn:border-saffron-500 transition-colors"></div>
-                            </button>
-                          );
-                       }
-
-                       return (
-                         <div key={opt.id} className="relative w-full bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                           <div 
-                             className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : isMyChoice ? 'bg-saffron-200 border-r-4 border-saffron-500' : 'bg-gray-200 border-r-4 border-gray-300'}`}
-                             style={{ width: `${percentage}%` }}
-                           ></div>
-
-                           <div className="relative z-10 p-4 flex justify-between items-center">
-                             <div className="flex items-center gap-2">
-                               <span className={`text-sm font-black ${isWinner ? 'text-green-900' : isMyChoice ? 'text-saffron-900' : 'text-gray-800'}`}>
-                                 {opt.text}
-                               </span>
-                               {isMyChoice && (
-                                 <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm">Your Vote</span>
-                               )}
-                               {isWinner && (
-                                 <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm flex items-center gap-1"><Award size={12}/> Winner</span>
-                               )}
-                             </div>
-                             <div className="text-right">
-                               <span className={`text-sm font-black ${isWinner ? 'text-green-800' : isMyChoice ? 'text-saffron-800' : 'text-gray-700'}`}>{percentage}%</span>
-                               <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">{opt.votes} Votes</p>
+                     {kind === 'text' ? (
+                       poll.status === 'ACTIVE' && !iVoted ? (
+                         <div className="space-y-3">
+                           <p className="text-[11px] font-bold text-gray-500 leading-relaxed flex items-start gap-1.5">
+                             <MessageSquare size={13} className="shrink-0 mt-0.5 text-saffron-500" />
+                             {t('surfaces.events.textNote')}
+                           </p>
+                           <textarea
+                             rows={3}
+                             maxLength={280}
+                             value={textDraft[poll.id] || ''}
+                             onChange={(e) => setTextDraft(prev => ({ ...prev, [poll.id]: e.target.value }))}
+                             placeholder={t('surfaces.events.textPlaceholder')}
+                             className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all resize-none shadow-sm"
+                           />
+                           <button
+                             onClick={() => handleVoteText(poll.id)}
+                             disabled={!(textDraft[poll.id] || '').trim()}
+                             className="w-full bg-gray-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
+                           >
+                             {t('surfaces.events.castVote')}
+                           </button>
+                         </div>
+                       ) : (
+                         <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-inner">
+                           <p className="text-sm font-black text-gray-800">
+                             {totalVotes} {totalVotes === 1 ? 'response' : 'responses'} recorded
+                           </p>
+                           {myBallot?.text && (
+                             <p className="text-xs font-bold text-gray-500 mt-1.5">
+                               {t('surfaces.events.responsesTitle')}: “{myBallot.text}”
+                             </p>
+                           )}
+                           <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest">
+                             {t('surfaces.events.textNote')}
+                           </p>
+                         </div>
+                       )
+                     ) : poll.status === 'ACTIVE' && !iVoted ? (
+                       kind === 'multi' ? (
+                         <div className="space-y-3">
+                           <p className="text-[11px] font-bold text-gray-500">{t('surfaces.events.multiHint')}</p>
+                           {options.map((opt) => {
+                             const picked = (multiPick[poll.id] || []).includes(opt.id);
+                             return (
+                               <button
+                                 key={opt.id}
+                                 onClick={() => toggleMultiPick(poll.id, opt.id)}
+                                 aria-pressed={picked}
+                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center ${picked ? 'border-saffron-500 bg-saffron-50/60' : 'border-gray-100 hover:border-saffron-300'}`}
+                               >
+                                 <span className="text-sm font-black text-gray-700">{opt.text}</span>
+                                 <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${picked ? 'bg-saffron-500 border-saffron-500 text-white' : 'border-gray-300'}`}>
+                                   {picked && <CheckCircle2 size={13} />}
+                                 </span>
+                               </button>
+                             );
+                           })}
+                           <button
+                             onClick={() => handleVoteMulti(poll.id)}
+                             disabled={(multiPick[poll.id] || []).length === 0}
+                             className="w-full bg-gray-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
+                           >
+                             {t('surfaces.events.castVote')}
+                           </button>
+                         </div>
+                       ) : (
+                         options.map((opt) => (
+                           <button
+                             key={opt.id}
+                             onClick={() => handleVote(poll.id, opt.id)}
+                             className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-saffron-500 hover:bg-saffron-50/50 hover:shadow-sm transition-all flex justify-between items-center group/btn"
+                           >
+                             <span className="text-sm font-black text-gray-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
+                             <div className="w-5 h-5 rounded-full border-2 border-gray-300 group-hover/btn:border-saffron-500 transition-colors"></div>
+                           </button>
+                         ))
+                       )
+                     ) : showResults ? (
+                       options.map((opt) => {
+                         const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
+                         const isMyChoice = kind === 'multi' ? (myBallot?.optionIds || []).includes(opt.id) : myVote === opt.id;
+                         const isWinner = winnerId === opt.id;
+                         return (
+                           <div key={opt.id} className="relative w-full bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                             <div
+                               className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : isMyChoice ? 'bg-saffron-200 border-r-4 border-saffron-500' : 'bg-gray-200 border-r-4 border-gray-300'}`}
+                               style={{ width: `${percentage}%` }}
+                             ></div>
+                             <div className="relative z-10 p-4 flex justify-between items-center">
+                               <div className="flex items-center gap-2">
+                                 <span className={`text-sm font-black ${isWinner ? 'text-green-900' : isMyChoice ? 'text-saffron-900' : 'text-gray-800'}`}>
+                                   {opt.text}
+                                 </span>
+                                 {isMyChoice && (
+                                   <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm">Your Vote</span>
+                                 )}
+                                 {isWinner && (
+                                   <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm flex items-center gap-1"><Award size={12}/> Winner</span>
+                                 )}
+                               </div>
+                               <div className="text-right">
+                                 <span className={`text-sm font-black ${isWinner ? 'text-green-800' : isMyChoice ? 'text-saffron-800' : 'text-gray-700'}`}>{percentage}%</span>
+                                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">{opt.votes} Votes</p>
+                               </div>
                              </div>
                            </div>
-                         </div>
-                       );
-                     })}
+                         );
+                       })
+                     ) : (
+                       <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center shadow-inner">
+                         <Lock size={16} className="mx-auto text-gray-400 mb-1.5" />
+                         <p className="text-xs font-bold text-gray-500">
+                           {visRule === 'committee'
+                             ? t('surfaces.events.resultsHiddenCommittee')
+                             : visRule === 'afterClose'
+                               ? t('surfaces.events.resultsHiddenClose')
+                               : t('surfaces.events.resultsHiddenVote')}
+                         </p>
+                         {iVoted && (
+                           <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mt-1.5 flex items-center justify-center gap-1">
+                             <CheckCircle2 size={12}/> Your vote is recorded
+                           </p>
+                         )}
+                       </div>
+                     )}
                    </div>
+
 
                    {poll.status === 'CONCLUDED' && poll.adminNote && (
                      <div className="mt-5 bg-blue-50 border border-blue-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm relative overflow-hidden">
@@ -703,6 +1009,11 @@ export const CommunityPollsTab: React.FC = () => {
                              <ListChecks size={14}/> Audit
                            </button>
 
+                           {poll.status === 'ACTIVE' && pollIsEditable(poll, Date.now()) && (
+                             <button onClick={() => openEditPoll(poll)} className="flex-1 sm:flex-none bg-white hover:bg-gray-800 hover:text-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Edit — allowed only before the first vote">
+                               <FileText size={14}/> {t('surfaces.events.editPoll')}
+                             </button>
+                           )}
                            {poll.status === 'ACTIVE' && (
                              <>
                                <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind Unvoted Members">
@@ -717,6 +1028,11 @@ export const CommunityPollsTab: React.FC = () => {
                              <button onClick={() => handleDeletePoll(poll)} className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 p-2.5 rounded-xl transition-all flex justify-center items-center shadow-sm hover:shadow-md" title="Delete (no votes cast yet)">
                                <Trash2 size={16}/>
                              </button>
+                           )}
+                           {poll.status === 'ACTIVE' && pollTotalVotes(poll) > 0 && (
+                             <span className="w-full text-center text-[9px] font-bold text-gray-400 uppercase tracking-widest pt-1">
+                               {t('surfaces.events.editLockedNote')}
+                             </span>
                            )}
                          </>
                        )}
@@ -785,8 +1101,8 @@ export const CommunityPollsTab: React.FC = () => {
                  </div>
                  <div>
                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ShieldCheck size={12}/> Voting Audience</label>
-                   <select 
-                     value={pollForm.targetAudience} onChange={e=>setPollForm({...pollForm, targetAudience: e.target.value})} 
+                   <select
+                     value={pollForm.targetAudience} onChange={e=>setPollForm({...pollForm, targetAudience: e.target.value})}
                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
                    >
                      <option value="ALL_MEMBERS">Public (All Devotees & Members)</option>
@@ -794,6 +1110,50 @@ export const CommunityPollsTab: React.FC = () => {
                    </select>
                  </div>
 
+                 {/* EVENTS P1 — the shape, chosen at launch and frozen after. */}
+                 <div>
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ListChecks size={12}/> {t('surfaces.events.kindLabel')}</label>
+                   <select
+                     value={pollForm.kind} onChange={e=>setPollForm({...pollForm, kind: e.target.value as typeof pollForm.kind})}
+                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                   >
+                     <option value="choice">{t('surfaces.events.kindChoice')}</option>
+                     <option value="multi">{t('surfaces.events.kindMulti')}</option>
+                     <option value="text">{t('surfaces.events.kindText')}</option>
+                   </select>
+                   {pollForm.kind === 'text' && (
+                     <p className="text-[11px] font-bold text-gray-400 mt-2 leading-relaxed">{t('surfaces.events.textNote')}</p>
+                   )}
+                 </div>
+
+                 {pollForm.kind !== 'text' && (
+                   <label className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-pointer shadow-sm">
+                     <input
+                       type="checkbox"
+                       checked={pollForm.abstain}
+                       onChange={e=>setPollForm({...pollForm, abstain: e.target.checked})}
+                       className="w-4 h-4 accent-orange-500"
+                     />
+                     <span className="text-sm font-bold text-gray-700">{t('surfaces.events.abstainToggle')}</span>
+                   </label>
+                 )}
+
+                 {/* EVENTS P1 — the result rule, chosen at launch; the
+                     rules freeze it once voting begins. */}
+                 <div>
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
+                   <select
+                     value={pollForm.resultVisibility} onChange={e=>setPollForm({...pollForm, resultVisibility: e.target.value as typeof pollForm.resultVisibility})}
+                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                   >
+                     <option value="live">{t('surfaces.events.visLive')}</option>
+                     <option value="afterVote">{t('surfaces.events.visAfterVote')}</option>
+                     <option value="afterClose">{t('surfaces.events.visAfterClose')}</option>
+                     <option value="committee">{t('surfaces.events.visCommittee')}</option>
+                   </select>
+                 </div>
+
+                 {pollForm.kind !== 'text' && (
                  <div className="border-t border-gray-100 pt-5 mt-2">
                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Voting Options *</label>
                    <div className="space-y-3">
@@ -814,16 +1174,94 @@ export const CommunityPollsTab: React.FC = () => {
                        </div>
                      ))}
                    </div>
-                   {pollForm.options.length < 5 && (
+                   {pollForm.options.length < (pollForm.abstain ? 4 : 5) && (
                      <button type="button" onClick={handleAddOption} className="mt-4 text-[10px] font-black text-saffron-500 uppercase tracking-widest flex items-center justify-center w-full gap-1 hover:text-saffron-700 transition-colors bg-saffron-50 hover:bg-saffron-100 p-3.5 rounded-xl border border-saffron-200 shadow-sm">
                        <Plus size={14}/> Add Another Option
                      </button>
                    )}
                  </div>
+                 )}
 
                  <div className="pt-4 mt-2 border-t border-gray-100">
                    <button type="submit" disabled={submitting} className="w-full bg-gray-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
                      {submitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18}/> LAUNCH POLL OFFICIALLY</>}
+                   </button>
+                 </div>
+               </form>
+             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {editPoll && createPortal(
+        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 fade-in border-t-4 border-saffron-500 ring-1 ring-white/20 max-h-[90vh] flex flex-col">
+             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4 shrink-0">
+               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                 <FileText className="text-saffron-500" size={24}/> {t('surfaces.events.editPoll')}
+               </h3>
+               <button onClick={() => setEditPoll(null)} className="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-full text-gray-500 transition-colors shadow-sm"><X size={16}/></button>
+             </div>
+             <div className="overflow-y-auto pr-2 scrollbar-hide pb-4">
+               <form onSubmit={handleEditPoll} className="space-y-6">
+                 <div>
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
+                   <input
+                     type="text" required value={editForm.title} onChange={e=>setEditForm({...editForm, title: e.target.value})}
+                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Description / Context (Optional)</label>
+                   <textarea
+                     rows={2} value={editForm.description} onChange={e=>setEditForm({...editForm, description: e.target.value})}
+                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all resize-none shadow-sm"
+                   ></textarea>
+                 </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
+                     <input type="date" required value={editForm.endDate} onChange={e=>setEditForm({...editForm, endDate: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                   </div>
+                   <div>
+                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
+                     <input type="time" value={editForm.endTime} onChange={e=>setEditForm({...editForm, endTime: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                   </div>
+                 </div>
+                 {pollKind(editPoll) !== 'text' && (
+                   <div>
+                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Voting Options *</label>
+                     <div className="space-y-3">
+                       {editForm.options.map((opt, index) => (
+                         <div key={opt.id} className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-saffron-50 text-saffron-500 flex items-center justify-center text-[11px] font-black shrink-0 shadow-inner border border-saffron-100">{index + 1}</div>
+                           <input
+                             type="text" required
+                             value={opt.text}
+                             onChange={(e) => setEditForm(prev => ({ ...prev, options: prev.options.map((o, i) => i === index ? { ...o, text: e.target.value } : o) }))}
+                             className="w-full p-3.5 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none shadow-sm transition-colors"
+                           />
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+                 <div>
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
+                   <select
+                     value={editForm.resultVisibility} onChange={e=>setEditForm({...editForm, resultVisibility: e.target.value as typeof editForm.resultVisibility})}
+                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                   >
+                     <option value="live">{t('surfaces.events.visLive')}</option>
+                     <option value="afterVote">{t('surfaces.events.visAfterVote')}</option>
+                     <option value="afterClose">{t('surfaces.events.visAfterClose')}</option>
+                     <option value="committee">{t('surfaces.events.visCommittee')}</option>
+                   </select>
+                 </div>
+                 <div className="pt-4 mt-2 border-t border-gray-100">
+                   <button type="submit" disabled={submitting} className="w-full bg-gray-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
+                     {submitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18}/> SAVE CHANGES</>}
                    </button>
                  </div>
                </form>
@@ -885,10 +1323,34 @@ export const CommunityPollsTab: React.FC = () => {
                  <p className="text-sm font-black text-blue-900">{auditPoll.title}</p>
                  <p className="text-[10px] font-bold text-blue-700 mt-1">{pollTotalVotes(auditPoll)} total votes counted</p>
                </div>
-               {auditPoll.targetAudience !== 'MANAGERS' && (
+               {auditPoll.targetAudience !== 'MANAGERS' && pollKind(auditPoll) !== 'text' && (
                  <p className="text-xs font-bold text-gray-500 leading-relaxed bg-gray-50 border border-gray-100 rounded-2xl p-4">
                    Individual ballots on community polls are private — each vote is stored under the voter's own account, and not even the committee can see who chose what. Only the counts below are visible.
                  </p>
+               )}
+               {pollKind(auditPoll) === 'text' && (
+                 <div className="space-y-3">
+                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                     {t('surfaces.events.responsesTitle')} ({auditTexts.length})
+                   </p>
+                   <p className="text-[11px] font-bold text-gray-400 leading-relaxed">
+                     {t('surfaces.events.textNote')}
+                   </p>
+                   {auditTexts.length === 0 ? (
+                     <p className="text-xs font-bold text-gray-400 italic">No responses yet.</p>
+                   ) : (
+                     auditTexts.map(row => {
+                       const member = devotees.find(m => m.id === row.uid || (m as any).userId === row.uid);
+                       const displayName = member ? ((member as any).name || (member as any).fullName || 'Member') : 'Member';
+                       return (
+                         <div key={row.uid} className="border border-gray-200 rounded-2xl p-4 bg-white shadow-sm">
+                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{displayName}</p>
+                           <p className="text-sm font-bold text-gray-800 leading-relaxed">“{row.text}”</p>
+                         </div>
+                       );
+                     })
+                   )}
+                 </div>
                )}
                {Object.keys(auditPoll.options || {}).map(optId => {
                   const opt = auditPoll.options[optId];

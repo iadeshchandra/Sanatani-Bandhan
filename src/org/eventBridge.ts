@@ -115,6 +115,9 @@ export function buildSangamEventInput(
     orgId: org.orgId,
     orgName: org.orgName,
     isOfficial: true,
+    // EVENTS P1: a recurring org event shares as a recurring Sangam
+    // event — startsAt is the first occurrence, the rule travels.
+    ...(item.recurrence ? { recurrence: item.recurrence } : {}),
   };
 }
 
@@ -134,6 +137,11 @@ export function buildSangamEventUpdate(
     description: input.description,
     venue: input.venue,
     startsAt: input.startsAt,
+    // EVENTS P1: recurrence edits propagate through the creator
+    // update path (rules whitelist carries the field) — including
+    // removal, written as an explicit null the surfaces treat as
+    // "no rule" like an absent field.
+    recurrence: input.recurrence ?? null,
   };
 }
 

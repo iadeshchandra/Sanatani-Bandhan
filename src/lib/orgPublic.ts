@@ -32,6 +32,15 @@ export interface PublicEventItem {
   date: string;
   time?: string;
   description?: string;
+  /**
+   * EVENTS P1 — when present, `date` is the FIRST occurrence and this
+   * rule generates the rest (lib/eventRecurrence). Occurrences are
+   * derived on every surface, never stored, so editing the rule
+   * rewrites the future everywhere at once. With a rule, the free-text
+   * date form ("Every Purnima") is no longer needed — the rhythm is
+   * a mechanism now, not a caption.
+   */
+  recurrence?: import('./eventRecurrence').RecurrenceRule;
 }
 
 export const MAX_GALLERY_IMAGES = 5;

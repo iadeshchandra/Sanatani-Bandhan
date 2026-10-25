@@ -30,6 +30,8 @@ import { startAartiReminderNotify } from '../darshan/aartiReminders';
 import { startOrgBroadcastNotify } from '../org/broadcastListener';
 import { startReferralThanksNotify } from '../sangam/referralThanksService';
 import { startDueJobsNotify } from '../lib/dueJobsService';
+import { startEventReminders } from '../lib/eventReminderService';
+import { db } from '../firebase';
 import { startOrderNotify } from '../lib/orderNotifyService';
 import { startApprovalNotify } from '../lib/approvalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
@@ -174,6 +176,17 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startApprovalNotify(uid);
+  }, [uid]);
+
+  // Event reminders → NotificationCenter (self-listen, EVENTS P1).
+  // My device reads MY OWN festival RSVPs + Sangam 'going' records
+  // and emits the three quiet stages (T-3 / T-1 / morning-of), one
+  // change/cancel announcement per edit, and the waitlist-promotion
+  // bell when my anchored claim lands. Hourly-throttled, ledgered;
+  // a missed stage is skipped, never burst-sent.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startEventReminders(db, uid);
   }, [uid]);
 
   return <PlanUpgradeHost />;

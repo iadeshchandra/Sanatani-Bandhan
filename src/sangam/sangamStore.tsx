@@ -7,7 +7,7 @@ import { db } from '../firebase';
 import type {
   SangamPost, SangamComment, SangamCircle, SangamEvent,
   SangamFollow, SangamReport, PostKind, AuthorKind, VerificationTier, ServiceCardDetails,
-  SevaDetails,
+  SevaDetails, SangamRsvpState,
 } from './types';
 import { DEMO_AUTHOR_SUFFIX } from './types';
 import { toCloudComment, mergeComments, nextCommentCount } from './comments';
@@ -78,6 +78,21 @@ interface SangamContextType extends SangamState {
   joinCircle: (circleId: string, uid: string) => Promise<void>;
   createCircle: (uid: string, name: string, circleName: string, topic: string, description: string) => Promise<SangamCircle>;
   rsvpEvent: (eventId: string, uid: string) => Promise<void>;
+  /**
+   * EVENTS P1 — set (or clear, with null) my RSVP state on an event.
+   * 'going' is the only counted state; asking for 'going' on a full
+   * event honestly lands as 'waitlisted'. Returns the state that
+   * actually landed.
+   */
+  setRsvpState: (eventId: string, uid: string, state: SangamRsvpState | null) => Promise<SangamRsvpState | null>;
+  /** EVENTS P1 — my current state on an event (null = no RSVP). */
+  myEventState: (eventId: string) => SangamRsvpState | null;
+  /**
+   * EVENTS P1 — the organiser's RSVP rows for one event, read from
+   * the real subcollection. Callers gate this to the event's creator
+   * / committee — the UI never offers the list to ordinary members.
+   */
+  loadEventRsvps: (eventId: string) => Promise<{ uid: string; state: SangamRsvpState; at: number | null }[]>;
   createEvent: (author: AuthorInfo, e: Omit<SangamEvent, 'id' | 'creatorUid' | 'creatorName' | 'rsvpCount' | 'createdAt'>) => Promise<SangamEvent>;
   volunteerSeva: (postId: string, uid: string) => Promise<void>;
   reportContent: (reporterUid: string, reporterName: string, targetType: SangamReport['targetType'], targetId: string, reason: SangamReport['reason'], details?: string) => Promise<void>;
@@ -175,6 +190,12 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     const cached = readLS<SangamEvent[]>(EVENTS_KEY, []);
     return cached.length ? cached : seedEvents();
   });
+  // EVENTS P1 — my RSVP states per event (device cache of the
+  // rsvps/{uid} records; 'going' also mirrors into each event's
+  // rsvps[] list, exactly as the pre-P1 toggle maintained it).
+  const [myEventStates, setMyEventStates] = useState<Record<string, SangamRsvpState>>(
+    () => readLS<Record<string, SangamRsvpState>>(`sb_sangam_myrsvps_${uid}`, {})
+  );
   const [follows, setFollows] = useState<SangamFollow[]>(() => readLS<SangamFollow[]>(`sb_sangam_follows_${uid}`, []));
   const [reports, setReports] = useState<SangamReport[]>(() => readLS<SangamReport[]>(`sb_sangam_reports_${uid}`, []));
   const [online, setOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -527,28 +548,111 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     return c;
   }, [pushDoc]);
 
-  const rsvpEvent = useCallback(async (eventId: string, uid: string) => {
-    let added = false;
-    setEvents((prev) => prev.map((e) => {
-      if (e.id !== eventId) return e;
-      const r = e.rsvps || [];
-      added = !r.includes(uid);
-      return { ...e, rsvps: added ? [...r, uid] : r.filter((x) => x !== uid), rsvpCount: Math.max(0, e.rsvpCount + (added ? 1 : -1)) };
-    }));
-    if (navigator.onLine) {
+  const myEventState = useCallback(
+    (eventId: string): SangamRsvpState | null => {
+      const cached = myEventStates[eventId];
+      if (cached) return cached;
+      const ev = events.find((e) => e.id === eventId);
+      return ev && (ev.rsvps || []).includes(uid) ? 'going' : null;
+    },
+    [myEventStates, events, uid]
+  );
+
+  const setRsvpState = useCallback(
+    async (eventId: string, whoUid: string, state: SangamRsvpState | null): Promise<SangamRsvpState | null> => {
+      const ev = events.find((e) => e.id === eventId);
+      if (!ev) return null;
+      const prevState: SangamRsvpState | null =
+        myEventStates[eventId] || ((ev.rsvps || []).includes(whoUid) ? 'going' : null);
+      let next: SangamRsvpState | null = state;
+      // Honest capacity: a full event cannot take another 'going' —
+      // the member joins the waitlist instead (rules enforce the same).
+      if (next === 'going' && prevState !== 'going' && ev.capacity && ev.capacity > 0 && ev.rsvpCount >= ev.capacity) {
+        next = 'waitlisted';
+      }
+      if (next === prevState) return next;
+      const wasGoing = prevState === 'going';
+      const isGoing = next === 'going';
+      setEvents((prev) =>
+        prev.map((e) => {
+          if (e.id !== eventId) return e;
+          const r = e.rsvps || [];
+          const has = r.includes(whoUid);
+          const nrsvps =
+            isGoing && !has ? [...r, whoUid] : !isGoing && has ? r.filter((x) => x !== whoUid) : r;
+          return {
+            ...e,
+            rsvps: nrsvps,
+            rsvpCount: Math.max(0, e.rsvpCount + (isGoing ? 1 : 0) - (wasGoing ? 1 : 0)),
+          };
+        })
+      );
+      setMyEventStates((prev) => {
+        const copy = { ...prev };
+        if (next) copy[eventId] = next;
+        else delete copy[eventId];
+        writeLS(`sb_sangam_myrsvps_${uid}`, copy);
+        return copy;
+      });
+      if (navigator.onLine) {
+        try {
+          // ONE batch: the count moves only together with this member's
+          // own rsvps/{uid} record — the rules anchor every transition
+          // (create / delete AND state flips), so the count can never
+          // drift from the real RSVP list.
+          const batch = writeBatch(db);
+          const rsvpRef = doc(db, 'sangamEvents', eventId, 'rsvps', whoUid);
+          if (next === null) batch.delete(rsvpRef);
+          else if (prevState === null) batch.set(rsvpRef, { uid: whoUid, state: next, at: serverTimestamp() });
+          else batch.update(rsvpRef, { state: next, at: serverTimestamp() });
+          if (isGoing !== wasGoing) {
+            batch.update(doc(db, 'sangamEvents', eventId), { rsvpCount: increment(isGoing ? 1 : -1) });
+          }
+          await batch.commit();
+        } catch {
+          /* local-only event or offline — local state stands */
+        }
+      }
+      return next;
+    },
+    [events, myEventStates, uid]
+  );
+
+  // The pre-P1 toggle, kept as the 'going' on/off the feed cards use.
+  const rsvpEvent = useCallback(
+    async (eventId: string, whoUid: string) => {
+      const ev = events.find((e) => e.id === eventId);
+      const cur: SangamRsvpState | null =
+        myEventStates[eventId] || (ev && (ev.rsvps || []).includes(whoUid) ? 'going' : null);
+      await setRsvpState(eventId, whoUid, cur === 'going' ? null : 'going');
+    },
+    [events, myEventStates, setRsvpState]
+  );
+
+  const loadEventRsvps = useCallback(
+    async (eventId: string): Promise<{ uid: string; state: SangamRsvpState; at: number | null }[]> => {
       try {
-        // ONE batch: the rsvpCount may move only together with this
-        // member's own rsvps/{uid} record (rules anchor the ±1 to the
-        // record's creation/deletion in the same batch) — the count
-        // can no longer drift from the real RSVP list.
-        const batch = writeBatch(db);
-        if (added) batch.set(doc(db, 'sangamEvents', eventId, 'rsvps', uid), { uid, at: serverTimestamp() });
-        else batch.delete(doc(db, 'sangamEvents', eventId, 'rsvps', uid));
-        batch.update(doc(db, 'sangamEvents', eventId), { rsvpCount: increment(added ? 1 : -1) });
-        await batch.commit();
-      } catch { /* local-only event or offline — local count stands */ }
-    }
-  }, []);
+        const snap = await getDocs(collection(db, 'sangamEvents', eventId, 'rsvps'));
+        return snap.docs
+          .map((d) => {
+            const data = d.data() as { state?: string; at?: { toMillis?: () => number } | number };
+            const atMs =
+              typeof data.at === 'number' ? data.at : data.at?.toMillis ? data.at.toMillis() : null;
+            return {
+              uid: d.id,
+              state: (data.state === 'interested' || data.state === 'waitlisted'
+                ? data.state
+                : 'going') as SangamRsvpState,
+              at: atMs,
+            };
+          })
+          .sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+      } catch {
+        return [];
+      }
+    },
+    []
+  );
 
   const createEvent = useCallback(async (author: AuthorInfo, e: Omit<SangamEvent, 'id' | 'creatorUid' | 'creatorName' | 'rsvpCount' | 'createdAt'>) => {
     const ev: SangamEvent = { ...e, id: rid('event'), creatorUid: author.uid, creatorName: author.name, rsvpCount: 0, rsvps: [], createdAt: now(), localOnly: true };
@@ -589,11 +693,11 @@ export const SangamProvider: React.FC<{ uid: string; children: React.ReactNode }
     posts, comments, circles, events, follows, online, lastSyncedAt,
     createPost, editPost, deletePost, toggleAshirvad, addComment, editComment, deleteComment, sharePost,
     followTarget, unfollowTarget, isFollowing,
-    joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
+    joinCircle, createCircle, rsvpEvent, setRsvpState, myEventState, loadEventRsvps, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments,
   }), [posts, comments, circles, events, follows, online, lastSyncedAt,
     createPost, editPost, deletePost, toggleAshirvad, addComment, editComment, deleteComment, sharePost, followTarget, unfollowTarget,
-    isFollowing, joinCircle, createCircle, rsvpEvent, createEvent, volunteerSeva,
+    isFollowing, joinCircle, createCircle, rsvpEvent, setRsvpState, myEventState, loadEventRsvps, createEvent, volunteerSeva,
     reportContent, myReports, refresh, subscribeComments]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

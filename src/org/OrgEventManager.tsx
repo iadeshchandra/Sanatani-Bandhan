@@ -29,6 +29,9 @@ import {
   buildSangamEventUpdate,
   validateOrgEvent,
 } from './eventBridge';
+import { isValidRecurrence, nextOccurrence, localTodayISO, type RecurrenceRule } from '../lib/eventRecurrence';
+import { schedulingHintsFor } from '../lib/eventSchedulingHints';
+import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 
 export interface OrgEventManagerProps {
   orgId: string;
@@ -45,9 +48,29 @@ interface FormState {
   date: string;
   time: string;
   description: string;
+  /** EVENTS P1 — recurrence: '' = one-off; else the rhythm. */
+  recurFreq: '' | 'weekly' | 'monthly' | 'yearly';
+  recurInterval: string;
+  recurUntil: string;
+  recurCount: string;
 }
 
-const EMPTY_FORM: FormState = { title: '', date: '', time: '', description: '' };
+const EMPTY_FORM: FormState = {
+  title: '', date: '', time: '', description: '',
+  recurFreq: '', recurInterval: '1', recurUntil: '', recurCount: '',
+};
+
+/** Build the rule from the form (null = not a recurring event). */
+function formRecurrence(form: FormState): RecurrenceRule | null {
+  if (!form.recurFreq) return null;
+  const rule: RecurrenceRule = { freq: form.recurFreq };
+  const interval = parseInt(form.recurInterval, 10);
+  if (Number.isFinite(interval) && interval > 1) rule.interval = interval;
+  if (form.recurUntil) rule.until = form.recurUntil;
+  const count = parseInt(form.recurCount, 10);
+  if (!rule.until && Number.isFinite(count) && count > 0) rule.count = count;
+  return isValidRecurrence(rule) ? rule : null;
+}
 
 export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
   orgId,
@@ -56,7 +79,7 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
   autoShare,
   onSave,
 }) => {
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const T = (key: string, en: string, bn: string, hi: string) => safeTranslate(key, en, bn, hi);
   const { createEvent } = useSangam();
   const { firebaseUser } = useAuthWorkspace();
@@ -100,6 +123,10 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
       date: it.date,
       time: it.time || '',
       description: it.description || '',
+      recurFreq: it.recurrence?.freq || '',
+      recurInterval: String(it.recurrence?.interval || 1),
+      recurUntil: it.recurrence?.until || '',
+      recurCount: it.recurrence?.count ? String(it.recurrence.count) : '',
     });
     setFormError(null);
     setEditing(index);
@@ -119,6 +146,14 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
     try {
       let next: OrgEventItem[];
       let savedItem: OrgEventItem;
+      // EVENTS P1 — recurrence rides the definition; occurrences are
+      // derived on every surface, so this one field is the whole
+      // mechanism. A recurring event needs a real first date.
+      const recurrence = formRecurrence(form);
+      if (form.recurFreq && !recurrence) {
+        setFormError(T('orgev_err_recur', 'Please check the repeat settings (a real first date is needed).', 'অনুগ্রহ করে পুনরাবৃত্তির সেটিংস যাচাই করুন (আসল প্রথম তারিখ দরকার)।', 'कृपया दोहराव सेटिंग जाँचें (असली पहली तारीख चाहिए)।'));
+        return;
+      }
       if (editing === 'new') {
         savedItem = {
           id: `orgev-${Date.now().toString(36)}`,
@@ -126,6 +161,7 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
           date: form.date.trim(),
           time: form.time.trim() || undefined,
           description: form.description.trim() || undefined,
+          ...(recurrence ? { recurrence } : {}),
         };
         next = [...items, savedItem];
       } else if (typeof editing === 'number') {
@@ -136,6 +172,8 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
           time: form.time.trim() || undefined,
           description: form.description.trim() || undefined,
         };
+        if (recurrence) savedItem.recurrence = recurrence;
+        else delete savedItem.recurrence;
         next = items.map((it, i) => (i === editing ? savedItem : it));
       } else {
         return;
@@ -296,6 +334,44 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
                   <p className="text-[11px] text-stone-500 mt-0.5">
                     {[it.date, it.time].filter(Boolean).join(' · ')}
                   </p>
+                  {it.recurrence && (
+                    <p className="text-[11px] font-bold text-amber-700 mt-0.5">
+                      🔁{' '}
+                      {it.recurrence.freq === 'weekly'
+                        ? t('surfaces.events.repeatWeekly')
+                        : it.recurrence.freq === 'monthly'
+                          ? t('surfaces.events.repeatMonthly')
+                          : t('surfaces.events.repeatYearly')}
+                      {(() => {
+                        const nx = nextOccurrence(it.date, it.recurrence, localTodayISO());
+                        return nx ? ` · ${t('surfaces.events.nextLabel')}: ${nx.date}` : '';
+                      })()}
+                    </p>
+                  )}
+                  {/^\d{4}-\d{2}-\d{2}$/.test(it.date) && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        downloadIcs(
+                          buildIcsCalendar([
+                            {
+                              uid: `orgev-${it.id}@sanatanibandhan`,
+                              title: it.title,
+                              description: it.description,
+                              location: orgName,
+                              date: it.date,
+                              time: it.time,
+                              recurrence: it.recurrence,
+                            },
+                          ]),
+                          icsFileName(it.title)
+                        )
+                      }
+                      className="mt-1.5 text-[11px] font-bold text-amber-800 bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 min-h-[36px] hover:bg-amber-50"
+                    >
+                      📅 {t('surfaces.events.addToCalendar')}
+                    </button>
+                  )}
                 </div>
                 <div className="flex gap-1.5 shrink-0">
                   <button
@@ -406,6 +482,90 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
           <p className="text-[11px] text-stone-400 mb-3">
             {T('orgev_f_date_hint', 'A real date (YYYY-MM-DD) lets you share to Sangam. Free text like "Every Purnima" stays on your page only.', 'আসল তারিখ (YYYY-MM-DD) থাকলে সংগমে শেয়ার করতে পারবেন। "প্রতি পূর্ণিমা"-এর মতো ফ্রি টেক্সট শুধু আপনার পেজে থাকবে।', 'असली तारीख (YYYY-MM-DD) होने पर संगम में साझा कर सकते हैं। "हर पूर्णिमा" जैसा फ्री टेक्स्ट केवल आपके पेज पर रहेगा।')}
           </p>
+
+          {/* EVENTS P1 — recurrence: one definition, occurrences
+              everywhere (public page, Sangam, Solo shelf). */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 mb-3">
+            <label className="block text-[11px] font-black text-stone-600 mb-1">
+              🔁 {t('surfaces.events.repeatsLabel')}
+            </label>
+            <select
+              value={form.recurFreq}
+              onChange={(e) => setForm({ ...form, recurFreq: e.target.value as FormState['recurFreq'] })}
+              className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
+            >
+              <option value="">{t('surfaces.events.repeatNone')}</option>
+              <option value="weekly">{t('surfaces.events.repeatWeekly')}</option>
+              <option value="monthly">{t('surfaces.events.repeatMonthly')}</option>
+              <option value="yearly">{t('surfaces.events.repeatYearly')}</option>
+            </select>
+            {form.recurFreq && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                    {t('surfaces.events.intervalLabel')}
+                  </label>
+                  <input
+                    type="number" min={1} max={12}
+                    value={form.recurInterval}
+                    onChange={(e) => setForm({ ...form, recurInterval: e.target.value })}
+                    className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                    {t('surfaces.events.untilLabel')}
+                  </label>
+                  <input
+                    type="date"
+                    value={form.recurUntil}
+                    onChange={(e) => setForm({ ...form, recurUntil: e.target.value })}
+                    className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                    {t('surfaces.events.timesLabel')}
+                  </label>
+                  <input
+                    type="number" min={1} max={400}
+                    value={form.recurCount}
+                    onChange={(e) => setForm({ ...form, recurCount: e.target.value })}
+                    className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* EVENTS P2 — Panchang-smart suggestions for the chosen
+              day. Suggestions only; the organiser always decides. */}
+          {/^\d{4}-\d{2}-\d{2}$/.test(form.date) && (() => {
+            const hints = schedulingHintsFor(form.date);
+            if (!hints) return null;
+            return (
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 mb-3">
+                <p className="text-[11px] font-black text-stone-600 mb-1.5">
+                  🪔 {t('surfaces.events.hintsTitle')}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-stone-700">
+                    {hints.tithi}
+                    {hints.paksha ? ` · ${hints.paksha}` : ''}
+                  </span>
+                  {hints.abhijit && (
+                    <span className="muhurat-chip text-[11px]">Abhijit {hints.abhijit}</span>
+                  )}
+                  {hints.festivals.map((f) => (
+                    <span key={f.name} className="text-[11px] font-bold bg-amber-100 text-amber-900 rounded-full px-2 py-0.5">
+                      {f.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] text-stone-400 mt-1.5">{t('surfaces.events.hintsNote')}</p>
+              </div>
+            );
+          })()}
           <label className="block text-[11px] font-black text-stone-600 mb-1">
             {T('orgev_f_desc', 'Description (optional)', 'বিবরণ (ঐচ্ছিক)', 'विवरण (वैकल्पिक)')}
           </label>

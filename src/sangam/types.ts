@@ -166,6 +166,14 @@ export interface SangamCircle {
   localOnly?: boolean;
 }
 
+/**
+ * EVENTS P1 — a member's RSVP state on a Sangam event.
+ * 'going' is the only state counted in rsvpCount (the anchored ±1);
+ * 'interested' and 'waitlisted' live on the member's own rsvps/{uid}
+ * record without moving the count. Absent record = no RSVP.
+ */
+export type SangamRsvpState = 'going' | 'interested' | 'waitlisted';
+
 export interface SangamEvent {
   id: string;
   title: string;
@@ -183,6 +191,19 @@ export interface SangamEvent {
   rsvps?: string[];
   createdAt: number;
   localOnly?: boolean;
+  /**
+   * EVENTS P1 — hall capacity (people). Absent/0 = no limit. When the
+   * going count reaches it, new RSVPs join the waitlist in order and
+   * are promoted (by their own claim) as places free.
+   */
+  capacity?: number;
+  /**
+   * EVENTS P1 — recurrence rule (lib/eventRecurrence); `startsAt` is
+   * the first occurrence. Surfaces expand occurrences from the rule;
+   * an RSVP belongs to the series (the member joins the satsang, not
+   * one date of it).
+   */
+  recurrence?: import('../lib/eventRecurrence').RecurrenceRule;
 }
 
 export interface SangamFollow {

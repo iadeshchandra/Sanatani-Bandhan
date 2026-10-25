@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { allowsSeedData } from '../lib/workspaceKind';
 import { purgePersistedSeedState } from '../lib/seedPurge';
 import {
@@ -9,8 +11,15 @@ import {
 /* ------------------------------------------------------------------ */
 /* Utsav One store — offline-first, per-workspace localStorage.        */
 /* Festivals, budgets, committee, vendors, program, safety and         */
-/* check-in counts live on this device. Only treasury postings         */
+/* check-in counts are planned here first. Only treasury postings      */
 /* (festival income/expenses, vendor payments) go to the cloud ledger. */
+/*                                                                     */
+/* EVENTS P1 — TEAM SHARING: the plan also mirrors to                  */
+/* utsav_stores/{workspaceId} (the festival_plans pattern): staff of   */
+/* the workspace read/write it, newer edit wins on both sides, and     */
+/* the device copy remains the offline floor. A plan too large for    */
+/* one document (>900 KB serialised) stays device-local with an        */
+/* honest status instead of a silent failure.                          */
 /* New data-layer module — DataContext is never touched (transport     */
 /* limit).                                                            */
 /*                                                                     */
@@ -174,23 +183,104 @@ interface UtsavCtx {
   exportJSON: () => string;
   importJSON: (json: string) => boolean;
   resetAll: () => void;
+  /** EVENTS P1 — team-sharing state of the cloud mirror. */
+  cloudSync: { status: 'local' | 'syncing' | 'shared' | 'error' | 'too-large'; updatedAt: number | null };
 }
 
 const Ctx = createContext<UtsavCtx | null>(null);
 
+const metaKey = (ws: string) => `sb_utsav_meta_${ws}`;
+const CLOUD_PUSH_LIMIT = 900_000; // Firestore's 1 MiB doc ceiling, with margin.
+
 export const UtsavProvider: React.FC<{ workspaceId: string; children: React.ReactNode }> = ({ workspaceId, children }) => {
   const [state, setState] = useState<UtsavState>(() => loadState(workspaceId));
   const wsRef = useRef(workspaceId);
+  const [cloudSync, setCloudSync] = useState<UtsavCtx['cloudSync']>({ status: 'local', updatedAt: null });
+  // Newer-wins bookkeeping for the mirror (the War Room's law): the
+  // ms stamp of the newest plan this device has made or adopted.
+  const localStampRef = useRef<number>(0);
+  // Set when the current state arrived FROM the cloud: the persist
+  // effect consumes it and skips the echo push exactly once.
+  const justAdoptedRef = useRef(false);
+  // No push at all until the mount fetch has settled — an unchecked
+  // device must never stamp its stale copy over a newer shared plan.
+  const cloudCheckedRef = useRef(false);
+  const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (wsRef.current !== workspaceId) { wsRef.current = workspaceId; setState(loadState(workspaceId)); }
+    if (wsRef.current !== workspaceId) {
+      wsRef.current = workspaceId;
+      localStampRef.current = 0;
+      cloudCheckedRef.current = false;
+      setCloudSync({ status: 'local', updatedAt: null });
+      setState(loadState(workspaceId));
+    }
   }, [workspaceId]);
+
+  // Adopt-on-mount: if the committee's cloud plan is newer than this
+  // device's, it becomes this device's plan (local work is never
+  // silently kept over a newer shared plan — the mirror law).
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const meta = JSON.parse(localStorage.getItem(metaKey(workspaceId)) || 'null') as { updatedAt?: number } | null;
+      if (meta && typeof meta.updatedAt === 'number') localStampRef.current = meta.updatedAt;
+    } catch { /* no meta yet */ }
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'utsav_stores', workspaceId));
+        if (cancelled) return;
+        if (snap.exists()) {
+          const data = snap.data() as { state?: UtsavState; updatedAt?: number };
+          if (data.state && typeof data.updatedAt === 'number') {
+            if (data.updatedAt > localStampRef.current) {
+              justAdoptedRef.current = true;
+              localStampRef.current = data.updatedAt;
+              try { localStorage.setItem(metaKey(workspaceId), JSON.stringify({ updatedAt: data.updatedAt })); } catch { /* quota */ }
+              setState({ ...EMPTY, ...data.state, settings: { ...EMPTY.settings, ...(data.state.settings || {}) } });
+            }
+            setCloudSync({ status: 'shared', updatedAt: data.updatedAt });
+          }
+        }
+      } catch {
+        if (!cancelled) setCloudSync((s) => ({ ...s }));
+      } finally {
+        cloudCheckedRef.current = true;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workspaceId]);
+
   useEffect(() => {
     try { localStorage.setItem(storageKey(wsRef.current), JSON.stringify(state)); } catch { /* quota → keep in memory */ }
+    // EVENTS P1 — every local mutation schedules a debounced mirror
+    // push. Adopted-from-cloud states are skipped (no echo loops),
+    // and nothing pushes before the mount check has settled.
+    if (justAdoptedRef.current) { justAdoptedRef.current = false; return; }
+    if (!cloudCheckedRef.current) return;
+    if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
+    pushTimerRef.current = setTimeout(() => {
+      const ws = wsRef.current;
+      const stamp = Date.now();
+      localStampRef.current = stamp;
+      try { localStorage.setItem(metaKey(ws), JSON.stringify({ updatedAt: stamp })); } catch { /* quota */ }
+      const serialised = JSON.stringify(state);
+      if (serialised.length > CLOUD_PUSH_LIMIT) {
+        setCloudSync({ status: 'too-large', updatedAt: stamp });
+        return;
+      }
+      setCloudSync({ status: 'syncing', updatedAt: stamp });
+      setDoc(doc(db, 'utsav_stores', ws), { workspaceId: ws, state, updatedAt: stamp })
+        .then(() => setCloudSync({ status: 'shared', updatedAt: stamp }))
+        .catch(() => setCloudSync({ status: 'error', updatedAt: stamp }));
+    }, 1200);
+    return () => { if (pushTimerRef.current) clearTimeout(pushTimerRef.current); };
   }, [state]);
 
   const api = useMemo<UtsavCtx>(() => ({
     state,
     workspaceId,
+    cloudSync,
     add: (key, item) => setState((s) => ({ ...s, [key]: [...(s[key] as unknown[]), item] })),
     update: (key, id, patch) => setState((s) => ({
       ...s,
@@ -226,7 +316,7 @@ export const UtsavProvider: React.FC<{ workspaceId: string; children: React.Reac
       } catch { return false; }
     },
     resetAll: () => setState(allowsSeedData(workspaceId) ? buildSeed() : EMPTY),
-  }), [state, workspaceId]);
+  }), [state, workspaceId, cloudSync]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 };

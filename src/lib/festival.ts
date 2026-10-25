@@ -455,6 +455,15 @@ export interface FestivalEventDoc {
   slotCaps?: Record<string, number>;
   /** Live RSVP headcount — moves only with a matching RSVP record. */
   rsvpHeadcount: number;
+  /**
+   * EVENTS P1 — the darshan-slot waitlists: slotId → (uid → joined-at
+   * epoch ms). Uids only — never names — because this doc is public:
+   * a waitlisted devotee can find their own place in line without
+   * anyone's attendance becoming visible. Maintained only through
+   * the anchored counter path in firestore.rules. Absent on pages
+   * published before P1 (nobody has ever waited on them).
+   */
+  slotWaitlist?: Record<string, Record<string, number>>;
   updatedAt: string;
 }
 
@@ -468,6 +477,20 @@ export interface RsvpEntry {
   headcount: number;
   slotId?: string;
   createdAt: string;
+  /**
+   * EVENTS P1 — 'confirmed' holds a real place in the counters;
+   * 'waitlisted' holds a place in the slot's queue only (no counter
+   * share until promotion). Absent on pre-P1 records = confirmed.
+   */
+  status?: 'confirmed' | 'waitlisted';
+  /**
+   * EVENTS P1 — day-wise RSVP for multi-day festivals: the civil
+   * dates (YYYY-MM-DD) this party attends. Absent = every day.
+   */
+  days?: string[];
+  /** EVENTS P1 — day-of check-in, marked by the organising team. */
+  checkedIn?: boolean;
+  checkedInAt?: string;
 }
 
 export function validateRsvp(e: Pick<RsvpEntry, 'name' | 'headcount'>): string | null {
@@ -479,6 +502,26 @@ export function validateRsvp(e: Pick<RsvpEntry, 'name' | 'headcount'>): string |
 /** Remaining capacity for a slot given live bookings. */
 export function slotRemaining(slot: DarshanSlot, booked: Record<string, number>): number {
   return Math.max(0, slot.capacity - (booked[slot.id] || 0));
+}
+
+/**
+ * EVENTS P1 — every civil date of a festival, start → end inclusive
+ * (noon-anchored like the recurrence engine, so DST never shifts a
+ * day). Single-day festivals return [dateISO]. Drives the day-wise
+ * RSVP choices and the per-day organiser counts.
+ */
+export function festivalDayList(dateISO: string, endDateISO: string): string[] {
+  const start = new Date(`${dateISO}T12:00:00`).getTime();
+  const end = new Date(`${endDateISO || dateISO}T12:00:00`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return [dateISO];
+  const out: string[] = [];
+  for (let t = start; t <= end && out.length < 31; t += 86400000) {
+    const d = new Date(t);
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    out.push(`${d.getFullYear()}-${m}-${day}`);
+  }
+  return out;
 }
 
 /** Shareable public URL for a published event. */
