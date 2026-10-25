@@ -53,7 +53,9 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     const keysOf = (s: typeof en) => Object.keys(s).flatMap((b) => Object.keys(s[b]).map((leaf) => `${b}.${leaf}`)).sort();
     expect(keysOf(hi)).toEqual(keysOf(en));
     expect(keysOf(bn)).toEqual(keysOf(en));
-    expect(keysOf(en).length).toBe(416);
+    // 416 through Vibe B3; World-Readiness B4 adds surfaces.notFound (4) +
+    // surfaces.orgDirectory (7) — parity assertions above unchanged.
+    expect(keysOf(en).length).toBe(427);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

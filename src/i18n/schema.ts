@@ -146,9 +146,32 @@ export interface TranslationSchema {
     personalAccount?: { [key: string]: string };
     vahanFleet?: { [key: string]: string };
     portalLogin?: { [key: string]: string };
+    notFound?: { [key: string]: string };
+    orgDirectory?: { [key: string]: string };
   };
   auth: {
     accessPortal: string;
+    // World-Readiness B4 (G-E2/G-E3): friendlyAuthError targets — the ONLY
+    // strings an auth failure may ever render (see lib/friendlyAuthError.ts).
+    errInvalidCredential: string;
+    errEmailInUse: string;
+    errInvalidEmail: string;
+    errWeakPassword: string;
+    errUserDisabled: string;
+    errTooManyRequests: string;
+    errNetwork: string;
+    errOperationNotAllowed: string;
+    errPopupClosed: string;
+    errPopupBlocked: string;
+    errPopupCancelled: string;
+    errDifferentCredential: string;
+    errUnauthorizedDomain: string;
+    errRequiresRecentLogin: string;
+    errCredentialInUse: string;
+    errExpiredActionCode: string;
+    errInvalidActionCode: string;
+    errQuotaExceeded: string;
+    errGeneric: string;
     identity: string;
     password: string;
     forgotPassword: string;
