@@ -20,6 +20,7 @@ import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../lib/googleAuth';
+import { friendlyAuthErrorKey } from '../lib/friendlyAuthError';
 import { CheckCircle2 } from 'lucide-react';
 import { JYOTISH_SPECIALIZATIONS } from '../types/jyotish';
 
@@ -140,11 +141,9 @@ const InnerForm: React.FC = () => {
       enterJyotishSession(identity);
       showToast(`Welcome, ${identity.displayName}! Your Jyotish ID: ${identity.id}`, 'success');
     } catch (err: any) {
-      const msg =
-        err.code === 'auth/email-already-in-use'
-          ? 'This email is already registered. Try logging in instead.'
-          : err.message || 'Registration failed. Please try again.';
-      setError(msg);
+      // World-Readiness B4 (G-E3): the shared friendlyAuthError mapper —
+      // every Firebase code renders a dictionary sentence, never raw.
+      setError(t(friendlyAuthErrorKey(err)));
     } finally {
       setLoading(false);
     }

@@ -3,13 +3,14 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Loader2, ShieldCheck, Building2, User, Key, Mail, Phone,
-  Lock, ArrowLeft, Eye, EyeOff, AlertTriangle, MapPin, AlignLeft, Languages,
+  Lock, ArrowLeft, Eye, EyeOff, AlertTriangle, MapPin, AlignLeft,
   Globe2, Navigation, QrCode, X, WifiOff, CheckCircle2, Flame, Fingerprint, Ban
 } from 'lucide-react';
 import jsQR from 'jsqr';
 import AppLogo from '../common/AppLogo';
 import './auth-animations.css';
 import { AuthArt, type AuthLang } from './AuthArt';
+import { PublicLanguageButton } from './PublicLanguageButton';
 import { AuthField } from './AuthField';
 import { AuthDoors, type AuthDoorId } from './AuthDoors';
 import { SignupCredentialsStep, type SignupCreds } from './SignupCredentialsStep';
@@ -27,6 +28,7 @@ import { useBiometricAuth } from '../../hooks/useBiometricAuth';
 import { WorkspaceConfig, WorkspaceType, ROLE_MIGRATION_MAP } from '../../types';
 import { smartDefaultModulesFor } from '../../lib/workspaceRegistry';
 import { resolveSigninDestination } from '../../lib/signinRouting';
+import { friendlyAuthErrorKey } from '../../lib/friendlyAuthError';
 import { mintOrFetchSanataniProfile } from '../../solo/soloSession';
 import { sendPasswordResetEmail, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../../services/firebaseClient';
@@ -283,8 +285,9 @@ interface PortalLoginProps {
 export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login', onBack, onSuccess, orgRegisterOnly = false }) => {
   const { loginAsRole, switchWorkspace, activateCreatedWorkspace, loginWithPin, workspaces, activeWorkspace, enterPurohitSession, enterJyotishSession, enterSoloSession, exitSoloSession, exitPurohitSession, exitJyotishSession, sessionKind, firebaseUser, soloProfile, currentDevotee, accountSuspended, clearSuspensionNotice } = useAuthWorkspace();
   const { promptBiometric, BiometricPromptModal } = useBiometricAuth();
-  // Locale follows the app-wide LanguageContext (English default). The auth
-  // page's own selector also pushes the choice back to the global locale.
+  // Locale follows the app-wide LanguageContext (English default). The
+  // header's canonical PublicLanguageButton writes the global locale;
+  // the clamped local copy below serves this file's un-migrated dict.
   const langCtx = useContext(LanguageContext);
   const [language, setLanguage] = useState<'en'|'hi'|'bn'>(() => {
     const c = langCtx?.currentLang;
@@ -295,10 +298,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   // out of this file's local dict (auth/surfaces.portalLogin keys). Local `t`
   // above keeps serving the still-local keys.
   const gt = (key: string) => langCtx?.t(key) ?? key;
-  const changeLanguage = (l: 'en'|'hi'|'bn') => {
-    setLanguage(l);
-    try { langCtx?.changeLanguage(l); } catch { /* no provider — local only */ }
-  };
+  // (B4: the local changeLanguage helper died with the private <select>;
+  // the canonical door writes the global locale and the effect below
+  // keeps this page's clamped local copy in step.)
   // Sync when the global locale changes elsewhere (e.g. the
   // NativeWelcomeSheet): the local copy above is only the mount value.
   useEffect(() => {
@@ -416,9 +418,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
     return !!ws && (ws as any).createdBy === uid;
   };
   
+  // World-Readiness B4 (G-E2): EVERY auth failure renders through the one
+  // shared mapper — a plain, in-language sentence from the dictionary.
+  // Raw Firebase codes/messages never reach the screen (the old body
+  // stripped only the "Firebase:" prefix and showed the rest verbatim).
   const handleError = (err: any) => {
-    const msg = err.message || '';
-    setError(msg.replace('Firebase:', '').trim());
+    setError(gt(friendlyAuthErrorKey(err)));
   };
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -812,7 +817,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       showToast(gt('surfaces.portalLogin.toastWelcomeId').replace('{id}', profile.id), 'success');
       onSuccess();
     } catch (err: any) {
-      setError(err?.message || 'Could not create your Sanatani ID. Please try again.');
+      setError(gt(friendlyAuthErrorKey(err)));
     } finally {
       setSignupMinting(false);
     }
@@ -1165,19 +1170,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
             {t('back')}
           </button>
-          <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md pl-3 pr-2 py-1.5">
-            <Languages size={14} className="text-saffron-300" />
-            <select
-              value={language}
-              onChange={(e) => changeLanguage(e.target.value as any)}
-              aria-label="Language"
-              className="bg-transparent text-[12.5px] font-bold text-white/85 outline-none cursor-pointer appearance-none pr-1 [&>option]:text-temple-900"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी</option>
-              <option value="bn">বাংলা</option>
-            </select>
-          </div>
+          {/* World-Readiness B4 (G-L9): the canonical language door — the
+              old private 3-language <select> is gone; the local dict still
+              serves its un-migrated keys via the clamped sync below. */}
+          <PublicLanguageButton tone="dark" />
         </header>
 
         {/* ============ SCENE GRID ============ */}

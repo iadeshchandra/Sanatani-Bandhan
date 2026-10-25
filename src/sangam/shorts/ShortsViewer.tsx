@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { nocookieShortEmbed, type Short } from './types';
 import { st, type ShortsLang } from './i18n';
+import { PublicLanguageButton } from '../../components/public/PublicLanguageButton';
 import { withReferrer } from '../referrals';
 import { useModerationHides } from '../moderation';
 import {
@@ -355,6 +356,11 @@ export const ShortsViewer: React.FC<Props> = ({
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pb-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
         <span className="text-white font-extrabold text-sm drop-shadow pointer-events-auto">
           {st('shorts.title', lang)}
+        </span>
+        {/* World-Readiness B4 (G-L3): the canonical language door, here
+            too — a shared link can land a devotee straight in the viewer. */}
+        <span className="pointer-events-auto">
+          <PublicLanguageButton tone="dark" />
         </span>
         <button
           type="button"

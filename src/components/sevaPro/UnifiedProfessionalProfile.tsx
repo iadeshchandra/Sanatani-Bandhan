@@ -51,6 +51,7 @@ import type { SangamPost } from '../../sangam/types';
 import { formatServiceDakshina } from '../../sangam/ServiceCardPost';
 import { formatMoney } from '../../lib/money';
 import { Chat } from '../../chat/Chat';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import { getOrCreateDirectChat } from '../../chat/chatService';
 import type { ChatParticipant } from '../../chat/types';
 
@@ -277,6 +278,10 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
 
   return (
     <div className={`max-w-3xl mx-auto px-4 pt-4 sm:pt-6 space-y-4 ${hideBookCta ? 'pb-10' : 'pb-28'}`}>
+      {/* World-Readiness B4 (G-L3): the canonical language door. */}
+      <div className="flex justify-end">
+        <PublicLanguageButton tone="light" />
+      </div>
       {/* ============ HERO ============ */}
       <header className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 rounded-3xl border border-amber-200 shadow-sm p-5 sm:p-6">
         <button

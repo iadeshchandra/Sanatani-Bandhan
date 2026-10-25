@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../firebase';
 import { GoogleSignInButton } from '../auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../../lib/googleAuth';
+import { friendlyAuthErrorKey } from '../../lib/friendlyAuthError';
 import { CheckCircle2 } from 'lucide-react';
 
 /**
@@ -85,11 +86,9 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
         googleUser: null,
       });
     } catch (err: any) {
-      const msg =
-        err.code === 'auth/email-already-in-use'
-          ? t('cred_email_in_use')
-          : err.message || t('cred_failed');
-      setError(msg);
+      // World-Readiness B4 (G-E3): the shared friendlyAuthError mapper —
+      // every Firebase code renders a dictionary sentence, never raw.
+      setError(t(friendlyAuthErrorKey(err)));
     } finally {
       setLoading(false);
     }

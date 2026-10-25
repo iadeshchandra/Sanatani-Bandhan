@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Globe2,
   Sparkles,
   QrCode,
   Activity,
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
     firebaseUser,
   } = useAuthWorkspace();
 
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   // Unified notification center — the warm full-screen center, live on
   // notifications/{uid}/items. No legacy seed: the list is real or empty.
@@ -106,7 +106,6 @@ export const Header: React.FC<HeaderProps> = ({
   );
   const orgUnread = unreadInScope(orgItems);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const panchang = calculatePanchang();
@@ -264,26 +263,10 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Icons */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Trilingual Language Selector */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowLangDropdown(!showLangDropdown)}
-              className="flex items-center gap-1 px-3 py-2 min-h-[44px] rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-temple-300 transition-colors border border-white/5"
-            >
-              <Globe2 className="w-4 h-4 text-indigo-400" />
-              <span>{language.toUpperCase()}</span>
-            </button>
-            {showLangDropdown && (
-              <div className="absolute right-0 mt-2 w-32 rounded-xl bg-temple-800 border border-temple-700 shadow-xl p-1.5 z-50">
-                {['en', 'hi', 'bn', 'sa'].map((lang, idx) => (
-                  <button key={lang} onClick={() => { setLanguage(lang as any); setShowLangDropdown(false); }} className={`w-full text-left px-3 py-2 min-h-[44px] flex items-center rounded-lg text-xs font-bold transition-colors ${language === lang ? 'bg-saffron-500/20 text-saffron-500' : 'hover:bg-white/5 text-temple-300'}`}>
-                    {lang === 'en' ? 'English' : lang === 'hi' ? 'हिन्दी' : lang === 'bn' ? 'বাংলা' : 'संस्कृतम्'}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* World-Readiness B4 (G-L6/G-L9): the canonical language door —
+              this header's private 4-language dropdown is gone; one
+              registry, one sheet, all 10 languages. */}
+          <PublicLanguageButton tone="dark" />
 
           {onOpenGuide && (
             <button
@@ -439,13 +422,7 @@ export const Header: React.FC<HeaderProps> = ({
                 
                 <div className="px-2.5 py-1.5 mt-1">
                   <p className="text-[10px] uppercase font-bold text-temple-500 mb-1.5">Language</p>
-                  <div className="flex gap-2">
-                    {['en', 'hi', 'bn', 'sa'].map((lang, idx) => (
-                      <button key={lang} onClick={() => { setLanguage(lang as any); setShowRoleDropdown(false); }} className={`flex-1 py-1 rounded-lg text-[10px] font-bold text-center border transition-colors ${language === lang ? 'bg-saffron-500/20 border-saffron-500/50 text-saffron-500' : 'border-temple-600 text-temple-400 hover:bg-white/5'}`}>
-                        {lang.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+                  <PublicLanguageButton tone="dark" className="w-full justify-center" />
                 </div>
                 <div className="h-px bg-temple-700 my-1 mx-2"></div>
               </div>

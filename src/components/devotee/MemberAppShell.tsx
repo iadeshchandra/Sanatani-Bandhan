@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { 
   Home, UserCircle, Heart, Flame, Sparkles, BookOpen, 
   Shield, Building2, ArrowLeftRight, Radio, 
-  QrCode, Globe2, Receipt, Compass, CheckCircle2, ChevronRight, LogOut, Download
+  QrCode, Receipt, Compass, CheckCircle2, ChevronRight, LogOut, Download
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import { useToast } from '../../context/ToastContext';
 import { NotificationBell } from '../../notifications/NotificationBell';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
@@ -35,7 +36,7 @@ export default function MemberAppShell() {
     checkPermission,
     firebaseUser,
   } = useAuthWorkspace();
-  const { language, setLanguage, safeTranslate, t } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
   // Unified notification center — live on notifications/{uid}/items.
   const {
@@ -49,7 +50,6 @@ export default function MemberAppShell() {
   } = useNotificationCenter(firebaseUser?.uid ?? null);
   const [activeTab, setActiveTab] = useState<'HOME' | 'SADHANA' | 'PUROHIT' | 'PORTAL' | 'YATRA_NET' | 'VIVAH' | 'PROFILE'>('HOME');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const panchang = calculatePanchang();
 
@@ -298,32 +298,10 @@ export default function MemberAppShell() {
                 <span className="sm:hidden">Org</span>
               </button>
 
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="p-2 rounded-xl text-temple-600 hover:bg-temple-50 border border-temple-200 transition-colors"
-                  title="Change Language"
-                >
-                  <Globe2 className="w-4 h-4 text-temple-700" />
-                </button>
-                {showLangDropdown && (
-                  <div className="absolute right-0 mt-2 w-32 rounded-xl bg-white border border-temple-200 shadow-xl p-1.5 z-50">
-                    {['en', 'hi', 'bn', 'sa'].map((lang, idx) => (
-                      <button 
-                        key={lang} 
-                        onClick={() => { setLanguage(lang as any); setShowLangDropdown(false); }} 
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                          language === lang ? 'bg-saffron-100 text-saffron-900' : 'hover:bg-temple-50 text-temple-700'
-                        }`}
-                      >
-                        {lang === 'en' ? 'English' : lang === 'hi' ? 'हिन्दी' : lang === 'bn' ? 'বাংলা' : 'संस्कृतम्'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* World-Readiness B4 (G-L9): the canonical language door — this
+                  shell's private 4-language dropdown (en/hi/bn/sa, hand-listed)
+                  is gone; one registry, one sheet, all 10 languages. */}
+              <PublicLanguageButton tone="light" />
 
               {/* Suchana — live notification bell + center */}
               <div className="relative">

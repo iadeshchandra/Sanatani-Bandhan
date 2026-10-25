@@ -9,6 +9,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, BadgeCheck, Loader2, Landmark, ArrowLeft, Building2 } from 'lucide-react';
 import { useMembership } from '../../context/MembershipContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import { orgTypeLabel, OrgPage as OrgPageType } from '../../types/membership';
 
 const TYPE_FILTERS = [
@@ -18,6 +20,7 @@ const TYPE_FILTERS = [
 
 export const OrgDirectory: React.FC = () => {
   const navigate = useNavigate();
+  const { t: gt } = useLanguage();
   const { browseOrgPages } = useMembership();
   const [pages, setPages] = useState<OrgPageType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,24 +41,28 @@ export const OrgDirectory: React.FC = () => {
     <div className="min-h-screen bg-stone-50 pb-16">
       <div className="bg-gradient-to-br from-amber-700 via-orange-800 to-stone-900 px-4 pt-6 pb-8">
         <div className="max-w-3xl mx-auto">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-white/80 hover:text-white flex items-center gap-1.5 text-xs font-bold mb-4 min-h-[44px]"
-          >
-            <ArrowLeft size={14} /> Back
-          </button>
+          <div className="flex items-start justify-between gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-white/80 hover:text-white flex items-center gap-1.5 text-xs font-bold mb-4 min-h-[44px]"
+            >
+              <ArrowLeft size={14} /> {gt('surfaces.orgDirectory.back')}
+            </button>
+            {/* World-Readiness B4 (G-L3): the canonical language door. */}
+            <PublicLanguageButton tone="dark" />
+          </div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <Building2 size={24} /> Find Organisations
+            <Building2 size={24} /> {gt('surfaces.orgDirectory.title')}
           </h1>
           <p className="text-amber-100/80 text-sm mt-1">
-            Mandirs, sanghas, ashrams, gurukuls, goshalas, trusts — follow their pages or request to join.
+            {gt('surfaces.orgDirectory.subtitle')}
           </p>
           <div className="relative mt-4">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name or city…"
+              placeholder={gt('surfaces.orgDirectory.searchPlaceholder')}
               className="w-full pl-11 pr-4 py-3.5 rounded-2xl text-sm font-medium text-stone-900 placeholder:text-stone-400 bg-white shadow-lg outline-none focus:ring-2 focus:ring-amber-400 min-h-[44px]"
             />
           </div>
@@ -68,7 +75,7 @@ export const OrgDirectory: React.FC = () => {
                   type === t ? 'bg-white text-amber-800 shadow' : 'bg-white/15 text-white hover:bg-white/25'
                 }`}
               >
-                {t === 'All' ? 'All' : orgTypeLabel(t)}
+                {t === 'All' ? gt('surfaces.orgDirectory.all') : orgTypeLabel(t)}
               </button>
             ))}
           </div>
@@ -83,8 +90,8 @@ export const OrgDirectory: React.FC = () => {
         ) : pages.length === 0 ? (
           <div className="text-center py-16">
             <Landmark size={48} className="text-stone-300 mx-auto mb-4" />
-            <p className="text-sm font-bold text-stone-600">No organisations found</p>
-            <p className="text-xs text-stone-400 mt-1">Try a different search or filter.</p>
+            <p className="text-sm font-bold text-stone-600">{gt('surfaces.orgDirectory.emptyTitle')}</p>
+            <p className="text-xs text-stone-400 mt-1">{gt('surfaces.orgDirectory.emptyHint')}</p>
           </div>
         ) : (
           <div className="space-y-3">

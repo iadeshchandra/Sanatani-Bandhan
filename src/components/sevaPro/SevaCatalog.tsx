@@ -14,6 +14,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, CalendarHeart, CheckCircle2, Circle, Sparkles, Users } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import {
   LIFE_EVENTS,
   getLifeEvent,
@@ -141,6 +142,10 @@ export const SevaCatalog: React.FC<SevaCatalogProps> = ({
 
   return (
     <div className={`space-y-5 ${className}`}>
+      {/* World-Readiness B4 (G-L3): the canonical language door. */}
+      <div className="flex justify-end">
+        <PublicLanguageButton tone="light" />
+      </div>
       {/* ---- My journeys (bundle tracking) ---- */}
       {bundles.length > 0 && (
         <section aria-label={COPY.myJourneys[lang]} className="space-y-3">

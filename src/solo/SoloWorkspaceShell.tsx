@@ -19,6 +19,7 @@ import { DanaSheetHost } from './DanaSheetHost';
 import { useNotifications } from '../context/NotificationContext';
 import { useChatUnreadTotal } from '../chat/useChat';
 import { SearchButton } from '../search/SearchButton';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { SuchanaCenter } from './SuchanaCenter';
 import { formatBadgeCount } from './headerBadges';
@@ -99,6 +100,10 @@ const SoloRouter: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* World-Readiness B4 (G-L4): the canonical language door in the
+              Solo shell chrome — language used to be reachable only by
+              digging into Profile. Same registry + sheet as everywhere. */}
+          <PublicLanguageButton tone="dark" />
           {/* 🔍 Universal search — one bar for temples, people, posts, videos */}
           <SearchButton />
           {/* 💬 Messages — persistent door to chat; green badge = unread.

@@ -10,6 +10,7 @@ import { appLocale } from '../lib/format';
 import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { getOrCreateDirectChat } from '../chat/chatService';
 import {
   getDevoteeProfile, getAuthorPosts, subscribeIsFollowing, setFollowing,
@@ -118,6 +119,10 @@ export const DevoteeProfile: React.FC<{ uid: string }> = ({ uid }) => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
+      {/* World-Readiness B4 (G-L3): the canonical language door. */}
+      <div className="flex justify-end mb-4">
+        <PublicLanguageButton tone="light" />
+      </div>
       {/* Header */}
       <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 mb-4">
         <div className="flex items-start gap-4">

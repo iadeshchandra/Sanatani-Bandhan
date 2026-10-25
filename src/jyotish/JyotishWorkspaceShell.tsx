@@ -29,6 +29,7 @@ import { provisionalSoloProfile } from '../solo/soloSession';
 import { JyotishProvider, useJyotish } from '../context/JyotishContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { ProviderMarketplace } from '../marketplace/ProviderMarketplace';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import {
   OverviewTab,
   FindConsultationsTab,
@@ -144,6 +145,8 @@ const InnerShell: React.FC = () => {
                 </span>
               </button>
             )}
+            {/* World-Readiness B4 (G-L5): the canonical language door. */}
+            <PublicLanguageButton tone="light" />
             <button
               type="button"
               onClick={handleLogout}

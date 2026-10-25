@@ -1489,7 +1489,12 @@ export default function App() {
                         {/* Regional Native Experience (Track 2): detect-once
                             warm welcome + gentle travel nudge. Mounted with
                             the other first-run UI; both no-op when the
-                            devotee has already chosen. */}
+                            devotee has already chosen.
+                            World-Readiness B4 (G-L2): NativeWelcomeSheet is
+                            THE designated first-run language surface. The
+                            old FirstRunLanguageGate + LanguagePicker were
+                            mounted nowhere and are deleted — do not
+                            resurrect a second first-run gate. */}
                         <NativeWelcomeSheet />
                         <TravelNudge />
                       </AppRouter>

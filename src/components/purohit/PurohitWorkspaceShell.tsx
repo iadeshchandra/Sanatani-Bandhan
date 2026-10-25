@@ -37,6 +37,7 @@ import { ReviewsTab } from './tabs/ReviewsTab';
 import { ProfileTab } from './tabs/ProfileTab';
 import { SevaNoticeTab } from './tabs/SevaNoticeTab';
 import { ProviderMarketplace } from '../../marketplace/ProviderMarketplace';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 
 type PurohitTab =
   | 'overview'
@@ -143,6 +144,8 @@ const InnerShell: React.FC = () => {
                 </span>
               </button>
             )}
+            {/* World-Readiness B4 (G-L5): the canonical language door. */}
+            <PublicLanguageButton tone="light" />
             <button
               type="button"
               onClick={handleLogout}

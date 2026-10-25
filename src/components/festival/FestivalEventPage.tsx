@@ -13,6 +13,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import {
   festivalEventUrl, slotRemaining, validateRsvp,
   type FestivalEventDoc,
@@ -134,6 +135,10 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
     <div className="min-h-screen bg-gradient-to-b from-orange-50 via-stone-50 to-stone-100 pb-16">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-orange-800 via-red-900 to-stone-900 text-orange-50 px-4 pt-10 pb-16 overflow-hidden">
+        {/* World-Readiness B4 (G-L3): the canonical language door. */}
+        <div className="absolute top-3 right-3 z-10">
+          <PublicLanguageButton tone="dark" />
+        </div>
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, #fbbf24 0, transparent 40%), radial-gradient(circle at 70% 80%, #f97316 0, transparent 40%)' }} />
         <div className="relative max-w-2xl mx-auto text-center">
           <div className="text-5xl mb-3">🪔</div>

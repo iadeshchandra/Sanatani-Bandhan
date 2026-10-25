@@ -3,12 +3,14 @@
  * =====================================================================
  * Reusable across PortalLogin (login + signup) and the purohit signup form.
  * Uses the official Google "G" mark drawn as inline SVG (brand-compliant,
- * no emoji). Handles all popup failure modes with friendly messages via
- * the shared googleAuth helper.
+ * no emoji). All popup failure modes render through the shared
+ * friendlyAuthError mapper (lib/friendlyAuthError.ts), in-language.
  */
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { signInWithGoogle, googleErrorMessage, GoogleAuthResult } from '../../lib/googleAuth';
+import { signInWithGoogle, GoogleAuthResult } from '../../lib/googleAuth';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyAuthErrorKey } from '../../lib/friendlyAuthError';
 
 /** Official Google "G" — multicolor SVG paths (no emoji, no external asset). */
 export const GoogleGMark: React.FC<{ size?: number }> = ({ size = 18 }) => (
@@ -48,6 +50,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   disabled = false,
   className = '',
 }) => {
+  const { t } = useLanguage();
   const [busy, setBusy] = useState(false);
 
   const label =
@@ -68,7 +71,11 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       const result = await signInWithGoogle();
       onSuccess(result);
     } catch (err: any) {
-      onError?.(googleErrorMessage(err));
+      // World-Readiness B4 (G-E2/G-E3): Google failures render through the
+      // one shared friendlyAuthError mapper, in the user's language —
+      // the old googleErrorMessage was English-only and its default
+      // branch passed the raw SDK message through.
+      onError?.(t(friendlyAuthErrorKey(err)));
     } finally {
       setBusy(false);
     }

@@ -28,28 +28,13 @@ export interface GoogleAuthResult {
   isNewUser: boolean;
 }
 
-/** Friendly, non-technical messages for every Google popup failure mode. */
-export function googleErrorMessage(err: any): string {
-  const code = err?.code || '';
-  switch (code) {
-    case 'auth/popup-closed-by-user':
-      return 'The Google sign-in window was closed. Tap "Continue with Google" to try again.';
-    case 'auth/popup-blocked':
-      return 'Your browser blocked the Google sign-in popup. Please allow popups for this site and try again.';
-    case 'auth/cancelled-popup-request':
-      return 'Sign-in was interrupted. Please try again.';
-    case 'auth/account-exists-with-different-credential':
-      return 'This email is already registered with a different sign-in method (email/password). Please sign in with your original method.';
-    case 'auth/operation-not-allowed':
-      return 'Google sign-in is not switched on for this app yet. Please use email login for now — the administrator has been notified.';
-    case 'auth/unauthorized-domain':
-      return 'This app address is not yet authorized for Google sign-in. Please use email login for now — the administrator has been notified.';
-    case 'auth/network-request-failed':
-      return 'No internet connection. Please check your network and try again.';
-    default:
-      return (err?.message || 'Google sign-in failed. Please try again.').replace('Firebase:', '').trim();
-  }
-}
+/**
+ * Error WORDS no longer live here (World-Readiness B4): the old
+ * English-only message helper's default branch passed the raw SDK
+ * message to the screen. Google failures are rendered by the caller
+ * through the ONE shared mapper — `friendlyAuthErrorKey` in
+ * `src/lib/friendlyAuthError.ts` — in the user's chosen language.
+ */
 
 export async function signInWithGoogle(): Promise<GoogleAuthResult> {
   let cred;

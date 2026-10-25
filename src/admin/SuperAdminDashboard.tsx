@@ -97,7 +97,7 @@ export const SuperAdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 1: Executive Live Telemetry Ticker */}
+      {/* Row 1: Executive ticker — illustrative SAMPLE feed (G-M4), not live telemetry */}
       <ExecutiveLiveTicker />
 
       {/* Row 2: Executive Core Telemetry KPI Band (Terminal Theme) */}

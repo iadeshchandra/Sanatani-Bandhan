@@ -19,7 +19,8 @@ import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import type { GoogleAuthResult } from '../lib/googleAuth';
 import { CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { WARM_SUCCESS, humanizeError, pickLang } from '../lib/microcopy';
+import { WARM_SUCCESS, pickLang } from '../lib/microcopy';
+import { friendlyAuthErrorKey } from '../lib/friendlyAuthError';
 
 const inputCls =
   'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
@@ -97,7 +98,10 @@ const InnerForm: React.FC = () => {
       showToast(t3(WARM_SUCCESS.welcomeNew(enriched.id)), 'success');
     } catch (err: any) {
       // Never surface raw Firebase messages — warm, actionable copy.
-      setError(t3(humanizeError(err)));
+      // World-Readiness B4 (G-E3): auth failures render through the one
+      // shared mapper + dictionary (all 10 languages), superseding the
+      // trilingual humanizeError on this auth surface.
+      setError(t(friendlyAuthErrorKey(err)));
     } finally {
       setLoading(false);
     }

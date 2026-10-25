@@ -20,6 +20,7 @@ import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { OrgPage as OrgPageType } from '../types/membership';
 import { CampusView } from '../campus/CampusView';
+import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { CampusBuilder } from '../campus/CampusBuilder';
 const MapYourTemple = React.lazy(() => import('../campus/MapYourTemple'));
 import type { OrgKind } from '../campus/types';
@@ -98,13 +99,17 @@ function Shell({
     <div className="min-h-screen bg-amber-50/60 pb-20">
       <header className="bg-gradient-to-br from-[#431407] via-[#7c2d12] to-[#92400e] text-white">
         <div className="max-w-3xl mx-auto px-4 py-5">
-          <button
-            onClick={() => navigate(backTo)}
-            className="inline-flex items-center gap-2 text-amber-200/90 hover:text-white text-xs font-bold min-h-[44px] px-2 -ml-2 rounded-xl"
-          >
-            <ArrowLeft size={16} />
-            {backLabel}
-          </button>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => navigate(backTo)}
+              className="inline-flex items-center gap-2 text-amber-200/90 hover:text-white text-xs font-bold min-h-[44px] px-2 -ml-2 rounded-xl"
+            >
+              <ArrowLeft size={16} />
+              {backLabel}
+            </button>
+            {/* World-Readiness B4 (G-L3): the canonical language door. */}
+            <PublicLanguageButton tone="dark" />
+          </div>
           <p className="text-amber-200/70 text-[11px] font-black uppercase tracking-widest mt-2">{kicker}</p>
           <h1 className="text-2xl sm:text-3xl font-black mt-1 flex items-center gap-2">
             <MapPin size={26} className="shrink-0 text-amber-300" />

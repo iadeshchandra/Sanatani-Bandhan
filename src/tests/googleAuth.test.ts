@@ -2,7 +2,7 @@
  * googleAuth.test.ts — Google sign-in helper tests (Membership sprint).
  * Mocks firebase/auth + firestore: no emulator, no network.
  */
-import { signInWithGoogle, googleErrorMessage } from '../lib/googleAuth';
+import { signInWithGoogle } from '../lib/googleAuth';
 
 jest.mock('firebase/auth', () => ({
   signInWithPopup: jest.fn(),
@@ -25,24 +25,12 @@ jest.mock('../firebase', () => ({
 const { signInWithPopup } = require('firebase/auth');
 const { getDoc, setDoc } = require('firebase/firestore');
 
-describe('googleErrorMessage', () => {
-  it('maps popup-closed to a friendly message', () => {
-    expect(googleErrorMessage({ code: 'auth/popup-closed-by-user' })).toMatch(/closed/i);
-  });
-  it('maps popup-blocked to a friendly message', () => {
-    expect(googleErrorMessage({ code: 'auth/popup-blocked' })).toMatch(/blocked/i);
-  });
-  it('maps account-exists-with-different-credential', () => {
-    expect(googleErrorMessage({ code: 'auth/account-exists-with-different-credential' }))
-      .toMatch(/different sign-in method/i);
-  });
-  it('maps operation-not-allowed (console toggle needed)', () => {
-    expect(googleErrorMessage({ code: 'auth/operation-not-allowed' })).toMatch(/not switched on/i);
-  });
-  it('falls back to the raw message', () => {
-    expect(googleErrorMessage({ message: 'Firebase: boom' })).toBe('boom');
-  });
-});
+// World-Readiness B4: the googleErrorMessage describe block was REMOVED
+// with the function itself. Its "falls back to the raw message" pin
+// enshrined the exact raw-error leak G-E2/G-E3 exist to close; the
+// mapping contract now lives in src/__tests__/worldReadyBatch4.test.ts
+// (friendlyAuthError: every code → a dictionary sentence in the user's
+// language; a raw code/message can never render).
 
 describe('signInWithGoogle', () => {
   beforeEach(() => jest.clearAllMocks());
