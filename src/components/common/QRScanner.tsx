@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { appLocale } from '../../lib/format';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   Camera,
@@ -454,7 +455,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({
                     <span>Valid Until:</span>
                   </div>
                   <span className="font-mono font-bold text-emerald-300">
-                    {new Date(activePayload.expiresAt).toLocaleTimeString([], {
+                    {new Date(activePayload.expiresAt).toLocaleTimeString(appLocale(), {
                       hour: '2-digit',
                       minute: '2-digit',
                       second: '2-digit',

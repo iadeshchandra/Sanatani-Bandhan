@@ -15,6 +15,7 @@
  * to audit_logs by the service.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { appLocale } from '../../../lib/format';
 import { ShieldCheck, UserPlus, RefreshCw, AlertTriangle, Crown, Trash2 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { ConfirmDialog } from '../GodModeConsole2';
@@ -172,7 +173,7 @@ export const AdminsTab: React.FC = () => {
                     {!row.active && <span className="ml-2 text-[10px] font-black uppercase text-red-300 bg-red-500/15 border border-red-500/40 rounded-md px-1.5 py-0.5">revoked</span>}
                   </p>
                   <p className="text-[11px] text-slate-500 font-mono truncate">{row.email ? `${row.email} · ` : ''}{row.uid}</p>
-                  {row.grantedAt && <p className="text-[11px] text-slate-600">Granted {new Date(row.grantedAt).toLocaleString()}</p>}
+                  {row.grantedAt && <p className="text-[11px] text-slate-600">Granted {new Date(row.grantedAt).toLocaleString(appLocale())}</p>}
                 </div>
                 <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border ${
                   row.role === 'admin'

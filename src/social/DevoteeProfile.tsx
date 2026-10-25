@@ -6,6 +6,7 @@
  * their public posts, follow + message actions.
  */
 import React, { useEffect, useState } from 'react';
+import { appLocale } from '../lib/format';
 import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -220,7 +221,7 @@ export const DevoteeProfile: React.FC<{ uid: string }> = ({ uid }) => {
               <div className="flex gap-4 mt-2 text-[11px] text-stone-400">
                 <span>🪔 {p.ashirvadCount}</span>
                 <span>💬 {p.commentCount}</span>
-                <span>{new Date(p.createdAt).toLocaleDateString()}</span>
+                <span>{new Date(p.createdAt).toLocaleDateString(appLocale())}</span>
               </div>
             </div>
           ))}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { Vote, Plus, Archive, Timer, CheckCircle2, XCircle, Clock, FileText, Search, UserCheck, ShieldAlert, BarChart3, Users, Lock, ChevronRight, Info } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
@@ -283,7 +284,7 @@ export const PanchayatPollingDesk: React.FC = () => {
                      <div>
                        <div className="flex items-center gap-2 mb-1.5">
                          <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{res.resolutionNumber}</span>
-                         <span className="text-[10px] text-temple-500 font-bold">{new Date(res.date).toLocaleDateString()}</span>
+                         <span className="text-[10px] text-temple-500 font-bold">{new Date(res.date).toLocaleDateString(appLocale())}</span>
                        </div>
                        <h3 className="font-black text-lg text-white leading-tight">{res.title}</h3>
                      </div>

@@ -1,4 +1,5 @@
 import autoTable from 'jspdf-autotable';
+import { appLocale } from '../lib/format';
 import jsPDF from 'jspdf';
 import { get } from 'idb-keyval';
 import QRCode from 'qrcode';
@@ -1022,7 +1023,7 @@ export const generateBulkTaxReceiptsPDF = async (
     doc.setTextColor(180, 83, 9);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(`Total Amount Received: ${resolveWorkspaceCurrency(workspace).symbol} ${tx.amount.toLocaleString()}`, 25, 147);
+    doc.text(`Total Amount Received: ${resolveWorkspaceCurrency(workspace).symbol} ${tx.amount.toLocaleString('en-IN')}`, 25, 147);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -1217,17 +1218,17 @@ export const generateDonationHistoryPDF = async (
   const total = donations.reduce((sum, d) => sum + d.amount, 0);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Total Donations: Rs. ${total.toLocaleString()}`, 14, 76);
+  doc.text(`Total Donations: Rs. ${total.toLocaleString('en-IN')}`, 14, 76);
 
   autoTable(doc, {
     startY: 85,
     head: [['Date', 'Receipt No.', 'Category', 'Mode', 'Amount']],
     body: donations.map((d) => [
-      new Date(d.date).toLocaleDateString(),
+      new Date(d.date).toLocaleDateString(appLocale()),
       d.id,
       d.category || 'General',
       d.paymentMode || 'Cash',
-      `Rs. ${d.amount.toLocaleString()}`,
+      `Rs. ${d.amount.toLocaleString('en-IN')}`,
     ]),
     theme: 'grid',
     styles: { fontSize: 9 },
@@ -1286,7 +1287,7 @@ export const generateAnnualDonationSummaryPDF = async (
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Lifetime Contribution: Rs. ${totalLifetime.toLocaleString()}`, 14, 76);
+  doc.text(`Lifetime Contribution: Rs. ${totalLifetime.toLocaleString('en-IN')}`, 14, 76);
 
   autoTable(doc, {
     startY: 85,
@@ -1294,7 +1295,7 @@ export const generateAnnualDonationSummaryPDF = async (
     body: years.map((year) => [
       year,
       donationsByYear[year].count.toString(),
-      `Rs. ${donationsByYear[year].total.toLocaleString()}`,
+      `Rs. ${donationsByYear[year].total.toLocaleString('en-IN')}`,
     ]),
     theme: 'striped',
     styles: { fontSize: 11, cellPadding: 5 },
@@ -1341,22 +1342,22 @@ export const generateTreasuryLedgerPDF = async (
 
   doc.setFontSize(11);
   doc.setTextColor(30, 41, 59);
-  doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 45);
-  doc.text(`Total Income: Rs. ${totalIncome.toLocaleString()}`, 14, 52);
-  doc.text(`Total Expense: Rs. ${totalExpense.toLocaleString()}`, 14, 59);
-  doc.text(`Net Balance: Rs. ${(totalIncome - totalExpense).toLocaleString()}`, 14, 66);
+  doc.text(`Report Date: ${new Date().toLocaleDateString(appLocale())}`, 14, 45);
+  doc.text(`Total Income: Rs. ${totalIncome.toLocaleString('en-IN')}`, 14, 52);
+  doc.text(`Total Expense: Rs. ${totalExpense.toLocaleString('en-IN')}`, 14, 59);
+  doc.text(`Net Balance: Rs. ${(totalIncome - totalExpense).toLocaleString('en-IN')}`, 14, 66);
 
   autoTable(doc, {
     startY: 75,
     head: [['Date', 'Ref ID', 'Type', 'Category', 'Mode', 'Entity/Payee', 'Amount']],
     body: transactions.map((t: any) => [
-      new Date(t.date).toLocaleDateString(),
+      new Date(t.date).toLocaleDateString(appLocale()),
       t.id,
       t.type,
       t.category,
       t.paymentMode,
       t.devoteeName || t.vendorName || '',
-      `Rs. ${t.amount.toLocaleString()}`,
+      `Rs. ${t.amount.toLocaleString('en-IN')}`,
     ]),
     theme: 'striped',
     styles: { fontSize: 8 },
@@ -1392,7 +1393,7 @@ export const generatePollReportPdf = (
     return [
       devotee?.fullName || v.devoteeName || v.devoteeId,
       v.choice || (v.inFavor ? 'In Favor' : 'Against'),
-      v.timestamp ? new Date(v.timestamp).toLocaleDateString() : 'N/A',
+      v.timestamp ? new Date(v.timestamp).toLocaleDateString(appLocale()) : 'N/A',
     ];
   });
 

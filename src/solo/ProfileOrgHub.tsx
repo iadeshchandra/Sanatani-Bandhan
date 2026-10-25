@@ -1,4 +1,5 @@
 import React from 'react';
+import { appLocale } from '../lib/format';
 import { ROLE_MIGRATION_MAP } from '../types';
 import type { WorkspaceConfig } from '../types';
 import type { WorkspaceMembership } from '../types/membership';
@@ -29,7 +30,7 @@ export interface ProfileOrgHubProps {
 
 const memberSince = (ts: number) => {
   try {
-    return new Date(ts).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return new Date(ts).toLocaleDateString(appLocale(), { month: 'short', year: 'numeric' });
   } catch {
     return '';
   }

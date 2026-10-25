@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { appLocale } from '../../lib/format';
 import { MapContainer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
@@ -809,11 +810,11 @@ export default function YatraNetDesk() {
 
                           <div className="text-[10px] text-stone-500">
                             <strong>Time: </strong>
-                            {new Date(visit.timestamp).toLocaleTimeString([], {
+                            {new Date(visit.timestamp).toLocaleTimeString(appLocale(), {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}{' '}
-                            • {new Date(visit.timestamp).toLocaleDateString()}
+                            • {new Date(visit.timestamp).toLocaleDateString(appLocale())}
                           </div>
 
                           {visit.notes && (
@@ -1010,7 +1011,7 @@ export default function YatraNetDesk() {
                         </div>
 
                         <span className="text-[10px] text-stone-500 shrink-0 font-medium">
-                          {new Date(visit.timestamp).toLocaleTimeString([], {
+                          {new Date(visit.timestamp).toLocaleTimeString(appLocale(), {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   Sparkles,
   Send,
@@ -178,7 +179,7 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
       const initialGreeting: ChatMessage = {
         id: 'init-copilot-welcome',
         sender: 'assistant',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }),
         moduleContext: activeModule,
         result: {
           title: `Namaste! Official Dharmic Copilot for ${activeWorkspace.name}`,
@@ -247,7 +248,7 @@ export const DharmicQueryAssistant: React.FC<DharmicQueryAssistantProps> = ({
       id: `user-${Date.now()}`,
       sender: 'user',
       query: trimmed,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }),
       moduleContext: activeModule,
     };
 
@@ -302,7 +303,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
       const assistantMessage: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'assistant',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }),
         result: directResult,
         moduleContext: activeModule,
       };
@@ -340,7 +341,7 @@ Preferred Response Language: ${selectedLang === 'hi' ? 'Hindi' : selectedLang ==
         {
           id: `ai-err-${Date.now()}`,
           sender: 'assistant',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }),
           result: fallbackResult,
           moduleContext: activeModule,
         },

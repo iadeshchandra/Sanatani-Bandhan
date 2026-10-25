@@ -3323,7 +3323,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     showToast(
-      `${tx.type === 'Income' ? 'Chanda / Income' : 'Expense'} of ${activeWorkspace.currencySymbol} ${tx.amount.toLocaleString()} logged.`,
+      `${tx.type === 'Income' ? 'Chanda / Income' : 'Expense'} of ${activeWorkspace.currencySymbol} ${tx.amount.toLocaleString('en-IN')} logged.`,
       'success',
       'Double-Entry Ledger Updated'
     );
@@ -3694,7 +3694,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     showToast(
       posted
-        ? `Rent collected: ₹${receipt.amount.toLocaleString()} from ${receipt.tenantName}`
+        ? `Rent collected: ₹${receipt.amount.toLocaleString('en-IN')} from ${receipt.tenantName}`
         : `Rent recorded on this device, but the ledger posting was blocked (quota reached).`,
       posted ? 'success' : 'warning',
       'Rent Collection'
@@ -3765,7 +3765,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : v
       )
     );
-    showToast(`Fuel logged: ${log.litersFilled}L @ ₹${newLog.totalCost.toLocaleString()} — ${log.registrationNo}`, 'success', 'Vahan Fleet');
+    showToast(`Fuel logged: ${log.litersFilled}L @ ₹${newLog.totalCost.toLocaleString('en-IN')} — ${log.registrationNo}`, 'success', 'Vahan Fleet');
     return true;
   };
 
@@ -4123,7 +4123,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       taxReceiptIssued: true,
     });
 
-    showToast(`Sacred contribution of ₹${amount.toLocaleString()} received from ${donorName}!`, 'success', 'Mandir Nirman Donation');
+    showToast(`Sacred contribution of ₹${amount.toLocaleString('en-IN')} received from ${donorName}!`, 'success', 'Mandir Nirman Donation');
   };
 
   // M-3: memoize the provider value — the inline object literal used to

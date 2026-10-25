@@ -5,6 +5,7 @@
  */
 
 import { crisisCopy, type TriString } from './crisisStrings';
+import { appLocale } from '../lib/format';
 import type { CrisisSituation } from './crisisCommandTypes';
 
 export function situationLabel(s: CrisisSituation, t: (x: TriString) => string): string {
@@ -48,7 +49,7 @@ export function formatWhen(ms: number, lang: string): string {
       { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' },
     );
   } catch {
-    return new Date(ms).toLocaleString();
+    return new Date(ms).toLocaleString(appLocale());
   }
 }
 

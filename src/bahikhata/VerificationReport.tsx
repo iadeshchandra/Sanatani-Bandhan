@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { appLocale } from '../lib/format';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { BatchActor, ImportBatch, ImportRow, SpotCheck } from './types';
 import { TARGET_FIELDS } from './types';
@@ -186,7 +187,7 @@ export const VerificationReport: React.FC<Props> = ({ lang, batch, actor, canSea
         <p className="text-sm font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5">
           🪔 {bk(lang, 'sealedLine', {
             name: existing!.sealedBy.name,
-            date: d(new Date(existing!.sealedAt).toLocaleDateString()),
+            date: d(new Date(existing!.sealedAt).toLocaleDateString(appLocale())),
           })}
         </p>
       ) : (

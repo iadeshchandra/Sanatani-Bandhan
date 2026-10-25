@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { db } from '../../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -133,7 +134,7 @@ export const QRScanner: React.FC = () => {
                       CLEARED
                     </span>
                     <p className="text-[10px] font-mono text-temple-500 mt-1">
-                      {new Date(scan.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(scan.timestamp).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </p>
                   </div>
                 </div>

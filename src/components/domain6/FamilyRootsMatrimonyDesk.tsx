@@ -703,7 +703,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
     const updated = [...familyMembers, newMember];
     persistFamilyMembers(updated);
     setIsAddMemberModalOpen(false);
-    showToast(`Added ${newMember.fullName} to Vanshavali Tree! 🌳`, 'success', 'Family Lineage');
+    showToast(t('surfaces.familyRoots.toastMemberAddedTree').replace('{name}', newMember.fullName), 'success', t('surfaces.familyRoots.toastHeadFamilyLineage'));
 
     // Reset Form
     setNewMemberForm({
@@ -728,7 +728,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
     const existing = pitruRecords.find(p => p.ancestorName.toLowerCase() === member.fullName.toLowerCase());
     if (existing) {
       setActiveTab('PITRU_TARPANA');
-      showToast(`${member.fullName} is already registered in Pitru Tarpana Registry.`, 'info');
+      showToast(t('surfaces.familyRoots.toastAlreadyRegistered').replace('{name}', member.fullName), 'info');
       return;
     }
 
@@ -788,7 +788,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
 
     persistPitruRecords([newRecord, ...pitruRecords]);
     setIsAddPitruModalOpen(false);
-    showToast(`Added ${newRecord.ancestorName} to Pitru Tarpana Registry. 🙏`, 'success');
+    showToast(t('surfaces.familyRoots.toastAncestorAdded').replace('{name}', newRecord.ancestorName), 'success');
   };
 
   const handleOpenPurohitBooking = (record: PitruRecordExtended) => {

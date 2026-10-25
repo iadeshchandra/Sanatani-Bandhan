@@ -12,6 +12,7 @@ import {
   PANJIKA_FESTIVALS, festivalsOn, upcomingFestivals, categoryMeta,
   type PanjikaFestival,
 } from '../lib/panjikaFestivals';
+import { isFestivalOfLightsName } from '../i18n/regionalTerms';
 import {
   findShubhMuhurat, SAMSKARA_KINDS, MUHURAT_DISCLAIMER_BY_TRADITION,
   type SamskaraKind, type MuhuratDay, type MuhuratTradition,
@@ -93,7 +94,7 @@ const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export const PanjikaTab: React.FC = () => {
-  const { tr, lang } = useLocaleText();
+  const { tr, lang, rt } = useLocaleText();
   const { showToast } = useToast();
   const { add } = useSoloStore();
   const [section, setSection] = useState<Section>('calendar');
@@ -234,7 +235,15 @@ export const PanjikaTab: React.FC = () => {
   }, [cells, tradFestivals]);
 
   const festName = (f: PanjikaFestival) =>
-    lang === 'bn' ? f.nameBn : lang === 'hi' && f.nameHi ? f.nameHi : f.nameEn;
+    lang === 'bn'
+      ? f.nameBn
+      : lang === 'hi' && f.nameHi
+        ? f.nameHi
+        : // English UI: the festival of lights takes the region's word
+          // (Deepavali in the south, Diwali in the north) via rt() (B3).
+          isFestivalOfLightsName(f.nameEn)
+          ? rt('festivalOfLights')
+          : f.nameEn;
   const festSig = (f: PanjikaFestival) => (lang === 'bn' ? f.significanceBn : f.significanceEn);
 
   const addReminder = (title: string, date: string) => {

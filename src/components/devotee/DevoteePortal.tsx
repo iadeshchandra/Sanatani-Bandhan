@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useScopedData } from '../../hooks/useScopedData';
 import { 
@@ -118,7 +119,7 @@ export const DevoteePortal: React.FC = () => {
             
             <Heart className="w-8 h-8 text-emerald-500 relative z-10 mb-3" />
             <p className="text-xs text-temple-500 font-bold uppercase tracking-wider relative z-10">{t('devotee.portal.ytdDonations')}</p>
-            <h3 className="text-2xl font-semibold text-temple-900 relative z-10">₹{ytdDonations.toLocaleString()}</h3>
+            <h3 className="text-2xl font-semibold text-temple-900 relative z-10">₹{ytdDonations.toLocaleString('en-IN')}</h3>
           </div>
           <div className="bg-white p-5 rounded-xl shadow-sm border border-temple-100 relative overflow-hidden group">
             

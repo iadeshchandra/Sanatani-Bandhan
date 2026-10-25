@@ -5,6 +5,7 @@
  * managed. The booking→payment→split flow itself is NOT built yet.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { appLocale } from '../../../lib/format';
 import {
   Percent, Receipt, HandCoins, RefreshCw, Plus, Pencil, CheckCircle2,
   XCircle, Search, Megaphone, FileText, Globe, Save, Trash2, Calculator,
@@ -347,7 +348,7 @@ const PayoutsView: React.FC = () => {
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(p.status)}`}>{p.status}</span>
           </div>
-          {p.requestedAt && <p className="text-[11px] text-slate-500 mb-3">Requested {new Date(p.requestedAt).toLocaleString()}</p>}
+          {p.requestedAt && <p className="text-[11px] text-slate-500 mb-3">Requested {new Date(p.requestedAt).toLocaleString(appLocale())}</p>}
           {p.status === 'requested' && (
             <div className="flex gap-2">
               <button type="button" onClick={() => setConfirm({ id: p.id, approve: true })}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   X,
   Phone,
@@ -343,8 +344,8 @@ export const DevoteeCommsDrawer: React.FC<DevoteeCommsDrawerProps> = ({
       setIsIntercomActive(true);
       setIntercomLogs((prev) => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] P2P Audio Carrier locked on Devotee terminal: ${devoteePhone}.`,
-        `[${new Date().toLocaleTimeString()}] Frequency 433.920 MHz Ready. Transmit active.`,
+        `[${new Date().toLocaleTimeString(appLocale())}] P2P Audio Carrier locked on Devotee terminal: ${devoteePhone}.`,
+        `[${new Date().toLocaleTimeString(appLocale())}] Frequency 433.920 MHz Ready. Transmit active.`,
       ]);
       showToast(`Connected to Secure Intercom for ${devoteeName}`, 'success');
     } else {
@@ -353,7 +354,7 @@ export const DevoteeCommsDrawer: React.FC<DevoteeCommsDrawerProps> = ({
       setIsPushToTalkActive(false);
       setIntercomLogs((prev) => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] Intercom Carrier released.`,
+        `[${new Date().toLocaleTimeString(appLocale())}] Intercom Carrier released.`,
       ]);
     }
   };
@@ -364,12 +365,12 @@ export const DevoteeCommsDrawer: React.FC<DevoteeCommsDrawerProps> = ({
     if (active) {
       setIntercomLogs((prev) => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] 🎙️ Transmitting audio to ${devoteeName}...`,
+        `[${new Date().toLocaleTimeString(appLocale())}] 🎙️ Transmitting audio to ${devoteeName}...`,
       ]);
     } else {
       setIntercomLogs((prev) => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] 📡 Carrier released. Devotee mic standby.`,
+        `[${new Date().toLocaleTimeString(appLocale())}] 📡 Carrier released. Devotee mic standby.`,
       ]);
     }
   };
@@ -477,7 +478,7 @@ export const DevoteeCommsDrawer: React.FC<DevoteeCommsDrawerProps> = ({
               <div className="flex items-center gap-1 text-stone-400 shrink-0">
                 <Clock className="w-3 h-3" />
                 <span>
-                  {new Date(visit.timestamp).toLocaleTimeString([], {
+                  {new Date(visit.timestamp).toLocaleTimeString(appLocale(), {
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
@@ -579,7 +580,7 @@ export const DevoteeCommsDrawer: React.FC<DevoteeCommsDrawerProps> = ({
                           {msg.text}
                         </div>
                         <span className="text-[8px] text-stone-500 mt-0.5 px-1">
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                          {new Date(msg.timestamp).toLocaleTimeString(appLocale(), {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}

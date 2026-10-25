@@ -7,6 +7,7 @@
  * OrgDiscoveryCard: "Find Organisations" entry → /orgs directory.
  */
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { useNavigate } from 'react-router-dom';
 import { MailOpen, Check, X, Loader2, Building2, Search, Clock } from 'lucide-react';
 import { useMembership } from '../../context/MembershipContext';
@@ -56,7 +57,7 @@ export const MyInvitesCard: React.FC = () => {
                   </p>
                   {inv.message && <p className="text-xs text-stone-600 mt-1.5 bg-stone-50 rounded-lg p-2">“{inv.message}”</p>}
                   <p className="text-[10px] text-stone-400 mt-1.5 flex items-center gap-1">
-                    <Clock size={10} /> Expires {new Date(inv.expiresAt).toLocaleDateString()}
+                    <Clock size={10} /> Expires {new Date(inv.expiresAt).toLocaleDateString(appLocale())}
                   </p>
                 </div>
               </div>

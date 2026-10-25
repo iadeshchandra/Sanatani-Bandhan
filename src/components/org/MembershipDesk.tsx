@@ -10,6 +10,7 @@
  * On mount (trustee), syncs the public org page so the directory stays fresh.
  */
 import React, { useEffect, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   Users, UserPlus, Inbox, Check, X, Loader2, Mail, Phone, Fingerprint,
   ShieldCheck, Trash2, Send, Pencil, CalendarClock,
@@ -327,7 +328,7 @@ export const MembershipDesk: React.FC = () => {
                           expState === 'expiringSoon' ? 'text-amber-800 bg-amber-100' : 'text-stone-600 bg-stone-100'
                         }`}>
                           <CalendarClock size={10} />
-                          {t('org.access.member.expiresOn')} {new Date(m.roleExpiresAt).toLocaleDateString()}
+                          {t('org.access.member.expiresOn')} {new Date(m.roleExpiresAt).toLocaleDateString(appLocale())}
                         </span>
                       )}
                     </div>
@@ -400,7 +401,7 @@ export const MembershipDesk: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-stone-900 truncate">{r.userName}</p>
-                  <p className="text-[11px] text-stone-500">{new Date(r.createdAt).toLocaleString()}</p>
+                  <p className="text-[11px] text-stone-500">{new Date(r.createdAt).toLocaleString(appLocale())}</p>
                 </div>
               </div>
               {r.message && (

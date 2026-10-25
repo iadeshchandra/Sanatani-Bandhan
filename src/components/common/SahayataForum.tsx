@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { appLocale } from '../../lib/format';
 import { createPortal } from 'react-dom';
 import { 
   X, Search, MessageSquare, CheckCircle2, Lock, 
@@ -330,7 +331,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">{thread.workspaceType}</span>
                       </div>
                       <span>•</span>
-                      <span>{new Date(thread.timestamp).toLocaleDateString()}</span>
+                      <span>{new Date(thread.timestamp).toLocaleDateString(appLocale())}</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-center justify-center shrink-0 w-16 h-16 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-saffron-50 group-hover:border-saffron-100 transition-colors">
@@ -385,7 +386,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <span className="font-bold text-slate-900">{selectedThread.authorName}</span>
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-bold">{selectedThread.workspaceType}</span>
                   </div>
-                  <span className="text-xs text-slate-400 font-medium">{new Date(selectedThread.timestamp).toLocaleString()}</span>
+                  <span className="text-xs text-slate-400 font-medium">{new Date(selectedThread.timestamp).toLocaleString(appLocale())}</span>
                 </div>
               </div>
 
@@ -429,7 +430,7 @@ export const SahayataForum: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-slate-400 font-medium">{new Date(reply.timestamp).toLocaleString()}</span>
+                        <span className="text-xs text-slate-400 font-medium">{new Date(reply.timestamp).toLocaleString(appLocale())}</span>
                       </div>
                     </div>
                     {reply.isAcceptedAnswer && (

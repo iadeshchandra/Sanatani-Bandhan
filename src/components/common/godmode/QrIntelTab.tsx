@@ -9,6 +9,7 @@
  * Mounted as the 'QR Intel' subtab in MarketplaceTab (AdminTabsF).
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { appLocale } from '../../../lib/format';
 import { QrCode, TrendingUp, Users, MousePointerClick, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { adminApi } from '../../../lib/adminApi';
 
@@ -165,7 +166,7 @@ export const QrIntelTab: React.FC = () => {
                           </span>
                         </td>
                         <td className="p-3 text-right text-slate-500">
-                          {r.lastScannedAt ? new Date(r.lastScannedAt).toLocaleDateString() : '—'}
+                          {r.lastScannedAt ? new Date(r.lastScannedAt).toLocaleDateString(appLocale()) : '—'}
                         </td>
                       </tr>
                     ))}

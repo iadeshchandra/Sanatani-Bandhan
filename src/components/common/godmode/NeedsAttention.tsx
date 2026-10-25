@@ -13,6 +13,7 @@
  * faking calm. If nothing could be read at all, the card hides.
  */
 import React from 'react';
+import { appLocale } from '../../../lib/format';
 import {
   AlarmClock,
   CheckCircle2,
@@ -77,7 +78,7 @@ export const NeedsAttention: React.FC<NeedsAttentionProps> = ({
           {loadedAt && (
             <span className="text-[10px] text-slate-500">
               Checked{' '}
-              {new Date(loadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(loadedAt).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
           <button

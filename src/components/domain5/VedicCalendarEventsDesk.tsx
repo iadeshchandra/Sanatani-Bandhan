@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Calendar, Plus, MapPin, Users, Sparkles, Clock, CheckCircle2, X, Download } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -100,9 +101,9 @@ export const VedicCalendarEventsDesk: React.FC = () => {
         activeWorkspace.id,
         'checkin',
         {
-          en: `“${newEvent.title}” expects ~${footfall.toLocaleString()} devotees — gate check-in keeps entry orderly and counted.`,
-          hi: `“${newEvent.title}” में ~${footfall.toLocaleString()} भक्तों की उम्मीद है — गेट चेक-इन प्रवेश को व्यवस्थित रखता है।`,
-          bn: `“${newEvent.title}”-এ ~${footfall.toLocaleString()} ভক্তের আশা — গেট চেক-ইন প্রবেশ সুশৃঙ্খল রাখে।`,
+          en: `“${newEvent.title}” expects ~${footfall.toLocaleString(appLocale())} devotees — gate check-in keeps entry orderly and counted.`,
+          hi: `“${newEvent.title}” में ~${footfall.toLocaleString(appLocale())} भक्तों की उम्मीद है — गेट चेक-इन प्रवेश को व्यवस्थित रखता है।`,
+          bn: `“${newEvent.title}”-এ ~${footfall.toLocaleString(appLocale())} ভক্তের আশা — গেট চেক-ইন প্রবেশ সুশৃঙ্খল রাখে।`,
         },
         (id) => natives.includes(id) || enabled.includes(id)
       );
@@ -224,7 +225,7 @@ export const VedicCalendarEventsDesk: React.FC = () => {
               <div className="py-2 space-y-1.5 text-xs text-temple-300">
                 <p>
                   <span className="text-temple-400">Expected Footfall:</span>{' '}
-                  <span className="font-bold text-saffron-400">~{(ev.expectedFootfall || 0).toLocaleString()} Devotees</span>
+                  <span className="font-bold text-saffron-400">~{(ev.expectedFootfall || 0).toLocaleString(appLocale())} Devotees</span>
                 </p>
                 <p>
                   <span className="text-temple-400">Chief Coordinator:</span>{' '}

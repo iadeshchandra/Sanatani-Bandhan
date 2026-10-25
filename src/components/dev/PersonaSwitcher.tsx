@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { appLocale } from '../../lib/format';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronUp,
@@ -362,7 +363,7 @@ export const PersonaSwitcher: React.FC = () => {
                     RBAC Security Verification Report
                   </h3>
                   <p className="text-xs font-mono text-slate-400">
-                    {activeReport.suiteName} &bull; {new Date(activeReport.timestamp).toLocaleTimeString()}
+                    {activeReport.suiteName} &bull; {new Date(activeReport.timestamp).toLocaleTimeString(appLocale())}
                   </p>
                 </div>
               </div>

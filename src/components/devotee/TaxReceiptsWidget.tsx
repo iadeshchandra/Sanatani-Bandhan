@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { Download, Mail, FileText, CheckCircle, ShieldCheck, FileArchive } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useScopedData } from '../../hooks/useScopedData';
@@ -179,7 +180,7 @@ export const TaxReceiptsWidget: React.FC = () => {
       <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-temple-100">
         <div className="bg-temple-50 p-4 rounded-xl border border-temple-100">
            <p className="text-xs text-temple-500 font-bold uppercase tracking-wider mb-1">{t('devotee.receipts.totalEligible').replace('{fy}', activeFY)}</p>
-           <p className="text-2xl font-semibold text-emerald-600">₹{totalEligibleAmount.toLocaleString()}</p>
+           <p className="text-2xl font-semibold text-emerald-600">₹{totalEligibleAmount.toLocaleString('en-IN')}</p>
         </div>
         <div className="md:col-span-2 flex items-center justify-end gap-3">
            <button 
@@ -228,7 +229,7 @@ export const TaxReceiptsWidget: React.FC = () => {
                   <p className="text-xs text-temple-500">{tx.purpose || tx.subcategory}</p>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <p className="text-sm font-semibold text-temple-900">₹{tx.amount.toLocaleString()}</p>
+                  <p className="text-sm font-semibold text-temple-900">₹{tx.amount.toLocaleString('en-IN')}</p>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
                   <button 

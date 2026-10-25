@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import {
   ShieldCheck,
   Search,
@@ -126,7 +127,7 @@ export const AuditLogDesk: React.FC = () => {
         }
       ).format(new Date(ts));
     } catch {
-      return new Date(ts).toLocaleString();
+      return new Date(ts).toLocaleString(appLocale());
     }
   };
 

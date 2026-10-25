@@ -342,7 +342,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Download 80G Tax Receipt
   const handleDownload80GReceipt = async (tx: TreasuryTransaction) => {
     try {
-      showToast(`Generating Section 80G Tax Receipt for ${inr(tx.amount)}...`, 'info');
+      showToast(t('surfaces.devoteePortal.toastReceipt80g').replace('{amount}', inr(tx.amount)), 'info');
       await generate80GTaxReceipt(tx, activeWorkspace, { download: true });
       showToast(t('surfaces.devoteePortal.80gTaxExemptionCertificateDownloaded'), 'success');
     } catch (e: any) {
@@ -354,7 +354,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Download Sankalp Slip
   const handleDownloadSankalp = async (booking: PoojaBooking) => {
     try {
-      showToast(`Generating Vedic Sankalpa Slip for ${booking.poojaName}...`, 'info');
+      showToast(t('surfaces.devoteePortal.toastSankalpaSlip').replace('{pooja}', booking.poojaName), 'info');
       await generatePoojaSankalpPDF(booking, activeWorkspace || ({} as any));
       showToast(t('surfaces.devoteePortal.sankalpaSlipDownloaded'), 'success');
     } catch (e: any) {
@@ -482,7 +482,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       },
       (err) => {
         setIsLocating(false);
-        showToast(`GPS location failed: ${err.message}. Using Mandir coordinates.`, 'info');
+        showToast(t('surfaces.devoteePortal.toastGpsFailed').replace('{error}', err.message), 'info');
       },
       { timeout: 8000 }
     );
@@ -583,14 +583,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     } else {
       document.documentElement.classList.remove('dark');
     }
-    showToast(`Switched to ${next ? 'Temple Night Mode 🌙' : 'Sacred Solar Light Mode ☀️'}`, 'info');
+    showToast(next ? t('surfaces.devoteePortal.toastNightMode') : t('surfaces.devoteePortal.toastSolarMode'), 'info');
   };
 
   const toggleSoundAlerts = () => {
     const next = !soundAlertsEnabled;
     setSoundAlertsEnabled(next);
     localStorage.setItem('sb_sound_alerts', String(next));
-    showToast(`Sound notifications ${next ? 'Enabled 🔔' : 'Muted 🔕'}`, 'info');
+    showToast(next ? t('surfaces.devoteePortal.toastSoundOn') : t('surfaces.devoteePortal.toastSoundOff'), 'info');
   };
 
   // Switch to Organization View Handler
@@ -600,7 +600,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       return;
     }
     setViewMode('MANAGER');
-    showToast(`Switched to ${activeWorkspace?.name || 'Organisation'} Console 🙏`, 'success', 'Console Mode Activated');
+    showToast(t('surfaces.devoteePortal.toastSwitchedConsole').replace('{org}', activeWorkspace?.name || 'Organisation'), 'success', t('surfaces.devoteePortal.toastHeadConsoleMode'));
   };
 
   return (
@@ -1241,7 +1241,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         type="button"
                         onClick={() => {
                           updateSadhana({ meditationMinutes: sadhanaState.meditationMinutes + mins });
-                          showToast(`Logged +${mins} minutes of Dhyana 🙏`, 'success');
+                          showToast(t('surfaces.devoteePortal.toastDhyanaLogged').replace('{mins}', String(mins)), 'success');
                         }}
                         className="px-2.5 py-1 rounded-lg bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition-colors cursor-pointer"
                       >
@@ -1573,7 +1573,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => showToast(`Pinda Daan request registered for ${pitru.ancestorName} 🙏`, 'success')}
+                        onClick={() => showToast(t('surfaces.devoteePortal.toastPindaDaan').replace('{ancestor}', pitru.ancestorName), 'success')}
                         className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black transition-all cursor-pointer"
                       >
                         Book Pinda Daan
@@ -2025,7 +2025,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       type="button"
                       onClick={() => {
                         setLanguage(lang.code as any);
-                        showToast(`Language set to ${lang.label}`, 'info');
+                        showToast(t('surfaces.devoteePortal.toastLanguageSet').replace('{label}', lang.label), 'info');
                       }}
                       className={`p-2 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                         language === lang.code

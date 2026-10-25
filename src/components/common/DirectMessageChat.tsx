@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { appLocale } from '../../lib/format';
 import { Send, Phone, MessageSquare, ShieldCheck, CheckCircle2, User, Loader2, X } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { collection, doc, query, onSnapshot, orderBy, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
@@ -278,7 +279,7 @@ export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
                 }`}>
                   <p className="text-sm">{msg.text}</p>
                   <p className={`text-[9px] mt-1.5 font-bold ${isMe ? 'text-saffron-200' : 'text-temple-400'}`}>
-                    {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                    {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                   </p>
                 </div>
               </div>

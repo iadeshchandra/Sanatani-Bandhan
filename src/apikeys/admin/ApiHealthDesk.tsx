@@ -25,6 +25,7 @@
  * existing rules; the doc holds no key material).
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { Activity, AlertTriangle, FlaskConical, RefreshCw } from 'lucide-react';
 import {
   API_DESCRIPTORS,
@@ -66,7 +67,7 @@ function fmtAgo(ms: number, nowMs: number): string {
   if (m < 60) return `${m} min ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h} h ago`;
-  return new Date(ms).toLocaleString();
+  return new Date(ms).toLocaleString(appLocale());
 }
 
 interface ResolvedKey {
@@ -376,10 +377,10 @@ export const ApiHealthDesk: React.FC<{ entries: HealthKeyEntry[]; ready: boolean
                   </div>
                   <p className="text-[11px] text-slate-500">
                     {usage && limit
-                      ? `${usage.used.toLocaleString()} of ${limit.toLocaleString()} ${desc.quota.kind === 'daily-units' ? 'units' : 'requests'} used today — counted by the app itself (${usage.source === 'global' ? 'all devices' : 'this device only'}).`
+                      ? `${usage.used.toLocaleString(appLocale())} of ${limit.toLocaleString(appLocale())} ${desc.quota.kind === 'daily-units' ? 'units' : 'requests'} used today — counted by the app itself (${usage.source === 'global' ? 'all devices' : 'this device only'}).`
                       : 'No tracked usage yet today.'}
                     {desc.quota.reset === 'midnight-pacific' &&
-                      ` Resets ${new Date(nextPacificMidnight(nowMs)).toLocaleString()} (midnight Los Angeles).`}
+                      ` Resets ${new Date(nextPacificMidnight(nowMs)).toLocaleString(appLocale())} (midnight Los Angeles).`}
                     {desc.quota.reset === 'rolling-24h' && ' Free allowance is per device/IP over a rolling 24h.'}
                     {limitIsAssumption(desc) &&
                       ' The limit is Google’s published free-tier figure — an assumption you can edit below.'}
@@ -387,7 +388,7 @@ export const ApiHealthDesk: React.FC<{ entries: HealthKeyEntry[]; ready: boolean
                 </div>
               ) : desc.quota.kind === 'monthly-units' ? (
                 <p className="text-[11px] text-slate-500">
-                  Published limit: {desc.quota.limit.toLocaleString()} {desc.quota.unitName}.
+                  Published limit: {desc.quota.limit.toLocaleString(appLocale())} {desc.quota.unitName}.
                   The provider does not report usage back to the key, so no honest usage bar exists — health only.
                 </p>
               ) : (

@@ -719,7 +719,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         // identity is minted get-or-create — never duplicates.
         const profile = await mintOrFetchSanataniProfile(fbUser.uid, displayName, fbUser.email || emailToUse);
         enterSoloSession(profile);
-        showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+        showToast(gt('surfaces.portalLogin.toastWelcomeId').replace('{id}', profile.id), 'success');
         onSuccess();
         return;
       }
@@ -754,7 +754,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           createdAt: serverTimestamp(),
         }, { merge: true }).catch(() => {});
         enterSoloSession(profile);
-        showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+        showToast(gt('surfaces.portalLogin.toastWelcomeId').replace('{id}', profile.id), 'success');
         onSuccess();
         return;
       }
@@ -775,7 +775,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       email: result.email || prev.email,
       adminName: result.displayName && result.displayName !== 'Sanatani Devotee' ? result.displayName : prev.adminName,
     }));
-    showToast(`Google linked (${result.email}). Complete the organisation details below.`, 'success');
+    showToast(gt('surfaces.portalLogin.toastGoogleLinked').replace('{email}', result.email), 'success');
   };
 
   const handleGoogleError = (message: string) => {
@@ -809,7 +809,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         createdAt: serverTimestamp(),
       }, { merge: true }).catch(() => {});
       enterSoloSession(profile);
-      showToast(`Welcome! Your Sanatani ID: ${profile.id}`, 'success');
+      showToast(gt('surfaces.portalLogin.toastWelcomeId').replace('{id}', profile.id), 'success');
       onSuccess();
     } catch (err: any) {
       setError(err?.message || 'Could not create your Sanatani ID. Please try again.');

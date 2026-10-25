@@ -7,6 +7,7 @@
  * path with an optional outcome note for the sangha's learning.
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { appLocale } from '../lib/format';
 import {
   CheckCircle2,
   Circle,
@@ -29,7 +30,7 @@ import { crisisCopy, useCrisisT } from './crisisStrings';
 function fmtTime(ts: number | null | undefined): string {
   if (!ts) return '—';
   try {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(ts).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit' });
   } catch {
     return '—';
   }

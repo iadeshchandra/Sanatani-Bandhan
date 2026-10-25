@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { appLocale } from '../../lib/format';
 import { createPortal } from 'react-dom';
 import { updatePassword, User as FirebaseUser } from 'firebase/auth';
 import { auth, db, collection, query, where, getDocs } from '../../firebase';
@@ -895,7 +896,7 @@ export const MasterSettingsDesk: React.FC = () => {
                          <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-md border bg-blue-50 text-blue-600 border-blue-200">{record.sourceLabel}</span>
                       </div>
                       <p className="text-[10px] font-bold text-gray-500 font-mono tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> TRX: {record.transactionId}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestampMillis ? new Date(record.timestampMillis).toLocaleString() : '—'}</p>
+                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestampMillis ? new Date(record.timestampMillis).toLocaleString(appLocale()) : '—'}</p>
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-[10px] font-black text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-flex items-center gap-1.5 uppercase tracking-widest shadow-sm">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { appLocale } from '../../lib/format';
 import { Activity, Flame, Book, Sun, CheckCircle2, TrendingUp, Calendar as CalIcon, Heart, Users, BookOpen, MessageCircle } from 'lucide-react';
 import { doc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -245,7 +246,7 @@ export default function PersonalSadhanaDesk() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in">
                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-all">
                   <div className="w-10 h-10 bg-saffron-50 text-saffron-600 rounded-full flex items-center justify-center mb-3"><Activity size={20}/></div>
-                  <p className="text-3xl font-black text-gray-900">{totalJapa.toLocaleString()}</p>
+                  <p className="text-3xl font-black text-gray-900">{totalJapa.toLocaleString(appLocale())}</p>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Total Mantras</p>
                </div>
                <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-all">
@@ -340,7 +341,7 @@ export default function PersonalSadhanaDesk() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             {log.vratFasting && <span className="px-2 py-0.5 bg-saffron-100 text-saffron-700 rounded text-[9px] font-black uppercase tracking-widest">Fasting</span>}
-                            <span className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                            <span className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleTimeString(appLocale(), {hour:'2-digit', minute:'2-digit'})}</span>
                           </div>
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-700 font-bold">
                              <span className="flex items-center gap-1.5"><Activity size={14} className="text-saffron-500"/> {log.japaCount} Mantras</span>
@@ -375,7 +376,7 @@ export default function PersonalSadhanaDesk() {
                     </div>
                     <div>
                       <h4 className="font-black text-gray-900">{log.userName || 'Anonymous'}</h4>
-                      <p className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleString()}</p>
+                      <p className="text-xs font-bold text-gray-500">{new Date(log.timestamp).toLocaleString(appLocale())}</p>
                     </div>
                   </div>
                 </div>

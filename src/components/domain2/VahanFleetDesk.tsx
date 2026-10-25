@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { appLocale } from '../../lib/format';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   Bus,
@@ -248,7 +249,7 @@ export const VahanFleetDesk: React.FC = () => {
     }
     const minOdo = Math.max(loggingVehicle.odometerKm, lastOdoFor(loggingVehicle.id));
     if (Number(fOdo) < minOdo) {
-      showToast(`Odometer must be ≥ ${minOdo.toLocaleString()} km (last recorded reading)`, 'error', 'Fuel Log');
+      showToast(t('surfaces.vahanFleet.toastOdometerMin').replace('{min}', minOdo.toLocaleString(appLocale())), 'error', t('surfaces.vahanFleet.toastHeadFuelLog'));
       return;
     }
     const total = Number(fLiters) * Number(fRate);
@@ -355,7 +356,7 @@ export const VahanFleetDesk: React.FC = () => {
         v.fitnessExpiryDate || '', v.status,
       ])
     );
-    showToast(`${fleetVehicles.length} vehicles exported to CSV`, 'success', 'CSV Export');
+    showToast(t('surfaces.vahanFleet.toastVehiclesExported').replace('{count}', String(fleetVehicles.length)), 'success', t('surfaces.vahanFleet.toastHeadCsvExport'));
   };
 
   return (
@@ -498,7 +499,7 @@ export const VahanFleetDesk: React.FC = () => {
                     <p className="flex items-center gap-1.5">
                       <Gauge className="w-3.5 h-3.5 text-saffron-400" />
                       <span className="text-temple-400">Odometer:</span>{' '}
-                      <span className="font-bold text-temple-100">{v.odometerKm.toLocaleString()} km</span>
+                      <span className="font-bold text-temple-100">{v.odometerKm.toLocaleString(appLocale())} km</span>
                     </p>
                     {v.driverName && (
                       <p className="flex items-center gap-1.5">
@@ -549,7 +550,7 @@ export const VahanFleetDesk: React.FC = () => {
                           <div className="space-y-1 max-h-44 overflow-y-auto">
                             {a.logs.slice(0, 10).map((l) => (
                               <div key={l.id} className="flex justify-between text-[11px] bg-temple-950/60 rounded-lg px-2.5 py-1.5 text-temple-300">
-                                <span>{l.logDate} • {l.litersFilled}L • {l.odometerKm.toLocaleString()} km</span>
+                                <span>{l.logDate} • {l.litersFilled}L • {l.odometerKm.toLocaleString(appLocale())} km</span>
                                 <span className="font-bold text-temple-100">{inr(l.totalCost)}</span>
                               </div>
                             ))}
@@ -647,7 +648,7 @@ export const VahanFleetDesk: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-temple-400 mb-4 font-mono">{loggingVehicle.registrationNo} • last: {Math.max(loggingVehicle.odometerKm, lastOdoFor(loggingVehicle.id)).toLocaleString()} km</p>
+            <p className="text-xs text-temple-400 mb-4 font-mono">{loggingVehicle.registrationNo} • last: {Math.max(loggingVehicle.odometerKm, lastOdoFor(loggingVehicle.id)).toLocaleString(appLocale())} km</p>
             <form onSubmit={handleLogFuel} className="space-y-4">
               <div><label className={labelCls}>{t('surfaces.vahanFleet.logDate')}</label><input type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} className={inputCls} /></div>
               <div><label className={labelCls}>{t('surfaces.vahanFleet.odometerKm2')}</label><input type="number" min={0} value={fOdo} onChange={(e) => setFOdo(e.target.value === '' ? '' : Number(e.target.value))} className={inputCls} /></div>
