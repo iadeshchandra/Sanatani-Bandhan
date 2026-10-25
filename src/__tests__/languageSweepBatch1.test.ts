@@ -67,12 +67,33 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     for (const core of [enCore, hiCore, bnCore]) {
       const vibe = (core as any).vibe as Record<string, string>;
       // B1's five greeting keys + VIBE B2's ten (Your-usual headings,
-      // offline sevak vocabulary, month-Panjika chrome) — the pin stays
-      // an EXACT set equality, extended to the newly authored truth.
+      // offline sevak vocabulary, month-Panjika chrome) + VIBE B3's 53
+      // (receipt card, mala thread, sevak microcopy, Sandhya chrome) —
+      // the pin stays an EXACT set equality, extended to the newly
+      // authored truth.
       expect(Object.keys(vibe).sort()).toEqual([
         'allSent', 'beginHere', 'greetAfternoon', 'greetEvening', 'greetMorning',
-        'nextMonth', 'noFestival', 'offlineWorking', 'panjikaMonthTitle',
-        'prevMonth', 'savedOnPhone', 'shubh', 'shubhMuhurat', 'today',
+        'malaBreakHere', 'malaBroken', 'malaChecked', 'malaIntact',
+        'malaMoreBeads', 'malaThreadNote', 'nextMonth', 'noFestival',
+        'offlineWorking', 'panjikaMonthTitle',
+        'prevMonth', 'receiptBlessing', 'receiptClose', 'receiptCopied',
+        'receiptDate', 'receiptMode', 'receiptNo', 'receiptOfferedBy',
+        'receiptPurpose', 'receiptShare', 'receiptShareLine', 'receiptTithi',
+        'receiptTitle', 'receiptView', 'sandhyaAuto', 'sandhyaAutoNote',
+        'sandhyaDesc', 'sandhyaOff', 'sandhyaOn', 'sandhyaTitle',
+        'savedOnPhone', 'sevakAddStockItem', 'sevakAnnadanamEmptyDesc',
+        'sevakAnnadanamEmptyTitle', 'sevakBookingsEmptyDesc',
+        'sevakBookingsEmptyTitle', 'sevakFundInflowsDesc',
+        'sevakGoshalaEmptyDesc', 'sevakGoshalaEmptyTitle',
+        'sevakGoshalaNoMatchDesc', 'sevakGoshalaNoMatchTitle',
+        'sevakInventoryEmptyDesc', 'sevakInventoryEmptyTitle',
+        'sevakInventoryNoMatchDesc', 'sevakInventoryNoMatchTitle',
+        'sevakNewBooking', 'sevakNoMatchDesc', 'sevakNoMatchTitle',
+        'sevakPostFirstVoucher', 'sevakSponsorFeast', 'sevakToastAmountFirst',
+        'sevakToastPdfFail', 'sevakToastPostFail', 'sevakToastPrintFail',
+        'sevakToastSlipPdfFail', 'sevakToastThermalSent', 'sevakTrailEmpty',
+        'sevakTrailEmptyTitle', 'sevakTreasuryFirstDesc', 'shubh',
+        'shubhMuhurat', 'today',
         'yourUsual',
       ]);
       for (const v of Object.values(vibe)) {

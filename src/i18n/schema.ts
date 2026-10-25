@@ -56,6 +56,64 @@ export interface TranslationSchema {
     prevMonth?: string;
     nextMonth?: string;
     today?: string;
+    // VIBE B3 (2026-10-25) — paper/polish pass: temple-acknowledgment
+    // receipt card, mala-thread trust visuals, sevak-voice microcopy
+    // for the swept empty states/toasts, and Sandhya Mode chrome.
+    // Authored in ALL 10 languages (the B3 completeness law: drafts
+    // must hold every runtime key English holds).
+    receiptTitle?: string;
+    receiptOfferedBy?: string;
+    receiptPurpose?: string;
+    receiptMode?: string;
+    receiptNo?: string;
+    receiptDate?: string;
+    receiptTithi?: string;
+    receiptBlessing?: string;
+    receiptShare?: string;
+    receiptCopied?: string;
+    receiptShareLine?: string;
+    receiptView?: string;
+    receiptClose?: string;
+    malaIntact?: string;
+    malaBroken?: string;
+    malaThreadNote?: string;
+    malaBreakHere?: string;
+    malaChecked?: string;
+    malaMoreBeads?: string;
+    sevakTreasuryFirstDesc?: string;
+    sevakPostFirstVoucher?: string;
+    sevakFundInflowsDesc?: string;
+    sevakNoMatchTitle?: string;
+    sevakNoMatchDesc?: string;
+    sevakInventoryEmptyTitle?: string;
+    sevakInventoryEmptyDesc?: string;
+    sevakInventoryNoMatchTitle?: string;
+    sevakInventoryNoMatchDesc?: string;
+    sevakAddStockItem?: string;
+    sevakBookingsEmptyTitle?: string;
+    sevakBookingsEmptyDesc?: string;
+    sevakNewBooking?: string;
+    sevakGoshalaEmptyTitle?: string;
+    sevakGoshalaEmptyDesc?: string;
+    sevakGoshalaNoMatchTitle?: string;
+    sevakGoshalaNoMatchDesc?: string;
+    sevakAnnadanamEmptyTitle?: string;
+    sevakAnnadanamEmptyDesc?: string;
+    sevakSponsorFeast?: string;
+    sevakTrailEmptyTitle?: string;
+    sevakTrailEmpty?: string;
+    sevakToastAmountFirst?: string;
+    sevakToastThermalSent?: string;
+    sevakToastPrintFail?: string;
+    sevakToastPdfFail?: string;
+    sevakToastPostFail?: string;
+    sevakToastSlipPdfFail?: string;
+    sandhyaTitle?: string;
+    sandhyaDesc?: string;
+    sandhyaOff?: string;
+    sandhyaOn?: string;
+    sandhyaAuto?: string;
+    sandhyaAutoNote?: string;
   };
   // Language Completion Sweep (2026-10-24) — surface copy wired out of
   // components into the dictionary, one bucket per surface. Index
