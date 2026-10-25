@@ -83,8 +83,9 @@ function usePanchangStrip(): PanchangStrip {
   }, [currentLang, rt]);
 }
 
-/** Low-end step-down: fewer cores / little memory / reduced motion. */
-function useSanctumLite(): boolean {
+/** Low-end step-down: fewer cores / little memory / reduced motion.
+ *  Exported (VIBE B2) so every sanctum surface steps down together. */
+export function useSanctumLite(): boolean {
   const reducedMotion = usePrefersReducedMotion();
   return useMemo(() => {
     if (reducedMotion) return true;

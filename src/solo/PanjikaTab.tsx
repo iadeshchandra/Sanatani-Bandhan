@@ -22,6 +22,7 @@ import { getRashifal, rashiName, RASHIFAL_DISCLAIMER, RASHIFAL_LABEL } from '../
 import { getCachedRegion } from '../lib/geoDetect';
 import type { ReminderKind } from './types';
 import { GuideButton } from '../components/suchana/GuideButton';
+import { PanjikaMonthGrid } from '../components/panjika/PanjikaMonthGrid';
 
 /* PanjikaTab — the Sanatani Panjika: one almanac, every tradition.
  * Regional calendar framework (10 traditions), daily panjika, festivals,
@@ -29,10 +30,11 @@ import { GuideButton } from '../components/suchana/GuideButton';
  * Offline-first: everything computed locally; festival DB bundled.
  */
 
-type Section = 'calendar' | 'today' | 'utsav' | 'muhurat' | 'vrata' | 'rashifal';
+type Section = 'calendar' | 'month' | 'today' | 'utsav' | 'muhurat' | 'vrata' | 'rashifal';
 
 const SECTIONS: Array<{ id: Section; en: string; bn: string; icon: string }> = [
   { id: 'calendar', en: 'Calendar', bn: 'বর্ষপঞ্জি', icon: '🗓️' },
+  { id: 'month', en: 'Month', bn: 'মাস', icon: '📆' },
   { id: 'today', en: "Today's Panjika", bn: 'আজকের পঞ্জিকা', icon: '☀️' },
   { id: 'utsav', en: 'Utsav', bn: 'উৎসব', icon: '🎉' },
   { id: 'muhurat', en: 'Shubh Muhurat', bn: 'শুভ মুহূর্ত', icon: '🔆' },
@@ -512,6 +514,19 @@ export const PanjikaTab: React.FC = () => {
               ))}
             </div>
           )}
+        </Card>
+      )}
+
+      {/* ============ MONTH (VIBE B2) ============ */}
+      {section === 'month' && (
+        <Card>
+          {/* The shared month-view Panjika — the SAME component the org
+              Panchang desk carries: every cell's tithi from the one
+              canonical engine, festival marks from the DB, the brass
+              Abhijit chip in the day detail. The regional 'Calendar'
+              section above stays untouched — it answers a different
+              question (the devotee's own regional reckoning). */}
+          <PanjikaMonthGrid />
         </Card>
       )}
 

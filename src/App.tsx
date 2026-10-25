@@ -66,7 +66,8 @@ import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
 import { QuickGuideProvider, useQuickGuide } from './context/QuickGuideContext';
 import { GlobalTelemetryModal } from './components/common/GlobalTelemetryModal';
 import { PlanLockedDesk } from './components/common/PlanLockedDesk';
-import { isModuleMountAllowed, requiredTierForModule, resolvePlanModuleId } from './lib/workspaceRegistry';
+import { isModuleMountAllowed, requiredTierForModule, resolvePlanModuleId, resolveOrgModuleId } from './lib/workspaceRegistry';
+import { recordUse } from './lib/usageStore';
 import { isModuleAllowedForOrgMount } from './lib/workspaceRegistry';
 import { OrgTypeRestrictedDesk } from './components/common/OrgTypeRestrictedDesk';
 import { DharmicQueryAssistant } from './components/common/DharmicQueryAssistant';
@@ -275,6 +276,19 @@ const AppContent: React.FC = () => {
   // the ERP sidebar/header/footer/demo-banner chrome must not leak around it.
   const isDevoteePreview = activeModule === 'devoteePortal' || activeModule === 'devotee-super-app';
   const hideErpChrome = effectiveRole === 'Devotee' || isDevoteePreview;
+
+  // VIBE B2: a desk that actually mounts is a real open — record it in
+  // the device-local usage store that orders the home's "Your usual"
+  // row (lib/usageStore; counts never leave the device). This mount
+  // point is the ONE place every entry path passes (Sidebar, Directory,
+  // palette, deep links, guide CTAs). Aliases resolve to canonical ids;
+  // shell surfaces carry no MODULE_CATALOG row and exclude themselves.
+  React.useEffect(() => {
+    if (!activeWorkspace?.id) return;
+    const canonical = resolveOrgModuleId(activeModule);
+    if (!MODULE_CATALOG.some((m) => m.id === canonical)) return;
+    recordUse(canonical, activeWorkspace.id);
+  }, [activeModule, activeWorkspace?.id]);
 
   // QUEUED #55: role-appropriate landing — the pure law lives in
   // lib/landingSurface; this block resolves the role evidence for THIS

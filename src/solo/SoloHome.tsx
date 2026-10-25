@@ -21,6 +21,8 @@ import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { PanchangHeader } from '../components/common/PanchangHeader';
+import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
+import { SoloUsualRow } from './SoloUsualRow';
 import { openDanaSheet } from '../lib/danaSheet';
 import {
   ChatFirstRunHint,
@@ -83,7 +85,7 @@ const VdaHomeNudge: React.FC<{ profile: { vdaAlias?: string } | null; goProfile:
   );
 };
 
-export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'receipts' | 'profile' | 'marketplace' | 'sangam' | 'wallet') => void }> = ({
+export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' | 'saved' | 'giving' | 'receipts' | 'profile' | 'marketplace' | 'sangam' | 'wallet' | 'samskara' | 'jyotish') => void }> = ({
   goTab,
 }) => {
   const { profile } = useSolo();
@@ -239,6 +241,12 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           <p className="text-sm text-temple-400 mt-1 font-mono">{profile?.id || 'SAN-…'}</p>
         </div>
       </PanchangHeader>
+
+      {/* VIBE B2 — the offline sevak strip + "Your usual": this
+          devotee's own most-used sadhana actions from device-local
+          usage (cold start: the starter set, plainly labelled). */}
+      <OfflineSevakStatus variant="bar" />
+      <SoloUsualRow goTab={goTab} />
 
       {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
           One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}

@@ -5,6 +5,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useData } from '../../context/DataContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { PanchangHeader } from '../common/PanchangHeader';
+import { OfflineSevakStatus } from '../common/OfflineSevakStatus';
+import { OrgUsualRow } from './OrgUsualRow';
 import { ShlokaCard, RoleHomeSwitch } from './RoleHome';
 import { GurukulHome } from './GurukulHome';
 import { useOrgGlanceRefresh } from '../../lib/orgGlanceSync';
@@ -157,6 +159,16 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           </div>
         </div>
       </PanchangHeader>
+
+      {/* VIBE B2 — the offline sevak strip: the real state of this
+          device's outbox, in the user's language (offline strength /
+          "Saved on this phone (n)" / "All sent"). */}
+      <OfflineSevakStatus variant="bar" />
+
+      {/* VIBE B2 — "Your usual": this member's own most-used desks
+          from device-local usage (cold start: the starter set, plainly
+          labelled). One tap deep, like everything on this home. */}
+      <OrgUsualRow onNavigate={handleNav} />
 
       {/* Sacred soul — identical for every role */}
       <ShlokaCard />

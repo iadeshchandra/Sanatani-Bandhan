@@ -8,6 +8,7 @@ import { recordCustodyEvent } from './custodyAuditBridge';
 import { custodyCloudSync } from '../context/data/custodySyncFirestore';
 import type { CustodyEvent } from './types';
 import { Tabs } from './ui';
+import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
 import { DashboardTab } from './DashboardTab';
 import { HundiTab } from './HundiTab';
 import { CountingTab } from './CountingTab';
@@ -75,6 +76,9 @@ const CashCustodyInner: React.FC = () => {
       </div>
 
       <div className="px-3 sm:px-6 py-4 max-w-7xl mx-auto">
+        {/* VIBE B2 — the offline sevak strip: custody work queues on
+            this device; its real state, in the user's language. */}
+        <OfflineSevakStatus variant="bar" className="mb-4" />
         <Tabs tabs={TABS} active={tab} onChange={setTab} />
         <div className="mt-4">
           {tab === 'dashboard' && <DashboardTab />}

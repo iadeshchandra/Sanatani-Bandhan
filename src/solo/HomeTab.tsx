@@ -16,6 +16,7 @@ import { SangamProvider } from '../sangam/sangamStore';
 import { WalletTab } from './WalletTab';
 import { SamskaraDesk } from '../samskara/SamskaraDesk';
 import { T } from './ui';
+import { recordUse } from '../lib/usageStore';
 import { pillRevealScrollLeft } from './subTabScroll';
 import { useFeatureFlag } from '../hooks/usePlatformStatus';
 
@@ -163,6 +164,13 @@ export const HomeTab: React.FC = () => {
   const marketplaceOn = useFeatureFlag('marketplace_enabled');
   const effectiveTab: SoloTabId =
     (tab === 'sangam' && !sangamOn) || (tab === 'marketplace' && !marketplaceOn) ? 'home' : tab;
+
+  // VIBE B2: a sub-tab that actually renders is a real open — record it
+  // in the device-local usage store (scope 'solo') that orders the Solo
+  // home's "Your usual" row. 'home' itself is not an action.
+  useEffect(() => {
+    if (effectiveTab !== 'home') recordUse(effectiveTab, 'solo');
+  }, [effectiveTab]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-5">

@@ -24,6 +24,7 @@ import {
   ArrowRight,
   Timer,
 } from 'lucide-react';
+import { PanjikaMonthGrid } from '../panjika/PanjikaMonthGrid';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useToast } from '../../context/ToastContext';
@@ -350,6 +351,18 @@ export const PanchangAstrologyEngine: React.FC = () => {
       {/* 3. MAIN DASHBOARD CONTENT                                                 */}
       {/* ========================================================================= */}
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        {/* ======================================================================= */}
+        {/* VIBE B2 — THE MONTH IN THE PANJIKA: the shared month grid (the  */}
+        {/* same component the Solo PanjikaTab carries). Every cell's      */}
+        {/* tithi is the canonical engine's; tapping a day selects it here */}
+        {/* AND drives this desk's own date state, so the limbs below open  */}
+        {/* on the same day. The light sanctum card is deliberate: the      */}
+        {/* panjika table laid on the desk.                               */}
+        {/* ======================================================================= */}
+        <section className="sanctum-header lamplight rounded-3xl border border-brass-200 p-4 sm:p-6">
+          <PanjikaMonthGrid onSelectDate={(iso) => setSelectedDateStr(iso)} />
+        </section>
+
         {/* ======================================================================= */}
         {/* A. THE 5 VEDIC LIMBS (PANCHANG DASHBOARD)                               */}
         {/* ======================================================================= */}

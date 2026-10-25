@@ -66,9 +66,19 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
   it('vibe greeting keys live in the runtime fragments', () => {
     for (const core of [enCore, hiCore, bnCore]) {
       const vibe = (core as any).vibe as Record<string, string>;
+      // B1's five greeting keys + VIBE B2's ten (Your-usual headings,
+      // offline sevak vocabulary, month-Panjika chrome) — the pin stays
+      // an EXACT set equality, extended to the newly authored truth.
       expect(Object.keys(vibe).sort()).toEqual([
-        'greetAfternoon', 'greetEvening', 'greetMorning', 'shubh', 'shubhMuhurat',
+        'allSent', 'beginHere', 'greetAfternoon', 'greetEvening', 'greetMorning',
+        'nextMonth', 'noFestival', 'offlineWorking', 'panjikaMonthTitle',
+        'prevMonth', 'savedOnPhone', 'shubh', 'shubhMuhurat', 'today',
+        'yourUsual',
       ]);
+      for (const v of Object.values(vibe)) {
+        expect(typeof v).toBe('string');
+        expect(v.length).toBeGreaterThan(0);
+      }
     }
   });
 });

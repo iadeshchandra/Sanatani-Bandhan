@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { KpiCardSkeleton, TableSkeleton } from '../common/DeskSkeletons';
 import { EmptyState } from '../common/EmptyState';
+import { OfflineSevakStatus } from '../common/OfflineSevakStatus';
 import { DataExportButton } from '../common/DataExportButton';
 import { formatDateIST } from '../../utils/format';
 import {
@@ -862,6 +863,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   return (
     <ErrorBoundary moduleName="Treasury Ledger">
       <div className="space-y-6">
+        {/* VIBE B2 — the offline sevak strip: treasury writes queue on
+            this device; its real state, in the user's language. */}
+        <OfflineSevakStatus variant="bar" />
         {/* Top Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-temple-950 via-temple-900 to-amber-950/70 border border-amber-500/30 p-6 rounded-3xl shadow-2xl">
           <div>
