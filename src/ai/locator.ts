@@ -46,6 +46,7 @@ import {
 } from '../lib/deskVisibility';
 import type { CallerScope } from './org/port';
 import { isWhereQuestion } from './navigation';
+import { labelFor, locatorOverlay } from './lang/shared';
 
 export type LocatorLang = 'en' | 'hi' | 'bn';
 export type TriText = Record<LocatorLang, string>;
@@ -84,8 +85,35 @@ const TAKE_ME: TriText = {
   bn: 'আমাকে সেখানে নিয়ে যান 🙏',
 };
 
-export function locatorTakeMeLabel(lang: LocatorLang): string {
-  return TAKE_ME[lang];
+export function locatorTakeMeLabel(lang: string): string {
+  const l = (lang || 'en').toLowerCase();
+  if (l === 'hi' || l === 'bn') return TAKE_ME[l];
+  // B2-C draft overlays carry their own take-me label (locator.takeMe).
+  return labelFor(l, 'locator.takeMe') ?? TAKE_ME.en;
+}
+
+/** The four locator sentence-frames in the asker's full language.
+ *  B2-C: draft languages resolve through their overlays; the catalogue
+ *  fragments (entry name/place/usedBy TriText) remain en/hi/bn with
+ *  English fallback — a registered residual, not a silent gap. */
+export interface LocatorFrames {
+  outOfScope: (usedBy: string) => string;
+  viaOrgsSuffix: string;
+  clarifyIntro: string;
+  dontKnow: string;
+}
+
+export function locatorFrames(lang: string): LocatorFrames {
+  const o = locatorOverlay(lang);
+  if (o) return o;
+  const l = (lang || 'en').toLowerCase();
+  const tri: LocatorLang = l === 'hi' || l === 'bn' ? l : 'en';
+  return {
+    outOfScope: LOCATOR_COPY.outOfScope[tri],
+    viaOrgsSuffix: LOCATOR_COPY.viaOrgsSuffix[tri],
+    clarifyIntro: LOCATOR_COPY.clarifyIntro[tri],
+    dontKnow: LOCATOR_COPY.dontKnow[tri],
+  };
 }
 
 /** Out-of-scope sentence frame: "…that desk is used by {usedBy}…". */

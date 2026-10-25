@@ -15,10 +15,14 @@
  */
 import { getDharmaEntry, isAnswerable, matchDharma } from '../dharma';
 import { suggestionsFor } from '../templates';
+import type { DharmaAnswer } from '../corpus/types';
 import type { TaskCtx, TaskOutcome } from '../types';
 
 export function dharmaQuestionTask(ctx: TaskCtx): TaskOutcome {
-  const lang = ctx.lang === 'hi' || ctx.lang === 'bn' ? ctx.lang : 'en';
+  // B2-C: all 10 languages admitted — the corpus carries merged draft
+  // overlays for ta/te/mr/gu/kn/ml/sa; anything unauthored falls back
+  // to English at the pick below, never blank.
+  const lang = (ctx.lang || 'en').toLowerCase();
 
   // Prefer the router's pre-matched entry; re-match as fallback.
   const fromSlot = ctx.slots['entryId'] ? getDharmaEntry(ctx.slots['entryId']) : undefined;
@@ -28,7 +32,8 @@ export function dharmaQuestionTask(ctx: TaskCtx): TaskOutcome {
   const entry = fromSlot ?? match?.entry;
 
   if (entry && match && isAnswerable(match)) {
-    const answerText = entry.answer[lang as 'en' | 'hi' | 'bn'] || entry.answer.en;
+    const answerText =
+      (entry.answer as DharmaAnswer & Record<string, string>)[lang] || entry.answer.en;
     const relatedLabels = match.related
       .map((r) => r.question_patterns[0])
       .filter(Boolean)

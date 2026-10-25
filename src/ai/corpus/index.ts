@@ -4,7 +4,8 @@
  * Combines all topic corpora into one registry. The matcher (dharma.ts)
  * reads from here; nothing else imports the topic files directly.
  */
-import type { DharmaCorpus, DharmaEntry } from './types';
+import type { DharmaAnswer, DharmaCorpus, DharmaEntry } from './types';
+import { DRAFT_LANGS, dharmaOverlay } from '../lang/shared';
 import { TITHI_CORPUS } from './tithi';
 import { FESTIVAL_CORPUS } from './festivals';
 import { PRACTICE_CORPUS } from './practice';
@@ -23,6 +24,20 @@ export const DHARMA_CORPUS: DharmaCorpus = [
   ...CONCEPT_CORPUS,
   ...ETIQUETTE_CORPUS,
 ];
+
+/* B2-C: merge the 7 draft-language overlays (answers + question
+ * patterns) into the corpus once at load. The topic files stay the
+ * en/hi/bn source of truth; overlay content lives in src/ai/lang/. */
+for (const e of DHARMA_CORPUS) {
+  for (const l of DRAFT_LANGS) {
+    const o = dharmaOverlay(l, e.id);
+    if (!o) continue;
+    if (o.answer) (e.answer as DharmaAnswer & Record<string, string>)[l] = o.answer;
+    if (Array.isArray(o.patterns) && o.patterns.length) {
+      e.question_patterns.push(...o.patterns);
+    }
+  }
+}
 
 /** Fast lookup by id. Built once at module load. */
 export const DHARMA_BY_ID: Map<string, DharmaEntry> = new Map(

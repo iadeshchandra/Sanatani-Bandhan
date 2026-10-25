@@ -14,6 +14,7 @@
  */
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
+import { labelFor } from '../lang/shared';
 import { orgOf } from './org_common';
 
 const KIND_LABELS: Record<string, Record<'en' | 'hi' | 'bn', string>> = {
@@ -52,13 +53,37 @@ export function orgApprovalsTask(ctx: TaskCtx): TaskOutcome {
       suggestions: suggestionsFor('org_pending_approvals', ctx.lang),
     };
   }
-  const l = ctx.lang === 'hi' || ctx.lang === 'bn' ? ctx.lang : 'en';
+  // B2-C: draft languages read their labels from the overlays
+  // (src/ai/lang/shared.labelFor); en/hi/bn keep the inline tables and
+  // anything unauthored falls back to the English label — never blank.
+  const l = (ctx.lang || 'en').toLowerCase();
+  const tri: 'en' | 'hi' | 'bn' = l === 'hi' || l === 'bn' ? l : 'en';
+  const kindLabel = (kind: string): string => {
+    if (tri !== 'en') return KIND_LABELS[kind]?.[tri] ?? kind;
+    if (l !== 'en') {
+      const overlayKey =
+        kind === 'treasury.payout' ? 'kind.payout'
+        : kind === 'payment.details' ? 'kind.payment_details'
+        : kind === 'role.grant' ? 'kind.role_grant'
+        : undefined;
+      const o = overlayKey ? labelFor(l, overlayKey) : undefined;
+      if (o) return o;
+    }
+    return KIND_LABELS[kind]?.en ?? kind;
+  };
+  const byLabel = tri !== 'en' ? BY_LABEL[tri] : (labelFor(l, 'approvals.by') ?? BY_LABEL.en);
+  const youRaw = tri !== 'en' ? YOU_LABEL[tri] : labelFor(l, 'approvals.you');
+  const youLabel = youRaw
+    ? youRaw.startsWith('(')
+      ? youRaw
+      : `(${youRaw})`
+    : YOU_LABEL.en;
   const lines = rows
     .slice(0, 6)
     .map((r) => {
-      const kind = KIND_LABELS[r.kind]?.[l] ?? r.kind;
+      const kind = kindLabel(r.kind);
       const amount = r.amount != null ? ` · ${port.formatAmount(r.amount)}` : '';
-      const who = r.mine ? YOU_LABEL[l] : `${BY_LABEL[l]} ${r.requestedByName}`;
+      const who = r.mine ? youLabel : `${byLabel} ${r.requestedByName}`;
       return `• ${kind} — ${r.summary}${amount} · ${who}`;
     })
     .join('\n');

@@ -57,8 +57,15 @@ export type IntentId =
   | 'admin_advise'
   | 'admin_growth';
 
-/** Languages with fully authored assistant templates today. */
-export type TemplateLang = 'en' | 'hi' | 'bn';
+/**
+ * Languages the assistant template system admits. en/hi/bn are fully
+ * authored inline in templates.ts; ta/te/mr/gu/kn/ml/sa are AI-authored
+ * DRAFT overlays in src/ai/lang/<code>.ts (Language Sweep B2-C), merged
+ * at module load. A language with no authored variant for a template
+ * falls back to English — never blank, never a wrong-language render.
+ */
+export type TemplateLang =
+  | 'en' | 'hi' | 'bn' | 'ta' | 'te' | 'mr' | 'gu' | 'kn' | 'ml' | 'sa';
 
 /** Any BCP-style language code the app supports (10 langs). */
 export type LangCode = string;
@@ -192,6 +199,17 @@ export interface TaskCtx {
 export interface TaskParams {
   [key: string]: string | number | unknown[] | Record<string, unknown>;
 }
+
+/** Render context handed to every template function: the asker's
+ * language/region plus regionalTerm() for culturally-loaded words. */
+export interface TemplateCtx {
+  lang: LangCode;
+  region: string;
+  term: (key: string) => string;
+}
+
+/** One authored template renderer (templates.ts + src/ai/lang overlays). */
+export type TemplateFn = (p: TaskParams, c: TemplateCtx) => string;
 
 /**
  * What an executor returns. `variant` selects a template variant

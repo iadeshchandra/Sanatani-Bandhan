@@ -1,16 +1,20 @@
 /**
  * Sanatani Bandhan — AI Assistant Phase 3 · Navigation corpus
  * =====================================================================
- * 35 destinations. Every route verified against App.tsx /
- * SoloWorkspaceShell.tsx. Answers are 1-2 warm sentences in EN/HI/BN;
- * the deep-link action carries the devotee the rest of the way.
+ * 34 destinations. Every route verified against App.tsx /
+ * SoloWorkspaceShell.tsx. Answers are 1-2 warm sentences in EN/HI/BN,
+ * plus AI-authored draft overlays for TA/TE/MR/GU/KN/ML/SA merged at
+ * load from src/ai/lang/<code>.ts (Language Sweep B2-C); the deep-link
+ * action carries the devotee the rest of the way.
  *
  * Sections within tab pages (Profile cards, Home cards) are named in
  * the answer text — the route takes them to the right tab.
  */
-import type { NavigationCorpus } from './navTypes';
+import type { NavAnswer, NavigationCorpus } from './navTypes';
+import { DRAFT_LANGS, navOverlay, navTakeMeOverlay } from '../lang/shared';
 
-const TAKE_ME: Record<'en' | 'hi' | 'bn', string> = {
+/** en/hi/bn authored + draft-language keys merged at load below. */
+const TAKE_ME: NavAnswer & Record<string, string> = {
   en: 'Take me there 🙏',
   hi: 'मुझे वहाँ ले चलें 🙏',
   bn: 'আমাকে সেখানে নিয়ে যান 🙏',
@@ -506,5 +510,23 @@ export const NAVIGATION_CORPUS: NavigationCorpus = [
     actionLabel: TAKE_ME,
   },
 ];
+
+/* B2-C: merge the 7 draft-language overlays once at load — entry
+ * answers + patterns, and the shared TAKE_ME CTA (every entry's
+ * actionLabel references this one record, so it updates them all). */
+for (const l of DRAFT_LANGS) {
+  const tm = navTakeMeOverlay(l);
+  if (tm) TAKE_ME[l] = tm;
+}
+for (const e of NAVIGATION_CORPUS) {
+  for (const l of DRAFT_LANGS) {
+    const o = navOverlay(l, e.id);
+    if (!o) continue;
+    if (o.answer) (e.answer as NavAnswer & Record<string, string>)[l] = o.answer;
+    if (Array.isArray(o.patterns) && o.patterns.length) {
+      e.patterns.push(...o.patterns);
+    }
+  }
+}
 
 export default NAVIGATION_CORPUS;

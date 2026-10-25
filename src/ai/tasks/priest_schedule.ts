@@ -12,6 +12,7 @@
  */
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
+import { labelFor } from '../lang/shared';
 import { orgOf, scheduleDateISO } from './org_common';
 
 const DAY_LABELS = {
@@ -27,8 +28,12 @@ export function priestScheduleTask(ctx: TaskCtx): TaskOutcome {
     return { params: { workspace: scope.workspaceName }, variant: 'scoped' };
   }
   const { iso, tomorrow } = scheduleDateISO(ctx.slots['when']);
-  const l = ctx.lang === 'hi' || ctx.lang === 'bn' ? ctx.lang : 'en';
-  const day = DAY_LABELS[tomorrow ? 'tomorrow' : 'today'][l];
+  const l = (ctx.lang || 'en').toLowerCase();
+  const dayKey = tomorrow ? 'tomorrow' : 'today';
+  const tri: 'en' | 'hi' | 'bn' = l === 'hi' || l === 'bn' ? l : 'en';
+  // B2-C: draft languages read day.today / day.tomorrow from the overlays.
+  const day = (l !== 'en' && tri === 'en' ? labelFor(l, `day.${dayKey}`) : undefined)
+    ?? DAY_LABELS[dayKey][tri];
   const rows = port
     .bookingsOn(iso)
     .filter((b) => b.status !== 'Cancelled')

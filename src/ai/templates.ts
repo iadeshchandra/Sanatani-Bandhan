@@ -1,16 +1,19 @@
 /**
  * Sanatani Bandhan — AI Assistant Phase 0 · response templates
  * =====================================================================
- * Every user-facing string the assistant can emit lives here — EN/HI/BN
- * fully authored. The other 7 languages (sa/ta/te/mr/gu/kn/ml) resolve via
- * the fallback chain lang → en and are NEVER shipped as empty strings.
+ * Every user-facing string the assistant can emit lives here. EN/HI/BN
+ * are fully authored inline; the other 7 languages (ta/te/mr/gu/kn/ml/sa)
+ * are authored as per-language overlay files in `src/ai/lang/<code>.ts`
+ * (Language Sweep B2-C) and merged into the tables at module load below.
+ * Any variant a language has not authored resolves via the fallback
+ * chain lang → en and is NEVER shipped as an empty string.
  *
- * TRANSLATION PIPELINE: to add a language, author the keys listed in
- * `ASSISTANT_TEMPLATE_KEYS` for that language, then mark them reviewed in
- * `src/i18n/translationQuality.ts` DRAFT_NAMESPACES (namespace
- * 'assistant.*'). Until then, `translationStatus(lang, 'assistant.…')`
- * reports them as drafts and the renderer serves English. Do NOT add empty
- * strings — the fallback chain is the contract.
+ * HONESTY: the 7 overlays are AI-authored DRAFT translations — the same
+ * honesty class as the draft UI dictionaries. `translationStatus(lang,
+ * 'assistant.…')` keeps reporting them as drafts (the 'assistant'
+ * namespace stays in DRAFT_NAMESPACES in src/i18n/translationQuality.ts)
+ * and native-speaker proofread remains the registered human follow-up.
+ * Do NOT add empty strings — the fallback chain is the contract.
  *
  * Culturally-loaded words (temple, priest, offering, blessing, greeting,
  * honorific) resolve through `regionalTerm()` with the asker's region, so a
@@ -19,7 +22,14 @@
  */
 
 import { regionalTerm } from '../i18n/regionalTerms';
-import type { IntentId, LangCode, TaskParams, TemplateLang } from './types';
+import type { IntentId, LangCode, TaskParams, TemplateCtx, TemplateFn, TemplateLang } from './types';
+import { TEMPLATES_TA, ORG_TA, SUGGESTIONS_TA } from './lang/ta';
+import { TEMPLATES_TE, ORG_TE, SUGGESTIONS_TE } from './lang/te';
+import { TEMPLATES_MR, ORG_MR, SUGGESTIONS_MR } from './lang/mr';
+import { TEMPLATES_GU, ORG_GU, SUGGESTIONS_GU } from './lang/gu';
+import { TEMPLATES_KN, ORG_KN, SUGGESTIONS_KN } from './lang/kn';
+import { TEMPLATES_ML, ORG_ML, SUGGESTIONS_ML } from './lang/ml';
+import { TEMPLATES_SA, ORG_SA, SUGGESTIONS_SA } from './lang/sa';
 
 export type TemplateKey = IntentId | 'crisis' | 'role_denied' | 'empty_input';
 
@@ -53,8 +63,18 @@ export const ASSISTANT_TEMPLATE_KEYS: string[] = [
   'assistant.suggestions',
 ];
 
-type Ctx = { lang: LangCode; region: string; term: (key: string) => string };
-type TFn = (p: TaskParams, c: Ctx) => string;
+type Ctx = TemplateCtx;
+type TFn = TemplateFn;
+
+/** A per-language renderer record: English is always present (the
+ * fallback anchor); every other admitted language is optional and,
+ * when absent, the renderer serves English — exactly the pre-B2-C
+ * honesty chain, now per-variant instead of per-language. */
+type LangMap<V> = { en: V } & Partial<Record<Exclude<TemplateLang, 'en'>, V>>;
+
+const TEMPLATE_LANGS: readonly TemplateLang[] = [
+  'en', 'hi', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'sa',
+];
 
 function ctxFor(lang: LangCode, region: string): Ctx {
   const l = (lang || 'en').toLowerCase();
@@ -64,7 +84,9 @@ function ctxFor(lang: LangCode, region: string): Ctx {
 
 function pickLang(lang: LangCode): TemplateLang {
   const l = (lang || 'en').toLowerCase();
-  return l === 'hi' || l === 'bn' ? l : 'en';
+  return (TEMPLATE_LANGS as readonly string[]).includes(l)
+    ? (l as TemplateLang)
+    : 'en';
 }
 
 /* ------------------------------------------------------------------ */
@@ -74,67 +96,67 @@ function pickLang(lang: LangCode): TemplateLang {
 /* Blueprint C — shared org-copilot renderer sets (see the org
  * section inside the table): identical scoped / no-org wording is
  * defined once here and referenced by every table it serves. */
-const ORG_SCOPED_TREASURY: Record<TemplateLang, TFn> = {
+const ORG_SCOPED_TREASURY: LangMap<TFn> = {
   en: (p) => `🙏 The treasury of ${p['workspace']} is looked after by its Trustee and Accountant — it isn't part of your desks here. If you help with the accounts, a Trustee can include the Treasury desk in your role.`,
   hi: (p) => `🙏 ${p['workspace']} का कोष उसके ट्रस्टी और अकाउंटेंट संभालते हैं — यह यहाँ आपके डेस्क में नहीं है। यदि आप हिसाब में सहायता करते हैं, तो ट्रस्टी आपकी भूमिका में कोष डेस्क जोड़ सकते हैं।`,
   bn: (p) => `🙏 ${p['workspace']}-এর তহবিল তার ট্রাস্টি ও হিসাবরক্ষক দেখেন — এটি এখানে আপনার ডেস্কের অংশ নয়। আপনি হিসাবে সাহায্য করলে ট্রাস্টি আপনার ভূমিকায় তহবিল ডেস্ক যোগ করতে পারেন।`,
 };
 
-const ORG_NO_ORG: Record<TemplateLang, TFn> = {
+const ORG_NO_ORG: LangMap<TFn> = {
   en: () => `🙏 I can answer that inside your organisation's workspace — open the org view and ask me there. Here in your personal space I look after your own sadhana and dana.`,
   hi: () => `🙏 इसका उत्तर मैं आपके संगठन के कार्यक्षेत्र में दे सकता हूँ — संगठन दृश्य खोलकर वहाँ पूछें। यहाँ आपके निजी स्थान में मैं आपकी साधना और दान का ध्यान रखता हूँ।`,
   bn: () => `🙏 এটির উত্তর আমি আপনার সংগঠনের ওয়ার্কস্পেসে দিতে পারি — সংগঠন ভিউ খুলে সেখানে জিজ্ঞাসা করুন। এখানে আপনার ব্যক্তিগত জায়গায় আমি আপনার সাধনা ও দানের খেয়াল রাখি।`,
 };
 
-const ORG_NO_ORG_SHORT: Record<TemplateLang, TFn> = {
+const ORG_NO_ORG_SHORT: LangMap<TFn> = {
   en: () => `🙏 I can answer that inside your organisation's workspace — open the org view and ask me there.`,
   hi: () => `🙏 इसका उत्तर मैं आपके संगठन के कार्यक्षेत्र में दे सकता हूँ — संगठन दृश्य खोलकर वहाँ पूछें।`,
   bn: () => `🙏 এটির উত্তর আমি আপনার সংগঠনের ওয়ার্কস্পেসে দিতে পারি — সংগঠন ভিউ খুলে সেখানে জিজ্ঞাসা করুন।`,
 };
 
-const ORG_GIVING_SUMMARY: Record<TemplateLang, TFn> = {
+const ORG_GIVING_SUMMARY: LangMap<TFn> = {
       en: (p) => `🪔 ${p['period']} at ${p['workspace']}, devotees gave ${p['total']} in ${p['count']} dana.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']})`,
       hi: (p) => `🪔 ${p['period']}, ${p['workspace']} में भक्तों ने ${p['count']} दान में कुल ${p['total']} दिया।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष)`,
       bn: (p) => `🪔 ${p['period']} ${p['workspace']}-এ ভক্তরা ${p['count']}টি দানে মোট ${p['total']} দিয়েছেন।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল)`,
 };
 
-const ORG_EXPENSES_SUMMARY: Record<TemplateLang, TFn> = {
+const ORG_EXPENSES_SUMMARY: LangMap<TFn> = {
       en: (p) => `📒 ${p['period']} at ${p['workspace']}, ${p['total']} was spent in ${p['count']} expenses.\n${p['lines']}\n(Source: the Treasury of ${p['workspace']})`,
       hi: (p) => `📒 ${p['period']}, ${p['workspace']} में ${p['count']} खर्चों में कुल ${p['total']} व्यय हुआ।\n${p['lines']}\n(स्रोत: ${p['workspace']} का कोष)`,
       bn: (p) => `📒 ${p['period']} ${p['workspace']}-এ ${p['count']}টি খরচে মোট ${p['total']} ব্যয় হয়েছে।\n${p['lines']}\n(উৎস: ${p['workspace']}-এর তহবিল)`,
 };
 
-const ORG_APPROVALS_LIST: Record<TemplateLang, TFn> = {
+const ORG_APPROVALS_LIST: LangMap<TFn> = {
       en: (p) => `⏳ ${p['count']} requests are waiting at ${p['workspace']}:\n${p['lines']}\nEach one is decided by a different Trustee or Accountant in the Approvals panel — I can show the queue, but the decision itself stays there.`,
       hi: (p) => `⏳ ${p['workspace']} में ${p['count']} अनुरोध प्रतीक्षारत हैं:\n${p['lines']}\nप्रत्येक का निर्णय अनुमोदन पैनल में कोई अन्य ट्रस्टी या अकाउंटेंट करता है — मैं सूची दिखा सकता हूँ, निर्णय वहीं होता है।`,
       bn: (p) => `⏳ ${p['workspace']}-এ ${p['count']}টি অনুরোধ অপেক্ষমাণ:\n${p['lines']}\nপ্রতিটির সিদ্ধান্ত অনুমোদন প্যানেলে অন্য কোনো ট্রাস্টি বা হিসাবরক্ষক দেন — আমি তালিকা দেখাতে পারি, সিদ্ধান্ত সেখানেই হয়।`,
 };
 
-const ORG_SCHEDULE_LIST: Record<TemplateLang, TFn> = {
+const ORG_SCHEDULE_LIST: LangMap<TFn> = {
       en: (p) => `🌅 ${p['day']} at ${p['workspace']} — ${p['count']} puja bookings:\n${p['lines']}`,
       hi: (p) => `🌅 ${p['day']}, ${p['workspace']} — ${p['count']} पूजा बुकिंग:\n${p['lines']}`,
       bn: (p) => `🌅 ${p['day']}, ${p['workspace']} — ${p['count']}টি পূজা বুকিং:\n${p['lines']}`,
 };
 
-const ORG_DONATION_DRAFT: Record<TemplateLang, TFn> = {
+const ORG_DONATION_DRAFT: LangMap<TFn> = {
       en: (p) => `🪔 I have prepared the donation draft below — please check every field. Nothing is recorded until you tap Approve.\n${p['summary']}`,
       hi: (p) => `🪔 दान का मसौदा नीचे तैयार है — कृपया हर विवरण जाँचें। जब तक आप अनुमोदन नहीं दबाते, कुछ भी दर्ज नहीं होगा।\n${p['summary']}`,
       bn: (p) => `🪔 দানের খসড়া নিচে তৈরি — প্রতিটি তথ্য যাচাই করুন। আপনি অনুমোদন না চাপলে কিছুই লেখা হবে না।\n${p['summary']}`,
 };
 
-const ORG_EXPENSE_DRAFT: Record<TemplateLang, TFn> = {
+const ORG_EXPENSE_DRAFT: LangMap<TFn> = {
       en: (p) => `🧾 I have prepared the expense draft below — please check every field. Nothing is recorded until you tap Approve.\n${p['summary']}`,
       hi: (p) => `🧾 खर्च का मसौदा नीचे तैयार है — कृपया हर विवरण जाँचें। जब तक आप अनुमोदन नहीं दबाते, कुछ भी दर्ज नहीं होगा।\n${p['summary']}`,
       bn: (p) => `🧾 খরচের খসড়া নিচে তৈরি — প্রতিটি তথ্য যাচাই করুন। আপনি অনুমোদন না চাপলে কিছুই লেখা হবে না।\n${p['summary']}`,
 };
 
-const ORG_NOTICE_DRAFT: Record<TemplateLang, TFn> = {
+const ORG_NOTICE_DRAFT: LangMap<TFn> = {
       en: (p) => `📣 Your notice draft is ready below — please read it once before approving. It reaches the org's followers only when you tap Approve.\n${p['summary']}`,
       hi: (p) => `📣 आपकी सूचना का मसौदा नीचे तैयार है — अनुमोदन से पहले एक बार पढ़ लें। यह संगठन के अनुयायियों तक तभी पहुँचेगी जब आप अनुमोदन दबाएँगे।\n${p['summary']}`,
       bn: (p) => `📣 আপনার বিজ্ঞপ্তির খসড়া নিচে তৈরি — অনুমোদনের আগে একবার পড়ে নিন। আপনি অনুমোদন চাপলেই এটি সংগঠনের অনুসরণকারীদের কাছে পৌঁছাবে।\n${p['summary']}`,
 };
 
-const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
+const T: Record<TemplateKey, Record<string, LangMap<TFn>>> = {
   /* ---------------- navigate ---------------- */
   navigate: {
     destination: {
@@ -899,7 +921,7 @@ const T: Record<TemplateKey, Record<string, Record<TemplateLang, TFn>>> = {
 /* Suggestion chips: follow-up questions per intent × language.         */
 /* ------------------------------------------------------------------ */
 
-const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
+const SUGGESTIONS: Record<IntentId, LangMap<string[]>> = {
   navigate: {
     en: ['Open my profile', 'Show Suchana', 'Take me home'],
     hi: ['मेरी प्रोफ़ाइल खोलो', 'सूचना खोलो', 'होम ले चलो'],
@@ -1077,6 +1099,63 @@ const SUGGESTIONS: Record<IntentId, Record<TemplateLang, string[]>> = {
   },
 };
 
+/* ------------------------------------------------------------------ */
+/* B2-C draft-language overlays (src/ai/lang/<code>.ts). Each overlay  */
+/* authors the NON-ADMIN variants in its own script; the admin_*       */
+/* templates stay en/hi/bn (owner tooling). The merge runs once at     */
+/* module load, before any render: shared ORG_* sets first (the table  */
+/* references them by identity), then per-key variants, then chips.    */
+/* A slot an overlay does not author simply stays absent and the       */
+/* renderer falls back to English for that variant — never blank.      */
+/* ------------------------------------------------------------------ */
+
+const ORG_SETS: Record<string, LangMap<TFn>> = {
+  ORG_SCOPED_TREASURY,
+  ORG_NO_ORG,
+  ORG_NO_ORG_SHORT,
+  ORG_GIVING_SUMMARY,
+  ORG_EXPENSES_SUMMARY,
+  ORG_APPROVALS_LIST,
+  ORG_SCHEDULE_LIST,
+  ORG_DONATION_DRAFT,
+  ORG_EXPENSE_DRAFT,
+  ORG_NOTICE_DRAFT,
+};
+
+const OVERLAYS: Array<{
+  lang: Exclude<TemplateLang, 'en' | 'hi' | 'bn'>;
+  templates: Record<string, Record<string, TFn>>;
+  org: Record<string, TFn>;
+  suggestions: Record<string, string[]>;
+}> = [
+  { lang: 'ta', templates: TEMPLATES_TA, org: ORG_TA, suggestions: SUGGESTIONS_TA },
+  { lang: 'te', templates: TEMPLATES_TE, org: ORG_TE, suggestions: SUGGESTIONS_TE },
+  { lang: 'mr', templates: TEMPLATES_MR, org: ORG_MR, suggestions: SUGGESTIONS_MR },
+  { lang: 'gu', templates: TEMPLATES_GU, org: ORG_GU, suggestions: SUGGESTIONS_GU },
+  { lang: 'kn', templates: TEMPLATES_KN, org: ORG_KN, suggestions: SUGGESTIONS_KN },
+  { lang: 'ml', templates: TEMPLATES_ML, org: ORG_ML, suggestions: SUGGESTIONS_ML },
+  { lang: 'sa', templates: TEMPLATES_SA, org: ORG_SA, suggestions: SUGGESTIONS_SA },
+];
+
+for (const o of OVERLAYS) {
+  for (const [name, fn] of Object.entries(o.org)) {
+    const set = ORG_SETS[name];
+    if (set && typeof fn === 'function') set[o.lang] = fn;
+  }
+  for (const [key, variants] of Object.entries(o.templates)) {
+    const table = (T as Record<string, Record<string, LangMap<TFn>>>)[key];
+    if (!table) continue;
+    for (const [variant, fn] of Object.entries(variants)) {
+      const rec = table[variant];
+      if (rec && typeof fn === 'function') rec[o.lang] = fn;
+    }
+  }
+  for (const [intent, chips] of Object.entries(o.suggestions)) {
+    const rec = (SUGGESTIONS as Record<string, LangMap<string[]>>)[intent];
+    if (rec && Array.isArray(chips) && chips.length) rec[o.lang] = chips;
+  }
+}
+
 export function suggestionsFor(intent: IntentId, lang: LangCode): string[] {
   const table = SUGGESTIONS[intent];
   if (!table) return [];
@@ -1123,11 +1202,24 @@ export function renderTemplate(
   }
 }
 
-/** Every template key × variant × authored language — for pipeline QA. */
+/** Template key → its variant names — for pipeline QA / coverage tests. */
+export function templateVariantMap(): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const key of Object.keys(T) as TemplateKey[]) out[key] = Object.keys(T[key]);
+  return out;
+}
+
+/** Every template key × variant × authored language — for pipeline QA.
+ *  langs are DERIVED from the merged records (post-overlay), so this
+ *  inventory can never claim a language the renderer cannot serve. */
 export function templateInventory(): Array<{ key: TemplateKey; variant: string; langs: TemplateLang[] }> {
-  return (Object.keys(T) as TemplateKey[]).map((key) => ({
-    key,
-    variant: '__all__',
-    langs: (Object.keys(T[key]) as string[]).length ? ['en', 'hi', 'bn'] : [],
-  }));
+  const out: Array<{ key: TemplateKey; variant: string; langs: TemplateLang[] }> = [];
+  for (const key of Object.keys(T) as TemplateKey[]) {
+    const seen = new Set<TemplateLang>();
+    for (const variant of Object.keys(T[key])) {
+      for (const l of Object.keys(T[key][variant]) as TemplateLang[]) seen.add(l);
+    }
+    out.push({ key, variant: '__all__', langs: TEMPLATE_LANGS.filter((l) => seen.has(l)) });
+  }
+  return out;
 }

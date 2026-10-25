@@ -15,6 +15,15 @@ export interface NavAnswer {
   en: string;
   hi: string;
   bn: string;
+  /** B2-C draft overlays (src/ai/lang/<code>.ts), merged at load in
+   *  corpus/navigation.ts. Optional: unauthored → en fallback. */
+  ta?: string;
+  te?: string;
+  mr?: string;
+  gu?: string;
+  kn?: string;
+  ml?: string;
+  sa?: string;
 }
 
 export interface NavTarget {

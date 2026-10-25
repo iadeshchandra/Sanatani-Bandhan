@@ -23,6 +23,7 @@
  * 2. Curated major tirthas (bundled, offline) — labelled as such
  */
 import { CURATED_TIRTHAS, type CuratedTirtha } from '../corpus/tirthas';
+import { labelFor } from '../lang/shared';
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
 // NOTE: firebase/firestore is imported dynamically inside
@@ -55,11 +56,16 @@ export function formatDistance(km: number, lang: string): string {
     const m = Math.round(km * 1000);
     if (lang === 'bn') return `${m} মি`;
     if (lang === 'hi') return `${m} मी`;
+    // B2-C draft overlays: nearby.m / nearby.km unit suffixes.
+    const ms = labelFor(lang, 'nearby.m');
+    if (ms) return `${m} ${ms}`;
     return `${m}m`;
   }
   const k = km < 10 ? km.toFixed(1) : Math.round(km).toString();
   if (lang === 'bn') return `${k} কিমি`;
   if (lang === 'hi') return `${k} किमी`;
+  const ks = labelFor(lang, 'nearby.km');
+  if (ks) return `${k} ${ks}`;
   return `${k}km`;
 }
 
@@ -96,8 +102,8 @@ export function findNearbyCurated(
   if (!validCoords(lat, lng)) return [];
   return CURATED_TIRTHAS.map((t) => {
     const distanceKm = haversineKm(lat, lng, t.lat, t.lng);
-    const name =
-      lang === 'bn' ? t.name.bn : lang === 'hi' ? t.name.hi : t.name.en;
+    // B2-C: tirtha names carry merged draft overlays (corpus/tirthas.ts).
+    const name = (t.name as Record<string, string>)[lang] || t.name.en;
     return {
       name, distanceKm,
       distanceLabel: formatDistance(distanceKm, lang),
@@ -148,7 +154,7 @@ async function queryCampusMapsNear(
       const distanceKm = haversineKm(lat, lng, clat, clng);
       if (distanceKm > maxKm) return;
       out.push({
-        name: m.orgName || (lang === 'bn' ? 'মন্দির' : lang === 'hi' ? 'मंदिर' : 'Temple'),
+        name: m.orgName || (lang === 'bn' ? 'মন্দির' : lang === 'hi' ? 'मंदिर' : (labelFor(lang, 'nearby.temple') ?? 'Temple')),
         distanceKm,
         distanceLabel: formatDistance(distanceKm, lang),
         source: 'community',
@@ -172,7 +178,10 @@ async function queryCampusMapsNear(
 export async function findNearbyTemples(
   lat: number, lng: number, lang: string
 ): Promise<NearbyResult> {
-  const lc = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
+  // B2-C: the full language code flows through (no collapse to en) —
+  // draft languages resolve via the overlays inside formatDistance,
+  // the tirtha name pick and the generic temple word; en stays default.
+  const lc = (lang || 'en').toLowerCase();
   if (!validCoords(lat, lng)) {
     return { temples: [], fromCurated: false, empty: true };
   }

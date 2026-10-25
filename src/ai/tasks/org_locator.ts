@@ -26,9 +26,9 @@
  * list, exactly like tasks/navigation.ts re-matches its corpus.
  */
 import {
-  LOCATOR_COPY,
   canOpenEntry,
   isLocatable,
+  locatorFrames,
   locatorTakeMeLabel,
   matchLocator,
   type LocatorEntry,
@@ -46,7 +46,12 @@ function headed(entry: LocatorEntry, lang: LocatorLang): string {
 }
 
 export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
+  // Catalogue fragments (name/place/usedBy) stay on the en/hi/bn
+  // TriText pick; the sentence FRAMES and the take-me label resolve in
+  // the asker's full language via the B2-C overlays (locatorFrames).
   const lang = langOf(ctx);
+  const frames = locatorFrames(ctx.lang);
+  const takeMe = locatorTakeMeLabel(ctx.lang);
   const suggestions = suggestionsFor('org_locator', ctx.lang);
   const m = matchLocator(ctx.input);
 
@@ -58,7 +63,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
     );
     return {
       params: {
-        answer: `${LOCATOR_COPY.clarifyIntro[lang]}\n${lines.join('\n')}`,
+        answer: `${frames.clarifyIntro}\n${lines.join('\n')}`,
       },
       variant: 'clarify',
       suggestions,
@@ -68,7 +73,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   // Nothing taught for this name — warm honesty, never a guess.
   if (!isLocatable(m) || !m.best) {
     return {
-      params: { answer: LOCATOR_COPY.dontKnow[lang] },
+      params: { answer: frames.dontKnow },
       variant: 'clarify',
       suggestions,
     };
@@ -84,7 +89,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
       params: { answer: headed(entry, lang) },
       variant: 'answer',
       action: entry.route
-        ? { kind: 'navigate', target: entry.route, label: locatorTakeMeLabel(lang) }
+        ? { kind: 'navigate', target: entry.route, label: takeMe }
         : undefined,
       suggestions,
     };
@@ -97,7 +102,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
         params: { answer: headed(entry, lang) },
         variant: 'answer',
         action: entry.deskId
-          ? { kind: 'openDesk', target: entry.deskId, label: locatorTakeMeLabel(lang) }
+          ? { kind: 'openDesk', target: entry.deskId, label: takeMe }
           : undefined,
         suggestions,
       };
@@ -106,7 +111,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
     // is — kindly, and with NO deep-link (RBAC honesty law).
     return {
       params: {
-        answer: `${headed(entry, lang)} ${LOCATOR_COPY.outOfScope[lang](entry.usedBy[lang])}`,
+        answer: `${headed(entry, lang)} ${frames.outOfScope(entry.usedBy[lang])}`,
       },
       variant: 'answer',
       suggestions,
@@ -116,10 +121,10 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   // Org feature asked from a solo session: the corpus-style path in.
   return {
     params: {
-      answer: `${headed(entry, lang)} ${LOCATOR_COPY.viaOrgsSuffix[lang]}`,
+      answer: `${headed(entry, lang)} ${frames.viaOrgsSuffix}`,
     },
     variant: 'answer',
-    action: { kind: 'navigate', target: '/app/orgs', label: locatorTakeMeLabel(lang) },
+    action: { kind: 'navigate', target: '/app/orgs', label: takeMe },
     suggestions,
   };
 }

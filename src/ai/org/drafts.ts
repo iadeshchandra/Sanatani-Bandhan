@@ -20,6 +20,7 @@
  */
 
 import { payoutNeedsApproval } from '../../lib/approvals';
+import { labelFor } from '../lang/shared';
 
 export type CopilotDraft =
   | {
@@ -228,7 +229,10 @@ export function draftPreviewLines(
   formatAmount: (n: number) => string
 ): DraftLine[] {
   const l = pickDraftLang(lang);
-  const L = (k: string) => LINE_LABELS[k][l];
+  // B2-C: draft languages (ta/te/mr/gu/kn/ml/sa) read their line labels
+  // from the overlays; en/hi/bn keep LINE_LABELS — labelFor is undefined
+  // for them, and for any key an overlay did not author.
+  const L = (k: string) => labelFor(lang, `draft.${k}`) ?? LINE_LABELS[k][l];
   const lines: DraftLine[] = [];
   if (draft.kind === 'notice') {
     lines.push({ key: 'title', label: L('title'), value: draft.title, editable: 'text', field: 'title' });

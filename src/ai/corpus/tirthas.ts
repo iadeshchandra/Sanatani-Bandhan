@@ -9,11 +9,17 @@
  * Coordinates are for widely-known sites only. This list NEVER leaves
  * the device; it is bundled data, not a network call.
  */
+import { DRAFT_LANGS, tirthaNameOverlay } from '../lang/shared';
 
 export interface CuratedTirtha {
   id: string;
-  /** Display names per language. */
-  name: { en: string; hi: string; bn: string };
+  /** Display names per language. The 7 draft fields are B2-C overlays
+   *  (src/ai/lang/<code>.ts), merged at load below; absent → en. */
+  name: {
+    en: string; hi: string; bn: string;
+    ta?: string; te?: string; mr?: string; gu?: string;
+    kn?: string; ml?: string; sa?: string;
+  };
   lat: number;
   lng: number;
   kind: 'chardham' | 'jyotirlinga';
@@ -98,3 +104,11 @@ export const CURATED_TIRTHAS: CuratedTirtha[] = [
     lat: 19.7253, lng: 75.1235, kind: 'jyotirlinga',
   },
 ];
+
+/* B2-C: merge the 7 draft-language tirtha names once at load. */
+for (const t of CURATED_TIRTHAS) {
+  for (const l of DRAFT_LANGS) {
+    const n = tirthaNameOverlay(l, t.id);
+    if (n) (t.name as Record<string, string>)[l] = n;
+  }
+}

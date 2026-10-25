@@ -15,10 +15,13 @@
  */
 import { getNavigationEntry, isNavigable, matchNavigation } from '../navigation';
 import { suggestionsFor } from '../templates';
+import type { NavAnswer } from '../corpus/navTypes';
 import type { TaskCtx, TaskOutcome } from '../types';
 
 export function navigationQuestionTask(ctx: TaskCtx): TaskOutcome {
-  const lang = ctx.lang === 'hi' || ctx.lang === 'bn' ? ctx.lang : 'en';
+  // B2-C: all 10 languages admitted — merged draft overlays serve
+  // ta/te/mr/gu/kn/ml/sa; anything unauthored falls back to English.
+  const lang = (ctx.lang || 'en').toLowerCase();
 
   // Prefer the router's pre-matched entry; re-match as fallback.
   const fromSlot = ctx.slots['entryId'] ? getNavigationEntry(ctx.slots['entryId']) : undefined;
@@ -26,8 +29,11 @@ export function navigationQuestionTask(ctx: TaskCtx): TaskOutcome {
   const entry = fromSlot ?? match?.entry;
 
   if (entry && match && isNavigable(match)) {
-    const answerText = entry.answer[lang] || entry.answer.en;
-    const label = (entry.actionLabel?.[lang] || entry.actionLabel?.en) ?? '';
+    const answerText =
+      (entry.answer as NavAnswer & Record<string, string>)[lang] || entry.answer.en;
+    const label =
+      ((entry.actionLabel as (NavAnswer & Record<string, string>) | undefined)?.[lang] ||
+        entry.actionLabel?.en) ?? '';
     return {
       params: {
         answer: answerText,

@@ -14,6 +14,15 @@ export interface DharmaAnswer {
   en: string;
   hi: string;
   bn: string;
+  /** B2-C draft overlays (src/ai/lang/<code>.ts), merged at load in
+   *  corpus/index.ts. Optional: an unauthored language falls back to en. */
+  ta?: string;
+  te?: string;
+  mr?: string;
+  gu?: string;
+  kn?: string;
+  ml?: string;
+  sa?: string;
 }
 
 export interface DharmaEntry {

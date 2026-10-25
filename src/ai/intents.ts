@@ -16,6 +16,7 @@ import { matchDharma } from './dharma';
 import { isWhereQuestion, matchNavigation } from './navigation';
 import { isLocatorQuestion, matchLocator } from './locator';
 import { routeCopilotIntent } from './godmode/copilot';
+import { overlayDestKeywords, overlayKeywords } from './lang/shared';
 
 export interface IntentDef {
   id: IntentId;
@@ -193,6 +194,26 @@ const GREETING_KW = [
   'suprabhat', 'shubh prabhat', 'sat sri akal',
 ];
 
+/* B2-C: draft-language router keywords (KEYWORDS_* in src/ai/lang/<code>.ts)
+ * unioned into the tables above, so a question typed in Tamil, Telugu,
+ * Marathi, Gujarati, Kannada, Malayalam or Sanskrit routes to the same
+ * intents the en/hi/bn keywords reach — the 2026-10-20 chip-routing
+ * lesson: a language without router keywords silently behaved English.
+ * Matching is language-agnostic (word-boundary, script-safe). */
+TITHI_KW.push(...overlayKeywords('tithi'));
+FESTIVAL_KW.push(...overlayKeywords('festival'));
+DANA_KW.push(...overlayKeywords('dana'));
+SADHANA_KW.push(...overlayKeywords('sadhana'));
+TIRTHA_KW.push(...overlayKeywords('tirtha'));
+NEARBY_KW.push(...overlayKeywords('nearby'));
+BOOKING_VERB_KW.push(...overlayKeywords('booking'));
+LANGUAGE_KW.push(...overlayKeywords('language'));
+SOS_HELP_KW.push(...overlayKeywords('sos'));
+VOICE_UPGRADE_KW.push(...overlayKeywords('voiceUpgrade'));
+NAVIGATE_KW.push(...overlayKeywords('navigate'));
+HOWTO_KW.push(...overlayKeywords('howto'));
+GREETING_KW.push(...overlayKeywords('greeting'));
+
 /** Destination keyword → route path. Keep in sync with ARCHITECTURE.md §4. */
 const DESTINATION_MAP: Array<{ keywords: string[]; path: string; label: string }> = [
   { keywords: ['home', 'होम', 'হোম', 'dashboard'], path: '/app/home', label: 'Home' },
@@ -211,6 +232,13 @@ const DESTINATION_MAP: Array<{ keywords: string[]; path: string; label: string }
   { keywords: ['chat', 'messages', 'my chats'], path: '/app/chat', label: 'Chat' },
   { keywords: ['wallet', 'my wallet', 'seva wallet'], path: '/app/profile', label: 'Wallet' },
 ];
+
+/* B2-C: native-script destination keywords from the draft overlays
+ * (DEST_* in src/ai/lang/<code>.ts), appended per route path. */
+for (const dest of DESTINATION_MAP) {
+  const extra = overlayDestKeywords(dest.path);
+  if (extra.length) dest.keywords.push(...extra);
+}
 
 /** Module keyword → module guide id (see src/lib/moduleGuides.ts). */
 const GUIDE_KEYWORD_MAP: Array<{ keywords: string[]; guideId: string }> = [

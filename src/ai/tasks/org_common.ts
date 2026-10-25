@@ -9,6 +9,7 @@
 
 import type { TaskCtx } from '../types';
 import type { OrgAssistantContext } from '../org/port';
+import { labelFor } from '../lang/shared';
 import {
   monthStartISO,
   todayISO,
@@ -43,7 +44,9 @@ const PERIOD_LABELS: Record<OrgPeriod, Record<'en' | 'hi' | 'bn', string>> = {
 export function periodLabel(period: OrgPeriod, lang: string): string {
   const l = (lang || 'en').toLowerCase();
   const t = PERIOD_LABELS[period];
-  return l === 'hi' || l === 'bn' ? t[l] : t.en;
+  if (l === 'hi' || l === 'bn') return t[l];
+  // B2-C draft overlays (period.today / period.week / period.month).
+  return labelFor(l, `period.${period}`) ?? t.en;
 }
 
 /** ISO date for the schedule executor's 'today' | 'tomorrow' slot. */
