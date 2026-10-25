@@ -17,6 +17,16 @@ export const core: CoreFragment = {
       greetEvening: "Shubh Sandhya",
       shubh: "Shubh",
       shubhMuhurat: "Shubh Muhurat",
+      yourUsual: "Your usual",
+      beginHere: "Begin here",
+      offlineWorking: "You are offline — everything keeps working",
+      savedOnPhone: "Saved on this phone ({count})",
+      allSent: "All sent",
+      panjikaMonthTitle: "The month in the Panjika",
+      noFestival: "No festival this day",
+      prevMonth: "Previous month",
+      nextMonth: "Next month",
+      today: "Today",
     },
     surfaces: {
       landing: {

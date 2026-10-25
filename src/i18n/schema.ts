@@ -41,6 +41,21 @@ export interface TranslationSchema {
     greetEvening?: string;
     shubh?: string;
     shubhMuhurat?: string;
+    // VIBE B2 (2026-10-25) — "Your usual" row headings, the offline
+    // sevak vocabulary, and the month-view Panjika chrome. Authored
+    // en/hi/bn; the 7 drafts carry them too (AI-draft class, like all
+    // draft content since the B3 completeness law) — drafts must hold
+    // every runtime key English holds.
+    yourUsual?: string;
+    beginHere?: string;
+    offlineWorking?: string;
+    savedOnPhone?: string;
+    allSent?: string;
+    panjikaMonthTitle?: string;
+    noFestival?: string;
+    prevMonth?: string;
+    nextMonth?: string;
+    today?: string;
   };
   // Language Completion Sweep (2026-10-24) — surface copy wired out of
   // components into the dictionary, one bucket per surface. Index

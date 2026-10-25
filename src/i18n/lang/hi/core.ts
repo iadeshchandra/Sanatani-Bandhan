@@ -17,6 +17,16 @@ export const core: CoreFragment = {
       greetEvening: "शुभ संध्या",
       shubh: "शुभ",
       shubhMuhurat: "शुभ मुहूर्त",
+      yourUsual: "आपके नित्य कार्य",
+      beginHere: "यहाँ से आरंभ करें",
+      offlineWorking: "आप ऑफ़लाइन हैं — सब कुछ चलता रहेगा",
+      savedOnPhone: "इस फ़ोन में सहेजा गया ({count})",
+      allSent: "सब भेजा गया",
+      panjikaMonthTitle: "पंजिका में यह मास",
+      noFestival: "इस दिन कोई उत्सव नहीं",
+      prevMonth: "पिछला मास",
+      nextMonth: "अगला मास",
+      today: "आज",
     },
     surfaces: {
       landing: {

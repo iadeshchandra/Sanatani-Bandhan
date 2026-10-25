@@ -454,6 +454,16 @@ export const core: CoreFragment = {
       greetEvening: "ಶುಭ ಸಂಧ್ಯಾ",
       shubh: "ಶುಭ",
       shubhMuhurat: "ಶುಭ ಮುಹೂರ್ತ",
+      yourUsual: "ನಿಮ್ಮ ನಿತ್ಯ ಕಾರ್ಯಗಳು",
+      beginHere: "ಇಲ್ಲಿಂದ ಪ್ರಾರಂಭಿಸಿ",
+      offlineWorking: "ನೀವು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿದ್ದೀರಿ — ಎಲ್ಲವೂ ನಡೆಯುತ್ತಲೇ ಇರುತ್ತದೆ",
+      savedOnPhone: "ಈ ಫೋನ್‌ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ ({count})",
+      allSent: "ಎಲ್ಲವೂ ಕಳುಹಿಸಲಾಗಿದೆ",
+      panjikaMonthTitle: "ಪಂಚಾಂಗದಲ್ಲಿ ಈ ತಿಂಗಳು",
+      noFestival: "ಈ ದಿನ ಹಬ್ಬವಿಲ್ಲ",
+      prevMonth: "ಹಿಂದಿನ ತಿಂಗಳು",
+      nextMonth: "ಮುಂದಿನ ತಿಂಗಳು",
+      today: "ಇಂದು",
     },
     surfaces: {
       landing: {

@@ -17,6 +17,16 @@ export const core: CoreFragment = {
       greetEvening: "শুভ সন্ধ্যা",
       shubh: "শুভ",
       shubhMuhurat: "শুভ মুহূর্ত",
+      yourUsual: "আপনার নিত্য কাজ",
+      beginHere: "এখান থেকে শুরু করুন",
+      offlineWorking: "আপনি অফলাইনে আছেন — সবকিছু চলতে থাকবে",
+      savedOnPhone: "এই ফোনে সংরক্ষিত ({count})",
+      allSent: "সব পাঠানো হয়েছে",
+      panjikaMonthTitle: "পঞ্জিকায় এই মাস",
+      noFestival: "এই দিনে কোনো উৎসব নেই",
+      prevMonth: "আগের মাস",
+      nextMonth: "পরের মাস",
+      today: "আজ",
     },
     surfaces: {
       landing: {

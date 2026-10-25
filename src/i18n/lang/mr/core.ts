@@ -454,6 +454,16 @@ export const core: CoreFragment = {
       greetEvening: "शुभ संध्या",
       shubh: "शुभ",
       shubhMuhurat: "शुभ मुहूर्त",
+      yourUsual: "तुमची नित्य कामे",
+      beginHere: "येथून प्रारंभ करा",
+      offlineWorking: "तुम्ही ऑफलाइन आहात — सर्व काही सुरू राहील",
+      savedOnPhone: "या फोनमध्ये जतन केले ({count})",
+      allSent: "सर्व पाठवले",
+      panjikaMonthTitle: "पंचांगातील हा महिना",
+      noFestival: "या दिवशी सण नाही",
+      prevMonth: "मागील महिना",
+      nextMonth: "पुढील महिना",
+      today: "आज",
     },
     surfaces: {
       landing: {

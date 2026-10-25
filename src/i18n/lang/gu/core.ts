@@ -454,6 +454,16 @@ export const core: CoreFragment = {
       greetMorning: "સુપ્રભાત",
       shubh: "શુભ",
       shubhMuhurat: "શુભ મુહૂર્ત",
+      yourUsual: "તમારાં નિત્ય કાર્યો",
+      beginHere: "અહીંથી શરૂ કરો",
+      offlineWorking: "તમે ઑફલાઇન છો — બધું ચાલતું રહેશે",
+      savedOnPhone: "આ ફોનમાં સાચવાયું ({count})",
+      allSent: "બધું મોકલાઈ ગયું",
+      panjikaMonthTitle: "પંચાંગમાં આ મહિનો",
+      noFestival: "આ દિવસે કોઈ તહેવાર નથી",
+      prevMonth: "ગયો મહિનો",
+      nextMonth: "આવતો મહિનો",
+      today: "આજે",
     },
     surfaces: {
       askAi: {
