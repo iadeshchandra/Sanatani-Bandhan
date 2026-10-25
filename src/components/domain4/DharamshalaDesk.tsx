@@ -358,9 +358,9 @@ export const DharamshalaDesk: React.FC = () => {
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <EmptyState
                 icon={CalendarIcon}
-                title="No active bookings"
-                description="Create the first pilgrim booking to fill the yatri niwas calendar."
-                actionLabel="New Booking"
+                title={t('vibe.sevakBookingsEmptyTitle')}
+                description={t('vibe.sevakBookingsEmptyDesc')}
+                actionLabel={t('vibe.sevakNewBooking')}
                 onAction={() => openBookingModal()}
               />
             </div>

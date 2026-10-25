@@ -29,6 +29,7 @@ import {
   fetchWorkspaceEvents,
 } from '../../context/data/auditStore';
 import { PublishedAccountsPanel } from '../audit/PublishedAccountsPanel';
+import { MalaStrip } from '../common/MalaThread';
 
 /**
  * AuditLogDesk — Blueprint A: the forensic surface of the master
@@ -194,26 +195,39 @@ export const AuditLogDesk: React.FC = () => {
     const { result, truncated } = verifyState;
     if (result.ok) {
       return (
-        <div className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
-          <BadgeCheck className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>
-            {t('org.audit.desk.chainOk').replace('{count}', String(result.checked))}
-            {truncated
-              ? ` ${t('org.audit.desk.chainTruncated').replace('{count}', String(result.checked))}`
-              : ''}
-          </span>
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
+          <div className="flex items-start gap-2">
+            <BadgeCheck className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              {t('vibe.malaIntact')}
+              {' · '}
+              {t('vibe.malaChecked').replace('{count}', String(result.checked))}
+              {truncated
+                ? ` ${t('org.audit.desk.chainTruncated').replace('{count}', String(result.checked))}`
+                : ''}
+            </span>
+          </div>
+          {/* VIBE B3 — the verified chain as a mala strip: one bead
+              per re-verified event (presentation of verifyAuditChain's
+              own result; the math is untouched). */}
+          <MalaStrip total={result.checked} brokenAt={-1} />
         </div>
       );
     }
     return (
-      <div className="flex items-start gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">
-        <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
-        <span>
-          {t('org.audit.desk.chainBroken').replace(
-            '{id}',
-            (result.firstBreakId || '').slice(0, 12)
-          )}
-        </span>
+      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">
+        <div className="flex items-start gap-2">
+          <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            {t('vibe.malaBroken').replace('{n}', String(result.firstBreak + 1))}
+            {' — '}
+            {t('org.audit.desk.chainBroken').replace(
+              '{id}',
+              (result.firstBreakId || '').slice(0, 12)
+            )}
+          </span>
+        </div>
+        <MalaStrip total={result.checked} brokenAt={result.firstBreak} />
       </div>
     );
   };

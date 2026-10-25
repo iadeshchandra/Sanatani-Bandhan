@@ -505,6 +505,19 @@
           if (theme === 'classic') {
             document.documentElement.setAttribute('data-theme', 'classic');
           }
+          // VIBE B3 — Sandhya Mode pre-paint: mirror of the dusk
+          // window in src/lib/sandhyaMode.ts (17:30–21:00 local).
+          // Keep the two in sync; the app re-applies on mount.
+          var sandhya = localStorage.getItem('sb-sandhya-mode');
+          if (sandhya === 'on') {
+            document.documentElement.setAttribute('data-sandhya', 'on');
+          } else if (sandhya === 'auto') {
+            var now = new Date();
+            var mins = now.getHours() * 60 + now.getMinutes();
+            if (mins >= 1050 && mins < 1260) {
+              document.documentElement.setAttribute('data-sandhya', 'on');
+            }
+          }
         } catch (e) {}
       })();
     </script>

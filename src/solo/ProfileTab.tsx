@@ -22,6 +22,7 @@ import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../c
 import { TirthaDiarySheet, computeStats, syncTirtha } from '../tirtha';
 import { VdaAliasSection } from './VdaAliasSection';
 import { LanguageRegionSettings } from './LanguageRegionSettings';
+import { SandhyaSettings } from '../components/common/SandhyaSettings';
 import { PrivacyNoticeBody } from '../components/account/PrivacyNotice';
 import { AiVoiceSettings } from '../ai/voice/components/AiVoiceSettings';
 import { ASSISTANT_OPEN_EVENT } from '../ai/components/AskButton';
@@ -582,6 +583,10 @@ export const ProfileTab: React.FC = () => {
 
       {/* Language & region — the devotee's words, their choice, never overridden */}
       <LanguageRegionSettings />
+
+      {/* VIBE B3 — Sandhya Mode: the dusk theme, the devotee's own
+          choice (Off / On / Automatic at dusk), never forced. */}
+      <SandhyaSettings />
 
       {/* Blueprint D — the privacy notice, always reachable from
           Profile (the one-time gate is only the introduction). */}

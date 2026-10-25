@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { appLocale } from '../../lib/format';
-import { X, Calendar, Download, Heart, Receipt } from 'lucide-react';
+import { X, Calendar, Download, Heart, Receipt, Eye } from 'lucide-react';
 import { TreasuryTransaction, WorkspaceConfig } from '../../types';
 import { generateTaxReceiptPDF } from '../../utils/pdfGenerator';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { TempleReceiptModal, receiptDataFromTx } from '../common/TempleReceiptCard';
 
 interface DonationHistoryModalProps {
   isOpen: boolean;
@@ -23,6 +24,9 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
 }) => {
   const { showToast } = useToast();
   const { t } = useLanguage();
+  // VIBE B3 — re-opening a past receipt shows the temple-acknowledgment
+  // card (the PDF download stays as the statutory copy).
+  const [viewTx, setViewTx] = useState<TreasuryTransaction | null>(null);
 
   if (!isOpen) return null;
 
@@ -105,13 +109,23 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
                       <p className="text-lg font-semibold text-emerald-600">₹{tx.amount.toLocaleString('en-IN')}</p>
                     </div>
                     
-                    <button 
-                      onClick={() => handleDownloadReceipt(tx)}
-                      className="flex items-center justify-center w-10 h-10 bg-temple-50 hover:bg-temple-50 text-temple-600 rounded-xl transition-colors border border-temple-200"
-                      title={t('devotee.donations.downloadReceipt')}
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setViewTx(tx)}
+                        className="flex items-center justify-center w-10 h-10 bg-temple-50 hover:bg-amber-50 text-temple-600 hover:text-amber-700 rounded-xl transition-colors border border-temple-200"
+                        title={t('vibe.receiptView')}
+                        aria-label={t('vibe.receiptView')}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDownloadReceipt(tx)}
+                        className="flex items-center justify-center w-10 h-10 bg-temple-50 hover:bg-temple-50 text-temple-600 rounded-xl transition-colors border border-temple-200"
+                        title={t('devotee.donations.downloadReceipt')}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -128,6 +142,21 @@ export const DonationHistoryModal: React.FC<DonationHistoryModalProps> = ({
            </div>
         )}
       </div>
+
+      {/* VIBE B3 — the re-opened receipt (temple-acknowledgment card) */}
+      <TempleReceiptModal
+        data={
+          viewTx
+            ? receiptDataFromTx(
+                viewTx,
+                workspace?.name || '',
+                '₹',
+                (workspace as any)?.logoUrl
+              )
+            : null
+        }
+        onClose={() => setViewTx(null)}
+      />
     </div>
   );
 };

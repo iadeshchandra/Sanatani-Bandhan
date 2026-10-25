@@ -30,6 +30,7 @@ import { generate80GTaxReceipt } from '../../utils/pdfGenerator';
 import { TreasuryTransaction } from '../../types';
 import { OrgLogo } from './OrgLogo';
 import { BlessingMoment } from './BlessingMoment';
+import { TempleReceiptCard, receiptDataFromTx } from './TempleReceiptCard';
 import { WARM_SUCCESS, humanizeError, pickLang } from '../../lib/microcopy';
 
 interface QuickChandaModalProps {
@@ -56,7 +57,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
   const workspaceId = activeWorkspaceId || activeWorkspace?.id || 'DEMO_ws-mandir';
   const { devotees, addTreasuryTransaction } = useData();
   const { showToast } = useToast();
-  const { currentLang } = useLanguage();
+  const { currentLang, t } = useLanguage();
   const t3 = pickLang(currentLang);
   const { guard: guardPlanLimit, modalInfo: limitModalInfo, closeModal: closeLimitModal } = usePlanLimits();
 
@@ -162,7 +163,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
 
     const numericAmount = Number(amount);
     if (!numericAmount || numericAmount <= 0) {
-      showToast('Please enter a valid donation amount', 'warning', 'Invalid Input');
+      showToast(t('vibe.sevakToastAmountFirst'), 'warning', 'Invalid Input');
       amountInputRef.current?.focus();
       return;
     }
@@ -218,10 +219,10 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
     try {
       setIsPrinting(true);
       await printThermalReceipt(lastRecordedTx, activeWorkspace);
-      showToast('Thermal Receipt dispatched to printer', 'success', '80mm Print');
+      showToast(t('vibe.sevakToastThermalSent'), 'success', '80mm Print');
     } catch (err) {
       console.error(err);
-      showToast('Could not open print dialog', 'warning');
+      showToast(t('vibe.sevakToastPrintFail'), 'warning');
     } finally {
       setIsPrinting(false);
     }
@@ -242,7 +243,7 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
       );
     } catch (err) {
       console.error(err);
-      showToast('Error compiling 80G PDF', 'error');
+      showToast(t('vibe.sevakToastPdfFail'), 'error');
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -307,20 +308,18 @@ export const QuickChandaModal: React.FC<QuickChandaModalProps> = ({
               /* SUCCESS STATE: 2 Prominent Actions & Next Donor Reset        */
               /* ============================================================ */
               <div className="space-y-5 py-2">
-                <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 text-center relative overflow-hidden">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 mb-3 border border-emerald-500/40 shadow-lg shadow-emerald-500/10">
-                    <CheckCircle className="w-8 h-8" />
-                  </div>
-                  <h4 className="text-xl sm:text-2xl font-black text-emerald-300">
-                    {inr(lastRecordedTx.amount)} Received!
-                  </h4>
-                  <p className="text-xs text-temple-300 mt-1">
-                    Receipt Ref: <span className="font-mono text-amber-400 font-bold">{lastRecordedTx.taxReceiptNumber}</span>
-                  </p>
-                  <p className="text-xs text-temple-400 mt-0.5">
-                    Devotee: <span className="text-temple-200 font-semibold">{lastRecordedTx.devoteeName}</span> ({lastRecordedTx.paymentMode})
-                  </p>
-                </div>
+                {/* VIBE B3 — the success moment IS the temple-
+                    acknowledgment receipt: paper card, real record
+                    fields only (amount, receipt no, devotee, mode,
+                    date + tithi), with its own share action. */}
+                <TempleReceiptCard
+                  data={receiptDataFromTx(
+                    lastRecordedTx,
+                    activeWorkspace?.name || 'Temple Trust',
+                    wsCurrency.symbol,
+                    (activeWorkspace as any)?.logoUrl
+                  )}
+                />
 
                 {/* Blessing banner — the org's own mark with a warm Dhanyavaad.
                     The counter screen often faces the donor; this is their moment. */}

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Modal, T, useLocaleText } from './ui';
 import type { GivingRecord } from './soloStore';
+import { TempleReceiptCard, receiptDataFromGiving } from '../components/common/TempleReceiptCard';
 
 /* ShareReceipt — multi-channel receipts (SwaDharma teardown: WhatsApp +
  * Email + SMS + in-app — meet devotees where they already are).
@@ -86,28 +87,16 @@ export function receiptShareText(g: GivingRecord, lang: ShareLang): { text: stri
 /* ------------------------------------------------------------------ */
 
 export const ReceiptModal: React.FC<{ record: GivingRecord; onClose: () => void }> = ({ record: g, onClose }) => {
-  const { lang } = useLocaleText();
-  const L: ShareLang = lang === 'bn' ? 'bn' : lang === 'hi' ? 'hi' : 'en';
   return (
     <Modal
       title={<T en="Dana receipt 🪔" bn="দান রসিদ 🪔" hi="दान रसीद 🪔" />}
       onClose={onClose}
     >
-      <div className="rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 p-5 text-center">
-        <div className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-1">
-          <T en="Offering" bn="অর্পণ" hi="अर्पण" />
-        </div>
-        <div className="text-4xl font-extrabold text-amber-900">{formatDanaAmount(g.amount)}</div>
-        <div className="font-bold text-stone-800 mt-2">{g.orgName}</div>
-        {g.purpose && <div className="text-sm text-stone-500">{g.purpose}</div>}
-        <div className="text-xs text-stone-400 mt-1">{g.date}</div>
-        {g.receiptNo && (
-          <div className="mt-2 inline-block text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
-            {g.receiptNo}
-          </div>
-        )}
-        <p className="text-sm italic text-amber-800 mt-4">{RECEIPT_BLESSING[L]}</p>
-      </div>
+      {/* VIBE B3 — the personal copy is the same temple-acknowledgment
+          card the org surfaces use: sanctum paper, brass amount, the
+          date with its tithi, the receipt number the record carries,
+          the blessing. Sharing stays with the channel row below. */}
+      <TempleReceiptCard data={receiptDataFromGiving(g)} hideShare />
       <div className="mt-4">
         <ShareReceiptRow record={g} hideView />
       </div>

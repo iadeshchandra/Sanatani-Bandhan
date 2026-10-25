@@ -25,6 +25,7 @@ import {
 import { resolveWorkspaceCurrency } from '../../lib/treasuryDisplay';
 import { useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { TransparencyView } from './TransparencyView';
+import { MalaThread } from '../common/MalaThread';
 import {
   SANATANI_COLORS,
   SANATANI_FONTS,
@@ -638,8 +639,13 @@ const AuditTrailInner: React.FC = () => {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center text-temple-300 text-sm">
-                <T en="No entries match. The trail grows as vouchers are posted and hundi deposits flow in." bn="কোনো এন্ট্রি মেলেনি।" hi="कोई प्रविष्टि नहीं मिली।" />
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+                <div className="text-temple-100 text-sm font-bold">
+                  {safeTranslate('vibe.sevakTrailEmptyTitle', 'The trail is quiet here', 'পথ এখানে নীরব', 'पथ यहाँ शांत है')}
+                </div>
+                <p className="text-temple-300 text-sm mt-1.5">
+                  {safeTranslate('vibe.sevakTrailEmpty', 'No entries answer to these filters. The trail itself is safe — vouchers and hundi deposits appear here as they are posted.', 'এই ফিল্টারগুলোর উত্তর নেই। পথ নিজে নিরাপদ — ভাউচার ও হুন্ডি জমা হলেই এখানে দেখা যাবে।', 'इन फ़िल्टरों का कोई उत्तर नहीं। पथ स्वयं सुरक्षित है — वाउचर और हुंडी जमा होते ही यहाँ दिखेंगे।')}
+                </p>
               </div>
             ) : (
               <div>
@@ -707,43 +713,43 @@ const AuditTrailInner: React.FC = () => {
                 hi="प्रत्येक घटना पिछली घटना का SHA-256 हैश रखती है।"
               />
             </p>
-            <div className="space-y-2">
-              {provenance.map((ev, i) => (
-                <ProvenanceRow key={ev.id} ev={ev} index={i} />
-              ))}
-              {provenance.length === 0 && (
-                <p className="text-sm text-temple-300">
-                  <T en="No linked custody events found on this device." bn="এই ডিভাইসে কোনো লিংকড ইভেন্ট পাওয়া যায়নি।" hi="इस डिवाइस पर कोई लिंक्ड घटना नहीं मिली।" />
-                </p>
-              )}
-            </div>
+            {/* VIBE B3 — the chain of custody as a mala: one bead per
+                linked event; beads at/after the desk's own verified
+                break (verifyChain over the full custody chain, seq
+                compared) hollow out. Presentation only. */}
+            {provenance.length > 0 ? (
+              <MalaThread
+                tone="dark"
+                breakLabel={safeTranslate('vibe.malaBreakHere', 'The thread breaks here', 'সুতো এখানে ছিন্ন', 'धागा यहाँ टूटता है')}
+                beads={provenance.map((ev, i) => {
+                  const sortedFull = [...custody.state.events].sort(
+                    (a, b) => (a.seq ?? 0) - (b.seq ?? 0)
+                  );
+                  const breakSeq =
+                    chainBrokenAt >= 0 ? sortedFull[chainBrokenAt]?.seq : undefined;
+                  return {
+                    id: ev.id,
+                    seqLabel: `#${i + 1}`,
+                    title: ev.kind.replace(/_/g, ' '),
+                    detail: ev.details,
+                    hashShort: shortHash(ev.hash, 8),
+                    broken: breakSeq !== undefined && (ev.seq ?? 0) >= breakSeq,
+                    expandedContent: (
+                      <div className="font-mono text-[10px] text-temple-300 break-all space-y-1 tabular-nums">
+                        <div><span className="text-temple-500">hash:</span> {ev.hash}</div>
+                        <div><span className="text-temple-500">prev:</span> {ev.prevHash}</div>
+                        <div><span className="text-temple-500">actor:</span> <span className="font-sans">{ev.actor}</span></div>
+                      </div>
+                    ),
+                  };
+                })}
+              />
+            ) : (
+              <p className="text-sm text-temple-300">
+                <T en="No linked custody events found on this device." bn="এই ডিভাইসে কোনো লিংকড ইভেন্ট পাওয়া যায়নি।" hi="इस डिवाइस पर कोई लिंक्ड घटना नहीं मिली।" />
+              </p>
+            )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ProvenanceRow: React.FC<{ ev: CustodyEvent; index: number }> = ({ ev, index }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full min-h-[44px] flex items-center justify-between gap-2 text-left cursor-pointer"
-      >
-        <div className="min-w-0">
-          <div className="text-sm font-bold text-amber-100">#{index + 1} · {ev.kind.replace(/_/g, ' ')}</div>
-          <div className="text-[11px] text-temple-400 truncate">{ev.details}</div>
-        </div>
-        <span className="font-mono text-[11px] text-emerald-300 shrink-0 tabular-nums">{shortHash(ev.hash, 8)}</span>
-      </button>
-      {open && (
-        <div className="mt-2 pt-2 border-t border-white/10 font-mono text-[10px] text-temple-300 break-all space-y-1 tabular-nums">
-          <div><span className="text-temple-500">hash:</span> {ev.hash}</div>
-          <div><span className="text-temple-500">prev:</span> {ev.prevHash}</div>
-          <div><span className="text-temple-500">actor:</span> <span className="font-sans">{ev.actor}</span></div>
         </div>
       )}
     </div>

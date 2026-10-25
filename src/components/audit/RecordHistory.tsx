@@ -22,6 +22,7 @@ import { useInr } from '../../hooks/useWorkspaceInr';
 import { bcp47For } from '../../i18n/schema';
 import { renderAuditSummary, type AuditEvent } from '../../lib/auditChain';
 import { fetchEntityHistory } from '../../context/data/auditStore';
+import { MalaThread } from '../common/MalaThread';
 
 interface RecordHistoryProps {
   workspaceId: string;
@@ -128,28 +129,31 @@ export const RecordHistory: React.FC<RecordHistoryProps> = ({
       )}
 
       {state.kind === 'ready' && state.events.length > 0 && (
-        <ul className="space-y-2.5">
-          {state.events.map((ev) => (
-            <li
-              key={ev.id}
-              className={`flex gap-3 rounded-xl border px-3 py-2.5 ${cls.item}`}
-            >
-              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-500/70" />
-              <div className="min-w-0">
-                <p className={`text-xs leading-relaxed ${cls.itemText}`}>
-                  {renderAuditSummary(ev, t, inr)}
-                </p>
-                <p className={`mt-0.5 text-[10px] ${cls.meta}`}>
-                  {formatWhen(ev.createdAt)}
-                  {ev.actorRole ? ` · ${ev.actorRole}` : ''}
-                  <span className={`ml-2 font-mono ${cls.hash}`}>
-                    #{ev.hash.slice(0, 8)}
-                  </span>
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+        /* VIBE B3 — the record's history as a mala: one bead per
+           event on the thread. This is a per-record SEGMENT of the
+           master chain, so no bead is marked broken here — segment
+           verification is the Audit Log desk's verify (whole-chain),
+           and this view never guesses at it. */
+        <MalaThread
+          tone={tone}
+          breakLabel=""
+          beads={state.events.map((ev) => ({
+            id: ev.id,
+            seqLabel: `#${ev.seq}`,
+            title: (
+              <span className={`text-xs leading-relaxed font-normal ${cls.itemText}`}>
+                {renderAuditSummary(ev, t, inr)}
+              </span>
+            ),
+            meta: (
+              <>
+                {formatWhen(ev.createdAt)}
+                {ev.actorRole ? ` · ${ev.actorRole}` : ''}
+              </>
+            ),
+            hashShort: ev.hash.slice(0, 8),
+          }))}
+        />
       )}
     </div>
   );

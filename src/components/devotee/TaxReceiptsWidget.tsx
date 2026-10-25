@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { appLocale } from '../../lib/format';
-import { Download, Mail, FileText, CheckCircle, ShieldCheck, FileArchive } from 'lucide-react';
+import { Download, Mail, FileText, CheckCircle, ShieldCheck, FileArchive, Eye } from 'lucide-react';
+import { TempleReceiptModal, receiptDataFromTx } from '../common/TempleReceiptCard';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useScopedData } from '../../hooks/useScopedData';
 import { TreasuryTransaction } from '../../types';
@@ -23,6 +24,8 @@ export const TaxReceiptsWidget: React.FC = () => {
   );
 
   const [selectedFY, setSelectedFY] = useState<string>('');
+  // VIBE B3 — re-open a receipt as the temple-acknowledgment card.
+  const [viewTx, setViewTx] = useState<TreasuryTransaction | null>(null);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
 
@@ -232,13 +235,23 @@ export const TaxReceiptsWidget: React.FC = () => {
                   <p className="text-sm font-semibold text-temple-900">₹{tx.amount.toLocaleString('en-IN')}</p>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button 
-                    onClick={() => handleDownloadSingle(tx)}
-                    className="inline-flex items-center justify-center w-10 h-10 bg-white border border-temple-200 text-temple-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
-                    title={t('devotee.receipts.downloadReceipt')}
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+                  <div className="inline-flex items-center gap-2">
+                    <button
+                      onClick={() => setViewTx(tx)}
+                      className="inline-flex items-center justify-center w-10 h-10 bg-white border border-temple-200 text-temple-600 hover:text-amber-700 hover:border-amber-200 hover:bg-amber-50 rounded-xl transition-all shadow-sm"
+                      title={t('vibe.receiptView')}
+                      aria-label={t('vibe.receiptView')}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadSingle(tx)}
+                      className="inline-flex items-center justify-center w-10 h-10 bg-white border border-temple-200 text-temple-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                      title={t('devotee.receipts.downloadReceipt')}
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -252,6 +265,22 @@ export const TaxReceiptsWidget: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* VIBE B3 — the re-opened receipt (temple-acknowledgment card).
+          The card shows only the receipt number the record carries. */}
+      <TempleReceiptModal
+        data={
+          viewTx
+            ? receiptDataFromTx(
+                viewTx,
+                activeWorkspace?.name || '',
+                '₹',
+                (activeWorkspace as any)?.logoUrl
+              )
+            : null
+        }
+        onClose={() => setViewTx(null)}
+      />
     </div>
   );
 };

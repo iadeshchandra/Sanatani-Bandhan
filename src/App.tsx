@@ -87,6 +87,7 @@ import { SuperAdminDashboard } from './admin/SuperAdminDashboard';
 // Admin-only page — loads on demand.
 const GlobalAnalytics = lazy(() => import('./admin/GlobalAnalytics'));
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { SandhyaApplier } from './components/common/SandhyaSettings';
 import { SystemOverrideGuard } from './components/auth/SystemOverrideGuard';
 import { CommandPalette } from './components/common/CommandPalette';
 import { ConfirmProvider } from './components/common/ui';
@@ -1452,6 +1453,9 @@ const AppRouter: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppRoutes />
       <OfflineIndicator />
+      {/* VIBE B3 — Sandhya Mode root applier (renders nothing; keeps
+          <html data-sandhya> honest with the persisted choice). */}
+      <SandhyaApplier />
       {/* Dev-only role tester: never renders in production builds. */}
       {import.meta.env.DEV && <PersonaSwitcher />}
       {children}

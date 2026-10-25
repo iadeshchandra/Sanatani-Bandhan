@@ -46,6 +46,7 @@ import { PrivacyNoticeCard } from '../account/PrivacyNotice';
 import { OrgLogo } from '../common/OrgLogo';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
+import { SandhyaSettings } from '../common/SandhyaSettings';
 import { PaymentDetailsCard } from '../org/PaymentDetailsCard';
 // import { pushToDataLayer } from '../../utils/gtm'; // Mocking or ignoring if missing
 
@@ -819,6 +820,11 @@ export const MasterSettingsDesk: React.FC = () => {
                 className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${appTheme === 'classic' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
                 <Shield size={16} /> Classic Mode
               </button>
+            </div>
+            {/* VIBE B3 — Sandhya Mode (the dusk theme): Off / On /
+                Automatic at dusk, device-persisted, dict-voiced. */}
+            <div className="mt-6">
+              <SandhyaSettings />
             </div>
           </div>
 

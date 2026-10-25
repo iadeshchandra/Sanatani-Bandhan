@@ -5,6 +5,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { CowRecord } from '../../types';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { DataExportButton } from '../common/DataExportButton';
 import { EmptyState } from '../common/EmptyState';
 import { formatINR } from '../../utils/format';
@@ -17,6 +18,7 @@ export const GauSevaDesk: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { cows, addCow, adoptCow } = useData();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBreed, setSelectedBreed] = useState<string>('all');
@@ -254,11 +256,11 @@ export const GauSevaDesk: React.FC = () => {
       {filteredCows.length === 0 ? (
         <EmptyState
           icon={Search}
-          title={hasActiveFilters ? 'No Gomata Match These Filters' : 'No Gomata Registered Yet'}
+          title={hasActiveFilters ? t('vibe.sevakGoshalaNoMatchTitle') : t('vibe.sevakGoshalaEmptyTitle')}
           description={
             hasActiveFilters
-              ? 'Try a different name, tag number, or indigenous breed filter.'
-              : 'Register your first indigenous Gomata to begin the Goshala herd register.'
+              ? t('vibe.sevakGoshalaNoMatchDesc')
+              : t('vibe.sevakGoshalaEmptyDesc')
           }
           actionLabel={hasActiveFilters ? 'Clear filters' : 'Register New Gomata'}
           onAction={hasActiveFilters ? clearFilters : () => setIsAddModalOpen(true)}

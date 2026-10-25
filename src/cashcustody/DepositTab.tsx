@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCashCustody, uid, todayISO, nextSlipNo } from './cashCustodyStore';
 import { CountingSession, DepositSlip, DENOMINATIONS, DENOM_LABEL } from './types';
-import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime } from './ui';
+import { T, Card, Btn, Field, inputCls, StatusPill, fmtDateTime, useLocaleText } from './ui';
 import { useInr } from '../hooks/useWorkspaceInr';
 import { useToast } from '../context/ToastContext';
 import { useData } from '../context/DataContext';
@@ -21,6 +21,7 @@ export const DepositTab: React.FC = () => {
   const { addTreasuryTransaction } = useData();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { tr } = useLocaleText();
   const [forming, setForming] = useState<CountingSession | null>(null);
   const [bank, setBank] = useState({ name: state.settings.defaultBankName, branch: state.settings.defaultBankBranch, date: todayISO() });
   const [printing, setPrinting] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export const DepositTab: React.FC = () => {
       logEvent('deposit_confirmed', slip.countedBy, `Slip ${slip.slipNo} posted to treasury — ${inr(slip.amount)}`);
       showToast(`Posted to treasury as hundi income (non-80G, anonymous cash).`, 'success');
     } else {
-      showToast('Treasury posting failed — slip kept locally, retry later.', 'error');
+      showToast(tr('vibe.sevakToastPostFail', 'The treasury could not take this posting just now. The slip is kept safely on this phone — please retry in a little while.', 'কোষাগার এখনই এই পোস্টিং নিতে পারেনি। স্লিপটি এই ফোনে নিরাপদে রাখা আছে — অনুগ্রহ করে কিছুক্ষণ পরে আবার চেষ্টা করুন।', 'कोषागार अभी यह प्रविष्टि नहीं ले सका। पर्ची इस फ़ोन पर सुरक्षित रखी है — कृपया थोड़ी देर में पुनः प्रयास करें।'), 'error');
     }
   };
 
@@ -89,7 +90,7 @@ export const DepositTab: React.FC = () => {
       await generateDepositSlipPDF(slip, box, activeWorkspace.name);
       showToast(`PDF slip ${slip.slipNo} downloaded.`, 'success');
     } catch {
-      showToast('PDF generation failed — use Print instead; the slip is safe.', 'error');
+      showToast(tr('vibe.sevakToastSlipPdfFail', 'The PDF could not be made just now. The slip is safe — please use Print instead.', 'এখনই PDF তৈরি করা যায়নি। স্লিপ নিরাপদ — অনুগ্রহ করে প্রিন্ট ব্যবহার করুন।', 'PDF अभी नहीं बन सकी। पर्ची सुरक्षित है — कृपया इसके स्थान पर प्रिंट का उपयोग करें।'), 'error');
     }
   };
 

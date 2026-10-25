@@ -416,3 +416,261 @@ body.sb-has-sos.sb-sos-open .sb-sos-clear {
 body.sb-form-sos {
   padding-top: calc(66px + env(safe-area-inset-top));
 }
+
+/* ============================================================
+   VIBE B3 — Mala thread (trust made visible) + receipt paper.
+   ============================================================ */
+
+/* The mala: beads on a vertical brass thread. Intact beads are
+   polished brass; a broken bead hollows to a kumkum ring and the
+   thread segment beneath it gaps into dashes — a break cannot hide.
+   Pure CSS; under .sanctum-lite the glow steps down, the structure
+   (thread, beads, order) never changes. */
+.mala-thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mala-item {
+  display: flex;
+  gap: 12px;
+}
+.mala-rail {
+  position: relative;
+  width: 34px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+.mala-segment {
+  position: absolute;
+  top: 36px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--brass-400), var(--brass-300));
+}
+.mala-segment-broken {
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(179, 39, 30, 0.55) 0 4px,
+    transparent 4px 9px
+  );
+}
+.mala-bead {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  margin-top: 2px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, var(--brass-200), var(--brass-400) 60%, var(--brass-500));
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.7),
+    0 3px 8px -2px rgba(122, 52, 12, 0.45);
+}
+.mala-bead-seq {
+  font-size: 11px;
+  font-weight: 800;
+  color: #3a2a08;
+  font-variant-numeric: tabular-nums;
+}
+.mala-bead-broken {
+  background: transparent;
+  border: 2px solid var(--kumkum);
+  box-shadow: none;
+}
+.mala-bead-broken .mala-bead-seq {
+  color: var(--kumkum);
+}
+.sanctum-lite .mala-bead {
+  box-shadow: none;
+}
+.mala-body {
+  flex: 1;
+  min-width: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(176, 138, 46, 0.18);
+  background: rgba(255, 251, 242, 0.6);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.mala-body-dark {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.mala-body-broken {
+  border-color: rgba(179, 39, 30, 0.45);
+  background: rgba(179, 39, 30, 0.05);
+}
+.mala-break-label {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--kumkum);
+  background: rgba(179, 39, 30, 0.08);
+  border: 1px solid rgba(179, 39, 30, 0.35);
+  border-radius: 9999px;
+  padding: 2px 8px;
+}
+/* The banner strip: one small bead per verified event. */
+.mala-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+}
+.mala-strip-bead {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, var(--brass-200), var(--brass-500));
+}
+.mala-strip-bead-broken {
+  background: transparent;
+  border: 1.5px solid var(--kumkum);
+}
+.mala-strip-bead-break {
+  box-shadow: 0 0 0 2px rgba(179, 39, 30, 0.35);
+}
+.mala-strip-gap {
+  color: var(--brass-500);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+/* The receipt is PAPER — fixed warm-ivory colours that never flip
+   with any theme (Sandhya included): a paper receipt stays paper on
+   the counter at dusk, exactly like the printed one. */
+.receipt-paper {
+  background: linear-gradient(168deg, #fffbf2 0%, #f9efdb 55%, #f3e3c2 100%);
+  border: 1px solid rgba(176, 138, 46, 0.5);
+  color: #3d2c14;
+}
+.receipt-paper .rp-title { color: #4a2e0c; }
+.receipt-paper .rp-eyebrow { color: #8f6e22; }
+.receipt-paper .rp-amount { color: #8f6e22; }
+.receipt-paper .rp-ink { color: #3d2c14; }
+.receipt-paper .rp-soft { color: #6b4e1e; }
+.receipt-paper .rp-faint { color: #9a7b3f; }
+.receipt-paper .rp-blessing { color: #6b4e1e; }
+
+/* ============================================================
+   VIBE B3 — SANDHYA MODE (the dusk theme).
+   "Day = temple courtyard; evening = sanctum." Deep warm maroon
+   and lamplight derived from the sanctum palette — not a generic
+   dark mode. Scoped entirely under [data-sandhya="on"] on <html>
+   (set by lib/sandhyaMode + the index.html boot script):
+   · the sanctum tokens deepen (headers become the sanctum);
+   · the literal light surfaces the top screens are built from
+     (white / stone-50 / slate-50 cards, stone/slate text, pale
+     borders) rest into warm dusk tones, coherently;
+   · brass/peacock text golds lighten for the dark ground;
+   · dark desks (temple-800..950 panels) are already evening —
+     untouched. The receipt paper never flips (see above).
+   Floor law holds: same colours/type/layout for everyone; glow
+   steps down under .sanctum-lite exactly as in day mode.
+   ============================================================ */
+:root[data-sandhya="on"] {
+  --sanctum-ivory: #38220f;
+  --sanctum-sandal: #2a1708;
+  --sanctum-sandal-deep: #1e1005;
+}
+[data-sandhya="on"] body {
+  background: #1c0f06;
+}
+[data-sandhya="on"] .sanctum-header {
+  background: linear-gradient(160deg, #3a2110, #221204);
+}
+[data-sandhya="on"] .sanctum-header[data-dressing="diwali"] {
+  background: linear-gradient(160deg, #4a2e0c, #2e1b06);
+}
+[data-sandhya="on"] .sanctum-header[data-dressing="janmashtami"] {
+  background: linear-gradient(160deg, #173b36, #0e2422);
+}
+[data-sandhya="on"] .sanctum-header[data-dressing="saraswati"] {
+  background: linear-gradient(160deg, #4a3a14, #2e2408);
+}
+/* Lamplight becomes the primary light at dusk. */
+[data-sandhya="on"] .lamplight {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 140, 0.35),
+    inset 0 -18px 30px -14px rgba(255, 158, 44, 0.4),
+    0 0 34px -6px rgba(255, 158, 44, 0.28),
+    0 14px 28px -14px rgba(0, 0, 0, 0.7);
+}
+[data-sandhya="on"] .sanctum-lite .lamplight {
+  box-shadow: none;
+}
+/* Light surfaces rest into warm dusk card tones. */
+[data-sandhya="on"] .bg-white,
+[data-sandhya="on"] .bg-white\/70,
+[data-sandhya="on"] .bg-white\/80,
+[data-sandhya="on"] .bg-white\/90 {
+  background-color: #2c1d12;
+}
+[data-sandhya="on"] .bg-slate-50,
+[data-sandhya="on"] .bg-slate-50\/50,
+[data-sandhya="on"] .bg-stone-50,
+[data-sandhya="on"] .bg-stone-50\/60,
+[data-sandhya="on"] .bg-orange-50,
+[data-sandhya="on"] .bg-amber-50,
+[data-sandhya="on"] .bg-amber-50\/50,
+[data-sandhya="on"] .bg-amber-50\/60,
+[data-sandhya="on"] .bg-amber-50\/70,
+[data-sandhya="on"] .bg-yellow-50 {
+  background-color: #332416;
+}
+[data-sandhya="on"] .bg-slate-100,
+[data-sandhya="on"] .bg-stone-100,
+[data-sandhya="on"] .bg-amber-100 {
+  background-color: #38250f;
+}
+[data-sandhya="on"] .bg-temple-50 { background-color: #2c1d12; }
+[data-sandhya="on"] .bg-temple-100 { background-color: #332416; }
+[data-sandhya="on"] .bg-temple-200 { background-color: #453017; }
+[data-sandhya="on"] .bg-brass-100 { background-color: #4a3512; }
+[data-sandhya="on"] .bg-peacock-100 { background-color: #123330; }
+/* Text on those surfaces warms to lamplight creams. */
+[data-sandhya="on"] .text-temple-400 { color: #b49b72; }
+[data-sandhya="on"] .text-temple-500 { color: #cbb28a; }
+[data-sandhya="on"] .text-temple-600 { color: #dcc493; }
+[data-sandhya="on"] .text-temple-700 { color: #ead9ae; }
+[data-sandhya="on"] .text-temple-800 { color: #f3e7c8; }
+[data-sandhya="on"] .text-temple-900 { color: #faf1dc; }
+[data-sandhya="on"] .text-temple-950 { color: #fff8e7; }
+[data-sandhya="on"] .text-stone-400,
+[data-sandhya="on"] .text-slate-400 { color: #a68f68; }
+[data-sandhya="on"] .text-stone-500,
+[data-sandhya="on"] .text-slate-500 { color: #c4a877; }
+[data-sandhya="on"] .text-stone-600,
+[data-sandhya="on"] .text-slate-600 { color: #d8be8c; }
+[data-sandhya="on"] .text-stone-700,
+[data-sandhya="on"] .text-slate-700 { color: #ead9ae; }
+[data-sandhya="on"] .text-stone-800,
+[data-sandhya="on"] .text-slate-800 { color: #f3e7c8; }
+[data-sandhya="on"] .text-stone-900,
+[data-sandhya="on"] .text-slate-900 { color: #faf1dc; }
+[data-sandhya="on"] .text-amber-700 { color: #e3a94f; }
+[data-sandhya="on"] .text-amber-800 { color: #efc26e; }
+[data-sandhya="on"] .text-amber-900 { color: #f7dca8; }
+[data-sandhya="on"] .text-orange-600 { color: #fb923c; }
+[data-sandhya="on"] .text-brass-600 { color: #d9b45f; }
+[data-sandhya="on"] .text-brass-700 { color: #e9d29a; }
+[data-sandhya="on"] .text-peacock-500 { color: #4fb3a9; }
+[data-sandhya="on"] .text-peacock-700 { color: #8fc4bc; }
+/* Pale borders deepen to warm wood tones. */
+[data-sandhya="on"] .border-stone-100,
+[data-sandhya="on"] .border-slate-100,
+[data-sandhya="on"] .border-amber-100,
+[data-sandhya="on"] .border-temple-100 { border-color: #453017; }
+[data-sandhya="on"] .border-stone-200,
+[data-sandhya="on"] .border-slate-200,
+[data-sandhya="on"] .border-amber-200,
+[data-sandhya="on"] .border-temple-200 { border-color: #57401f; }
+[data-sandhya="on"] .border-stone-300 { border-color: #6b4e26; }

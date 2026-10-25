@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { useCashCustody, verifyChain } from './cashCustodyStore';
 import { CustodyEventKind } from './types';
-import { T, Card, Btn, fmtDateTime } from './ui';
+import { T, Card, Btn, fmtDateTime, useLocaleText } from './ui';
+import { MalaThread } from '../components/common/MalaThread';
 
 /* ------------------------------------------------------------------ */
 /* Tamper-evident custody log — every event hash-chained with SHA-256. */
@@ -17,6 +18,7 @@ const KIND_ICON: Record<CustodyEventKind, string> = {
 
 export const ChainTab: React.FC = () => {
   const { state } = useCashCustody();
+  const { tr } = useLocaleText();
   const sorted = useMemo(
     () => [...state.events].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0)),
     [state.events]
@@ -31,48 +33,51 @@ export const ChainTab: React.FC = () => {
         </h2>
         {brokenAt === -1 ? (
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-            ⛓️ <T en="Chain intact — every link verified" bn="শৃঙ্খল অক্ষত" hi="श्रृंखला अक्षत" />
+            📿 {tr('vibe.malaIntact', 'The mala is unbroken — every bead verified', 'মালা অখণ্ড — প্রতিটি পুঁতি যাচাই করা', 'माला अखंड है — हर मनका सत्यापित')}
           </span>
         ) : (
           <span className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-            🚨 <T en="CHAIN BROKEN" bn="শৃঙ্খল ভাঙা" hi="श्रृंखला टूटी" /> — <T en="link" bn="লিংক" hi="कड़ी" /> #{brokenAt + 1} <T en="fails verification. Investigate before proceeding." bn="যাচাই ব্যর্থ।" hi="सत्यापन विफल।" />
+            📿 {tr('vibe.malaBroken', 'The mala is broken at bead {n} — please look into it before going further', 'মালা {n} নম্বর পুঁতিতে ছিন্ন — এগোনোর আগে অনুগ্রহ করে দেখুন', 'माला मनके {n} पर टूटी है — आगे बढ़ने से पहले कृपया जाँच करें').replace('{n}', String(brokenAt + 1))}
           </span>
         )}
       </div>
 
       <Card>
         <div className="text-xs text-stone-500 mb-3">
-          <T en="Each event stores the SHA-256 hash of the previous event. Editing any record changes its hash and breaks every later link — tampering cannot hide."
-            bn="প্রতিটি ইভেন্ট আগেরটির SHA-256 হ্যাশ রাখে। কোনো রেকর্ড বদলালে শৃঙ্খল ভাঙে।"
-            hi="प्रत्येक घटना पिछली घटना का SHA-256 हैश रखती है। कोई बदलाव श्रृंखला तोड़ देता है।" />
+          {tr('vibe.malaThreadNote', 'Each bead is an event, sealed with the seal of the one before it. On an unbroken thread, a break cannot hide.', 'প্রতিটি পুঁতি একটি ঘটনা, আগেরটির সিলমোহরে মোহরিত। অখণ্ড সুতোয় ছিন্নতা লুকোতে পারে না।', 'हर मनका एक घटना है, पिछले की मुहर से मुहरबंद। अखंड धागे पर टूट छिप नहीं सकती।')}
         </div>
-        <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
-          {sorted.map((ev, i) => {
-            const broken = brokenAt !== -1 && i >= brokenAt;
-            return (
-              <div key={ev.id} className={`rounded-xl border p-3 text-sm ${broken ? 'border-red-300 bg-red-50' : 'border-stone-100 bg-stone-50/60'}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg leading-none mt-0.5">{KIND_ICON[ev.kind] || '•'}</span>
-                    <div>
-                      <div className="font-bold text-stone-800">{ev.kind.replace(/_/g, ' ')}</div>
-                      <div className="text-stone-600 text-xs mt-0.5">{ev.details}</div>
-                      <div className="text-stone-400 text-[11px] mt-0.5">{ev.actor} · {fmtDateTime(ev.ts)}</div>
-                    </div>
-                  </div>
-                  <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${broken ? 'bg-red-200 text-red-800' : 'bg-stone-200 text-stone-600'}`}>
-                    #{i + 1}
-                  </span>
+        <div className="max-h-[480px] overflow-y-auto pr-1">
+          {/* VIBE B3 — the custody timeline as an unbroken mala: one
+              bead per event on a brass thread; beads at/after the
+              verified break hollow out and the thread gaps. The
+              verifyChain result above is the only source of "broken"
+              — presentation changes, verification does not. */}
+          <MalaThread
+            tone="light"
+            breakLabel={tr('vibe.malaBreakHere', 'The thread breaks here', 'সুতো এখানে ছিন্ন', 'धागा यहाँ टूटता है')}
+            beads={sorted.map((ev, i) => ({
+              id: ev.id,
+              seqLabel: `#${i + 1}`,
+              title: (
+                <>
+                  <span aria-hidden>{KIND_ICON[ev.kind] || '•'}</span>{' '}
+                  {ev.kind.replace(/_/g, ' ')}
+                </>
+              ),
+              detail: ev.details,
+              meta: `${ev.actor} · ${fmtDateTime(ev.ts)}`,
+              hashShort: `${ev.hash.slice(0, 10)}…`,
+              broken: brokenAt !== -1 && i >= brokenAt,
+              expandedContent: (
+                <div className="font-mono text-[10px] text-stone-400 break-all">
+                  hash {ev.hash} · prev {ev.prevHash}
                 </div>
-                <div className="font-mono text-[10px] text-stone-400 mt-2 break-all">
-                  hash {ev.hash.slice(0, 20)}… · prev {ev.prevHash.slice(0, 20)}…
-                </div>
-              </div>
-            );
-          })}
-          {sorted.length === 0 && (
-            <p className="text-sm text-stone-500"><T en="No custody events yet." bn="এখনও কোনো ইভেন্ট নেই।" hi="अभी कोई घटना नहीं।" /></p>
-          )}
+              ),
+            }))}
+            emptyState={(
+              <p className="text-sm text-stone-500"><T en="No custody events yet." bn="এখনও কোনো ইভেন্ট নেই।" hi="अभी कोई घटना नहीं।" /></p>
+            )}
+          />
         </div>
       </Card>
 

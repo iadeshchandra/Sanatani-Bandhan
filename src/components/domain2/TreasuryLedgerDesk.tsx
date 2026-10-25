@@ -1205,8 +1205,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             <EmptyState
               icon={Receipt}
               title={t('org.finance.treasury.noTreasuryRecordsYet')}
-              description="Post your first voucher to start building the audited double-entry ledger and unlock flow analytics."
-              actionLabel="Post First Voucher"
+              description={t('vibe.sevakTreasuryFirstDesc')}
+              actionLabel={t('vibe.sevakPostFirstVoucher')}
               onAction={() => setShowVoucherModal(true)}
             />
           ) : (
@@ -1307,7 +1307,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     <EmptyState
                       icon={Layers}
                       title={t('org.finance.treasury.noFundInflowsYet')}
-                      description="Income will be segmented by trust fund once donations are recorded."
+                      description={t('vibe.sevakFundInflowsDesc')}
                     />
                   </div>
                 )}
@@ -1492,13 +1492,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-6 shadow-xl">
             <EmptyState
               icon={Receipt}
-              title={hasActiveFilters ? 'No Records Match These Filters' : 'No Treasury Records Yet'}
+              title={hasActiveFilters ? t('vibe.sevakNoMatchTitle') : t('org.finance.treasury.noTreasuryRecordsYet')}
               description={
                 hasActiveFilters
-                  ? 'Try widening your date range or clearing the search and fund filters.'
-                  : 'Post your first voucher to begin the audited double-entry ledger.'
+                  ? t('vibe.sevakNoMatchDesc')
+                  : t('vibe.sevakTreasuryFirstDesc')
               }
-              actionLabel={hasActiveFilters ? 'Reset All Filters' : 'Post First Voucher'}
+              actionLabel={hasActiveFilters ? 'Reset All Filters' : t('vibe.sevakPostFirstVoucher')}
               onAction={hasActiveFilters ? resetFilters : () => setShowVoucherModal(true)}
             />
           </div>

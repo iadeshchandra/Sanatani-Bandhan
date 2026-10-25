@@ -343,13 +343,13 @@ export const InventoryDesk: React.FC = () => {
         <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-8">
           <EmptyState
             icon={Package}
-            title={inventory.length === 0 ? 'Store register is empty' : 'No items match your search'}
+            title={inventory.length === 0 ? t('vibe.sevakInventoryEmptyTitle') : t('vibe.sevakInventoryNoMatchTitle')}
             description={
               inventory.length === 0
-                ? 'Add the first consumable (Desi Ghee, Camphor, Akshat rice…) to start tracking bhandara stock.'
-                : 'Try a different item name, category or barcode.'
+                ? t('vibe.sevakInventoryEmptyDesc')
+                : t('vibe.sevakInventoryNoMatchDesc')
             }
-            actionLabel={inventory.length === 0 ? 'Add Stock Item' : undefined}
+            actionLabel={inventory.length === 0 ? t('vibe.sevakAddStockItem') : undefined}
             onAction={inventory.length === 0 ? () => setIsAddModalOpen(true) : undefined}
           />
         </div>

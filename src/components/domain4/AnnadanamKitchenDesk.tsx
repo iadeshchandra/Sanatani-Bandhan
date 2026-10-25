@@ -4,6 +4,7 @@ import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import { Utensils, Plus, Heart, Users, Sparkles, CheckCircle2, Clock, X } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useData } from '../../context/DataContext';
 import { formatINR } from '../../utils/format';
 import { sanitizeName, isValidQuantity } from '../../utils/validation';
@@ -15,6 +16,7 @@ export const AnnadanamKitchenDesk: React.FC = () => {
   const inr = useInr();
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [totalMealsServedToday, setTotalMealsServedToday] = useState(1450);
   const { annadanamList, addAnnadanam } = useData();
@@ -200,9 +202,9 @@ export const AnnadanamKitchenDesk: React.FC = () => {
       {sponsorships.length === 0 ? (
         <EmptyState
           icon={Utensils}
-          title="No sponsorships yet"
-          description="Record the first Annadanam feast sponsorship to start the maha prasadam ledger."
-          actionLabel="Sponsor Annadanam Feast"
+          title={t('vibe.sevakAnnadanamEmptyTitle')}
+          description={t('vibe.sevakAnnadanamEmptyDesc')}
+          actionLabel={t('vibe.sevakSponsorFeast')}
           onAction={() => setIsAddModalOpen(true)}
         />
       ) : (
