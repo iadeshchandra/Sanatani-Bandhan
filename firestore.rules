@@ -182,29 +182,75 @@ service cloud.firestore {
     // darshanSlots at publish time). Docs published before this batch
     // carry no slotCaps map — for them the counters stay anchored and
     // the booking transaction itself refuses over-capacity bookings.
-    function festSlotCapacityOk(newData, slotAfter) {
+    function festSlotCapacityOk(oldData, newData, slotAfter) {
       return slotAfter == ''
         || !('slotCaps' in newData)
+        || festBooked(newData, slotAfter) <= festBooked(oldData, slotAfter)
         || festBooked(newData, slotAfter) <= newData.get('slotCaps', {}).get(slotAfter, 0);
+    }
+    // EVENTS P1 — a waitlisted RSVP holds a place in the queue only:
+    // its EFFECTIVE headcount for the public counters is 0 until the
+    // devotee claims a freed place (status → 'confirmed'). Pre-P1
+    // RSVPs carry no status and are confirmed by definition. Every
+    // counter check below runs on effective headcounts, so create /
+    // edit / cancel / join-queue / claim all obey one law.
+    function festEffHc(data) {
+      return data.get('status', 'confirmed') == 'waitlisted' ? 0 : data.get('headcount', 0);
+    }
+    // One slot's waitlist queue (uid → joinedAt) may change only by
+    // the caller's own uid joining (+1) or leaving (−1); entries are
+    // never edited in place and nobody else's place may move.
+    function festWlSlotOk(oldWl, newWl, slotId, uid, delta) {
+      let o = oldWl.get(slotId, {});
+      let n = newWl.get(slotId, {});
+      return delta == 1
+        ? (n.diff(o).addedKeys().hasOnly([uid])
+            && n.diff(o).removedKeys().size() == 0
+            && n.diff(o).changedKeys().size() == 0
+            && n.size() == o.size() + 1)
+        : delta == -1
+          ? (n.diff(o).removedKeys().hasOnly([uid])
+              && n.diff(o).addedKeys().size() == 0
+              && n.diff(o).changedKeys().size() == 0
+              && n.size() + 1 == o.size())
+          : n == o;
+    }
+    // The whole waitlist map: only the caller's involved slots may
+    // change, each exactly by the caller's own transition. (Queue
+    // ORDER is guarded by the claiming transaction's own re-read;
+    // capacity — the safety property — is enforced here, in
+    // festSlotCapacityOk, so an out-of-order claim can never
+    // overbook a darshan slot.)
+    function festWaitlistOk(oldData, newData, slotBefore, slotAfter, uid, wasWl, isWl) {
+      let oldWl = oldData.get('slotWaitlist', {});
+      let newWl = newData.get('slotWaitlist', {});
+      let dBefore = (wasWl && slotBefore != '' ? -1 : 0) + (isWl && slotAfter == slotBefore && slotBefore != '' ? 1 : 0);
+      let dAfter = slotAfter != slotBefore ? (isWl && slotAfter != '' ? 1 : 0) : dBefore;
+      return newWl.diff(oldWl).affectedKeys().hasOnly([slotBefore, slotAfter])
+        && festWlSlotOk(oldWl, newWl, slotBefore, uid, slotBefore == slotAfter ? dAfter : dBefore)
+        && (slotAfter == slotBefore || festWlSlotOk(oldWl, newWl, slotAfter, uid, dAfter));
     }
     function anchoredFestivalCounter(eventId) {
       let rp = festRsvpPath(eventId);
       let had = exists(rp);
       let has = existsAfter(rp);
-      let hcBefore = had ? get(rp).data.get('headcount', 0) : 0;
-      let hcAfter = has ? getAfter(rp).data.get('headcount', 0) : 0;
+      let hcBefore = had ? festEffHc(get(rp).data) : 0;
+      let hcAfter = has ? festEffHc(getAfter(rp).data) : 0;
       let slotBefore = had ? get(rp).data.get('slotId', '') : '';
       let slotAfter = has ? getAfter(rp).data.get('slotId', '') : '';
+      let wasWl = had && get(rp).data.get('status', 'confirmed') == 'waitlisted';
+      let isWl = has && getAfter(rp).data.get('status', 'confirmed') == 'waitlisted';
       return (had || has)
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['rsvpHeadcount', 'slotBooked', 'updatedAt'])
+             .hasOnly(['rsvpHeadcount', 'slotBooked', 'slotWaitlist', 'updatedAt'])
         && request.resource.data.get('rsvpHeadcount', 0)
              == resource.data.get('rsvpHeadcount', 0) + (hcAfter - hcBefore)
         && request.resource.data.get('rsvpHeadcount', 0) >= 0
         && request.resource.data.get('slotBooked', {}).diff(resource.data.get('slotBooked', {}))
              .affectedKeys().hasOnly([slotBefore, slotAfter])
         && festSlotMoveOk(resource.data, request.resource.data, slotBefore, slotAfter, hcBefore, hcAfter)
-        && festSlotCapacityOk(request.resource.data, slotAfter);
+        && festSlotCapacityOk(resource.data, request.resource.data, slotAfter)
+        && festWaitlistOk(resource.data, request.resource.data, slotBefore, slotAfter, request.auth.uid, wasWl, isWl);
     }
 
     // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
@@ -478,16 +524,45 @@ service cloud.firestore {
         && request.resource.data.get('name', '').size() <= 80
         && request.resource.data.get('headcount', 0) >= 1
         && request.resource.data.get('headcount', 0) <= 20
+        // EVENTS P1: optional waitlist status + day-wise choices.
+        && request.resource.data.get('status', 'confirmed') in ['confirmed', 'waitlisted']
+        && (!('days' in request.resource.data)
+            || (request.resource.data.get('days', []) is list
+                && request.resource.data.get('days', []).size() <= 14))
         && request.resource.data.keys().hasOnly(
-             ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt'])
+             ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt',
+              'status', 'days'])
         // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
       allow update: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['headcount', 'slotId']))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['headcount', 'slotId', 'days', 'status'])
+          // EVENTS P1: the owner may move status ONLY waitlisted →
+          // confirmed (claiming a freed place — the counters move in
+          // the same transaction, anchored on the event doc). Giving
+          // up a confirmed place happens by deleting the RSVP, never
+          // by a status flip the counters cannot see.
+          && (request.resource.data.get('status', 'confirmed') == resource.data.get('status', 'confirmed')
+              || (resource.data.get('status', 'confirmed') == 'waitlisted'
+                  && request.resource.data.get('status', '') == 'confirmed')))
         || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
       allow delete: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
         || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+    }
+
+    // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav
+    // committee plan lived in ONE device's localStorage; the War Room
+    // proved the mirror pattern (festival_plans) and Utsav follows
+    // it: one doc per workspace holding the store snapshot, newer
+    // edit wins on both sides. Committee plans are working papers —
+    // member-only reads; staff of THAT workspace write.
+    // *** NEW COLLECTION: utsav_stores ***
+    match /utsav_stores/{workspaceId} {
+      allow read: if demoPublicRead(workspaceId) || isTenantMember(workspaceId);
+      allow create, update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, R_STAFF()))
+        && request.resource.data.get('workspaceId', '') == workspaceId
+        && request.resource.data.keys().hasOnly(['workspaceId', 'state', 'updatedAt', 'updatedBy']);
+      allow delete: if hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
     }
 
     // Inventory & assets
@@ -1578,15 +1653,34 @@ service cloud.firestore {
     function pollBaseTotal(data) {
       return data.get('totalVotes', data.get('votedUsers', {}).size());
     }
+    function pollKindOf(pollId) {
+      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('kind', 'choice');
+    }
     function pollBallotOk(pollId) {
       let pdata = get(/databases/$(database)/documents/polls/$(pollId)).data;
+      let kind = pdata.get('kind', 'choice');
       return (isTenantMember(pdata.get('workspaceId', null)) || demoWriteOk(pdata.get('workspaceId', null)))
         && pdata.get('status', '') == 'ACTIVE'
         && (pdata.get('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
             || pollCommittee(pdata.get('workspaceId', null)))
         && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs'))
-        && (request.resource.data.get('optionId', '') in pdata.get('options', {}).keys())
-        && request.resource.data.keys().hasOnly(['optionId', 'votedAt']);
+        // EVENTS P1: the ballot's shape follows the poll's own shape.
+        && ((kind == 'choice'
+              && (request.resource.data.get('optionId', '') in pdata.get('options', {}).keys())
+              && request.resource.data.keys().hasOnly(['optionId', 'votedAt']))
+          || (kind == 'multi'
+              && request.resource.data.get('optionIds', []) is list
+              && request.resource.data.get('optionIds', []).size() >= 1
+              && request.resource.data.get('optionIds', []).size() <= 5
+              && pdata.get('options', {}).keys().hasAll(request.resource.data.get('optionIds', []))
+              && (!('abstain' in request.resource.data.get('optionIds', []))
+                  || request.resource.data.get('optionIds', []).size() == 1)
+              && request.resource.data.keys().hasOnly(['optionIds', 'votedAt']))
+          || (kind == 'text'
+              && request.resource.data.get('text', '') is string
+              && request.resource.data.get('text', '').size() >= 1
+              && request.resource.data.get('text', '').size() <= 280
+              && request.resource.data.keys().hasOnly(['text', 'votedAt'])));
     }
     function pollVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
@@ -1608,6 +1702,72 @@ service cloud.firestore {
         && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['options', 'totalVotes', 'updatedAt']);
+    }
+    // EVENTS P1 — multi-select anchor: EVERY chosen option rises by
+    // exactly one, totalVotes rises by exactly one (one voter, one
+    // ballot — a multi-pick is still a single voice), and nothing
+    // else on the poll may move. Bounded-index checks stand in for a
+    // loop (rules cannot iterate); ballot validity (1–5 real
+    // options) is pollBallotOk's job. Every getAfter access sits to
+    // the RIGHT of existsAfter(vp), the house pattern from
+    // pollVoteAnchorOk, so ballot-less writes fail cleanly.
+    function pollMultiDeltaOk(oldOpts, newOpts, id) {
+      return newOpts.get(id, {}).get('votes', 0) == oldOpts.get(id, {}).get('votes', 0) + 1;
+    }
+    function pollMultiVoteAnchorOk(pollId) {
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let oldOpts = resource.data.get('options', {});
+      let newOpts = request.resource.data.get('options', {});
+      return !exists(vp) && existsAfter(vp)
+        && resource.data.get('status', '') == 'ACTIVE'
+        && request.resource.data.get('status', '') == 'ACTIVE'
+        && resource.data.get('kind', 'choice') == 'multi'
+        && getAfter(vp).data.get('optionIds', []) is list
+        && getAfter(vp).data.get('optionIds', []).size() >= 1
+        && getAfter(vp).data.get('optionIds', []).size() <= 5
+        && newOpts.diff(oldOpts).addedKeys().size() == 0
+        && newOpts.diff(oldOpts).removedKeys().size() == 0
+        && newOpts.diff(oldOpts).changedKeys().size() == getAfter(vp).data.get('optionIds', []).size()
+        && newOpts.diff(oldOpts).changedKeys().hasOnly(getAfter(vp).data.get('optionIds', []))
+        && (getAfter(vp).data.get('optionIds', []).size() < 1 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[0]))
+        && (getAfter(vp).data.get('optionIds', []).size() < 2 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[1]))
+        && (getAfter(vp).data.get('optionIds', []).size() < 3 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[2]))
+        && (getAfter(vp).data.get('optionIds', []).size() < 4 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[3]))
+        && (getAfter(vp).data.get('optionIds', []).size() < 5 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[4]))
+        && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['options', 'totalVotes', 'updatedAt']);
+    }
+    // EVENTS P1 — free-text anchor: a text ballot moves ONLY the
+    // turnout counter; the options map must stay identical (a text
+    // poll has no option counts to inflate).
+    function pollTextVoteAnchorOk(pollId) {
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      return !exists(vp) && existsAfter(vp)
+        && resource.data.get('status', '') == 'ACTIVE'
+        && request.resource.data.get('status', '') == 'ACTIVE'
+        && resource.data.get('kind', 'choice') == 'text'
+        && getAfter(vp).data.get('text', '') is string
+        && getAfter(vp).data.get('text', '').size() >= 1
+        && getAfter(vp).data.get('text', '').size() <= 280
+        && request.resource.data.get('options', {}) == resource.data.get('options', {})
+        && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalVotes', 'updatedAt']);
+    }
+    // EVENTS P1 — edit-before-first-vote: the committee (guarded by
+    // the caller, like pollManageOk) may repair a launched poll ONLY
+    // while no ballot exists — pollBaseTotal == 0 is the count of
+    // record. The shape (kind), the audience and the workspace are
+    // NOT editable here; relaunch for those.
+    function pollEditOk() {
+      return resource.data.get('status', '') == 'ACTIVE'
+        && request.resource.data.get('status', '') == 'ACTIVE'
+        && pollBaseTotal(resource.data) == 0
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'resultVisibility', 'updatedAt'])
+        && request.resource.data.get('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
+        && (resource.data.get('kind', 'choice') == 'text'
+            || (request.resource.data.get('options', {}).size() >= 2
+                && request.resource.data.get('options', {}).size() <= 5));
     }
     // Committee management: conclude (early or at deadline) and the
     // official note. Nothing else on the doc may change here.
@@ -1642,14 +1802,30 @@ service cloud.firestore {
             && request.resource.data.get('totalVotes', 0) == 0
             && request.resource.data.get('votedUsers', {}).size() == 0
             && request.resource.data.get('targetAudience', '') in ['ALL_MEMBERS', 'MANAGERS']
-            && request.resource.data.get('options', {}).size() >= 2
-            && request.resource.data.get('options', {}).size() <= 5
+            // EVENTS P1: text polls carry no options at all; choice
+            // and multi keep the P0 2–5 law (an abstain entry counts
+            // toward the five).
+            && (request.resource.data.get('kind', 'choice') == 'text'
+                ? request.resource.data.get('options', {}).size() == 0
+                : (request.resource.data.get('options', {}).size() >= 2
+                   && request.resource.data.get('options', {}).size() <= 5))
+            // EVENTS P1: the shape and the result-visibility rule are
+            // chosen AT LAUNCH. No update path below ever lists kind
+            // as writable again, and resultVisibility may move only
+            // through pollEditOk (zero ballots cast).
+            && request.resource.data.get('kind', 'choice') in ['choice', 'multi', 'text']
+            && request.resource.data.get('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
             && request.resource.data.keys().hasOnly(
                  ['workspaceId', 'title', 'description', 'targetAudience', 'status',
                   'createdAt', 'createdBy', 'expiresAt', 'expiresAtTs', 'options',
-                  'totalVotes', 'votedUsers']));
+                  'totalVotes', 'votedUsers', 'kind', 'resultVisibility']));
       allow update: if ((demoWriteOk(docWs()) || isTenantMember(docWs()))
             && wsImmutable() && pollVoteAnchorOk(pollId))
+        || ((demoWriteOk(docWs()) || isTenantMember(docWs()))
+            && wsImmutable() && pollMultiVoteAnchorOk(pollId))
+        || ((demoWriteOk(docWs()) || isTenantMember(docWs()))
+            && wsImmutable() && pollTextVoteAnchorOk(pollId))
+        || (pollCommittee(docWs()) && wsImmutable() && pollEditOk())
         || (pollCommittee(docWs()) && wsImmutable() && pollManageOk())
         || (isTenantMember(docWs()) && wsImmutable() && pollAutoConcludeOk());
       // Decided history is archive-only: a poll may be deleted ONLY
@@ -1663,7 +1839,13 @@ service cloud.firestore {
       match /votes/{voterUid} {
         allow read: if isLoggedIn() && (voterUid == request.auth.uid
           || isSuperAdmin()
-          || (pollAudience(pollId) == 'MANAGERS' && pollCommittee(pollWs(pollId))));
+          || (pollAudience(pollId) == 'MANAGERS' && pollCommittee(pollWs(pollId)))
+          // EVENTS P1: free-text responses are an ANNOUNCED suggestion
+          // box — the committee of the poll's own workspace may read
+          // them (the create form says so in plain words; a secret
+          // ballot remains a choice poll, whose named reveal stays
+          // committee-gated exactly as in P0).
+          || (pollKindOf(pollId) == 'text' && pollCommittee(pollWs(pollId))));
         allow create: if voterUid == request.auth.uid && pollBallotOk(pollId);
         allow update, delete: if false;
       }
@@ -2981,25 +3163,56 @@ service cloud.firestore {
               && isOrgTrustee(request.resource.data.get('orgId', ''))))
         && request.resource.data.keys().hasOnly(
           ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'orgId', 'orgName',
-           'isOfficial', 'creatorUid', 'creatorName', 'rsvpCount', 'createdAt']);
+           'isOfficial', 'creatorUid', 'creatorName', 'rsvpCount', 'createdAt',
+           // EVENTS P1: hall capacity + recurrence rule (lib/eventRecurrence).
+           'capacity', 'recurrence']);
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt']))
+            ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt',
+             // EVENTS P1: the creator may set the hall size and the
+             // recurrence rule; occurrences derive from the rule, so
+             // editing it rewrites the future on every surface.
+             'capacity', 'recurrence']))
         // RSVP count path (EVENTS + POLLS P0, 2026-10-24): the count
         // moves by exactly +-1 ONLY in the same batch as the caller's
         // own rsvps/{uid} doc being created (+1) or deleted (-1) —
         // anchored, so the number can no longer be nudged on its own.
         // (Was: any signed-in user could move it freely, 2026-10-20.)
+        // EVENTS P1 extends the count path below: 'going' is the only
+        // counted state. Create/delete keep the P0 anchor — a fresh
+        // record defaults to 'going', and a record holding another
+        // state never moved the count, so its deletion must not move
+        // it either (the state checks pin exactly that). Two new
+        // flips move the count when an EXISTING record changes state
+        // to or from 'going'. Every +1 path must respect the event's
+        // capacity when one is set — a full event takes waitlist
+        // joins, never a 101st 'going'.
         || (isLoggedIn()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvpCount'])
           && request.resource.data.get('rsvpCount', -1) >= 0
           && ((request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
                 && !exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)))
+                && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
+                && (!('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
+                    || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0)))
               || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && !existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)))));
+                && !existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going')
+              || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
+                && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') in ['interested', 'waitlisted']
+                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') == 'going'
+                && (!('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
+                    || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0)))
+              || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
+                && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
+                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
+                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') in ['interested', 'waitlisted'])));
       // QUEUED FIX #1 (flagged): creators may delete their own events so
       // trustees can "unshare" an org event bridged to Sangam.
       allow delete: if isSuperAdmin()
@@ -3009,8 +3222,17 @@ service cloud.firestore {
     // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
     match /sangamEvents/{eventId}/rsvps/{uid} {
       allow read: if true;
-      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
-      allow update: if false;
+      // EVENTS P1: a record carries the member's state ('going' |
+      // 'interested' | 'waitlisted'); pre-P1 records have no state
+      // and read as 'going' everywhere (the counter anchor's default).
+      // Flips are own-record only, state + join-time fields only; the
+      // counted consequences live in the event doc's anchor above.
+      allow create: if isLoggedIn() && request.auth.uid == uid
+        && request.resource.data.get('state', 'going') in ['going', 'interested', 'waitlisted'];
+      allow update: if isLoggedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'at'])
+        && request.resource.data.get('state', '') in ['going', 'interested', 'waitlisted'];
+      allow delete: if isLoggedIn() && request.auth.uid == uid;
     }
 
     // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;

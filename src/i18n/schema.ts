@@ -131,6 +131,9 @@ export interface TranslationSchema {
     security?: { [key: string]: string };
     demo?: { [key: string]: string };
     chrome?: { [key: string]: string };
+    // EVENTS P1+P2 (2026-10-25) — polls shapes, recurrence, waitlist,
+    // reminders, memory + decision cards. Authored in all 10.
+    events?: { [key: string]: string };
     roleHome?: { [key: string]: string };
     gurukulHome?: { [key: string]: string };
     devoteeGrid?: { [key: string]: string };
