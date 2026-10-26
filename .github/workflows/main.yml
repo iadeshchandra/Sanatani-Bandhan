@@ -6,6 +6,14 @@ on:
       - main
   workflow_dispatch:
 
+# Serialize deploys: chunk pushes used to start racing workflow runs whose
+# firestore:rules deploys collided at the rules-release step (HTTP 409
+# 'release already exists'), killing the job before Hosting deployed.
+# One deploy at a time; a running deploy is never cancelled mid-flight.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
 jobs:
   build_and_deploy:
     name: Build Web & Mobile APK, Deploy to Firebase
@@ -63,8 +71,20 @@ jobs:
       - name: 🔥 Deploy Firestore Security Rules
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
-          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@latest deploy --only firestore:rules --project shda-6245c --non-interactive
+          ok=0
+          for i in 1 2 3; do
+            if GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@latest deploy --only firestore:rules --project shda-6245c --non-interactive; then
+              ok=1
+              break
+            fi
+            echo "Rules deploy attempt $i failed; waiting 60s before retry..."
+            sleep 60
+          done
           rm -f "$RUNNER_TEMP/sa.json"
+          if [ "$ok" != "1" ]; then
+            echo "Rules deploy failed after 3 attempts."
+            exit 1
+          fi
 
       # NOTE: Cloud Functions deploy step intentionally OMITTED.
       # Google removed function deploys from the free Spark plan (requires a
