@@ -98,8 +98,8 @@ service cloud.firestore {
       return isLoggedIn() && orgId != null && orgId != '' && (
         isSuperAdmin() ||
         (isTenantMember(orgId) && (
-          roleIn(['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']) ||
-          wsMemberRoleIn(orgId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+          roleIn(R_TRUSTEE()) ||
+          wsMemberRoleIn(orgId, R_TRUSTEE())
         ))
       );
     }
@@ -128,7 +128,7 @@ service cloud.firestore {
     function grantableRole(orgId, targetRole) {
       return isSuperAdmin() || (
         isOrgTrustee(orgId) &&
-        !(targetRole in ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']) &&
+        !(targetRole in R_TRUSTEE()) &&
         targetRole in ['Priest', 'PRIEST', 'PUROHIT', 'Accountant', 'ACCOUNTANT',
           'Sevadar', 'SEVADAR', 'Devotee', 'DEVOTEE', 'Member', 'MEMBER',
           'CSO', 'Manager', 'MANAGER', 'Auditor', 'AUDITOR']
@@ -275,6 +275,39 @@ service cloud.firestore {
               'Accountant', 'ACCOUNTANT', 'Priest', 'PRIEST', 'PUROHIT', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
     }
 
+    // Compiled-size diet (2026-10-27): shared literal sets. The compiled
+    // ruleset must stay under Firebase's 256,000-byte executable cap; a
+    // literal list is compiled at every use site, a function body once.
+    // Each helper returns exactly the list it replaces - no rule changes
+    // meaning; verified by inverse expansion against the previous file.
+    function R_TRUSTEE() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'];
+    }
+    function R_BOARD() {
+      return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'];
+    }
+    function R_TRUSTEE_PAIR() {
+      return ['Trustee', 'TRUSTEE'];
+    }
+    function ORDER_ACTIVE() {
+      return ['paid', 'accepted', 'in_progress'];
+    }
+    function ORDER_DONE() {
+      return ['COMPLETED', 'DAKSHINA_RELEASED'];
+    }
+    function DECISION_STATES() {
+      return ['ACCEPTED', 'DECLINED'];
+    }
+    function PLATFORMS() {
+      return ['android', 'ios', 'desktop', 'unknown'];
+    }
+    function KEYS_STATUS_ONLY() {
+      return ['status', 'updatedAt'];
+    }
+    function UTSAV_COLLECTIONS() {
+      return ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins'];
+    }
+
     // 2. Platform admin registry (server-managed via Admin SDK only)
     match /platform_admins/{adminId} {
       allow read: if isSuperAdmin();
@@ -344,20 +377,20 @@ service cloud.firestore {
     match /tenants/{tenantId} {
       allow read: if true; // public discovery
       allow create: if isSuperAdmin();
-      allow update: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+      allow update: if hasRole(tenantId, R_TRUSTEE())
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['name', 'city', 'state', 'country', 'type', 'logoUrl', 'tagline', 'updatedAt']);
       allow delete: if isSuperAdmin();
 
       // Sensitive tenant fields (bank details, tax ids, keys) â restricted.
       match /private/{docId} {
-        allow read, write: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        allow read, write: if hasRole(tenantId, R_TRUSTEE());
       }
 
       // Curated public profile mirror for discovery clients.
       match /publicProfile/{docId} {
         allow read: if true;
-        allow write: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        allow write: if hasRole(tenantId, R_TRUSTEE());
       }
 
       // Tenant-scoped financial ledger (path-param tenant).
@@ -371,13 +404,13 @@ service cloud.firestore {
       match /devotees/{docId} {
         allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
         allow create, update: if demoWriteOk(tenantId) || hasRole(tenantId, R_STAFF());
-        allow delete: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        allow delete: if hasRole(tenantId, R_TRUSTEE());
       }
 
       match /yatranet_alerts/{docId} {
         allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
         allow create: if demoWriteOk(tenantId) || isTenantMember(tenantId);
-        allow update, delete: if hasRole(tenantId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        allow update, delete: if hasRole(tenantId, R_TRUSTEE());
       }
     }
 
@@ -391,7 +424,7 @@ service cloud.firestore {
       // Owner (Spark-native console) may change plan + limits-bypass fields only â never pins.
       allow update: if (isOwner()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['planId', 'limitsBypassed', 'updatedAt']))
-        || ((demoWriteOk(workspaceId) || hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']))
+        || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
     }
@@ -425,7 +458,7 @@ service cloud.firestore {
         || (isTenantMember(newDocWs()) && request.resource.data.get('donorId', '') == request.auth.uid
             && request.resource.data.get('status', '') == 'pledged'));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /tax_receipts/{receiptId} {
@@ -469,13 +502,13 @@ service cloud.firestore {
         || (isTenantMember(newDocWs()) && request.resource.data.get('userId', '') == request.auth.uid));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_STAFF())
         || (isTenantMember(docWs()) && resource.data.get('userId', '') == request.auth.uid)) && wsImmutable();
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /households/{householdId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /puja_bookings/{bookingId} {
@@ -483,7 +516,7 @@ service cloud.firestore {
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
         || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /poojaBookings/{bookingId} {
@@ -491,7 +524,7 @@ service cloud.firestore {
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
         || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     // Pillar 2 â Festival war-room (market domination).
@@ -499,18 +532,18 @@ service cloud.firestore {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
         && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /festival_events/{eventId} {
       allow read: if resource.data.get('published', false) == true
         || demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if demoWriteOk(newDocWs())
-        || hasRole(newDocWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER']);
+        || hasRole(newDocWs(), R_BOARD());
       allow update: if demoWriteOk(docWs())
-        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'])
+        || hasRole(docWs(), R_BOARD())
         || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId));
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     match /festival_rsvps/{rsvpId} {
@@ -545,9 +578,9 @@ service cloud.firestore {
           && (request.resource.data.get('status', 'confirmed') == resource.data.get('status', 'confirmed')
               || (resource.data.get('status', 'confirmed') == 'waitlisted'
                   && request.resource.data.get('status', '') == 'confirmed')))
-        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        || hasRole(docWs(), R_TRUSTEE());
       allow delete: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
-        || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+        || hasRole(docWs(), R_TRUSTEE());
     }
 
     // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav
@@ -562,51 +595,51 @@ service cloud.firestore {
       allow create, update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, R_STAFF()))
         && request.resource.data.get('workspaceId', '') == workspaceId
         && request.resource.data.keys().hasOnly(['workspaceId', 'state', 'updatedAt', 'updatedBy']);
-      allow delete: if hasRole(workspaceId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(workspaceId, R_TRUSTEE());
     }
 
     // Inventory & assets
     match /inventory_items/{itemId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /inventory/{itemId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /assets/{assetId} {
       allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /fixed_assets/{assetId} {
       allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     // Goshala / Dharamshala operations
     match /cows/{cattleId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /gaushala_cattle/{cattleId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /rooms/{roomId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
     match /dharamshala_rooms/{roomId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
     // One-time QR login pairing tokens â bearer-token pattern (Spark-plan,
@@ -625,18 +658,14 @@ service cloud.firestore {
 
     // Generic operational collections (annadanam, campaigns, check-ins...)
     match /{collection}/{docId} {
-      allow read: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
-          'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+      allow read: if collection in UTSAV_COLLECTIONS()
         && (demoPublicRead(docWs()) || isTenantMember(docWs()));
-      allow create: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
-          'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+      allow create: if collection in UTSAV_COLLECTIONS()
         && (demoWriteOk(newDocWs()) || (isTenantMember(newDocWs()) && roleIn(R_ANY_STAFF())));
-      allow update: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
-          'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
+      allow update: if collection in UTSAV_COLLECTIONS()
         && (demoWriteOk(docWs()) || (isTenantMember(docWs()) && roleIn(R_ANY_STAFF()))) && wsImmutable();
-      allow delete: if collection in ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns',
-          'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins']
-        && hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if collection in UTSAV_COLLECTIONS()
+        && hasRole(docWs(), R_TRUSTEE());
     }
 
     // Audit logs â append-only, actor-bound. Owner gets full read + write
@@ -1018,12 +1047,12 @@ service cloud.firestore {
           (resource.data.get('providerUid', '') == request.auth.uid
             && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed']
             && (request.resource.data.get('status', '') != 'completed'
-              || resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']))
+              || resource.data.get('status', '') in ORDER_ACTIVE()))
           // Provider (pay-after-task): task done, now awaiting the platform commission
           || (resource.data.get('providerUid', '') == request.auth.uid
             && resource.data.get('payAfterTask', false) == true
             && request.resource.data.get('status', '') == 'awaiting_commission'
-            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress'])
+            && resource.data.get('status', '') in ORDER_ACTIVE())
           // Provider (Rail-2): dispute a payment proof â back to pending_payment
           || (resource.data.get('providerUid', '') == request.auth.uid
             && resource.data.get('rail', '') == 'rail2'
@@ -1033,7 +1062,7 @@ service cloud.firestore {
           || (resource.data.get('clientUid', '') == request.auth.uid
             && request.resource.data.get('status', '') in ['completed', 'cancelled']
             && (request.resource.data.get('status', '') != 'completed'
-              || resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']))
+              || resource.data.get('status', '') in ORDER_ACTIVE()))
           // Client (wallet): pay from wallet â pending_payment becomes paid.
           || (resource.data.get('clientUid', '') == request.auth.uid
             && resource.data.get('payWithWallet', false) == true
@@ -1059,7 +1088,7 @@ service cloud.firestore {
           || (isLoggedIn()
             && (resource.data.get('providerUid', '') == request.auth.uid
               || resource.data.get('clientUid', '') == request.auth.uid)
-            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']
+            && resource.data.get('status', '') in ORDER_ACTIVE()
             && request.resource.data.get('status', '') == 'commission_held'
             && request.resource.data.get('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)
           // openDispute(): an order party flags an ACTIVE order 'disputed'.
@@ -1068,9 +1097,9 @@ service cloud.firestore {
           || (isLoggedIn()
             && (resource.data.get('providerUid', '') == request.auth.uid
               || resource.data.get('clientUid', '') == request.auth.uid)
-            && resource.data.get('status', '') in ['paid', 'accepted', 'in_progress']
+            && resource.data.get('status', '') in ORDER_ACTIVE()
             && request.resource.data.get('status', '') == 'disputed'
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))));
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY()))));
       allow delete: if false;
     }
     // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
@@ -1178,7 +1207,7 @@ service cloud.firestore {
     }
 
     // ---- Platform wallet + escrow top-up system ----
-    function walletDebitOk(uid) {
+    function walletDebitOk() {
       let data = request.resource.data;
       let old = resource.data;
       let orderId = data.get('lastDebitOrderId', '');
@@ -1279,7 +1308,7 @@ service cloud.firestore {
         && get(opath).data.get('providerUid', '') == uid
         && (get(opath).data.get('clientUid', '') == request.auth.uid
           || get(opath).data.get('providerUid', '') == request.auth.uid)
-        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && get(opath).data.get('status', '') in ORDER_ACTIVE()
         && net > 0
         && data.get('balance', -1) == old.get('balance', 0) + net
         && data.get('totalReceived', -1) == old.get('totalReceived', 0) + net
@@ -1300,7 +1329,7 @@ service cloud.firestore {
         && exists(opath)
         && order.get('providerUid', '') == uid
         && order.get('providerUid', '') == request.auth.uid
-        && order.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && order.get('status', '') in ORDER_ACTIVE()
         && cap > 0
         && debit > 0 && debit <= cap
         && data.get('balance', -1) >= 0
@@ -1321,7 +1350,7 @@ service cloud.firestore {
         && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
         && exists(opath)
         && get(opath).data.get('providerUid', '') == request.auth.uid
-        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress'];
+        && get(opath).data.get('status', '') in ORDER_ACTIVE();
     }
     // SECURITY P1 -- anchored rating steps (Finding 1). A rating
     // aggregate may move ONLY as the second half of a real rating: the
@@ -1389,7 +1418,7 @@ service cloud.firestore {
         && gid != '' && gid != resource.data.get('lastCompletedGigId', '')
         && exists(gpath)
         && get(gpath).data.get('assignedPurohitUid', '') == request.auth.uid
-        && get(gpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED'];
+        && get(gpath).data.get('status', '') in ORDER_DONE();
     }
     function p1CompletedConsultationOk() {
       let cid = request.resource.data.get('lastCompletedConsultationId', '');
@@ -1398,7 +1427,7 @@ service cloud.firestore {
         && cid != '' && cid != resource.data.get('lastCompletedConsultationId', '')
         && exists(cpath)
         && get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid
-        && get(cpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED'];
+        && get(cpath).data.get('status', '') in ORDER_DONE();
     }
     // Create-path for provider credit: the wallet doc may not exist yet when
     function walletCreditCreateOk(uid) {
@@ -1411,7 +1440,7 @@ service cloud.firestore {
         && get(opath).data.get('providerUid', '') == uid
         && (get(opath).data.get('clientUid', '') == request.auth.uid
           || get(opath).data.get('providerUid', '') == request.auth.uid)
-        && get(opath).data.get('status', '') in ['paid', 'accepted', 'in_progress']
+        && get(opath).data.get('status', '') in ORDER_ACTIVE()
         && net > 0
         && data.get('balance', -1) == net
         && data.get('totalReceived', -1) == net
@@ -1430,7 +1459,7 @@ service cloud.firestore {
         || (isLoggedIn() && p2pSettlementCreditCreateOk(uid))
         || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
-        || (isLoggedIn() && uid == request.auth.uid && walletDebitOk(uid))
+        || (isLoggedIn() && uid == request.auth.uid && walletDebitOk())
         || (isLoggedIn() && uid == request.auth.uid && p2pSettlementDebitOk(uid))
         || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
@@ -1540,7 +1569,7 @@ service cloud.firestore {
         && request.resource.data.get('senderUid', '') == request.auth.uid
         && (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()) || newDocWs() == null);
       allow update: if (demoWriteOk(docWs())
-          || hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+          || hasRole(docWs(), R_TRUSTEE())
           // Sender: "I'm safe" â cancel own SOS.
           || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys()
@@ -1574,7 +1603,7 @@ service cloud.firestore {
               .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
             && request.resource.data.get('status', '') == 'acknowledged'))
         && wsImmutable();
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE']);
+      allow delete: if hasRole(docWs(), R_TRUSTEE());
       match /responses/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
@@ -1644,7 +1673,7 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/polls/$(pollId)).data.get('targetAudience', 'ALL_MEMBERS');
     }
     function pollCommittee(ws) {
-      return hasRole(ws, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER']);
+      return hasRole(ws, R_BOARD());
     }
     // Votes already counted on a poll doc: the explicit total under
     // the ballot-box model, else the legacy votedUsers map size
@@ -1663,7 +1692,7 @@ service cloud.firestore {
         && pdata.get('status', '') == 'ACTIVE'
         && (pdata.get('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
             || pollCommittee(pdata.get('workspaceId', null)))
-        && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs'))
+        && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs', null))
         // EVENTS P1: the ballot's shape follows the poll's own shape.
         && ((kind == 'choice'
               && (request.resource.data.get('optionId', '') in pdata.get('options', {}).keys())
@@ -1783,11 +1812,11 @@ service cloud.firestore {
     // deadline timestamp has passed (status flip only, nothing else).
     function pollAutoConcludeOk() {
       return request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['status', 'updatedAt'])
+               .hasOnly(KEYS_STATUS_ONLY())
         && resource.data.get('status', '') == 'ACTIVE'
         && request.resource.data.get('status', '') == 'CONCLUDED'
         && resource.data.get('expiresAtTs', null) != null
-        && request.time >= resource.data.get('expiresAtTs');
+        && request.time >= resource.data.get('expiresAtTs', null);
     }
 
     // Polls — scoped to the poll's OWN workspace (see ballot-box note).
@@ -1913,7 +1942,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['voters', 'votesInFavor', 'votesAgainst', 'updatedAt'])
         && (resource.data.get('expiresAtTs', null) == null
-            || request.time < resource.data.get('expiresAtTs'));
+            || request.time < resource.data.get('expiresAtTs', null));
     }
     function resConcludeOk() {
       return resource.data.get('status', '') == 'Pending Review'
@@ -1925,7 +1954,7 @@ service cloud.firestore {
         && request.resource.data.get('boardSize', 0) == resource.data.get('boardSize', 0)
         && resOutcomeOk(request.resource.data)
         && ((resource.data.get('expiresAtTs', null) != null
-              && request.time >= resource.data.get('expiresAtTs'))
+              && request.time >= resource.data.get('expiresAtTs', null))
             || (resource.data.get('boardSize', 0) > 0
                 && resource.data.get('votesInFavor', 0) + resource.data.get('votesAgainst', 0)
                      >= resource.data.get('boardSize', 0))
@@ -1950,7 +1979,7 @@ service cloud.firestore {
         || (isTenantMember(docWs()) && wsImmutable() && roleIn(R_ANY_STAFF()) && resEditOk());
       // Archive-only once decided; deletion only for never-voted
       // drafts (the proposer's automatic vote is the one allowed mark).
-      allow delete: if hasRole(docWs(), ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+      allow delete: if hasRole(docWs(), R_TRUSTEE())
         && resource.data.get('status', '') == 'Pending Review'
         && resource.data.get('votesInFavor', 0) + resource.data.get('votesAgainst', 0) <= 1
         && resource.data.get('voters', {}).size() <= 1;
@@ -2506,7 +2535,7 @@ service cloud.firestore {
     match /endorsements/{endorsementId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && (isSuperAdmin() || roleIn(['Trustee', 'TRUSTEE']))
+        && (isSuperAdmin() || roleIn(R_TRUSTEE_PAIR()))
         && request.resource.data.get('orgId', '') != ''
         && request.resource.data.get('orgName', '') != ''
         && request.resource.data.get('purohitId', '') != ''
@@ -2518,7 +2547,7 @@ service cloud.firestore {
     function reviewPartyOk() {
       let gigPath = /databases/$(database)/documents/gigs/$(request.resource.data.get('gigId', ''));
       return exists(gigPath)
-        && get(gigPath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED']
+        && get(gigPath).data.get('status', '') in ORDER_DONE()
         && (get(gigPath).data.get('devoteeUid', '') == request.auth.uid
           || get(gigPath).data.get('assignedPurohitUid', '') == request.auth.uid);
     }
@@ -2538,9 +2567,9 @@ service cloud.firestore {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
           && (resource.data.get('purohitUid', '') == request.auth.uid
-            || roleIn(['Trustee', 'TRUSTEE'])));
+            || roleIn(R_TRUSTEE_PAIR())));
       allow create: if isSuperAdmin()
-        || (isLoggedIn() && roleIn(['Trustee', 'TRUSTEE'])
+        || (isLoggedIn() && roleIn(R_TRUSTEE_PAIR())
           && request.resource.data.get('orgId', '') != ''
           && request.resource.data.get('orgName', '') != ''
           && request.resource.data.get('purohitId', '') != ''
@@ -2549,8 +2578,8 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && resource.data.get('purohitUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY())
+          && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -2698,7 +2727,7 @@ service cloud.firestore {
     match /jyotishEndorsements/{endorsementId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && (isSuperAdmin() || roleIn(['Trustee', 'TRUSTEE']))
+        && (isSuperAdmin() || roleIn(R_TRUSTEE_PAIR()))
         && request.resource.data.get('orgId', '') != ''
         && request.resource.data.get('orgName', '') != ''
         && request.resource.data.get('jyotishId', '') != ''
@@ -2710,7 +2739,7 @@ service cloud.firestore {
     function consultationReviewPartyOk() {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('consultationId', ''));
       return exists(cpath)
-        && get(cpath).data.get('status', '') in ['COMPLETED', 'DAKSHINA_RELEASED']
+        && get(cpath).data.get('status', '') in ORDER_DONE()
         && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
           || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
     }
@@ -2730,9 +2759,9 @@ service cloud.firestore {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
           && (resource.data.get('jyotishUid', '') == request.auth.uid
-            || roleIn(['Trustee', 'TRUSTEE'])));
+            || roleIn(R_TRUSTEE_PAIR())));
       allow create: if isSuperAdmin()
-        || (isLoggedIn() && roleIn(['Trustee', 'TRUSTEE'])
+        || (isLoggedIn() && roleIn(R_TRUSTEE_PAIR())
           && request.resource.data.get('orgId', '') != ''
           && request.resource.data.get('orgName', '') != ''
           && request.resource.data.get('jyotishId', '') != ''
@@ -2741,8 +2770,8 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && resource.data.get('jyotishUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY())
+          && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -3496,7 +3525,7 @@ service cloud.firestore {
           && resource.data.get('status', '') == 'PENDING'
           && resource.data.get('expiresAt', 0) > request.time.toMillis()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt'])
-          && request.resource.data.get('status', '') in ['ACCEPTED', 'DECLINED']);
+          && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -3586,7 +3615,7 @@ service cloud.firestore {
         && (request.resource.data.get('campaignId', null) == null
           || (request.resource.data.get('campaignId', '') is string
             && request.resource.data.get('campaignId', '').size() <= 64))
-        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('platform', '') in PLATFORMS()
         && request.resource.data.get('ts', null) == request.time;
       allow read: if isOwner();
       allow update, delete: if false;
@@ -3596,14 +3625,14 @@ service cloud.firestore {
         && (request.resource.data.get('campaignId', null) == null
           || (request.resource.data.get('campaignId', '') is string
             && request.resource.data.get('campaignId', '').size() <= 64))
-        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('platform', '') in PLATFORMS()
         && request.resource.data.get('ts', null) == request.time;
       allow read: if isOwner();
       allow update, delete: if false;
     }
     match /appGrowthWaitlist/{entryId} {
       allow create: if request.resource.data.keys().hasOnly(['platform', 'ts'])
-        && request.resource.data.get('platform', '') in ['android', 'ios', 'desktop', 'unknown']
+        && request.resource.data.get('platform', '') in PLATFORMS()
         && request.resource.data.get('ts', null) == request.time;
       allow read: if isOwner();
       allow update, delete: if false;
@@ -3655,7 +3684,7 @@ service cloud.firestore {
     match /campusMaps/{orgId} {
       allow read: if true;
       allow create, update: if isLoggedIn() && (
-        hasRole(orgId, ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'])
+        hasRole(orgId, R_TRUSTEE())
         || isOwner()
       );
       allow delete: if false;
