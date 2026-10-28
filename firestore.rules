@@ -226,7 +226,7 @@ service cloud.firestore {
       let newWl = newData.get('slotWaitlist', {});
       let dBefore = (wasWl && slotBefore != '' ? -1 : 0) + (isWl && slotAfter == slotBefore && slotBefore != '' ? 1 : 0);
       let dAfter = slotAfter != slotBefore ? (isWl && slotAfter != '' ? 1 : 0) : dBefore;
-      return newWl.diff(oldWl).affectedKeys().hasOnly([slotBefore, slotAfter])
+      return diffKeysOnly(newWl, oldWl, [slotBefore, slotAfter])
         && festWlSlotOk(oldWl, newWl, slotBefore, uid, slotBefore == slotAfter ? dAfter : dBefore)
         && (slotAfter == slotBefore || festWlSlotOk(oldWl, newWl, slotAfter, uid, dAfter));
     }
@@ -306,6 +306,45 @@ service cloud.firestore {
     }
     function UTSAV_COLLECTIONS() {
       return ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins'];
+    }
+
+    // Compiled-size diet, round 2 (2026-10-28): shared expression shapes.
+    // bumpToggleOk / bumpUpOk pin the counter patterns used across the
+    // social and events blocks: exactly one counter moves by exactly one
+    // step (toggle: +-1, never below 0; up: +1 only), nothing else changes.
+    function bumpToggleOk(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+        && request.resource.data.get(field, -1) >= 0
+        && (request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1
+            || request.resource.data.get(field, 0) == resource.data.get(field, 0) - 1);
+    }
+    function bumpUpOk(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+        && request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1;
+    }
+    // diffKeysOnly: the affected-keys guard, factored - the diff chain is
+    // identical at dozens of sites; only the two maps and the key list vary.
+    function diffKeysOnly(newData, oldData, keys) {
+      return newData.diff(oldData).affectedKeys().hasOnly(keys);
+    }
+    // rsvpWithinCap: an RSVP +1 respects capacity - allowed when the event
+    // has no capacity set, a non-positive capacity (treated as unset), or
+    // room still remains under the cap.
+    function rsvpWithinCap() {
+      return !('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
+        || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0);
+    }
+    function DECISION_KEYS() {
+      return ['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'];
+    }
+    function RATING_KEYS() {
+      return ['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'];
+    }
+    function TIRTHA_VISIT_KEYS() {
+      return ['id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note', 'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'];
+    }
+    function TIRTHA_YATRA_KEYS() {
+      return ['id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'];
     }
 
     // 2. Platform admin registry (server-managed via Admin SDK only)
@@ -423,7 +462,7 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['adminPinHash', 'adminPin']);
       // Owner (Spark-native console) may change plan + limits-bypass fields only â never pins.
       allow update: if (isOwner()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['planId', 'limitsBypassed', 'updatedAt']))
+          && diffKeysOnly(request.resource.data, resource.data, ['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
@@ -569,7 +608,7 @@ service cloud.firestore {
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
       allow update: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['headcount', 'slotId', 'days', 'status'])
+          && diffKeysOnly(request.resource.data, resource.data, ['headcount', 'slotId', 'days', 'status'])
           // EVENTS P1: the owner may move status ONLY waitlisted →
           // confirmed (claiming a freed place — the counters move in
           // the same transaction, anchored on the event doc). Giving
@@ -718,7 +757,7 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && (resource.data.get('targetUid', '') == request.auth.uid
           || resource.data.get('ownerUid', '') == request.auth.uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && diffKeysOnly(request.resource.data, resource.data, ['status'])
         && request.resource.data.get('status', '') == 'sent';
       allow create, delete: if false; // scheduler writes via Admin SDK only
     }
@@ -845,7 +884,7 @@ service cloud.firestore {
           && request.resource.data.get('decidedBy', '') == request.auth.uid
           && request.resource.data.get('decidedBy', '') != resource.data.get('requestedBy', '')
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'])
+            .hasOnly(DECISION_KEYS())
           && wsImmutable())
         // Apply marker — the approved change was applied (or
         // failed); the decision itself cannot move here.
@@ -861,7 +900,7 @@ service cloud.firestore {
           && resource.data.get('status', '') == 'PENDING'
           && request.resource.data.get('status', '') == 'CANCELLED'
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'])
+            .hasOnly(DECISION_KEYS())
           && wsImmutable());
       allow delete: if false;
     }
@@ -873,7 +912,7 @@ service cloud.firestore {
       allow create: if isOwner();
       allow update: if isLoggedIn()
         && resource.data.get('targetUid', '') == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        && diffKeysOnly(request.resource.data, resource.data, ['read', 'readAt']);
       allow delete: if false;
     }
 
@@ -1006,7 +1045,7 @@ service cloud.firestore {
         // rating. The gigRatings doc (auditable, one per order) is the
         // source of truth.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
+          && diffKeysOnly(request.resource.data, resource.data, ['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
           && request.resource.data.get('providerUid', '') == resource.data.get('providerUid', '')
           && request.resource.data.get('avgRating', 0) >= 1
           && request.resource.data.get('avgRating', 0) <= 5
@@ -1083,7 +1122,7 @@ service cloud.firestore {
             && request.resource.data.get('status', '') == 'paid'
             && resource.data.get('rail', '') == 'rail1'
             && resource.data.get('payWithWallet', false) == false
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'paidAt', 'paymentNote', 'updatedAt']))
+            && diffKeysOnly(request.resource.data, resource.data, ['status', 'paidAt', 'paymentNote', 'updatedAt']))
           // PHASE 3 â dispute freeze: an order party moves an ACTIVE order to
           || (isLoggedIn()
             && (resource.data.get('providerUid', '') == request.auth.uid
@@ -1099,7 +1138,7 @@ service cloud.firestore {
               || resource.data.get('clientUid', '') == request.auth.uid)
             && resource.data.get('status', '') in ORDER_ACTIVE()
             && request.resource.data.get('status', '') == 'disputed'
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY()))));
+            && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY()))));
       allow delete: if false;
     }
     // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
@@ -1213,7 +1252,7 @@ service cloud.firestore {
       let orderId = data.get('lastDebitOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
       let gross = get(opath).data.get('amountGross', 0);
-      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastDebitOrderId', 'currency'])
+      return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitOrderId', 'currency'])
         && orderId != '' && orderId != old.get('lastDebitOrderId', '')
         && exists(opath)
         && get(opath).data.get('clientUid', '') == request.auth.uid
@@ -1237,7 +1276,7 @@ service cloud.firestore {
       let requestId = data.get('lastDebitP2PRequestId', '');
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
       let amount = get(rpath).data.get('amount', 0);
-      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastDebitP2PRequestId', 'currency'])
+      return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitP2PRequestId', 'currency'])
         && requestId != '' && requestId != old.get('lastDebitP2PRequestId', '')
         && exists(rpath)
         && get(rpath).data.get('senderId', '') == request.auth.uid
@@ -1260,7 +1299,7 @@ service cloud.firestore {
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
       let rdata = get(rpath).data;
       let amount = rdata.get('amount', 0);
-      return data.diff(old).affectedKeys().hasOnly(
+      return diffKeysOnly(data, old, 
           ['uid', 'balance', 'currency', 'totalToppedUp', 'totalSpent',
            'totalReceived', 'lastCreditP2PRequestId', 'updatedAt'])
         && requestId != '' && requestId != old.get('lastCreditP2PRequestId', '')
@@ -1302,7 +1341,7 @@ service cloud.firestore {
       let orderId = data.get('lastCreditOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
       let net = get(opath).data.get('providerNet', 0);
-      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastCreditOrderId', 'currency', 'uid'])
+      return diffKeysOnly(data, old, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastCreditOrderId', 'currency', 'uid'])
         && orderId != '' && orderId != old.get('lastCreditOrderId', '')
         && exists(opath)
         && get(opath).data.get('providerUid', '') == uid
@@ -1324,7 +1363,7 @@ service cloud.firestore {
       let order = get(opath).data;
       let cap = order.get('commissionAmount', 0);
       let debit = old.get('balance', 0) - data.get('balance', 0);
-      return data.diff(old).affectedKeys().hasOnly(['balance', 'totalSpent', 'updatedAt', 'lastCommissionOrderId', 'currency'])
+      return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastCommissionOrderId', 'currency'])
         && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
         && exists(opath)
         && order.get('providerUid', '') == uid
@@ -1344,7 +1383,7 @@ service cloud.firestore {
       let freeOld = old.get('freeSevasRemaining', 0);
       let freeNew = data.get('freeSevasRemaining', -1);
       return resource.data.get('uid', '') == request.auth.uid
-        && data.diff(old).affectedKeys().hasOnly(['freeSevasRemaining', 'completedSevasSinceVerified', 'lastCommissionOrderId', 'updatedAt'])
+        && diffKeysOnly(data, old, ['freeSevasRemaining', 'completedSevasSinceVerified', 'lastCommissionOrderId', 'updatedAt'])
         && data.get('completedSevasSinceVerified', -1) == old.get('completedSevasSinceVerified', 0) + 1
         && (freeNew == freeOld || (freeOld > 0 && freeNew == freeOld - 1))
         && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
@@ -1764,7 +1803,7 @@ service cloud.firestore {
         && (getAfter(vp).data.get('optionIds', []).size() < 4 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[3]))
         && (getAfter(vp).data.get('optionIds', []).size() < 5 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[4]))
         && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['options', 'totalVotes', 'updatedAt']);
+        && diffKeysOnly(request.resource.data, resource.data, ['options', 'totalVotes', 'updatedAt']);
     }
     // EVENTS P1 — free-text anchor: a text ballot moves ONLY the
     // turnout counter; the options map must stay identical (a text
@@ -1780,7 +1819,7 @@ service cloud.firestore {
         && getAfter(vp).data.get('text', '').size() <= 280
         && request.resource.data.get('options', {}) == resource.data.get('options', {})
         && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalVotes', 'updatedAt']);
+        && diffKeysOnly(request.resource.data, resource.data, ['totalVotes', 'updatedAt']);
     }
     // EVENTS P1 — edit-before-first-vote: the committee (guarded by
     // the caller, like pollManageOk) may repair a launched poll ONLY
@@ -2109,8 +2148,7 @@ service cloud.firestore {
           'serverCreatedAt'
         ]);
       allow update: if isLoggedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
-        && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1;
+        && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('sharedBy', '') == request.auth.uid);
     }
@@ -2138,8 +2176,7 @@ service cloud.firestore {
           'createdAt', 'expiresAt', 'reportCount'
         ]);
       allow update: if isLoggedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
-        && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1;
+        && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
 
@@ -2181,22 +2218,11 @@ service cloud.firestore {
       // pattern that guards sangamPosts. Views and reports only rise;
       // toggles may fall but never below 0.
       allow update: if isLoggedIn() && (
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
-          && request.resource.data.get('viewCount', 0) == resource.data.get('viewCount', 0) + 1)
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ashirvadCount'])
-          && request.resource.data.get('ashirvadCount', -1) >= 0
-          && (request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) + 1
-              || request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) - 1))
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
-          && request.resource.data.get('commentCount', -1) >= 0
-          && (request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) + 1
-              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1))
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
-          && request.resource.data.get('shareCount', -1) >= 0
-          && (request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) + 1
-              || request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) - 1))
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount'])
-          && request.resource.data.get('reportCount', 0) == resource.data.get('reportCount', 0) + 1)
+        (bumpUpOk('viewCount'))
+        || (bumpToggleOk('ashirvadCount'))
+        || (bumpToggleOk('commentCount'))
+        || (bumpToggleOk('shareCount'))
+        || (bumpUpOk('reportCount'))
       );
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
@@ -2301,12 +2327,12 @@ service cloud.firestore {
       allow update: if isSuperAdmin() || (isLoggedIn() &&
         resource.data.get('memberIds', null) is list &&
         request.auth.uid in resource.data.get('memberIds', []) && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          diffKeysOnly(request.resource.data, resource.data, 
             ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
              'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy']
           ) ||
           (request.auth.uid in resource.data.get('adminIds', []) &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            diffKeysOnly(request.resource.data, resource.data, 
               ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
                'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy',
                'name', 'description', 'memberIds', 'adminIds', 'memberInfo', 'inviteCode']
@@ -2353,7 +2379,7 @@ service cloud.firestore {
         // Role change: admin only, role field only.
         allow update: if isSuperAdmin() || (isLoggedIn() &&
           request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', []) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']));
+          diffKeysOnly(request.resource.data, resource.data, ['role']));
         // Delete: self (leaving) or admin (removing).
         allow delete: if isSuperAdmin() || (isLoggedIn() &&
           (uid == request.auth.uid ||
@@ -2400,7 +2426,7 @@ service cloud.firestore {
         // 5.0 average in a single write.
         || (isLoggedIn()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'])
+            .hasOnly(RATING_KEYS())
           && p1PurohitRatingOk(purohitId))
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
@@ -2445,7 +2471,7 @@ service cloud.firestore {
         let newPid = newRoles.get('purohitId', '');
         return newPid != ''
           && newPid != oldRoles.get('purohitId', '')
-          && newRoles.diff(oldRoles).affectedKeys().hasOnly(['purohitId'])
+          && diffKeysOnly(newRoles, oldRoles, ['purohitId'])
           && exists(/databases/$(database)/documents/purohits/$(newPid))
           && get(/databases/$(database)/documents/purohits/$(newPid)).data.get('uid', '') == request.auth.uid;
       }
@@ -2457,7 +2483,7 @@ service cloud.firestore {
         let newJid = newRoles.get('jyotishId', '');
         return newJid != ''
           && newJid != oldRoles.get('jyotishId', '')
-          && newRoles.diff(oldRoles).affectedKeys().hasOnly(['jyotishId'])
+          && diffKeysOnly(newRoles, oldRoles, ['jyotishId'])
           && exists(/databases/$(database)/documents/jyotishProfiles/$(newJid))
           && get(/databases/$(database)/documents/jyotishProfiles/$(newJid)).data.get('uid', '') == request.auth.uid;
       }
@@ -2578,7 +2604,7 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && resource.data.get('purohitUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY())
+          && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
           && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
@@ -2613,7 +2639,7 @@ service cloud.firestore {
         // ratingCount / completedConsultations to any in-range value.
         || (isLoggedIn()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'])
+            .hasOnly(RATING_KEYS())
           && p1JyotishRatingOk(jyotishId))
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
@@ -2718,7 +2744,7 @@ service cloud.firestore {
           || (isRemedyParty()
             && resource.data.get('status', '') == 'PENDING'
             && request.resource.data.get('status', '') in ['BOOKED', 'DISMISSED']
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'bookedGigId']));
+            && diffKeysOnly(request.resource.data, resource.data, ['status', 'bookedGigId']));
         allow delete: if false;
       }
     }
@@ -2770,7 +2796,7 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && resource.data.get('jyotishUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(KEYS_STATUS_ONLY())
+          && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
           && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
@@ -2916,7 +2942,7 @@ service cloud.firestore {
         && request.resource.data.get('totalReceived', -1) == resource.data.get('totalReceived', 0) + get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
         && request.resource.data.get('totalToppedUp', -1) == resource.data.get('totalToppedUp', 0)
         && request.resource.data.get('totalSpent', -1) == resource.data.get('totalSpent', 0)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
+        && diffKeysOnly(request.resource.data, resource.data, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
     }
     function referralWalletCreditOk(uid) {
       return referralCreditDocOk(uid);
@@ -2965,7 +2991,7 @@ service cloud.firestore {
         || (isLoggedIn()
           && resource.data.get('status', '') == 'OPEN'
           && request.resource.data.get('status', '') in ['SETTLED', 'SKIPPED_NO_VALUE']
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'settledAt', 'creditId'])
+          && diffKeysOnly(request.resource.data, resource.data, ['status', 'settledAt', 'creditId'])
           && attributionTerminalOk()
           && attributionPartyOk());
       allow delete: if false;
@@ -3009,7 +3035,7 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         && resource.data.get('status', '') == 'SETTLED'
         && request.resource.data.get('status', '') == 'REVERSED'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reversedAt', 'reversalReason']);
+        && diffKeysOnly(request.resource.data, resource.data, ['status', 'reversedAt', 'reversalReason']);
       allow delete: if false;
     }
 
@@ -3091,28 +3117,19 @@ service cloud.firestore {
         && serviceCardOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl', 'updatedAt'])
+          && diffKeysOnly(request.resource.data, resource.data, ['text', 'imageUrl', 'updatedAt'])
           && request.resource.data.get('authorUid', '') == resource.data.get('authorUid', ''))
         // Step 4 (comment multi-device sync): any signed-in user may nudge
         // commentCount by exactly ±1 (never below 0) and touch nothing else.
         // This lets commenters keep the count honest on posts they don't own.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
-          && request.resource.data.get('commentCount', -1) >= 0
-          && (request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) + 1
-              || request.resource.data.get('commentCount', 0) == resource.data.get('commentCount', 0) - 1))
+          && bumpToggleOk('commentCount'))
         // Audit Fix #1: same ±1 pattern for ashirvadCount and shareCount —
         // any signed-in user may nudge exactly ±1 (never below 0), nothing else.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ashirvadCount'])
-          && request.resource.data.get('ashirvadCount', -1) >= 0
-          && (request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) + 1
-              || request.resource.data.get('ashirvadCount', 0) == resource.data.get('ashirvadCount', 0) - 1))
+          && bumpToggleOk('ashirvadCount'))
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount'])
-          && request.resource.data.get('shareCount', -1) >= 0
-          && (request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) + 1
-              || request.resource.data.get('shareCount', 0) == resource.data.get('shareCount', 0) - 1));
+          && bumpToggleOk('shareCount'));
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
     }
@@ -3155,16 +3172,13 @@ service cloud.firestore {
           ['name', 'topic', 'description', 'creatorUid', 'creatorName', 'memberCount', 'createdAt']);
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          && diffKeysOnly(request.resource.data, resource.data, 
             ['name', 'topic', 'description', 'updatedAt']))
         // Member count path (owner-approved 2026-10-20): any signed-in
         // user may nudge memberCount by exactly +-1 (never below 0) and
         // touch nothing else -- mirrors the sangamPosts pattern.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
-          && request.resource.data.get('memberCount', -1) >= 0
-          && (request.resource.data.get('memberCount', 0) == resource.data.get('memberCount', 0) + 1
-              || request.resource.data.get('memberCount', 0) == resource.data.get('memberCount', 0) - 1));
+          && bumpToggleOk('memberCount'));
       allow delete: if isSuperAdmin();
     }
 
@@ -3197,7 +3211,7 @@ service cloud.firestore {
            'capacity', 'recurrence']);
       allow update: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          && diffKeysOnly(request.resource.data, resource.data, 
             ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt',
              // EVENTS P1: the creator may set the hall size and the
              // recurrence rule; occurrences derive from the rule, so
@@ -3218,14 +3232,13 @@ service cloud.firestore {
         // capacity when one is set — a full event takes waitlist
         // joins, never a 101st 'going'.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvpCount'])
+          && diffKeysOnly(request.resource.data, resource.data, ['rsvpCount'])
           && request.resource.data.get('rsvpCount', -1) >= 0
           && ((request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
                 && !exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
-                && (!('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
-                    || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0)))
+                && rsvpWithinCap())
               || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && !existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
@@ -3235,8 +3248,7 @@ service cloud.firestore {
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') in ['interested', 'waitlisted']
                 && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') == 'going'
-                && (!('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
-                    || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0)))
+                && rsvpWithinCap())
               || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
@@ -3259,7 +3271,7 @@ service cloud.firestore {
       allow create: if isLoggedIn() && request.auth.uid == uid
         && request.resource.data.get('state', 'going') in ['going', 'interested', 'waitlisted'];
       allow update: if isLoggedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'at'])
+        && diffKeysOnly(request.resource.data, resource.data, ['state', 'at'])
         && request.resource.data.get('state', '') in ['going', 'interested', 'waitlisted'];
       allow delete: if isLoggedIn() && request.auth.uid == uid;
     }
@@ -3373,7 +3385,7 @@ service cloud.firestore {
     //   never forge a family link to read someone's SOS history.
     // Only the writer's own key may differ inside one of the link maps.
     function familyLinkMapOnlySelfChanged(beforeMap, afterMap) {
-      return afterMap.diff(beforeMap).affectedKeys().hasOnly([request.auth.uid]);
+      return diffKeysOnly(afterMap, beforeMap, [request.auth.uid]);
     }
     // A well-formed pending invite FROM the writer (no one can invite as another).
     function familyLinkInviteContentOk(invite) {
@@ -3524,7 +3536,7 @@ service cloud.firestore {
         || (isLoggedIn() && inviteMatchesMe()
           && resource.data.get('status', '') == 'PENDING'
           && resource.data.get('expiresAt', 0) > request.time.toMillis()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'decidedAt'])
+          && diffKeysOnly(request.resource.data, resource.data, ['status', 'decidedAt'])
           && request.resource.data.get('status', '') in DECISION_STATES());
       allow delete: if false;
     }
@@ -3818,18 +3830,12 @@ match /fileVault/{fileId} {
           && request.resource.data.uid == uid
           && request.resource.data.get('templeName', '').size() > 0
           && request.resource.data.get('templeName', '').size() <= 120
-          && request.resource.data.keys().hasOnly([
-            'id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note',
-            'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'
-          ]);
+          && request.resource.data.keys().hasOnly(TIRTHA_VISIT_KEYS());
         allow update: if isLoggedIn() && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.get('templeName', '').size() > 0
           && request.resource.data.get('templeName', '').size() <= 120
-          && request.resource.data.keys().hasOnly([
-            'id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note',
-            'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'
-          ]);
+          && request.resource.data.keys().hasOnly(TIRTHA_VISIT_KEYS());
         allow delete: if isLoggedIn() && request.auth.uid == uid;
       }
     }
@@ -3843,16 +3849,12 @@ match /fileVault/{fileId} {
           && request.resource.data.uid == uid
           && request.resource.data.get('name', '').size() > 0
           && request.resource.data.get('name', '').size() <= 80
-          && request.resource.data.keys().hasOnly([
-            'id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'
-          ]);
+          && request.resource.data.keys().hasOnly(TIRTHA_YATRA_KEYS());
         allow update: if isLoggedIn() && request.auth.uid == uid
           && request.resource.data.uid == uid
           && request.resource.data.get('name', '').size() > 0
           && request.resource.data.get('name', '').size() <= 80
-          && request.resource.data.keys().hasOnly([
-            'id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'
-          ]);
+          && request.resource.data.keys().hasOnly(TIRTHA_YATRA_KEYS());
         allow delete: if isLoggedIn() && request.auth.uid == uid;
       }
     }
@@ -3898,7 +3900,7 @@ match /fileVault/{fileId} {
       // Any signed-in user may fold a scan into the counters. Counters only
       // move forward; identity and type are immutable after creation.
       allow update: if isLoggedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        && diffKeysOnly(request.resource.data, resource.data, [
           'totalScans', 'uniqueScanners', 'scannerHashes',
           'parsed', 'invalid', 'expired', 'completions', 'failures',
           'lastScannedAt', 'receiverId'
