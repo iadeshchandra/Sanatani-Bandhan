@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Languages } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '../../i18n/translations';
 
@@ -53,7 +54,12 @@ export const LanguagePickerSheet: React.FC<Props> = ({
   if (!open) return null;
   const copy = copyFor(chromeLang);
 
-  return (
+  // Portal to <body>: this sheet is opened from inside app headers, and a
+  // header's backdrop-filter creates a containing block that traps
+  // position:fixed descendants — the sheet rendered inside the header's
+  // strip instead of the viewport (owner screenshots, 2026-10-28).
+  // Rendering at the body level keeps `fixed` meaning the viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-[210]"
       role="dialog"
@@ -126,6 +132,7 @@ export const LanguagePickerSheet: React.FC<Props> = ({
           })}
         </ul>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

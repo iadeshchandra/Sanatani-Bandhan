@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, MapPin } from 'lucide-react';
 import {
   REGION_IDS,
@@ -56,7 +57,11 @@ export const RegionPickerSheet: React.FC<Props> = ({
   if (!open) return null;
   const copy = copyFor(chromeLang);
 
-  return (
+  // Portal to <body>: same trap as LanguagePickerSheet — a backdrop-filter
+  // (or transform) on any ancestor turns position:fixed into
+  // ancestor-relative. Rendering at the body level keeps `fixed` meaning
+  // the viewport wherever this sheet is opened from.
+  return createPortal(
     <div
       className="fixed inset-0 z-[210]"
       role="dialog"
@@ -130,6 +135,7 @@ export const RegionPickerSheet: React.FC<Props> = ({
           })}
         </ul>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
