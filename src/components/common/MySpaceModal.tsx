@@ -404,7 +404,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                     <div className="bg-gradient-to-r from-saffron-500 to-red-600 p-6 text-center">
                        <div className="flex items-center justify-center gap-1.5 mb-1">
                           <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                            <Sparkles size={11} /> Anti-Screenshot Dynamic Pass
+                            <Sparkles size={11} /> Dynamic Pass · Refreshes Every 5 Minutes
                           </span>
                        </div>
                        <h3 className="text-2xl font-black text-white tracking-widest uppercase">Gate Pass</h3>

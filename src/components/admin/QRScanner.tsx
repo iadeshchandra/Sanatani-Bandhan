@@ -63,7 +63,7 @@ export const QRScanner: React.FC = () => {
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              Anti-Screenshot Protection Active
+              Screenshot-Resistant Passes
             </span>
             <span className="text-[10px] font-mono text-temple-400 bg-temple-950 px-2 py-0.5 rounded-md border border-temple-800">
               5-Min Dynamic Token Expiry
@@ -71,13 +71,13 @@ export const QRScanner: React.FC = () => {
           </div>
           <h2 className="text-2xl font-black text-amber-300">Darshan Gate & Security Scanner</h2>
           <p className="text-xs text-temple-400 mt-1 max-w-xl">
-            Live camera feed verifying HMAC-signed dynamic passes. Screenshot replays and stale passes are rejected instantly with audio-visual cues.
+            Live camera checks each dynamic pass on this device — its signature stamp and its 5-minute expiry. Expired passes are rejected instantly with sound and screen cues, and a screenshot of a pass stops working once the pass expires.
           </p>
         </div>
 
         <div className="flex items-center gap-4 bg-temple-950/80 px-4 py-3 rounded-2xl border border-temple-800">
           <div>
-            <p className="text-[10px] uppercase font-bold text-temple-400">Total Scans Today</p>
+            <p className="text-[10px] uppercase font-bold text-temple-400">Scans This Session</p>
             <p className="text-xl font-black text-emerald-400">{recentScans.length}</p>
           </div>
         </div>

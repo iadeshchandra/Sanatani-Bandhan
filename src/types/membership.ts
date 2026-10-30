@@ -225,6 +225,9 @@ export const ORG_TYPE_LABELS: Record<string, string> = {
   Yoga: 'Yoga Centre',
   Tirth: 'Tirth Kshetra',
   AkshayaPatra: 'Annakshetra',
+  Vidyalaya: 'Vidyalaya / Pathshala',
+  Purohit: 'Purohit (Personal)',
+  KashiKshetra: 'Kashi Kshetra',
 };
 
 export const orgTypeLabel = (t?: string): string =>

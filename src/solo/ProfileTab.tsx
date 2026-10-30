@@ -433,7 +433,7 @@ export const ProfileTab: React.FC = () => {
               🔮 <T en="Jyotishi" bn="জ্যোতিষী" hi="ज्योतिषी" />
               {!jyotishIdentity && (
                 <span className="block text-[11px] font-medium text-stone-400">
-                  <T en="Coming soon" bn="শীঘ্রই" hi="शीघ्र" />
+                  <T en="Not attached yet" bn="এখনও সংযুক্ত নয়" hi="अभी जुड़ा नहीं" />
                 </span>
               )}
             </span>
@@ -443,7 +443,7 @@ export const ProfileTab: React.FC = () => {
               </Btn>
             ) : (
               <span className="font-mono text-xs font-bold text-stone-400">
-                {profile?.roles?.jyotishId || <T en="Coming soon" bn="শীঘ্রই" hi="शीघ्र" />}
+                {profile?.roles?.jyotishId || <T en="Not attached" bn="সংযুক্ত নয়" hi="जुड़ा नहीं" />}
               </span>
             )}
           </li>

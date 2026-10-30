@@ -14,8 +14,9 @@
  *
  * PHASE 2 (landing): hero above the fold with a device-appropriate
  * primary CTA; everything below the fold lazy-loads for a <2s first
- * paint. Trilingual EN/BN/HI with browser-language auto-detect on
- * first visit and a visible switcher.
+ * paint. The growth copy itself is trilingual EN/BN/HI (the Tr
+ * components); the page chrome carries the canonical 10-language
+ * PublicLanguageButton, like every other public surface.
  */
 import React, { Suspense, useEffect, useState } from 'react';
 import { Bell, Check, Download, Play, QrCode, Share, Smartphone } from 'lucide-react';

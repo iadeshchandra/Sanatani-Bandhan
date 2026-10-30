@@ -552,6 +552,24 @@ body.sb-form-sos {
   border: 1px solid rgba(176, 138, 46, 0.5);
   color: #3d2c14;
 }
+/* ============================================================
+   G-F2 (World-Readiness register) — the public org surfaces
+   (OrgPublicPage / CampusPage / OrgDirectory) sat in a narrow
+   reading column on a FLAT background; at 1440px the gutters were
+   plain unigned colour. .public-backdrop gives those pages a
+   designed ground: a warm sanctum glow at the top and a faint
+   kolam-dot texture, so the column reads as placed, not stranded.
+   Layout is untouched — this is backdrop only. The Sandhya section
+   below carries its dusk counterpart.
+   ============================================================ */
+.public-backdrop {
+  background-color: #fdf8ec;
+  background-image:
+    radial-gradient(ellipse 85% 46% at 50% -8%, rgba(251, 191, 36, 0.16), rgba(251, 191, 36, 0) 70%),
+    radial-gradient(rgba(180, 120, 40, 0.06) 1px, transparent 1.4px);
+  background-size: 100% 100%, 26px 26px;
+}
+
 .receipt-paper .rp-title { color: #4a2e0c; }
 .receipt-paper .rp-eyebrow { color: #8f6e22; }
 .receipt-paper .rp-amount { color: #8f6e22; }
@@ -674,3 +692,61 @@ body.sb-form-sos {
 [data-sandhya="on"] .border-amber-200,
 [data-sandhya="on"] .border-temple-200 { border-color: #57401f; }
 [data-sandhya="on"] .border-stone-300 { border-color: #6b4e26; }
+
+/* ------------------------------------------------------------
+   Polish Sweep (item 14) — shell chrome the first remap missed.
+   These strips are built from literal hex / off-palette classes,
+   so the token remap above never reached them; in dusk they kept
+   their day surfaces while their (remapped) text went cream —
+   light text on a light strip, unreadable. All rules stay scoped
+   under [data-sandhya="on"]: day rendering is untouched.
+   ------------------------------------------------------------ */
+/* The demo/status strip under the header (DemoBanner) is a hex
+   cream (#FFF8EC) with an orange-200 hairline. */
+[data-sandhya="on"] .bg-\[\#FFF8EC\] { background-color: #2c1d12; }
+[data-sandhya="on"] .border-orange-200 { border-color: #57401f; }
+[data-sandhya="on"] .bg-orange-100 { background-color: #38250f; }
+/* Its "signed in / exploring demo" pill is emerald-50/200/700 —
+   a pale mint island in dusk chrome; rest it to the peacock dusk
+   tones the sanctum already uses. */
+[data-sandhya="on"] .bg-emerald-50 { background-color: #123330; }
+[data-sandhya="on"] .border-emerald-200 { border-color: #1e4d43; }
+[data-sandhya="on"] .text-emerald-700 { color: #6ee7b7; }
+/* The sync strip (OfflineSevakStatus bar): its peacock-600
+   "All sent" icon sat dark-teal on the dusk card, and its
+   brass-200 hairline never deepened. */
+[data-sandhya="on"] .text-peacock-600 { color: #4fb3a9; }
+[data-sandhya="on"] .border-brass-200 { border-color: #57401f; }
+/* Light GRADIENT stops were invisible to the remap: from-/via-/to-
+   classes set gradient variables, not background-color, so a strip
+   like the shell's first-entry hint (from-amber-50 to-orange-50)
+   kept its cream gradient while its text went cream. Rest the warm
+   light stops to the same dusk tones as their flat counterparts. */
+[data-sandhya="on"] .from-amber-50,
+[data-sandhya="on"] .from-orange-50,
+[data-sandhya="on"] .from-stone-50 { --tw-gradient-from: #332416; }
+[data-sandhya="on"] .from-amber-100,
+[data-sandhya="on"] .from-orange-100 { --tw-gradient-from: #38250f; }
+[data-sandhya="on"] .from-white { --tw-gradient-from: #2c1d12; }
+[data-sandhya="on"] .from-emerald-50 { --tw-gradient-from: #123330; }
+[data-sandhya="on"] .from-rose-50,
+[data-sandhya="on"] .from-red-50 { --tw-gradient-from: #33181a; }
+[data-sandhya="on"] .via-amber-50,
+[data-sandhya="on"] .via-orange-50,
+[data-sandhya="on"] .via-stone-50 { --tw-gradient-via: #332416; }
+[data-sandhya="on"] .via-white { --tw-gradient-via: #2c1d12; }
+[data-sandhya="on"] .to-amber-50,
+[data-sandhya="on"] .to-orange-50,
+[data-sandhya="on"] .to-stone-50 { --tw-gradient-to: #332416; }
+[data-sandhya="on"] .to-stone-100,
+[data-sandhya="on"] .to-orange-100,
+[data-sandhya="on"] .to-amber-100 { --tw-gradient-to: #38250f; }
+[data-sandhya="on"] .to-white { --tw-gradient-to: #2c1d12; }
+[data-sandhya="on"] .to-red-50 { --tw-gradient-to: #33181a; }
+/* G-F2's public backdrop rests too (same light-ground problem). */
+[data-sandhya="on"] .public-backdrop {
+  background-color: #241408;
+  background-image:
+    radial-gradient(ellipse 85% 46% at 50% -8%, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0) 70%),
+    radial-gradient(rgba(233, 210, 154, 0.05) 1px, transparent 1.4px);
+}

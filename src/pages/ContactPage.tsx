@@ -20,7 +20,7 @@ import { PublicLanguageButton } from '../components/public/PublicLanguageButton'
 import { PrivacyPolicy } from '../components/public/PrivacyPolicy';
 import { TermsOfService } from '../components/public/TermsOfService';
 import { WorkspaceType } from '../types';
-import { WHATSAPP_URL, hasWhatsApp, SUPPORT_EMAIL } from '../config/contact';
+import { WHATSAPP_URL, SUPPORT_EMAIL } from '../config/contact';
 import { trackOpenAiEvent } from '../lib/openaiAds';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -359,19 +359,21 @@ export const ContactPage: React.FC = () => {
                 <p className="text-sm text-stone-500 mt-1 mb-3">
                   Festival alerts & platform updates, straight to your phone.
                 </p>
-                {hasWhatsApp() ? (
-                  <a
-                    href={WHATSAPP_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold transition-all cursor-pointer"
-                  >
-                    Chat on WhatsApp
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                ) : (
-                  <p className="text-sm text-stone-400 italic">{t('surfaces.contact.whatsappSupportComingSoon')}</p>
-                )}
+                {/* G-D4 (World-Readiness register): the WhatsApp number is
+                    configured in the single source of truth
+                    (src/config/contact.ts) — the old "support coming soon"
+                    fallback branch was unreachable dead copy that could
+                    only ever surface stale. Removed; the live door stands
+                    unconditionally. */}
+                <a
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-extrabold transition-all cursor-pointer"
+                >
+                  Chat on WhatsApp
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
 
               <div className="rounded-3xl p-6 shadow-xl bg-gradient-to-br from-stone-900 to-stone-800 text-white">

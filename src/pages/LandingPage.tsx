@@ -49,8 +49,6 @@ import {
   HandCoins,
   PiggyBank,
   BadgeCheck,
-  Star,
-  Quote,
   CalendarCheck,
   Home,
   GraduationCap,
@@ -495,7 +493,7 @@ const ORG_PROFILES: OrgProfile[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Data: FAQ & testimonials                                           */
+/*  Data: FAQ (testimonials removed — G-M5; see note below)            */
 /* ------------------------------------------------------------------ */
 
 const FAQS = [
@@ -525,38 +523,13 @@ const FAQS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote:
-      'Forty years of paper registers became a searchable digital parivar in one weekend. For the first time, our trust board sees the real numbers before every meeting.',
-    role: 'Trustee — Mandir',
-    place: 'Varanasi',
-  },
-  {
-    quote:
-      'Every gau-mata has a health record now — vaccinations, milk yield, vet visits. Our goshala finally runs like the seva it is, not a guessing game.',
-    role: 'Goshala Manager',
-    place: 'Mathura',
-  },
-  {
-    quote:
-      'Guest rooms, satsang schedules and bhandara planning — one dashboard for the whole ashram. Our sevaks learned it in a single afternoon.',
-    role: 'Ashram Administrator',
-    place: 'Rishikesh',
-  },
-  {
-    quote:
-      'Student records, shastra curriculum and fee receipts — the gurukul office went from three ledgers to one screen. Parents get receipts on WhatsApp instantly.',
-    role: 'Gurukul Principal',
-    place: 'Varanasi',
-  },
-  {
-    quote:
-      'Member sevas, community funds, event rosters — everything transparent to every member. Disputes over funds have simply stopped.',
-    role: 'Sangha President',
-    place: 'Pune',
-  },
-];
+/* Testimonials (G-M5, World-Readiness register): this page previously
+   carried five illustrative quotes with invented roles/cities under an
+   11px disclosure. The project's own content law — never invent
+   testimonials — forbids them at any disclosure size, so the data and
+   the VOICES section are GONE. The section returns only when the owner
+   supplies real quotes from real institutions (register G-M3,
+   owner-hand). */
 
 /* ------------------------------------------------------------------ */
 /*  Main component                                                     */
@@ -1689,39 +1662,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </Reveal>
         </section>
 
-        {/* VOICES */}
-        <section className="px-4 sm:px-6 pb-16 sm:pb-24 max-w-6xl mx-auto">
-          <Reveal className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-900">
-              {safeTranslate('landing_h2_voices', 'Voices from the parivar.', 'পরিবারের কণ্ঠস্বর।', 'परिवार की आवाज़ें।')}
-            </h2>
-          </Reveal>
-          {/* NOTE: replace with real testimonials once collected from pilot institutions. */}
-          <p className="text-center text-[11px] text-stone-400 italic mb-5">
-            Illustrative examples of what institutions achieve — real customer stories coming soon.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.role} delay={i * 90}>
-                <figure className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm flex flex-col">
-                  <Quote className="w-8 h-8 text-orange-200 mb-4" />
-                  <blockquote className="text-sm text-stone-600 leading-relaxed flex-1">
-                    “{t.quote}”
-                  </blockquote>
-                  <figcaption className="mt-5 pt-4 border-t border-orange-50">
-                    <div className="flex items-center gap-1 text-amber-500 mb-1.5" aria-label={safeTranslate('surfaces.landing.5StarRating', '5-star rating')}>
-                      {Array.from({ length: 5 }).map((_, s) => (
-                        <Star key={s} className="w-3.5 h-3.5 fill-amber-500" />
-                      ))}
-                    </div>
-                    <div className="text-sm font-extrabold text-stone-900">{t.role}</div>
-                    <div className="text-xs text-stone-400 font-medium">{t.place}</div>
-                  </figcaption>
-                </figure>
-              </Reveal>
-            ))}
-          </div>
-        </section>
+        {/* VOICES — intentionally absent (G-M5): no fabricated
+            testimonials. The section returns with real quotes only,
+            when the owner supplies them (G-M3). */}
 
         {/* FAQ */}
         <section id="faq" className="scroll-mt-24 px-4 sm:px-6 pb-16 sm:pb-24 max-w-3xl mx-auto">

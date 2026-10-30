@@ -46,7 +46,9 @@ export interface DynamicTokenVerificationResult<T = any> {
 }
 
 /**
- * Generates an anti-screenshot, time-expiring dynamic QR token.
+ * Generates a short-lived, time-expiring dynamic QR token
+ * (screenshot-resistant via its brief validity window — a captured
+ * image stops verifying once the token expires).
  * Injects current timestamp and expiresAt into the payload, then serializes,
  * computes an HMAC-SHA256 signature, and packages it in an encoded token.
  * 
@@ -81,7 +83,7 @@ export const generateDynamicToken = (payload: any, validitySeconds: number = 300
 };
 
 /**
- * Verifies an anti-screenshot dynamic QR token.
+ * Verifies a dynamic QR token.
  * Checks structure, verifies signature, and ensures Date.now() <= expiresAt.
  * Also supports backward-compatibility for legacy JSON formats with expiry.
  * 
@@ -225,7 +227,7 @@ export const verifyDynamicToken = <T = any>(token: string): DynamicTokenVerifica
 };
 
 /**
- * Generates a dynamic QR Data URL with anti-screenshot styling
+ * Generates a dynamic QR Data URL for a short-lived token
  */
 export const generateDynamicQRDataURL = async (
   payload: any,

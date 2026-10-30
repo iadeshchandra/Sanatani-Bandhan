@@ -29,7 +29,6 @@ import {
   Users,
   Star,
   ChevronDown,
-  MessageCircle,
 } from 'lucide-react';
 import { Tr, TriText, resolveTri } from './tr';
 import {
@@ -481,27 +480,12 @@ export const TrustSection: React.FC<ContentProp> = (props) => {
         </figcaption>
       </figure>
     ) : (
-      /* Testimonial slot — intentionally empty. Per standing content rule,
-         real temple names/quotes replace this only when the owner provides
-         them. Never invent testimonials. */
-      <div className="mx-auto max-w-2xl rounded-3xl border-2 border-dashed border-orange-200 bg-orange-50/50 p-8 text-center">
-        <MessageCircle className="mx-auto mb-3 h-8 w-8 text-orange-300" />
-        <p className="text-sm font-bold text-stone-600 sm:text-base">
-          <Tr
-            en="Stories from our temples — coming soon."
-            bn="আমাদের মন্দিরগুলোর গল্প — শীঘ্রই আসছে।"
-            hi="हमारे मंदिरों की कहानियाँ — जल्द आ रही हैं।"
-          />
-        </p>
-        <p className="mt-1 text-xs text-stone-500">
-          <Tr
-            en="Real voices, real temples. Never invented."
-            bn="আসল কণ্ঠ, আসল মন্দির। কখনো বানানো নয়।"
-            hi="असली आवाज़ें, असली मंदिर। कभी गढ़ी हुई नहीं।"
-            gloss={false}
-          />
-        </p>
-      </div>
+      /* G-D3 (World-Readiness register): no real testimonial yet — the slot
+         renders NOTHING. An empty "coming soon" box on a public acquisition
+         page is a dead end; the section simply waits, invisibly, until the
+         owner provides a real quote in the GodMode Content editor. Never
+         invent testimonials. */
+      null
     )}
   </SectionShell>
   );
@@ -823,9 +807,9 @@ export const FinalCtaSection: React.FC<{ cta: React.ReactNode }> = ({ cta }) => 
       </h2>
       <p className="mx-auto mb-8 max-w-xl text-sm text-orange-100/80 sm:text-base">
         <Tr
-          en="Join thousands of devotees and hundreds of temples already growing together."
-          bn="ইতিমধ্যে একসাথে বেড়ে ওঠা হাজারো ভক্ত ও শত শত মন্দিরের সাথে যোগ দিন।"
-          hi="पहले से साथ बढ़ रहे हज़ारों भक्तों और सैकड़ों मंदिरों से जुड़ें।"
+          en="Join devotees and temples already growing together."
+          bn="ইতিমধ্যে একসাথে বেড়ে ওঠা ভক্ত ও মন্দিরদের সাথে যোগ দিন।"
+          hi="पहले से साथ बढ़ रहे भक्तों और मंदिरों से जुड़ें।"
           gloss={false}
         />
       </p>

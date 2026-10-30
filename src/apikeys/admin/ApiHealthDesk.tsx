@@ -1,7 +1,7 @@
 /**
- * ApiHealthDesk — GodMode "API Health & Quota" section (QUEUED #35).
+ * ApiHealthDesk — GodMode "API Health & Quota" section (shipped; ex QUEUED #35).
  * ============================================================================
- * Rendered at the top of the API Keys tab, driven ENTIRELY by the two
+ * Rendered inside the API Keys tab, driven ENTIRELY by the two
  * registries: API_DESCRIPTORS (apiHealth.ts) for cards/quota models and
  * PROBES (apiProbes.ts) for checks. A future provider appears here by
  * adding one descriptor + one probe — nothing in this file changes.

@@ -96,7 +96,7 @@ function Shell({
 }) {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-amber-50/60 pb-20">
+    <div className="min-h-screen public-backdrop pb-20">
       <header className="bg-gradient-to-br from-[#431407] via-[#7c2d12] to-[#92400e] text-white">
         <div className="max-w-3xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between gap-3">

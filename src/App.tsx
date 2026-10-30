@@ -76,6 +76,7 @@ import { LandingPage as LegacyLandingPage } from './components/public/LandingPag
 import { LandingPage } from './pages/LandingPage';
 import { AskAiPage } from './pages/AskAiPage';
 import { ContactPage } from './pages/ContactPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { PortalLogin } from './components/public/PortalLogin';
 import { PreviewFrame } from './components/common/PreviewFrame';
 import { useToast } from './context/ToastContext';
@@ -1145,6 +1146,22 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // Allow /festival/:orgId/:eventId as public (shareable devotee event pages)
   const isOrgPublic = currentPath === '/orgs' || currentPath.startsWith('/org/');
   const isFestivalPublic = currentPath.startsWith('/festival/');
+  // Polish Sweep (item 8): a genuinely unknown URL gets the warm
+  // NotFound surface (surfaces.notFound, all 10 languages) instead of a
+  // silent bounce to /login. The login redirect (P1-1) is preserved for
+  // the paths that are REAL app entries a signed-out deep link can
+  // legitimately target: /app (the post-login shell home) and /console
+  // (the demo entry). Every defined route is matched by the router
+  // before this view ever renders, and authenticated users never reach
+  // this branch — both keep byte-identical behavior.
+  const isAppEntry =
+    currentPath === '/app' ||
+    currentPath.startsWith('/app/') ||
+    currentPath === '/console' ||
+    currentPath.startsWith('/console/');
+  if (!isPublicPath && !isOrgPublic && !isFestivalPublic && !isAppEntry) {
+    return <NotFoundPage />;
+  }
   if (!isPublicPath && !isOrgPublic && !isFestivalPublic) {
     const next = encodeURIComponent(currentPath + window.location.search);
     window.location.href = `/login?next=${next}`;

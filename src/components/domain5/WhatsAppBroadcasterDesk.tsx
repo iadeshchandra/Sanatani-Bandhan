@@ -83,9 +83,9 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
       setIsBroadcasting(false);
       setDeliveryCount(reachableDevotees.length);
       showToast(
-        `Dispatched WhatsApp Sandesh to ${reachableDevotees.length} devotees with valid mobile numbers.`,
+        `Simulation finished — no messages were sent. ${reachableDevotees.length} devotees with valid mobile numbers would receive this Sandesh once live sending is connected.`,
         'success',
-        'Bulk Sandesh Broadcast Complete'
+        'Simulation Only — Nothing Sent'
       );
     }, 1200);
   };
@@ -96,18 +96,18 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-temple-900/90 border border-temple-800 p-6 rounded-3xl shadow-xl">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
-              High-Throughput Sandesh Engine
+            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+              Simulation · Preview Only
             </span>
             <span className="text-xs text-temple-400 font-mono">
-              WhatsApp Business API & Twilio Meta Grounded
+              No live WhatsApp connection — messages are not sent
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-temple-100">
             WhatsApp Broadcast & Sandesh Desk
           </h2>
           <p className="text-xs text-temple-400 mt-0.5">
-            Automated Utsav notifications, personalized Gotra merge tags, and temple emergency alerts
+            Rehearse Utsav notifications with personalized Gotra merge tags. This desk is a rehearsal studio: compose and preview exactly what devotees would receive — nothing is sent from here.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
           className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-temple-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
         >
           <Send className="w-4 h-4" />
-          <span>{isBroadcasting ? 'Broadcasting...' : `Send to ${reachableDevotees.length} Devotees`}</span>
+          <span>{isBroadcasting ? 'Simulating...' : `Simulate Send to ${reachableDevotees.length} Devotees`}</span>
         </button>
       </div>
 
@@ -194,7 +194,7 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-temple-800">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-extrabold text-sm text-temple-100">Live Devotee Preview</h3>
+                <h3 className="font-extrabold text-sm text-temple-100">Devotee Preview (Sample)</h3>
               </div>
               <span className="text-[10px] text-temple-400 font-mono">
                 Previewing for: {sampleDevotee.fullName}
@@ -215,8 +215,8 @@ export const WhatsAppBroadcasterDesk: React.FC = () => {
 
           {deliveryCount > 0 && (
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between">
-              <span>Last Batch Delivered: {deliveryCount} Devotees</span>
-              <span className="font-mono font-bold">100% Success</span>
+              <span>Last Simulation: {deliveryCount} devotees would receive this</span>
+              <span className="font-mono font-bold">Not sent — preview only</span>
             </div>
           )}
         </div>

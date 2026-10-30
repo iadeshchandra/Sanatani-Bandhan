@@ -38,7 +38,7 @@ export const OrgDirectory: React.FC = () => {
   }, [q, type, browseOrgPages]);
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-16">
+    <div className="min-h-screen public-backdrop pb-16">
       <div className="bg-gradient-to-br from-amber-700 via-orange-800 to-stone-900 px-4 pt-6 pb-8">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-start justify-between gap-3">

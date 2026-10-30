@@ -148,7 +148,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-amber-50/60 pb-20">
+    <div className="min-h-screen public-backdrop pb-20">
       {/* ------------------------------ HERO ------------------------------ */}
       <header className="relative overflow-hidden bg-gradient-to-br from-[#431407] via-[#7c2d12] to-[#92400e]">
         {/* sacred glow texture */}

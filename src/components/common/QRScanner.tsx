@@ -118,7 +118,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({
   onScanError,
   onClose,
   title = 'Sanatani Bandhan Security Scanner',
-  subtitle = 'Anti-Screenshot Dynamic Pass Verification',
+  subtitle = 'Dynamic Pass Verification — Passes Expire in ~5 Minutes',
   autoResumeDelayMs = 2800,
   continuous = true,
   className = '',
@@ -204,7 +204,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({
 
         let desc = 'The scanned QR code is invalid or corrupted.';
         if (isExp) {
-          desc = 'Pass has EXPIRED! Dynamic anti-screenshot token exceeded its time validity.';
+          desc = 'Pass has EXPIRED! Its 5-minute validity window has ended.';
         } else if (errType === 'SIGNATURE_MISMATCH' || errType === 'TAMPER_DETECTED') {
           desc = 'Security signature mismatch! Potential counterfeit or modified pass.';
         }
@@ -407,7 +407,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({
 
             <h3 className="text-2xl font-black text-white tracking-tight">Darshan Pass Valid</h3>
             <p className="text-xs text-emerald-300/90 mt-0.5 max-w-xs">
-              Dynamic anti-screenshot token verified. Identity & entry rights confirmed.
+              Pass signature and expiry verified on this device.
             </p>
 
             {/* Details Box */}
@@ -506,10 +506,10 @@ export const QRScanner: React.FC<QRScannerProps> = ({
               <div className="mt-3 p-3 rounded-xl bg-rose-900/40 border border-rose-800 text-left text-xs text-rose-200 w-full space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-rose-400" />
-                  Anti-Screenshot Rule Triggered
+                  Pass Validity Window Ended
                 </p>
                 <p className="text-[11px] text-rose-300">
-                  Static screenshots and stale passes expire automatically every 5 minutes. Advise devotee to re-open their "My Space" pass to obtain an active token.
+                  Every pass carries a 5-minute validity window, so a screenshot or saved image of a pass quickly stops working. Ask the devotee to re-open their "My Space" pass for a fresh code.
                 </p>
               </div>
             )}
@@ -554,7 +554,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           <span>Real-time Audio & Dynamic Token Engine</span>
         </div>
-        <span className="text-temple-500 font-mono">HMAC-SHA256</span>
+        <span className="text-temple-500 font-mono">On-Device Check</span>
       </div>
     </div>
   );

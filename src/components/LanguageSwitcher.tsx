@@ -5,13 +5,20 @@ import { useLanguage, OrganizationType } from '../context/LanguageContext';
 // (Language Completion Sweep B1: this file used to carry a hand-copied
 // duplicate list; it drifted in order and shape from the registry.)
 import { SUPPORTED_LANGUAGES } from '../i18n/schema';
+import { workspaceRegistry } from '../lib/workspaceRegistry';
+import { orgTypeLabel } from '../types/membership';
 
-const ORGANIZATION_TYPES: { code: OrganizationType; label: string }[] = [
-  { code: 'Mandir', label: 'Mandir (Temple)' },
-  { code: 'Ashram', label: 'Ashram / Matha' },
-  { code: 'Gurukul', label: 'Gurukul (Academy)' },
-  { code: 'Trust', label: 'Dharmic Trust' },
-];
+/**
+ * Org-type options come from the CANONICAL registry — never a hand list.
+ * workspaceRegistry is Record<WorkspaceType, …>, so the compiler itself
+ * guarantees every one of the platform's 17 workspace types is a key;
+ * labels come from ORG_TYPE_LABELS (types/membership), the same source
+ * the org directory chips use. (Polish Sweep item 6: this file used to
+ * hand-list only Mandir/Ashram/Gurukul/Trust.)
+ */
+const ORGANIZATION_TYPES: { code: OrganizationType; label: string }[] = (
+  Object.keys(workspaceRegistry) as OrganizationType[]
+).map((code) => ({ code, label: orgTypeLabel(code) }));
 
 export const LanguageSwitcher: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { currentLang, changeLanguage, organizationType, changeOrganizationType } = useLanguage();

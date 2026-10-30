@@ -85,6 +85,10 @@ export const BOMSimulationDesk: React.FC = () => {
 
   // Scaled calculations based on portionCount (base 10,000)
   const scale = portionCount / 10000;
+  // ILLUSTRATIVE EXAMPLE RATE — the recipe model carries quantities, not
+  // prices, so this constant is a worked example for the simulation, NOT
+  // a computed cost. The UI labels it "example" wherever it renders
+  // (truth pass, Follow-Up Polish Sweep item 5).
   const costPerPortion = 14.25;
   const totalCost = Math.round(portionCount * costPerPortion);
 
@@ -240,8 +244,11 @@ export const BOMSimulationDesk: React.FC = () => {
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-200 space-y-2">
               <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-2 border-b border-slate-800">
                 <span>UNIT COST TELEMETRY</span>
-                <span className="text-emerald-400 font-bold">₹14.25 / portion</span>
+                <span className="text-emerald-400 font-bold">₹14.25 / portion <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[9px] font-black uppercase tracking-wider">Example</span></span>
               </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                Illustrative example rate — this simulation models quantities, not your real ingredient prices, so the batch cost below is a worked example, not an estimate of your actual spend.
+              </p>
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">

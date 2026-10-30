@@ -69,7 +69,10 @@ describe('GetAppSections — content override plumbing', () => {
     expect(withQuote).toContain('A real temple said this.');
     expect(withQuote).toContain('Temple Committee');
     const withoutQuote = render(<TrustSection />);
-    expect(withoutQuote).toContain('coming soon');
+    // G-D3 (Follow-Up Polish Sweep): the empty "coming soon" slot is
+    // HIDDEN until a real testimonial exists — nothing renders in its
+    // place, so no placeholder copy may appear at all.
+    expect(withoutQuote).not.toContain('coming soon');
     expect(withoutQuote).not.toContain('A real temple said this.');
   });
 });

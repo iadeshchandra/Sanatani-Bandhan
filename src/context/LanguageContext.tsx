@@ -22,8 +22,18 @@ import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { WorkspaceType } from '../types';
+import { workspaceRegistry } from '../lib/workspaceRegistry';
 
-export type OrganizationType = 'Mandir' | 'Ashram' | 'Gurukul' | 'Trust';
+/**
+ * OrganizationType — the taxonomy dimension of the language context.
+ * Follow-Up Polish Sweep (item 6): this was a hand-kept 4-value union
+ * ('Mandir' | 'Ashram' | 'Gurukul' | 'Trust'), so the taxonomy could
+ * only ever name 4 of the platform's 17 workspace types. It is now the
+ * canonical WorkspaceType union itself — one source of truth
+ * (src/types.ts), enforced complete by workspaceRegistry's
+ * Record<WorkspaceType, …> shape.
+ */
+export type OrganizationType = WorkspaceType;
 
 /** TaxonomyMatrix + TAXONOMY_MAP live in ../i18n/taxonomyMap (pure, tested — QUEUED #49). */
 export type { TaxonomyMatrix } from '../i18n/taxonomyMap';
@@ -175,7 +185,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [organizationType, setOrganizationType] = useState<OrganizationType>(() => {
     try {
       const saved = localStorage.getItem(ORG_TYPE_KEY) as OrganizationType;
-      if (saved && ['Mandir', 'Ashram', 'Gurukul', 'Trust'].includes(saved)) {
+      if (saved && Object.prototype.hasOwnProperty.call(workspaceRegistry, saved)) {
         return saved;
       }
       return 'Mandir';
