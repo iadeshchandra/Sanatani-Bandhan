@@ -13,6 +13,7 @@ import { usePlanGate } from '../../hooks/usePlanGate';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { DirectMessageChat } from '../common/DirectMessageChat';
 import { useNotifications } from '../../context/NotificationContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: boolean }) {
   const { t, language } = useLanguage();
@@ -191,7 +192,8 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
       if (!isOnline) {
          showToast(safeTranslate('offline_saved', 'Action cached offline. Syncing soon.'), 'offline');
       } else {
-         showToast(safeTranslate('error', 'Error') + ": " + e.message, "error");
+         console.error(e);
+         showToast(friendlyError(e, t, 'save'), "error");
       }
     }
   };
@@ -219,7 +221,8 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
       };
       await executeSafeUpdate(updates, 'Application submitted successfully! Please wait for admin approval.');
     } catch (err: any) {
-      showToast(err.message, "error");
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -248,7 +251,8 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
       setGigForm({ title: '', description: '', category: 'Mandir & Home Rituals', sampradaya: 'Smarta', language: 'Sanskrit', specialties: 'Vastu', durationHours: 2, dakshinaFee: 1500 });
       setActiveTab('MY_OFFERED_GIGS');
     } catch (err: any) {
-      showToast(err.message, "error");
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -344,7 +348,8 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
       setBookingForm({ yajamanaName: session?.userName || '', gotra: '', nakshatra: '', address: '', ceremonyDate: '', ceremonyTime: '10:00 AM' });
       setActiveTab('MY_ORDERS');
     } catch (err: any) {
-      showToast(err.message, "error");
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -373,7 +378,8 @@ export function PurohitMarketDesk({ isOnline = navigator.onLine }: { isOnline?: 
 
       await executeSafeUpdate(updates, safeTranslate('purohit_released_toast', 'Order marked as completed and Dakshina released to Purohitji! 🙏', 'অর্ডার সম্পূর্ণ হিসেবে চিহ্নিত এবং দক্ষিণা পুরোহিতজিকে প্রদান করা হয়েছে! 🙏', 'ऑर्डर पूर्ण चिह्नित हुआ और दक्षिणा पुरोहितजी को प्रदान की गई! 🙏'));
     } catch (e: any) {
-      showToast(e.message, 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }

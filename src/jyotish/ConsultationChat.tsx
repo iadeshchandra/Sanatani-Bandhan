@@ -12,9 +12,12 @@ import { useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { Consultation } from '../types/jyotish';
 import { PrescribeRemedy } from '../components/sevaPro/PrescribeRemedy';
 import { RemedyToRitual } from '../components/sevaPro/RemedyToRitual';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 export const ConsultationChat: React.FC<{ consultation: Consultation }> = ({ consultation }) => {
   const { firebaseUser } = useAuthWorkspace();
   const { sendMessage } = useJyotish();
+  const { t } = useLanguage();
   const messages = useConsultationMessages(consultation.id);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -32,7 +35,8 @@ export const ConsultationChat: React.FC<{ consultation: Consultation }> = ({ con
       await sendMessage(consultation, draft);
       setDraft('');
     } catch (err: any) {
-      alert(err.message || 'Could not send message');
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSending(false);
     }

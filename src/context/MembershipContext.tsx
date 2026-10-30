@@ -43,6 +43,8 @@ import {
 } from '../types/membership';
 import { resolveEdgeRole, membershipsLoadedAfterFetch } from '../lib/landingSurface';
 import { normalizeMembershipDoc } from '../lib/timestamps';
+import { useLanguage } from './LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 import { auditRecorder } from './data/auditStore';
 import { resolveActorName } from '../bahikhata/bahikhataStore';
 import { grantNeedsApproval, type RoleAssignment } from '../lib/roleTemplates';
@@ -217,6 +219,7 @@ export const useMembership = (): MembershipContextType => {
 export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { firebaseUser, activeWorkspace, currentRole, effectiveRole, addWorkspace, switchWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const uid = firebaseUser?.uid || null;
   const userEmail = (firebaseUser?.email || '').toLowerCase();
 
@@ -362,7 +365,8 @@ export const MembershipProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           showToast(`Following ${page.name} — their announcements will appear in your feed.`, 'success');
         }
       } catch (e: any) {
-        showToast(e?.message || 'Could not update follow. Try again.', 'error');
+        console.error(e);
+        showToast(friendlyError(e, t, 'save'), 'error');
         throw e;
       }
     },

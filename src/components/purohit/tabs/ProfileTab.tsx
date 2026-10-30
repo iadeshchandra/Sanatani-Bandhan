@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { Card, SectionTitle, PrimaryButton, Field, inputCls, TierBadge, EmptyState } from '../ui';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 export const ProfileTab: React.FC = () => {
   const { t } = useLanguage();
@@ -60,7 +61,8 @@ export const ProfileTab: React.FC = () => {
         dakshinaRangeMax: form.dakshinaRangeMax ? Math.max(0, parseInt(form.dakshinaRangeMax, 10) || 0) : undefined,
       } as any);
     } catch (err: any) {
-      alert(err.message || t('purohit.profile.saveFailed'));
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSaving(false);
     }

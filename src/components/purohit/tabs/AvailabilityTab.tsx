@@ -4,6 +4,7 @@ import { usePurohit } from '../../../context/PurohitContext';
 import { WEEK_DAYS, DAY_PARTS } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton } from '../ui';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const getDayLabels = (t: (k: string) => string): Record<string, string> => ({
   mon: t('purohit.availability.days.mon'),
@@ -47,7 +48,8 @@ export const AvailabilityTab: React.FC = () => {
       await saveAvailability(slots);
       setDirty(false);
     } catch (e: any) {
-      alert(e.message || t('purohit.availability.saveFailed'));
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setSaving(false);
     }

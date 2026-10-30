@@ -12,6 +12,8 @@ import {
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 /* ------------------------- Shared small pieces ------------------------- */
 
@@ -89,6 +91,7 @@ const Sparkline: React.FC<{ values: number[]; width?: number; height?: number }>
 /* --------------------------- Insights Dashboard -------------------------- */
 
 export const InsightsTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -105,7 +108,8 @@ export const InsightsTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTa
       else showToast(ins.error || 'Insights failed.', 'error');
       if (audit.ok) setFeed(audit.data.entries || []);
     } catch (e: any) {
-      showToast(e?.message || 'Load failed.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'load'), 'error');
     }
     setLoading(false);
   }, [showToast]);
@@ -281,6 +285,7 @@ function fieldPreview(v: any): string {
 }
 
 export const DatabaseExplorerTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,7 +344,8 @@ export const DatabaseExplorerTab: React.FC = () => {
         openDoc(selDoc.id);
       } else showToast(r.error || 'Save failed.', 'error');
     } catch (e: any) {
-      showToast(e?.message || 'Invalid value.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     }
     setWorking(false);
   };
@@ -356,7 +362,8 @@ export const DatabaseExplorerTab: React.FC = () => {
         openDoc(selDoc.id);
       } else showToast(r.error || 'Add failed.', 'error');
     } catch (e: any) {
-      showToast(e?.message || 'Invalid value.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     }
     setWorking(false);
   };

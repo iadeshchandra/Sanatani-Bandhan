@@ -27,6 +27,8 @@ import { ReferProfessional } from './RemedyReferral';
 import { calculateDailyPanchang } from '../utils/panchang';
 import { REGIONAL_CALENDARS, formatRegionalDate } from '../lib/regionalCalendars';
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 
 /* ------------------------------------------------------------------ */
 /* Overview                                                            */
@@ -146,6 +148,7 @@ const PanjikaMiniCard: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const FindConsultationsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { openConsultations, acceptConsultation } = useJyotish();
   const [typeFilter, setTypeFilter] = useState<string>('');
   const list = useMemo(
@@ -170,7 +173,7 @@ export const FindConsultationsTab: React.FC = () => {
           <div className="space-y-3">
             {list.map((c) => (
               <ConsultationCard key={c.id} c={c}>
-                <Btn onClick={() => acceptConsultation(c).catch((e) => alert(e.message))}>Accept</Btn>
+                <Btn onClick={() => acceptConsultation(c).catch((e) => { console.error(e); alert(friendlyError(e, t, 'save')); })}>Accept</Btn>
               </ConsultationCard>
             ))}
           </div>
@@ -226,6 +229,7 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 export const MyConsultationsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { myConsultations, advanceConsultation, setSessionLink } = useJyotish();
   const { showToast } = useToast();
   const [openChatId, setOpenChatId] = useState<string | null>(null);
@@ -268,7 +272,7 @@ export const MyConsultationsTab: React.FC = () => {
                           const label = ACTION_LABEL[next] || next;
                           if (next === 'CANCELLED' && !confirm('Cancel this consultation?')) return;
                           if (next === 'DAKSHINA_RELEASED' && !confirm('Confirm the devotee has paid the agreed dakshina? (Workflow record only — no money moves.)')) return;
-                          advanceConsultation(c, next).catch((e) => showToast(e.message, 'error'));
+                          advanceConsultation(c, next).catch((e) => { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); });
                         }}
                       >
                         {ACTION_LABEL[next] || next}
@@ -430,6 +434,7 @@ export const AvailabilityTab: React.FC = () => {
 const ID_PROOFS = ['Aadhaar', 'Voter ID', 'PAN Card', 'Parishad ID Card', 'Passport'];
 
 export const VerificationTab: React.FC = () => {
+  const { t } = useLanguage();
   const {
     profile,
     effectiveTier,
@@ -478,7 +483,8 @@ export const VerificationTab: React.FC = () => {
         phone: form.phone.trim(),
       });
     } catch (err: any) {
-      alert(err.message || 'Submission failed');
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSubmitting(false);
     }

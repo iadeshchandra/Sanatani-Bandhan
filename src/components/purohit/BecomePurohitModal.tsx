@@ -15,6 +15,7 @@ import { usePurohit } from '../../context/PurohitContext';
 import { useToast } from '../../context/ToastContext';
 import { VerificationBadge } from '../common/VerificationBadge';
 import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 interface BecomePurohitModalProps {
   isOpen: boolean;
@@ -86,7 +87,8 @@ export const BecomePurohitModal: React.FC<BecomePurohitModalProps> = ({ isOpen, 
       if (isOfflineError(err)) {
         showToast(t('purohit.become.connectionRequired'), 'error');
       } else {
-        showToast(err.message || t('purohit.become.createFailed'), 'error');
+        console.error(err);
+        showToast(friendlyError(err, t, 'save'), 'error');
       }
     } finally {
       setSaving(false);

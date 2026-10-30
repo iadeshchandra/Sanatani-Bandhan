@@ -22,6 +22,7 @@ import { useMembership } from '../context/MembershipContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { OWNER_EMAIL } from '../lib/firestoreAdmin';
 import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 export { canSubmitZoneReport };
 
@@ -96,10 +97,8 @@ export const ZoneReportButton: React.FC<{
         setSent(false);
       }, 1600);
     } catch (e: any) {
-      setError(
-        e?.message ||
-          tr({ en: 'Could not send — try again.', bn: 'পাঠানো যায়নি — আবার চেষ্টা করুন।', hi: 'भेजा नहीं जा सका — पुनः प्रयास करें।' }),
-      );
+      console.error(e);
+      setError(friendlyErrorText(e, currentLang, 'save'));
     } finally {
       setSending(false);
     }

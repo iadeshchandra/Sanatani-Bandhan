@@ -17,6 +17,8 @@ import { db, auth } from '../../firebase';
 import { isOwnerClient } from '../useAppGrowthConfig';
 import { useToast } from '../../context/ToastContext';
 import { Card, Empty, Loading, SectionTitle, Field, inputCls, btnPrimary, btnGhost } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import {
   BrandedQr,
   PosterGenerator,
@@ -33,6 +35,7 @@ interface Campaign {
 }
 
 const DownloadRow: React.FC<{ campaignId?: string | null; campaignLabel?: string }> = ({ campaignId, campaignLabel }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const opts = {
@@ -46,7 +49,8 @@ const DownloadRow: React.FC<{ campaignId?: string | null; campaignLabel?: string
       await fn();
       showToast(`${kind.toUpperCase()} downloaded.`, 'success');
     } catch (e) {
-      showToast(e instanceof Error ? e.message : `${kind.toUpperCase()} export failed.`, 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setBusy(null);
     }

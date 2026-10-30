@@ -16,6 +16,7 @@ import { collection, getDocs, addDoc, query, where, serverTimestamp } from 'fire
 import { db } from '../firebase';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 import { PLAN_PRICING, type SubscriptionTier } from '../config/planPricing';
 import { getTerms, getTermsSync, planIdForTier } from '../lib/termsConfig';
 import { detectPayRegion } from '../lib/geoDetect';
@@ -141,7 +142,8 @@ export const PlanUpgradeFlow: React.FC<Props> = ({ isOpen, onClose, initialTier 
       });
       setDone(true);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+      console.error(e);
+      setSubmitError(friendlyErrorText(e, currentLang, 'save'));
     } finally {
       setSubmitting(false);
     }

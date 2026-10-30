@@ -12,6 +12,8 @@ import { Save, Eye, Trash2, Plus } from 'lucide-react';
 import { useAppGrowthConfig, isOwnerClient, type Tri, type AppGrowthContent } from '../useAppGrowthConfig';
 import { useToast } from '../../context/ToastContext';
 import { Card, Loading, SectionTitle, Field, inputCls, btnPrimary, btnGhost } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 const TriField: React.FC<{ label: string; value: Tri; onChange: (v: Tri) => void }> = ({ label, value, onChange }) => (
   <div className="space-y-1.5">
@@ -91,6 +93,7 @@ const ContentPreview: React.FC<{ content: AppGrowthContent; mode: 'mobile' | 'de
 );
 
 export const ContentEditor: React.FC = () => {
+  const { t } = useLanguage();
   const { config, loading, save } = useAppGrowthConfig();
   const { showToast } = useToast();
   const [draft, setDraft] = useState<AppGrowthContent | null>(null);
@@ -115,7 +118,8 @@ export const ContentEditor: React.FC = () => {
       await save({ content: draft });
       showToast('Landing content saved — /get-app picks it up within a minute.', 'success');
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'Save failed.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setSaving(false);
     }

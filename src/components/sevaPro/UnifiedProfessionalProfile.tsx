@@ -40,6 +40,7 @@ import {
 } from './sevaProUi';
 import { BookingSheet } from './BookingSheet';
 import { ProviderGratitudeWall } from './ProviderGratitudeWall';
+import { friendlyErrorText } from '../../lib/friendlyError';
 import {
   getProviderBlessings,
   listProviderGigs,
@@ -174,8 +175,9 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
       setChatId(id);
       setChatOpen(true);
     } catch (e: any) {
+      console.error(e);
       showToast(
-        e?.message || tx('Could not open chat', 'চ্যাট খোলা যায়নি', 'चैट नहीं खुला'),
+        friendlyErrorText(e, language, 'save'),
         'error'
       );
     }

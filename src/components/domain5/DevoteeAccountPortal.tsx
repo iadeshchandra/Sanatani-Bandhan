@@ -24,6 +24,7 @@ import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { generateSecureQRToken } from '../../utils/qrUtils';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
+import { friendlyError } from '../../lib/friendlyError';
 import { 
   generateDevoteeCardPDF, 
   generate80GTaxReceipt, 
@@ -482,7 +483,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       },
       (err) => {
         setIsLocating(false);
-        showToast(t('surfaces.devoteePortal.toastGpsFailed').replace('{error}', err.message), 'info');
+        console.error(err);
+        showToast(t('surfaces.devoteePortal.toastGpsFailed').replace('{error}', friendlyError(err, t, 'generic')), 'info');
       },
       { timeout: 8000 }
     );

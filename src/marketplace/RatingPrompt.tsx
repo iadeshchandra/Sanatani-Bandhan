@@ -16,6 +16,7 @@ import { Star, X } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { submitGigRating, type MarketplaceOrder } from '../lib/marketplace';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 type L = 'en' | 'bn' | 'hi';
 
@@ -52,7 +53,8 @@ export const RatingPrompt: React.FC<Props> = ({ order, onDone }) => {
       showToast(t('shared'), 'success');
       onDone();
     } catch (e: any) {
-      showToast(e?.message || 'Could not share blessings.', 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
     } finally {
       setBusy(false);
     }

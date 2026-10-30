@@ -28,6 +28,7 @@ import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
 import { SevaCompletionButton } from '../components/sevaPro/SevaCompletionButton';
 import { WalletCoverageBanner } from '../components/sevaPro/WalletCoverageBanner';
 import { ReferralDashboard } from '../components/sevaPro/ReferralDashboard';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 export const GIG_CATEGORIES = ['Puja', 'Havan', 'Katha', 'Samskara', 'Vastu', 'Kundli', 'Horoscope', 'Remedy', 'Consultation', 'Other'];
 
@@ -56,7 +57,7 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setGigs(await myGigs()); } catch (e: any) { showToast(e.message, 'error'); }
+    try { setGigs(await myGigs()); } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'load'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -67,7 +68,8 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
       await saveGig({ ...editing, providerType, providerName });
       showToast('Service saved.', 'success'); setEditing(null); load();
     } catch (e: any) {
-      showToast(e.message || 'Save failed.', 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
       // QUEUED #23: the free-listing wall is a door, not a dead end —
       // open the Pro purchase flow (PUROHIT_PRO preselected).
       if (String(e?.message || '').includes('Community tier')) openPlanUpgrade('PUROHIT_PRO');
@@ -75,7 +77,7 @@ const MyServices: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName:
   };
   const toggle = async (g: Gig) => {
     try { await setGigActive(g.id as string, !(g.active !== false)); load(); }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
 
   if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
@@ -153,7 +155,7 @@ const ProviderOrders: React.FC = () => {
         autoConfirmStaleProofs().then((n) => { if (n > 0) showToast(`${n} payment proof(s) auto-confirmed after 48h.`, 'info'); }).catch(() => {}),
       ]);
       setOrders(os);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -162,7 +164,8 @@ const ProviderOrders: React.FC = () => {
     setWorking(o.id as string);
     try { await orderTransition(o.id as string, to); showToast('Order updated.', 'success'); load(); }
     catch (e: any) {
-      showToast(e.message, 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
       // QUEUED #23: acceptance-gate refusal carries the warm copy in the
       // toast AND opens the Pro purchase flow — an upsell, never a wall.
       if ((e as any)?.code === PRO_REQUIRED_CODE) openPlanUpgrade('PUROHIT_PRO');
@@ -173,7 +176,7 @@ const ProviderOrders: React.FC = () => {
   const confirmReceipt = async (o: MarketplaceOrder) => {
     setWorking(o.id as string);
     try { await confirmRail2Receipt(o.id as string); showToast('Payment confirmed. You can start work.', 'success'); load(); }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setWorking(null);
   };
 
@@ -185,7 +188,7 @@ const ProviderOrders: React.FC = () => {
       showToast(mkt(L, 'paymentConfirmedToast'), 'success');
       load();
     }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setWorking(null);
   };
 
@@ -193,7 +196,7 @@ const ProviderOrders: React.FC = () => {
     if (!disputeNote.trim()) { showToast('Explain the issue with the payment.', 'error'); return; }
     setWorking(o.id as string);
     try { await disputeRail2Amount(o.id as string, disputeNote); showToast('Disputed. The client has been notified to re-submit.', 'success'); setDisputing(null); setDisputeNote(''); load(); }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setWorking(null);
   };
 
@@ -315,6 +318,7 @@ const ProviderOrders: React.FC = () => {
 /* ------------------------------ Earnings ------------------------------ */
 
 const ProviderEarnings: React.FC = () => {
+  const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const [sums, setSums] = useState<EarningsByCurrency[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
@@ -331,7 +335,7 @@ const ProviderEarnings: React.FC = () => {
       const [s, p] = await Promise.all([providerEarningsSummary(), listMyPayouts()]);
       setSums(s); setPayouts(p);
       if (s.length > 0) setPayCurrency((prev) => s.some((x) => x.currency === prev) ? prev : s[0].currency);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -342,7 +346,7 @@ const ProviderEarnings: React.FC = () => {
     try {
       await requestPayout({ amount: Number(amount), method, accountDetails: acct, currency: payCurrency });
       showToast('Payout requested.', 'success'); setReqOpen(false); setAmount(''); setAcct(''); load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
 
   if (loading || sums.length === 0) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;

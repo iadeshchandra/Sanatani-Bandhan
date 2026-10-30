@@ -17,6 +17,8 @@ import {
 import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -40,6 +42,7 @@ function fmt(n: number): string {
 /* ------------------------------ Dues tab ------------------------------ */
 
 export const DuesTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [dues, setDues] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,7 +60,7 @@ export const DuesTab: React.FC = () => {
       const [d, s] = await Promise.all([firestoreAdmin.duesList(filter), firestoreAdmin.duesSettingsGet()]);
       if (d.ok) { setDues((d.data as any).dues || []); setTotal((d.data as any).totalPending || 0); }
       if (s.ok) setSettings({ duesThreshold: (s.data as any).duesThreshold, duesGraceDays: (s.data as any).duesGraceDays });
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [filter, showToast]);
   useEffect(() => { load(); }, [load]);
@@ -69,7 +72,7 @@ export const DuesTab: React.FC = () => {
       if (!r.ok) throw new Error(r.error);
       showToast('Due marked settled.', 'success');
       setConfirmSettle(null); load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
   };
 
   const doWaive = async () => {
@@ -80,7 +83,7 @@ export const DuesTab: React.FC = () => {
       if (!r.ok) throw new Error(r.error);
       showToast('Due waived.', 'success');
       setWaiving(null); setWaiveReason(''); load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
   };
 
   const saveSettings = async () => {
@@ -88,7 +91,7 @@ export const DuesTab: React.FC = () => {
       const r = await firestoreAdmin.duesSettingsSave(settings.duesThreshold, settings.duesGraceDays);
       if (!r.ok) throw new Error(r.error);
       showToast('Dues settings saved.', 'success'); setEditingSettings(false); load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
   };
 
   const runSuspensionCheck = async (providerUid: string) => {
@@ -97,7 +100,7 @@ export const DuesTab: React.FC = () => {
       if (!r.ok) throw new Error(r.error);
       showToast((r.data as any).suspended ? 'Provider auto-suspended (dues overdue).' : 'Dues OK — no suspension.', (r.data as any).suspended ? 'error' : 'success');
       load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
   };
 
   if (loading) return <Loading />;
@@ -211,6 +214,7 @@ const RiskCard: React.FC<{ title: string; count: number; icon: React.ReactNode; 
 );
 
 export const RiskTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -222,7 +226,7 @@ export const RiskTab: React.FC = () => {
       const r = await firestoreAdmin.riskDashboard();
       if (r.ok) setData(r.data);
       else showToast(r.error || 'Failed to load risk data.', 'error');
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -235,7 +239,7 @@ export const RiskTab: React.FC = () => {
       const r = await firestoreAdmin.auditPickRequestSms(ids);
       if (!r.ok) throw new Error(r.error);
       showToast(`SMS verification requested for ${(r.data as any).sent} order(s).`, 'success');
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setAuditing(false);
   };
 
@@ -245,7 +249,7 @@ export const RiskTab: React.FC = () => {
       if (!r.ok) throw new Error(r.error);
       showToast(kind === 'request' ? 'SMS proof requested from provider.' : 'Order marked SMS-verified.', 'success');
       load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
   };
 
   if (loading) return <Loading />;

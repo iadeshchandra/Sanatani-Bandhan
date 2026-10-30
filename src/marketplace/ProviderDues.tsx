@@ -13,6 +13,8 @@ import { HandCoins, RefreshCw, AlertTriangle, CheckCircle2, Copy } from 'lucide-
 import { useToast } from '../context/ToastContext';
 import { myPlatformDues, type PlatformDue } from '../lib/rail2';
 import { contactOwner } from '../lib/providerPayments';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 import { formatMoney } from '../lib/money';
 
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -32,6 +34,7 @@ const fmtTotals = (ts: { currency: string; total: number }[]) =>
   ts.map((t) => formatMoney(t.total, t.currency)).join(' + ');
 
 export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = ({ providerType }) => {
+  const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const [dues, setDues] = useState<PlatformDue[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,7 +47,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
     try {
       const r = await myPlatformDues();
       setDues(r.dues); setTotal(r.totalPending);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -59,7 +62,7 @@ export const ProviderDues: React.FC<{ providerType: 'purohit' | 'jyotishi' }> = 
       });
       showToast('Settlement request sent. The platform will verify your bKash payment.', 'success');
       setSettleOpen(false);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setSettling(false);
   };
 

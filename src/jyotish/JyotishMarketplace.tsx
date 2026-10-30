@@ -28,6 +28,7 @@ import { Card, StatusPill, Btn, Empty, SectionTitle, Field, inputCls } from './u
 import { ConsultationChat } from './ConsultationChat';
 import { JyotishReferralCard } from '../components/sevaPro/JyotishReferralCard';
 import { DakshinaButton } from './DakshinaSheet';
+import { friendlyError } from '../lib/friendlyError';
 
 type MarketTab = 'find' | 'post' | 'mine';
 
@@ -218,7 +219,8 @@ const EndorseForm: React.FC<{ jyotishId: string; open: boolean; setOpen: (b: boo
       setOpen(false);
       setText('');
     } catch (err: any) {
-      showToast(err.message || 'Endorsement failed', 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSaving(false);
     }
@@ -289,7 +291,8 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
       });
       onPosted();
     } catch (err: any) {
-      alert(err.message || 'Could not post requirement');
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSaving(false);
     }
@@ -429,7 +432,7 @@ const MyConsultationsDevotee: React.FC = () => {
                     <Btn
                       onClick={() => {
                         if (confirm('Confirm the consultation is complete and release the agreed dakshina? (Workflow record only — pay the jyotishi directly.)')) {
-                          advanceConsultation(c, 'DAKSHINA_RELEASED').catch((e) => showToast(e.message, 'error'));
+                          advanceConsultation(c, 'DAKSHINA_RELEASED').catch((e) => { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); });
                         }
                       }}
                     >
@@ -441,7 +444,7 @@ const MyConsultationsDevotee: React.FC = () => {
                   <Btn variant="ghost" onClick={() => setRatingFor(c)}>⭐ Rate</Btn>
                 )}
                 {c.status === 'OPEN' && (
-                  <Btn variant="danger" onClick={() => { if (confirm('Cancel this requirement?')) advanceConsultation(c, 'CANCELLED').catch((e) => showToast(e.message, 'error')); }}>
+                  <Btn variant="danger" onClick={() => { if (confirm('Cancel this requirement?')) advanceConsultation(c, 'CANCELLED').catch((e) => { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }); }}>
                     Cancel
                   </Btn>
                 )}
@@ -472,7 +475,8 @@ const RateDialog: React.FC<{
       await submitReview(consultation, rating, note);
       onClose();
     } catch (err: any) {
-      alert(err.message || 'Rating failed');
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSaving(false);
     }

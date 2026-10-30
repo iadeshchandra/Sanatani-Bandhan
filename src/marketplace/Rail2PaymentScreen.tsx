@@ -18,6 +18,8 @@ import { safeExternalUrl } from '../lib/safeUrl';
 import type { Gig } from '../lib/marketplace';
 import { formatMoney } from '../lib/money';
 import type { PriceChangeNote } from '../lib/rebook';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -28,6 +30,7 @@ interface Created {
 }
 
 export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack: () => void; priceNote?: PriceChangeNote | null }> = ({ gig, onDone, onBack, priceNote }) => {
+  const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const [created, setCreated] = useState<Created | null>(null);
   const [creating, setCreating] = useState(false);
@@ -44,7 +47,7 @@ export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack
       const c = await createRail2Order({ gigId: gig.id as string, clientNotes: notes, scheduledAt });
       setCreated(c);
       setAmount(String(c.payableAmount));
-    } catch (e: any) { showToast(e.message || 'Could not start booking.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setCreating(false);
   };
 
@@ -64,7 +67,7 @@ export const Rail2PaymentScreen: React.FC<{ gig: Gig; onDone: () => void; onBack
       await submitRail2Proof(created.orderId, trxId, amt);
       showToast('Payment proof submitted! The provider will confirm receipt.', 'success');
       onDone();
-    } catch (e: any) { showToast(e.message || 'Submission failed.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setSubmitting(false);
   };
 

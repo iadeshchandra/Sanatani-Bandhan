@@ -3,6 +3,8 @@ import { Compass, Plus, Save, Sparkles, Sun, Trash2 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 /**
  * SpiritualSettingsDesk — QUEUED #58 (audit A1-D02).
@@ -53,6 +55,7 @@ interface TimingRow {
 }
 
 export const SpiritualSettingsDesk: React.FC = () => {
+  const { t } = useLanguage();
   const { activeWorkspace, updateWorkspaceDetails, checkPermission } = useAuthWorkspace();
   const { showToast } = useToast();
 
@@ -89,7 +92,8 @@ export const SpiritualSettingsDesk: React.FC = () => {
       await executeSafeUpdate('workspaces', activeWorkspace?.id, updates, 'update');
       showToast('Spiritual settings saved — the app now speaks your parampara.', 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Error saving spiritual settings', 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSaving(false);
     }

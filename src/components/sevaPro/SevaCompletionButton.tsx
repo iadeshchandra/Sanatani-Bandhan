@@ -19,6 +19,7 @@ import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { sp, spLang } from '../../lib/sevaPro/sevaProCopy';
 import { fmtWallet, type WalletCurrency } from '../../lib/wallet';
+import { friendlyErrorText } from '../../lib/friendlyError';
 import {
   checkCompletionReadiness,
   completeSevaWithPrefundedCommission,
@@ -77,7 +78,8 @@ export const SevaCompletionButton: React.FC<SevaCompletionButtonProps> = ({
       setReadiness(r);
       setPhase(r.check.ok ? 'confirm' : 'shortfall');
     } catch (e: any) {
-      showToast(e?.message || sp(L, 'prefundErrorGeneric'), 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
       setPhase('idle');
     }
   };
@@ -100,11 +102,13 @@ export const SevaCompletionButton: React.FC<SevaCompletionButtonProps> = ({
           setReadiness(r);
           setPhase('shortfall');
         } catch {
-          showToast(e.message, 'error');
+          console.error(e);
+          showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
           setPhase('idle');
         }
       } else {
-        showToast(e?.message || sp(L, 'prefundErrorGeneric'), 'error');
+        console.error(e);
+        showToast(friendlyErrorText(e, currentLang, 'save'), 'error');
         setPhase('idle');
       }
     }

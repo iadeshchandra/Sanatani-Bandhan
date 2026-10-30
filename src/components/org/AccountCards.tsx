@@ -12,8 +12,11 @@ import { useNavigate } from 'react-router-dom';
 import { MailOpen, Check, X, Loader2, Building2, Search, Clock } from 'lucide-react';
 import { useMembership } from '../../context/MembershipContext';
 import { orgTypeLabel, OrgInvite } from '../../types/membership';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const MyInvitesCard: React.FC = () => {
+  const { t } = useLanguage();
   const { myInvites, respondToInvite } = useMembership();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -26,7 +29,8 @@ export const MyInvitesCard: React.FC = () => {
     try {
       await respondToInvite(inv, accept);
     } catch (err: any) {
-      setError(err?.message || 'Could not respond. Try again.');
+      console.error(err);
+      setError(friendlyError(err, t, 'save'));
     } finally {
       setBusyId(null);
     }

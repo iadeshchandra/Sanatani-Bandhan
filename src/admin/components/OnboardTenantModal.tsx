@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Building2, MapPin, Shield, User, Loader2 } from 'lucide-react';
 import { provisionTenant } from '../../services/adminService';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 interface OnboardTenantModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export const OnboardTenantModal: React.FC<OnboardTenantModalProps> = ({
   onSuccess,
 }) => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [stateName, setStateName] = useState('');
@@ -62,7 +65,7 @@ export const OnboardTenantModal: React.FC<OnboardTenantModalProps> = ({
       setTier('Standard');
     } catch (err: any) {
       console.error('Error provisioning tenant:', err);
-      const errMsg = err?.message || 'Failed to provision tenant';
+      const errMsg = friendlyError(err, t, 'save');
       setFormError(errMsg);
       showToast(errMsg, 'error');
     } finally {

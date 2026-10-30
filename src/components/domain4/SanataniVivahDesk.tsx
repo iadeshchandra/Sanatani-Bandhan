@@ -10,6 +10,7 @@ import {
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { DirectMessageChat } from '../common/DirectMessageChat';
 import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import { useNotifications } from '../../context/NotificationContext';
 import { usePlanGate } from '../../hooks/usePlanGate';
 
@@ -157,7 +158,8 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
       showToast('Profile updated successfully!', 'success');
       setActiveTab('BROWSE');
     } catch (err: any) {
-      showToast(err.message, 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +185,8 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
       await batch.commit();
       showToast('Connection request sent!', 'success');
     } catch (err: any) {
-      showToast(err.message, 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     }
   };
 
@@ -201,7 +204,8 @@ export default function SanataniVivahDesk({ isOnline = navigator.onLine }: { isO
       await batch.commit();
       showToast(`Request ${action.toLowerCase()}!`, 'success');
     } catch (err: any) {
-      showToast(err.message, 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     }
   };
 

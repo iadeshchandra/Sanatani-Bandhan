@@ -17,6 +17,8 @@ import { buildAppLink, fetchAppGrowthCampaigns, qrFileStem, type AppGrowthCampai
 import { renderExportCanvas } from './qrExport';
 import { pdfEngineHandles } from '../../utils/pdfSanatani';
 import { SUPPORT_EMAIL, WHATSAPP_NUMBER_INTL } from '../../config/contact';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 /* ------------------------------------------------------------------ */
 /* Poster content (trilingual)                                          */
@@ -349,6 +351,7 @@ export async function renderPosterPreview(opts: PosterOptions): Promise<HTMLCanv
 /* ------------------------------------------------------------------ */
 
 export const PosterGenerator: React.FC = () => {
+  const { t } = useLanguage();
   const [campaigns, setCampaigns] = useState<AppGrowthCampaign[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [campaignId, setCampaignId] = useState<string>('');
@@ -400,7 +403,8 @@ export const PosterGenerator: React.FC = () => {
         setPreviewUrl(canvasToPngDataUrl(canvas));
         setStatus(null);
       } catch (e) {
-        setStatus({ kind: 'err', text: e instanceof Error ? e.message : 'Preview failed.' });
+        console.error(e);
+        setStatus({ kind: 'err', text: friendlyError(e, t, 'generic') });
       } finally {
         setPreviewLoading(false);
       }
@@ -435,7 +439,8 @@ export const PosterGenerator: React.FC = () => {
       });
       setStatus({ kind: 'ok', text: 'Print PDF downloaded — A4, ready for the notice board. 🪔' });
     } catch (e) {
-      setStatus({ kind: 'err', text: e instanceof Error ? e.message : 'Poster PDF failed.' });
+      console.error(e);
+      setStatus({ kind: 'err', text: friendlyError(e, t, 'generic') });
     } finally {
       setBusy(null);
     }
@@ -455,7 +460,8 @@ export const PosterGenerator: React.FC = () => {
       document.body.removeChild(a);
       setStatus({ kind: 'ok', text: 'PNG preview downloaded — share it on WhatsApp for approval. 🙏' });
     } catch (e) {
-      setStatus({ kind: 'err', text: e instanceof Error ? e.message : 'PNG preview failed.' });
+      console.error(e);
+      setStatus({ kind: 'err', text: friendlyError(e, t, 'generic') });
     } finally {
       setBusy(null);
     }

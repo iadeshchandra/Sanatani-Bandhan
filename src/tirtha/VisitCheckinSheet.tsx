@@ -16,6 +16,7 @@ import { tirthaLangOf, tt } from './i18n';
 import { ZoneQrScanSheet, type ZoneScanSuccess } from '../campus/ZoneQrScanSheet';
 import { checkinPrefillFromScan } from '../campus/scanCheckin';
 import type { DarshanKind, VisitEntry } from './types';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 const DARSHAN_KINDS: DarshanKind[] = [
   'morning_aarti',
@@ -86,7 +87,8 @@ export const VisitCheckinSheet: React.FC<{
       });
       onSaved(entry);
     } catch (e: any) {
-      setError(e?.message || '…');
+      console.error(e);
+      setError(friendlyErrorText(e, currentLang, 'save'));
     } finally {
       setSaving(false);
     }

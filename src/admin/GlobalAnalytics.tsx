@@ -20,6 +20,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { auth } from '../services/firebaseClient';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
@@ -91,6 +93,7 @@ export const GlobalAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +113,7 @@ export const GlobalAnalytics: React.FC = () => {
         setPlans(pl.plans.distribution);
         setGeneratedAt(ov.overview.generatedAt || ts.timeseries.generatedAt);
       } catch (err: any) {
-        if (!cancelled) setError(err?.message || 'Failed to load analytics');
+        if (!cancelled) { console.error(err); setError(friendlyError(err, t, 'load')); }
       } finally {
         if (!cancelled) setLoading(false);
       }

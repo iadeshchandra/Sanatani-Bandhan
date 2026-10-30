@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, QrCode, Link2, CheckCircle2, Clock, XCircle, Info, Send, ShieldCheck, AlertTriangle, RefreshCw, MessageSquare } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 import {
   myPaymentMethod, submitOwnPaymentMethod, usePlatformPayment,
   contactOwner, myInquiries, myStrikes,
@@ -34,6 +35,7 @@ const strikeTypeLabel: Record<string, string> = {
 };
 
 export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyotishi'; providerName?: string }> = ({ providerType, providerName }) => {
+  const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const [method, setMethod] = useState<ProviderPaymentMethod | null>(null);
   const [strikes, setStrikes] = useState<ProviderStrike[]>([]);
@@ -60,7 +62,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
     try {
       const [m, s, iq] = await Promise.all([myPaymentMethod(), myStrikes(), myInquiries()]);
       setMethod(m); setStrikes(s); setInquiries(iq);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -77,7 +79,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       showToast('Submitted for owner approval.', 'success');
       setShowForm(false); setReason(''); setQrUrl(''); setUpiId(''); setPayLink(''); setAcctLabel('');
       load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setSubmitting(false);
   };
 
@@ -87,7 +89,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       await usePlatformPayment(providerType, providerName);
       showToast('Switched to platform payment.', 'success');
       load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
 
   const sendInquiry = async () => {
@@ -95,7 +97,7 @@ export const ProviderPaymentSettings: React.FC<{ providerType: 'purohit' | 'jyot
       await contactOwner({ subject: cSubject, message: cMessage, providerType, providerName });
       showToast('Message sent to the owner.', 'success');
       setContactOpen(false); setCSubject(''); setCMessage(''); load();
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
 
   if (loading) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;

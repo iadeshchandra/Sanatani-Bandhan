@@ -10,6 +10,7 @@ import {
   UserPlus, Copy, User
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 // pushToDataLayer removed
 import { usePlanGate } from '../../hooks/usePlanGate';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -150,7 +151,8 @@ export function PurohitDesk({ isOnline = navigator.onLine }: { isOnline?: boolea
       if (!isOnline) {
          showToast(safeTranslate('offline_saved', 'Action cached offline. Syncing soon.'), 'offline');
       } else {
-         showToast(safeTranslate('error', 'Error') + ": " + e.message, "error");
+         console.error(e);
+         showToast(friendlyError(e, t, 'save'), "error");
       }
     }
   };

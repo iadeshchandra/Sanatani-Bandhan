@@ -9,6 +9,7 @@ import {
 } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, Field, inputCls, EmptyState } from '../ui';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const ID_PROOFS = ['Aadhaar', 'Voter ID', 'PAN Card', 'Parishad ID Card', 'Passport'];
 
@@ -61,7 +62,8 @@ export const VerificationTab: React.FC = () => {
         phone: form.phone.trim(),
       });
     } catch (err: any) {
-      alert(err.message || t('purohit.verification.submissionFailed'));
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSubmitting(false);
     }

@@ -3,9 +3,12 @@ import React, { useState } from 'react';
 import { usePurohit } from '../../context/PurohitContext';
 import { RITUAL_TYPES } from '../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, Field, inputCls } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const PostRequirement: React.FC<{ onPosted?: () => void }> = ({ onPosted }) => {
   const { postGig } = usePurohit();
+  const { t } = useLanguage();
   const [form, setForm] = useState({
     ritualType: RITUAL_TYPES[0] as string,
     preferredDate: '',
@@ -35,7 +38,8 @@ export const PostRequirement: React.FC<{ onPosted?: () => void }> = ({ onPosted 
       setForm({ ...form, notes: '', preferredDate: '' });
       onPosted?.();
     } catch (err: any) {
-      alert(err.message || 'Could not post requirement');
+      console.error(err);
+      alert(friendlyError(err, t, 'save'));
     } finally {
       setSaving(false);
     }

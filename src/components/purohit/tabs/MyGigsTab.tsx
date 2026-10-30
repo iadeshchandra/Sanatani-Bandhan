@@ -5,6 +5,7 @@ import { GigStatus } from '../../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, GhostButton, GigStatusBadge, EmptyState } from '../ui';
 import { ReferToJyotish } from '../../sevaPro/ReferToJyotish';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const getNextAction = (t: (k: string) => string): Partial<Record<GigStatus, { next: GigStatus; label: string }>> => ({
   ASSIGNED: { next: 'IN_PROGRESS', label: t('purohit.gigs.startRitual') },
@@ -31,7 +32,8 @@ export const MyGigsTab: React.FC = () => {
     try {
       await advanceGig(gig, next);
     } catch (e: any) {
-      alert(e.message || t('purohit.gigs.updateFailed'));
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setWorking(null);
     }
@@ -45,7 +47,8 @@ export const MyGigsTab: React.FC = () => {
       setRating(5);
       setRatingNote('');
     } catch (e: any) {
-      alert(e.message || t('purohit.gigs.ratingFailed'));
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setWorking(null);
     }

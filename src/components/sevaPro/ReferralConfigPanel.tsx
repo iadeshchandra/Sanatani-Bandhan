@@ -16,6 +16,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyErrorText } from '../../lib/friendlyError';
 import {
   DEFAULT_REFERRAL_CONFIG,
   getReferralConfig,
@@ -31,6 +33,7 @@ const DIRECTIONS: { key: ReferralDirection; label: string }[] = [
 
 export const ReferralConfigPanel: React.FC = () => {
   const { showToast } = useToast();
+  const { currentLang } = useLanguage();
   const [cfg, setCfg] = useState<SevaReferralConfig>(DEFAULT_REFERRAL_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +54,8 @@ export const ReferralConfigPanel: React.FC = () => {
       await saveReferralConfig(cfg);
       showToast('Referral guidance settings saved.', 'success');
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Save failed — owner only.', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, currentLang, 'save'), 'error');
     } finally {
       setSaving(false);
     }

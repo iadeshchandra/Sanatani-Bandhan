@@ -43,6 +43,8 @@ import {
 import { collection, query, where, orderBy, limit, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { isValidLatLng } from '../../utils/geo';
@@ -134,6 +136,7 @@ export default function YatraNetDesk() {
   const { currentUser, activeWorkspace } = useAuthWorkspace();
   const { devotees } = useData();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   // Active Desk View
   const [activeTab, setActiveTab] = useState<'MAP' | 'MESH'>('MAP');
@@ -388,7 +391,8 @@ export default function YatraNetDesk() {
       await captureGPSCoordinates();
       showToast('GPS coordinates acquired! Ready to check in.', 'success');
     } catch (err: any) {
-      showToast(err.message, 'warning');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'warning');
       // Fallback: place close to temple coordinates
       setCurrentGPS({
         lat: templeCoords[0] + (Math.random() - 0.5) * 0.001,
@@ -459,7 +463,8 @@ export default function YatraNetDesk() {
       setCheckInNotes('');
     } catch (err: any) {
       console.error('Check-in error:', err);
-      showToast(err.message || 'Failed to log temple visit.', 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setIsSubmittingCheckIn(false);
     }
@@ -697,7 +702,8 @@ export default function YatraNetDesk() {
                       setFlyTarget([pos.lat, pos.lng]);
                       showToast('Map centered on your GPS position', 'info');
                     } catch (e: any) {
-                      showToast(e.message, 'warning');
+                      console.error(e);
+                      showToast(friendlyError(e, t, 'generic'), 'warning');
                     }
                   }}
                   className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer min-h-[44px]"

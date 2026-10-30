@@ -18,6 +18,8 @@ import { safeExternalUrl } from '../../../lib/safeUrl';
 import { adminApi } from '../../../lib/adminApi';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -50,6 +52,7 @@ const statusBadge: Record<string, string> = {
 /* ------------------------- Provider Payments ------------------------- */
 
 export const ProviderPaymentsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [queue, setQueue] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
@@ -68,7 +71,7 @@ export const ProviderPaymentsTab: React.FC = () => {
       ]);
       if (q.ok) setQueue((q.data as any).rows || []);
       if (iq.ok) setInquiries((iq.data as any).rows || []);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -174,6 +177,7 @@ const sevBadge: Record<string, string> = {
 };
 
 export const BypassFlagsTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [flags, setFlags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +188,7 @@ export const BypassFlagsTab: React.FC = () => {
     try {
       const r = await adminApi.bypassFlags('pending');
       if (r.ok) setFlags((r.data as any).rows || []);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -240,6 +244,7 @@ export const BypassFlagsTab: React.FC = () => {
 /* ---------------------------- Bypass Rules ---------------------------- */
 
 export const BypassRulesTab: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [rules, setRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -253,7 +258,7 @@ export const BypassRulesTab: React.FC = () => {
     try {
       const r = await adminApi.bypassKeywords();
       if (r.ok) setRules((r.data as any).rows || []);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -332,6 +337,7 @@ export const BypassRulesTab: React.FC = () => {
 
 /** Strike history panel for the owner provider-detail view. */
 export const ProviderStrikesPanel: React.FC<{ providerUid: string }> = ({ providerUid }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [strikes, setStrikes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -344,7 +350,7 @@ export const ProviderStrikesPanel: React.FC<{ providerUid: string }> = ({ provid
     try {
       const r = await adminApi.providerStrikes(providerUid);
       if (r.ok) setStrikes((r.data as any).rows || []);
-    } catch (e: any) { showToast(e.message, 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setLoading(false);
   }, [providerUid, showToast]);
   useEffect(() => { load(); }, [load]);

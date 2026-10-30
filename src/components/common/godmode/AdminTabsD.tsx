@@ -14,6 +14,8 @@ import { firestoreAdmin } from '../../../lib/firestoreAdmin';
 import { DEFAULT_MATRIX } from '../../../lib/panjikaIntelligence';
 import { ConfirmDialog } from '../GodModeConsole2';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
@@ -696,6 +698,7 @@ const SiteContentView: React.FC = () => {
 /* ------------------------- Panjika Intelligence ------------------------- */
 
 const PanjikaIntelView: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -728,7 +731,8 @@ const PanjikaIntelView: React.FC = () => {
       if (r.ok) showToast('Panjika Intelligence config saved 🪔', 'success');
       else showToast('Save failed', 'error');
     } catch (e: any) {
-      showToast(e?.message || 'Save failed', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     }
     setSaving(false);
   };

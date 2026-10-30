@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import { db, auth } from '../../lib/firebase';
 import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { RecaptchaVerifier, signInWithPhoneNumber, verifyBeforeUpdateEmail, signInAnonymously } from 'firebase/auth';
@@ -19,6 +21,7 @@ export const DevoteeSelfService: React.FC = () => {
   const { currentDevotee, setCurrentDevotee } = useAuthWorkspace();
   const { updateDevotee } = useData();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<'PERSONAL' | 'SPIRITUAL' | 'MEDICAL'>('PERSONAL');
@@ -110,7 +113,8 @@ export const DevoteeSelfService: React.FC = () => {
       setOtpSent(true);
       showToast('OTP sent successfully', 'success');
     } catch (error: any) {
-      showToast('Failed to send OTP: ' + error.message, 'error');
+      console.error(error);
+      showToast(friendlyError(error, t, 'generic'), 'error');
     }
   };
 
@@ -149,7 +153,8 @@ export const DevoteeSelfService: React.FC = () => {
         }
       }, 3000);
     } catch (error: any) {
-      showToast('Failed to send verification link: ' + error.message, 'error');
+      console.error(error);
+      showToast(friendlyError(error, t, 'generic'), 'error');
     }
   };
 
@@ -240,7 +245,8 @@ export const DevoteeSelfService: React.FC = () => {
          updateDevotee(currentDevotee!.id, updatePayload);
       }
     } catch (error: any) {
-      showToast('Failed to update profile: ' + error.message, 'error');
+      console.error(error);
+      showToast(friendlyError(error, t, 'save'), 'error');
       setIsUploading(false);
     }
   };

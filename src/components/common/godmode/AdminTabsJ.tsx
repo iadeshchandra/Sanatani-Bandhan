@@ -40,6 +40,8 @@ import {
 import { firestoreAdmin, type NativeResult } from '../../../lib/firestoreAdmin';
 import { safeExternalUrl } from '../../../lib/safeUrl';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 import { professionalsAdmin, type PendingApplication, type ProfessionalKind, type ProfessionalSummary } from '../../../lib/sevaPro/professionalsAdmin';
 import {
   DEFAULT_PRATHAM_CONFIG, sanitizeConfig, scheduleMultiplierFor,
@@ -108,6 +110,7 @@ const AreaChart: React.FC<{ inSeries: number[]; outSeries: number[]; labels: str
 
 /* ================= FinanceTab ================= */
 export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -136,7 +139,8 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       if (x.ok) setTxns((x.data as any)?.transactions || []);
       if (!t.ok && !p.ok && !d.ok && !c.ok && !x.ok) setLoadError('Could not load financial data. Check your connection and owner sign-in.');
     } catch (e: any) {
-      setLoadError(e?.message || 'Failed to load financial data.');
+      console.error(e);
+      setLoadError(friendlyError(e, t, 'load'));
     }
     setLoading(false);
   }, []);
@@ -378,6 +382,7 @@ const DOC_KEYS: Array<{ key: string; required: boolean }> = [
 ];
 
 const ReviewQueue: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [apps, setApps] = useState<PendingApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -395,7 +400,8 @@ const ReviewQueue: React.FC = () => {
       const all = await professionalsAdmin.listPendingApplications();
       setApps(kind === 'all' ? all : all.filter((a) => a.kind === kind));
     } catch (e: any) {
-      showToast(e?.message || 'Could not load the review queue.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'load'), 'error');
     }
     setLoading(false);
   }, [kind, showToast]);
@@ -408,7 +414,8 @@ const ReviewQueue: React.FC = () => {
       showToast(`🪔 ${a.displayName}'s sacred credentials are honored — VERIFIED with the welcome blessing.`, 'success');
       setApps((prev) => prev.filter((x) => x.id !== a.id));
     } catch (e: any) {
-      showToast(e?.message || 'Approval failed.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     }
     setWorking(null);
   };
@@ -434,7 +441,8 @@ const ReviewQueue: React.FC = () => {
       setRejectFor(null);
       setReason('');
     } catch (e: any) {
-      showToast(e?.message || 'Rejection failed.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     }
     setWorking(null);
   };
@@ -577,6 +585,7 @@ const ReviewQueue: React.FC = () => {
 /* ====================== Per-professional controls ======================== */
 
 const ProfessionalControls: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [kind, setKind] = useState<ProfessionalKind>('purohit');
   const [profileId, setProfileId] = useState('');
@@ -603,14 +612,14 @@ const ProfessionalControls: React.FC = () => {
         setTier((p.verificationTier as SevaProTier) || 'REGISTERED');
         setScheduleJson('');
       }
-    } catch (e: any) { showToast(e?.message || 'Lookup failed.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'load'), 'error'); }
     setLoading(false);
   };
 
   const run = async (label: string, fn: () => Promise<void>) => {
     setWorking(label);
     try { await fn(); showToast('Done.', 'success'); if (profileId) await lookup(); }
-    catch (e: any) { showToast(e?.message || 'Operation failed.', 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setWorking(null);
   };
 
@@ -715,6 +724,7 @@ const ProfessionalControls: React.FC = () => {
 /* ============================ Global defaults ========================== */
 
 const GlobalDefaults: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [cfg, setCfg] = useState<PrathamSevaConfig>({ ...DEFAULT_PRATHAM_CONFIG });
   const [loading, setLoading] = useState(true);
@@ -724,7 +734,7 @@ const GlobalDefaults: React.FC = () => {
     (async () => {
       setLoading(true);
       try { setCfg(await professionalsAdmin.getPrathamConfig()); }
-      catch (e: any) { showToast(e?.message || 'Could not load config.', 'error'); }
+      catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'load'), 'error'); }
       setLoading(false);
     })();
   }, [showToast]);
@@ -735,7 +745,7 @@ const GlobalDefaults: React.FC = () => {
       const clean = await professionalsAdmin.savePrathamConfig(cfg);
       setCfg(clean);
       showToast('🪔 Pratham Seva defaults blessed and saved.', 'success');
-    } catch (e: any) { showToast(e?.message || 'Save failed.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setSaving(false);
   };
 

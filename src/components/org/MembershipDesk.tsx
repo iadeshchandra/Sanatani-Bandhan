@@ -29,6 +29,7 @@ import {
 import { expiryState } from '../../lib/membershipAccess';
 import { APPROVAL_REQUIRED } from '../../lib/approvals';
 import { resolveEdgeRole } from '../../lib/landingSurface';
+import { friendlyError } from '../../lib/friendlyError';
 
 type Tab = 'MEMBERS' | 'REQUESTS' | 'INVITE';
 
@@ -114,10 +115,12 @@ export const MembershipDesk: React.FC = () => {
           });
           resetInviteForm();
         } catch (e2: any) {
-          setError(e2?.message || 'Could not file the approval request.');
+          console.error(e2);
+          setError(friendlyError(e2, t, 'save'));
         }
       } else {
-        setError(err?.message || 'Could not send the invitation.');
+        console.error(err);
+        setError(friendlyError(err, t, 'save'));
       }
     } finally {
       setInviteBusy(false);
@@ -198,10 +201,12 @@ export const MembershipDesk: React.FC = () => {
           });
           setEditingId(null);
         } catch (e2: any) {
-          setError(e2?.message || 'Could not file the approval request.');
+          console.error(e2);
+          setError(friendlyError(e2, t, 'save'));
         }
       } else {
-        setError(err?.message || 'Could not update access.');
+        console.error(err);
+        setError(friendlyError(err, t, 'save'));
       }
     } finally {
       setBusyId(null);
@@ -214,7 +219,8 @@ export const MembershipDesk: React.FC = () => {
     try {
       await decideJoinRequest(req, approve);
     } catch (err: any) {
-      setError(err?.message || 'Could not decide the request.');
+      console.error(err);
+      setError(friendlyError(err, t, 'save'));
     } finally {
       setBusyId(null);
     }
@@ -227,7 +233,8 @@ export const MembershipDesk: React.FC = () => {
     try {
       await removeMember(m);
     } catch (err: any) {
-      setError(err?.message || 'Could not remove the member.');
+      console.error(err);
+      setError(friendlyError(err, t, 'save'));
     } finally {
       setBusyId(null);
     }

@@ -13,6 +13,8 @@ import { ExternalLink, Smartphone, Monitor, Apple, Play, CheckCircle2, AlertCirc
 import { useAppGrowthConfig, isOwnerClient } from '../useAppGrowthConfig';
 import { useToast } from '../../context/ToastContext';
 import { Card, Loading, SectionTitle, Field, inputCls, btnPrimary } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 const isValidStoreUrl = (u: string) => /^https:\/\/play\.google\.com\/store\/apps\/details\?id=[\w.]+/.test(u.trim());
 
@@ -45,6 +47,7 @@ const DeviceMock: React.FC<{ kind: 'android' | 'ios' | 'desktop'; playLive: bool
 };
 
 export const LinkManager: React.FC = () => {
+  const { t } = useLanguage();
   const { config, loading, save } = useAppGrowthConfig();
   const { showToast } = useToast();
   const [playUrl, setPlayUrl] = useState('');
@@ -75,7 +78,8 @@ export const LinkManager: React.FC = () => {
       setDirty(false);
       showToast(live ? 'Android is LIVE — /get-app now offers the Play Store link.' : 'Links saved.', 'success');
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'Save failed.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setSaving(false);
     }

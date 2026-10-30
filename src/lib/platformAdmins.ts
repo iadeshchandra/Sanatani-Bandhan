@@ -64,6 +64,10 @@ export interface AdminOpResult<T = any> {
   ok: boolean;
   data?: T;
   error?: string;
+  /** SDK error code when the failure came from a coded throw (additive,
+   *  Error-Polish G-E4/G-E5) — consumers phrase coded failures through
+   *  friendlyError and keep authored `error` strings verbatim. */
+  code?: string;
 }
 
 const tsToIso = (v: any): string | undefined => {
@@ -174,7 +178,7 @@ export async function listPlatformAdmins(): Promise<AdminOpResult<PlatformAdminR
     rows.sort((a, b) => (a.email || a.uid).localeCompare(b.email || b.uid));
     return { ok: true, data: rows };
   } catch (e: any) {
-    return { ok: false, error: e?.message || 'Failed to load admins.' };
+    return { ok: false, error: e?.code ? (e?.message || 'Failed to load admins.') : 'Failed to load admins.', code: e?.code || '' };
   }
 }
 
@@ -213,7 +217,7 @@ export async function grantPlatformAdmin(input: {
     );
     return { ok: true, data: { ...payload, grantedAt: undefined, updatedAt: undefined } as PlatformAdminRecord };
   } catch (e: any) {
-    return { ok: false, error: e?.message || 'Grant failed.' };
+    return { ok: false, error: e?.code ? (e?.message || 'Grant failed.') : 'Grant failed.', code: e?.code || '' };
   }
 }
 
@@ -230,6 +234,6 @@ export async function revokePlatformAdmin(uid: string): Promise<AdminOpResult> {
     await writeAdminAudit('platform.admin.revoke', { targetUid: target }, 'warn');
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: e?.message || 'Revoke failed.' };
+    return { ok: false, error: e?.code ? (e?.message || 'Revoke failed.') : 'Revoke failed.', code: e?.code || '' };
   }
 }

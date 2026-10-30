@@ -7,6 +7,8 @@ import { useToast } from '../context/ToastContext';
 import { ROLE_MIGRATION_MAP } from '../types';
 import type { OrgPage, OrgInvite } from '../types/membership';
 import { Card, T, Btn, inputCls } from './ui';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 
 /* JoinOrgScreen — find & join an organisation. Route: /app/orgs/join
  * (inside the solo shell, Orgs tab highlighted).
@@ -56,6 +58,7 @@ export const JoinOrgScreen: React.FC = () => {
   const [pages, setPages] = useState<OrgPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { t } = useLanguage();
   const [busyId, setBusyId] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -107,7 +110,8 @@ export const JoinOrgScreen: React.FC = () => {
       // space takes over.
       exitSoloSession();
     } catch (e: any) {
-      showToast(e?.message || 'Could not accept the invitation.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -118,7 +122,8 @@ export const JoinOrgScreen: React.FC = () => {
     try {
       await respondToInvite(invite, false);
     } catch (e: any) {
-      showToast(e?.message || 'Could not decline the invitation.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -129,7 +134,8 @@ export const JoinOrgScreen: React.FC = () => {
     try {
       await requestToJoin(page);
     } catch (e: any) {
-      showToast(e?.message || 'Could not send the request.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }

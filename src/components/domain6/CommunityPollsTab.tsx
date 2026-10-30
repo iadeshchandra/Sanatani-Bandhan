@@ -20,6 +20,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useData } from '../../context/DataContext';
 import { pushToDataLayer } from '../../utils/gtm';
 import { usePlanGate } from '../../hooks/usePlanGate';
+import { friendlyError } from '../../lib/friendlyError';
 
 let generatePollReportPdf: any = null;
 import('../../utils/pdfGenerator').then(mod => { generatePollReportPdf = (mod as any).generatePollReportPdf }).catch(() => {});
@@ -254,7 +255,8 @@ export const CommunityPollsTab: React.FC = () => {
       setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote' });
       setActiveTab('ACTIVE');
     } catch (err: any) {
-      showToastMsg(err.message, "error");
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
     } finally {
       setSubmitting(false);
     }
@@ -297,7 +299,8 @@ export const CommunityPollsTab: React.FC = () => {
       showToastMsg("Your vote has been recorded.", 'success');
       pushToDataLayer('select_content', { content_type: 'Poll_Vote', item_id: pollId });
     } catch (e: any) {
-      showToastMsg("Voting error: " + e.message, "error");
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
     }
   };
 
@@ -332,7 +335,8 @@ export const CommunityPollsTab: React.FC = () => {
       await batch.commit();
       showToastMsg("Your vote has been recorded.", 'success');
     } catch (e: any) {
-      showToastMsg("Voting error: " + e.message, "error");
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
     }
   };
 
@@ -361,7 +365,8 @@ export const CommunityPollsTab: React.FC = () => {
       await batch.commit();
       showToastMsg("Your response has been recorded.", 'success');
     } catch (e: any) {
-      showToastMsg("Error: " + e.message, "error");
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
     }
   };
 
@@ -434,7 +439,8 @@ export const CommunityPollsTab: React.FC = () => {
       showToastMsg("Poll updated.", 'success');
       setEditPoll(null);
     } catch (err: any) {
-      showToastMsg(err.message, "error");
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
     } finally {
       setSubmitting(false);
     }
@@ -454,7 +460,8 @@ export const CommunityPollsTab: React.FC = () => {
       setShowConcludeModal(false);
       setConcludeData({ id: null, title: '', note: '' });
     } catch (err: any) {
-      showToastMsg(err.message, "error");
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
     } finally {
       setSubmitting(false);
     }
@@ -477,7 +484,7 @@ export const CommunityPollsTab: React.FC = () => {
         try {
           await deleteDoc(doc(db, 'polls', poll.id));
           showToastMsg("Poll deleted.", 'success');
-        } catch (e: any) { showToastMsg(e.message, "error"); }
+        } catch (e: any) { console.error(e); showToastMsg(friendlyError(e, t, 'save'), "error"); }
       }
     });
   };
@@ -503,7 +510,8 @@ export const CommunityPollsTab: React.FC = () => {
           });
           showToastMsg("Reminder published to the community.", "success");
         } catch (e: any) {
-          showToastMsg("Reminder could not be published: " + (e.message || 'please try again.'), "error");
+          console.error(e);
+          showToastMsg(friendlyError(e, t, 'save'), "error");
         }
       }
     });

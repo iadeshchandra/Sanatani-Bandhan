@@ -41,6 +41,7 @@ import { detectPayRegion } from '../lib/geoDetect';
 import { currencyForRegion } from '../lib/wallet';
 import RequestModal from './RequestModal';
 import { requestTargetsFromEntries, type WalletRequestTarget } from './walletRequestTargets';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 type TabId = 'all' | 'owed_to_me' | 'i_owe' | 'pending' | 'history';
 
@@ -122,7 +123,8 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
       setRequests(reqs);
       setPlatform(bal);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load wallet');
+      console.error(e);
+      setError(friendlyErrorText(e, lang, 'load'));
     } finally {
       setLoading(false);
     }
@@ -198,7 +200,8 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
       await fn();
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Action failed');
+      console.error(e);
+      setError(friendlyErrorText(e, lang, 'save'));
     } finally {
       setActing(null);
     }
@@ -474,9 +477,8 @@ export const PersonalWallet: React.FC<PersonalWalletProps> = ({ uid, isOpen, onC
                   return refresh();
                 })
                 .catch((e: unknown) => {
-                  setError(
-                    e instanceof Error ? e.message : 'Seva Wallet settlement failed. Please try again.',
-                  );
+                  console.error(e);
+                  setError(friendlyErrorText(e, lang, 'save'));
                 })
                 .finally(() => setActing(null));
             }}

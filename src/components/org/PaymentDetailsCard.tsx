@@ -23,6 +23,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { approvalService } from '../../context/data/approvalsStore';
+import { friendlyError } from '../../lib/friendlyError';
 import { resolveActorName } from '../../bahikhata/bahikhataStore';
 import {
   PAYMENT_DETAIL_FIELDS,
@@ -135,7 +136,8 @@ export const PaymentDetailsCard: React.FC = () => {
       showToast(t('org.access.payment.filed'), 'success');
       setEditing(false);
     } catch (err: any) {
-      showToast(err?.message || t('org.access.payment.fileFailed'), 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setBusy(false);
     }

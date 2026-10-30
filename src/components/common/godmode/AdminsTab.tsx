@@ -18,6 +18,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { appLocale } from '../../../lib/format';
 import { ShieldCheck, UserPlus, RefreshCw, AlertTriangle, Crown, Trash2 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 import { ConfirmDialog } from '../GodModeConsole2';
 import {
   listPlatformAdmins,
@@ -38,6 +40,7 @@ const isRulesPending = (msg?: string) =>
 
 export const AdminsTab: React.FC = () => {
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [rows, setRows] = useState<PlatformAdminRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export const AdminsTab: React.FC = () => {
       setError(null);
       setRulesPending(false);
     } else {
-      setError(r.error || 'Failed to load admins.');
+      setError(r.code ? friendlyError({ code: r.code, message: r.error }, t, 'load') : (r.error || 'Failed to load admins.'));
       setRulesPending(isRulesPending(r.error));
     }
   }, []);
@@ -85,7 +88,7 @@ export const AdminsTab: React.FC = () => {
       showToast(
         isRulesPending(r.error)
           ? 'Grant denied by Firestore rules — the platformAdmins rules block is not deployed yet (see ARCHITECTURE.md, QUEUED #21).'
-          : (r.error || 'Grant failed.'),
+          : (r.code ? friendlyError({ code: r.code, message: r.error }, t, 'save') : (r.error || 'Grant failed.')),
         'error',
       );
     }
@@ -101,7 +104,7 @@ export const AdminsTab: React.FC = () => {
       showToast('Delegated access revoked. It ends at their next sign-in.', 'success');
       void load();
     } else {
-      showToast(r.error || 'Revoke failed.', 'error');
+      showToast(r.code ? friendlyError({ code: r.code, message: r.error }, t, 'save') : (r.error || 'Revoke failed.'), 'error');
     }
   };
 

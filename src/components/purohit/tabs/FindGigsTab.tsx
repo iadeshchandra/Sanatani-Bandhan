@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { usePurohit } from '../../../context/PurohitContext';
 import { Card, SectionTitle, PrimaryButton, EmptyState } from '../ui';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 export const FindGigsTab: React.FC = () => {
   const { t } = useLanguage();
@@ -26,7 +27,8 @@ export const FindGigsTab: React.FC = () => {
     try {
       await acceptGig(gig);
     } catch (e: any) {
-      alert(e.message || t('purohit.find.acceptFailed'));
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setAccepting(null);
     }

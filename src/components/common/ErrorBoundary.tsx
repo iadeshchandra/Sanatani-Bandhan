@@ -1,4 +1,16 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { friendlyErrorText } from "../../lib/friendlyError";
+
+/** The user's chosen language, read the way the pickers store it
+ *  (a class component has no hooks — friendlyErrorText resolves the
+ *  dictionary directly, English fallback first-class). */
+function storedLang(): string {
+  try {
+    return localStorage.getItem("sb-lang") || localStorage.getItem("sanatani_lang") || "en";
+  } catch {
+    return "en";
+  }
+}
 
 interface Props {
   children: ReactNode;
@@ -41,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </h2>
           </div>
           <p className="text-sm text-red-700 font-mono bg-red-100 p-2 rounded overflow-auto max-h-32">
-            {this.state.error?.message || "An unexpected error occurred in this module."}
+            {friendlyErrorText(this.state.error, storedLang(), 'generic')}
           </p>
           <button
             className="mt-3 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"

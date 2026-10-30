@@ -5,6 +5,7 @@ import { doc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import { useNotifications } from '../../context/NotificationContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -105,7 +106,8 @@ export default function PersonalSadhanaDesk() {
       
       setSadhanaForm({ ...sadhanaForm, notes: '', japaCount: 108, meditationMins: 15 });
     } catch (err: any) {
-      showToast(err.message, 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSubmitting(false);
     }

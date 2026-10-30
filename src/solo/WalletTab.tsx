@@ -21,6 +21,7 @@ import { getPaymentMethods, methodsForRegionWithFallback, type PaymentMethodDoc 
 import { useLanguage } from '../context/LanguageContext';
 import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { openDanaSheet } from '../lib/danaSheet';
+import { friendlyError } from '../lib/friendlyError';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark, WhatsThis } from '../components/guide';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). Local-region methods always first. */
@@ -117,7 +118,7 @@ export const TopupFlow: React.FC<{ currency: WalletCurrency; onDone: () => void;
       });
       showToast(t('solo.wallet.topupSubmitted').replace('{ref}', ref), 'success');
       onDone();
-    } catch (e: any) { showToast(e.message || t('solo.wallet.submissionFailed'), 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setWorking(false);
   };
 
@@ -270,7 +271,7 @@ const EditClaimModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved
       });
       showToast(t('solo.wallet.topUpUpdated'), 'success');
       onSaved();
-    } catch (e: any) { showToast(e.message || t('solo.wallet.updateFailed'), 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setWorking(false);
   };
 

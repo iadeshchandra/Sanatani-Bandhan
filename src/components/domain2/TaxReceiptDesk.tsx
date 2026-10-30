@@ -36,6 +36,7 @@ import { DataExportButton } from '../common/DataExportButton';
 import { findReceiptGaps, findDuplicateReceipts, formatReceiptNumber } from '../../utils/receiptNumbers';
 import { downloadAuditPack } from '../../utils/auditPack';
 import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 import { WindowedNotice } from '../common/WindowedNotice';
 
 export const TaxReceiptDesk: React.FC = () => {
@@ -83,7 +84,8 @@ export const TaxReceiptDesk: React.FC = () => {
       const summary = await downloadAuditPack({ treasury: treasury || [], assets: assets || [], workspace: activeWorkspace as any });
       showToast(`Audit pack downloaded — ${summary}`, 'success');
     } catch (err: any) {
-      showToast(err?.message || 'Could not build the audit pack.', 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setIsAuditPacking(false);
     }

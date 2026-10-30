@@ -3,9 +3,12 @@ import React, { useState } from 'react';
 import { usePurohit } from '../../context/PurohitContext';
 import { GigStatus } from '../../types/purohit';
 import { Card, SectionTitle, PrimaryButton, GhostButton, GigStatusBadge, EmptyState } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const MyRequirements: React.FC = () => {
   const { myPostedGigs, advanceGig, submitReview, hasReviewed } = usePurohit();
+  const { t } = useLanguage();
   const [working, setWorking] = useState<string | null>(null);
   const [ratingFor, setRatingFor] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
@@ -17,7 +20,8 @@ export const MyRequirements: React.FC = () => {
     try {
       await advanceGig(gig, 'DAKSHINA_RELEASED' as GigStatus);
     } catch (e: any) {
-      alert(e.message || 'Could not confirm');
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setWorking(null);
     }
@@ -31,7 +35,8 @@ export const MyRequirements: React.FC = () => {
       setRating(5);
       setRatingNote('');
     } catch (e: any) {
-      alert(e.message || 'Could not submit rating');
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setWorking(null);
     }

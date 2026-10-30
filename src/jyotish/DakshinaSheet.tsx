@@ -15,6 +15,7 @@ import { formatMoney } from '../lib/money';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
 import type { Consultation } from '../types/jyotish';
+import { friendlyErrorText } from '../lib/friendlyError';
 import {
   canSendDakshina,
   defaultDakshinaAmount,
@@ -81,7 +82,8 @@ export const DakshinaButton: React.FC<{ consultation: Consultation }> = ({ consu
       setOpen(false);
       showToast(`${copy.sent} ${copy.sentSub}`, 'success');
     } catch (e: any) {
-      showToast(e?.message || copy.sheetTitle, 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, language, 'save'), 'error');
     } finally {
       setBusy(false);
     }

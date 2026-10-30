@@ -8,9 +8,12 @@ import React, { useState } from 'react';
 import { usePurohit } from '../../context/PurohitContext';
 import { PurohitIdentity } from '../../types/purohit';
 import { Card, SectionTitle, EmptyState, Stars, TierBadge } from './ui';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const InviteFromMarketplace: React.FC = () => {
   const { browsePurohits, getPurohit, invitePurohit } = usePurohit();
+  const { t } = useLanguage();
   const [idQuery, setIdQuery] = useState('');
   const [cityQuery, setCityQuery] = useState('');
   const [results, setResults] = useState<PurohitIdentity[]>([]);
@@ -43,7 +46,8 @@ export const InviteFromMarketplace: React.FC = () => {
     try {
       await invitePurohit(p, message.trim() || undefined);
     } catch (e: any) {
-      alert(e.message || 'Invite failed');
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setInviting(null);
     }

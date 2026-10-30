@@ -9,9 +9,12 @@ import React, { useState } from 'react';
 import { X, UserPlus, Loader2 } from 'lucide-react';
 import { useMembership } from '../../context/MembershipContext';
 import { OrgPage } from '../../types/membership';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const JoinRequestModal: React.FC<{ page: OrgPage; onClose: () => void }> = ({ page, onClose }) => {
   const { requestToJoin } = useMembership();
+  const { t } = useLanguage();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +27,8 @@ export const JoinRequestModal: React.FC<{ page: OrgPage; onClose: () => void }> 
       await requestToJoin(page, message);
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Could not send the request. Try again.');
+      console.error(err);
+      setError(friendlyError(err, t, 'save'));
     } finally {
       setBusy(false);
     }

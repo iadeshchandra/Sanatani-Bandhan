@@ -16,6 +16,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 import { PurohitApplication } from '../types/purohit';
 
 export const PurohitReviewQueue: React.FC = () => {
@@ -24,6 +26,7 @@ export const PurohitReviewQueue: React.FC = () => {
   const [working, setWorking] = useState<string | null>(null);
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const { t } = useLanguage();
 
   useEffect(() => {
     const q =
@@ -66,7 +69,8 @@ export const PurohitReviewQueue: React.FC = () => {
       setRejectFor(null);
       setRejectReason('');
     } catch (e: any) {
-      alert(e.message || 'Decision failed');
+      console.error(e);
+      alert(friendlyError(e, t, 'save'));
     } finally {
       setWorking(null);
     }

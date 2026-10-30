@@ -16,6 +16,7 @@ import { useJyotish } from '../context/JyotishContext';
 import { useSolo } from '../solo/SoloContext';
 import { useToast } from '../context/ToastContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
+import { friendlyError } from '../lib/friendlyError';
 import { JYOTISH_SPECIALIZATIONS, JyotishIdentity } from '../types/jyotish';
 
 interface BecomeJyotishModalProps {
@@ -100,7 +101,8 @@ export const BecomeJyotishModal: React.FC<BecomeJyotishModalProps> = ({ isOpen, 
       if (isOfflineError(err)) {
         showToast(t('jyotish.become.connectionRequired'), 'error');
       } else {
-        showToast(err.message || t('jyotish.become.createFailed'), 'error');
+        console.error(err);
+        showToast(friendlyError(err, t, 'save'), 'error');
       }
     } finally {
       setSaving(false);

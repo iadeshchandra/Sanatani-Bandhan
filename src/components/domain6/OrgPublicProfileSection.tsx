@@ -27,6 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { executeSafeUpdate } from '../../lib/dbUtils';
 import { syncOrgPage } from '../../context/MembershipContext';
+import { friendlyErrorText } from '../../lib/friendlyError';
 import {
   normalizePublicSlug,
   resolvePublicSlugDefault,
@@ -77,7 +78,7 @@ const labelCls = 'block text-[10px] font-black text-gray-500 uppercase tracking-
 
 export const OrgPublicProfileSection: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
   const { activeWorkspace, updateWorkspaceDetails } = useAuthWorkspace();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, language } = useLanguage();
   const { showToast } = useToast();
   const T = (key: string, en: string, bn: string, hi: string) => safeTranslate(key, en, bn, hi);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -221,7 +222,8 @@ export const OrgPublicProfileSection: React.FC<{ isAdmin: boolean }> = ({ isAdmi
 
       showToast(T('orgpp_saved', 'Public profile saved — your page is live.', 'পাবলিক প্রোফাইল সংরক্ষিত — আপনার পেজ লাইভ।', 'सार्वजनिक प्रोफ़ाइल सहेजी गई — आपका पेज लाइव है।'), 'success');
     } catch (e: any) {
-      showToast(e?.message || T('orgpp_save_fail', 'Could not save. Try again.', 'সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', 'सहेजा नहीं जा सका। पुनः प्रयास करें।'), 'error');
+      console.error(e);
+      showToast(friendlyErrorText(e, language, 'save'), 'error');
     } finally {
       setSaving(false);
     }

@@ -43,6 +43,7 @@ import { UsersTab, WorkspacesTab, VerificationTab } from './godmode/AdminTabsA';
 import { ModerationTab, BillingTab, MessagesTab, AuditTab } from './godmode/AdminTabsB';
 import { InsightsTab, DatabaseExplorerTab } from './godmode/AdminTabsC';
 import { CommissionTab, ContentTab } from './godmode/AdminTabsD';
+import { friendlyErrorText } from '../../lib/friendlyError';
 import { SettingsTab, SupportTab } from './godmode/AdminTabsE';
 import { MarketplaceTab } from './godmode/AdminTabsF';
 import { ProfessionalsTab } from './godmode/AdminTabsJ';
@@ -143,7 +144,7 @@ function authErrorText(err: any): string {
     case 'auth/cancelled-popup-request':
       return 'The Google sign-in window was closed before it finished. Nothing was changed.';
     default:
-      return err?.message || 'Authentication failed.';
+      return friendlyErrorText(err, 'en', 'generic');
   }
 }
 
@@ -504,7 +505,8 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       }, 1000);
       showToast('If this email is registered, a password reset link has been sent.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to send reset email.', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, 'en', 'save'), 'error');
     }
   };
 

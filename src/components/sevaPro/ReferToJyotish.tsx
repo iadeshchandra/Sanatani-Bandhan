@@ -20,6 +20,7 @@ import { VerificationBadge } from '../../components/common/VerificationBadge';
 import { RitualGig } from '../../types/purohit';
 import { JyotishIdentity, JyotishVerificationTier } from '../../types/jyotish';
 import { sp } from '../../lib/sevaPro/sevaProCopy';
+import { friendlyErrorText } from '../../lib/friendlyError';
 
 interface VerifiedJyotish {
   id: string;
@@ -84,7 +85,8 @@ export const ReferToJyotish: React.FC<{ gig?: RitualGig; compact?: boolean }> = 
       setSelected('');
       setReason('');
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Referral failed', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, currentLang, 'save'), 'error');
     } finally {
       setSending(false);
     }

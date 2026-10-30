@@ -15,6 +15,7 @@ import { db } from '../firebase';
 import { useJyotish } from '../context/JyotishContext';
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
+import { friendlyError } from '../lib/friendlyError';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { PurohitIdentity, PurohitVerificationTier } from '../types/purohit';
 
@@ -83,7 +84,8 @@ export const ReferProfessional: React.FC<{ consultationId?: string; compact?: bo
       setSelected('');
       setReason('');
     } catch (err: any) {
-      showToast(err.message || 'Referral failed', 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setSending(false);
     }

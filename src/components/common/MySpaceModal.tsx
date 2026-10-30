@@ -17,6 +17,7 @@ import { BecomePurohitEntry } from '../purohit/BecomePurohitEntry';
 import { MyInvitesCard, OrgDiscoveryCard } from '../org/AccountCards';
 import { generateSecureQRToken, generateDynamicToken } from '../../utils/qrUtils';
 import { useToast } from '../../context/ToastContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 interface MySpaceModalProps {
   isOpen: boolean;
@@ -155,7 +156,8 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
       await generateDevoteeCardPDF(activeMember, activeWorkspace);
       showToast('Smart Devotee Card PDF generated and downloaded!', 'success');
     } catch (e: any) {
-      showToast(e.message || 'Failed to generate Smart Card', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'generic'), 'error');
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -549,7 +551,7 @@ export const MySpaceModal: React.FC<MySpaceModalProps> = ({ isOpen, onClose, onN
                                    try {
                                      await generateTaxReceiptPDF(tr, activeWorkspace);
                                      showToast("Receipt downloaded successfully.", "success");
-                                   } catch (err: any) { showToast(err.message, "error"); }
+                                   } catch (err: any) { console.error(err); showToast(friendlyError(err, t, 'save'), 'error'); }
                                  }} 
                                  className="text-temple-500 hover:text-saffron-500 p-2.5 bg-temple-50 hover:bg-saffron-50 rounded-xl border border-transparent hover:border-saffron-200 transition-all shadow-sm" 
                                  title="Download Receipt"

@@ -43,6 +43,7 @@ import { PracticeModeCard } from './PracticeModeCard';
 import { AccessReviewCard } from './AccessReviewCard';
 import { AssistedSessionCard } from './AssistedSessionCard';
 import { PrivacyNoticeCard } from '../account/PrivacyNotice';
+import { friendlyError } from '../../lib/friendlyError';
 import { OrgLogo } from '../common/OrgLogo';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { BranchManager } from '../branch/BranchManager';
@@ -334,7 +335,8 @@ export const MasterSettingsDesk: React.FC = () => {
 
       showToast(localSafeTranslate('settings_saved', "Workspace Settings Updated Successfully!"), "success");
     } catch (err: any) {
-      showToast(err.message || "Error saving workspace", "error");
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), "error");
     } finally {
       setSaving(false);
     }
@@ -386,7 +388,8 @@ export const MasterSettingsDesk: React.FC = () => {
           if (err.message.includes('requires-recent-login')) {
             showToast("Security timeout. Please log out and log back in to change password.", "error");
           } else {
-            showToast(err.message, "error");
+            console.error(err);
+            showToast(friendlyError(err, t, 'generic'), "error");
           }
         } finally {
           setPassLoading(false);

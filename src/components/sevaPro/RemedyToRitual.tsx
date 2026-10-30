@@ -24,6 +24,7 @@ import {
 } from '../../lib/sevaPro/referrals';
 import type { RemedyPrescription } from '../../lib/sevaPro/referrals';
 import { sp } from '../../lib/sevaPro/sevaProCopy';
+import { friendlyErrorText } from '../../lib/friendlyError';
 
 export function useRemedies(consultationId: string | null): RemedyPrescription[] {
   const [remedies, setRemedies] = useState<RemedyPrescription[]>([]);
@@ -108,7 +109,8 @@ export const RemedyToRitual: React.FC<{ consultation: Consultation }> = ({ consu
       });
       showToast(sp(currentLang, 'remedy_booked_note'), 'success');
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Booking failed', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, currentLang, 'save'), 'error');
     } finally {
       setBookingId(null);
     }

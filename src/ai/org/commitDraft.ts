@@ -127,9 +127,12 @@ export async function commitCopilotDraft(
       ? { status: 'committed' }
       : { status: 'error', message: 'The treasury refused the entry.' };
   } catch (err) {
+    // Error-Polish (G-E4/G-E5): the raw failure stays diagnosable in the
+    // console; the sheet renders only authored result copy.
+    console.error(err);
     return {
       status: 'error',
-      message: err instanceof Error ? err.message : 'Commit failed.',
+      message: 'Commit failed.',
     };
   }
 }

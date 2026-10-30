@@ -40,6 +40,7 @@ import { SevaBookingSheet } from '../sangam/SevaBookingSheet';
 import type { SangamPost } from '../sangam/types';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import type { AuthorInfo } from '../sangam/sangamStore';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
 const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
@@ -192,7 +193,7 @@ export const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => voi
           bookerUid,
         });
       }
-    } catch (e: any) { showToast(e.message || mkt(L, 'bkBookingFailed'), 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setWorking(false);
   };
 
@@ -310,7 +311,7 @@ const MyBookings: React.FC<{
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setOrders(await myOrdersAsClient()); } catch (e: any) { showToast(e.message, 'error'); }
+    try { setOrders(await myOrdersAsClient()); } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'load'), 'error'); }
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
@@ -322,12 +323,12 @@ const MyBookings: React.FC<{
       load();
       setGratitudeFor({ ...o, status: 'completed' } as MarketplaceOrder);
     }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
   const raise = async () => {
     if (!disputeFor || !reason.trim()) { showToast(mkt(L, 'bkDescribeIssue'), 'error'); return; }
     try { await openDispute(disputeFor, reason, details); showToast(mkt(L, 'bkDisputeRaised'), 'success'); setDisputeFor(null); setReason(''); setDetails(''); load(); }
-    catch (e: any) { showToast(e.message, 'error'); }
+    catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
 
   /* QUEUED #27: one-tap rebook. The past order is only a doorway — the

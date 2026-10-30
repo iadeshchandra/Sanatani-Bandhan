@@ -22,6 +22,7 @@ import {
   recordReferralAttribution,
 } from '../../lib/sevaPro/referrals';
 import { sp } from '../../lib/sevaPro/sevaProCopy';
+import { friendlyErrorText } from '../../lib/friendlyError';
 
 export function useMyJyotishReferrals(): RemedyReferral[] {
   const { firebaseUser } = useAuthWorkspace();
@@ -103,7 +104,8 @@ export const JyotishReferralCard: React.FC = () => {
       setDismissed((s) => new Set(s).add(r.id));
       showToast(sp(currentLang, 'prescribe_sent'), 'success');
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Booking failed', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, currentLang, 'save'), 'error');
     } finally {
       setBookingId(null);
     }

@@ -23,6 +23,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { renderBrandedQrCanvas, loadQrLogo, QR_CAPTION_TRILINGUAL, canvasToPngDataUrl } from './qrRender';
 import type { QrVariant } from './qrLinks';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 export interface BrandedQrProps {
   url: string;
@@ -46,6 +48,7 @@ export const BrandedQr: React.FC<BrandedQrProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rendered, setRendered] = useState(false);
+  const { t } = useLanguage();
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
 
@@ -78,7 +81,7 @@ export const BrandedQr: React.FC<BrandedQrProps> = ({
         setRendered(true);
         onReadyRef.current?.(canvasToPngDataUrl(canvas));
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Could not render QR code.');
+        if (!cancelled) { console.error(e); setError(friendlyError(e, t, 'generic')); }
       }
     })();
     return () => {

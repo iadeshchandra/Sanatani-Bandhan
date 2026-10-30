@@ -18,6 +18,7 @@ import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Consultation } from '../../types/jyotish';
 import { sp } from '../../lib/sevaPro/sevaProCopy';
+import { friendlyErrorText } from '../../lib/friendlyError';
 
 export const PrescribeRemedy: React.FC<{ consultation: Consultation }> = ({ consultation }) => {
   const { firebaseUser } = useAuthWorkspace();
@@ -70,7 +71,8 @@ export const PrescribeRemedy: React.FC<{ consultation: Consultation }> = ({ cons
       setMuhurat('');
       showToast(sp(currentLang, 'prescribe_sent'), 'success');
     } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Could not offer guidance', 'error');
+      console.error(err);
+      showToast(friendlyErrorText(err, currentLang, 'save'), 'error');
     } finally {
       setSending(false);
     }

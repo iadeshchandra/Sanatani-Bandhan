@@ -19,6 +19,7 @@ import {
 } from './types';
 import { REQUEST_STATUS_PILL } from './MoneyRequestCard';
 import { LedgerRowsSkeleton } from './ChatSkeletons';
+import { friendlyErrorText } from '../lib/friendlyError';
 import {
   fetchOrgMoneyRequests,
   isActiveStatus,
@@ -67,7 +68,7 @@ export const OrgRequestLedger: React.FC<OrgRequestLedgerProps> = ({
     setError(null);
     fetchOrgMoneyRequests(orgId)
       .then(setRequests)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e) => { console.error(e); setError(friendlyErrorText(e, lang, 'load')); })
       .finally(() => setLoading(false));
   }, [isOpen, allowed, orgId]);
 

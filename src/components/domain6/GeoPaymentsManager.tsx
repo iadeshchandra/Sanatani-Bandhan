@@ -26,6 +26,8 @@ import {
 } from '../../lib/geoDetect';
 import { getPaymentMethods, clearPaymentMethodsCache, type PaymentMethodDoc, type PaymentMethodType } from '../../lib/paymentMethods';
 import { QrCodeManager } from '../godmode/QrCodeManager';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 const METHOD_TYPES: { id: PaymentMethodType; label: string }[] = [
   { id: 'bangla_qr', label: 'Bangla QR' },
@@ -258,6 +260,7 @@ const RegionModal: React.FC<{
 /* ------------------------- Main manager ------------------------- */
 
 export const GeoPaymentsManager: React.FC = () => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -294,7 +297,8 @@ export const GeoPaymentsManager: React.FC = () => {
         setMethods(m);
       }
     } catch (e: any) {
-      showToast(e?.message || 'Failed to load geo payments.', 'error');
+      console.error(e);
+      showToast(friendlyError(e, t, 'load'), 'error');
     }
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps

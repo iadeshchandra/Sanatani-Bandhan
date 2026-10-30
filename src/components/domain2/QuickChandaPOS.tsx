@@ -37,6 +37,7 @@ import { useQuickGuide } from '../../context/QuickGuideContext';
 import { useToast } from '../../context/ToastContext';
 import { printThermalReceipt } from '../../utils/printUtils';
 import { claimNextReceiptSeq } from '../../context/data/receiptCounterSync';
+import { friendlyError } from '../../lib/friendlyError';
 import {
   formatProvisionalReceiptNumber,
   formatReceiptNumber,
@@ -609,7 +610,7 @@ export const QuickChandaPOS: React.FC = () => {
       );
     } catch (err: any) {
       console.error('[POS Checkout Error]', err);
-      showToast(err.message || 'Failed to process POS donation', 'error', 'Checkout Error');
+      showToast(friendlyError(err, t, 'save'), 'error', 'Checkout Error');
     } finally {
       setIsProcessing(false);
     }

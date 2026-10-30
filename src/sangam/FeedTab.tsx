@@ -27,6 +27,7 @@ import { filterHiddenAuthors } from '../social/safety';
 import { useModerationHides } from './moderation';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 const StoryViewer = lazy(() => import('./stories/StoryViewer').then((m) => ({ default: m.StoryViewer })));
 
@@ -489,7 +490,8 @@ const Composer: React.FC<{ author: AuthorInfo; pageContext?: { orgId: string; or
       });
       setImageUrl(res.url);
     } catch (err: any) {
-      setUploadError(err?.message || tr('Upload failed. Please try again.', 'আপলোড ব্যর্থ। আবার চেষ্টা করুন।', 'अपलोड विफल। पुनः प्रयास करें।'));
+      console.error(err);
+      setUploadError(friendlyErrorText(err, lang, 'save'));
     }
     setUploading(false);
   };

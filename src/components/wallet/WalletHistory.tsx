@@ -18,6 +18,8 @@ import {
   type TopupClaim, type WalletCurrency,
 } from '../../lib/wallet';
 import { getPaymentMethods, type PaymentMethodDoc } from '../../lib/paymentMethods';
+import { useLanguage } from '../../context/LanguageContext';
+import { friendlyError } from '../../lib/friendlyError';
 
 const STATUS_STYLE: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -43,6 +45,7 @@ function fmtDate(ts: any): string {
 }
 
 const EditModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved: () => void }> = ({ claim, onClose, onSaved }) => {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [trxId, setTrxId] = useState(claim.trxId);
   const [amount, setAmount] = useState(String(claim.amount));
@@ -55,7 +58,7 @@ const EditModal: React.FC<{ claim: TopupClaim; onClose: () => void; onSaved: () 
       await updateTopupClaim(claim.id!, { trxId: trxId.trim(), amount: Math.round(Number(amount)) });
       showToast('Top-up request updated!', 'success');
       onSaved();
-    } catch (e: any) { showToast(e.message || 'Update failed.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'save'), 'error'); }
     setWorking(false);
   };
 

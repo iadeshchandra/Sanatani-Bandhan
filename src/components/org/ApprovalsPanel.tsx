@@ -42,6 +42,7 @@ import {
   type RoleGrantPayload,
 } from '../../lib/approvals';
 import { approvalService, type ApprovalApplier } from '../../context/data/approvalsStore';
+import { friendlyError } from '../../lib/friendlyError';
 
 export const ApprovalsPanel: React.FC = () => {
   const { t } = useLanguage();
@@ -129,7 +130,8 @@ export const ApprovalsPanel: React.FC = () => {
         approve && !applied ? 'error' : 'success'
       );
     } catch (err: any) {
-      showToast(err?.message || t('org.access.approvals.decideFailed'), 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -144,7 +146,8 @@ export const ApprovalsPanel: React.FC = () => {
         ok ? 'success' : 'error'
       );
     } catch (err: any) {
-      showToast(err?.message || t('org.access.approvals.decideFailed'), 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -156,7 +159,8 @@ export const ApprovalsPanel: React.FC = () => {
       await approvalService.cancel(req, actor);
       showToast(t('org.access.approvals.cancelledDone'), 'info');
     } catch (err: any) {
-      showToast(err?.message || t('org.access.approvals.decideFailed'), 'error');
+      console.error(err);
+      showToast(friendlyError(err, t, 'save'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -213,7 +217,7 @@ export const ApprovalsPanel: React.FC = () => {
           )}
           {r.applyError && (
             <p className="text-[11px] font-bold text-red-600 mt-1 flex items-center gap-1">
-              <AlertTriangle size={12} /> {r.applyError}
+              <AlertTriangle size={12} /> {friendlyError(r.applyError, t)}
             </p>
           )}
         </div>

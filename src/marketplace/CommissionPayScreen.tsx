@@ -13,6 +13,8 @@ import { fileCommissionPayment, fmtWallet, type WalletCurrency } from '../lib/wa
 import { detectPayRegion, type PayRegion } from '../lib/geoDetect';
 import { useUpiQrAvailable } from '../lib/upiQr';
 import { getPaymentMethods, methodsForRegion, type PaymentMethodDoc } from '../lib/paymentMethods';
+import { useLanguage } from '../context/LanguageContext';
+import { friendlyErrorText } from '../lib/friendlyError';
 
 /** INTL: Payoneer primary, Wise fallback (BD founder Wise eligibility). */
 const orderMethods = (list: PaymentMethodDoc[]): PaymentMethodDoc[] =>
@@ -30,6 +32,7 @@ interface Props {
 const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 text-stone-700';
 
 export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commissionAmount, currency, onDone, onBack }) => {
+  const { currentLang } = useLanguage();
   const { showToast } = useToast();
   const [region, setRegion] = useState<PayRegion>('BD');
   const upiQrOk = useUpiQrAvailable();
@@ -74,7 +77,7 @@ export const CommissionPayScreen: React.FC<Props> = ({ orderId, orderCode, commi
       });
       showToast('Seva contribution submitted! The seva completes after verification.', 'success');
       onDone();
-    } catch (e: any) { showToast(e.message || 'Submission failed.', 'error'); }
+    } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
     setWorking(false);
   };
 
