@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/ml.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "സിങ്ക് ചെയ്യുന്നു",
       status: "അവസ്ഥ",
       back: "പിന്നോട്ട്",
+    },
+    errors: {
+      saveFailed: "ഇത് സേവ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.",
+      loadFailed: "ഇത് ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.",
+      network: "സെർവറിൽ എത്താൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.",
+      permission: "ഈ പ്രവർത്തി നിങ്ങളുടെ റോളിന് അനുവദനീയമല്ല. ആവശ്യമെങ്കിൽ ദയവായി ഒരു ട്രസ്റ്റിയോടോ അഡ്മിനോടോ ചോദിക്കുക.",
+      notFound: "ഇത് ഇനി ലഭ്യമല്ല — അത് നീക്കം ചെയ്തിരിക്കാം അല്ലെങ്കിൽ മാറ്റിയിരിക്കാം.",
+      conflict: "ഇത് മറ്റാരോ ഇപ്പോൾ തന്നെ മാറ്റിയിരിക്കുന്നു. ദയവായി പേജ് റിഫ്രഷ് ചെയ്ത് വീണ്ടും ശ്രമിക്കുക.",
+      quota: "സേവനം ഇപ്പോൾ വളരെ തിരക്കിലാണ്. ദയവായി അൽപ്പസമയം കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.",
+      sessionExpired: "നിങ്ങളുടെ സൈൻ-ഇൻ കാലാവധി കഴിഞ്ഞു. തുടരാൻ ദയവായി വീണ്ടും സൈൻ-ഇൻ ചെയ്യുക.",
+      generic: "എന്തോ ശരിയായി നടന്നില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക — ആവർത്തിച്ചാൽ ഞങ്ങളെ അറിയിക്കുക.",
+      tryAgain: "ദയവായി വീണ്ടും ശ്രമിക്കുക.",
     },
     auth: {
       accessPortal: "പ്രവേശന കവാടം",

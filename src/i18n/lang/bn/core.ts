@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/bn.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     // Vibe B1 greeting–panchang keys — authored here in the live fragment
@@ -620,6 +620,18 @@ export const core: CoreFragment = {
       syncing: "সিঙ্ক হচ্ছে",
       status: "অবস্থা",
       back: "পিছনে",
+    },
+    errors: {
+      saveFailed: "এটি সংরক্ষণ করা যায়নি। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।",
+      loadFailed: "এটি লোড করা যায়নি। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।",
+      network: "সার্ভারে পৌঁছানো যায়নি। অনুগ্রহ করে আপনার সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।",
+      permission: "এই কাজটি আপনার ভূমিকার জন্য অনুমোদিত নয়। প্রয়োজন হলে অনুগ্রহ করে একজন ট্রাস্টি বা অ্যাডমিনকে বলুন।",
+      notFound: "এটি আর পাওয়া যাচ্ছে না — হয়তো সরিয়ে ফেলা হয়েছে বা বদলে গেছে।",
+      conflict: "এটি এইমাত্র অন্য কেউ বদলে দিয়েছেন। অনুগ্রহ করে পেজটি রিফ্রেশ করে আবার চেষ্টা করুন।",
+      quota: "পরিষেবাটি এখন খুব ব্যস্ত। অনুগ্রহ করে একটু পরে আবার চেষ্টা করুন।",
+      sessionExpired: "আপনার সাইন-ইন মেয়াদ শেষ হয়েছে। চালিয়ে যেতে অনুগ্রহ করে আবার সাইন-ইন করুন।",
+      generic: "কিছু একটা হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন — বারবার হলে আমাদের জানান।",
+      tryAgain: "অনুগ্রহ করে আবার চেষ্টা করুন।",
     },
     auth: {
       accessPortal: "প্রবেশ দ্বার",

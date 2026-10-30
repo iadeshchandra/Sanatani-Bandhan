@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/en.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     // Vibe B1 greeting–panchang keys — authored here in the live fragment
@@ -620,6 +620,18 @@ export const core: CoreFragment = {
       syncing: "Syncing",
       status: "Status",
       back: "Back",
+    },
+    errors: {
+      saveFailed: "We could not save this. Please try again in a moment.",
+      loadFailed: "We could not load this. Please try again in a moment.",
+      network: "Could not reach the server. Please check your connection and try again.",
+      permission: "This action is not permitted for your role. Please ask a trustee or admin if you need access.",
+      notFound: "This is no longer available — it may have been removed or moved.",
+      conflict: "This was just changed by someone else. Please refresh and try again.",
+      quota: "The service is very busy right now. Please try again a little later.",
+      sessionExpired: "Your sign-in has expired. Please sign in once more to continue.",
+      generic: "Something did not go through. Please try again — and reach out if it keeps happening.",
+      tryAgain: "Please try again.",
     },
     auth: {
       accessPortal: "Access Portal",

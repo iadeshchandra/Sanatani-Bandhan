@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/kn.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "ಸಿಂಕ್ ಆಗುತ್ತಿದೆ",
       status: "ಸ್ಥಿತಿ",
       back: "ಹಿಂದೆ",
+    },
+    errors: {
+      saveFailed: "ಇದನ್ನು ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      loadFailed: "ಇದನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      network: "ಸರ್ವರ್ ಅನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      permission: "ಈ ಕ್ರಿಯೆಗೆ ನಿಮ್ಮ ಪಾತ್ರಕ್ಕೆ ಅನುಮತಿ ಇಲ್ಲ. ಅಗತ್ಯವಿದ್ದರೆ ದಯವಿಟ್ಟು ಟ್ರಸ್ಟಿ ಅಥವಾ ಅಡ್ಮಿನ್ ಅವರನ್ನು ಕೇಳಿ.",
+      notFound: "ಇದು ಇನ್ನು ಲಭ್ಯವಿಲ್ಲ — ಅದನ್ನು ತೆಗೆದುಹಾಕಿರಬಹುದು ಅಥವಾ ಬದಲಾಯಿಸಿರಬಹುದು.",
+      conflict: "ಇದನ್ನು ಬೇರೆಯವರು ಇದೀಗ ಬದಲಾಯಿಸಿದ್ದಾರೆ. ದಯವಿಟ್ಟು ಪುಟವನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      quota: "ಸೇವೆ ಸದ್ಯ ತುಂಬಾ ಬಿಸಿಯಾಗಿದೆ. ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      sessionExpired: "ನಿಮ್ಮ ಸೈನ್-ಇನ್ ಅವಧಿ ಮುಗಿದಿದೆ. ಮುಂದುವರಿಯಲು ದಯವಿಟ್ಟು ಮತ್ತೆ ಸೈನ್-ಇನ್ ಮಾಡಿ.",
+      generic: "ಏನೋ ಸರಿಯಾಗಿ ಆಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ — ಮತ್ತೆ ಮತ್ತೆ ಆದರೆ ನಮಗೆ ತಿಳಿಸಿ.",
+      tryAgain: "ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     },
     auth: {
       accessPortal: "ಪ್ರವೇಶ ದ್ವಾರ",

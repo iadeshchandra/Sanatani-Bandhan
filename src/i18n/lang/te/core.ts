@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/te.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "సింక్ అవుతోంది",
       status: "స్థితి",
       back: "వెనుకకు",
+    },
+    errors: {
+      saveFailed: "దీన్ని సేవ్ చేయలేకపోయాము. దయచేసి కాసేపటి తర్వాత మళ్లీ ప్రయత్నించండి.",
+      loadFailed: "దీన్ని లోడ్ చేయలేకపోయాము. దయచేసి కాసేపటి తర్వాత మళ్లీ ప్రయత్నించండి.",
+      network: "సర్వర్‌ను చేరుకోలేకపోయాము. దయచేసి మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.",
+      permission: "ఈ చర్య మీ పాత్రకు అనుమతించబడలేదు. అవసరమైతే దయచేసి ట్రస్టీని లేదా అడ్మిన్‌ను అడగండి.",
+      notFound: "ఇది ఇక అందుబాటులో లేదు — అది తొలగించబడి ఉండవచ్చు లేదా మార్చబడి ఉండవచ్చు.",
+      conflict: "దీన్ని మరొకరు ఇప్పుడే మార్చారు. దయచేసి పేజీని రిఫ్రెష్ చేసి మళ్లీ ప్రయత్నించండి.",
+      quota: "సేవ ప్రస్తుతం చాలా బిజీగా ఉంది. దయచేసి కాసేపటి తర్వాత మళ్లీ ప్రయత్నించండి.",
+      sessionExpired: "మీ సైన్-ఇన్ గడువు ముగిసింది. కొనసాగించడానికి దయచేసి మళ్లీ సైన్-ఇన్ చేయండి.",
+      generic: "ఏదో సరిగ్గా జరగలేదు. దయచేసి మళ్లీ ప్రయత్నించండి — పదే పదే జరిగితే మాకు తెలియజేయండి.",
+      tryAgain: "దయచేసి మళ్లీ ప్రయత్నించండి.",
     },
     auth: {
       accessPortal: "ప్రవేశ ద్వారం",

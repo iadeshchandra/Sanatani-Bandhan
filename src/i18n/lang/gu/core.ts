@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/gu.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "સિંક થઈ રહ્યું છે",
       status: "સ્થિતિ",
       back: "પાછળ",
+    },
+    errors: {
+      saveFailed: "આ સાચવી શકાયું નહીં. કૃપા કરીને થોડી વાર પછી ફરી પ્રયાસ કરો.",
+      loadFailed: "આ લોડ કરી શકાયું નહીં. કૃપા કરીને થોડી વાર પછી ફરી પ્રયાસ કરો.",
+      network: "સર્વર સુધી પહોંચી શકાયું નહીં. કૃપા કરીને તમારું કનેક્શન ચકાસીને ફરી પ્રયાસ કરો.",
+      permission: "આ ક્રિયા તમારી ભૂમિકા માટે માન્ય નથી. જરૂર હોય તો કૃપા કરીને ટ્રસ્ટી કે એડમિનને કહો.",
+      notFound: "આ હવે ઉપલબ્ધ નથી — તે દૂર કરવામાં આવ્યું હોઈ શકે છે અથવા બદલાયું હોઈ શકે છે.",
+      conflict: "આ હમણાં જ બીજા કોઈએ બદલી નાખ્યું છે. કૃપા કરીને પેજ રિફ્રેશ કરીને ફરી પ્રયાસ કરો.",
+      quota: "સેવા અત્યારે ખૂબ વ્યસ્ત છે. કૃપા કરીને થોડી વાર પછી ફરી પ્રયાસ કરો.",
+      sessionExpired: "તમારું સાઇન-ઇન સમાપ્ત થઈ ગયું છે. આગળ વધવા માટે કૃપા કરીને ફરી સાઇન-ઇન કરો.",
+      generic: "કંઈક બરાબર થયું નહીં. કૃપા કરીને ફરી પ્રયાસ કરો — વારંવાર થાય તો અમને જણાવો.",
+      tryAgain: "કૃપા કરીને ફરી પ્રયાસ કરો.",
     },
     auth: {
       accessPortal: "પ્રવેશદ્વાર",

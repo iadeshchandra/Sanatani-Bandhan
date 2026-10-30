@@ -152,6 +152,22 @@ export interface TranslationSchema {
     notFound?: { [key: string]: string };
     orgDirectory?: { [key: string]: string };
   };
+  // Error-Polish batch (G-E4/G-E5): friendlyError targets — the ONLY
+  // strings a non-auth failure may ever render (see lib/friendlyError.ts).
+  // en/hi/bn authored; the 7 remaining languages are AI-draft class,
+  // same as all draft content since the B3 completeness law.
+  errors: {
+    saveFailed: string;
+    loadFailed: string;
+    network: string;
+    permission: string;
+    notFound: string;
+    conflict: string;
+    quota: string;
+    sessionExpired: string;
+    generic: string;
+    tryAgain: string;
+  };
   auth: {
     accessPortal: string;
     // World-Readiness B4 (G-E2/G-E3): friendlyAuthError targets — the ONLY

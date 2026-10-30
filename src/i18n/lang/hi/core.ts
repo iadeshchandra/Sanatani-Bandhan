@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/hi.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     // Vibe B1 greeting–panchang keys — authored here in the live fragment
@@ -620,6 +620,18 @@ export const core: CoreFragment = {
       syncing: "सिंक हो रहा है",
       status: "स्थिति",
       back: "वापस",
+    },
+    errors: {
+      saveFailed: "यह सहेजा नहीं जा सका। कृपया थोड़ी देर में फिर से प्रयास करें।",
+      loadFailed: "यह लोड नहीं हो सका। कृपया थोड़ी देर में फिर से प्रयास करें।",
+      network: "सर्वर तक पहुँचा नहीं जा सका। कृपया अपना कनेक्शन जाँचकर फिर से प्रयास करें।",
+      permission: "यह कार्य आपकी भूमिका के लिए अनुमति में नहीं है। आवश्यकता हो तो कृपया किसी ट्रस्टी या एडमिन से कहें।",
+      notFound: "यह अब उपलब्ध नहीं है — हो सकता है इसे हटा या बदल दिया गया हो।",
+      conflict: "इसे अभी-अभी किसी और ने बदल दिया है। कृपया पेज ताज़ा करके फिर से प्रयास करें।",
+      quota: "सेवा इस समय बहुत व्यस्त है। कृपया थोड़ी देर बाद फिर से प्रयास करें।",
+      sessionExpired: "आपका साइन-इन समाप्त हो गया है। जारी रखने के लिए कृपया एक बार फिर साइन-इन करें।",
+      generic: "कुछ ठीक नहीं हो सका। कृपया फिर से प्रयास करें — बार-बार हो तो हमें बताएँ।",
+      tryAgain: "कृपया फिर से प्रयास करें।",
     },
     auth: {
       accessPortal: "प्रवेश द्वार",

@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/ta.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "ஒத்திசைக்கிறது",
       status: "நிலை",
       back: "பின்செல்க",
+    },
+    errors: {
+      saveFailed: "இதைச் சேமிக்க முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+      loadFailed: "இதை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+      network: "சேவையகத்தை அடைய முடியவில்லை. உங்கள் இணைப்பைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+      permission: "இந்தச் செயல் உங்கள் பங்கிற்கு அனுமதிக்கப்படவில்லை. தேவைப்பட்டால் அறங்காவலர் அல்லது நிர்வாகியிடம் கேளுங்கள்.",
+      notFound: "இது இனி கிடைக்கவில்லை — அது அகற்றப்பட்டிருக்கலாம் அல்லது மாற்றப்பட்டிருக்கலாம்.",
+      conflict: "இதை வேறு ஒருவர் இப்போதுதான் மாற்றிவிட்டார். பக்கத்தைப் புதுப்பித்து மீண்டும் முயற்சிக்கவும்.",
+      quota: "சேவை இப்போது மிகவும் பிஸியாக உள்ளது. சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+      sessionExpired: "உங்கள் உள்நுழைவு காலாவதியாகிவிட்டது. தொடர மீண்டும் உள்நுழையவும்.",
+      generic: "ஏதோ சரியாக நடக்கவில்லை. மீண்டும் முயற்சிக்கவும் — தொடர்ந்து நடந்தால் எங்களிடம் தெரிவிக்கவும்.",
+      tryAgain: "மீண்டும் முயற்சிக்கவும்.",
     },
     auth: {
       accessPortal: "நுழைவு வாயில்",

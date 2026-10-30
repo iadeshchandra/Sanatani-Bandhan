@@ -5,7 +5,7 @@ import type { TranslationSchema } from '../../schema';
  * Split from the monolithic lang/sa.ts (push-size limits).
  * Merged by src/i18n/translations.ts — do not import directly.
  */
-export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
+export type CoreFragment = Pick<TranslationSchema, 'nav' | 'common' | 'errors' | 'auth' | 'qr' | 'reg' | 'actions' | 'solo' | 'guide' | 'vibe' | 'surfaces'>;
 
 export const core: CoreFragment = {
     nav: {
@@ -31,6 +31,18 @@ export const core: CoreFragment = {
       syncing: "समकालीकरणम्",
       status: "स्थितिः",
       back: "पृष्ठतः",
+    },
+    errors: {
+      saveFailed: "इदं रक्षितुं न शक्यम्। कृपया क्षणं प्रतीक्ष्य पुनः प्रयतताम्।",
+      loadFailed: "इदं आनेतुं न शक्यम्। कृपया क्षणं प्रतीक्ष्य पुनः प्रयतताम्।",
+      network: "सर्वरं प्रति सम्पर्कः न सिद्धः। कृपया स्वसम्पर्कं परीक्ष्य पुनः प्रयतताम्।",
+      permission: "इदं कार्यं भवतः भूमिकायै अनुमतं नास्ति। आवश्यकता चेत् कृपया न्यासधारिणं वा प्रशासकं वा वदतु।",
+      notFound: "इदं इदानीं न उपलभ्यते — तत् अपसारितं वा परिवर्तितं वा स्यात्।",
+      conflict: "इदं अन्येन अधुनैव परिवर्तितम्। कृपया पृष्ठं नवीकृत्य पुनः प्रयतताम्।",
+      quota: "सेवा अधुना अतीव व्यस्ता अस्ति। कृपया किञ्चित् कालानन्तरं पुनः प्रयतताम्।",
+      sessionExpired: "भवतः प्रवेशस्य अवधिः समाप्ता। कृपया अग्रे गन्तुं पुनः प्रवेशं करोतु।",
+      generic: "किञ्चित् सम्यक् न अभवत्। कृपया पुनः प्रयतताम् — पुनः पुनः भवति चेत् अस्मान् सूचयतु।",
+      tryAgain: "कृपया पुनः प्रयतताम्।",
     },
     auth: {
       accessPortal: "प्रवेशद्वारम्",
