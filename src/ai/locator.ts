@@ -46,7 +46,15 @@ import {
 } from '../lib/deskVisibility';
 import type { CallerScope } from './org/port';
 import { isWhereQuestion } from './navigation';
-import { labelFor, locatorOverlay } from './lang/shared';
+import { NAVIGATION_CORPUS } from './corpus/navigation';
+import {
+  allLocatorEntryOverlays,
+  labelFor,
+  locatorCatalogOverlay,
+  locatorEntryOverlay,
+  locatorOverlay,
+  overlayWherePatterns,
+} from './lang/shared';
 
 export type LocatorLang = 'en' | 'hi' | 'bn';
 export type TriText = Record<LocatorLang, string>;
@@ -93,9 +101,11 @@ export function locatorTakeMeLabel(lang: string): string {
 }
 
 /** The four locator sentence-frames in the asker's full language.
- *  B2-C: draft languages resolve through their overlays; the catalogue
- *  fragments (entry name/place/usedBy TriText) remain en/hi/bn with
- *  English fallback — a registered residual, not a silent gap. */
+ *  B2-C: draft languages resolve through their overlays. The catalogue
+ *  fragments (entry name/place/usedBy) likewise resolve through the
+ *  per-language catalogue overlays (entryNameFor / entryPlaceFor /
+ *  entryUsedByFor below) since the Locator/Howto completion batch;
+ *  anything an overlay does not author falls back to English. */
 export interface LocatorFrames {
   outOfScope: (usedBy: string) => string;
   viaOrgsSuffix: string;
@@ -201,6 +211,28 @@ const COUNTER: TriText = {
   hi: 'ट्रस्टी, अकाउंटेंट और काउंटर टीम',
   bn: 'ট্রাস্টি, হিসাবরক্ষক ও কাউন্টার দল',
 };
+
+/** Stable keys for the 11 shared "used by" phrases — the draft-language
+ *  catalogue overlays (lang/<code>-locator.ts) key their translations
+ *  by these, so an entry's phrase resolves by identity, not by text. */
+const USED_BY_KEYS: Array<[string, TriText]> = [
+  ['fin', FIN],
+  ['finops', FINOPS],
+  ['gov', GOV],
+  ['mgr', MGR],
+  ['ritual', RITUAL],
+  ['sec', SEC],
+  ['staff', STAFF],
+  ['edu', EDU],
+  ['care', CARE],
+  ['aud', AUD],
+  ['counter', COUNTER],
+];
+
+export function usedByKeyOf(usedBy: TriText): string | undefined {
+  for (const [k, v] of USED_BY_KEYS) if (v === usedBy) return k;
+  return undefined;
+}
 
 /** Desk place fragment, generated from the catalog's own domain title
  *  (the label the sidebar itself groups desks under). */
@@ -544,6 +576,51 @@ export function locatorMapSize(): number {
 }
 
 /* ------------------------------------------------------------------ */
+/* Draft-language resolution (Locator/Howto completion batch).        */
+/* For en/hi/bn these return the entry's own TriText fields —         */
+/* byte-identical to the old langOf() pick. For a draft language the  */
+/* catalogue overlay wins when it authors the field; anything the     */
+/* overlay does not author falls back to the English TriText field,   */
+/* exactly as before the batch.                                       */
+/* ------------------------------------------------------------------ */
+
+function triOf(lang: string): LocatorLang {
+  const l = (lang || 'en').toLowerCase();
+  return l === 'hi' || l === 'bn' ? l : 'en';
+}
+
+export function entryNameFor(entry: LocatorEntry, lang: string): string {
+  const o = locatorEntryOverlay(lang, entry.id);
+  if (o && o.name) return o.name;
+  return entry.name[triOf(lang)];
+}
+
+export function entryPlaceFor(entry: LocatorEntry, lang: string): string {
+  const cat = locatorCatalogOverlay(lang);
+  if (cat) {
+    if (entry.kind === 'desk' && entry.domain != null) {
+      const title = cat.domains[String(entry.domain)];
+      if (title && cat.placeTemplate) {
+        return cat.placeTemplate.replace('{domain}', title);
+      }
+    }
+    const o = cat.entries[entry.id];
+    if (o && o.place) return o.place;
+  }
+  return entry.place[triOf(lang)];
+}
+
+export function entryUsedByFor(entry: LocatorEntry, lang: string): string {
+  const cat = locatorCatalogOverlay(lang);
+  if (cat) {
+    const key = usedByKeyOf(entry.usedBy);
+    const v = key ? cat.usedBy[key] : undefined;
+    if (v) return v;
+  }
+  return entry.usedBy[triOf(lang)];
+}
+
+/* ------------------------------------------------------------------ */
 /* Matcher — same scoring family as navigation.ts, with a primary-    */
 /* name bonus so one distinctive word ("তহবিল", "বহিখাতা") suffices.   */
 /* ------------------------------------------------------------------ */
@@ -577,6 +654,40 @@ function hit(text: string, pat: string): boolean {
   return new RegExp(`(?<!\\p{L})${escapeRegExp(pat)}(?!\\p{L})`, 'u').test(text);
 }
 
+/**
+ * Hindi vocabulary guard for the draft overlays. Marathi and Sanskrit
+ * share Devanagari with Hindi, so a single-word mr/sa overlay pattern
+ * that is ALSO a Hindi word (तीर्थ, धर्म, मंदिर…) cannot tell a Hindi
+ * question from a Marathi/Sanskrit one — and Hindi questions already
+ * belong to the base pools and the navigation corpus (a Hindi "तीर्थ
+ * डायरी कहाँ है?" is the Solo diary, NOT the Tirth One org desk; the
+ * chipRouting pin caught exactly that steal). Such words are skipped
+ * in overlay pools: the base hi fields already cover them for the
+ * entries they belong to. Genuinely Marathi/Sanskrit words (खजिना,
+ * कोषागारम्) are not Hindi tokens, so they still fire — and the five
+ * unique-script overlays (ta/te/gu/kn/ml) can never collide with
+ * Hindi at all. The vocabulary is the app's own: every Devanagari
+ * token in the locator map's hi fields and the navigation corpus's
+ * patterns.
+ */
+const HINDI_VOCAB: Set<string> = (() => {
+  const out = new Set<string>();
+  const eat = (s: string) => {
+    for (const tok of normaliseLocatorText(s).split(' ')) {
+      if (tok && /[ऀ-ॿ]/.test(tok)) out.add(tok);
+    }
+  };
+  for (const e of LOCATOR_MAP) {
+    eat(e.name.hi);
+    for (const a of e.aliases) eat(a);
+    for (const p of e.primary) eat(p);
+  }
+  for (const n of NAVIGATION_CORPUS) for (const p of n.patterns) eat(p);
+  return out;
+})();
+
+const DEVANAGARI_RE = /[ऀ-ॿ]/;
+
 function scoreEntry(
   entry: LocatorEntry,
   text: string
@@ -585,7 +696,7 @@ function scoreEntry(
   const evidence: string[] = [];
   const primary = new Set(entry.primary.map(normaliseLocatorText));
   const seen = new Set<string>();
-  const pools: Array<{ pats: string[]; isPrimaryPool: boolean }> = [
+  const pools: Array<{ pats: string[]; isPrimaryPool: boolean; isOverlay?: boolean }> = [
     { pats: entry.primary, isPrimaryPool: true },
     { pats: entry.aliases, isPrimaryPool: false },
     // The feature's own name is always matchable. The desk id joins
@@ -596,12 +707,38 @@ function scoreEntry(
       pats: [entry.name.en, entry.kind === 'desk' ? entry.deskId ?? '' : ''],
       isPrimaryPool: true,
     },
+    // Draft-language overlays: the entry's name-forms score as primary
+    // and its concept aliases join the alias pool — unioned across all
+    // 7 draft languages, language-agnostic like overlayKeywords. This
+    // is what lets a native-script question ("તિજોરી ક્યાં છે?") match
+    // at all. One exception, the Hindi-vocabulary guard (HINDI_VOCAB
+    // above): a single Devanagari overlay word that is also a Hindi
+    // word is skipped — it cannot distinguish a Hindi question, and
+    // Hindi questions belong to the base pools / navigation corpus.
+    ...allLocatorEntryOverlays(entry.id).map((o) => ({
+      pats: [...o.primary, o.name],
+      isPrimaryPool: true,
+      isOverlay: true,
+    })),
+    ...allLocatorEntryOverlays(entry.id).map((o) => ({
+      pats: o.aliases,
+      isPrimaryPool: false,
+      isOverlay: true,
+    })),
   ];
-  for (const { pats, isPrimaryPool } of pools) {
+  for (const { pats, isPrimaryPool, isOverlay } of pools) {
     for (const raw of pats) {
       const pat = normaliseLocatorText(raw);
       if (!pat || seen.has(pat)) continue;
       seen.add(pat);
+      if (
+        isOverlay &&
+        !pat.includes(' ') &&
+        DEVANAGARI_RE.test(pat) &&
+        HINDI_VOCAB.has(pat)
+      ) {
+        continue;
+      }
       if (!hit(text, pat)) continue;
       const isPhrase = pat.includes(' ');
       let pts = isPhrase ? 4 : 2;
@@ -695,7 +832,11 @@ export function isLocatorQuestion(input: string): boolean {
   if (isWhereQuestion(input)) return true;
   const text = normaliseLocatorText(input);
   if (!text) return false;
-  return REACH_PATTERNS.some((p) => hit(text, normaliseLocatorText(p)));
+  if (REACH_PATTERNS.some((p) => hit(text, normaliseLocatorText(p)))) return true;
+  // Draft-language interrogatives (catalogue overlays' `where` lists,
+  // unioned): without these a native-script "where is…?" never reached
+  // the locator chance in the router at all.
+  return overlayWherePatterns().some((p) => hit(text, normaliseLocatorText(p)));
 }
 
 /* ------------------------------------------------------------------ */

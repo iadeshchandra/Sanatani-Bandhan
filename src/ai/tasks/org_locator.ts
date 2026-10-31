@@ -27,29 +27,29 @@
  */
 import {
   canOpenEntry,
+  entryNameFor,
+  entryPlaceFor,
+  entryUsedByFor,
   isLocatable,
   locatorFrames,
   locatorTakeMeLabel,
   matchLocator,
   type LocatorEntry,
-  type LocatorLang,
 } from '../locator';
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
 
-function langOf(ctx: TaskCtx): LocatorLang {
-  return ctx.lang === 'hi' || ctx.lang === 'bn' ? ctx.lang : 'en';
-}
-
-function headed(entry: LocatorEntry, lang: LocatorLang): string {
-  return `🙏 **${entry.name[lang]}** ${entry.place[lang]}.`;
+function headed(entry: LocatorEntry, lang: string): string {
+  return `🙏 **${entryNameFor(entry, lang)}** ${entryPlaceFor(entry, lang)}.`;
 }
 
 export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
-  // Catalogue fragments (name/place/usedBy) stay on the en/hi/bn
-  // TriText pick; the sentence FRAMES and the take-me label resolve in
-  // the asker's full language via the B2-C overlays (locatorFrames).
-  const lang = langOf(ctx);
+  // Catalogue fragments (name/place/usedBy) resolve in the asker's
+  // full language: en/hi/bn from the entry's TriText (byte-identical
+  // to the old pick), draft languages from their catalogue overlays
+  // with English fallback. The sentence FRAMES and the take-me label
+  // likewise resolve via the B2-C overlays (locatorFrames).
+  const lang = ctx.lang;
   const frames = locatorFrames(ctx.lang);
   const takeMe = locatorTakeMeLabel(ctx.lang);
   const suggestions = suggestionsFor('org_locator', ctx.lang);
@@ -59,7 +59,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   // where each lives — the user picks; the locator never guesses.
   if (m.best && m.ambiguous.length >= 2) {
     const lines = m.ambiguous.map(
-      (e) => `• **${e.name[lang]}** — ${e.place[lang]}.`
+      (e) => `• **${entryNameFor(e, lang)}** — ${entryPlaceFor(e, lang)}.`
     );
     return {
       params: {
@@ -111,7 +111,7 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
     // is — kindly, and with NO deep-link (RBAC honesty law).
     return {
       params: {
-        answer: `${headed(entry, lang)} ${frames.outOfScope(entry.usedBy[lang])}`,
+        answer: `${headed(entry, lang)} ${frames.outOfScope(entryUsedByFor(entry, lang))}`,
       },
       variant: 'answer',
       suggestions,

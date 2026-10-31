@@ -8,8 +8,9 @@
  * RBAC: the assistant layer filters guide ids via allowedGuides(role)
  * BEFORE this executor runs; a denied guide never reaches here.
  */
-import { getGuide } from '../../lib/moduleGuides';
+import { getGuide, type ModuleGuide } from '../../lib/moduleGuides';
 import { tourIdForModuleGuide } from '../guideTours';
+import { guideOverlay } from '../lang/shared';
 import { allowedGuides } from '../rbac';
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
@@ -20,14 +21,45 @@ function l3(lang: string): Lang3 {
   return l === 'hi' || l === 'bn' ? l : 'en';
 }
 
+/** A guide's AI-consumed fields in the asker's full language. For
+ *  en/hi/bn these are the guide's own Lang3 fields — byte-identical
+ *  to the old l3() pick. For a draft language the GUIDES_<CODE>
+ *  overlay wins when it authors the guide; anything unauthored falls
+ *  back to the English Lang3 field, exactly as before the batch. */
+interface ResolvedGuide {
+  name: string;
+  whatItIs: string;
+  firstSteps: string[];
+  proTips: string[];
+}
+
+function resolveGuide(guide: ModuleGuide, lang: string): ResolvedGuide {
+  const o = guideOverlay(lang, guide.id);
+  if (o) {
+    return {
+      name: o.name,
+      whatItIs: o.whatItIs,
+      firstSteps: o.firstSteps,
+      proTips: o.proTips,
+    };
+  }
+  const l = l3(lang);
+  return {
+    name: guide.name[l],
+    whatItIs: guide.whatItIs[l],
+    firstSteps: guide.firstSteps.map((s) => s[l]),
+    proTips: guide.proTips.map((t) => t[l]),
+  };
+}
+
 export function howtoTask(ctx: TaskCtx): TaskOutcome {
-  const lang = l3(ctx.lang);
   const guideId = ctx.slots['guideId'];
   const guide = guideId ? getGuide(guideId) : undefined;
 
   if (guide && allowedGuides(ctx.role).includes(guide.id)) {
-    const steps = guide.firstSteps.map((s, i) => `${i + 1}. ${s[lang]}`).join('\n');
-    const tips = guide.proTips.map((t) => `• ${t[lang]}`).join('\n');
+    const resolved = resolveGuide(guide, ctx.lang);
+    const steps = resolved.firstSteps.map((s, i) => `${i + 1}. ${s}`).join('\n');
+    const tips = resolved.proTips.map((t) => `• ${t}`).join('\n');
     // WORLD-READY (Exhibit 2): an `openGuide` action launches an
     // interactive TOUR, whose registry has a different id space from
     // these module guides. Offer the action ONLY where a tour twin
@@ -38,8 +70,8 @@ export function howtoTask(ctx: TaskCtx): TaskOutcome {
     const tourId = tourIdForModuleGuide(guide.id);
     return {
       params: {
-        guideName: guide.name[lang],
-        whatItIs: guide.whatItIs[lang],
+        guideName: resolved.name,
+        whatItIs: resolved.whatItIs,
         steps,
         tips,
         hasTour: tourId ? '1' : '0',
@@ -55,7 +87,7 @@ export function howtoTask(ctx: TaskCtx): TaskOutcome {
     .map((id) => getGuide(id))
     .filter((g): g is NonNullable<typeof g> => !!g)
     .slice(0, 8)
-    .map((g) => `• ${g.name[lang]}`)
+    .map((g) => `• ${resolveGuide(g, ctx.lang).name}`)
     .join('\n');
   return {
     params: { guides },

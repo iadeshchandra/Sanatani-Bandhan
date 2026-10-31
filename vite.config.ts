@@ -91,6 +91,30 @@ export default defineConfig(() => {
           // it only ever loads when the user touches the on-device voice.
           manualChunks: {
             'web-llm': ['@mlc-ai/web-llm'],
+            // The 7 draft languages' locator-catalogue + module-guide
+            // overlays (Locator/Howto completion batch, 2026-10-31) are
+            // ~590 KB of pure data. In the entry chunk they pushed it
+            // past the 6.5 MB PWA precache limit — the same failure the
+            // web-llm split above fixed in 2026-10-18. As their own
+            // chunk they stay out of the precache (the glob takes only
+            // assets/index-*.js) and arrive via the /assets/**
+            // StaleWhileRevalidate runtime cache on first use.
+            'ai-draft-content': [
+              './src/ai/lang/ta-locator.ts',
+              './src/ai/lang/ta-howto.ts',
+              './src/ai/lang/te-locator.ts',
+              './src/ai/lang/te-howto.ts',
+              './src/ai/lang/mr-locator.ts',
+              './src/ai/lang/mr-howto.ts',
+              './src/ai/lang/gu-locator.ts',
+              './src/ai/lang/gu-howto.ts',
+              './src/ai/lang/kn-locator.ts',
+              './src/ai/lang/kn-howto.ts',
+              './src/ai/lang/ml-locator.ts',
+              './src/ai/lang/ml-howto.ts',
+              './src/ai/lang/sa-locator.ts',
+              './src/ai/lang/sa-howto.ts',
+            ],
           },
         },
       },

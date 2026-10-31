@@ -27,6 +27,20 @@ import { LABELS_ML, LOCATOR_ML } from './ml';
 import { DHARMA_ML, NAV_ML, NAV_TAKEME_ML, TIRTHA_ML, KEYWORDS_ML, DEST_ML } from './ml-data';
 import { LABELS_SA, LOCATOR_SA } from './sa';
 import { DHARMA_SA, NAV_SA, NAV_TAKEME_SA, TIRTHA_SA, KEYWORDS_SA, DEST_SA } from './sa-data';
+import { LOCATOR_CATALOG_TA } from './ta-locator';
+import { GUIDES_TA } from './ta-howto';
+import { LOCATOR_CATALOG_TE } from './te-locator';
+import { GUIDES_TE } from './te-howto';
+import { LOCATOR_CATALOG_MR } from './mr-locator';
+import { GUIDES_MR } from './mr-howto';
+import { LOCATOR_CATALOG_GU } from './gu-locator';
+import { GUIDES_GU } from './gu-howto';
+import { LOCATOR_CATALOG_KN } from './kn-locator';
+import { GUIDES_KN } from './kn-howto';
+import { LOCATOR_CATALOG_ML } from './ml-locator';
+import { GUIDES_ML } from './ml-howto';
+import { LOCATOR_CATALOG_SA } from './sa-locator';
+import { GUIDES_SA } from './sa-howto';
 
 export const DRAFT_LANGS = ['ta', 'te', 'mr', 'gu', 'kn', 'ml', 'sa'] as const;
 export type DraftLang = (typeof DRAFT_LANGS)[number];
@@ -47,9 +61,51 @@ export interface LocatorOverlay {
   dontKnow: string;
 }
 
+/** One locator-catalogue entry in a draft language (Locator/Howto
+ *  completion batch): the feature's name in the language's own script,
+ *  the match layer (primary = name-forms, aliases = concept words —
+ *  unioned into matchLocator across all draft languages, exactly like
+ *  overlayKeywords), and, for nested/solo/public entries, the full
+ *  place sentence. Desk entries compose place from domains +
+ *  placeTemplate instead. */
+export interface LocatorEntryOverlay {
+  name: string;
+  place?: string;
+  aliases: string[];
+  primary: string[];
+}
+
+/** The whole locator catalogue overlay for one draft language. */
+export interface LocatorCatalogOverlay {
+  entries: Record<string, LocatorEntryOverlay>;
+  /** Sidebar domain number ('1'..'7') → its title in this language. */
+  domains: Record<string, string>;
+  /** Desk place fragment with a literal '{domain}' placeholder. */
+  placeTemplate: string;
+  /** The 11 shared "used by" role phrases, by locator.ts key. */
+  usedBy: Record<string, string>;
+  /** "Where is…" / "how do I reach…" interrogatives in this language —
+   *  unioned into isLocatorQuestion so a native-script question can
+   *  reach the locator executor at all. */
+  where: string[];
+}
+
+/** One module guide in a draft language — full ModuleGuide parity
+ *  (name/tagline/whatItIs/whyItMatters + 3 first steps + 2 pro tips). */
+export interface GuideOverlay {
+  name: string;
+  tagline: string;
+  whatItIs: string;
+  whyItMatters: string;
+  firstSteps: string[];
+  proTips: string[];
+}
+
 interface LangBundle {
   labels: Record<string, string>;
   locator: LocatorOverlay;
+  locatorCatalog: LocatorCatalogOverlay;
+  guides: Record<string, GuideOverlay>;
   dharma: Record<string, CorpusOverlayEntry>;
   nav: Record<string, CorpusOverlayEntry>;
   navTakeMe: string;
@@ -59,13 +115,13 @@ interface LangBundle {
 }
 
 const BUNDLES: Record<DraftLang, LangBundle> = {
-  ta: { labels: LABELS_TA, locator: LOCATOR_TA, dharma: DHARMA_TA, nav: NAV_TA, navTakeMe: NAV_TAKEME_TA, tirtha: TIRTHA_TA, keywords: KEYWORDS_TA, dest: DEST_TA },
-  te: { labels: LABELS_TE, locator: LOCATOR_TE, dharma: DHARMA_TE, nav: NAV_TE, navTakeMe: NAV_TAKEME_TE, tirtha: TIRTHA_TE, keywords: KEYWORDS_TE, dest: DEST_TE },
-  mr: { labels: LABELS_MR, locator: LOCATOR_MR, dharma: DHARMA_MR, nav: NAV_MR, navTakeMe: NAV_TAKEME_MR, tirtha: TIRTHA_MR, keywords: KEYWORDS_MR, dest: DEST_MR },
-  gu: { labels: LABELS_GU, locator: LOCATOR_GU, dharma: DHARMA_GU, nav: NAV_GU, navTakeMe: NAV_TAKEME_GU, tirtha: TIRTHA_GU, keywords: KEYWORDS_GU, dest: DEST_GU },
-  kn: { labels: LABELS_KN, locator: LOCATOR_KN, dharma: DHARMA_KN, nav: NAV_KN, navTakeMe: NAV_TAKEME_KN, tirtha: TIRTHA_KN, keywords: KEYWORDS_KN, dest: DEST_KN },
-  ml: { labels: LABELS_ML, locator: LOCATOR_ML, dharma: DHARMA_ML, nav: NAV_ML, navTakeMe: NAV_TAKEME_ML, tirtha: TIRTHA_ML, keywords: KEYWORDS_ML, dest: DEST_ML },
-  sa: { labels: LABELS_SA, locator: LOCATOR_SA, dharma: DHARMA_SA, nav: NAV_SA, navTakeMe: NAV_TAKEME_SA, tirtha: TIRTHA_SA, keywords: KEYWORDS_SA, dest: DEST_SA },
+  ta: { labels: LABELS_TA, locator: LOCATOR_TA, locatorCatalog: LOCATOR_CATALOG_TA, guides: GUIDES_TA, dharma: DHARMA_TA, nav: NAV_TA, navTakeMe: NAV_TAKEME_TA, tirtha: TIRTHA_TA, keywords: KEYWORDS_TA, dest: DEST_TA },
+  te: { labels: LABELS_TE, locator: LOCATOR_TE, locatorCatalog: LOCATOR_CATALOG_TE, guides: GUIDES_TE, dharma: DHARMA_TE, nav: NAV_TE, navTakeMe: NAV_TAKEME_TE, tirtha: TIRTHA_TE, keywords: KEYWORDS_TE, dest: DEST_TE },
+  mr: { labels: LABELS_MR, locator: LOCATOR_MR, locatorCatalog: LOCATOR_CATALOG_MR, guides: GUIDES_MR, dharma: DHARMA_MR, nav: NAV_MR, navTakeMe: NAV_TAKEME_MR, tirtha: TIRTHA_MR, keywords: KEYWORDS_MR, dest: DEST_MR },
+  gu: { labels: LABELS_GU, locator: LOCATOR_GU, locatorCatalog: LOCATOR_CATALOG_GU, guides: GUIDES_GU, dharma: DHARMA_GU, nav: NAV_GU, navTakeMe: NAV_TAKEME_GU, tirtha: TIRTHA_GU, keywords: KEYWORDS_GU, dest: DEST_GU },
+  kn: { labels: LABELS_KN, locator: LOCATOR_KN, locatorCatalog: LOCATOR_CATALOG_KN, guides: GUIDES_KN, dharma: DHARMA_KN, nav: NAV_KN, navTakeMe: NAV_TAKEME_KN, tirtha: TIRTHA_KN, keywords: KEYWORDS_KN, dest: DEST_KN },
+  ml: { labels: LABELS_ML, locator: LOCATOR_ML, locatorCatalog: LOCATOR_CATALOG_ML, guides: GUIDES_ML, dharma: DHARMA_ML, nav: NAV_ML, navTakeMe: NAV_TAKEME_ML, tirtha: TIRTHA_ML, keywords: KEYWORDS_ML, dest: DEST_ML },
+  sa: { labels: LABELS_SA, locator: LOCATOR_SA, locatorCatalog: LOCATOR_CATALOG_SA, guides: GUIDES_SA, dharma: DHARMA_SA, nav: NAV_SA, navTakeMe: NAV_TAKEME_SA, tirtha: TIRTHA_SA, keywords: KEYWORDS_SA, dest: DEST_SA },
 };
 
 function bundle(lang: string): LangBundle | undefined {
@@ -125,4 +181,40 @@ export function overlayDestKeywords(path: string): string[] {
     if (Array.isArray(kws)) out.push(...kws);
   }
   return out;
+}
+
+/** The locator catalogue overlay for one draft language. */
+export function locatorCatalogOverlay(lang: string): LocatorCatalogOverlay | undefined {
+  return bundle(lang)?.locatorCatalog;
+}
+
+/** One locator entry's overlay in one draft language. */
+export function locatorEntryOverlay(lang: string, entryId: string): LocatorEntryOverlay | undefined {
+  return bundle(lang)?.locatorCatalog.entries[entryId];
+}
+
+/** Every draft language's overlay for one locator entry — the matcher
+ *  unions these into the entry's pools (matching is language-agnostic,
+ *  exactly like overlayKeywords: a Gujarati alias matches Gujarati
+ *  input whatever the UI language). */
+export function allLocatorEntryOverlays(entryId: string): LocatorEntryOverlay[] {
+  const out: LocatorEntryOverlay[] = [];
+  for (const l of DRAFT_LANGS) {
+    const e = BUNDLES[l].locatorCatalog.entries[entryId];
+    if (e) out.push(e);
+  }
+  return out;
+}
+
+/** "Where is…" interrogatives in every draft language, unioned for
+ *  isLocatorQuestion (language-agnostic, like overlayKeywords). */
+export function overlayWherePatterns(): string[] {
+  const out: string[] = [];
+  for (const l of DRAFT_LANGS) out.push(...BUNDLES[l].locatorCatalog.where);
+  return out;
+}
+
+/** One module guide's overlay in one draft language. */
+export function guideOverlay(lang: string, guideId: string): GuideOverlay | undefined {
+  return bundle(lang)?.guides[guideId];
 }
