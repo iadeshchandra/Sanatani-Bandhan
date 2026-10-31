@@ -380,6 +380,7 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 | `cashCustodyStates/{workspaceId}` | one maintained Cash Custody state doc per workspace; finance write with `savedByUid` pinned to the writer, oversight read (incl. read-only Auditor), delete never; client fail-open to the on-device copies |
 | `receiptCounters/{workspaceId}_{series}_{year}` | SECURITY P1 (2026-10-23, owner-flagged with the batch): the receipt-sequence anchor — one counter per workspace + series (`SB-80G`/`SB-CHANDA`) + year; finance create/advance, `seq` moves FORWARD only, delete never; clients claim numbers transactionally, offline issues get marked PROVISIONAL numbers |
 | `utsav_stores/{workspaceId}` | EVENTS P1 (2026-10-25, owner-flagged with the batch): Utsav team-sharing mirror — one doc per workspace {workspaceId, state, updatedAt, updatedBy}; member read, staff (R_STAFF) create/update, trustee/superadmin delete; clients adopt newer-wins and push on real mutation only |
+| `suggestions/{id}` (+ `supporters/{uid}`) | ⚠️ **PROPOSED (Margdarshan J0, 2026-10-31) — rules NOT yet in firestore.rules, flagged for owner (see §15).** Your Voice board: public read of visible (hidden == false) only per the owner's read/engage law; signed-in create (authorId pinned); supporterCount anchored to the caller's own supporters doc (polls ballot-box pattern); pipeline/hide = SuperAdmin only |
 
 **Rules syntax laws:** functions have NO imperative `if` (ternary/or-chains only); `match` blocks close with `}`, never `};`; `allow` ends with `;`.
 
@@ -395,6 +396,16 @@ Deny-by-default `firestore.rules` (repo file IS live — console pastes get over
 - **Muse cannot read Actions status** — owner reports green/red + pastes failing logs. Stale PWA/SW cache is the FIRST suspect on "still broken" reports (`local-stale-cache-first-triage` skill).
 - `.github/workflows/` is user-owned (GitHub blocks automation writes) — paste-ready files only.
 - **STANDING (2026-10-20, org-suite staleness):** the local tree can lag remote by days for whole suite dirs (on 2026-10-20 `src/goshala/` + `src/pathshala/` were still the 2026-10-13 pre-i18n-2d3 tree with the clobbered `ui.tsx`, while remote had the 2d3 translations + fix #3 restore). Pushing from such a tree silently re-clobbers fixed files AND reverts a week of i18n work. Before any push touching shared suite files: fetch the remote base twice, compare SHAs, and diff — never assume the local tree is current.
+
+---
+
+## 15. Margdarshan — Help, Manual & Community Centre (PROPOSED; J0 foundations staged 2026-10-31)
+
+Feature id `margdarshan` (owner-named 2026-10-31). Blueprint: `~/workspace/your_files/jigyasa/JIGYASA-STRUCTURE.md`. One centre, four wings — Manual · Feature Atlas + What's New · Your Voice (suggestions) · Satsang (Phase 2, reserved only). **Owner's read/engage law: everything readable with no sign-in; engagement requires an account.**
+
+- **Knowledge layer (J0, in repo):** `src/lib/margdarshan/` — the `DeskPage` model DERIVED from the existing knowledge sources (locator map `src/ai/locator.ts` + guide library `src/lib/moduleGuides.ts` + the 7-domain directory grouping): 101 pages (72 desks + 7 nested + 2 solo + 1 public + 19 guide-only topics), 24 with guides attached, resolution through the existing overlay machinery only (no copied content). Manual-only fields (real-life example, common mistakes) are J1-authored — absent, never fabricated, in J0.
+- **Routes RESERVED (not yet mounted):** `/margdarshan` family in-app + the public web mirror at `/margdarshan`. (The blueprint's early drafts used `/jigyasa…`; the owner's chosen name governs — routes follow `margdarshan`.)
+- **Collections:** `suggestions/{id}` + `suggestions/{id}/supporters/{uid}` — ⚠️ **PROPOSED, not live** (§13 row). Rules candidate staged OUTSIDE the repo file at `~/workspace/staging/margdarshan-j0/firestore.rules.candidate` (purely additive block, polls ballot-box anchored counter). **Compiled-size finding (J0, token method): the block is estimated to exceed the remaining headroom — a diet round 3 must precede the J3 rules landing; the live PATCH probe is the owner-hand confirmation.** No UI, no routes, no Copilot wiring in J0 (J1–J4 per the blueprint).
 
 ---
 
