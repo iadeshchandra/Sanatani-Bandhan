@@ -5,6 +5,7 @@ import {
   QrCode, Receipt, Compass, CheckCircle2, ChevronRight, LogOut, Download
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { useOrgConsoleAccess } from '../../lib/orgConsoleAccess';
 import { useLanguage } from '../../context/LanguageContext';
 import { PublicLanguageButton } from '../public/PublicLanguageButton';
 import { useToast } from '../../context/ToastContext';
@@ -33,9 +34,12 @@ export default function MemberAppShell() {
     switchRole,
     logout,
     exitDemo,
-    checkPermission,
     firebaseUser,
   } = useAuthWorkspace();
+  // RT-09: the return-to-console verdict is the SHARED per-org
+  // judgement (lib/orgConsoleAccess) — the same one the portal
+  // toggle uses — not a second hand-maintained role list.
+  const { canOpenConsole } = useOrgConsoleAccess();
   const { safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
   // Unified notification center — live on notifications/{uid}/items.
@@ -66,9 +70,12 @@ export default function MemberAppShell() {
   // Safe Switch Handler to safely transition back to Organisation View
   // P0-2: If trapped in the demo sandbox, exit it first — "Return to
   // Institution ERP" must land in the real app, never the demo.
-  // V11 RBAC: mirror DevoteeAccountPortal — staff/sevadar clearance required.
+  // RT-09: the clearance judgement is lib/orgConsoleAccess — the same
+  // per-org evidence the DevoteeAccountPortal toggle uses (the old
+  // hand-list here missed CSO/Auditor and carried dead legacy
+  // spellings; the verdicts agree for every staff edge).
   const handleSwitchToOrganisation = () => {
-    if (!checkPermission(['TRUSTEE', 'SEVADAR', 'VOLUNTEER', 'PRIEST', 'PUROHIT', 'ACCOUNTANT', 'MANAGER'])) {
+    if (!canOpenConsole) {
       showToast('Access Restricted: Mandir Console requires Sevadar, Trustee, or Priest credentials.', 'error', 'Permission Denied');
       return;
     }

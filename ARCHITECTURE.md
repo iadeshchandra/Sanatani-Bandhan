@@ -432,6 +432,19 @@ FIX-A (§13) secured the jyotish data; FIX-B makes the system actually work end-
 - **Kundli birth fields (JY-16):** PostRequirement requires birth date/time/place when the type is Kundli Vishleshan (HTML required + submit guard); optional otherwise. The fields write ONLY to the party-scoped consultation doc — the FIX-A tender whitelist is untouched (verified: the dual-write copies the same explicit field list as before).
 - **Rules size (compiled cap discipline):** FIX-B's rules additions (+433 tokens) were paid for by factoring inside the professional zone — shared `diffKeys()`, `bookingTransitionOk`/`bookingImmutableOk` (the gig/consultation twins), `consultationPartyById`, `applicationCreateOk` (the twin application creates) — all token-identical in expansion for untouched paths. Final: **43,776 tokens ≈ 253,300–254,100 compiled bytes** (diet tokenizer, ratios 5.7868–5.8038 B/tok) — BELOW the post-FIX-A file (44,007) with ~2 KB headroom restored. The PATCH probe remains the true measurement. Note for J3: the staged suggestions candidate (+1,205 tokens on the J0 base) still projects over the cap on this base (≈44,981 tokens ≈ 260,300–260,900) — diet round 3 is still required before J3, now against a smaller gap.
 
+
+## 17. Route & org-door closures — RT-FIX (2026-10-31, closes the route audit RT-01→09)
+
+Owner-reported (his SB-PASS-1008 devotee screenshots): the legacy devotee portal's locked Org toggle was a mute div and the portal had no exits. The lock was correct-by-data (devotee member, no staff role); the silence was the defect. Audit: `~/workspace/staging/route-audit/REPORT.md`.
+
+- **One org-console verdict (RT-03/09):** `src/lib/orgConsoleAccess.ts` — per-org evidence decides the Personal⇄Org door (SuperAdmin → this-workspace membership edge via `membershipEffectiveRole` → creator → demo persona); the global role may land a user but NEVER unlocks. DevoteeAccountPortal's toggle and MemberAppShell's return switch both consume it.
+- **The lock explains itself (RT-01):** locked toggle is a real button opening `OrgConsoleLockSheet` (body portal) — why it's locked for {org} + honest doors (Go to My Space / create your own organisation / staff-access note). Copy: `surfaces.devoteePortal.orgLock*` ×10.
+- **Portal exits (RT-02):** DevoteeAccountPortal PASS tab carries a "Grow with Sanatani Bandhan" card (Create → `/register-org`, Join → `/orgs`) + a Margdarshan row.
+- **Devotee guard law (RT-04):** ONE exported `DEVOTEE_ALLOWED_MODULES` in App.tsx feeds BOTH the landing law and the render guard and includes `margdarshan` (read-for-everyone outranks the guard) + `poojaBooking`.
+- **Pass-ID honesty (RT-05):** `src/lib/passId.ts displaySanataniId()` — real ID or an "ID pending" label; the fabricated `SB-PASS-1008` literal exists nowhere in src (test-pinned).
+- **Public paths (RT-06):** `src/lib/publicPaths.ts` exact-match set replaces prefix matching — unknown public sub-paths render the 404.
+- **Warm lazy fallbacks (RT-07):** `PublicWarmSkeleton` on the lazy public Suspense sites (Margdarshan family, `/shorts/:id`, `/u/:uid`) — no true-blank first loads.
+
 ## Appendix A. Historical ERP domains (superseded as primary structure)
 
 The app began as a Dharmic ERP with 7 domains (`domain1`..`domain7`: People&KYC, Treasury, Dharmic Ops, Community Services, Gau Seva, Security, Outreach&AI). Suite code still lives under `src/` top-level dirs (`annakshetra`, `goshala`, `matha`, `pathshala`, `satsang`, `sabha`, `nyas`, `utsav`, `yoga`, `cashcustody`, `apikeys`, `security`). New development follows the Solo-first / module structure above.

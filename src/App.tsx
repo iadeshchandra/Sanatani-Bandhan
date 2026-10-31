@@ -60,6 +60,8 @@ const PurohitReviewsRedirect: React.FC = () => (
 );
 import { MembershipProvider, useMembership } from './context/MembershipContext';
 import { landingSurfaceForMembership, resolveOrgLandingRole } from './lib/landingSurface';
+import { isPublicPath as matchesPublicPath } from './lib/publicPaths';
+import { PublicWarmSkeleton } from './components/common/Skeleton';
 import { useAuthWorkspace } from './context/AuthWorkspaceContext';
 import { QuickGuideModal } from './components/common/QuickGuideModal';
 import { RBACQuickGuideDrawer } from './components/common/RBACQuickGuideDrawer';
@@ -275,6 +277,27 @@ const RestrictedAccess: React.FC = () => (
   </div>
 );
 
+/**
+ * The modules a Devotee-role member may open inside the org shell —
+ * ONE list, consumed by BOTH devotee gates in this file (the landing
+ * effect that forces the member home, and renderActiveDesk's strict
+ * guard), so the two can never drift apart again. The member home
+ * surfaces, devotee self-booking (M-10), and Margdarshan — the
+ * manual & help centre is read-for-everyone by the owner's law
+ * (RT-04), so a devotee member opens the in-app centre exactly like
+ * any other reader. The diagnostics mirror of this list lives in
+ * utils/rbacDiagnostics (canRoleAccessDesk) and is pinned to agree
+ * by src/lib/__tests__/rtFix.test.ts.
+ */
+export const DEVOTEE_ALLOWED_MODULES: readonly string[] = [
+  'devotee-portal',
+  'personal-portal',
+  'devotee-account',
+  'poojaBooking',
+  'pooja-booking',
+  'margdarshan',
+];
+
 const AppContent: React.FC = () => {
   // Phase 2 org spaces: RBAC here evaluates effectiveRole — the user's
   // ACTUAL role in THIS org (from the workspaceMembers edge), not the
@@ -350,8 +373,7 @@ const AppContent: React.FC = () => {
       // (Somnath Sharma) — a real devotee landed on someone else's fake
       // identity. That page is removed; the member home is the only
       // devotee landing.
-      const allowedDevoteeDesks = ['devotee-portal', 'personal-portal', 'devotee-account'];
-      if (!allowedDevoteeDesks.includes(activeModule)) {
+      if (!DEVOTEE_ALLOWED_MODULES.includes(activeModule)) {
         guardForcedDevoteeRef.current = true;
         setActiveModule('devotee-portal');
       }
@@ -518,16 +540,33 @@ const AppContent: React.FC = () => {
       );
     }
     // Strict Guard: Devotee cannot view any administrative desk (Domains 1-7),
-    // EXCEPT poojaBooking — devotee self-booking (M-10). The desk renders its
-    // devotee-friendly 'book' tab via its internal isDevotee path.
+    // EXCEPT the DEVOTEE_ALLOWED_MODULES — the member home surfaces,
+    // poojaBooking (devotee self-booking, M-10; the desk renders its
+    // devotee-friendly 'book' tab via its internal isDevotee path) and
+    // margdarshan (the manual & help centre is read-for-everyone by the
+    // owner's law, RT-04 — a devotee member reads the same centre any
+    // visitor reads on the public mirror).
     if (effectiveRole === 'Devotee' || (effectiveRole as string) === 'DEVOTEE') {
-      if (!['devotee-portal', 'personal-portal', 'devotee-account', 'poojaBooking', 'pooja-booking'].includes(activeModule)) {
+      if (!DEVOTEE_ALLOWED_MODULES.includes(activeModule)) {
         // WORLD-READY (B3): the guard fallback is the REAL member
         // surface — never the removed fabricated-persona portal.
         return <DevoteeAccountPortal />;
       }
       if (['poojaBooking', 'pooja-booking'].includes(activeModule)) {
         return <PoojaBookingDesk />;
+      }
+      if (activeModule === 'margdarshan') {
+        return (
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <Loader2 className="w-8 h-8 text-amber-600 animate-spin mb-4" />
+              </div>
+            }
+          >
+            <MargdarshanCentre onNavigate={(id) => setActiveModule(id)} />
+          </Suspense>
+        );
       }
       return <DevoteeAccountPortal />;
     }
@@ -1160,11 +1199,14 @@ const MainAppView: React.FC = () => {  const { isAuthenticated, addWorkspace, sw
   // P1-1: Signed-out deep routes must redirect to /login, not render landing
   // content at the protected URL. Preserve the intended destination for
   // post-login return via ?next=.
-  const publicPaths = ['/', '/login', '/signup', '/contact', '/ask-ai', '/mysecretlogin', '/get-app', '/for-institutions'];
+  // RT-06: the public set matches EXACTLY (lib/publicPaths). The old
+  // prefix test let an unknown sub-path under a public prefix
+  // (/contact/xyz) render the landing page at a nonsense URL; every
+  // legitimate public route is a defined route that matches in the
+  // router before this view renders, so exactness here only ever
+  // affects unknown URLs — which must fall to the NotFoundPage below.
   const currentPath = window.location.pathname;
-  const isPublicPath = publicPaths.some((p) =>
-    p === '/' ? currentPath === '/' : currentPath === p || currentPath.startsWith(p + '/')
-  );
+  const isPublicPath = matchesPublicPath(currentPath);
   // Allow /orgs and /org/:orgId as public (directory pages)
   // Allow /festival/:orgId/:eventId as public (shareable devotee event pages)
   const isOrgPublic = currentPath === '/orgs' || currentPath.startsWith('/org/');
@@ -1370,7 +1412,7 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/margdarshan"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicMargdarshanHome />
               </Suspense>
             }
@@ -1378,7 +1420,7 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/margdarshan/manual"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicManual />
               </Suspense>
             }
@@ -1386,7 +1428,7 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/margdarshan/manual/:pageId"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicDeskPage />
               </Suspense>
             }
@@ -1394,7 +1436,7 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/margdarshan/features"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicAtlas />
               </Suspense>
             }
@@ -1452,7 +1494,7 @@ const AppRoutes: React.FC = () => {
           {/* Pillar 2 (festival war-room): shareable public festival event pages */}
           <Route path="/festival/:orgId/:eventId" element={<FestivalEventPage />} />
           {/* Sangam Shorts: deep-link to a specific short */}
-          <Route path="/shorts/:shortId" element={<Suspense fallback={null}><ShortsRoute /></Suspense>} />
+          <Route path="/shorts/:shortId" element={<Suspense fallback={<PublicWarmSkeleton />}><ShortsRoute /></Suspense>} />
           {/* App Growth (Phase 5): QR smart link + download landing. The page
               owns its own lazy chunk; the below-fold sections lazy-load again
               inside it, so the hero paints in under 2s. */}
@@ -1490,7 +1532,7 @@ const AppRoutes: React.FC = () => {
           {/* Seva Professional (Phase 1): unified public profile, keyed by Firebase Auth uid. */}
           <Route path="/seva/pro/:uid" element={<UnifiedProfessionalProfile />} />
           {/* Devotee public profile — the social layer's identity surface. */}
-          <Route path="/u/:uid" element={<Suspense fallback={null}><DevoteeRoute /></Suspense>} />
+          <Route path="/u/:uid" element={<Suspense fallback={<PublicWarmSkeleton />}><DevoteeRoute /></Suspense>} />
           {/* Seva Professional: samskara journey planner (SevaCatalog). */}
           <Route path="/seva/journeys" element={<SevaCatalog />} />
           {/* Phase 2 dev preview: profile org hub with mock data.

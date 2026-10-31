@@ -24,6 +24,9 @@ const ads = readFileSync(resolve(root, 'src', 'lib', 'openaiAds.ts'), 'utf8');
 const robots = readFileSync(resolve(root, 'public', 'robots.txt'), 'utf8');
 const contact = readFileSync(resolve(root, 'src', 'pages', 'ContactPage.tsx'), 'utf8');
 const app = readFileSync(resolve(root, 'src', 'App.tsx'), 'utf8');
+// RT-FIX (RT-06): the public path set moved out of App.tsx into the
+// single canonical list in src/lib/publicPaths.ts (exact-match law).
+const publicPaths = readFileSync(resolve(root, 'src', 'lib', 'publicPaths.ts'), 'utf8');
 
 /** The page's <h1> block, for the framing guard. */
 function headlineOf(source: string): string {
@@ -117,6 +120,9 @@ describe('wiring — ContactPage conversion + App route', () => {
   it('App.tsx lazy-loads the page, routes /for-institutions and keeps it public signed-out', () => {
     expect(app).toContain("const ForInstitutionsPage = lazy(() => import('./pages/ForInstitutionsPage')");
     expect(app).toContain('path="/for-institutions"');
-    expect(app).toContain("'/for-institutions'");
+    // Public signed-out: '/for-institutions' is in the canonical
+    // PUBLIC_PATHS set App.tsx exact-matches via isPublicPath (RT-06).
+    expect(publicPaths).toContain("'/for-institutions'");
+    expect(app).toContain('matchesPublicPath(currentPath)');
   });
 });

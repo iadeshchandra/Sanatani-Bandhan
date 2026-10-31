@@ -17,6 +17,7 @@ import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import { useNavigate } from 'react-router-dom';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -25,6 +26,10 @@ import { useNotifications } from '../../context/NotificationContext';
 import { generateSecureQRToken } from '../../utils/qrUtils';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { friendlyError } from '../../lib/friendlyError';
+import { useOrgConsoleAccess } from '../../lib/orgConsoleAccess';
+import { displaySanataniId } from '../../lib/passId';
+import { provisionalSoloProfile } from '../../solo/soloSession';
+import { OrgConsoleLockSheet } from './OrgConsoleLockSheet';
 import { 
   generateDevoteeCardPDF, 
   generate80GTaxReceipt, 
@@ -64,15 +69,18 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   onNavigateDesk,
 }) => {
   const inr = useInr();
-  const { 
-    currentUser, 
-    currentRole, 
-    activeWorkspace, 
-    currentDevotee, 
-    viewMode, 
-    setViewMode, 
-    switchRole 
+  const {
+    currentUser,
+    currentRole,
+    activeWorkspace,
+    currentDevotee,
+    viewMode,
+    setViewMode,
+    switchRole,
+    enterSoloSession,
+    setOrgRoleOverride
   } = useAuthWorkspace();
+  const navigate = useNavigate();
   const { language, setLanguage, safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
   const { addNotification } = useNotifications();
@@ -88,20 +96,17 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // Active Tab state
   const [activeTab, setActiveTab] = useState<DevoteePortalTab>(initialTab);
 
-  // Administrative Clearance Check
-  const isAdminOrSevadar = useMemo(() => {
-    const role = (currentRole || '').toUpperCase();
-    return (
-      role.includes('ADMIN') || 
-      role.includes('TRUSTEE') || 
-      role.includes('SEVADAR') || 
-      role.includes('VOLUNTEER') || 
-      role.includes('PRIEST') || 
-      role.includes('PUROHIT') || 
-      role.includes('ACCOUNTANT') || 
-      role.includes('MANAGER')
-    );
-  }, [currentRole]);
+  // Administrative Clearance Check — RT-03: judged by the SAME
+  // per-org evidence as the landing law (the workspaceMembers edge
+  // for THIS workspace, via lib/orgConsoleAccess), never the global
+  // currentRole alone. A member who is staff of THIS org sees an
+  // unlocked toggle even when their global role reads Devotee; a
+  // member who is staff only elsewhere sees the lock — and its
+  // explanation sheet (RT-01) — because that role is not this org's
+  // to honour.
+  const { canOpenConsole: isStaffOfThisOrg, role: orgConsoleRole } =
+    useOrgConsoleAccess();
+  const [showOrgLockSheet, setShowOrgLockSheet] = useState(false);
 
   // Devotee Record Synthesis
   const effectiveDevotee: DevoteeMember = useMemo(() => {
@@ -595,14 +600,59 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     showToast(next ? t('surfaces.devoteePortal.toastSoundOn') : t('surfaces.devoteePortal.toastSoundOff'), 'info');
   };
 
-  // Switch to Organization View Handler
+  // Switch to Organization View Handler (staff of THIS org only —
+  // the locked state never reaches here; it opens the RT-01 sheet).
   const handleSwitchToOrganisation = () => {
-    if (!isAdminOrSevadar) {
-      showToast(t('surfaces.devoteePortal.accessRestrictedMandirConsoleRequiresSevadar'), 'error', 'Permission Denied');
+    if (!isStaffOfThisOrg) {
+      setShowOrgLockSheet(true);
       return;
     }
     setViewMode('MANAGER');
     showToast(t('surfaces.devoteePortal.toastSwitchedConsole').replace('{org}', activeWorkspace?.name || 'Organisation'), 'success', t('surfaces.devoteePortal.toastHeadConsoleMode'));
+  };
+
+  // RT-01 sheet door 1 — My Space: the same home-going OrgSpaceShell's
+  // ← Home performs (clear the org role override, enter the solo
+  // session with a provisional profile — SoloProvider lazy-mints the
+  // real SAN id — and land on the Solo home).
+  const handleGoHomeToSolo = () => {
+    setShowOrgLockSheet(false);
+    setOrgRoleOverride(null);
+    enterSoloSession(provisionalSoloProfile());
+    showToast(t('surfaces.devoteePortal.orgLockWelcomeHome'), 'success');
+    navigate('/app/home');
+  };
+
+  // RT-01 sheet door 2 / RT-02 Grow card — create an organisation.
+  // /register-org reuses the live signed-in session (OrgRegisterRoute).
+  const handleCreateOrg = () => {
+    window.location.href = '/register-org';
+  };
+
+  // RT-02 Grow card — join an organisation: the public directory +
+  // join-request flow (the same destination JoinUpgrade's join door
+  // uses from the Solo shell).
+  const handleJoinOrg = () => {
+    window.location.href = '/orgs';
+  };
+
+  // RT-02 Margdarshan door — the manual & help centre. In the org
+  // shell the in-app centre is a module (the devotee guard allows it,
+  // RT-04), reached through the app's navigate event; embedded in
+  // MemberAppShell's tab shell there is no centre module, so the
+  // public mirror — the same reading surface — opens instead.
+  const handleOpenMargdarshan = () => {
+    if (onNavigateDesk) {
+      window.location.href = '/margdarshan';
+      return;
+    }
+    try {
+      window.dispatchEvent(
+        new CustomEvent('sanatani:navigate', { detail: { module: 'margdarshan' } })
+      );
+    } catch {
+      window.location.href = '/margdarshan';
+    }
   };
 
   return (
@@ -637,7 +687,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <p className="text-xs text-amber-400/80 font-medium flex items-center gap-1.5 mt-0.5">
                 <span>{activeWorkspace?.name || 'Sanatani Bandhan'}</span>
                 <span>•</span>
-                <span className="text-stone-400 font-mono text-[11px]">{profileData.sanataniId || 'SB-PASS-1008'}</span>
+                <span className="text-stone-400 font-mono text-[11px]">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
               </p>
             </div>
           </div>
@@ -646,35 +696,37 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           <div className="flex items-center bg-stone-900/90 p-1 rounded-2xl border border-stone-800 shadow-inner">
             <button
               type="button"
-              className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-amber-700 text-stone-950 shadow-md flex items-center gap-1.5 cursor-default transition-all"
+              className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-amber-700 text-stone-950 shadow-md flex items-center gap-1.5 cursor-default transition-all"
             >
               <UserCircle className="w-4 h-4 text-stone-950" />
               <span>{t('surfaces.devoteePortal.personalSpace')}</span>
             </button>
 
-            {isAdminOrSevadar ? (
+            {isStaffOfThisOrg ? (
               <button
                 type="button"
                 onClick={handleSwitchToOrganisation}
-                className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-stone-300 hover:text-amber-300 hover:bg-stone-800/80 transition-all flex items-center gap-1.5 cursor-pointer group"
+                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold text-stone-300 hover:text-amber-300 hover:bg-stone-800/80 transition-all flex items-center gap-1.5 cursor-pointer group"
                 title={`Switch to ${activeWorkspace?.name || 'Mandir'} Administrative Console`}
               >
                 <Building2 className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
                 <span className="hidden xs:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="xs:hidden">Org</span>
                 <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  {currentRole || 'Staff'}
+                  {orgConsoleRole || currentRole || 'Staff'}
                 </span>
               </button>
             ) : (
-              <div 
-                className="px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-medium text-stone-500 flex items-center gap-1.5 cursor-not-allowed opacity-60"
-                title={t('surfaces.devoteePortal.organisationConsoleIsReservedForTemple')}
+              <button
+                type="button"
+                onClick={() => setShowOrgLockSheet(true)}
+                aria-haspopup="dialog"
+                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-medium text-stone-400 hover:text-amber-300 hover:bg-stone-800/80 flex items-center gap-1.5 cursor-pointer opacity-80 hover:opacity-100 transition-all"
               >
-                <Lock className="w-3.5 h-3.5 text-stone-600" />
+                <Lock className="w-3.5 h-3.5 text-stone-500" />
                 <span className="hidden sm:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="sm:hidden">Org</span>
-              </div>
+              </button>
             )}
           </div>
 
@@ -849,7 +901,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                           </p>
                         )}
                         <p className="text-[11px] text-stone-400 font-mono mt-0.5">
-                          ID: <span className="text-amber-400 font-bold">{profileData.sanataniId || 'SB-PASS-1008'}</span>
+                          ID: <span className="text-amber-400 font-bold">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
                         </p>
                       </div>
                     </div>
@@ -997,6 +1049,60 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
             </div>
+
+            {/* RT-02 — the modern exits. This member home predates the
+                Solo-first redesign and never received its doors: no way
+                to grow into an organisation, no way to the manual.
+                These two cards give it the same honest exits the Solo
+                Profile carries, in the portal's own stone/amber idiom:
+                Grow (create / join an organisation) and Margdarshan
+                (the manual & help centre — readable by everyone). */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6" aria-label={t('surfaces.devoteePortal.growTitle')}>
+              <div className="bg-stone-950/70 p-5 rounded-3xl border border-amber-500/30 space-y-3">
+                <h4 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>{t('surfaces.devoteePortal.growTitle')}</span>
+                </h4>
+                <p className="text-xs leading-relaxed text-stone-400">
+                  {t('surfaces.devoteePortal.growDesc')}
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCreateOrg}
+                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-stone-950" />
+                    <span>{t('surfaces.devoteePortal.growCreateBtn')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleJoinOrg}
+                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{t('surfaces.devoteePortal.growJoinBtn')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenMargdarshan}
+                className="text-left bg-stone-950/70 p-5 rounded-3xl border border-stone-800 hover:border-amber-500/40 transition-colors cursor-pointer space-y-2 group"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-xl" aria-hidden>📖</span>
+                  <span className="text-sm font-black text-amber-200 uppercase tracking-wider">
+                    {t('marg.profileRowTitle')}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-amber-400 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                </span>
+                <span className="block text-xs leading-relaxed text-stone-400">
+                  {t('marg.profileRowDesc')}
+                </span>
+              </button>
+            </section>
           </div>
         )}
 
@@ -1731,6 +1837,15 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       {/* ========================================================
           FULLSCREEN QR MODAL FOR SANCTUM GATE SCANNER
       ======================================================== */}
+      {/* RT-01 — the locked Org door's explanation sheet (body portal). */}
+      <OrgConsoleLockSheet
+        open={showOrgLockSheet}
+        orgName={activeWorkspace?.name || ''}
+        onClose={() => setShowOrgLockSheet(false)}
+        onGoHome={handleGoHomeToSolo}
+        onCreateOrg={handleCreateOrg}
+      />
+
       {isQrModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
           <div className="bg-stone-950 border-2 border-amber-500/50 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl relative max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
@@ -1751,7 +1866,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {profileData.fullName}
               </h3>
               <p className="text-xs text-amber-400 font-mono">
-                {profileData.sanataniId || 'SB-PASS-1008'}
+                {displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}
               </p>
             </div>
 

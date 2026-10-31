@@ -88,6 +88,45 @@ export const OrgSpaceSkeleton: React.FC = () => (
   </div>
 );
 
+/**
+ * Public warm skeleton — the Suspense fallback for lazy PUBLIC routes
+ * (RT-FIX, RT-07). Several public routes used `fallback={null}`: a
+ * true blank until the chunk arrived, which on a slow first load
+ * reads as a broken page. This mirrors the public surfaces' own
+ * footprint (warm ivory ground #FFF8F0, sticky header strip, a title
+ * block and reading cards) so the page that arrives replaces a shape
+ * like itself — warm, never blank.
+ */
+export const PublicWarmSkeleton: React.FC = () => (
+  <div className="flex min-h-screen flex-col bg-[#FFF8F0]" role="status" aria-label="Loading">
+    <div className="sticky top-0 z-40 border-b border-orange-100 bg-[#FFF8F0]/95 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl items-center gap-3">
+        <Skeleton className="h-9 w-9 !rounded-full shrink-0" />
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="ml-auto h-8 w-24 !rounded-full" />
+      </div>
+    </div>
+    <div className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-8 sm:px-6">
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-32 opacity-70" />
+        <Skeleton className="h-9 w-72 max-w-full" />
+        <Skeleton className="h-4 w-full max-w-xl opacity-80" />
+        <Skeleton className="h-4 w-2/3 max-w-md opacity-80" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="space-y-3 rounded-2xl border border-orange-100 bg-white/70 p-5">
+            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-3.5 w-full opacity-80" />
+            <Skeleton className="h-3.5 w-4/5 opacity-80" />
+            <Skeleton className="h-9 w-28 !rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 /** Profile skeleton — the Sanatani ID card + detail rows while loading. */
 export const ProfileSkeleton: React.FC = () => (
   <div className="space-y-4" aria-hidden="true">

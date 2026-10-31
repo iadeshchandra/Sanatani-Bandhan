@@ -41,6 +41,9 @@ export function canRoleAccessDesk(rawRole: UserRole | string, deskModuleId: stri
   }
 
   // 2. Devotee role: strictly restricted to B2C Devotee Portal desks
+  //    (+ Margdarshan — the manual & help centre is read-for-everyone
+  //    by the owner's law; RT-04 aligned this mirror with App.tsx's
+  //    DEVOTEE_ALLOWED_MODULES, pinned by rtFix.test.ts.)
   if (role === 'Devotee') {
     const devoteeAllowedDesks = [
       'devoteePortal',
@@ -49,6 +52,7 @@ export function canRoleAccessDesk(rawRole: UserRole | string, deskModuleId: stri
       'personal-portal',
       'devotee-account',
       'sadhana-karma',
+      'margdarshan',
     ];
     return devoteeAllowedDesks.includes(deskModuleId);
   }
