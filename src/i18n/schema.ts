@@ -499,9 +499,9 @@ export interface TranslationSchema {
       s3b: string;
     };
     /**
-     * Devotional giving layer (punya ledger) guide. Optional: ships with
-     * English copy only for now — other languages fall back to English
-     * via the t() lang → en → key chain until translated.
+     * Devotional giving layer (punya ledger) guide. Optional: authored
+     * in all 10 languages — the 7 draft languages are AI-draft class
+     * (native proofread pending), like all draft dictionary content.
      */
     devotional?: {
       title: string;
@@ -514,9 +514,9 @@ export interface TranslationSchema {
       s3b: string;
     };
     /**
-     * Speakable VDA-style alias guide (Phase 2). Optional: ships with
-     * English copy only for now — other languages fall back to English
-     * via the t() lang → en → key chain until translated.
+     * Speakable VDA-style alias guide (Phase 2). Optional: authored
+     * in all 10 languages — the 7 draft languages are AI-draft class
+     * (native proofread pending), like all draft dictionary content.
      */
     vda?: {
       title: string;
@@ -529,8 +529,9 @@ export interface TranslationSchema {
       s3b: string;
     };
     /**
-     * Tangible seva cards guide (Phase 2). Optional: English only for now,
-     * other languages fall back to English until translated.
+     * Tangible seva cards guide (Phase 2). Optional: authored in all
+     * 10 languages — the 7 draft languages are AI-draft class (native
+     * proofread pending), like all draft dictionary content.
      */
     sevacards?: {
       title: string;
