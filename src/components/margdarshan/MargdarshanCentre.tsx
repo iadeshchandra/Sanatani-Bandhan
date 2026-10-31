@@ -8,7 +8,8 @@
  * desk the mount guards would refuse).
  *
  * Views: home (greeting, search, the four wings, most-needed) ·
- * manual (browse/search every page) · atlas · one desk page.
+ * manual (browse/search every page) · atlas · whatsnew (the J2
+ * shipped-changes timeline) · one desk page.
  * The desk page's role door: openable → a real door into the desk
  * (Bahi-Khata uses its deskPanel door, like the Sidebar); plan-locked
  * or role-closed → an honest explanation, never a dead button.
@@ -39,6 +40,7 @@ import {
   GroupedPageList,
   MargSearch,
   PageCard,
+  WhatsNewView,
   WingGrid,
 } from './views';
 import type { DeskPage } from '../../lib/margdarshan/types';
@@ -47,7 +49,12 @@ type View =
   | { name: 'home' }
   | { name: 'manual' }
   | { name: 'atlas' }
-  | { name: 'page'; slug: string; from: 'home' | 'manual' | 'atlas' | 'page' };
+  | { name: 'whatsnew' }
+  | {
+      name: 'page';
+      slug: string;
+      from: 'home' | 'manual' | 'atlas' | 'whatsnew' | 'page';
+    };
 
 export const MargdarshanCentre: React.FC<{
   onNavigate: (moduleId: string) => void;
@@ -195,7 +202,9 @@ export const MargdarshanCentre: React.FC<{
                   ? { name: 'atlas' }
                   : view.from === 'manual'
                     ? { name: 'manual' }
-                    : { name: 'home' }
+                    : view.from === 'whatsnew'
+                      ? { name: 'whatsnew' }
+                      : { name: 'home' }
               )
             }
             backLabel={
@@ -203,7 +212,9 @@ export const MargdarshanCentre: React.FC<{
                 ? t('marg.wingFeatures')
                 : view.from === 'manual'
                   ? t('marg.backToManual')
-                  : t('marg.backToCentre')
+                  : view.from === 'whatsnew'
+                    ? t('marg.wingWhatsNew')
+                    : t('marg.backToCentre')
             }
           />
         ) : (
@@ -215,14 +226,18 @@ export const MargdarshanCentre: React.FC<{
                   ? t('marg.atlasTitle')
                   : view.name === 'manual'
                     ? t('marg.manualTitle')
-                    : t('marg.greeting')}
+                    : view.name === 'whatsnew'
+                      ? t('marg.wingWhatsNew')
+                      : t('marg.greeting')}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-orange-50">
                 {view.name === 'atlas'
                   ? t('marg.atlasDesc')
                   : view.name === 'manual'
                     ? t('marg.manualDesc')
-                    : t('marg.tagline')}
+                    : view.name === 'whatsnew'
+                      ? t('marg.whatsNewDesc')
+                      : t('marg.tagline')}
               </p>
               {view.name !== 'home' && (
                 <button
@@ -241,7 +256,13 @@ export const MargdarshanCentre: React.FC<{
               <>
                 <WingGrid
                   onGo={(target) =>
-                    setView(target === 'manual' ? { name: 'manual' } : { name: 'atlas' })
+                    setView(
+                      target === 'manual'
+                        ? { name: 'manual' }
+                        : target === 'whatsnew'
+                          ? { name: 'whatsnew' }
+                          : { name: 'atlas' }
+                    )
                   }
                 />
                 <section aria-label={t('marg.mostNeeded')}>
@@ -279,6 +300,10 @@ export const MargdarshanCentre: React.FC<{
 
             {!results && view.name === 'atlas' && (
               <AtlasView onOpenPage={(s) => openPage(s, 'atlas')} />
+            )}
+
+            {!results && view.name === 'whatsnew' && (
+              <WhatsNewView onOpenPage={(s) => openPage(s, 'whatsnew')} />
             )}
           </>
         )}

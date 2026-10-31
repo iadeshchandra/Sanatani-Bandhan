@@ -109,6 +109,7 @@ export default defineConfig(() => {
             // use. The centre UI itself is small and lazy-loaded.
             'margdarshan-content': [
               './src/lib/margdarshan/manual.ts',
+              './src/lib/margdarshan/releases.ts',
               './src/lib/margdarshan/content/manual-d1.ts',
               './src/lib/margdarshan/content/manual-d2a.ts',
               './src/lib/margdarshan/content/manual-d2b.ts',

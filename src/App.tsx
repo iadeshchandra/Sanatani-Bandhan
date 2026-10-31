@@ -246,6 +246,7 @@ const PublicMargdarshanHome = lazy(() => import('./components/margdarshan/Public
 const PublicManual = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicManual })));
 const PublicDeskPage = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicDeskPage })));
 const PublicAtlas = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicAtlas })));
+const PublicWhatsNew = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicWhatsNew })));
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
@@ -1438,6 +1439,16 @@ const AppRoutes: React.FC = () => {
             element={
               <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicAtlas />
+              </Suspense>
+            }
+          />
+          {/* J2 — What's New joins the public mirror: the same
+              shipped-changes timeline, readable by anyone. */}
+          <Route
+            path="/margdarshan/whats-new"
+            element={
+              <Suspense fallback={<PublicWarmSkeleton />}>
+                <PublicWhatsNew />
               </Suspense>
             }
           />

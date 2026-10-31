@@ -15,6 +15,7 @@
  *   /margdarshan/manual          → PublicManual
  *   /margdarshan/manual/:pageId  → PublicDeskPage
  *   /margdarshan/features        → PublicAtlas
+ *   /margdarshan/whats-new       → PublicWhatsNew (J2)
  */
 
 import React, { useMemo, useState } from 'react';
@@ -34,6 +35,7 @@ import {
   GroupedPageList,
   MargSearch,
   PageCard,
+  WhatsNewView,
   WingGrid,
 } from './views';
 
@@ -95,6 +97,9 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/margdarshan/features">
               {t('marg.atlasTitle')}
             </Link>
+            <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/margdarshan/whats-new">
+              {t('marg.wingWhatsNew')}
+            </Link>
             <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/ask-ai">
               Ask AI
             </Link>
@@ -148,7 +153,13 @@ export const PublicMargdarshanHome: React.FC = () => {
         </form>
         <WingGrid
           onGo={(target) =>
-            navigate(target === 'manual' ? '/margdarshan/manual' : '/margdarshan/features')
+            navigate(
+              target === 'manual'
+                ? '/margdarshan/manual'
+                : target === 'whatsnew'
+                  ? '/margdarshan/whats-new'
+                  : '/margdarshan/features'
+            )
           }
         />
         <section aria-label={t('marg.mostNeeded')}>
@@ -287,6 +298,25 @@ export const PublicAtlas: React.FC = () => {
       <div className="space-y-8">
         <Hero title={t('marg.atlasTitle')} desc={t('marg.atlasDesc')} />
         <AtlasView onOpenPage={(s) => navigate(`/margdarshan/manual/${s}`)} />
+      </div>
+    </PublicShell>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* /margdarshan/whats-new — the shipped-changes timeline (J2)          */
+/* ------------------------------------------------------------------ */
+
+export const PublicWhatsNew: React.FC = () => {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  return (
+    <PublicShell>
+      <div className="space-y-8">
+        <Hero title={t('marg.wingWhatsNew')} desc={t('marg.whatsNewDesc')} />
+        <WhatsNewView
+          onOpenPage={(s) => navigate(`/margdarshan/manual/${s}`)}
+        />
       </div>
     </PublicShell>
   );

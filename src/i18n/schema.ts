@@ -132,6 +132,13 @@ export interface TranslationSchema {
     wingFeaturesDesc?: string;
     wingWhatsNew?: string;
     wingWhatsNewDesc?: string;
+    whatsNewDesc?: string;
+    wnSectionNew?: string;
+    wnSectionImproved?: string;
+    wnSectionFixed?: string;
+    wnSectionDocs?: string;
+    wnSinceLastVisit?: string;
+    wnEmpty?: string;
     wingVoice?: string;
     wingVoiceDesc?: string;
     wingSatsang?: string;

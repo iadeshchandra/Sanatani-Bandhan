@@ -14,7 +14,7 @@
  * from the knowledge layer (lib/margdarshan), resolved per language.
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -35,10 +35,16 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 import {
   MANUAL_PAGES,
+  RELEASES,
   WINGS,
   buildAtlas,
   getManualPage,
+  markWhatsNewSeen,
+  newSinceVersions,
+  readWhatsNewSeen,
   resolveManualPage,
+  resolveRelease,
+  type ReleaseSectionId,
   type ResolvedManualPage,
   type Wing,
 } from '../../lib/margdarshan';
@@ -99,7 +105,7 @@ const WING_ICONS: Record<Wing['id'], React.ReactNode> = {
  * because there is nothing behind it yet.
  */
 export const WingGrid: React.FC<{
-  onGo: (target: 'manual' | 'atlas') => void;
+  onGo: (target: 'manual' | 'atlas' | 'whatsnew') => void;
 }> = ({ onGo }) => {
   const { t } = useLanguage();
   return (
@@ -463,6 +469,146 @@ export const DoorExplanation: React.FC<{ text: string }> = ({ text }) => (
     <p className="text-sm leading-6 text-stone-500">{text}</p>
   </div>
 );
+
+/* ------------------------------------------------------------------ */
+/* What's New (J2) — the shipped-changes timeline                      */
+/* ------------------------------------------------------------------ */
+
+const WN_SECTION_KEYS: Record<ReleaseSectionId, string> = {
+  new: 'marg.wnSectionNew',
+  improved: 'marg.wnSectionImproved',
+  fixed: 'marg.wnSectionFixed',
+  docs: 'marg.wnSectionDocs',
+};
+
+/**
+ * The What's New timeline: every shipped release, newest first, its
+ * items grouped under New / Improved / Fixed / Good to know, each
+ * item's desk chips deep-linking into the manual page that explains
+ * the feature. Content comes from the bundled release model
+ * (lib/margdarshan/releases) — real production stamps, real ship
+ * dates, user-visible changes only.
+ *
+ * The "since you were last here" courtesy: the device-local marker
+ * is read ONCE on mount, before this visit writes its own stamp —
+ * releases newer than the stored stamp carry a quiet pill and a
+ * warmer hairline. A first visit (no marker) highlights NOTHING:
+ * the whole archive is history, not "new" spam (engagement law —
+ * no badges, no counts, no streaks anywhere in this view).
+ */
+export const WhatsNewView: React.FC<{
+  onOpenPage: (slug: string) => void;
+}> = ({ onOpenPage }) => {
+  const { t, currentLang } = useLanguage();
+  const [seenVersion] = useState<string | null>(() => readWhatsNewSeen());
+  useEffect(() => {
+    markWhatsNewSeen();
+  }, []);
+  const fresh = useMemo(() => newSinceVersions(seenVersion), [seenVersion]);
+  const isDraftLang = (DRAFT_LANGS as readonly string[]).includes(
+    (currentLang || 'en').toLowerCase()
+  );
+  const dateFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat(currentLang || 'en', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+    [currentLang]
+  );
+
+  if (RELEASES.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-200 bg-white px-6 py-10 text-center">
+        <p className="mx-auto max-w-md text-sm leading-6 text-stone-500">
+          {t('marg.wnEmpty')}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {isDraftLang && (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+          {t('marg.translationPending')}
+        </p>
+      )}
+      {RELEASES.map((entry) => {
+        const r = resolveRelease(entry, currentLang);
+        const isFresh = fresh.has(entry.version);
+        return (
+          <section
+            key={entry.version}
+            aria-label={entry.version}
+            className={`rounded-3xl border bg-white p-5 shadow-sm ${
+              isFresh ? 'border-orange-300' : 'border-amber-200/80'
+            }`}
+          >
+            <header className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black tracking-wide text-amber-800">
+                {entry.version}
+              </span>
+              <span className="text-xs font-bold text-stone-400">
+                {dateFmt.format(new Date(`${entry.date}T00:00:00`))}
+              </span>
+              {isFresh && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />
+                  {t('marg.wnSinceLastVisit')}
+                </span>
+              )}
+            </header>
+            <div className="mt-5 space-y-5">
+              {r.sections.map((sec) => (
+                <div key={sec.id}>
+                  <SectionTitle>{t(WN_SECTION_KEYS[sec.id])}</SectionTitle>
+                  <ul className="space-y-3.5">
+                    {sec.items.map((item, i) => (
+                      <li key={i}>
+                        <p className="flex gap-2.5 text-base leading-7 text-stone-700">
+                          <span
+                            className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                            aria-hidden="true"
+                          />
+                          <span>{item.text}</span>
+                        </p>
+                        {item.deskRefs.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-2 pl-4">
+                            {item.deskRefs.map((slug) => {
+                              const p = getManualPage(slug);
+                              if (!p) return null;
+                              const rp = resolveManualPage(p, currentLang);
+                              return (
+                                <button
+                                  key={slug}
+                                  type="button"
+                                  onClick={() => onOpenPage(slug)}
+                                  className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 text-xs font-bold text-amber-800 transition hover:border-orange-300 hover:bg-amber-100"
+                                >
+                                  <BookOpen
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                  />
+                                  {rp.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+};
 
 /** Re-export for wrappers that list every page. */
 export { MANUAL_PAGES };

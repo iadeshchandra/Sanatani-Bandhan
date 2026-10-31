@@ -262,13 +262,13 @@ export interface Wing {
    * have none — the centre renders their explanation and a manual
    * door instead (no dead buttons; pinned by tests).
    */
-  target?: 'manual' | 'atlas';
+  target?: 'manual' | 'atlas' | 'whatsnew';
 }
 
 export const WINGS: readonly Wing[] = [
   { id: 'manual', state: 'live', labelKey: 'marg.wingManual', detailKey: 'marg.wingManualDesc', target: 'manual' },
   { id: 'features', state: 'live', labelKey: 'marg.wingFeatures', detailKey: 'marg.wingFeaturesDesc', target: 'atlas' },
-  { id: 'whatsnew', state: 'next', labelKey: 'marg.wingWhatsNew', detailKey: 'marg.wingWhatsNewDesc' },
+  { id: 'whatsnew', state: 'live', labelKey: 'marg.wingWhatsNew', detailKey: 'marg.wingWhatsNewDesc', target: 'whatsnew' },
   { id: 'voice', state: 'works', labelKey: 'marg.wingVoice', detailKey: 'marg.wingVoiceDesc' },
   { id: 'satsang', state: 'works', labelKey: 'marg.wingSatsang', detailKey: 'marg.wingSatsangDesc' },
 ];

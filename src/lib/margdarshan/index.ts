@@ -32,3 +32,29 @@ export {
   type Wing,
   type WingState,
 } from './manual';
+/* J2 — the What's New layer: the bundled release model + resolver,
+ * and the device-local "since you were last here" marker. */
+export {
+  RELEASES,
+  RELEASE_SECTION_ORDER,
+  latestRelease,
+  getRelease,
+  releasesSince,
+  releaseItemCount,
+  countItemsSince,
+  resolveRelease,
+  type ReleaseEntry,
+  type ReleaseItem,
+  type ReleaseSectionId,
+  type ResolvedRelease,
+  type ResolvedReleaseItem,
+  type ResolvedReleaseSection,
+} from './releases';
+export {
+  WHATS_NEW_SEEN_KEY,
+  newSinceVersions,
+  isNewSince,
+  latestSeenStamp,
+  readWhatsNewSeen,
+  markWhatsNewSeen,
+} from './whatsNewMarker';

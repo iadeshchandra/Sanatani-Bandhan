@@ -175,8 +175,10 @@ describe('the wings — honest states, no dead buttons', () => {
     expect(byId.manual.target).toBe('manual');
     expect(byId.features.state).toBe('live');
     expect(byId.features.target).toBe('atlas');
-    expect(byId.whatsnew.state).toBe('next');
-    expect(byId.whatsnew.target).toBeUndefined();
+    // J2 (2026-10-31): What's New went live — the pin records the
+    // new truth; the wing carries its real target now.
+    expect(byId.whatsnew.state).toBe('live');
+    expect(byId.whatsnew.target).toBe('whatsnew');
     expect(byId.voice.state).toBe('works');
     expect(byId.voice.target).toBeUndefined();
     expect(byId.satsang.state).toBe('works');
