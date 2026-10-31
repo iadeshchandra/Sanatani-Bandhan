@@ -92,20 +92,21 @@ describe('canSendDakshina', () => {
 });
 
 describe('defaultDakshinaAmount', () => {
-  test('prefers dakshinaAgreed when set', () => {
-    expect(defaultDakshinaAmount(baseConsultation({ dakshinaAgreed: 1001 }))).toBe('1001');
+  // JY-FIX-B (JY-06) CORRECTION: this block previously pinned a prefill
+  // preference for the consultation's dakshinaAgreed field — a field no
+  // jyotish code path ever writes. The prefill is the posted budget max.
+  test('prefills from the posted budget max', () => {
+    expect(defaultDakshinaAmount(baseConsultation({}))).toBe('500');
   });
 
-  test('falls back to budgetMax', () => {
-    expect(defaultDakshinaAmount(baseConsultation({ dakshinaAgreed: undefined }))).toBe('500');
-  });
-
-  test('empty when neither is set', () => {
+  test('a legacy dakshinaAgreed value on the doc is ignored', () => {
     expect(
-      defaultDakshinaAmount(
-        baseConsultation({ dakshinaAgreed: undefined, budgetMax: 0 }),
-      ),
-    ).toBe('');
+      defaultDakshinaAmount(baseConsultation({ dakshinaAgreed: 1001 } as Partial<Consultation>)),
+    ).toBe('500');
+  });
+
+  test('empty when no budget is set', () => {
+    expect(defaultDakshinaAmount(baseConsultation({ budgetMax: 0 }))).toBe('');
   });
 });
 

@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePurohit } from '../../context/PurohitContext';
-import { PurohitIdentity, RITUAL_TYPES, PUROHIT_TIER_META } from '../../types/purohit';
+import { PurohitIdentity, RITUAL_TYPES, PUROHIT_TIER_META, normalizePurohitTier } from '../../types/purohit';
 import { Card, SectionTitle, EmptyState, Stars, TierBadge } from './ui';
 
 export const FindPurohit: React.FC = () => {
@@ -104,7 +104,7 @@ export const FindPurohit: React.FC = () => {
         </Card>
       ) : (
         list.map((p) => {
-          const meta = PUROHIT_TIER_META[p.verificationTier];
+          const meta = PUROHIT_TIER_META[normalizePurohitTier(p.verificationTier)];
           const isOpen = expanded === p.id;
           return (
             <Card key={p.id}>

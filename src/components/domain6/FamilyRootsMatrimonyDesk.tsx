@@ -11,6 +11,11 @@ import { useData } from '../../context/DataContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  computeAshtakoot,
+  nakshatraIndexFromName,
+  rashiIndexFromName,
+} from '../../utils/astrology/ashtakoot';
 
 // ============================================================================
 // TYPESCRIPT INTERFACES
@@ -97,6 +102,10 @@ export interface GunaMilanResult {
   verdictGrade: 'Divya' | 'Uttama' | 'Madhyama' | 'Asiddha';
   verdictTitle: string;
   description: string;
+  /** JY-FIX-B (JY-12): true when a nakshatra/rashi name could not be
+   *  resolved — the desk shows an honest "not enough detail" note
+   *  instead of any score. Never a fabricated number. */
+  insufficientData?: boolean;
   isSagotraBlocked: boolean;
   sagotraDetails?: string;
   manglikMatch: {
@@ -423,50 +432,66 @@ export function calculateAshtakootGunaMilan(
     };
   }
 
-  // 2. DETERMINISTIC ASHTAKOOT GUNA COMPUTATION
-  // Using astrological characteristics derived from Rashi & Nakshatra indices
-  let varnaScore = 1;
-  let vashyaScore = 2;
-  let taraScore = 3;
-  let yoniScore = 3;
-  let grahaMaitriScore = 4;
-  let ganaScore = 5;
-  let bhakootScore = 7;
-  let nadiScore = 8;
+  // 2. REAL ASHTAKOOT GUNA COMPUTATION (JY-FIX-B / JY-12)
+  // ------------------------------------------------------------------
+  // This block used to be a fixed-score simulation: constants summing
+  // to 33 for nearly every pair, three candidate nakshatras hardcoded
+  // (Rohini → a fabricated perfect 36), the USER's own nakshatra and
+  // rashi ignored entirely. It now calls the real engine
+  // (utils/astrology/ashtakoot.ts): both partners' nakshatra + rashi
+  // scored through the classical tables — Varna, Vashya, Tara, Yoni,
+  // Graha Maitri, Gana, Bhakoot, Nadi — deterministically.
+  const userNak = nakshatraIndexFromName(userNakshatra);
+  const userRashiIdx = rashiIndexFromName(userRashi);
+  const candNak = nakshatraIndexFromName(candidate.nakshatra);
+  const candRashiIdx = rashiIndexFromName(candidate.rashi);
 
-  // Custom logic simulation based on Nakshatra pairing
-  if (candidate.nakshatra === 'Rohini') {
-    varnaScore = 1;
-    vashyaScore = 2;
-    taraScore = 3;
-    yoniScore = 4;
-    grahaMaitriScore = 5;
-    ganaScore = 6;
-    bhakootScore = 7;
-    nadiScore = 8; // 36 / 36 Divya!
-  } else if (candidate.nakshatra === 'Pushya') {
-    varnaScore = 1;
-    vashyaScore = 1.5;
-    taraScore = 2.5;
-    yoniScore = 3;
-    grahaMaitriScore = 4;
-    ganaScore = 6;
-    bhakootScore = 7;
-    nadiScore = 8; // 33 / 36 Divya!
-  } else if (candidate.nakshatra === 'Shravana') {
-    varnaScore = 1;
-    vashyaScore = 2;
-    taraScore = 2;
-    yoniScore = 3;
-    grahaMaitriScore = 3.5;
-    ganaScore = 5;
-    bhakootScore = 0; // Bhakoot dosha
-    nadiScore = 8; // 24.5 / 36 Madhyama
+  if (userNak === null || userRashiIdx === null || candNak === null || candRashiIdx === null) {
+    // Honest degradation: a name we cannot resolve earns NO score —
+    // never another fabrication dressed as a calculation.
+    const zeroKootas = {
+      varna: { name: 'Varna (Spiritual Ego)', maxScore: 1, obtainedScore: 0, meaning: 'Spiritual alignment', verdict: 'Madhyama' as const },
+      vashya: { name: 'Vashya (Mutual Harmony)', maxScore: 2, obtainedScore: 0, meaning: 'Mutual dominance & attraction', verdict: 'Madhyama' as const },
+      tara: { name: 'Tara / Dina (Destiny & Health)', maxScore: 3, obtainedScore: 0, meaning: 'Destiny & well-being', verdict: 'Madhyama' as const },
+      yoni: { name: 'Yoni (Intimacy & Affinity)', maxScore: 4, obtainedScore: 0, meaning: 'Biological compatibility', verdict: 'Madhyama' as const },
+      grahaMaitri: { name: 'Graha Maitri (Psychological Rapport)', maxScore: 5, obtainedScore: 0, meaning: 'Mental harmony', verdict: 'Madhyama' as const },
+      gana: { name: 'Gana (Temperament)', maxScore: 6, obtainedScore: 0, meaning: 'Nature compatibility (Deva/Manushya/Rakshasa)', verdict: 'Madhyama' as const },
+      bhakoot: { name: 'Bhakoot (Emotional Welfare)', maxScore: 7, obtainedScore: 0, meaning: 'Family happiness & progeny', verdict: 'Madhyama' as const },
+      nadi: { name: 'Nadi (Genetic Sanctity)', maxScore: 8, obtainedScore: 0, meaning: 'Physiological & nervous vitality', verdict: 'Madhyama' as const },
+    };
+    return {
+      totalScore: 0,
+      maxScore: 36,
+      verdictGrade: 'Madhyama',
+      verdictTitle: 'Not enough birth-star detail',
+      description:
+        'A guna milan needs both birth nakshatras and Moon rashis. One of the profiles is missing a recognisable nakshatra or rashi, so no score is shown — please complete the birth details, or ask a jyotishi to cast both charts.',
+      insufficientData: true,
+      isSagotraBlocked: false,
+      manglikMatch: {
+        status: 'Neutral',
+        description: 'Manglik comparison needs complete profiles too.',
+      },
+      kootas: zeroKootas,
+    };
   }
 
-  const totalScore = Math.min(36, Math.max(0, Math.round(
-    varnaScore + vashyaScore + taraScore + yoniScore + grahaMaitriScore + ganaScore + bhakootScore + nadiScore
-  )));
+  const milan = computeAshtakoot(
+    { nakshatraIndex: userNak, rashiIndex: userRashiIdx },
+    { nakshatraIndex: candNak, rashiIndex: candRashiIdx }
+  );
+  const varnaScore = milan.varna;
+  const vashyaScore = milan.vashya;
+  const taraScore = milan.tara;
+  const yoniScore = milan.yoni;
+  const grahaMaitriScore = milan.grahaMaitri;
+  const ganaScore = milan.gana;
+  const bhakootScore = milan.bhakoot;
+  const nadiScore = milan.nadi;
+
+  // The headline total keeps the desk's long-standing rounding of the
+  // exact per-koota sum (koota scores themselves are shown unrounded).
+  const totalScore = Math.min(36, Math.max(0, Math.round(milan.total)));
 
   // Manglik Reconciliation
   let manglikStatus: 'Harmonious' | 'Neutral' | 'Dosha Detected' = 'Harmonious';
@@ -499,9 +524,13 @@ export function calculateAshtakootGunaMilan(
     verdictTitle = 'Uttama Match (Highly Auspicious)';
     description = 'Highly recommended by Sanatan Jyotish parameters for longevity, mutual happiness, and progeny growth.';
   } else if (totalScore < 18) {
+    // JY-FIX-B (JY-12): sevak voice — a low guna score is a counsel to
+    // look deeper with a learned jyotishi, never a fear verdict. The
+    // old copy declared marriages contraindicated by the stars off a
+    // fabricated score; that language is gone for good.
     verdictGrade = 'Asiddha';
-    verdictTitle = 'Asiddha Match (Incompatible)';
-    description = 'Score falls below the minimum required threshold of 18 Gunas. Marriage is astrologically contraindicated.';
+    verdictTitle = 'A Weaker Traditional Match (Counsel Advised)';
+    description = 'By the classical tables this pairing falls below the usual working minimum of 18 Gunas. Tradition reads this as a weak match — not a prohibition. Guna milan is only one part of kundli matching; a learned jyotishi should review both full charts and may suggest shanti remedies before the family decides.';
   }
 
   return {
@@ -1822,7 +1851,18 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             </div>
 
             {/* CRITICAL SAGOTRA HARD BLOCK ALERT */}
-            {activeMilanResult.isSagotraBlocked ? (
+            {activeMilanResult.insufficientData ? (
+              /* JY-FIX-B (JY-12): honest no-score state — a profile is
+                 missing a recognisable nakshatra/rashi, so the desk
+                 says so instead of inventing a number. */
+              <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 space-y-2">
+                <div className="flex items-center gap-2 font-black text-sm uppercase tracking-wider">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span>{activeMilanResult.verdictTitle}</span>
+                </div>
+                <p className="text-xs leading-relaxed">{activeMilanResult.description}</p>
+              </div>
+            ) : activeMilanResult.isSagotraBlocked ? (
               <div className="p-5 rounded-2xl bg-rose-950/70 border-2 border-rose-600 text-rose-200 space-y-2 animate-shake">
                 <div className="flex items-center gap-2 text-rose-400 font-black text-sm uppercase tracking-wider">
                   <AlertTriangle className="w-5 h-5 text-rose-500" />
@@ -1887,7 +1927,7 @@ export const FamilyRootsMatrimonyDesk: React.FC = () => {
             </div>
 
             {/* 8 Kootas Detailed Breakdown */}
-            {!activeMilanResult.isSagotraBlocked && (
+            {!activeMilanResult.isSagotraBlocked && !activeMilanResult.insufficientData && (
               <div className="space-y-2.5">
                 <span className="text-xs font-black text-amber-300 uppercase tracking-wider block">
                   Eightfold Koota Breakdown (36 Gunas)

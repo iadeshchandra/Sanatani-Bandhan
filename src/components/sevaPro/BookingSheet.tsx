@@ -28,6 +28,8 @@ import type {
   SpecializationKind,
   UnifiedProfessional,
 } from '../../lib/sevaPro/profile';
+import { JyotishAvailabilityNote, JyotishAvailabilityStrip } from '../../jyotish/JyotishAvailability';
+import { useGeoCurrency } from '../../jyotish/useGeoCurrency';
 
 interface BookingSheetProps {
   profile: UnifiedProfessional;
@@ -45,6 +47,8 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
 }) => {
   const { safeTranslate } = useLanguage();
   const tx = (en: string, bn: string, hi: string) => safeTranslate('', en, bn, hi);
+  // JY-FIX-B (JY-14): the budget label follows the booker's currency.
+  const { symbol } = useGeoCurrency();
 
   const tabs: SpecializationKind[] = [
     ...(profile.hasPurohit ? (['purohit'] as SpecializationKind[]) : []),
@@ -388,6 +392,10 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
               </>
             )}
 
+            {tab === 'jyotish' && profile.jyotish && (
+              <JyotishAvailabilityStrip jyotishId={profile.jyotish.id} />
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
                 <span className="text-xs font-semibold text-stone-600">
@@ -413,6 +421,16 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
               </label>
             </div>
 
+            {/* JY-FIX-B (JY-07b): soft availability note — informational
+                only, never a block; the jyotishi confirms personally. */}
+            {tab === 'jyotish' && profile.jyotish && (
+              <JyotishAvailabilityNote
+                jyotishId={profile.jyotish.id}
+                dateStr={preferredDate}
+                jyotishName={profile.jyotish.displayName}
+              />
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
                 <span className="text-xs font-semibold text-stone-600">
@@ -428,7 +446,7 @@ export const BookingSheet: React.FC<BookingSheetProps> = ({
               <label className="block" data-guide-anchor="booking-dakshina">
                 <span className="text-xs font-semibold text-stone-600">
                   <WhatsThis compact term="dakshina" label={tx('Dakshina', 'দক্ষিণা', 'दक्षिणा')} />{' '}
-                  {tx('budget (₹)', 'বাজেট (₹)', 'बजट (₹)')}
+                  {tx(`budget (${symbol})`, `বাজেট (${symbol})`, `बजट (${symbol})`)}
                 </span>
                 <input
                   value={budget}

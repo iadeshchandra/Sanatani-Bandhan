@@ -13,6 +13,8 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
 import { PurohitProvider } from '../../context/PurohitContext';
 import { InviteFromMarketplace } from '../purohit/InviteFromMarketplace';
+import { JyotishProvider } from '../../context/JyotishContext';
+import { InviteJyotishFromMarketplace } from '../../jyotish/InviteJyotishFromMarketplace';
 import { useLanguage } from '../../context/LanguageContext';
 import { PurohitProfile, PoojaBooking, ResidentPujaSchedule } from '../../types';
 
@@ -1421,10 +1423,16 @@ export const PurohitManagementDesk: React.FC = () => {
             TAB 5: INVITE FROM MARKETPLACE (Purohit One)
         ======================================================== */}
         {activeTab === 'MARKETPLACE' && (
-          <div className="animate-fadeIn">
+          <div className="animate-fadeIn space-y-4">
             <PurohitProvider>
               <InviteFromMarketplace />
             </PurohitProvider>
+            {/* JY-FIX-B (JY-11): the jyotishi invite loop's missing
+                SENDING surface — context, rules and the accept/decline
+                inbox already existed; now the loop can start. */}
+            <JyotishProvider>
+              <InviteJyotishFromMarketplace />
+            </JyotishProvider>
           </div>
         )}
 

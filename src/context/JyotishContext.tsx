@@ -54,7 +54,12 @@ import {
   DEFAULT_PLATFORM_COMMISSION_PERCENT,
   settleReferralCredit,
 } from '../lib/sevaPro/referrals';
-import { nextProfileAggregate } from '../lib/ratingAggregate';import {
+import { nextProfileAggregate } from '../lib/ratingAggregate';
+import {
+  CONSULTATION_DAKSHINA_GIG_ID,
+  type DakshinaOrderLite,
+} from '../jyotish/dakshinaBridge';
+import {
   Consultation,
   ConsultationMessage,
   ConsultationReview,
@@ -102,6 +107,9 @@ interface JyotishContextType {
   // Consultations
   openConsultations: Consultation[];
   myConsultations: Consultation[];
+  /** JY-FIX-B (JY-06): my consultation-dakshina marketplace orders —
+   *  the single source of truth for the Earnings/Overview figures. */
+  myDakshinaOrders: DakshinaOrderLite[];
   myPostedConsultations: Consultation[];
   postConsultation: (c: Omit<Consultation, 'id' | 'devoteeUid' | 'devoteeName' | 'status' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   acceptConsultation: (c: Consultation) => Promise<void>;
@@ -165,6 +173,7 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [openConsultations, setOpenConsultations] = useState<Consultation[]>([]);
   const [myConsultations, setMyConsultations] = useState<Consultation[]>([]);
   const [myPostedConsultations, setMyPostedConsultations] = useState<Consultation[]>([]);
+  const [myDakshinaOrders, setMyDakshinaOrders] = useState<DakshinaOrderLite[]>([]);
   const [applications, setApplications] = useState<JyotishApplication[]>([]);
   const [endorsements, setEndorsements] = useState<JyotishEndorsement[]>([]);
   const [availability, setAvailability] = useState<JyotishAvailability | null>(null);
@@ -420,6 +429,7 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!uid) {
       setMyConsultations([]);
       setMyPostedConsultations([]);
+      setMyDakshinaOrders([]);
       return;
     }
     const unsubA = onSnapshot(
@@ -432,9 +442,23 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (snap) => setMyPostedConsultations(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Consultation))),
       () => setMyPostedConsultations([])
     );
+    // JY-FIX-B (JY-06): the dakshina bridge's orders where I am the
+    // provider — filtered to consultation-dakshina orders client-side
+    // (a single-field equality query; no composite index needed).
+    const unsubO = onSnapshot(
+      query(collection(db, 'marketplaceOrders'), where('providerUid', '==', uid)),
+      (snap) =>
+        setMyDakshinaOrders(
+          snap.docs
+            .map((d) => ({ id: d.id, ...(d.data() as any) } as DakshinaOrderLite & { gigId?: string }))
+            .filter((o) => o.gigId === CONSULTATION_DAKSHINA_GIG_ID)
+        ),
+      () => setMyDakshinaOrders([])
+    );
     return () => {
       unsubA();
       unsubP();
+      unsubO();
     };
   }, [uid]);
 
@@ -477,12 +501,28 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
     async (c: Consultation) => {
       if (!profile || !uid) throw new Error('Not signed in as a jyotishi');
       if (c.status !== 'OPEN') throw new Error('Consultation is no longer open');
-      await updateDoc(doc(db, 'jyotishConsultations', c.id), {
-        status: 'ASSIGNED',
-        assignedJyotishId: profile.id,
-        assignedJyotishUid: uid,
-        assignedJyotishName: profile.displayName,
-        updatedAt: now(),
+      // JY-FIX-B (JY-10): the claim is TRANSACTIONAL. Two jyotishis
+      // tapping Accept on the same open post used to race as plain
+      // updateDoc writes — silent last-write-wins stole the booking
+      // from whoever accepted first. Inside the transaction the fresh
+      // doc must still be OPEN and UNASSIGNED (the same shape the
+      // rules accept-branch demands), else this accept fails loudly
+      // and the loser keeps their existing work.
+      const ref = doc(db, 'jyotishConsultations', c.id);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw new Error('Consultation not found');
+        const fresh = snap.data() as any;
+        if (fresh.status !== 'OPEN' || (fresh.assignedJyotishUid ?? '') !== '') {
+          throw new Error('Consultation is no longer open');
+        }
+        tx.update(ref, {
+          status: 'ASSIGNED',
+          assignedJyotishId: profile.id,
+          assignedJyotishUid: uid,
+          assignedJyotishName: profile.displayName,
+          updatedAt: now(),
+        });
       });
       // JY-02: retire the board projection. Best-effort — a leftover
       // tender is inert (accepting against it is rules-denied once the
@@ -740,25 +780,37 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const isTrusteeLike = ['Trustee', 'SuperAdmin'].includes(currentRole as string);
       if (!isTrusteeLike) throw new Error('Only a Trustee can endorse on behalf of the organisation.');
       const ref = doc(collection(db, 'jyotishEndorsements'));
-      await setDoc(ref, {
-        id: ref.id,
-        orgId: activeWorkspace.id,
-        orgName: activeWorkspace.name,
-        orgType: (activeWorkspace as any).type || (activeWorkspace as any).orgType || 'Organisation',
-        jyotishId,
-        endorserUid: uid,
-        text: text.slice(0, 500),
-        consultationCount: Math.max(0, Math.floor(consultationCount)),
-        createdAt: now(),
+      const profileRef = doc(db, 'jyotishProfiles', jyotishId);
+      // JY-FIX-B (JY-04): the endorsement and the profile's anchored
+      // endorsement counter move in ONE transaction. The rules branch
+      // (p1JyotishEndorsementOk) accepts the counter write only when it
+      // names THIS new endorsement doc and moves exactly +1 — the same
+      // anchor pattern as the rating aggregate. The old code's separate
+      // "tier sync" write was rules-dead (a non-owner cannot write
+      // verificationTier) and silently swallowed; the tier step itself
+      // is now the jyotishi's own claim (claimTierAdvancement), which
+      // the rules claim branch permits against these anchored fields.
+      await runTransaction(db, async (tx) => {
+        const psnap = await tx.get(profileRef);
+        if (!psnap.exists()) throw new Error('Jyotishi profile not found');
+        const prevCount = Number((psnap.data() as any).endorsementCount || 0);
+        tx.set(ref, {
+          id: ref.id,
+          orgId: activeWorkspace.id,
+          orgName: activeWorkspace.name,
+          orgType: (activeWorkspace as any).type || (activeWorkspace as any).orgType || 'Organisation',
+          jyotishId,
+          endorserUid: uid,
+          text: text.slice(0, 500),
+          consultationCount: Math.max(0, Math.floor(consultationCount)),
+          createdAt: now(),
+        });
+        tx.update(profileRef, {
+          endorsementCount: prevCount + 1,
+          lastEndorsementId: ref.id,
+          updatedAt: now(),
+        });
       });
-      try {
-        const jsnap = await getDoc(doc(db, 'jyotishProfiles', jyotishId));
-        if (jsnap.exists() && (jsnap.data() as any).verificationTier === 'CREDENTIAL_VERIFIED') {
-          await updateDoc(doc(db, 'jyotishProfiles', jyotishId), { verificationTier: 'ORG_ENDORSED', updatedAt: now() });
-        }
-      } catch {
-        /* tier sync is best-effort; admin can sync */
-      }
       showToast('Endorsement recorded', 'success');
     },
     [uid, activeWorkspace, currentRole, showToast]
@@ -923,6 +975,7 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
     claimTierAdvancement,
     openConsultations,
     myConsultations,
+    myDakshinaOrders,
     myPostedConsultations,
     postConsultation,
     acceptConsultation,

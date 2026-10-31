@@ -118,7 +118,9 @@ export function drikTithiAt(date: Date): DrikTithi {
   return { index, tithiNumber, paksha, name };
 }
 
-const NAKSHATRA_NAMES = [
+/** Exported (JY-FIX-B) so the Ashtakoot engine resolves nakshatra names
+ *  against the SAME canonical list the engine itself uses — one source. */
+export const NAKSHATRA_NAMES = [
   'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',
   'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni',
   'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha',

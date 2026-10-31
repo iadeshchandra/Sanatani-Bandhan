@@ -2046,8 +2046,18 @@ export async function resolveCommissionRate(
     // Tier + rail default (termsConfig rates; no min/max at this layer)
     const rate = tier === 'pro' ? (rail === 'rail1' ? cfg.proRail1Rate : cfg.proRail2Rate) : cfg.freeRate;
     return { ratePercent: rate, source: `tier default (${tier}, ${rail})`, tier, minCommission: 0, maxCommission: 0 };
-  } catch {
-    return { ratePercent: 12, source: 'platform default (fallback)', tier: 'community', minCommission: 0, maxCommission: 0 };
+  } catch (err) {
+    // LAW (JY-FIX-B / JY-15): a read failure falls back to the SETTLED
+    // COMMUNITY default — 15%, the same rate the tier-default path
+    // returns via cfg.freeRate for a community provider. The old
+    // fallback was an unattached 12% (that number is the PRO rail-2
+    // rate and the referral-credit base — neither applies to a
+    // community provider), silently under-charging commission on real
+    // orders whenever the config reads hiccuped. The failure is logged
+    // loudly: a fallback stamp on an order must be discoverable, and
+    // the order's commissionSource records that the fallback fired.
+    console.error('[resolveCommissionRate] config reads failed — falling back to the settled community default (15%)', err);
+    return { ratePercent: 15, source: 'community default 15% (fallback — config read failed)', tier: 'community', minCommission: 0, maxCommission: 0 };
   }
 }
 

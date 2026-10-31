@@ -29,7 +29,17 @@
 
 import type { SevaProTier } from './tiers';
 import type { PurohitVerificationTier } from '../../types/purohit';
+import { normalizePurohitTier } from '../../types/purohit';
 import type { SanataniVerificationTier } from '../../solo/types';
+
+/**
+ * JY-FIX-B (JY-03): the stored-value normaliser lives with the tier type
+ * (types/purohit.ts) and is re-exported here so SevaPro consumers have
+ * one import surface. Any reader indexing PUROHIT_TIER_META MUST pass
+ * the stored value through it first — legacy docs may carry the SevaPro
+ * dialect ('VERIFIED' / 'TRUSTED') in `verificationTier`.
+ */
+export { normalizePurohitTier };
 
 export type { SevaProTier };
 

@@ -10,7 +10,8 @@
  *    jyotishApplications (single-where queries, client-side merge/sort —
  *    avoids composite indexes).
  *  - approveApplication(appId, kind): honors the credentials → application
- *    APPROVED, canonical profile tier → VERIFIED, welcome reward granted
+ *    APPROVED, profile tier → CREDENTIAL_VERIFIED (the canonical pipeline
+ *    dialect, via tierMapping — JY-FIX-B/JY-03), welcome reward granted
  *    (freeSevasRemaining from the global config).
  *  - rejectApplication(appId, kind, reason): reason REQUIRED (applicant sees
  *    it); the GodMode UI enforces this before calling.
@@ -35,6 +36,7 @@ import {
   addBonusFreeSevas, sanitizeConfig, type PrathamSevaConfig,
 } from './prathamSeva';
 import type { SevaProTier } from './tiers';
+import { sevaProTierToPurohitTier, purohitTierToSevaProTier, normalizePurohitTier } from './tierMapping';
 
 export type ProfessionalKind = 'purohit' | 'jyotish';
 
@@ -213,8 +215,14 @@ export async function approveApplication(appId: string, kind: ProfessionalKind):
     reviewNote: 'Sacred credentials honored. Welcome to Pratham Seva.',
   });
   // Use setDoc merge so profiles that predate the reward fields still update.
+  // JY-FIX-B (JY-03): the PROFILE's verificationTier speaks the canonical
+  // 4-step pipeline dialect — route the program's VERIFIED through the
+  // converter (→ CREDENTIAL_VERIFIED). Stamping the SevaPro dialect here
+  // corrupted the ladder and crashed unguarded PUROHIT_TIER_META readers.
+  // (The application doc's own `tier: 'VERIFIED'` above is the program's
+  // dialect on the program's doc — that one stays.)
   await setDoc(profileRef, {
-    verificationTier: 'VERIFIED',
+    verificationTier: sevaProTierToPurohitTier('VERIFIED'),
     ...grant,
     updatedAt: serverTimestamp(),
   }, { merge: true });
@@ -320,10 +328,15 @@ export async function setTierManual(kind: ProfessionalKind, profileId: string, t
   const note = (auditNote || '').trim();
   if (!note) throw new Error('An audit note is required for a manual tier change.');
   const { ref, data } = await profileRef(kind, profileId);
-  const before = data.verificationTier || 'REGISTERED';
-  await updateDoc(ref, { verificationTier: tier, updatedAt: serverTimestamp() });
-  const downgrade = ['REGISTERED', 'VERIFIED', 'TRUSTED'].indexOf(tier) < ['REGISTERED', 'VERIFIED', 'TRUSTED'].indexOf(before);
-  await writeAudit('prathamSeva.tier.manual', { kind, profileId, before, after: tier, note: note.slice(0, 300) }, downgrade ? 'warn' : 'info');
+  const beforeRaw = data.verificationTier || 'REGISTERED';
+  // JY-FIX-B (JY-03): write the CANONICAL pipeline tier, never the raw
+  // SevaPro dialect; compare ranks on the normalised stored value so a
+  // legacy corrupt doc cannot fake a downgrade/upgrade direction.
+  const canonical = sevaProTierToPurohitTier(tier);
+  const beforeSevaPro = purohitTierToSevaProTier(normalizePurohitTier(beforeRaw));
+  await updateDoc(ref, { verificationTier: canonical, updatedAt: serverTimestamp() });
+  const downgrade = ['REGISTERED', 'VERIFIED', 'TRUSTED'].indexOf(tier) < ['REGISTERED', 'VERIFIED', 'TRUSTED'].indexOf(beforeSevaPro);
+  await writeAudit('prathamSeva.tier.manual', { kind, profileId, before: beforeRaw, after: canonical, requestedTier: tier, note: note.slice(0, 300) }, downgrade ? 'warn' : 'info');
 }
 
 /* ------------------------------ Global config --------------------------- */

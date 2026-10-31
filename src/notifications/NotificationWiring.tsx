@@ -33,6 +33,7 @@ import { startDueJobsNotify } from '../lib/dueJobsService';
 import { startEventReminders } from '../lib/eventReminderService';
 import { db } from '../firebase';
 import { startOrderNotify } from '../lib/orderNotifyService';
+import { startJyotishNotify } from '../lib/jyotishNotifyService';
 import { startApprovalNotify } from '../lib/approvalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
@@ -165,6 +166,19 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startOrderNotify(uid);
+  }, [uid]);
+
+  // Jyotish consultation journey → NotificationCenter (self-listen,
+  // JY-FIX-B / JY-08). My device reads the consultations I am party to
+  // (party reads the rules already allow) and emits the lifecycle news
+  // to my own inbox: accepted / completed for the devotee, dakshina
+  // released for the jyotishi, and new chat messages for either party.
+  // Baseline-silent first run; per-consultation ledgers keep every
+  // bell to once. (The dakshina ORDER journey stays with the order
+  // watcher above — no double bells.)
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startJyotishNotify(uid);
   }, [uid]);
 
   // Maker–checker approvals → NotificationCenter (self-listen,

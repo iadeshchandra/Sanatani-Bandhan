@@ -8,7 +8,7 @@
  * the social feed. Pass `tier={null}` (or omit) to render nothing.
  */
 import React from 'react';
-import { PurohitVerificationTier, PUROHIT_TIER_META } from '../../types/purohit';
+import { PurohitVerificationTier, PUROHIT_TIER_META, normalizePurohitTier } from '../../types/purohit';
 
 interface VerificationBadgeProps {
   /** Verification tier. null/undefined renders nothing (e.g. unverified authors). */
@@ -47,8 +47,12 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
   className = '',
 }) => {
   if (!tier) return null;
-  const meta = PUROHIT_TIER_META[tier];
-  const style = TIER_STYLE[tier];
+  // JY-FIX-B (JY-03): normalise legacy/corrupt stored values (the SevaPro
+  // dialect 'VERIFIED'/'TRUSTED' was once stamped into verificationTier)
+  // so this badge self-heals on read instead of crashing on the lookup.
+  const safeTier = normalizePurohitTier(tier);
+  const meta = PUROHIT_TIER_META[safeTier];
+  const style = TIER_STYLE[safeTier];
   return (
     <span
       className={`inline-flex items-center rounded-full border uppercase tracking-wider font-bold whitespace-nowrap ${SIZE_CLS[size]} ${style.cls} ${className}`}
@@ -56,7 +60,7 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
       aria-label={`Verified ${subject.toLowerCase()}: ${meta.label}`}
     >
       <span aria-hidden="true">{style.glyph}</span>
-      {!iconOnly && <span>{tier === 'PLATFORM_VERIFIED' ? `${meta.label} ✓` : meta.label}</span>}
+      {!iconOnly && <span>{safeTier === 'PLATFORM_VERIFIED' ? `${meta.label} ✓` : meta.label}</span>}
     </span>
   );
 };

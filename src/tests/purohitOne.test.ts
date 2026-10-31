@@ -59,12 +59,18 @@ describe('Purohit One — four-tier verification pipeline', () => {
     expect(computeEffectiveTier('REGISTERED', 5, 50, 5.0)).toBe('REGISTERED');
   });
 
-  it('advances CREDENTIAL_VERIFIED → ORG_ENDORSED → PLATFORM_VERIFIED on endorsement', () => {
-    // Per spec: endorsement moves CREDENTIAL_VERIFIED → ORG_ENDORSED, and
-    // ORG_ENDORSED + (≥1 endorsement) → PLATFORM_VERIFIED auto. The stored
-    // tier records ORG_ENDORSED; the effective tier resolves to the top.
+  it('advances CREDENTIAL_VERIFIED → ORG_ENDORSED on endorsement — and NO further', () => {
+    // JY-FIX-B (JY-05) CORRECTION: this test previously pinned the defect —
+    // it expected one endorsement to resolve straight to PLATFORM_VERIFIED
+    // because the platform step tested `endorsementCount >= 1 || …`.
+    // The ladder's law: each step tests its OWN criteria. An endorsement
+    // earns ORG_ENDORSED; the platform step additionally requires the
+    // merit bar (≥10 gigs @ ≥4.5) below.
     expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 0, 0, 0)).toBe('CREDENTIAL_VERIFIED');
-    expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 1, 0, 0)).toBe('PLATFORM_VERIFIED');
+    expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 1, 0, 0)).toBe('ORG_ENDORSED');
+    expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 5, 0, 0)).toBe('ORG_ENDORSED');
+    // The full honest path: endorsement AND the merit bar together.
+    expect(computeEffectiveTier('CREDENTIAL_VERIFIED', 1, 10, 4.5)).toBe('PLATFORM_VERIFIED');
   });
 
   it('advances ORG_ENDORSED → PLATFORM_VERIFIED on merit', () => {

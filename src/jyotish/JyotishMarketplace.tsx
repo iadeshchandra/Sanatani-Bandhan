@@ -29,6 +29,8 @@ import { ConsultationChat } from './ConsultationChat';
 import { JyotishReferralCard } from '../components/sevaPro/JyotishReferralCard';
 import { DakshinaButton } from './DakshinaSheet';
 import { friendlyError } from '../lib/friendlyError';
+import { JyotishAvailabilityStrip } from './JyotishAvailability';
+import { useGeoCurrency } from './useGeoCurrency';
 
 type MarketTab = 'find' | 'post' | 'mine';
 
@@ -136,6 +138,8 @@ const JyotishCard: React.FC<{
 }> = ({ j, expanded, onToggle, getEndorsements }) => {
   const [endorsements, setEndorsements] = useState<any[]>([]);
   const [endorseOpen, setEndorseOpen] = useState(false);
+  // JY-FIX-B (JY-14): fee range in the viewer's currency, not a hard ₹.
+  const { symbol } = useGeoCurrency();
   useEffect(() => {
     if (expanded) {
       getEndorsements(j.id).then(setEndorsements).catch(() => setEndorsements([]));
@@ -177,9 +181,13 @@ const JyotishCard: React.FC<{
             {j.experienceYears > 0 && <>{j.experienceYears} yrs experience · </>}
             🗣️ {(j.languages || []).join(', ')}
             {(j.feeRangeMin || j.feeRangeMax) && (
-              <> · 💰 ₹{j.feeRangeMin || '—'}–₹{j.feeRangeMax || '—'} <span className="text-stone-400">(informational)</span></>
+              <> · 💰 {symbol}{j.feeRangeMin || '—'}–{symbol}{j.feeRangeMax || '—'} <span className="text-stone-400">(informational)</span></>
             )}
           </p>
+          {/* JY-FIX-B (JY-07b): the jyotishi's saved availability, shown
+              where devotees actually decide. Renders nothing when no
+              availability was recorded — never an invented claim. */}
+          <JyotishAvailabilityStrip jyotishId={j.id} />
           {endorsements.length > 0 && (
             <div className="text-xs text-stone-600">
               <span className="font-bold">🏛️ Endorsed by:</span> {endorsements.map((e) => e.orgName).join(', ')}
@@ -265,11 +273,21 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
     notes: '',
   });
   const [saving, setSaving] = useState(false);
+  // JY-FIX-B (JY-14): budget labels in the poster's own currency.
+  const { symbol } = useGeoCurrency();
+  // JY-FIX-B (JY-16): a Kundli Vishleshan IS the birth chart — without
+  // birth date/time/place there is nothing to cast. Required for that
+  // type only; optional elsewhere (Prashna needs none at all).
+  const birthRequired = form.consultationType === 'Kundli Vishleshan';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firebaseUser) {
       alert('Please sign in to post a requirement.');
+      return;
+    }
+    if (birthRequired && (!form.birthDate || !form.birthTime || !form.birthPlace.trim())) {
+      alert('For a Kundli Vishleshan, please share your birth date, time and place — the chart is cast from them.');
       return;
     }
     setSaving(true);
@@ -329,17 +347,25 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
           </Field>
         </div>
         {needsBirth && (
-          <div className="grid sm:grid-cols-3 gap-3">
-            <Field label="Birth date">
-              <input type="date" value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Birth time">
-              <input type="time" value={form.birthTime} onChange={(e) => setForm({ ...form, birthTime: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Birth place">
-              <input value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('jyotish.marketplace.city')} className={inputCls} />
-            </Field>
-          </div>
+          <>
+            <div className="grid sm:grid-cols-3 gap-3">
+              <Field label={birthRequired ? 'Birth date *' : 'Birth date'}>
+                <input type="date" required={birthRequired} value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} className={inputCls} />
+              </Field>
+              <Field label={birthRequired ? 'Birth time *' : 'Birth time'}>
+                <input type="time" required={birthRequired} value={form.birthTime} onChange={(e) => setForm({ ...form, birthTime: e.target.value })} className={inputCls} />
+              </Field>
+              <Field label={birthRequired ? 'Birth place *' : 'Birth place'}>
+                <input required={birthRequired} value={form.birthPlace} onChange={(e) => setForm({ ...form, birthPlace: e.target.value })} placeholder={t('jyotish.marketplace.city')} className={inputCls} />
+              </Field>
+            </div>
+            {birthRequired && (
+              <p className="text-[11px] text-stone-400 -mt-1">
+                * Required for Kundli Vishleshan — the chart is cast from your birth moment and place.
+                These stay private: only the jyotishi who accepts can see them.
+              </p>
+            )}
+          </>
         )}
         {needsPartner && (
           <div className="grid sm:grid-cols-3 gap-3 rounded-xl bg-rose-50 border border-rose-200 p-3">
@@ -366,10 +392,10 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Budget min (₹)">
+          <Field label={`Budget min (${symbol})`}>
             <input type="number" min={0} value={form.budgetMin} onChange={(e) => setForm({ ...form, budgetMin: e.target.value })} className={inputCls} />
           </Field>
-          <Field label="Budget max (₹)">
+          <Field label={`Budget max (${symbol})`}>
             <input type="number" min={0} value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} className={inputCls} />
           </Field>
         </div>

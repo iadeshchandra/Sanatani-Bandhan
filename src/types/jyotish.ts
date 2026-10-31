@@ -115,6 +115,15 @@ export interface JyotishIdentity {
   lastReviewId?: string;
   completedConsultations: number;
   lastCompletedConsultationId?: string;
+  /** JY-FIX-B (JY-04) anchors, mirroring the rating anchors above:
+   *  rules accept an endorsementCount write only when it names the
+   *  NEW endorsement doc in lastEndorsementId and moves exactly +1
+   *  (written transactionally by endorseJyotish). The tier-claim rules
+   *  branch reads endorsementCount from the doc itself. Endorsements
+   *  recorded before FIX-B are not in this count — see the claim
+   *  branch note in firestore.rules. */
+  endorsementCount?: number;
+  lastEndorsementId?: string;
   /** Dual identity: linked org record, if accepted as temple staff. */
   linkedOrgId?: string;
   linkedOrgName?: string;
@@ -218,7 +227,12 @@ export interface Consultation {
   assignedJyotishId?: string;
   assignedJyotishUid?: string;
   assignedJyotishName?: string;
-  dakshinaAgreed?: number;
+  /* JY-FIX-B (JY-06): `dakshinaAgreed` was removed from this type — no
+   * jyotish code path ever wrote it, yet the Earnings/Overview tabs
+   * summed it, so earnings always showed ₹0. Dakshina money truth now
+   * lives only in the bridge's marketplaceOrders (see dakshinaBridge.ts
+   * summariseDakshinaOrders). Rules still tolerate the legacy field on
+   * old docs; nothing reads it. */
   /** Seva Pro Phase 4: pinned at creation, immutable after (rules). */
   referredBy?: ConsultationReferralAttribution;
   createdAt: number;

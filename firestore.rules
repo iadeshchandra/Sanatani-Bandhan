@@ -327,6 +327,13 @@ service cloud.firestore {
     function diffKeysOnly(newData, oldData, keys) {
       return newData.diff(oldData).affectedKeys().hasOnly(keys);
     }
+    // diffKeys: the request-vs-resource affected-keys set itself, for
+    // branches that test it with hasAny/hasOnly directly (JY-FIX-B
+    // compiled-size factoring — the expansion is token-identical to
+    // the inline chain it replaces).
+    function diffKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
     // rsvpWithinCap: an RSVP +1 respects capacity - allowed when the event
     // has no capacity set, a non-positive capacity (treated as unset), or
     // room still remains under the cap.
@@ -1446,6 +1453,42 @@ service cloud.firestore {
         && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
         && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
     }
+    // JY-FIX-B (JY-04) -- anchored endorsement step: endorsementCount
+    // may rise ONLY by exactly +1, naming (in lastEndorsementId) a NEW
+    // endorsement doc for THIS profile, created in the same
+    // transaction (endorseJyotish writes both atomically). Mirrors
+    // p1JyotishRatingOk's shape. Without this anchor the tier-claim
+    // branch below could be fed a self-inflated count.
+    function p1JyotishEndorsementOk(jyotishId) {
+      let eid = request.resource.data.get('lastEndorsementId', '');
+      let epath = /databases/$(database)/documents/jyotishEndorsements/$(eid);
+      return eid != '' && eid != resource.data.get('lastEndorsementId', '')
+        && existsAfter(epath)
+        && getAfter(epath).data.get('jyotishId', '') == jyotishId
+        && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0) + 1;
+    }
+    // JY-FIX-B (JY-04) -- the tier claim: the target tier must be
+    // EARNED by the doc's own anchored fields, mirroring the client
+    // ladder (types/purohit.computeEffectiveTier, post-JY-05):
+    // ORG_ENDORSED needs CREDENTIAL_VERIFIED + at least 1 anchored
+    // endorsement; PLATFORM_VERIFIED additionally needs the merit bar
+    // (at least 10 completed consultations at a 4.5+ aggregate — both
+    // anchored fields themselves). A legacy 'VERIFIED' value (the
+    // SevaPro dialect GodMode once stamped, = CREDENTIAL_VERIFIED)
+    // may claim, which also heals the stored value to canonical.
+    function jyotishTierClaimOk() {
+      let from = resource.data.get('verificationTier', '');
+      let to = request.resource.data.get('verificationTier', '');
+      let endorsements = resource.data.get('endorsementCount', 0);
+      let gigs = resource.data.get('completedConsultations', 0);
+      let rating = resource.data.get('ratingAggregate', 0);
+      return (to == 'ORG_ENDORSED'
+          && (from == 'CREDENTIAL_VERIFIED' || from == 'VERIFIED')
+          && endorsements >= 1)
+        || (to == 'PLATFORM_VERIFIED'
+          && (from == 'CREDENTIAL_VERIFIED' || from == 'ORG_ENDORSED' || from == 'VERIFIED')
+          && endorsements >= 1 && gigs >= 10 && rating >= 4.5);
+    }
     // SECURITY P1 -- completed-count anchors: the owner's own +1 is
     // legal only when it names (in lastCompletedGigId /
     // lastCompletedConsultationId) a NEWLY cited engagement that is
@@ -1611,18 +1654,18 @@ service cloud.firestore {
           || hasRole(docWs(), R_TRUSTEE())
           // Sender: "I'm safe" â cancel own SOS.
           || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && diffKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && request.resource.data.get('status', '') in ['cancelled', 'resolved'])
           // Sender: attach the voice-note vault URL after the audio upload
           // finishes (uploadVoiceNote / flushVoiceOutbox). Field-pinned to
           // the pointer alone — no other sender field may change here.
           || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && diffKeys()
               .hasOnly(['voiceNoteUrl', 'updatedAt']))
           // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
           || (isCrisisCoord(docWs())
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && diffKeys()
               .hasOnly(['status', 'acknowledgedBy', 'acknowledgedAt', 'ackCount',
                 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && request.resource.data.get('status', '') in ['acknowledged', 'resolved'])
@@ -1631,14 +1674,14 @@ service cloud.firestore {
           // active -> responding. Assignments stay a list so a bad write
           // fails closed instead of corrupting the roster.
           || (isCrisisCoord(docWs())
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && diffKeys()
               .hasOnly(['assignments', 'status', 'responderCount', 'updatedAt'])
             && request.resource.data.get('status', '')
               in ['active', 'responding', 'acknowledged']
             && request.resource.data.get('assignments', []) is list)
           // Tenant member: best-effort ack bump from ackSOS; only -> acknowledged.
           || (isTenantMember(docWs())
-            && request.resource.data.diff(resource.data).affectedKeys()
+            && diffKeys()
               .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
             && request.resource.data.get('status', '') == 'acknowledged'))
         && wsImmutable();
@@ -1768,7 +1811,7 @@ service cloud.firestore {
         && newOpts.get(getAfter(vp).data.get('optionId', ''), {}).get('votes', 0)
              == oldOpts.get(getAfter(vp).data.get('optionId', ''), {}).get('votes', 0) + 1
         && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['options', 'totalVotes', 'updatedAt']);
     }
     // EVENTS P1 — multi-select anchor: EVERY chosen option rises by
@@ -1830,7 +1873,7 @@ service cloud.firestore {
       return resource.data.get('status', '') == 'ACTIVE'
         && request.resource.data.get('status', '') == 'ACTIVE'
         && pollBaseTotal(resource.data) == 0
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'resultVisibility', 'updatedAt'])
         && request.resource.data.get('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
         && (resource.data.get('kind', 'choice') == 'text'
@@ -1840,7 +1883,7 @@ service cloud.firestore {
     // Committee management: conclude (early or at deadline) and the
     // official note. Nothing else on the doc may change here.
     function pollManageOk() {
-      return request.resource.data.diff(resource.data).affectedKeys()
+      return diffKeys()
                .hasOnly(['status', 'adminNote', 'updatedAt'])
         && (request.resource.data.get('status', '') == resource.data.get('status', '')
             || (resource.data.get('status', '') == 'ACTIVE'
@@ -1850,7 +1893,7 @@ service cloud.firestore {
     // of the poll's workspace may land the conclusion once the stored
     // deadline timestamp has passed (status flip only, nothing else).
     function pollAutoConcludeOk() {
-      return request.resource.data.diff(resource.data).affectedKeys()
+      return diffKeys()
                .hasOnly(KEYS_STATUS_ONLY())
         && resource.data.get('status', '') == 'ACTIVE'
         && request.resource.data.get('status', '') == 'CONCLUDED'
@@ -1978,7 +2021,7 @@ service cloud.firestore {
              == resource.data.get('votesInFavor', 0) + (choice == 'favor' ? 1 : 0)
         && request.resource.data.get('votesAgainst', 0)
              == resource.data.get('votesAgainst', 0) + (choice == 'against' ? 1 : 0)
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['voters', 'votesInFavor', 'votesAgainst', 'updatedAt'])
         && (resource.data.get('expiresAtTs', null) == null
             || request.time < resource.data.get('expiresAtTs', null));
@@ -1986,7 +2029,7 @@ service cloud.firestore {
     function resConcludeOk() {
       return resource.data.get('status', '') == 'Pending Review'
         && request.resource.data.get('status', '') in ['Passed', 'Rejected', 'Deferred']
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['status', 'quorumMet', 'details', 'concludedAt', 'updatedAt'])
         && request.resource.data.get('votesInFavor', 0) == resource.data.get('votesInFavor', 0)
         && request.resource.data.get('votesAgainst', 0) == resource.data.get('votesAgainst', 0)
@@ -2002,7 +2045,7 @@ service cloud.firestore {
     function resEditOk() {
       return resource.data.get('status', '') == 'Pending Review'
         && request.resource.data.get('status', '') == 'Pending Review'
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['title', 'description', 'details', 'secondedBy', 'bannerUrl', 'updatedAt']);
     }
 
@@ -2062,9 +2105,9 @@ service cloud.firestore {
           isOrgTrustee(chatOrgId(request.resource.data)))));
       allow update: if isSuperAdmin() || (isLoggedIn() && (
         (resource.data.get('participants', null) is list && request.auth.uid in resource.data.get('participants', []) &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants'])) ||
+          !diffKeys().hasAny(['participants'])) ||
         (isChatOrgTrustee(resource.data) &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['participants', 'type', 'orgId']))));
+          !diffKeys().hasAny(['participants', 'type', 'orgId']))));
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() && (
@@ -2425,7 +2468,7 @@ service cloud.firestore {
         // ratingCount / completedGigs to any in-range value -- a fake
         // 5.0 average in a single write.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && diffKeys()
             .hasOnly(RATING_KEYS())
           && p1PurohitRatingOk(purohitId))
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
@@ -2504,42 +2547,66 @@ service cloud.firestore {
     }
 
 // ----------------- Section B: purohitApplications (REPLACES) --------------
-    match /purohitApplications/{appId} {
-      allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
-      allow create: if isLoggedIn()
+    // JY-FIX-B factoring: purohitApplications and jyotishApplications
+    // share ONE create shape (the Pratham Seva application is born
+    // PENDING with every reward/review field empty); only the profile
+    // id field name differs, passed as idField. Token-identical
+    // expansion at both call sites.
+    function applicationCreateOk(idField) {
+      return isLoggedIn()
         && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('purohitId', '') != ''
+        && request.resource.data.get(idField, '') != ''
         && request.resource.data.get('status', '') == 'PENDING'
         && request.resource.data.get('tier', '') == ''
         && request.resource.data.get('freeSevasRemaining', 0) == 0
         && request.resource.data.get('boostUntil', '') == ''
         && request.resource.data.get('reviewedBy', '') == ''
         && request.resource.data.get('reviewNote', '') == '';
+    }
+    match /purohitApplications/{appId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+      allow create: if applicationCreateOk('purohitId');
       allow update: if isSuperAdmin();
       allow delete: if false;
     }
 
     // --- gigs: public read (marketplace); signed-in devotees post;
+    // JY-FIX-B compiled-size factoring: gigs and consultations share
+    // ONE status machine and ONE immutability shape (the two systems
+    // are mirrors by design). The shared bodies live here; the
+    // per-system names below delegate, token-identical in expansion.
+    function bookingTransitionOk() {
+      let from = resource.data.get('status', '');
+      let to = request.resource.data.get('status', '');
+      return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
+        || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
+        // JY-13: IN_PROGRESS → CANCELLED is legitimate — a devotee
+        // may withdraw a request that has started. BOTH clients offer
+        // it (PurohitContext AND JyotishContext advance maps) while
+        // the rules denied it — a guaranteed error, fixed here. The
+        // update branches still require a PARTY, so this stays
+        // party-scoped.
+        || (from == 'IN_PROGRESS' && to in ['COMPLETED', 'CANCELLED'])
+        || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
+        || (from == to);
+    }
+    function bookingImmutableOk() {
+      return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
+        && request.resource.data.get('id', '') == resource.data.get('id', '')
+        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
+        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
+    }
     function isGigParty() {
       return isLoggedIn()
         && (resource.data.get('devoteeUid', '') == request.auth.uid
           || resource.data.get('assignedPurohitUid', '') == request.auth.uid);
     }
     function gigTransitionOk() {
-      let from = resource.data.get('status', '');
-      let to = request.resource.data.get('status', '');
-      return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
-        || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
-        || (from == 'IN_PROGRESS' && to in ['COMPLETED'])
-        || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
-        || (from == to);
+      return bookingTransitionOk();
     }
     function gigImmutableOk() {
-      return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
-        && request.resource.data.get('id', '') == resource.data.get('id', '')
-        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
-        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
+      return bookingImmutableOk();
     }
     match /gigs/{gigId} {
       allow read: if true;
@@ -2635,6 +2702,10 @@ service cloud.firestore {
         && request.resource.data.get('ratingAggregate', 0) == 0
         && request.resource.data.get('ratingCount', 0) == 0
         && request.resource.data.get('completedConsultations', 0) == 0
+        // JY-FIX-B (JY-04): a profile is also born with ZERO anchored
+        // endorsements — the claim branch reads this field, so it must
+        // not be self-granted at birth.
+        && request.resource.data.get('endorsementCount', 0) == 0
         && !request.resource.data.keys().hasAny(['phone', 'email']);
       allow update: if isSuperAdmin()
         || (isLoggedIn()
@@ -2642,8 +2713,12 @@ service cloud.firestore {
           // uid / id / tier / rating aggregates pinned by diff: none may
           // be added, removed or changed on this branch (the factored
           // form of the five field-equalities this branch used before).
-          && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['uid', 'id', 'verificationTier', 'ratingAggregate', 'ratingCount'])
+          && !diffKeys()
+            .hasAny(['uid', 'id', 'verificationTier', 'ratingAggregate', 'ratingCount',
+              // JY-FIX-B (JY-04): the endorsement anchors are pinned
+              // here too — they move ONLY via the anchored endorsement
+              // branch below, never on the owner's plain say-so.
+              'endorsementCount', 'lastEndorsementId'])
           // JY-02: legacy contact fields on the public doc are frozen —
           // they may stay untouched or be REMOVED (the client migrates
           // them into private/self), never changed or re-added.
@@ -2659,9 +2734,27 @@ service cloud.firestore {
         // The old branch let ANY signed-in user set ratingAggregate /
         // ratingCount / completedConsultations to any in-range value.
         || (isLoggedIn()
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && diffKeys()
             .hasOnly(RATING_KEYS())
           && p1JyotishRatingOk(jyotishId))
+        // JY-FIX-B (JY-04) -- anchored endorsement step (see
+        // p1JyotishEndorsementOk): the endorsement counter moves only
+        // with the endorsement doc itself, in one transaction.
+        || (isLoggedIn()
+          && diffKeys()
+            .hasOnly(['endorsementCount', 'lastEndorsementId', 'updatedAt'])
+          && p1JyotishEndorsementOk(jyotishId))
+        // JY-FIX-B (JY-04) -- the tier CLAIM: before this branch, NO
+        // rules path let the owner advance their own verificationTier
+        // (the owner branch pins it), so claimTierAdvancement failed
+        // silently for every jyotishi. The owner may now write ONLY
+        // verificationTier (+ updatedAt), and only to a step the doc's
+        // own anchored fields have earned (jyotishTierClaimOk).
+        || (isLoggedIn()
+          && resource.data.get('uid', '') == request.auth.uid
+          && diffKeys()
+            .hasOnly(['verificationTier', 'updatedAt'])
+          && jyotishTierClaimOk())
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
@@ -2677,24 +2770,14 @@ service cloud.firestore {
     match /jyotishAvailability/{jyotishId} {
       allow read: if true;
       allow write: if isSuperAdmin()
-        || (isLoggedIn()
-          && exists(/databases/$(database)/documents/jyotishProfiles/$(jyotishId))
-          && get(/databases/$(database)/documents/jyotishProfiles/$(jyotishId)).data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && jyotishProfileOwnedByCaller(jyotishId));
     }
 
 // ----------------- Section C: jyotishApplications (REPLACES) --------------
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
-      allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('jyotishId', '') != ''
-        && request.resource.data.get('status', '') == 'PENDING'
-        && request.resource.data.get('tier', '') == ''
-        && request.resource.data.get('freeSevasRemaining', 0) == 0
-        && request.resource.data.get('boostUntil', '') == ''
-        && request.resource.data.get('reviewedBy', '') == ''
-        && request.resource.data.get('reviewNote', '') == '';
+      allow create: if applicationCreateOk('jyotishId');
       allow delete: if false;
       allow update: if isSuperAdmin();
     }
@@ -2705,20 +2788,20 @@ service cloud.firestore {
         && (resource.data.get('devoteeUid', '') == request.auth.uid
           || resource.data.get('assignedJyotishUid', '') == request.auth.uid);
     }
+    // JY-FIX-B factoring: the same party check BY ID, for the nested
+    // messages/remedies matches whose resource is the child doc.
+    function consultationPartyById(cid) {
+      let cpath = /databases/$(database)/documents/jyotishConsultations/$(cid);
+      return isLoggedIn()
+        && exists(cpath)
+        && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
+          || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+    }
     function consultationTransitionOk() {
-      let from = resource.data.get('status', '');
-      let to = request.resource.data.get('status', '');
-      return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
-        || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
-        || (from == 'IN_PROGRESS' && to in ['COMPLETED'])
-        || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
-        || (from == to);
+      return bookingTransitionOk();
     }
     function consultationImmutableOk() {
-      return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
-        && request.resource.data.get('id', '') == resource.data.get('id', '')
-        && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
-        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
+      return bookingImmutableOk();
     }
     // JY-10: true when `jid` names a real jyotish profile owned by the
     // caller (the same anchor validJyotishAttach uses on the spine).
@@ -2758,11 +2841,7 @@ service cloud.firestore {
       // --- messages subcollection: only the two parties read/write.
       match /messages/{messageId} {
         function isMsgParty() {
-          let cpath = /databases/$(database)/documents/jyotishConsultations/$(consultationId);
-          return isLoggedIn()
-            && exists(cpath)
-            && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
-              || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+          return consultationPartyById(consultationId);
         }
         allow read: if isMsgParty() || isSuperAdmin();
         allow create: if isMsgParty()
@@ -2774,10 +2853,7 @@ service cloud.firestore {
       // --- remedies subcollection (Seva Pro Phase 4): the assigned jyotish
       match /remedies/{remedyId} {
         function isRemedyParty() {
-          return (isLoggedIn()
-            && exists(/databases/$(database)/documents/jyotishConsultations/$(consultationId))
-            && (get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('devoteeUid', '') == request.auth.uid
-              || get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('assignedJyotishUid', '') == request.auth.uid));
+          return consultationPartyById(consultationId);
         }
         allow read: if isRemedyParty() || isSuperAdmin();
         allow create: if isRemedyParty()
@@ -2856,6 +2932,15 @@ service cloud.firestore {
         && request.resource.data.get('consultationId', '') != ''
         && request.resource.data.get('rating', 0) >= 1
         && request.resource.data.get('rating', 0) <= 5
+        // JY-FIX-B (JY-09): the doc id is PINNED to the deterministic
+        // form the client already writes —
+        // {consultationId}_{reviewerUid}_{reviewerKind} — the polls
+        // ballot-box pattern. Without the pin, a crafted client could
+        // file a SECOND review for the same consultation under a fresh
+        // id and move the anchored rating aggregate twice.
+        && reviewId == request.resource.data.get('consultationId', '')
+          + '_' + request.auth.uid
+          + '_' + request.resource.data.get('reviewerKind', '')
         && consultationReviewPartyOk();
       allow update, delete: if false;
     }

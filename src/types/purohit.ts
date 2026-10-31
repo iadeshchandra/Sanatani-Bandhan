@@ -267,23 +267,60 @@ export function tierIndex(tier: PurohitVerificationTier): number {
 }
 
 /**
+ * JY-FIX-B (JY-03) — normalise ANY stored tier value into the canonical
+ * 4-step pipeline dialect. Legacy/corrupt docs exist: the GodMode
+ * professionals tab once stamped the SevaPro dialect ('VERIFIED',
+ * 'TRUSTED') straight into `verificationTier`, and readers that indexed
+ * PUROHIT_TIER_META with those values crashed. Mapping (documented in
+ * lib/sevaPro/tierMapping.ts): 'VERIFIED' → CREDENTIAL_VERIFIED (the
+ * approval that wrote it honored credentials — it never granted org
+ * endorsement or platform verification), 'TRUSTED' →
+ * PLATFORM_VERIFIED. Unknown values degrade to REGISTERED — the safe
+ * floor — never to a crash.
+ */
+export function normalizePurohitTier(
+  value: PurohitVerificationTier | string | null | undefined
+): PurohitVerificationTier {
+  switch (value) {
+    case 'REGISTERED':
+    case 'CREDENTIAL_VERIFIED':
+    case 'ORG_ENDORSED':
+    case 'PLATFORM_VERIFIED':
+      return value;
+    case 'VERIFIED':
+      return 'CREDENTIAL_VERIFIED';
+    case 'TRUSTED':
+      return 'PLATFORM_VERIFIED';
+    default:
+      return 'REGISTERED';
+  }
+}
+
+/**
  * Effective tier = stored tier, auto-advanced by public evidence.
- * PLATFORM_VERIFIED needs ORG_ENDORSED + (≥1 endorsement OR ≥10 gigs @ ≥4.5).
- * This mirrors what the client writes; rules enforce the ordered path.
+ * Each ladder step tests its OWN criteria (JY-FIX-B / JY-05):
+ *   CREDENTIAL_VERIFIED + ≥1 endorsement            → ORG_ENDORSED
+ *   ORG_ENDORSED + ≥10 completed gigs @ ≥4.5 rating → PLATFORM_VERIFIED
+ * The endorsement that earned ORG_ENDORSED must NOT by itself satisfy
+ * the platform step — the earlier `endorsementCount >= 1 ||` disjunct
+ * made one endorsement equal the top tier. The stored value is
+ * normalised first so a legacy SevaPro-dialect value can never wedge
+ * the ladder. Rules enforce the same ordered path for claims.
  */
 export function computeEffectiveTier(
-  stored: PurohitVerificationTier,
+  stored: PurohitVerificationTier | string,
   endorsementCount: number,
   completedGigs: number,
   ratingAggregate: number
 ): PurohitVerificationTier {
-  let tier = stored;
+  let tier = normalizePurohitTier(stored);
   if (tier === 'CREDENTIAL_VERIFIED' && endorsementCount >= 1) {
     tier = 'ORG_ENDORSED';
   }
   if (
     tier === 'ORG_ENDORSED' &&
-    (endorsementCount >= 1 || (completedGigs >= 10 && ratingAggregate >= 4.5))
+    completedGigs >= 10 &&
+    ratingAggregate >= 4.5
   ) {
     tier = 'PLATFORM_VERIFIED';
   }

@@ -68,9 +68,11 @@ export function canSendDakshina(
   return { ok: true };
 }
 
-/** Pure: sensible amount prefill — agreed > budget max > empty. */
+/** Pure: sensible amount prefill — the posted budget max > empty.
+ *  (JY-FIX-B / JY-06: the old first branch read the consultation's
+ *  dakshinaAgreed field, which no jyotish code path ever writes —
+ *  dead truth. Removed.) */
 export function defaultDakshinaAmount(c: Consultation): string {
-  if (c.dakshinaAgreed && c.dakshinaAgreed > 0) return String(Math.round(c.dakshinaAgreed));
   if (c.budgetMax && c.budgetMax > 0) return String(Math.round(c.budgetMax));
   return '';
 }
@@ -107,6 +109,99 @@ export function buildDakshinaOrderPayload(input: DakshinaOrderInput): Record<str
     payAfterTask: false,
     status: 'pending_payment',
     clientNotes: `Dakshina for ${c.consultationType} consultation (${c.id}). Pay the jyotishi directly via bKash / Nagad / UPI / cash.`,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Earnings truth (JY-FIX-B / JY-06)                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The slice of a marketplaceOrders doc the earnings surfaces reason
+ * about. The bridge's orders are the SINGLE SOURCE OF TRUTH for
+ * jyotishi earnings: before FIX-B the Earnings/Overview tabs summed
+ * the consultation's dakshinaAgreed field, which no code path writes,
+ * so the "Dakshina released" figure was permanently ₹0 no matter how
+ * much dakshina had actually moved through the bridge.
+ */
+export interface DakshinaOrderLite {
+  id: string;
+  consultationId?: string;
+  status: string;
+  amountGross?: number;
+  providerNet?: number;
+  commissionAmount?: number;
+  currency?: string;
+}
+
+export interface CurrencyTotal {
+  currency: string;
+  total: number;
+  count: number;
+}
+
+export interface DakshinaEarnings {
+  /** What actually reached the jyotishi (providerNet) on released
+   *  orders (status 'paid' | 'completed'), grouped by currency —
+   *  currencies are NEVER summed together under one symbol. */
+  releasedByCurrency: CurrencyTotal[];
+  /** Orders still in the rail-1 'pending_payment' state, by currency
+   *  (providerNet basis, so the two figures are comparable). */
+  pendingByCurrency: CurrencyTotal[];
+  releasedCount: number;
+  /** Released totals per consultation type (currency-honest inside). */
+  byType: { type: string; totals: CurrencyTotal[] }[];
+}
+
+const RELEASED_STATUSES = new Set(['paid', 'completed']);
+
+function netOf(o: DakshinaOrderLite): number {
+  const gross = Number(o.amountGross || 0);
+  const net = Number(o.providerNet ?? gross - Number(o.commissionAmount || 0));
+  return Number.isFinite(net) ? net : 0;
+}
+
+function addTo(map: Map<string, CurrencyTotal>, currency: string, amount: number): void {
+  const e = map.get(currency) || { currency, total: 0, count: 0 };
+  e.total += amount;
+  e.count += 1;
+  map.set(currency, e);
+}
+
+/**
+ * Pure summariser over the jyotishi's consultation-dakshina orders.
+ * `typeByConsultationId` maps consultationId → consultationType for
+ * the by-type breakdown (orders carry the type only inside gigTitle).
+ */
+export function summariseDakshinaOrders(
+  orders: DakshinaOrderLite[],
+  typeByConsultationId: Record<string, string> = {}
+): DakshinaEarnings {
+  const released = new Map<string, CurrencyTotal>();
+  const pending = new Map<string, CurrencyTotal>();
+  const byTypeMap = new Map<string, Map<string, CurrencyTotal>>();
+  let releasedCount = 0;
+  for (const o of orders) {
+    const currency = o.currency || 'INR';
+    if (RELEASED_STATUSES.has(o.status)) {
+      releasedCount += 1;
+      addTo(released, currency, netOf(o));
+      const type = (o.consultationId && typeByConsultationId[o.consultationId]) || 'Consultation';
+      if (!byTypeMap.has(type)) byTypeMap.set(type, new Map());
+      addTo(byTypeMap.get(type)!, currency, netOf(o));
+    } else if (o.status === 'pending_payment') {
+      addTo(pending, currency, netOf(o));
+    }
+  }
+  const byCurr = (m: Map<string, CurrencyTotal>) =>
+    [...m.values()].sort((a, b) => a.currency.localeCompare(b.currency));
+  return {
+    releasedByCurrency: byCurr(released),
+    pendingByCurrency: byCurr(pending),
+    releasedCount,
+    byType: [...byTypeMap.entries()]
+      .map(([type, totals]) => ({ type, totals: byCurr(totals) }))
+      .sort((a, b) => a.type.localeCompare(b.type)),
   };
 }
 

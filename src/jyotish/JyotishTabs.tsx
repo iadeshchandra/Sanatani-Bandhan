@@ -3,7 +3,7 @@
  * Overview · Find work · My consultations (chat + status machine) ·
  * Earnings · Availability · Verification · Reviews · Referrals · Profile.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useJyotish, useConsultationMessages } from '../context/JyotishContext';
 import { safeExternalUrl } from '../lib/safeUrl';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -29,21 +29,29 @@ import { REGIONAL_CALENDARS, formatRegionalDate } from '../lib/regionalCalendars
 import { AgamiSevaCard } from '../components/panjika/IntelligenceCards';
 import { useLanguage } from '../context/LanguageContext';
 import { friendlyError } from '../lib/friendlyError';
+import { summariseDakshinaOrders } from './dakshinaBridge';
+import { formatMoney } from '../lib/money';
+import { useGeoCurrency } from './useGeoCurrency';
 
 /* ------------------------------------------------------------------ */
 /* Overview                                                            */
 /* ------------------------------------------------------------------ */
 
 export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
-  const { profile, myConsultations, openConsultations, effectiveTier, myInvites, myReferrals } = useJyotish();
+  const { profile, myConsultations, myDakshinaOrders, openConsultations, effectiveTier, myInvites, myReferrals } = useJyotish();
   const active = myConsultations.filter((c) => ['ASSIGNED', 'IN_PROGRESS'].includes(c.status)).length;
-  const earned = myConsultations
-    .filter((c) => c.status === 'DAKSHINA_RELEASED')
-    .reduce((s, c) => s + (c.dakshinaAgreed || 0), 0);
+  // JY-FIX-B (JY-06): earnings read the dakshina bridge's orders — the
+  // only money records that exist. (The old sum read a consultation
+  // field no code path writes, so this figure was permanently ₹0.)
+  const earnings = useMemo(() => summariseDakshinaOrders(myDakshinaOrders), [myDakshinaOrders]);
+  const earnedLabel =
+    earnings.releasedByCurrency.length === 0
+      ? formatMoney(0, 'INR')
+      : earnings.releasedByCurrency.map((c) => formatMoney(c.total, c.currency)).join(' · ');
   const stats = [
     { label: 'Active consultations', value: String(active), go: 'consultations' },
     { label: 'Open requirements', value: String(openConsultations.length), go: 'find' },
-    { label: 'Dakshina released', value: `₹${earned.toLocaleString('en-IN')}`, go: 'earnings' },
+    { label: 'Dakshina released', value: earnedLabel, go: 'earnings' },
     { label: 'Referrals made', value: String(myReferrals.length), go: 'referrals' },
   ];
   return (
@@ -183,7 +191,13 @@ export const FindConsultationsTab: React.FC = () => {
   );
 };
 
-export const ConsultationCard: React.FC<{ c: Consultation; children?: React.ReactNode }> = ({ c, children }) => (
+export const ConsultationCard: React.FC<{ c: Consultation; children?: React.ReactNode }> = ({ c, children }) => {
+  // JY-FIX-B (JY-14): the budget label follows the VIEWER's currency —
+  // consultations store no currency of their own, and a hard ₹ misleads
+  // a devotee in Dhaka or abroad. (The geo treatment the audit asked
+  // for; earnings, which DO carry real currencies, stay per-order.)
+  const { symbol } = useGeoCurrency();
+  return (
   <div className="rounded-2xl border border-stone-200 p-4 space-y-2">
     <div className="flex items-center justify-between flex-wrap gap-2">
       <div className="flex items-center gap-2">
@@ -195,7 +209,7 @@ export const ConsultationCard: React.FC<{ c: Consultation; children?: React.Reac
     </div>
     <div className="text-xs text-stone-600">
       {c.devoteeName} · {c.city} · {c.language} · prefers {c.preferredDate || 'flexible'}
-      {c.budgetMax > 0 && <> · budget ₹{c.budgetMin}–₹{c.budgetMax}</>}
+      {c.budgetMax > 0 && <> · budget {symbol}{c.budgetMin}–{symbol}{c.budgetMax}</>}
     </div>
     {c.topicSummary && <p className="text-sm text-stone-700 bg-stone-50 rounded-xl p-2.5">{c.topicSummary}</p>}
     {c.notes && <p className="text-sm text-stone-700 bg-stone-50 rounded-xl p-2.5">{c.notes}</p>}
@@ -207,7 +221,8 @@ export const ConsultationCard: React.FC<{ c: Consultation; children?: React.Reac
     )}
     {children && <div className="flex gap-2 pt-1">{children}</div>}
   </div>
-);
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* My consultations (status machine + chat)                            */
@@ -326,26 +341,43 @@ export const MyConsultationsTab: React.FC = () => {
 /* ------------------------------------------------------------------ */
 
 export const EarningsTab: React.FC = () => {
-  const { myConsultations } = useJyotish();
-  const released = myConsultations.filter((c) => c.status === 'DAKSHINA_RELEASED');
-  const total = released.reduce((s, c) => s + (c.dakshinaAgreed || 0), 0);
-  const byType = useMemo(() => {
-    const m = new Map<string, { n: number; amt: number }>();
-    for (const c of released) {
-      const e = m.get(c.consultationType) || { n: 0, amt: 0 };
-      e.n += 1;
-      e.amt += c.dakshinaAgreed || 0;
-      m.set(c.consultationType, e);
-    }
-    return [...m.entries()];
-  }, [released]);
+  const { myConsultations, myDakshinaOrders } = useJyotish();
+  // JY-FIX-B (JY-06): the figures below come from the dakshina bridge's
+  // marketplace orders — the single source of truth. "Released" = the
+  // rail-1 order reached paid/completed, i.e. receipt was confirmed;
+  // the amount shown is providerNet (what reached the jyotishi after
+  // the platform's commission), grouped per currency and never summed
+  // across currencies under one symbol.
+  const typeByConsultationId = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of myConsultations) m[c.id] = c.consultationType;
+    return m;
+  }, [myConsultations]);
+  const earnings = useMemo(
+    () => summariseDakshinaOrders(myDakshinaOrders, typeByConsultationId),
+    [myDakshinaOrders, typeByConsultationId]
+  );
+  const pendingCount = earnings.pendingByCurrency.reduce((s, c) => s + c.count, 0);
   return (
     <div className="space-y-4">
       <Card>
         <SectionTitle>Earnings</SectionTitle>
-        <div className="text-3xl font-black text-stone-900">₹{total.toLocaleString('en-IN')}</div>
+        {earnings.releasedByCurrency.length === 0 ? (
+          <div className="text-3xl font-black text-stone-900">{formatMoney(0, 'INR')}</div>
+        ) : (
+          <div className="space-y-1">
+            {earnings.releasedByCurrency.map((c) => (
+              <div key={c.currency} className="text-3xl font-black text-stone-900">
+                {formatMoney(c.total, c.currency)}
+              </div>
+            ))}
+          </div>
+        )}
         <p className="text-xs text-stone-500 mt-1">
-          Sum of dakshina marked released across {released.length} consultation(s).
+          Dakshina received and confirmed across {earnings.releasedCount} consultation(s)
+          {pendingCount > 0 && (
+            <> — {pendingCount} dakshina order(s) still awaiting confirmation: {earnings.pendingByCurrency.map((c) => formatMoney(c.total, c.currency)).join(' · ')}</>
+          )}
         </p>
         <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3">
           ⚠️ Workflow record only — devotees pay you directly. No money moves through this app;
@@ -354,14 +386,14 @@ export const EarningsTab: React.FC = () => {
       </Card>
       <Card>
         <SectionTitle>By consultation type</SectionTitle>
-        {byType.length === 0 ? (
+        {earnings.byType.length === 0 ? (
           <Empty text="Nothing released yet." />
         ) : (
           <div className="space-y-2">
-            {byType.map(([t, e]) => (
-              <div key={t} className="flex items-center justify-between text-sm border-b border-stone-100 py-2">
-                <span className="font-bold text-stone-800">{t} <span className="text-stone-400 font-medium">× {e.n}</span></span>
-                <span className="font-black text-stone-900">₹{e.amt.toLocaleString('en-IN')}</span>
+            {earnings.byType.map(({ type, totals }) => (
+              <div key={type} className="flex items-center justify-between text-sm border-b border-stone-100 py-2">
+                <span className="font-bold text-stone-800">{type} <span className="text-stone-400 font-medium">× {totals.reduce((s, c) => s + c.count, 0)}</span></span>
+                <span className="font-black text-stone-900">{totals.map((c) => formatMoney(c.total, c.currency)).join(' · ')}</span>
               </div>
             ))}
           </div>
@@ -382,6 +414,18 @@ export const AvailabilityTab: React.FC = () => {
   const { availability, saveAvailability } = useJyotish();
   const [slots, setSlots] = useState<Record<string, boolean>>(availability?.slots || {});
   const [saving, setSaving] = useState(false);
+  // JY-FIX-B (JY-07a): re-sync from the saved doc whenever it loads or
+  // changes. The tab mounts before the availability doc arrives, so the
+  // old initial-state-only code rendered every saved slot OFF — and a
+  // Save then WIPED the jyotishi's real availability. Keyed on the
+  // doc's updatedAt so in-progress toggles are not clobbered by an
+  // unrelated re-render, while a fresh load (or another device's save)
+  // always wins.
+  const loadedUpdatedAt = availability?.updatedAt;
+  useEffect(() => {
+    if (availability) setSlots(availability.slots || {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedUpdatedAt]);
 
   const toggle = (k: string) => setSlots((s) => ({ ...s, [k]: !s[k] }));
 
@@ -507,7 +551,17 @@ export const VerificationTab: React.FC = () => {
           ))}
         </div>
         {canClaim && (
-          <Btn onClick={() => claimTierAdvancement()}>
+          <Btn
+            onClick={() => {
+              // JY-FIX-B (JY-04): a denied claim must SPEAK. Before, the
+              // promise floated unhandled — the rules had no permitting
+              // branch, so every claim failed in complete silence.
+              claimTierAdvancement().catch((err) => {
+                console.error(err);
+                alert(friendlyError(err, t, 'save'));
+              });
+            }}
+          >
             ⬆️ Claim {effectiveTier.replace(/_/g, ' ')} — your public record qualifies
           </Btn>
         )}
@@ -699,6 +753,8 @@ export const ProfileTab: React.FC = () => {
     feeRangeMax: String(profile?.feeRangeMax || ''),
   });
   const [_saving, _setSaving] = useState(false);
+  // JY-FIX-B (JY-14): fee labels in the jyotishi's own currency.
+  const { symbol: feeSymbol } = useGeoCurrency();
 
   if (!profile) return <Empty text="Loading…" />;
 
@@ -760,10 +816,10 @@ export const ProfileTab: React.FC = () => {
           <input value={form.specializations} onChange={(e) => setForm({ ...form, specializations: e.target.value })} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Fee range min (₹, informational)">
+          <Field label={`Fee range min (${feeSymbol}, informational)`}>
             <input type="number" min={0} value={form.feeRangeMin} onChange={(e) => setForm({ ...form, feeRangeMin: e.target.value })} className={inputCls} />
           </Field>
-          <Field label="Fee range max (₹, informational)">
+          <Field label={`Fee range max (${feeSymbol}, informational)`}>
             <input type="number" min={0} value={form.feeRangeMax} onChange={(e) => setForm({ ...form, feeRangeMax: e.target.value })} className={inputCls} />
           </Field>
         </div>

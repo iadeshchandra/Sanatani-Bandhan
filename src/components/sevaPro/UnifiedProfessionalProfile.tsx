@@ -24,7 +24,7 @@ import { Share2, Check, MessageCircle, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
-import { PUROHIT_TIER_META } from '../../types/purohit';
+import { PUROHIT_TIER_META, normalizePurohitTier } from '../../types/purohit';
 import {
   fetchUnifiedProfessional,
   type SpecializationKind,
@@ -39,6 +39,7 @@ import {
   Stars,
 } from './sevaProUi';
 import { BookingSheet } from './BookingSheet';
+import { JyotishAvailabilityStrip } from '../../jyotish/JyotishAvailability';
 import { ProviderGratitudeWall } from './ProviderGratitudeWall';
 import { friendlyErrorText } from '../../lib/friendlyError';
 import {
@@ -430,7 +431,7 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
             feeMin={profile.purohit.dakshinaRangeMin}
             feeMax={profile.purohit.dakshinaRangeMax}
             feeLabel={tx('Dakshina range', 'দক্ষিণা পরিসর', 'दक्षिणा सीमा')}
-            honorTierLabel={PUROHIT_TIER_META[profile.purohit.verificationTier].label}
+            honorTierLabel={PUROHIT_TIER_META[normalizePurohitTier(profile.purohit.verificationTier)].label}
             tx={tx}
           />
         </SectionCard>
@@ -447,9 +448,15 @@ export const UnifiedProfessionalProfile: React.FC<ProfilePageProps> = ({
             feeMin={profile.jyotish.feeRangeMin}
             feeMax={profile.jyotish.feeRangeMax}
             feeLabel={tx('Consultation fee range', 'পরামর্শ ফি পরিসর', 'परामर्श शुल्क सीमा')}
-            honorTierLabel={PUROHIT_TIER_META[profile.jyotish.verificationTier].label}
+            honorTierLabel={PUROHIT_TIER_META[normalizePurohitTier(profile.jyotish.verificationTier)].label}
             tx={tx}
           />
+          {/* JY-FIX-B (JY-07b): the jyotishi's saved weekly availability
+              on their public profile — nothing renders when none was
+              recorded. */}
+          <div className="mt-3">
+            <JyotishAvailabilityStrip jyotishId={profile.jyotish.id} />
+          </div>
         </SectionCard>
       )}
 

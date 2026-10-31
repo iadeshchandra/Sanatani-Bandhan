@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import type { PurohitVerificationTier } from '../../types/purohit';
-import { PUROHIT_TIER_META } from '../../types/purohit';
+import { PUROHIT_TIER_META, normalizePurohitTier } from '../../types/purohit';
 
 /** Star row (1–5) with a warm amber fill. */
 export const Stars: React.FC<{ value: number; size?: string }> = ({
@@ -38,8 +38,10 @@ export const HonorBadge: React.FC<{
   tier: PurohitVerificationTier;
   role: 'Purohit' | 'Jyotishi';
 }> = ({ tier, role }) => {
-  const meta = PUROHIT_TIER_META[tier];
-  const top = tier === 'PLATFORM_VERIFIED' || tier === 'ORG_ENDORSED';
+  // JY-FIX-B (JY-03): normalise legacy stored values before indexing.
+  const safeTier = normalizePurohitTier(tier);
+  const meta = PUROHIT_TIER_META[safeTier];
+  const top = safeTier === 'PLATFORM_VERIFIED' || safeTier === 'ORG_ENDORSED';
   return (
     <span
       title={`${meta.description}`}
