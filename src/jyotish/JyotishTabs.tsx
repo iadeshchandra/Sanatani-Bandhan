@@ -197,6 +197,7 @@ export const ConsultationCard: React.FC<{ c: Consultation; children?: React.Reac
       {c.devoteeName} · {c.city} · {c.language} · prefers {c.preferredDate || 'flexible'}
       {c.budgetMax > 0 && <> · budget ₹{c.budgetMin}–₹{c.budgetMax}</>}
     </div>
+    {c.topicSummary && <p className="text-sm text-stone-700 bg-stone-50 rounded-xl p-2.5">{c.topicSummary}</p>}
     {c.notes && <p className="text-sm text-stone-700 bg-stone-50 rounded-xl p-2.5">{c.notes}</p>}
     {(c.birthDate || c.partnerBirthDate) && (
       <p className="text-[11px] text-stone-500">

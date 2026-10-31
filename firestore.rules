@@ -2611,27 +2611,48 @@ service cloud.firestore {
 
     // Jyotish One â independent jyotishi identity + verification +
 
+    // JY-02 helpers (shared by the profiles / consultations / tenders
+    // blocks below): contact-key freeze for public profile docs, and
+    // the jyotish-profile ownership anchor.
+    function contactKeyFrozen(f) {
+      return !request.resource.data.keys().hasAny([f])
+        || request.resource.data.get(f, '') == resource.data.get(f, '');
+    }
+    function jyotishProfileOwnedByCaller(jid) {
+      return exists(/databases/$(database)/documents/jyotishProfiles/$(jid))
+        && get(/databases/$(database)/documents/jyotishProfiles/$(jid)).data.get('uid', '') == request.auth.uid;
+    }
+
     // --- jyotishProfiles/{jyotishId}: public read (marketplace); owner +
     match /jyotishProfiles/{jyotishId} {
       allow read: if true;
+      // JY-02: the public profile doc is born WITHOUT contact fields —
+      // phone/email live only in the owner-only private/self subdoc
+      // below (mirrors sanataniProfiles/{uid}/private/self).
       allow create: if isLoggedIn()
         && request.resource.data.get('uid', '') == request.auth.uid
         && request.resource.data.get('verificationTier', '') == 'REGISTERED'
         && request.resource.data.get('ratingAggregate', 0) == 0
         && request.resource.data.get('ratingCount', 0) == 0
-        && request.resource.data.get('completedConsultations', 0) == 0;
+        && request.resource.data.get('completedConsultations', 0) == 0
+        && !request.resource.data.keys().hasAny(['phone', 'email']);
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.get('id', '') == resource.data.get('id', '')
-          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          // uid / id / tier / rating aggregates pinned by diff: none may
+          // be added, removed or changed on this branch (the factored
+          // form of the five field-equalities this branch used before).
+          && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['uid', 'id', 'verificationTier', 'ratingAggregate', 'ratingCount'])
+          // JY-02: legacy contact fields on the public doc are frozen —
+          // they may stay untouched or be REMOVED (the client migrates
+          // them into private/self), never changed or re-added.
+          && contactKeyFrozen('phone')
+          && contactKeyFrozen('email')
           // SECURITY P1: the rating aggregate never moves on the
           // owner's own say-so -- only via the anchored review branch
           // below. completedConsultations may stay, or rise by exactly
           // 1 anchored to a consultation the owner just completed.
-          && request.resource.data.get('ratingAggregate', 0) == resource.data.get('ratingAggregate', 0)
-          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0)
           && (request.resource.data.get('completedConsultations', 0) == resource.data.get('completedConsultations', 0)
             || p1CompletedConsultationOk()))
         // SECURITY P1 -- anchored rating step (see p1JyotishRatingOk).
@@ -2644,6 +2665,12 @@ service cloud.firestore {
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
+
+      // JY-02 — jyotishi contact fields (phone/email): owner-only,
+      // mirroring sanataniProfiles/{uid}/private/self.
+      match /private/self {
+        allow read, write: if isLoggedIn() && jyotishProfileOwnedByCaller(jyotishId);
+      }
     }
 
     // --- jyotishAvailability: public read; owner write.
@@ -2693,8 +2720,24 @@ service cloud.firestore {
         && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
         && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
     }
+    // JY-10: true when `jid` names a real jyotish profile owned by the
+    // caller (the same anchor validJyotishAttach uses on the spine).
+    function callerOwnsJyotishProfile(jid) {
+      return jid != '' && jyotishProfileOwnedByCaller(jid);
+    }
+    // JY-02: true when the caller holds a jyotishi identity. The spine
+    // check suffices: roles.jyotishId could only have been attached by
+    // validJyotishAttach, which itself proved profile ownership then.
+    function callerHasJyotishProfile() {
+      let spath = /databases/$(database)/documents/sanataniProfiles/$(request.auth.uid);
+      return exists(spath)
+        && get(spath).data.get('roles', {}).get('jyotishId', '') != '';
+    }
     match /jyotishConsultations/{consultationId} {
-      allow read: if true;
+      // JY-02: party-scoped read — the doc carries birth date/time/place,
+      // partner birth details, devotee phone and private notes. The open
+      // board reads the PII-free jyotishTenders projection instead.
+      allow read: if isSuperAdmin() || isConsultationParty();
       allow create: if isLoggedIn()
         && request.resource.data.get('devoteeUid', '') == request.auth.uid
         && request.resource.data.get('status', '') == 'OPEN'
@@ -2702,10 +2745,14 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
           && (isConsultationParty()
-            // Accept flow: any jyotishi may claim an OPEN consultation;
+            // Accept flow: a jyotishi may claim an UNASSIGNED open
+            // consultation only as themself — JY-10: the claimed
+            // assignedJyotishId must be a real profile THEY own.
             || (resource.data.get('status', '') == 'OPEN'
+              && resource.data.get('assignedJyotishUid', '') == ''
               && request.resource.data.get('status', '') == 'ASSIGNED'
-              && request.resource.data.get('assignedJyotishUid', '') == request.auth.uid)));
+              && request.resource.data.get('assignedJyotishUid', '') == request.auth.uid
+              && callerOwnsJyotishProfile(request.resource.data.get('assignedJyotishId', '')))));
       allow delete: if false;
 
       // --- messages subcollection: only the two parties read/write.
@@ -2747,6 +2794,39 @@ service cloud.firestore {
             && diffKeysOnly(request.resource.data, resource.data, ['status', 'bookedGigId']));
         allow delete: if false;
       }
+    }
+
+    // --- jyotishTenders/{consultationId}: JY-02 — the PII-free open-
+    // board projection of a consultation (same doc id). Carries ONLY
+    // category, the devotee's public one-line summary, budget, language
+    // and timing. The key whitelist in tenderShapeOk is the guarantee:
+    // birth fields, phone and notes cannot exist here at all.
+    function TENDER_KEYS() {
+      return ['id', 'consultationType', 'topicSummary', 'mode', 'city',
+        'language', 'preferredDate', 'budgetMin', 'budgetMax',
+        'devoteeUid', 'devoteeName', 'status', 'createdAt'];
+    }
+    function tenderShapeOk() {
+      return request.resource.data.keys().hasOnly(TENDER_KEYS())
+        && request.resource.data.get('consultationType', '') != ''
+        && request.resource.data.get('topicSummary', '').size() <= 200
+        && request.resource.data.get('status', '') == 'OPEN';
+    }
+    function tenderAcceptedByCaller(consultationId) {
+      let cpath = /databases/$(database)/documents/jyotishConsultations/$(consultationId);
+      return get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid
+        && get(cpath).data.get('status', '') != 'OPEN';
+    }
+    match /jyotishTenders/{consultationId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('status', '') == 'OPEN' && callerHasJyotishProfile());
+      allow create: if isLoggedIn()
+        && request.resource.data.get('devoteeUid', '') == request.auth.uid
+        && tenderShapeOk();
+      allow update: if false;
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('devoteeUid', '') == request.auth.uid)
+        || (isLoggedIn() && tenderAcceptedByCaller(consultationId));
     }
 
     // --- jyotishEndorsements: public read; Trustees (any real org) endorse.

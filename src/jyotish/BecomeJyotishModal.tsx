@@ -15,6 +15,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useJyotish } from '../context/JyotishContext';
 import { useSolo } from '../solo/SoloContext';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { VerificationBadge } from '../components/common/VerificationBadge';
 import { friendlyError } from '../lib/friendlyError';
 import { JYOTISH_SPECIALIZATIONS, JyotishIdentity } from '../types/jyotish';

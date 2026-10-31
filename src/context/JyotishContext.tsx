@@ -11,11 +11,15 @@
  *
  * All collections here are GLOBAL (not workspace-scoped) by design — a
  * jyotishi belongs to no organisation. Firestore rules enforce party-scoped
- * writes; reads on marketplace collections are public.
+ * writes AND reads: profiles are public WITHOUT contact fields (phone /
+ * email live in the owner-only jyotishProfiles/{id}/private/self subdoc),
+ * consultations are party-only, and the open board reads the PII-free
+ * jyotishTenders projection (JY-02).
  *
  * Mirrors PurohitContext's proven architecture. Collection names:
- *   jyotishProfiles, jyotishApplications, jyotishConsultations,
- *   jyotishConsultations/{id}/messages, jyotishReviews, jyotishAvailability,
+ *   jyotishProfiles (+ /private/self), jyotishApplications,
+ *   jyotishConsultations, jyotishConsultations/{id}/messages,
+ *   jyotishTenders, jyotishReviews, jyotishAvailability,
  *   jyotishEndorsements, jyotishInvites, jyotishReferrals.
  */
 import React, {
@@ -28,6 +32,8 @@ import React, {
 } from 'react';
 import {
   collection,
+  deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -177,7 +183,32 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const q = query(collection(db, 'jyotishProfiles'), where('uid', '==', uid), limit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        setProfile({ id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as JyotishIdentity);
+        const base = { id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as JyotishIdentity;
+        // JY-02: contact fields live in the owner-only private/self
+        // subdoc — merge them into the in-memory identity (they are
+        // never read from, or written back to, the public profile doc).
+        try {
+          const privRef = doc(db, 'jyotishProfiles', base.id, 'private', 'self');
+          const priv = await getDoc(privRef);
+          if (priv.exists()) {
+            const pd = priv.data() as any;
+            if (pd.phone) base.phone = pd.phone;
+            if (pd.email) base.email = pd.email;
+          } else if ((base as any).phone || (base as any).email) {
+            // Legacy profile still carrying contact fields on the PUBLIC
+            // doc: move them into private/self and scrub the public doc
+            // (best-effort — rules permit removal, forbid change).
+            await setDoc(privRef, { phone: base.phone || '', email: base.email || '', updatedAt: now() });
+            await updateDoc(doc(db, 'jyotishProfiles', base.id), {
+              phone: deleteField(),
+              email: deleteField(),
+              updatedAt: now(),
+            });
+          }
+        } catch {
+          /* contact merge is best-effort; the profile itself loaded */
+        }
+        setProfile(base);
       } else {
         setProfile(null);
       }
@@ -196,9 +227,33 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
     async (updates: Partial<JyotishIdentity>) => {
       if (!profile) return;
       // Client-side guard mirrors the rules: tier/aggregates/uid are immutable here.
-      const { verificationTier, ratingAggregate, ratingCount, completedConsultations, uid: _u, id: _i, ...safe } = updates as any;
+      const { verificationTier, ratingAggregate, ratingCount, completedConsultations, uid: _u, id: _i, ...rest } = updates as any;
+      // JY-02: phone/email are contact fields — they go to the owner-only
+      // private/self subdoc, NEVER the public profile doc.
+      const { phone, email, ...safe } = rest;
+      if (phone !== undefined || email !== undefined) {
+        await setDoc(
+          doc(db, 'jyotishProfiles', profile.id, 'private', 'self'),
+          {
+            ...(phone !== undefined ? { phone } : {}),
+            ...(email !== undefined ? { email } : {}),
+            updatedAt: now(),
+          },
+          { merge: true }
+        );
+      }
       await updateDoc(doc(db, 'jyotishProfiles', profile.id), { ...safe, updatedAt: now() });
-      setProfile((p) => (p ? { ...p, ...safe, updatedAt: now() } : p));
+      setProfile((p) =>
+        p
+          ? {
+              ...p,
+              ...safe,
+              ...(phone !== undefined ? { phone } : {}),
+              ...(email !== undefined ? { email } : {}),
+              updatedAt: now(),
+            }
+          : p
+      );
       showToast('Profile updated', 'success');
     },
     [profile, showToast]
@@ -264,7 +319,21 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createdAt: ts,
         updatedAt: ts,
       };
-      await setDoc(doc(db, 'jyotishProfiles', jyotishId), identity);
+      // JY-02: the public profile doc is born WITHOUT contact fields;
+      // phone/email go to the owner-only private/self subdoc (mirrors
+      // sanataniProfiles/{uid}/private/self). Best-effort: if the subdoc
+      // write fails, the owner re-saves contact from the Profile tab.
+      const { phone: contactPhone, email: contactEmail, ...publicIdentity } = identity;
+      await setDoc(doc(db, 'jyotishProfiles', jyotishId), publicIdentity);
+      try {
+        await setDoc(doc(db, 'jyotishProfiles', jyotishId, 'private', 'self'), {
+          phone: contactPhone || '',
+          email: contactEmail || '',
+          updatedAt: ts,
+        });
+      } catch {
+        /* identity minted; contact re-saves via updateProfile */
+      }
       setProfile(identity);
       return identity;
     },
@@ -330,14 +399,22 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [profile, effectiveTier, showToast]);
 
   // ---- Consultations ------------------------------------------------------
+  // JY-02: the open board reads the PII-free jyotishTenders projection,
+  // and only jyotish-profile holders subscribe (rules enforce the same).
+  // The full consultation docs are party-scoped — they are never listed
+  // to non-parties, so birth details / phone / notes cannot leak here.
   useEffect(() => {
+    if (!profile) {
+      setOpenConsultations([]);
+      return;
+    }
     const unsub = onSnapshot(
-      query(collection(db, 'jyotishConsultations'), where('status', '==', 'OPEN'), orderBy('createdAt', 'desc'), limit(100)),
-      (snap) => setOpenConsultations(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Consultation))),
+      query(collection(db, 'jyotishTenders'), where('status', '==', 'OPEN'), orderBy('createdAt', 'desc'), limit(100)),
+      (snap) => setOpenConsultations(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as unknown as Consultation))),
       () => setOpenConsultations([])
     );
     return () => unsub();
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     if (!uid) {
@@ -368,6 +445,28 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const ref = doc(collection(db, 'jyotishConsultations'));
       const ts = now();
       await setDoc(ref, { ...c, id: ref.id, devoteeUid: uid, devoteeName, status: 'OPEN', createdAt: ts, updatedAt: ts });
+      // JY-02: the board projection — ONLY the whitelisted safe fields
+      // (rules pin the list; birth details / phone / notes never copy).
+      try {
+        await setDoc(doc(db, 'jyotishTenders', ref.id), {
+          id: ref.id,
+          consultationType: c.consultationType,
+          topicSummary: (c.topicSummary || '').slice(0, 200),
+          mode: c.mode,
+          city: c.city,
+          language: c.language,
+          preferredDate: c.preferredDate,
+          budgetMin: c.budgetMin,
+          budgetMax: c.budgetMax,
+          devoteeUid: uid,
+          devoteeName,
+          status: 'OPEN',
+          createdAt: ts,
+        });
+      } catch {
+        /* the consultation itself posted; the board projection is
+           re-creatable and its absence only hides this one listing */
+      }
       showToast('Requirement posted — jyotishis can now respond', 'success');
       return ref.id;
     },
@@ -385,6 +484,14 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
         assignedJyotishName: profile.displayName,
         updatedAt: now(),
       });
+      // JY-02: retire the board projection. Best-effort — a leftover
+      // tender is inert (accepting against it is rules-denied once the
+      // consultation is ASSIGNED) and carries no PII by construction.
+      try {
+        await deleteDoc(doc(db, 'jyotishTenders', c.id));
+      } catch {
+        /* stale tender cleanup is retryable; never blocks the accept */
+      }
       showToast('Consultation accepted — coordinate with the devotee', 'success');
     },
     [profile, uid, showToast]
@@ -402,6 +509,15 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       if (!allowed[c.status].includes(next)) throw new Error(`Cannot move ${c.status} → ${next}`);
       await updateDoc(doc(db, 'jyotishConsultations', c.id), { status: next, updatedAt: now() });
+      // JY-02: an unassigned OPEN post that gets cancelled leaves the
+      // board too (direct bookings never had a tender — nothing to do).
+      if (next === 'CANCELLED' && c.status === 'OPEN' && !c.assignedJyotishUid) {
+        try {
+          await deleteDoc(doc(db, 'jyotishTenders', c.id));
+        } catch {
+          /* best-effort board cleanup; the tender carries no PII */
+        }
+      }
       if (next === 'DAKSHINA_RELEASED' && (c as Consultation).referredBy) {
         // Seva Pro Phase 4: settle the referrer's guidance credit. Best-effort —
         // rules re-validate everything against the completed consultation.
@@ -522,7 +638,13 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const reviewsForJyotish = useCallback(async (jyotishId: string): Promise<ConsultationReview[]> => {
-    const gsnap = await getDocs(query(collection(db, 'jyotishConsultations'), where('assignedJyotishId', '==', jyotishId), limit(100)));
+    // JY-02: consultations are party-scoped in rules now, so the lookup
+    // must be provably the caller's own — query by assignedJyotishUid
+    // (the caller's uid ⇔ their jyotishId; this is only ever invoked
+    // for the caller's own profile). A by-jyotishId query is no longer
+    // rules-provable for anyone but a party/admin and would be denied.
+    if (!uid) return [];
+    const gsnap = await getDocs(query(collection(db, 'jyotishConsultations'), where('assignedJyotishUid', '==', uid), limit(100)));
     const cIds = new Set(gsnap.docs.map((d) => d.id));
     if (cIds.size === 0) return [];
     const rsnap = await getDocs(query(collection(db, 'jyotishReviews'), where('reviewerKind', '==', 'devotee')));
@@ -530,7 +652,7 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .map((d) => ({ id: d.id, ...(d.data() as any) } as ConsultationReview))
       .filter((r) => cIds.has(r.consultationId))
       .sort((a, b) => b.createdAt - a.createdAt);
-  }, []);
+  }, [uid]);
 
   const myReceivedReviews = receivedReviews;
 

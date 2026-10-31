@@ -261,6 +261,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
     language: 'Hindi',
     budgetMin: '',
     budgetMax: '',
+    topicSummary: '',
     notes: '',
   });
   const [saving, setSaving] = useState(false);
@@ -287,6 +288,7 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
         language: form.language,
         budgetMin: Math.max(0, parseInt(form.budgetMin, 10) || 0),
         budgetMax: Math.max(0, parseInt(form.budgetMax, 10) || 0),
+        topicSummary: form.topicSummary.trim().slice(0, 200),
         notes: form.notes.trim(),
       });
       onPosted();
@@ -305,7 +307,9 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
     <Card>
       <SectionTitle>{t('jyotish.marketplace.postRequirement')}</SectionTitle>
       <p className="text-xs text-stone-500 mb-4">
-        Any registered jyotishi can accept. Birth details are used only for the chart reading.
+        Any registered jyotishi can accept. Only your one-line public summary below is
+        visible on the open board — birth details, phone and private notes stay between
+        you and the jyotishi who accepts.
       </p>
       <form onSubmit={submit} className="space-y-3">
         <div className="grid sm:grid-cols-2 gap-3">
@@ -369,7 +373,10 @@ const PostRequirement: React.FC<{ onPosted: () => void }> = ({ onPosted }) => {
             <input type="number" min={0} value={form.budgetMax} onChange={(e) => setForm({ ...form, budgetMax: e.target.value })} className={inputCls} />
           </Field>
         </div>
-        <Field label="Notes for the jyotishi">
+        <Field label="Public summary (one line, shown on the open board)">
+          <input value={form.topicSummary} onChange={(e) => setForm({ ...form, topicSummary: e.target.value })} maxLength={200} className={inputCls} placeholder="e.g. Career direction over the next year" />
+        </Field>
+        <Field label="Notes for the jyotishi (private — seen only after they accept)">
           <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inputCls} placeholder={t('jyotish.marketplace.guidancePlaceholder')} />
         </Field>
         <p className="text-[11px] text-stone-400">

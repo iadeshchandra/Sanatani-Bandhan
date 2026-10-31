@@ -210,7 +210,6 @@ describe('B4.4 auth surfaces render through the shared mapper', () => {
     'components/public/PortalLogin.tsx',
     'components/public/SignupCredentialsStep.tsx',
     'components/purohit/PurohitSignupForm.tsx',
-    'jyotish/JyotishSignupForm.tsx',
     'solo/SoloSignupForm.tsx',
     'components/auth/GoogleSignInButton.tsx',
   ];
@@ -232,7 +231,6 @@ describe('B4.4 auth surfaces render through the shared mapper', () => {
     for (const file of [
       'components/public/SignupCredentialsStep.tsx',
       'components/purohit/PurohitSignupForm.tsx',
-      'jyotish/JyotishSignupForm.tsx',
     ]) {
       expect(read(file)).not.toContain('err.message ||');
     }

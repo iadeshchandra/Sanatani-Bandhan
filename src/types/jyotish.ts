@@ -206,6 +206,11 @@ export interface Consultation {
   budgetMin: number;
   budgetMax: number;
   notes: string;
+  /** JY-02: the only free text a non-party ever sees — the devotee's
+   *  public one-line summary, mirrored into jyotishTenders for the open
+   *  board. Birth details, partner details, phone and `notes` never
+   *  leave this party-scoped document. */
+  topicSummary?: string;
   devoteeUid: string;
   devoteeName: string;
   devoteePhone?: string;
@@ -216,6 +221,34 @@ export interface Consultation {
   dakshinaAgreed?: number;
   /** Seva Pro Phase 4: pinned at creation, immutable after (rules). */
   referredBy?: ConsultationReferralAttribution;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
+ * JY-02 — the open-board projection of a Consultation, stored at
+ * `jyotishTenders/{consultationId}` (same id as the consultation).
+ * Carries ONLY what a jyotishi needs BEFORE accepting: category, the
+ * devotee's public one-line summary, budget, language, timing.
+ * NO birth details, NO partner details, NO phone, NO private notes —
+ * Firestore rules pin this exact key whitelist, so even a crafted
+ * client cannot publish PII into the board. Lifecycle: written with
+ * the consultation (unassigned OPEN posts only — direct bookings via
+ * BookingSheet never appear here), deleted on accept / cancel.
+ */
+export interface ConsultationTender {
+  id: string;
+  consultationType: ConsultationType;
+  topicSummary: string;
+  mode: 'chat' | 'call' | 'video';
+  city: string;
+  language: string;
+  preferredDate: string;
+  budgetMin: number;
+  budgetMax: number;
+  devoteeUid: string;
+  devoteeName: string;
+  status: 'OPEN';
   createdAt: number;
   updatedAt: number;
 }

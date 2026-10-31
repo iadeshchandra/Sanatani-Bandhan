@@ -172,13 +172,19 @@ async function fetchPurohitReviews(
 }
 
 async function fetchJyotishReviews(
-  jyotishId: string
+  jyotishUid: string
 ): Promise<UnifiedReview[]> {
   try {
+    // JY-02: consultations are party-scoped in rules — a by-jyotishId
+    // listing is denied for everyone but a party/admin. Querying by
+    // assignedJyotishUid is provable when the viewer IS this jyotishi
+    // (their own unified profile); for third-party viewers the query
+    // is denied and this degrades to [] (the public profile still
+    // shows the rating aggregate/count from the profile doc itself).
     const gsnap = await getDocs(
       query(
         collection(db, 'jyotishConsultations'),
-        where('assignedJyotishId', '==', jyotishId),
+        where('assignedJyotishUid', '==', jyotishUid),
         limit(100)
       )
     );
@@ -233,7 +239,7 @@ export async function fetchUnifiedProfessional(
 
   const [purohitReviews, jyotishReviews] = await Promise.all([
     purohit ? fetchPurohitReviews(purohit.id) : Promise.resolve([] as UnifiedReview[]),
-    jyotish ? fetchJyotishReviews(jyotish.id) : Promise.resolve([] as UnifiedReview[]),
+    jyotish ? fetchJyotishReviews(jyotish.uid) : Promise.resolve([] as UnifiedReview[]),
   ]);
   const reviews = [...purohitReviews, ...jyotishReviews]
     .sort((a, b) => b.createdAt - a.createdAt)
