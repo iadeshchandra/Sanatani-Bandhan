@@ -33,7 +33,7 @@ service cloud.firestore {
 
     // Platform owner: the canonical human owner UID. Used for Spark-native
     function isOwner() {
-      return isLoggedIn() && request.auth.uid == 'sxIGHmvpYUTqPnpI1bLFT1O1cA62';
+      return isSelf('sxIGHmvpYUTqPnpI1bLFT1O1cA62');
     }
 
     // Effective tenant: custom claim wins, else the users/{uid} document.
@@ -151,7 +151,7 @@ service cloud.firestore {
       return request.resource.data.get('workspaceId', null);
     }
     function wsImmutable() {
-      return request.resource.data.get('workspaceId', null) == resource.data.get('workspaceId', null);
+      return newDocWs() == docWs();
     }
 
     // EVENTS + POLLS P0 (2026-10-24) — public festival counters are
@@ -241,7 +241,7 @@ service cloud.firestore {
       let wasWl = had && get(rp).data.get('status', 'confirmed') == 'waitlisted';
       let isWl = has && getAfter(rp).data.get('status', 'confirmed') == 'waitlisted';
       return (had || has)
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
              .hasOnly(['rsvpHeadcount', 'slotBooked', 'slotWaitlist', 'updatedAt'])
         && request.resource.data.get('rsvpHeadcount', 0)
              == resource.data.get('rsvpHeadcount', 0) + (hcAfter - hcBefore)
@@ -313,13 +313,13 @@ service cloud.firestore {
     // social and events blocks: exactly one counter moves by exactly one
     // step (toggle: +-1, never below 0; up: +1 only), nothing else changes.
     function bumpToggleOk(field) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+      return diffKeys().hasOnly([field])
         && request.resource.data.get(field, -1) >= 0
         && (request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1
             || request.resource.data.get(field, 0) == resource.data.get(field, 0) - 1);
     }
     function bumpUpOk(field) {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+      return diffKeys().hasOnly([field])
         && request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1;
     }
     // diffKeysOnly: the affected-keys guard, factored - the diff chain is
@@ -334,12 +334,119 @@ service cloud.firestore {
     function diffKeys() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
+    // Compiled-size diet, round 3 (2026-11-01): shared field-read and
+    // identity shapes - the docWs()/newDocWs() pattern applied
+    // systematically. Each getter replaces an identical literal
+    // .get('field', default) chain; isSelf / uidIs factor the two
+    // uid-equality shapes; the req*Doc() helpers factor the
+    // cross-document lookups keyed by the incoming document. Every
+    // expansion is token-identical to the inline form it replaces
+    // (full-expansion proof: staging diet3 NOTES).
+    function isSelf(x) {
+      return isLoggedIn() && request.auth.uid == x;
+    }
+    function uidIs(x) {
+      return x == request.auth.uid;
+    }
+    function reqGigDoc() {
+      return get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', '')));
+    }
+    function reqConsultDoc() {
+      return get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', '')));
+    }
+    function reqCreditDoc() {
+      return get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', '')));
+    }
+    function reqStatus() {
+      return request.resource.data.get('status', '');
+    }
+    function reqOrderId() {
+      return request.resource.data.get('orderId', '');
+    }
+    function reqUid() {
+      return request.resource.data.get('uid', '');
+    }
+    function reqReferredBy() {
+      return request.resource.data.get('referredBy', {});
+    }
+    function reqOrgId() {
+      return request.resource.data.get('orgId', '');
+    }
+    function reqText() {
+      return request.resource.data.get('text', '');
+    }
+    function reqOrderType() {
+      return request.resource.data.get('orderType', '');
+    }
+    function reqName() {
+      return request.resource.data.get('name', '');
+    }
+    function reqWorkspaceId() {
+      return request.resource.data.get('workspaceId', '');
+    }
+    function reqTitle() {
+      return request.resource.data.get('title', '');
+    }
+    function reqAmount() {
+      return request.resource.data.get('amount', 0);
+    }
+    function reqRole() {
+      return request.resource.data.get('role', '');
+    }
+    function reqOptions() {
+      return request.resource.data.get('options', {});
+    }
+    function reqProviderUid() {
+      return request.resource.data.get('providerUid', '');
+    }
+    function reqRatingCount() {
+      return request.resource.data.get('ratingCount', 0);
+    }
+    function reqVerificationTier() {
+      return request.resource.data.get('verificationTier', '');
+    }
+    function reqAuthorUid() {
+      return request.resource.data.get('authorUid', '');
+    }
+    function reqAuthorName() {
+      return request.resource.data.get('authorName', '');
+    }
+    function reqRating() {
+      return request.resource.data.get('rating', 0);
+    }
+    function reqOptionIds() {
+      return request.resource.data.get('optionIds', []);
+    }
+    function reqLastReferralCreditId() {
+      return request.resource.data.get('lastReferralCreditId', '');
+    }
+    function reqRsvpCount() {
+      return request.resource.data.get('rsvpCount', 0);
+    }
+    function resStatus() {
+      return resource.data.get('status', '');
+    }
+    function resProviderUid() {
+      return resource.data.get('providerUid', '');
+    }
+    function resUid() {
+      return resource.data.get('uid', '');
+    }
+    function resClientUid() {
+      return resource.data.get('clientUid', '');
+    }
+    function resAuthorUid() {
+      return resource.data.get('authorUid', '');
+    }
+    function resExpiresAtTs() {
+      return resource.data.get('expiresAtTs', null);
+    }
     // rsvpWithinCap: an RSVP +1 respects capacity - allowed when the event
     // has no capacity set, a non-positive capacity (treated as unset), or
     // room still remains under the cap.
     function rsvpWithinCap() {
       return !('capacity' in resource.data) || resource.data.get('capacity', 0) <= 0
-        || request.resource.data.get('rsvpCount', 0) <= resource.data.get('capacity', 0);
+        || reqRsvpCount() <= resource.data.get('capacity', 0);
     }
     function DECISION_KEYS() {
       return ['status', 'decidedBy', 'decidedByName', 'decidedAt', 'note'];
@@ -365,14 +472,14 @@ service cloud.firestore {
     // isSuperAdmin(); it only gates the GodMode console UI.
     match /platformAdmins/{adminUid} {
       allow read: if isOwner()
-        || (isLoggedIn() && request.auth.uid == adminUid);
+        || (isSelf(adminUid));
       allow create, update: if isOwner()
         && request.resource.data.keys().hasOnly(
           ['uid', 'email', 'displayName', 'role', 'active',
            'grantedBy', 'grantedAt', 'updatedAt'])
-        && request.resource.data.get('uid', '') == adminUid
-        && request.resource.data.get('role', '') in ['admin', 'moderator']
-        && request.resource.data.get('grantedBy', '') == request.auth.uid;
+        && reqUid() == adminUid
+        && reqRole() in ['admin', 'moderator']
+        && uidIs(request.resource.data.get('grantedBy', ''));
       allow delete: if isOwner();
     }
 
@@ -390,33 +497,33 @@ service cloud.firestore {
     // 3. User profiles â owner or SuperAdmin only.
     match /users/{userId} {
       allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
-      allow create: if isLoggedIn() && request.auth.uid == userId
+      allow create: if isSelf(userId)
         && !request.resource.data.keys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId',
           // Step 8: soft-ban fields are owner-write-only
           'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
         && (
           // DEMO sandbox: may self-claim a demo workspace + starter role
-          isDemoWs(request.resource.data.get('workspaceId', null))
+          isDemoWs(newDocWs())
           // Standard registration: no privilege or tenant claims at all
           || !request.resource.data.keys().hasAny(['role', 'workspaceId', 'defaultWorkspaceId', 'membership'])
         );
       allow update: if isSuperAdmin() || (
-        isLoggedIn() && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys()
+        isSelf(userId)
+        && !diffKeys()
             .hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId', 'role', 'workspaceId', 'defaultWorkspaceId', 'membership',
               // Step 8: soft-ban fields are owner-write-only
               'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
       )
         // Step 8: owner-only soft-ban writes — suspension fields and nothing else
         || (isOwner()
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && diffKeys()
               .hasOnly(['suspended', 'suspendReason', 'suspendedAt', 'suspendedBy', 'updatedAt']));
       allow delete: if false;
     }
 
     // FCM device tokens for push delivery. Each user manages only their own
     match /users/{userId}/fcmTokens/{tokenId} {
-      allow read, write: if isLoggedIn() && request.auth.uid == userId;
+      allow read, write: if isSelf(userId);
     }
 
     // 4. Tenant partitions
@@ -424,7 +531,7 @@ service cloud.firestore {
       allow read: if true; // public discovery
       allow create: if isSuperAdmin();
       allow update: if hasRole(tenantId, R_TRUSTEE())
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && diffKeys()
             .hasOnly(['name', 'city', 'state', 'country', 'type', 'logoUrl', 'tagline', 'updatedAt']);
       allow delete: if isSuperAdmin();
 
@@ -471,7 +578,7 @@ service cloud.firestore {
       allow update: if (isOwner()
           && diffKeysOnly(request.resource.data, resource.data, ['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['adminPinHash', 'adminPin']));
+          && !diffKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
     }
 
@@ -481,7 +588,7 @@ service cloud.firestore {
     match /treasury/{docId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
+        || (isTenantMember(docWs()) && uidIs(resource.data.get('devoteeId', '')));
       allow create: if hasRole(newDocWs(), R_FINANCE());
       allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
       allow delete: if false;
@@ -490,7 +597,7 @@ service cloud.firestore {
     match /treasury_ledgers/{docId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && resource.data.get('devoteeId', '') == request.auth.uid);
+        || (isTenantMember(docWs()) && uidIs(resource.data.get('devoteeId', '')));
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
       allow delete: if false;
@@ -499,10 +606,10 @@ service cloud.firestore {
     match /donations/{donationId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
+        || (isTenantMember(docWs()) && uidIs(resource.data.get('donorId', '')));
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())
-        || (isTenantMember(newDocWs()) && request.resource.data.get('donorId', '') == request.auth.uid
-            && request.resource.data.get('status', '') == 'pledged'));
+        || (isTenantMember(newDocWs()) && uidIs(request.resource.data.get('donorId', ''))
+            && reqStatus() == 'pledged'));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
@@ -510,7 +617,7 @@ service cloud.firestore {
     match /tax_receipts/{receiptId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && resource.data.get('donorId', '') == request.auth.uid);
+        || (isTenantMember(docWs()) && uidIs(resource.data.get('donorId', '')));
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
       allow delete: if false;
@@ -528,8 +635,8 @@ service cloud.firestore {
       allow read: if resource == null
         || hasRole(resource.data.get('workspaceId', ''), R_OVERSIGHT());
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()))
-        && request.resource.data.get('workspaceId', '') != ''
-        && counterId == request.resource.data.get('workspaceId', '') + '_' + request.resource.data.get('series', '') + '_' + string(request.resource.data.get('year', 0))
+        && reqWorkspaceId() != ''
+        && counterId == reqWorkspaceId() + '_' + request.resource.data.get('series', '') + '_' + string(request.resource.data.get('year', 0))
         && request.resource.data.get('series', '') in ['SB-80G', 'SB-CHANDA']
         && request.resource.data.get('seq', -1) >= 0;
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE()))
@@ -543,11 +650,11 @@ service cloud.firestore {
     // Devotee PII â read: any tenant member; write: staff roles only
     match /devotees/{devoteeId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
-        || resource.data.get('userId', '') == request.auth.uid || devoteeId == request.auth.uid;
+        || uidIs(resource.data.get('userId', '')) || uidIs(devoteeId);
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())
-        || (isTenantMember(newDocWs()) && request.resource.data.get('userId', '') == request.auth.uid));
+        || (isTenantMember(newDocWs()) && uidIs(request.resource.data.get('userId', ''))));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_STAFF())
-        || (isTenantMember(docWs()) && resource.data.get('userId', '') == request.auth.uid)) && wsImmutable();
+        || (isTenantMember(docWs()) && uidIs(resource.data.get('userId', '')))) && wsImmutable();
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
@@ -560,7 +667,7 @@ service cloud.firestore {
     match /puja_bookings/{bookingId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
-        || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
+        || (isTenantMember(newDocWs()) && uidIs(request.resource.data.get('devoteeId', ''))));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
@@ -568,7 +675,7 @@ service cloud.firestore {
     match /poojaBookings/{bookingId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
-        || (isTenantMember(newDocWs()) && request.resource.data.get('devoteeId', '') == request.auth.uid));
+        || (isTenantMember(newDocWs()) && uidIs(request.resource.data.get('devoteeId', ''))));
       allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
@@ -594,13 +701,13 @@ service cloud.firestore {
 
     match /festival_rsvps/{rsvpId} {
       allow read: if isTenantMember(docWs())
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resUid()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('workspaceId', '') != ''
+        && uidIs(reqUid())
+        && reqWorkspaceId() != ''
         && request.resource.data.get('eventId', '') != ''
-        && request.resource.data.get('name', '').size() >= 2
-        && request.resource.data.get('name', '').size() <= 80
+        && reqName().size() >= 2
+        && reqName().size() <= 80
         && request.resource.data.get('headcount', 0) >= 1
         && request.resource.data.get('headcount', 0) <= 20
         // EVENTS P1: optional waitlist status + day-wise choices.
@@ -614,7 +721,7 @@ service cloud.firestore {
         // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
-      allow update: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid
+      allow update: if (isLoggedIn() && uidIs(resUid())
           && diffKeysOnly(request.resource.data, resource.data, ['headcount', 'slotId', 'days', 'status'])
           // EVENTS P1: the owner may move status ONLY waitlisted →
           // confirmed (claiming a freed place — the counters move in
@@ -623,9 +730,9 @@ service cloud.firestore {
           // by a status flip the counters cannot see.
           && (request.resource.data.get('status', 'confirmed') == resource.data.get('status', 'confirmed')
               || (resource.data.get('status', 'confirmed') == 'waitlisted'
-                  && request.resource.data.get('status', '') == 'confirmed')))
+                  && reqStatus() == 'confirmed')))
         || hasRole(docWs(), R_TRUSTEE());
-      allow delete: if (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
+      allow delete: if (isLoggedIn() && uidIs(resUid()))
         || hasRole(docWs(), R_TRUSTEE());
     }
 
@@ -639,7 +746,7 @@ service cloud.firestore {
     match /utsav_stores/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || isTenantMember(workspaceId);
       allow create, update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, R_STAFF()))
-        && request.resource.data.get('workspaceId', '') == workspaceId
+        && reqWorkspaceId() == workspaceId
         && request.resource.data.keys().hasOnly(['workspaceId', 'state', 'updatedAt', 'updatedBy']);
       allow delete: if hasRole(workspaceId, R_TRUSTEE());
     }
@@ -693,8 +800,8 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.keys().hasAll(['memberId', 'workspaceId', 'role', 'expiresAt'])
         && request.resource.data.role in ['Devotee', 'Sevadar', 'Priest', 'Accountant', 'Trustee']
-        && (demoWriteOk(request.resource.data.get('workspaceId', null))
-            || hasRole(request.resource.data.get('workspaceId', null), R_ANY_STAFF()))
+        && (demoWriteOk(newDocWs())
+            || hasRole(newDocWs(), R_ANY_STAFF()))
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt > request.time
         && request.resource.data.expiresAt <= request.time + duration.value(600, 's');
@@ -717,9 +824,9 @@ service cloud.firestore {
     // Audit logs â append-only, actor-bound. Owner gets full read + write
     match /audit_logs/{logId} {
       allow read: if isOwner() || demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
-      allow create: if (isOwner() && request.resource.data.get('actorUid', '') == request.auth.uid)
+      allow create: if (isOwner() && uidIs(request.resource.data.get('actorUid', '')))
         || ((demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
-          && request.resource.data.get('actorId', '') == request.auth.uid);
+          && uidIs(request.resource.data.get('actorId', '')));
       allow update, delete: if false;
     }
 
@@ -727,8 +834,8 @@ service cloud.firestore {
     match /verificationApplications/{appId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if isLoggedIn()
-        && request.resource.data.get('applicantUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending';
+        && uidIs(request.resource.data.get('applicantUid', ''))
+        && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -737,7 +844,7 @@ service cloud.firestore {
     match /moderationReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if isLoggedIn()
-        && request.resource.data.get('reporterUid', '') == request.auth.uid;
+        && uidIs(request.resource.data.get('reporterUid', ''));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -757,15 +864,15 @@ service cloud.firestore {
       // keys targetUid -- an item belongs to the recipient when EITHER
       // field names them.
       allow read: if isLoggedIn()
-        && (resource.data.get('targetUid', '') == request.auth.uid
-          || resource.data.get('ownerUid', '') == request.auth.uid);
+        && (uidIs(resource.data.get('targetUid', ''))
+          || uidIs(resource.data.get('ownerUid', '')));
       // The recipient may mark their own item sent -- the status field
       // only, set to 'sent'; nothing else may change.
       allow update: if isLoggedIn()
-        && (resource.data.get('targetUid', '') == request.auth.uid
-          || resource.data.get('ownerUid', '') == request.auth.uid)
+        && (uidIs(resource.data.get('targetUid', ''))
+          || uidIs(resource.data.get('ownerUid', '')))
         && diffKeysOnly(request.resource.data, resource.data, ['status'])
-        && request.resource.data.get('status', '') == 'sent';
+        && reqStatus() == 'sent';
       allow create, delete: if false; // scheduler writes via Admin SDK only
     }
 
@@ -778,7 +885,7 @@ service cloud.firestore {
     // Payment claims: any authenticated member files their own claim; only the
     match /paymentClaims/{claimId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && resource.data.get('applicantUid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resource.data.get('applicantUid', '')))
         // QUEUED #54 (owner-approved companion): the org's own finance
         // roles may read claims filed for their workspace, so Settings →
         // Billing history can list the org's claims (query
@@ -788,8 +895,8 @@ service cloud.firestore {
         // (hasRole('personal', …) is false) and remain applicant-only.
         || (isLoggedIn() && hasRole(resource.data.get('workspaceId', ''), R_FINANCE()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('applicantUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending';
+        && uidIs(request.resource.data.get('applicantUid', ''))
+        && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -797,7 +904,7 @@ service cloud.firestore {
     // Subscriptions: readable by owner or workspace members; owner activates
     match /subscriptions/{workspaceId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && request.auth.uid == workspaceId)
+        || (isSelf(workspaceId))
         || (isLoggedIn() && isTenantMember(workspaceId));
       allow create, update: if isOwner();
       allow delete: if false;
@@ -826,7 +933,7 @@ service cloud.firestore {
     match /auditEvents/{eventId} {
       allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_OVERSIGHT());
       allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
-        && request.resource.data.get('actorUid', '') == request.auth.uid;
+        && uidIs(request.resource.data.get('actorUid', ''));
       allow update, delete: if false;
     }
 
@@ -844,7 +951,7 @@ service cloud.firestore {
     // stay canonical whenever the cloud path is unavailable.
     match /cashCustodyStates/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
-      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable()) && request.resource.data.get('savedByUid', '') == request.auth.uid;
+      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable()) && uidIs(request.resource.data.get('savedByUid', ''));
       allow delete: if false;
     }
 
@@ -878,35 +985,35 @@ service cloud.firestore {
     match /approvalRequests/{requestId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isLoggedIn() && resource.data.get('requestedBy', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('requestedBy', '')));
       allow create: if isTenantMember(newDocWs())
-        && request.resource.data.get('requestedBy', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'PENDING';
+        && uidIs(request.resource.data.get('requestedBy', ''))
+        && reqStatus() == 'PENDING';
       allow update: if
         // Checker decision — oversight, not the maker, from
         // PENDING, decision fields only.
         (hasRole(docWs(), R_OVERSIGHT())
-          && resource.data.get('status', '') == 'PENDING'
-          && request.resource.data.get('status', '') in ['APPROVED', 'REJECTED']
-          && request.resource.data.get('decidedBy', '') == request.auth.uid
+          && resStatus() == 'PENDING'
+          && reqStatus() in ['APPROVED', 'REJECTED']
+          && uidIs(request.resource.data.get('decidedBy', ''))
           && request.resource.data.get('decidedBy', '') != resource.data.get('requestedBy', '')
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && diffKeys()
             .hasOnly(DECISION_KEYS())
           && wsImmutable())
         // Apply marker — the approved change was applied (or
         // failed); the decision itself cannot move here.
         || (hasRole(docWs(), R_OVERSIGHT())
-          && resource.data.get('status', '') == 'APPROVED'
-          && request.resource.data.get('status', '') == 'APPROVED'
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && resStatus() == 'APPROVED'
+          && reqStatus() == 'APPROVED'
+          && diffKeys()
             .hasOnly(['appliedAt', 'applyError'])
           && wsImmutable())
         // Maker cancel — own request, still pending.
         || (isLoggedIn()
-          && resource.data.get('requestedBy', '') == request.auth.uid
-          && resource.data.get('status', '') == 'PENDING'
-          && request.resource.data.get('status', '') == 'CANCELLED'
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && uidIs(resource.data.get('requestedBy', ''))
+          && resStatus() == 'PENDING'
+          && reqStatus() == 'CANCELLED'
+          && diffKeys()
             .hasOnly(DECISION_KEYS())
           && wsImmutable());
       allow delete: if false;
@@ -915,10 +1022,10 @@ service cloud.firestore {
     // ---- Messaging ----
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && resource.data.get('targetUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('targetUid', '')));
       allow create: if isOwner();
       allow update: if isLoggedIn()
-        && resource.data.get('targetUid', '') == request.auth.uid
+        && uidIs(resource.data.get('targetUid', ''))
         && diffKeysOnly(request.resource.data, resource.data, ['read', 'readAt']);
       allow delete: if false;
     }
@@ -998,15 +1105,15 @@ service cloud.firestore {
     // Payouts: providers request via their own doc (future), owner decides.
     match /payouts/{payoutId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resProviderUid()));
       allow create: if isOwner()
         || (isLoggedIn()
-          && request.resource.data.get('providerUid', '') == request.auth.uid
-          && request.resource.data.get('status', '') == 'requested');
+          && uidIs(reqProviderUid())
+          && reqStatus() == 'requested');
       allow update: if isOwner()
         || (isLoggedIn()
-          && resource.data.get('providerUid', '') == request.auth.uid
-          && request.resource.data.get('status', '') == 'requested');
+          && uidIs(resProviderUid())
+          && reqStatus() == 'requested');
       allow delete: if false;
     }
     // Announcements: active ones are public so the app can render banners.
@@ -1033,17 +1140,17 @@ service cloud.firestore {
     match /marketplaceGigs/{gigId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('providerUid', '') == request.auth.uid
+        && uidIs(reqProviderUid())
         && request.resource.data.get('active', true) == true;
       allow update: if isOwner()
         || (isLoggedIn()
-          && resource.data.get('providerUid', '') == request.auth.uid
-          && request.resource.data.get('providerUid', '') == request.auth.uid
+          && uidIs(resProviderUid())
+          && uidIs(reqProviderUid())
           // SECURITY P1: the provider's own edits may not move the
           // rating aggregates -- those change only via the anchored
           // blessing branch below.
           && request.resource.data.get('avgRating', 0) == resource.data.get('avgRating', 0)
-          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0))
+          && reqRatingCount() == resource.data.get('ratingCount', 0))
         // Step 7 (gig ratings) -- SECURITY P1 anchored form (see
         // p1GigRatingOk): a devotee's blessing may nudge the aggregate
         // ONLY when the same transaction creates the gigRatings doc
@@ -1053,7 +1160,7 @@ service cloud.firestore {
         // source of truth.
         || (isLoggedIn()
           && diffKeysOnly(request.resource.data, resource.data, ['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
-          && request.resource.data.get('providerUid', '') == resource.data.get('providerUid', '')
+          && reqProviderUid() == resProviderUid()
           && request.resource.data.get('avgRating', 0) >= 1
           && request.resource.data.get('avgRating', 0) <= 5
           && p1GigRatingOk(gigId));
@@ -1065,9 +1172,9 @@ service cloud.firestore {
     match /gigRatings/{orderId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('clientUid', '') == request.auth.uid
-        && request.resource.data.get('rating', 0) >= 1
-        && request.resource.data.get('rating', 0) <= 5
+        && uidIs(request.resource.data.get('clientUid', ''))
+        && reqRating() >= 1
+        && reqRating() <= 5
         && request.resource.data.keys().hasOnly(
           ['gigId', 'orderId', 'clientUid', 'providerUid', 'rating', 'review', 'createdAt'])
         && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.status == 'completed'
@@ -1078,11 +1185,11 @@ service cloud.firestore {
     match /marketplaceOrders/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
-          resource.data.get('clientUid', '') == request.auth.uid
-          || resource.data.get('providerUid', '') == request.auth.uid));
+          uidIs(resClientUid())
+          || uidIs(resProviderUid())));
       allow create: if isLoggedIn()
-        && request.resource.data.get('clientUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending_payment';
+        && uidIs(request.resource.data.get('clientUid', ''))
+        && reqStatus() == 'pending_payment';
       allow update: if isOwner()
         || (isLoggedIn()
           && request.resource.data.get('commissionPercent', 0) == resource.data.get('commissionPercent', 0)
@@ -1090,61 +1197,61 @@ service cloud.firestore {
           && request.resource.data.get('providerNet', 0) == resource.data.get('providerNet', 0)
           && (
           // Provider: accept / decline / progress; 'completed' only from a live status
-          (resource.data.get('providerUid', '') == request.auth.uid
-            && request.resource.data.get('status', '') in ['accepted', 'cancelled', 'in_progress', 'completed']
-            && (request.resource.data.get('status', '') != 'completed'
-              || resource.data.get('status', '') in ORDER_ACTIVE()))
+          (uidIs(resProviderUid())
+            && reqStatus() in ['accepted', 'cancelled', 'in_progress', 'completed']
+            && (reqStatus() != 'completed'
+              || resStatus() in ORDER_ACTIVE()))
           // Provider (pay-after-task): task done, now awaiting the platform commission
-          || (resource.data.get('providerUid', '') == request.auth.uid
+          || (uidIs(resProviderUid())
             && resource.data.get('payAfterTask', false) == true
-            && request.resource.data.get('status', '') == 'awaiting_commission'
-            && resource.data.get('status', '') in ORDER_ACTIVE())
+            && reqStatus() == 'awaiting_commission'
+            && resStatus() in ORDER_ACTIVE())
           // Provider (Rail-2): dispute a payment proof â back to pending_payment
-          || (resource.data.get('providerUid', '') == request.auth.uid
+          || (uidIs(resProviderUid())
             && resource.data.get('rail', '') == 'rail2'
-            && request.resource.data.get('status', '') == 'pending_payment'
+            && reqStatus() == 'pending_payment'
             && request.resource.data.get('rail2Proof', {}).get('disputed', false) == true)
           // Client: confirm completion (only from a live status), or cancel
-          || (resource.data.get('clientUid', '') == request.auth.uid
-            && request.resource.data.get('status', '') in ['completed', 'cancelled']
-            && (request.resource.data.get('status', '') != 'completed'
-              || resource.data.get('status', '') in ORDER_ACTIVE()))
+          || (uidIs(resClientUid())
+            && reqStatus() in ['completed', 'cancelled']
+            && (reqStatus() != 'completed'
+              || resStatus() in ORDER_ACTIVE()))
           // Client (wallet): pay from wallet â pending_payment becomes paid.
-          || (resource.data.get('clientUid', '') == request.auth.uid
+          || (uidIs(resClientUid())
             && resource.data.get('payWithWallet', false) == true
-            && resource.data.get('status', '') == 'pending_payment'
-            && request.resource.data.get('status', '') == 'paid'
+            && resStatus() == 'pending_payment'
+            && reqStatus() == 'paid'
             && request.resource.data.get('escrowHeld', 0) == resource.data.get('amountGross', 0))
           // Client (Rail-2): submit payment proof â pending_payment becomes paid
-          || (resource.data.get('clientUid', '') == request.auth.uid
+          || (uidIs(resClientUid())
             && resource.data.get('rail', '') == 'rail2'
-            && resource.data.get('status', '') == 'pending_payment'
-            && request.resource.data.get('status', '') == 'paid'
+            && resStatus() == 'pending_payment'
+            && reqStatus() == 'paid'
             && request.resource.data.get('rail2Proof', {}).get('trxId', '') != '')
           // AUDIT FIX #4 (2026-10-19): Provider (Rail-1): confirm direct
           // payment received (bKash/Nagad/UPI/cash moved outside the app) --
           // pending_payment becomes paid. Rail-1 had no paid path at all.
-          || (resource.data.get('providerUid', '') == request.auth.uid
-            && resource.data.get('status', '') == 'pending_payment'
-            && request.resource.data.get('status', '') == 'paid'
+          || (uidIs(resProviderUid())
+            && resStatus() == 'pending_payment'
+            && reqStatus() == 'paid'
             && resource.data.get('rail', '') == 'rail1'
             && resource.data.get('payWithWallet', false) == false
             && diffKeysOnly(request.resource.data, resource.data, ['status', 'paidAt', 'paymentNote', 'updatedAt']))
           // PHASE 3 â dispute freeze: an order party moves an ACTIVE order to
           || (isLoggedIn()
-            && (resource.data.get('providerUid', '') == request.auth.uid
-              || resource.data.get('clientUid', '') == request.auth.uid)
-            && resource.data.get('status', '') in ORDER_ACTIVE()
-            && request.resource.data.get('status', '') == 'commission_held'
+            && (uidIs(resProviderUid())
+              || uidIs(resClientUid()))
+            && resStatus() in ORDER_ACTIVE()
+            && reqStatus() == 'commission_held'
             && request.resource.data.get('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)
           // openDispute(): an order party flags an ACTIVE order 'disputed'.
           // The dispute record itself lives in marketplaceDisputes (ruled
           // separately); on the order only status + updatedAt may change here.
           || (isLoggedIn()
-            && (resource.data.get('providerUid', '') == request.auth.uid
-              || resource.data.get('clientUid', '') == request.auth.uid)
-            && resource.data.get('status', '') in ORDER_ACTIVE()
-            && request.resource.data.get('status', '') == 'disputed'
+            && (uidIs(resProviderUid())
+              || uidIs(resClientUid()))
+            && resStatus() in ORDER_ACTIVE()
+            && reqStatus() == 'disputed'
             && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY()))));
       allow delete: if false;
     }
@@ -1155,9 +1262,9 @@ service cloud.firestore {
           get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
           || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid));
       allow create: if isLoggedIn()
-        && request.resource.data.get('orderId', '') == orderId
-        && request.resource.data.get('requestedBy', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'requested'
+        && reqOrderId() == orderId
+        && uidIs(request.resource.data.get('requestedBy', ''))
+        && reqStatus() == 'requested'
         && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('status', '') == 'completed'
         && (get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
           || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid);
@@ -1175,12 +1282,12 @@ service cloud.firestore {
     match /marketplaceDisputes/{disputeId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
-          resource.data.get('raisedByUid', '') == request.auth.uid
-          || resource.data.get('providerUid', '') == request.auth.uid
-          || resource.data.get('clientUid', '') == request.auth.uid));
+          uidIs(resource.data.get('raisedByUid', ''))
+          || uidIs(resProviderUid())
+          || uidIs(resClientUid())));
       allow create: if isLoggedIn()
-        && request.resource.data.get('raisedByUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'open';
+        && uidIs(request.resource.data.get('raisedByUid', ''))
+        && reqStatus() == 'open';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1194,20 +1301,20 @@ service cloud.firestore {
     // ---- Marketplace anti-bypass + provider payments ----
     match /providerPaymentMethods/{mId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resProviderUid()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('providerUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') in ['pending', 'platform_assigned'];
+        && uidIs(reqProviderUid())
+        && reqStatus() in ['pending', 'platform_assigned'];
       allow update: if isOwner();
       allow delete: if false;
     }
     // Provider â owner inquiries: provider creates + reads own; owner manages.
     match /providerInquiries/{inqId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resProviderUid()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('providerUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'open';
+        && uidIs(reqProviderUid())
+        && reqStatus() == 'open';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1215,8 +1322,8 @@ service cloud.firestore {
     match /bypassFlags/{flagId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if isLoggedIn()
-        && request.resource.data.get('senderUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending';
+        && uidIs(request.resource.data.get('senderUid', ''))
+        && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1228,26 +1335,26 @@ service cloud.firestore {
     // Provider strikes: owner-only writes; provider reads own (transparency).
     match /providerStrikes/{strikeId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resProviderUid()));
       allow create, update: if isOwner();
       allow delete: if false;
     }
     // ---- Rail-2: platform dues (Layer 6) ----
     match /platformDues/{dueId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('providerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resProviderUid()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('status', '') == 'pending'
-        && request.resource.data.get('providerUid', '') ==
-           get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('providerUid', '')
-        && get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('rail', '') == 'rail2';
+        && reqStatus() == 'pending'
+        && reqProviderUid() ==
+           get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('providerUid', '')
+        && get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('rail', '') == 'rail2';
       allow update: if isOwner();
       allow delete: if false;
     }
     // Provider marketplace profile (dues suspension flags): owner writes,
     match /marketplaceProviders/{providerUid} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && providerUid == request.auth.uid);
+        || (isLoggedIn() && uidIs(providerUid));
       allow create, update: if isOwner();
       allow delete: if false;
     }
@@ -1312,7 +1419,7 @@ service cloud.firestore {
         && requestId != '' && requestId != old.get('lastCreditP2PRequestId', '')
         && exists(rpath)
         && rdata.get('receiverId', '') == uid
-        && rdata.get('senderId', '') == request.auth.uid
+        && uidIs(rdata.get('senderId', ''))
         && rdata.get('status', '') == 'accepted'
         && amount > 0
         && data.get('currency', '') == rdata.get('currency', '')
@@ -1333,7 +1440,7 @@ service cloud.firestore {
       return requestId != ''
         && exists(rpath)
         && rdata.get('receiverId', '') == uid
-        && rdata.get('senderId', '') == request.auth.uid
+        && uidIs(rdata.get('senderId', ''))
         && rdata.get('status', '') == 'accepted'
         && amount > 0
         && data.get('balance', -1) == amount
@@ -1374,7 +1481,7 @@ service cloud.firestore {
         && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
         && exists(opath)
         && order.get('providerUid', '') == uid
-        && order.get('providerUid', '') == request.auth.uid
+        && uidIs(order.get('providerUid', ''))
         && order.get('status', '') in ORDER_ACTIVE()
         && cap > 0
         && debit > 0 && debit <= cap
@@ -1389,7 +1496,7 @@ service cloud.firestore {
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
       let freeOld = old.get('freeSevasRemaining', 0);
       let freeNew = data.get('freeSevasRemaining', -1);
-      return resource.data.get('uid', '') == request.auth.uid
+      return uidIs(resUid())
         && diffKeysOnly(data, old, ['freeSevasRemaining', 'completedSevasSinceVerified', 'lastCommissionOrderId', 'updatedAt'])
         && data.get('completedSevasSinceVerified', -1) == old.get('completedSevasSinceVerified', 0) + 1
         && (freeNew == freeOld || (freeOld > 0 && freeNew == freeOld - 1))
@@ -1409,7 +1516,7 @@ service cloud.firestore {
     function p1GigRatingOk(gigId) {
       let rid = request.resource.data.get('lastRatedOrderId', '');
       let rpath = /databases/$(database)/documents/gigRatings/$(rid);
-      let newCount = request.resource.data.get('ratingCount', 0);
+      let newCount = reqRatingCount();
       let oldCount = resource.data.get('ratingCount', 0);
       let newSum = request.resource.data.get('avgRating', 0) * newCount;
       let oldSum = resource.data.get('avgRating', 0) * oldCount;
@@ -1424,7 +1531,7 @@ service cloud.firestore {
     function p1PurohitRatingOk(purohitId) {
       let rid = request.resource.data.get('lastReviewId', '');
       let rpath = /databases/$(database)/documents/reviews/$(rid);
-      let newCount = request.resource.data.get('ratingCount', 0);
+      let newCount = reqRatingCount();
       let oldCount = resource.data.get('ratingCount', 0);
       let newSum = request.resource.data.get('ratingAggregate', 0) * newCount;
       let oldSum = resource.data.get('ratingAggregate', 0) * oldCount;
@@ -1440,7 +1547,7 @@ service cloud.firestore {
     function p1JyotishRatingOk(jyotishId) {
       let rid = request.resource.data.get('lastReviewId', '');
       let rpath = /databases/$(database)/documents/jyotishReviews/$(rid);
-      let newCount = request.resource.data.get('ratingCount', 0);
+      let newCount = reqRatingCount();
       let oldCount = resource.data.get('ratingCount', 0);
       let newSum = request.resource.data.get('ratingAggregate', 0) * newCount;
       let oldSum = resource.data.get('ratingAggregate', 0) * oldCount;
@@ -1478,7 +1585,7 @@ service cloud.firestore {
     // may claim, which also heals the stored value to canonical.
     function jyotishTierClaimOk() {
       let from = resource.data.get('verificationTier', '');
-      let to = request.resource.data.get('verificationTier', '');
+      let to = reqVerificationTier();
       let endorsements = resource.data.get('endorsementCount', 0);
       let gigs = resource.data.get('completedConsultations', 0);
       let rating = resource.data.get('ratingAggregate', 0);
@@ -1531,9 +1638,9 @@ service cloud.firestore {
     }
     match /wallets/{uid} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uid == request.auth.uid);
+        || (isLoggedIn() && uidIs(uid));
       allow create: if isOwner()
-        || (isLoggedIn() && uid == request.auth.uid
+        || (isLoggedIn() && uidIs(uid)
           && request.resource.data.get('balance', -1) == 0
           && request.resource.data.get('totalToppedUp', -1) == 0
           && request.resource.data.get('totalSpent', -1) == 0)
@@ -1541,9 +1648,9 @@ service cloud.firestore {
         || (isLoggedIn() && p2pSettlementCreditCreateOk(uid))
         || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
-        || (isLoggedIn() && uid == request.auth.uid && walletDebitOk())
-        || (isLoggedIn() && uid == request.auth.uid && p2pSettlementDebitOk(uid))
-        || (isLoggedIn() && uid == request.auth.uid && commissionHoldOk(uid))
+        || (isLoggedIn() && uidIs(uid) && walletDebitOk())
+        || (isLoggedIn() && uidIs(uid) && p2pSettlementDebitOk(uid))
+        || (isLoggedIn() && uidIs(uid) && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
         || (isLoggedIn() && p2pSettlementCreditOk(uid))
         || (isLoggedIn() && referralWalletCreditOk(uid));
@@ -1552,38 +1659,38 @@ service cloud.firestore {
     // Wallet transactions: append-only ledger. Clients record their own
     match /walletTransactions/{txnId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resUid()));
       allow create: if isOwner()
         || (isLoggedIn()
-          && request.resource.data.get('uid', '') == request.auth.uid
+          && uidIs(reqUid())
           && request.resource.data.get('type', '') in ['spend', 'topup_request']
-          && request.resource.data.get('amount', 0) > 0)
+          && reqAmount() > 0)
         || (isLoggedIn()
           && request.resource.data.get('type', '') in ['receive', 'commission']
-          && request.resource.data.get('orderId', '') != ''
-          && (get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('clientUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/marketplaceOrders/$(request.resource.data.get('orderId', ''))).data.get('providerUid', '') == request.auth.uid))
+          && reqOrderId() != ''
+          && (get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('clientUid', '') == request.auth.uid
+            || get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('providerUid', '') == request.auth.uid))
         // Seva Pro Phase 4: referral guidance credit, anchored to the validated credit doc.
         || (isLoggedIn()
           && request.resource.data.get('type', '') == 'referral_credit'
-          && request.resource.data.get('uid', '') != ''
+          && reqUid() != ''
           && request.resource.data.get('creditId', '') != ''
-          && request.resource.data.get('amount', 0) > 0
+          && reqAmount() > 0
           && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', '')))
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('referrerUid', '') == request.resource.data.get('uid', '')
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('referrerUid', '') == reqUid()
           && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('status', '') == 'SETTLED'
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == request.resource.data.get('amount', 0))
+          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == reqAmount())
         // P2P settlement receiver receipt: the sender's transaction writes
         // the receiver's audit-trail doc. Anchored to the live p2pRequests
         // doc — sender-bound, receiver-bound, exact amount, still accepted.
         || (isLoggedIn()
           && request.resource.data.get('type', '') == 'p2p_receive'
           && request.resource.data.get('requestId', '') != ''
-          && request.resource.data.get('amount', 0) > 0
-          && request.resource.data.get('uid', '') != request.auth.uid
+          && reqAmount() > 0
+          && reqUid() != request.auth.uid
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('senderId', '') == request.auth.uid
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('receiverId', '') == request.resource.data.get('uid', '')
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('amount', 0) == request.resource.data.get('amount', 0)
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('receiverId', '') == reqUid()
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('amount', 0) == reqAmount()
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('currency', '') == request.resource.data.get('currency', '')
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('status', '') == 'accepted');
       allow update, delete: if false;
@@ -1591,11 +1698,11 @@ service cloud.firestore {
     // Top-up claims: user files (pending only); owner approves â credits
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resUid()));
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending'
-        && request.resource.data.get('amount', 0) > 0
+        && uidIs(reqUid())
+        && reqStatus() == 'pending'
+        && reqAmount() > 0
         && request.resource.data.get('currency', '') in ['BDT', 'INR', 'USD'];
       allow update: if isOwner();
       allow delete: if false;
@@ -1604,14 +1711,14 @@ service cloud.firestore {
     match /commissionPayments/{payId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
-          resource.data.get('paidByUid', '') == request.auth.uid
-          || resource.data.get('clientUid', '') == request.auth.uid
-          || resource.data.get('providerUid', '') == request.auth.uid));
+          uidIs(resource.data.get('paidByUid', ''))
+          || uidIs(resClientUid())
+          || uidIs(resProviderUid())));
       allow create: if isLoggedIn()
-        && request.resource.data.get('paidByUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending'
-        && request.resource.data.get('amount', 0) > 0
-        && request.resource.data.get('orderId', '') != '';
+        && uidIs(request.resource.data.get('paidByUid', ''))
+        && reqStatus() == 'pending'
+        && reqAmount() > 0
+        && reqOrderId() != '';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1619,8 +1726,8 @@ service cloud.firestore {
     match /platformRevenue/{orderId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if isLoggedIn()
-        && request.resource.data.get('orderId', '') == orderId
-        && request.resource.data.get('recordedBy', '') == request.auth.uid
+        && reqOrderId() == orderId
+        && uidIs(request.resource.data.get('recordedBy', ''))
         && request.resource.data.get('amount', -1) >= 0
         && request.resource.data.get('amount', -1) <=
              get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -1)
@@ -1640,27 +1747,27 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/crisisCoordinators/$(ws + '_' + request.auth.uid));
       }
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
-        || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resource.data.get('senderUid', '')))
         // Notified responder: someone in this event's `notified` subcollection
         // (family circle / nearby Sanatani / coordinator pinged by fan-out).
         // ACTIVE-ONLY: the moment the SOS resolves, their read access ends —
         // the responder map can never render a resolved victim's location.
-        || (isLoggedIn() && resource.data.get('status', '') == 'active'
+        || (isLoggedIn() && resStatus() == 'active'
           && exists(/databases/$(database)/documents/crisis_events/$(eventId)/notified/$(request.auth.uid)));
       allow create: if isLoggedIn()
-        && request.resource.data.get('senderUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('senderUid', ''))
         && (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()) || newDocWs() == null);
       allow update: if (demoWriteOk(docWs())
           || hasRole(docWs(), R_TRUSTEE())
           // Sender: "I'm safe" â cancel own SOS.
-          || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
+          || (isLoggedIn() && uidIs(resource.data.get('senderUid', ''))
             && diffKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
-            && request.resource.data.get('status', '') in ['cancelled', 'resolved'])
+            && reqStatus() in ['cancelled', 'resolved'])
           // Sender: attach the voice-note vault URL after the audio upload
           // finishes (uploadVoiceNote / flushVoiceOutbox). Field-pinned to
           // the pointer alone — no other sender field may change here.
-          || (isLoggedIn() && resource.data.get('senderUid', '') == request.auth.uid
+          || (isLoggedIn() && uidIs(resource.data.get('senderUid', ''))
             && diffKeys()
               .hasOnly(['voiceNoteUrl', 'updatedAt']))
           // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
@@ -1668,7 +1775,7 @@ service cloud.firestore {
             && diffKeys()
               .hasOnly(['status', 'acknowledgedBy', 'acknowledgedAt', 'ackCount',
                 'resolvedAt', 'outcomeNote', 'updatedAt'])
-            && request.resource.data.get('status', '') in ['acknowledged', 'resolved'])
+            && reqStatus() in ['acknowledged', 'resolved'])
           // Coordinator edge: assign sevadars (assignSevadars) — appends to
           // the assignments array, bumps responderCount, flips
           // active -> responding. Assignments stay a list so a bad write
@@ -1676,22 +1783,22 @@ service cloud.firestore {
           || (isCrisisCoord(docWs())
             && diffKeys()
               .hasOnly(['assignments', 'status', 'responderCount', 'updatedAt'])
-            && request.resource.data.get('status', '')
+            && reqStatus()
               in ['active', 'responding', 'acknowledged']
             && request.resource.data.get('assignments', []) is list)
           // Tenant member: best-effort ack bump from ackSOS; only -> acknowledged.
           || (isTenantMember(docWs())
             && diffKeys()
               .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
-            && request.resource.data.get('status', '') == 'acknowledged'))
+            && reqStatus() == 'acknowledged'))
         && wsImmutable();
       allow delete: if hasRole(docWs(), R_TRUSTEE());
       match /responses/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
-        allow create, update: if isLoggedIn() && request.auth.uid == uid
-          && request.resource.data.get('uid', '') == uid
-          && request.resource.data.get('status', '') in ['coming', 'arrived'];
+        allow create, update: if isSelf(uid)
+          && reqUid() == uid
+          && reqStatus() in ['coming', 'arrived'];
         allow delete: if false;
       }
       // Nearby-ping fan-out: sender's client writes one doc per nearby uid
@@ -1700,7 +1807,7 @@ service cloud.firestore {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
         allow create: if isLoggedIn()
-          && request.resource.data.get('uid', '') == uid
+          && reqUid() == uid
           && request.resource.data.keys()
             .hasOnly(['uid', 'notifiedAt', 'distanceM'])
           && (
@@ -1718,22 +1825,22 @@ service cloud.firestore {
     // Coordinator edge docs (crisisCoordinators/{orgId}_{uid}): trustee-managed.
     match /crisisCoordinators/{edgeId} {
       allow read: if isLoggedIn()
-        && (resource.data.get('uid', '') == request.auth.uid
+        && (uidIs(resUid())
           || isTenantMember(resource.data.get('orgId', null)));
-      allow create, update: if isOrgTrustee(request.resource.data.get('orgId', ''))
-        && request.resource.data.get('uid', '') != ''
+      allow create, update: if isOrgTrustee(reqOrgId())
+        && reqUid() != ''
         && (resource == null
-          || request.resource.data.get('orgId', '') == resource.data.get('orgId', ''))
-        && edgeId == request.resource.data.get('orgId', '') + '_'
-          + request.resource.data.get('uid', '');
+          || reqOrgId() == resource.data.get('orgId', ''))
+        && edgeId == reqOrgId() + '_'
+          + reqUid();
       allow delete: if isOrgTrustee(resource.data.get('orgId', ''));
     }
     // Abuse counters (crisisAbuse/{uid}): self-only read/write.
     match /crisisAbuse/{uid} {
-      allow read, write: if isLoggedIn() && request.auth.uid == uid;
+      allow read, write: if isSelf(uid);
     }
     match /emergencyContacts/{uid} {
-      allow read, write: if isLoggedIn() && request.auth.uid == uid;
+      allow read, write: if isSelf(uid);
     }
 
 
@@ -1780,30 +1887,30 @@ service cloud.firestore {
               && (request.resource.data.get('optionId', '') in pdata.get('options', {}).keys())
               && request.resource.data.keys().hasOnly(['optionId', 'votedAt']))
           || (kind == 'multi'
-              && request.resource.data.get('optionIds', []) is list
-              && request.resource.data.get('optionIds', []).size() >= 1
-              && request.resource.data.get('optionIds', []).size() <= 5
-              && pdata.get('options', {}).keys().hasAll(request.resource.data.get('optionIds', []))
-              && (!('abstain' in request.resource.data.get('optionIds', []))
-                  || request.resource.data.get('optionIds', []).size() == 1)
+              && reqOptionIds() is list
+              && reqOptionIds().size() >= 1
+              && reqOptionIds().size() <= 5
+              && pdata.get('options', {}).keys().hasAll(reqOptionIds())
+              && (!('abstain' in reqOptionIds())
+                  || reqOptionIds().size() == 1)
               && request.resource.data.keys().hasOnly(['optionIds', 'votedAt']))
           || (kind == 'text'
-              && request.resource.data.get('text', '') is string
-              && request.resource.data.get('text', '').size() >= 1
-              && request.resource.data.get('text', '').size() <= 280
+              && reqText() is string
+              && reqText().size() >= 1
+              && reqText().size() <= 280
               && request.resource.data.keys().hasOnly(['text', 'votedAt'])));
     }
     function pollVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       let oldOpts = resource.data.get('options', {});
-      let newOpts = request.resource.data.get('options', {});
+      let newOpts = reqOptions();
       // Every getAfter access sits to the RIGHT of existsAfter(vp) in
       // the && chain (the SECURITY P1 helper pattern): for writes that
       // carry no ballot — conclude, notes — this function must return
       // false cleanly, never error.
       return !exists(vp) && existsAfter(vp)
-        && resource.data.get('status', '') == 'ACTIVE'
-        && request.resource.data.get('status', '') == 'ACTIVE'
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
         && (getAfter(vp).data.get('optionId', '') in oldOpts.keys())
         && newOpts.diff(oldOpts).addedKeys().size() == 0
         && newOpts.diff(oldOpts).removedKeys().size() == 0
@@ -1828,10 +1935,10 @@ service cloud.firestore {
     function pollMultiVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       let oldOpts = resource.data.get('options', {});
-      let newOpts = request.resource.data.get('options', {});
+      let newOpts = reqOptions();
       return !exists(vp) && existsAfter(vp)
-        && resource.data.get('status', '') == 'ACTIVE'
-        && request.resource.data.get('status', '') == 'ACTIVE'
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
         && resource.data.get('kind', 'choice') == 'multi'
         && getAfter(vp).data.get('optionIds', []) is list
         && getAfter(vp).data.get('optionIds', []).size() >= 1
@@ -1854,13 +1961,13 @@ service cloud.firestore {
     function pollTextVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       return !exists(vp) && existsAfter(vp)
-        && resource.data.get('status', '') == 'ACTIVE'
-        && request.resource.data.get('status', '') == 'ACTIVE'
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
         && resource.data.get('kind', 'choice') == 'text'
         && getAfter(vp).data.get('text', '') is string
         && getAfter(vp).data.get('text', '').size() >= 1
         && getAfter(vp).data.get('text', '').size() <= 280
-        && request.resource.data.get('options', {}) == resource.data.get('options', {})
+        && reqOptions() == resource.data.get('options', {})
         && request.resource.data.get('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && diffKeysOnly(request.resource.data, resource.data, ['totalVotes', 'updatedAt']);
     }
@@ -1870,24 +1977,24 @@ service cloud.firestore {
     // record. The shape (kind), the audience and the workspace are
     // NOT editable here; relaunch for those.
     function pollEditOk() {
-      return resource.data.get('status', '') == 'ACTIVE'
-        && request.resource.data.get('status', '') == 'ACTIVE'
+      return resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
         && pollBaseTotal(resource.data) == 0
         && diffKeys()
              .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'resultVisibility', 'updatedAt'])
         && request.resource.data.get('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
         && (resource.data.get('kind', 'choice') == 'text'
-            || (request.resource.data.get('options', {}).size() >= 2
-                && request.resource.data.get('options', {}).size() <= 5));
+            || (reqOptions().size() >= 2
+                && reqOptions().size() <= 5));
     }
     // Committee management: conclude (early or at deadline) and the
     // official note. Nothing else on the doc may change here.
     function pollManageOk() {
       return diffKeys()
                .hasOnly(['status', 'adminNote', 'updatedAt'])
-        && (request.resource.data.get('status', '') == resource.data.get('status', '')
-            || (resource.data.get('status', '') == 'ACTIVE'
-                && request.resource.data.get('status', '') == 'CONCLUDED'));
+        && (reqStatus() == resStatus()
+            || (resStatus() == 'ACTIVE'
+                && reqStatus() == 'CONCLUDED'));
     }
     // Deadline truth no longer waits for a manager's visit: ANY member
     // of the poll's workspace may land the conclusion once the stored
@@ -1895,10 +2002,10 @@ service cloud.firestore {
     function pollAutoConcludeOk() {
       return diffKeys()
                .hasOnly(KEYS_STATUS_ONLY())
-        && resource.data.get('status', '') == 'ACTIVE'
-        && request.resource.data.get('status', '') == 'CONCLUDED'
-        && resource.data.get('expiresAtTs', null) != null
-        && request.time >= resource.data.get('expiresAtTs', null);
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'CONCLUDED'
+        && resExpiresAtTs() != null
+        && request.time >= resExpiresAtTs();
     }
 
     // Polls — scoped to the poll's OWN workspace (see ballot-box note).
@@ -1909,7 +2016,7 @@ service cloud.firestore {
                 || pollCommittee(docWs())));
       allow create: if demoWriteOk(newDocWs())
         || (pollCommittee(newDocWs())
-            && request.resource.data.get('status', '') == 'ACTIVE'
+            && reqStatus() == 'ACTIVE'
             && request.resource.data.get('totalVotes', 0) == 0
             && request.resource.data.get('votedUsers', {}).size() == 0
             && request.resource.data.get('targetAudience', '') in ['ALL_MEMBERS', 'MANAGERS']
@@ -1917,9 +2024,9 @@ service cloud.firestore {
             // and multi keep the P0 2–5 law (an abstain entry counts
             // toward the five).
             && (request.resource.data.get('kind', 'choice') == 'text'
-                ? request.resource.data.get('options', {}).size() == 0
-                : (request.resource.data.get('options', {}).size() >= 2
-                   && request.resource.data.get('options', {}).size() <= 5))
+                ? reqOptions().size() == 0
+                : (reqOptions().size() >= 2
+                   && reqOptions().size() <= 5))
             // EVENTS P1: the shape and the result-visibility rule are
             // chosen AT LAUNCH. No update path below ever lists kind
             // as writable again, and resultVisibility may move only
@@ -1957,7 +2064,7 @@ service cloud.firestore {
           // ballot remains a choice poll, whose named reveal stays
           // committee-gated exactly as in P0).
           || (pollKindOf(pollId) == 'text' && pollCommittee(pollWs(pollId))));
-        allow create: if voterUid == request.auth.uid && pollBallotOk(pollId);
+        allow create: if uidIs(voterUid) && pollBallotOk(pollId);
         allow update, delete: if false;
       }
     }
@@ -2003,14 +2110,14 @@ service cloud.firestore {
         && (v.size() == 0 || request.resource.data.get('votesInFavor', 0) == 1)
         && request.resource.data.get('quorumMet', false) == false
         && (request.resource.data.get('proposedByUid', '') == ''
-            || request.resource.data.get('proposedByUid', '') == request.auth.uid);
+            || uidIs(request.resource.data.get('proposedByUid', '')));
     }
     function resVoteOk() {
       let uid = request.auth.uid;
       let oldV = resource.data.get('voters', {});
       let newV = request.resource.data.get('voters', {});
       let choice = newV.get(uid, '');
-      return resource.data.get('status', '') == 'Pending Review'
+      return resStatus() == 'Pending Review'
         && !(uid in oldV.keys())
         && (choice == 'favor' || choice == 'against')
         && newV.size() == oldV.size() + 1
@@ -2023,28 +2130,28 @@ service cloud.firestore {
              == resource.data.get('votesAgainst', 0) + (choice == 'against' ? 1 : 0)
         && diffKeys()
              .hasOnly(['voters', 'votesInFavor', 'votesAgainst', 'updatedAt'])
-        && (resource.data.get('expiresAtTs', null) == null
-            || request.time < resource.data.get('expiresAtTs', null));
+        && (resExpiresAtTs() == null
+            || request.time < resExpiresAtTs());
     }
     function resConcludeOk() {
-      return resource.data.get('status', '') == 'Pending Review'
-        && request.resource.data.get('status', '') in ['Passed', 'Rejected', 'Deferred']
+      return resStatus() == 'Pending Review'
+        && reqStatus() in ['Passed', 'Rejected', 'Deferred']
         && diffKeys()
              .hasOnly(['status', 'quorumMet', 'details', 'concludedAt', 'updatedAt'])
         && request.resource.data.get('votesInFavor', 0) == resource.data.get('votesInFavor', 0)
         && request.resource.data.get('votesAgainst', 0) == resource.data.get('votesAgainst', 0)
         && request.resource.data.get('boardSize', 0) == resource.data.get('boardSize', 0)
         && resOutcomeOk(request.resource.data)
-        && ((resource.data.get('expiresAtTs', null) != null
-              && request.time >= resource.data.get('expiresAtTs', null))
+        && ((resExpiresAtTs() != null
+              && request.time >= resExpiresAtTs())
             || (resource.data.get('boardSize', 0) > 0
                 && resource.data.get('votesInFavor', 0) + resource.data.get('votesAgainst', 0)
                      >= resource.data.get('boardSize', 0))
-            || resource.data.get('expiresAtTs', null) == null);
+            || resExpiresAtTs() == null);
     }
     function resEditOk() {
-      return resource.data.get('status', '') == 'Pending Review'
-        && request.resource.data.get('status', '') == 'Pending Review'
+      return resStatus() == 'Pending Review'
+        && reqStatus() == 'Pending Review'
         && diffKeys()
              .hasOnly(['title', 'description', 'details', 'secondedBy', 'bannerUrl', 'updatedAt']);
     }
@@ -2053,7 +2160,7 @@ service cloud.firestore {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if demoWriteOk(newDocWs())
         || (isTenantMember(newDocWs()) && roleIn(R_ANY_STAFF())
-            && request.resource.data.get('status', '') == 'Pending Review'
+            && reqStatus() == 'Pending Review'
             && resCreateCountsOk());
       allow update: if (demoWriteOk(docWs()) && wsImmutable())
         || (isTenantMember(docWs()) && wsImmutable() && hasRole(docWs(), resBoardRoles()) && resVoteOk())
@@ -2062,7 +2169,7 @@ service cloud.firestore {
       // Archive-only once decided; deletion only for never-voted
       // drafts (the proposer's automatic vote is the one allowed mark).
       allow delete: if hasRole(docWs(), R_TRUSTEE())
-        && resource.data.get('status', '') == 'Pending Review'
+        && resStatus() == 'Pending Review'
         && resource.data.get('votesInFavor', 0) + resource.data.get('votesAgainst', 0) <= 1
         && resource.data.get('voters', {}).size() <= 1;
     }
@@ -2160,7 +2267,7 @@ service cloud.firestore {
     match /orgLiveStatus/{orgId} {
       allow read: if true;
       allow create, update: if isLoggedIn()
-        && request.resource.data.get('orgId', '') == orgId
+        && reqOrgId() == orgId
         && request.resource.data.get('isLive', null) is bool
         && request.resource.data.get('updatedAt', null) is number
         && request.resource.data.keys().hasOnly([
@@ -2179,10 +2286,10 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.get('youtubeId', '') is string
         && request.resource.data.get('youtubeId', '').size() == 11
-        && request.resource.data.get('title', '') is string
-        && request.resource.data.get('title', '').size() >= 1
-        && request.resource.data.get('title', '').size() <= 120
-        && request.resource.data.get('sharedBy', '') == request.auth.uid
+        && reqTitle() is string
+        && reqTitle().size() >= 1
+        && reqTitle().size() <= 120
+        && uidIs(request.resource.data.get('sharedBy', ''))
         && request.resource.data.get('category', '') in ['shared', 'seva_demo', 'live_event']
         && request.resource.data.keys().hasOnly([
           'youtubeId', 'title', 'thumbnailUrl', 'duration', 'sharedBy',
@@ -2193,7 +2300,7 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('sharedBy', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('sharedBy', '')));
     }
 
     // Sangam Stories — 24h disappearing moments. Ephemeral by design.
@@ -2205,10 +2312,10 @@ service cloud.firestore {
     match /sangamStories/{storyId} {
       allow read: if isLoggedIn();
       allow create: if isLoggedIn()
-        && request.resource.data.get('authorUid', '') == request.auth.uid
-        && request.resource.data.get('authorName', '') is string
-        && request.resource.data.get('authorName', '').size() >= 1
-        && request.resource.data.get('authorName', '').size() <= 60
+        && uidIs(reqAuthorUid())
+        && reqAuthorName() is string
+        && reqAuthorName().size() >= 1
+        && reqAuthorName().size() <= 60
         && request.resource.data.get('mediaType', '') in ['photo', 'text']
         && request.resource.data.get('expiresAt', 0) is number
         && request.resource.data.get('expiresAt', 0) > request.time.toMillis()
@@ -2221,14 +2328,14 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resAuthorUid()));
 
       // View tracking: authors see a COUNT; viewer identities are private.
       // Write own uid only; read author-only.
       match /viewers/{uid} {
         allow read: if isSuperAdmin()
           || (isLoggedIn() && get(/databases/$(database)/documents/sangamStories/$(storyId)).data.get('authorUid', '') == request.auth.uid);
-        allow write: if isLoggedIn() && uid == request.auth.uid;
+        allow write: if isLoggedIn() && uidIs(uid);
       }
     }
 
@@ -2242,13 +2349,13 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && request.resource.data.get('youtubeId', '') is string
         && request.resource.data.get('youtubeId', '').size() == 11
-        && request.resource.data.get('title', '') is string
-        && request.resource.data.get('title', '').size() >= 1
-        && request.resource.data.get('title', '').size() <= 120
-        && request.resource.data.get('authorUid', '') == request.auth.uid
-        && request.resource.data.get('authorName', '') is string
-        && request.resource.data.get('authorName', '').size() >= 1
-        && request.resource.data.get('authorName', '').size() <= 60
+        && reqTitle() is string
+        && reqTitle().size() >= 1
+        && reqTitle().size() <= 120
+        && uidIs(reqAuthorUid())
+        && reqAuthorName() is string
+        && reqAuthorName().size() >= 1
+        && reqAuthorName().size() <= 60
         && request.resource.data.keys().hasOnly([
           'youtubeId', 'title', 'thumbnailUrl', 'authorUid',
           'authorName', 'authorAvatar', 'authorSanId', 'caption',
@@ -2268,7 +2375,7 @@ service cloud.firestore {
         || (bumpUpOk('reportCount'))
       );
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resAuthorUid()));
 
       // Comments: community conversation on a short.
       // read: any authenticated user. create: author-only, schema-pinned.
@@ -2276,15 +2383,15 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if isLoggedIn();
         allow create: if isLoggedIn()
-          && request.resource.data.get('authorUid', '') == request.auth.uid
-          && request.resource.data.get('text', '') is string
-          && request.resource.data.get('text', '').size() >= 1
-          && request.resource.data.get('text', '').size() <= 300
+          && uidIs(reqAuthorUid())
+          && reqText() is string
+          && reqText().size() >= 1
+          && reqText().size() <= 300
           && request.resource.data.keys().hasOnly([
             'authorUid', 'authorName', 'text', 'createdAt', 'serverCreatedAt'
           ]);
         allow delete: if isSuperAdmin()
-          || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+          || (isLoggedIn() && uidIs(resAuthorUid()));
       }
     }
 
@@ -2293,8 +2400,8 @@ service cloud.firestore {
     // schema-pinned. NEVER exposes users/{uid} (self-read-only).
     match /devoteeProfiles/{uid} {
       allow read: if true;
-      allow create, update: if isLoggedIn() && request.auth.uid == uid
-        && request.resource.data.get('uid', '') == uid
+      allow create, update: if isSelf(uid)
+        && reqUid() == uid
         && request.resource.data.get('displayName', '') is string
         && request.resource.data.get('displayName', '').size() >= 1
         && request.resource.data.get('displayName', '').size() <= 80
@@ -2304,20 +2411,20 @@ service cloud.firestore {
           'isPublic', 'followerCount', 'followingCount', 'updatedAt'
         ]);
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == uid);
+        || (isSelf(uid));
     }
 
     // --- follows/{followerUid}/following/{targetUid}: asymmetric follow.
     // Read: follower themselves (or superadmin). Write: follower only, no self-follow.
     match /follows/{followerUid}/following/{targetUid} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == followerUid);
+        || (isSelf(followerUid));
       allow create: if isLoggedIn()
         && request.auth.uid == followerUid
         && followerUid != targetUid
         && request.resource.data.keys().hasOnly(['followerUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == followerUid);
+        || (isSelf(followerUid));
     }
 
     // --- blocks/{blockerUid}/blocked/{targetUid}: user safety (Step 5).
@@ -2325,26 +2432,26 @@ service cloud.firestore {
     // discover they were blocked. Write: blocker only, no self-block.
     match /blocks/{blockerUid}/blocked/{targetUid} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == blockerUid);
+        || (isSelf(blockerUid));
       allow create: if isLoggedIn()
         && request.auth.uid == blockerUid
         && blockerUid != targetUid
         && request.resource.data.keys().hasOnly(['blockerUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == blockerUid);
+        || (isSelf(blockerUid));
     }
 
     // --- mutes/{muterUid}/muted/{targetUid}: user safety (Step 5).
     // Same privacy model as blocks. Mute hides posts; DMs still allowed.
     match /mutes/{muterUid}/muted/{targetUid} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == muterUid);
+        || (isSelf(muterUid));
       allow create: if isLoggedIn()
         && request.auth.uid == muterUid
         && muterUid != targetUid
         && request.resource.data.keys().hasOnly(['muterUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && request.auth.uid == muterUid);
+        || (isSelf(muterUid));
     }
 
     // Group chats — private by default, invite-code only. No public
@@ -2358,9 +2465,9 @@ service cloud.firestore {
         request.auth.uid in request.resource.data.get('memberIds', []) &&
         request.resource.data.get('adminIds', null) is list &&
         request.auth.uid in request.resource.data.get('adminIds', []) &&
-        request.resource.data.get('name', '') is string &&
-        request.resource.data.get('name', '').size() >= 2 &&
-        request.resource.data.get('name', '').size() <= 60 &&
+        reqName() is string &&
+        reqName().size() >= 2 &&
+        reqName().size() <= 60 &&
         request.resource.data.get('inviteCode', '') is string &&
         request.resource.data.get('inviteCode', '').size() == 8 &&
         request.resource.data.get('createdBy', '') == request.auth.uid;
@@ -2416,7 +2523,7 @@ service cloud.firestore {
           request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []));
         // Create: self-join via code (uid == auth.uid) or admin adding.
         allow create: if isSuperAdmin() || (isLoggedIn() &&
-          request.resource.data.get('uid', '') == uid &&
+          reqUid() == uid &&
           (uid == request.auth.uid ||
             request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', [])));
         // Role change: admin only, role field only.
@@ -2444,23 +2551,23 @@ service cloud.firestore {
     match /purohits/{purohitId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && uidIs(reqUid())
+        && reqVerificationTier() == 'REGISTERED'
         && request.resource.data.get('ratingAggregate', 0) == 0
-        && request.resource.data.get('ratingCount', 0) == 0
+        && reqRatingCount() == 0
         && request.resource.data.get('completedGigs', 0) == 0;
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.get('uid', '') == request.auth.uid
+          && uidIs(resUid())
+          && uidIs(reqUid())
           && request.resource.data.get('id', '') == resource.data.get('id', '')
-          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          && reqVerificationTier() == resource.data.get('verificationTier', '')
           // SECURITY P1: the rating aggregate never moves on the
           // owner's own say-so -- only via the anchored review branch
           // below. completedGigs may stay, or rise by exactly 1
           // anchored to a gig the owner just completed.
           && request.resource.data.get('ratingAggregate', 0) == resource.data.get('ratingAggregate', 0)
-          && request.resource.data.get('ratingCount', 0) == resource.data.get('ratingCount', 0)
+          && reqRatingCount() == resource.data.get('ratingCount', 0)
           && (request.resource.data.get('completedGigs', 0) == resource.data.get('completedGigs', 0)
             || p1CompletedGigOk()))
         // SECURITY P1 -- anchored rating step (see p1PurohitRatingOk).
@@ -2489,17 +2596,17 @@ service cloud.firestore {
     match /sanataniProfiles/{uid} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && uid == request.auth.uid
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && uidIs(uid)
+        && uidIs(reqUid())
+        && reqVerificationTier() == 'REGISTERED'
         && request.resource.data.get('roles', {}) == {};
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && uid == request.auth.uid
-          && resource.data.get('uid', '') == request.auth.uid
-          && request.resource.data.get('uid', '') == request.auth.uid
+          && uidIs(uid)
+          && uidIs(resUid())
+          && uidIs(reqUid())
           && request.resource.data.get('id', '') == resource.data.get('id', '')
-          && request.resource.data.get('verificationTier', '') == resource.data.get('verificationTier', '')
+          && reqVerificationTier() == resource.data.get('verificationTier', '')
           && (
             request.resource.data.get('roles', {}) == resource.data.get('roles', {})
             || validPurohitAttach()
@@ -2534,7 +2641,7 @@ service cloud.firestore {
 
     // Solo Sanatani â private profile fields (gotra and future sensitive
     match /sanataniProfiles/{uid}/private/self {
-      allow read, write: if isLoggedIn() && uid == request.auth.uid;
+      allow read, write: if isLoggedIn() && uidIs(uid);
     }
 
 // ------------------------- Section A: program config ----------------------
@@ -2554,9 +2661,9 @@ service cloud.firestore {
     // expansion at both call sites.
     function applicationCreateOk(idField) {
       return isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
+        && uidIs(reqUid())
         && request.resource.data.get(idField, '') != ''
-        && request.resource.data.get('status', '') == 'PENDING'
+        && reqStatus() == 'PENDING'
         && request.resource.data.get('tier', '') == ''
         && request.resource.data.get('freeSevasRemaining', 0) == 0
         && request.resource.data.get('boostUntil', '') == ''
@@ -2565,7 +2672,7 @@ service cloud.firestore {
     }
     match /purohitApplications/{appId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resUid()));
       allow create: if applicationCreateOk('purohitId');
       allow update: if isSuperAdmin();
       allow delete: if false;
@@ -2577,8 +2684,8 @@ service cloud.firestore {
     // are mirrors by design). The shared bodies live here; the
     // per-system names below delegate, token-identical in expansion.
     function bookingTransitionOk() {
-      let from = resource.data.get('status', '');
-      let to = request.resource.data.get('status', '');
+      let from = resStatus();
+      let to = reqStatus();
       return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
         || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
         // JY-13: IN_PROGRESS → CANCELLED is legitimate — a devotee
@@ -2595,12 +2702,12 @@ service cloud.firestore {
       return request.resource.data.get('devoteeUid', '') == resource.data.get('devoteeUid', '')
         && request.resource.data.get('id', '') == resource.data.get('id', '')
         && request.resource.data.get('createdAt', 0) == resource.data.get('createdAt', 0)
-        && request.resource.data.get('referredBy', {}) == resource.data.get('referredBy', {});
+        && reqReferredBy() == resource.data.get('referredBy', {});
     }
     function isGigParty() {
       return isLoggedIn()
-        && (resource.data.get('devoteeUid', '') == request.auth.uid
-          || resource.data.get('assignedPurohitUid', '') == request.auth.uid);
+        && (uidIs(resource.data.get('devoteeUid', ''))
+          || uidIs(resource.data.get('assignedPurohitUid', '')));
     }
     function gigTransitionOk() {
       return bookingTransitionOk();
@@ -2611,16 +2718,16 @@ service cloud.firestore {
     match /gigs/{gigId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('devoteeUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'OPEN'
+        && uidIs(request.resource.data.get('devoteeUid', ''))
+        && reqStatus() == 'OPEN'
         && gigReferralAnchorOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && gigTransitionOk() && gigImmutableOk()
           && (isGigParty()
             // Accept flow: any verified-path purohit may claim an OPEN gig;
-            || (resource.data.get('status', '') == 'OPEN'
-              && request.resource.data.get('status', '') == 'ASSIGNED'
-              && request.resource.data.get('assignedPurohitUid', '') == request.auth.uid)));
+            || (resStatus() == 'OPEN'
+              && reqStatus() == 'ASSIGNED'
+              && uidIs(request.resource.data.get('assignedPurohitUid', '')))));
       allow delete: if false;
     }
 
@@ -2629,10 +2736,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isLoggedIn()
         && (isSuperAdmin() || roleIn(R_TRUSTEE_PAIR()))
-        && request.resource.data.get('orgId', '') != ''
+        && reqOrgId() != ''
         && request.resource.data.get('orgName', '') != ''
         && request.resource.data.get('purohitId', '') != ''
-        && request.resource.data.get('text', '') != '';
+        && reqText() != '';
       allow update, delete: if isSuperAdmin();
     }
 
@@ -2647,10 +2754,10 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('reviewerUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('reviewerUid', ''))
         && request.resource.data.get('gigId', '') != ''
-        && request.resource.data.get('rating', 0) >= 1
-        && request.resource.data.get('rating', 0) <= 5
+        && reqRating() >= 1
+        && reqRating() <= 5
         && reviewPartyOk();
       allow update, delete: if false;
     }
@@ -2659,20 +2766,20 @@ service cloud.firestore {
     match /purohitInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
-          && (resource.data.get('purohitUid', '') == request.auth.uid
+          && (uidIs(resource.data.get('purohitUid', ''))
             || roleIn(R_TRUSTEE_PAIR())));
       allow create: if isSuperAdmin()
         || (isLoggedIn() && roleIn(R_TRUSTEE_PAIR())
-          && request.resource.data.get('orgId', '') != ''
+          && reqOrgId() != ''
           && request.resource.data.get('orgName', '') != ''
           && request.resource.data.get('purohitId', '') != ''
           && request.resource.data.get('purohitUid', '') != ''
-          && request.resource.data.get('status', '') == 'PENDING');
+          && reqStatus() == 'PENDING');
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && resource.data.get('purohitUid', '') == request.auth.uid
+          && uidIs(resource.data.get('purohitUid', ''))
           && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
-          && request.resource.data.get('status', '') in DECISION_STATES());
+          && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -2697,10 +2804,10 @@ service cloud.firestore {
       // phone/email live only in the owner-only private/self subdoc
       // below (mirrors sanataniProfiles/{uid}/private/self).
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('verificationTier', '') == 'REGISTERED'
+        && uidIs(reqUid())
+        && reqVerificationTier() == 'REGISTERED'
         && request.resource.data.get('ratingAggregate', 0) == 0
-        && request.resource.data.get('ratingCount', 0) == 0
+        && reqRatingCount() == 0
         && request.resource.data.get('completedConsultations', 0) == 0
         // JY-FIX-B (JY-04): a profile is also born with ZERO anchored
         // endorsements — the claim branch reads this field, so it must
@@ -2709,7 +2816,7 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['phone', 'email']);
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && resource.data.get('uid', '') == request.auth.uid
+          && uidIs(resUid())
           // uid / id / tier / rating aggregates pinned by diff: none may
           // be added, removed or changed on this branch (the factored
           // form of the five field-equalities this branch used before).
@@ -2751,7 +2858,7 @@ service cloud.firestore {
         // verificationTier (+ updatedAt), and only to a step the doc's
         // own anchored fields have earned (jyotishTierClaimOk).
         || (isLoggedIn()
-          && resource.data.get('uid', '') == request.auth.uid
+          && uidIs(resUid())
           && diffKeys()
             .hasOnly(['verificationTier', 'updatedAt'])
           && jyotishTierClaimOk())
@@ -2776,7 +2883,7 @@ service cloud.firestore {
 // ----------------- Section C: jyotishApplications (REPLACES) --------------
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resUid()));
       allow create: if applicationCreateOk('jyotishId');
       allow delete: if false;
       allow update: if isSuperAdmin();
@@ -2785,8 +2892,8 @@ service cloud.firestore {
     // --- jyotishConsultations: public read (marketplace); signed-in
     function isConsultationParty() {
       return isLoggedIn()
-        && (resource.data.get('devoteeUid', '') == request.auth.uid
-          || resource.data.get('assignedJyotishUid', '') == request.auth.uid);
+        && (uidIs(resource.data.get('devoteeUid', ''))
+          || uidIs(resource.data.get('assignedJyotishUid', '')));
     }
     // JY-FIX-B factoring: the same party check BY ID, for the nested
     // messages/remedies matches whose resource is the child doc.
@@ -2822,8 +2929,8 @@ service cloud.firestore {
       // board reads the PII-free jyotishTenders projection instead.
       allow read: if isSuperAdmin() || isConsultationParty();
       allow create: if isLoggedIn()
-        && request.resource.data.get('devoteeUid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'OPEN'
+        && uidIs(request.resource.data.get('devoteeUid', ''))
+        && reqStatus() == 'OPEN'
         && consultationReferralAnchorOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
@@ -2831,10 +2938,10 @@ service cloud.firestore {
             // Accept flow: a jyotishi may claim an UNASSIGNED open
             // consultation only as themself — JY-10: the claimed
             // assignedJyotishId must be a real profile THEY own.
-            || (resource.data.get('status', '') == 'OPEN'
+            || (resStatus() == 'OPEN'
               && resource.data.get('assignedJyotishUid', '') == ''
-              && request.resource.data.get('status', '') == 'ASSIGNED'
-              && request.resource.data.get('assignedJyotishUid', '') == request.auth.uid
+              && reqStatus() == 'ASSIGNED'
+              && uidIs(request.resource.data.get('assignedJyotishUid', ''))
               && callerOwnsJyotishProfile(request.resource.data.get('assignedJyotishId', '')))));
       allow delete: if false;
 
@@ -2845,8 +2952,8 @@ service cloud.firestore {
         }
         allow read: if isMsgParty() || isSuperAdmin();
         allow create: if isMsgParty()
-          && request.resource.data.get('senderUid', '') == request.auth.uid
-          && request.resource.data.get('text', '') != '';
+          && uidIs(request.resource.data.get('senderUid', ''))
+          && reqText() != '';
         allow update, delete: if false;
       }
 
@@ -2857,16 +2964,16 @@ service cloud.firestore {
         }
         allow read: if isRemedyParty() || isSuperAdmin();
         allow create: if isRemedyParty()
-          && request.resource.data.get('jyotishUid', '') == request.auth.uid
+          && uidIs(request.resource.data.get('jyotishUid', ''))
           && request.resource.data.get('consultationId', '') == consultationId
           && request.resource.data.get('devoteeUid', '') == get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('devoteeUid', '')
           && request.resource.data.get('ritualName', '') != ''
           && request.resource.data.get('remedyText', '') != ''
-          && request.resource.data.get('status', '') == 'PENDING';
+          && reqStatus() == 'PENDING';
         allow update: if isSuperAdmin()
           || (isRemedyParty()
-            && resource.data.get('status', '') == 'PENDING'
-            && request.resource.data.get('status', '') in ['BOOKED', 'DISMISSED']
+            && resStatus() == 'PENDING'
+            && reqStatus() in ['BOOKED', 'DISMISSED']
             && diffKeysOnly(request.resource.data, resource.data, ['status', 'bookedGigId']));
         allow delete: if false;
       }
@@ -2886,7 +2993,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(TENDER_KEYS())
         && request.resource.data.get('consultationType', '') != ''
         && request.resource.data.get('topicSummary', '').size() <= 200
-        && request.resource.data.get('status', '') == 'OPEN';
+        && reqStatus() == 'OPEN';
     }
     function tenderAcceptedByCaller(consultationId) {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(consultationId);
@@ -2895,13 +3002,13 @@ service cloud.firestore {
     }
     match /jyotishTenders/{consultationId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('status', '') == 'OPEN' && callerHasJyotishProfile());
+        || (isLoggedIn() && resStatus() == 'OPEN' && callerHasJyotishProfile());
       allow create: if isLoggedIn()
-        && request.resource.data.get('devoteeUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('devoteeUid', ''))
         && tenderShapeOk();
       allow update: if false;
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('devoteeUid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resource.data.get('devoteeUid', '')))
         || (isLoggedIn() && tenderAcceptedByCaller(consultationId));
     }
 
@@ -2910,10 +3017,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isLoggedIn()
         && (isSuperAdmin() || roleIn(R_TRUSTEE_PAIR()))
-        && request.resource.data.get('orgId', '') != ''
+        && reqOrgId() != ''
         && request.resource.data.get('orgName', '') != ''
         && request.resource.data.get('jyotishId', '') != ''
-        && request.resource.data.get('text', '') != '';
+        && reqText() != '';
       allow update, delete: if isSuperAdmin();
     }
 
@@ -2928,10 +3035,10 @@ service cloud.firestore {
     match /jyotishReviews/{reviewId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('reviewerUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('reviewerUid', ''))
         && request.resource.data.get('consultationId', '') != ''
-        && request.resource.data.get('rating', 0) >= 1
-        && request.resource.data.get('rating', 0) <= 5
+        && reqRating() >= 1
+        && reqRating() <= 5
         // JY-FIX-B (JY-09): the doc id is PINNED to the deterministic
         // form the client already writes —
         // {consultationId}_{reviewerUid}_{reviewerKind} — the polls
@@ -2949,20 +3056,20 @@ service cloud.firestore {
     match /jyotishInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
-          && (resource.data.get('jyotishUid', '') == request.auth.uid
+          && (uidIs(resource.data.get('jyotishUid', ''))
             || roleIn(R_TRUSTEE_PAIR())));
       allow create: if isSuperAdmin()
         || (isLoggedIn() && roleIn(R_TRUSTEE_PAIR())
-          && request.resource.data.get('orgId', '') != ''
+          && reqOrgId() != ''
           && request.resource.data.get('orgName', '') != ''
           && request.resource.data.get('jyotishId', '') != ''
           && request.resource.data.get('jyotishUid', '') != ''
-          && request.resource.data.get('status', '') == 'PENDING');
+          && reqStatus() == 'PENDING');
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && resource.data.get('jyotishUid', '') == request.auth.uid
+          && uidIs(resource.data.get('jyotishUid', ''))
           && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
-          && request.resource.data.get('status', '') in DECISION_STATES());
+          && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -2971,107 +3078,107 @@ service cloud.firestore {
 
     // --- referredBy anchoring on gig create (jyotish -> purohit) ---
     function remedyAnchorOk() {
-      return exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', '')))
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('devoteeUid', '') == request.auth.uid
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('jyotishUid', '') == request.resource.data.get('referredBy', {}).get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('referredBy', {}).get('consultationId', ''))/remedies/$(request.resource.data.get('referredBy', {}).get('remedyId', ''))).data.get('status', '') == 'PENDING';
+      return exists(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')))
+        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('devoteeUid', '') == request.auth.uid
+        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('jyotishUid', '') == reqReferredBy().get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('status', '') == 'PENDING';
     }
     function gigReferralAnchorOk() {
       return !('referredBy' in request.resource.data)
-        || (request.resource.data.get('referredBy', {}).get('direction', '') == 'jyotish-to-purohit'
-          && request.resource.data.get('referredBy', {}).get('referrerUid', '') != ''
-          && request.resource.data.get('referredBy', {}).get('remedyId', '') != ''
-          && request.resource.data.get('referredBy', {}).get('consultationId', '') != ''
-          && request.resource.data.get('referredBy', {}).get('ritualName', '') != ''
+        || (reqReferredBy().get('direction', '') == 'jyotish-to-purohit'
+          && reqReferredBy().get('referrerUid', '') != ''
+          && reqReferredBy().get('remedyId', '') != ''
+          && reqReferredBy().get('consultationId', '') != ''
+          && reqReferredBy().get('ritualName', '') != ''
           && remedyAnchorOk());
     }
 
     // --- referredBy anchoring on consultation create (purohit -> jyotish) ---
     function referralAnchorOk() {
-      return exists(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', '')))
-        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('fromKind', '') == 'purohit'
-        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('toKind', '') == 'jyotish'
-        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('fromUid', '') == request.resource.data.get('referredBy', {}).get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishReferrals/$(request.resource.data.get('referredBy', {}).get('referralId', ''))).data.get('devoteeUid', '') == request.auth.uid;
+      return exists(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')))
+        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('fromKind', '') == 'purohit'
+        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('toKind', '') == 'jyotish'
+        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('fromUid', '') == reqReferredBy().get('referrerUid', '')
+        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('devoteeUid', '') == request.auth.uid;
     }
     function consultationReferralAnchorOk() {
       return !('referredBy' in request.resource.data)
-        || (request.resource.data.get('referredBy', {}).get('direction', '') == 'purohit-to-jyotish'
-          && request.resource.data.get('referredBy', {}).get('referrerUid', '') != ''
-          && request.resource.data.get('referredBy', {}).get('referralId', '') != ''
+        || (reqReferredBy().get('direction', '') == 'purohit-to-jyotish'
+          && reqReferredBy().get('referrerUid', '') != ''
+          && reqReferredBy().get('referralId', '') != ''
           && referralAnchorOk());
     }
 
     // --- referralAttributions/{orderId} ---
     function attributionGigOk() {
-      return request.resource.data.get('orderType', '') == 'gig'
-        && exists(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', '')))
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+      return reqOrderType() == 'gig'
+        && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
+        && reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
+        && reqGigDoc().data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && reqGigDoc().data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
     }
     function attributionConsultationOk() {
-      return request.resource.data.get('orderType', '') == 'consultation'
-        && exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', '')))
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+      return reqOrderType() == 'consultation'
+        && exists(/databases/$(database)/documents/jyotishConsultations/$(reqOrderId()))
+        && reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
+        && reqConsultDoc().data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && reqConsultDoc().data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
     }
     function attributionOrderOk() {
       return attributionGigOk() || attributionConsultationOk();
     }
     function attributionTerminalOk() {
-      return (request.resource.data.get('orderType', '') == 'gig'
-          && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED')
-        || (request.resource.data.get('orderType', '') == 'consultation'
-          && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED');
+      return (reqOrderType() == 'gig'
+          && reqGigDoc().data.get('status', '') == 'DAKSHINA_RELEASED')
+        || (reqOrderType() == 'consultation'
+          && reqConsultDoc().data.get('status', '') == 'DAKSHINA_RELEASED');
     }
     // Only an order party may move the attribution (prevents griefing the
     function attributionPartyOk() {
-      return (request.resource.data.get('orderType', '') == 'gig'
-          && (get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid))
-        || (request.resource.data.get('orderType', '') == 'consultation'
-          && (get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid));
+      return (reqOrderType() == 'gig'
+          && (reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
+            || reqGigDoc().data.get('assignedPurohitUid', '') == request.auth.uid))
+        || (reqOrderType() == 'consultation'
+          && (reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
+            || reqConsultDoc().data.get('assignedJyotishUid', '') == request.auth.uid));
     }
 
     // --- referralCredits/rc_{orderId} ---
     function creditGigOk() {
-      return request.resource.data.get('orderType', '') == 'gig'
-        && exists(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', '')))
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED'
-        && (get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-          || get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid)
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
-        && get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+      return reqOrderType() == 'gig'
+        && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
+        && reqGigDoc().data.get('status', '') == 'DAKSHINA_RELEASED'
+        && (reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
+          || reqGigDoc().data.get('assignedPurohitUid', '') == request.auth.uid)
+        && reqGigDoc().data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && reqGigDoc().data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
     }
     function creditConsultationOk() {
-      return request.resource.data.get('orderType', '') == 'consultation'
-        && exists(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', '')))
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('status', '') == 'DAKSHINA_RELEASED'
-        && (get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-          || get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid)
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
+      return reqOrderType() == 'consultation'
+        && exists(/databases/$(database)/documents/jyotishConsultations/$(reqOrderId()))
+        && reqConsultDoc().data.get('status', '') == 'DAKSHINA_RELEASED'
+        && (reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
+          || reqConsultDoc().data.get('assignedJyotishUid', '') == request.auth.uid)
+        && reqConsultDoc().data.get('referredBy', {}).get('referrerUid', '') == request.resource.data.get('referrerUid', '')
+        && reqConsultDoc().data.get('referredBy', {}).get('direction', '') == request.resource.data.get('direction', '');
     }
     function creditOrderOk() {
       return creditGigOk() || creditConsultationOk();
     }
     function gigSevaValue() {
-      return get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0) > 0
-        ? get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0)
-        : get(/databases/$(database)/documents/gigs/$(request.resource.data.get('orderId', ''))).data.get('budgetMax', 0);
+      return reqGigDoc().data.get('dakshinaAgreed', 0) > 0
+        ? reqGigDoc().data.get('dakshinaAgreed', 0)
+        : reqGigDoc().data.get('budgetMax', 0);
     }
     function consultationSevaValue() {
-      return get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0) > 0
-        ? get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('dakshinaAgreed', 0)
-        : get(/databases/$(database)/documents/jyotishConsultations/$(request.resource.data.get('orderId', ''))).data.get('budgetMax', 0);
+      return reqConsultDoc().data.get('dakshinaAgreed', 0) > 0
+        ? reqConsultDoc().data.get('dakshinaAgreed', 0)
+        : reqConsultDoc().data.get('budgetMax', 0);
     }
     function creditSevaValueOk() {
-      return (request.resource.data.get('orderType', '') == 'gig'
+      return (reqOrderType() == 'gig'
           && request.resource.data.get('sevaValue', -1) == gigSevaValue())
-        || (request.resource.data.get('orderType', '') == 'consultation'
+        || (reqOrderType() == 'consultation'
           && request.resource.data.get('sevaValue', -1) == consultationSevaValue());
     }
     function creditRoundingOk() {
@@ -3098,13 +3205,13 @@ service cloud.firestore {
 
     // --- wallet credit anchored to a validated referral credit doc ---
     function referralCreditDocOk(uid) {
-      return request.resource.data.get('lastReferralCreditId', '') != ''
-        && request.resource.data.get('lastReferralCreditId', '') != resource.data.get('lastReferralCreditId', '')
-        && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', '')))
-        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('referrerUid', '') == uid
-        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('status', '') == 'SETTLED'
-        && request.resource.data.get('balance', -1) == resource.data.get('balance', 0) + get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
-        && request.resource.data.get('totalReceived', -1) == resource.data.get('totalReceived', 0) + get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+      return reqLastReferralCreditId() != ''
+        && reqLastReferralCreditId() != resource.data.get('lastReferralCreditId', '')
+        && exists(/databases/$(database)/documents/referralCredits/$(reqLastReferralCreditId()))
+        && reqCreditDoc().data.get('referrerUid', '') == uid
+        && reqCreditDoc().data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('balance', -1) == resource.data.get('balance', 0) + reqCreditDoc().data.get('creditAmount', 0)
+        && request.resource.data.get('totalReceived', -1) == resource.data.get('totalReceived', 0) + reqCreditDoc().data.get('creditAmount', 0)
         && request.resource.data.get('totalToppedUp', -1) == resource.data.get('totalToppedUp', 0)
         && request.resource.data.get('totalSpent', -1) == resource.data.get('totalSpent', 0)
         && diffKeysOnly(request.resource.data, resource.data, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
@@ -3113,13 +3220,13 @@ service cloud.firestore {
       return referralCreditDocOk(uid);
     }
     function referralWalletCreditCreateOk(uid) {
-      return request.resource.data.get('lastReferralCreditId', '') != ''
-        && request.resource.data.get('uid', '') == uid
-        && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', '')))
-        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('referrerUid', '') == uid
-        && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('status', '') == 'SETTLED'
-        && request.resource.data.get('balance', -1) == get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
-        && request.resource.data.get('totalReceived', -1) == get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('lastReferralCreditId', ''))).data.get('creditAmount', 0)
+      return reqLastReferralCreditId() != ''
+        && reqUid() == uid
+        && exists(/databases/$(database)/documents/referralCredits/$(reqLastReferralCreditId()))
+        && reqCreditDoc().data.get('referrerUid', '') == uid
+        && reqCreditDoc().data.get('status', '') == 'SETTLED'
+        && request.resource.data.get('balance', -1) == reqCreditDoc().data.get('creditAmount', 0)
+        && request.resource.data.get('totalReceived', -1) == reqCreditDoc().data.get('creditAmount', 0)
         && request.resource.data.get('totalToppedUp', -1) == 0
         && request.resource.data.get('totalSpent', -1) == 0;
     }
@@ -3130,7 +3237,7 @@ service cloud.firestore {
     match /jyotishReferrals/{referralId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('fromUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('fromUid', ''))
         && request.resource.data.get('toRoleId', '') != ''
         && request.resource.data.get('toTier', '') != ''
         && request.resource.data.get('toTier', '') != 'REGISTERED'
@@ -3143,19 +3250,19 @@ service cloud.firestore {
     match /referralAttributions/{orderId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
-          && (resource.data.get('devoteeUid', '') == request.auth.uid
-            || resource.data.get('referrerUid', '') == request.auth.uid));
+          && (uidIs(resource.data.get('devoteeUid', ''))
+            || uidIs(resource.data.get('referrerUid', ''))));
       allow create: if isLoggedIn()
-        && request.resource.data.get('orderId', '') == orderId
-        && request.resource.data.get('devoteeUid', '') == request.auth.uid
-        && request.resource.data.get('orderType', '') in ['gig', 'consultation']
-        && request.resource.data.get('status', '') == 'OPEN'
+        && reqOrderId() == orderId
+        && uidIs(request.resource.data.get('devoteeUid', ''))
+        && reqOrderType() in ['gig', 'consultation']
+        && reqStatus() == 'OPEN'
         && request.resource.data.get('referrerUid', '') != ''
         && attributionOrderOk();
       allow update: if isSuperAdmin()
         || (isLoggedIn()
-          && resource.data.get('status', '') == 'OPEN'
-          && request.resource.data.get('status', '') in ['SETTLED', 'SKIPPED_NO_VALUE']
+          && resStatus() == 'OPEN'
+          && reqStatus() in ['SETTLED', 'SKIPPED_NO_VALUE']
           && diffKeysOnly(request.resource.data, resource.data, ['status', 'settledAt', 'creditId'])
           && attributionTerminalOk()
           && attributionPartyOk());
@@ -3168,10 +3275,10 @@ service cloud.firestore {
     // rule is order-anchored (mirrors referralAttributions): no forged thanks.
     match /referralClaims/{orderId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('sharerUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('sharerUid', '')));
       allow create: if isLoggedIn()
-        && request.resource.data.get('orderId', '') == orderId
-        && request.resource.data.get('bookerUid', '') == request.auth.uid
+        && reqOrderId() == orderId
+        && uidIs(request.resource.data.get('bookerUid', ''))
         && request.resource.data.get('sharerUid', '') != ''
         && request.resource.data.get('sharerUid', '') != request.auth.uid
         && request.resource.data.get('sharerSanId', '') != ''
@@ -3188,18 +3295,18 @@ service cloud.firestore {
     // --- referralCredits/{creditId}: settled guidance credits.
     match /referralCredits/{creditId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('referrerUid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resource.data.get('referrerUid', '')))
         || (isLoggedIn() && creditOrderParty());
       allow create: if isLoggedIn()
-        && creditId == 'rc_' + request.resource.data.get('orderId', '')
-        && request.resource.data.get('orderId', '') != ''
-        && request.resource.data.get('status', '') == 'SETTLED'
+        && creditId == 'rc_' + reqOrderId()
+        && reqOrderId() != ''
+        && reqStatus() == 'SETTLED'
         && request.resource.data.get('direction', '') in ['jyotish-to-purohit', 'purohit-to-jyotish']
         && creditOrderOk()
         && creditMathOk();
       allow update: if isSuperAdmin()
-        && resource.data.get('status', '') == 'SETTLED'
-        && request.resource.data.get('status', '') == 'REVERSED'
+        && resStatus() == 'SETTLED'
+        && reqStatus() == 'REVERSED'
         && diffKeysOnly(request.resource.data, resource.data, ['status', 'reversedAt', 'reversalReason']);
       allow delete: if false;
     }
@@ -3245,14 +3352,14 @@ service cloud.firestore {
           && card.get('devotionalText', '').size() >= 30
           && card.get('serviceLine', '') != ''
           && card.get('dakshina', 0) > 0
-          && card.get('providerUid', '') == request.auth.uid
+          && uidIs(card.get('providerUid', ''))
           && card.get('providerTier', '') in ['REGISTERED', 'VERIFIED', 'TRUSTED']);
     }
 
     // Official page posts: only a trustee of that org may post as the page.
     function sangamPagePostOk() {
       let official = request.resource.data.get('isOfficialPagePost', false);
-      let orgId = request.resource.data.get('orgId', '');
+      let orgId = reqOrgId();
       return official == false || official == null
         || (orgId != '' && orgId != null && isOrgTrustee(orgId));
     }
@@ -3262,7 +3369,7 @@ service cloud.firestore {
     match /sangamPosts/{postId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && uidIs(reqAuthorUid())
         && request.resource.data.keys().hasOnly(
           ['authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
            'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
@@ -3274,16 +3381,16 @@ service cloud.firestore {
         && request.resource.data.get('ashirvadCount', -1) == 0
         && request.resource.data.get('commentCount', -1) == 0
         && request.resource.data.get('shareCount', -1) == 0
-        && request.resource.data.get('status', '') == 'active'
+        && reqStatus() == 'active'
         && request.resource.data.get('visibility', '') == 'public'
-        && request.resource.data.get('text', '') != ''
+        && reqText() != ''
         && sangamAuthorTierOk()
         && sangamPagePostOk()
         && serviceCardOk();
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid
+        || (isLoggedIn() && uidIs(resAuthorUid())
           && diffKeysOnly(request.resource.data, resource.data, ['text', 'imageUrl', 'updatedAt'])
-          && request.resource.data.get('authorUid', '') == resource.data.get('authorUid', ''))
+          && reqAuthorUid() == resAuthorUid())
         // Step 4 (comment multi-device sync): any signed-in user may nudge
         // commentCount by exactly ±1 (never below 0) and touch nothing else.
         // This lets commenters keep the count honest on posts they don't own.
@@ -3296,20 +3403,20 @@ service cloud.firestore {
         || (isLoggedIn()
           && bumpToggleOk('shareCount'));
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resAuthorUid()));
     }
 
     // --- sangamPosts/{postId}/ashirvad/{uid}: one Ashirvad per user (toggle).
     match /sangamPosts/{postId}/ashirvad/{uid} {
       allow read: if true;
-      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
     // --- sangamPosts/{postId}/volunteers/{uid}: seva volunteering (toggle).
     match /sangamPosts/{postId}/volunteers/{uid} {
       allow read: if true;
-      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
@@ -3317,26 +3424,26 @@ service cloud.firestore {
     match /sangamComments/{commentId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('authorUid', '') == request.auth.uid
+        && uidIs(reqAuthorUid())
         && request.resource.data.get('postId', '') != ''
         && request.resource.data.keys().hasOnly(
           ['postId', 'authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorTier', 'text', 'createdAt'])
-        && request.resource.data.get('text', '') != ''
+        && reqText() != ''
         && sangamAuthorTierOk();
       allow update, delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('authorUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resAuthorUid()));
     }
 
     // --- sangamCircles: public read; signed-in create; creator/admin update.
     match /sangamCircles/{circleId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('creatorUid', '') == request.auth.uid
-        && request.resource.data.get('name', '') != ''
+        && uidIs(request.resource.data.get('creatorUid', ''))
+        && reqName() != ''
         && request.resource.data.keys().hasOnly(
           ['name', 'topic', 'description', 'creatorUid', 'creatorName', 'memberCount', 'createdAt']);
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
+        || (isLoggedIn() && uidIs(resource.data.get('creatorUid', ''))
           && diffKeysOnly(request.resource.data, resource.data, 
             ['name', 'topic', 'description', 'updatedAt']))
         // Member count path (owner-approved 2026-10-20): any signed-in
@@ -3350,7 +3457,7 @@ service cloud.firestore {
     // --- sangamCircles/{circleId}/members/{uid}: join/leave (toggle).
     match /sangamCircles/{circleId}/members/{uid} {
       allow read: if true;
-      allow create, delete: if isLoggedIn() && request.auth.uid == uid;
+      allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
@@ -3358,24 +3465,24 @@ service cloud.firestore {
     match /sangamEvents/{eventId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('creatorUid', '') == request.auth.uid
-        && request.resource.data.get('title', '') != ''
-        && (request.resource.data.get('orgId', '') == ''
+        && uidIs(request.resource.data.get('creatorUid', ''))
+        && reqTitle() != ''
+        && (reqOrgId() == ''
           || request.resource.data.get('orgId', null) == null
-          || isOrgTrustee(request.resource.data.get('orgId', '')))
+          || isOrgTrustee(reqOrgId()))
         // EVENTS P0 (L8): the official badge may not float free — an
         // official event must name its org AND be posted by that org's
         // own trustee.
         && (request.resource.data.get('isOfficial', false) != true
-          || (request.resource.data.get('orgId', '') != ''
-              && isOrgTrustee(request.resource.data.get('orgId', ''))))
+          || (reqOrgId() != ''
+              && isOrgTrustee(reqOrgId())))
         && request.resource.data.keys().hasOnly(
           ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'orgId', 'orgName',
            'isOfficial', 'creatorUid', 'creatorName', 'rsvpCount', 'createdAt',
            // EVENTS P1: hall capacity + recurrence rule (lib/eventRecurrence).
            'capacity', 'recurrence']);
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid
+        || (isLoggedIn() && uidIs(resource.data.get('creatorUid', ''))
           && diffKeysOnly(request.resource.data, resource.data, 
             ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt',
              // EVENTS P1: the creator may set the hall size and the
@@ -3399,22 +3506,22 @@ service cloud.firestore {
         || (isLoggedIn()
           && diffKeysOnly(request.resource.data, resource.data, ['rsvpCount'])
           && request.resource.data.get('rsvpCount', -1) >= 0
-          && ((request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
+          && ((reqRsvpCount() == resource.data.get('rsvpCount', 0) + 1
                 && !exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
                 && rsvpWithinCap())
-              || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
+              || (reqRsvpCount() == resource.data.get('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && !existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going')
-              || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) + 1
+              || (reqRsvpCount() == resource.data.get('rsvpCount', 0) + 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') in ['interested', 'waitlisted']
                 && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') == 'going'
                 && rsvpWithinCap())
-              || (request.resource.data.get('rsvpCount', 0) == resource.data.get('rsvpCount', 0) - 1
+              || (reqRsvpCount() == resource.data.get('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
@@ -3422,7 +3529,7 @@ service cloud.firestore {
       // QUEUED FIX #1 (flagged): creators may delete their own events so
       // trustees can "unshare" an org event bridged to Sangam.
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('creatorUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('creatorUid', '')));
     }
 
     // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
@@ -3433,35 +3540,35 @@ service cloud.firestore {
       // and read as 'going' everywhere (the counter anchor's default).
       // Flips are own-record only, state + join-time fields only; the
       // counted consequences live in the event doc's anchor above.
-      allow create: if isLoggedIn() && request.auth.uid == uid
+      allow create: if isSelf(uid)
         && request.resource.data.get('state', 'going') in ['going', 'interested', 'waitlisted'];
-      allow update: if isLoggedIn() && request.auth.uid == uid
+      allow update: if isSelf(uid)
         && diffKeysOnly(request.resource.data, resource.data, ['state', 'at'])
         && request.resource.data.get('state', '') in ['going', 'interested', 'waitlisted'];
-      allow delete: if isLoggedIn() && request.auth.uid == uid;
+      allow delete: if isSelf(uid);
     }
 
     // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;
     match /sangamFollows/{followId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('followerUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('followerUid', ''))
         && request.resource.data.keys().hasOnly(
           ['followerUid', 'targetType', 'targetId', 'targetName', 'createdAt']);
       allow update: if false;
-      allow delete: if isLoggedIn() && resource.data.get('followerUid', '') == request.auth.uid;
+      allow delete: if isLoggedIn() && uidIs(resource.data.get('followerUid', ''));
     }
 
     // --- sangamReports: reporter create; reporter+admin read; admin triage.
     match /sangamReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && resource.data.get('reporterUid', '') == request.auth.uid);
+        || (isLoggedIn() && uidIs(resource.data.get('reporterUid', '')));
       allow create: if isLoggedIn()
-        && request.resource.data.get('reporterUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('reporterUid', ''))
         && request.resource.data.get('targetId', '') != ''
         && request.resource.data.keys().hasOnly(
           ['reporterUid', 'reporterName', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
-        && request.resource.data.get('status', '') == 'open';
+        && reqStatus() == 'open';
       allow update, delete: if isSuperAdmin() || isOwner();
     }
 
@@ -3473,7 +3580,7 @@ service cloud.firestore {
         || (isLoggedIn() && isTenantMember(workspaceId));
       allow create, update: if isSuperAdmin()
         || (isLoggedIn() && isTenantMember(workspaceId)
-          && request.resource.data.get('workspaceId', '') == workspaceId);
+          && reqWorkspaceId() == workspaceId);
       allow delete: if false;
     }
 
@@ -3489,7 +3596,7 @@ service cloud.firestore {
            'upcomingEvents', 'autoShareEvents', 'registrationNo', 'eightyGRegistered',
            'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti',
            'aartiSchedules', 'updatedAt'])
-        && request.resource.data.get('orgId', '') == orgId
+        && reqOrgId() == orgId
         // SECURITY P1 (Finding 3): trustees may carry 'verified' (a
         // merged doc holds it, so it stays in the key whitelist) but
         // may never CHANGE it -- verification is granted only by the
@@ -3513,9 +3620,9 @@ service cloud.firestore {
             'title', 'amount', 'currency', 'outcomeCopy', 'goalTarget',
             'raisedTotal', 'active', 'sortOrder',
             'createdAt', 'updatedAt', 'createdBy', 'updatedBy'])
-          && request.resource.data.get('title', '') != ''
-          && request.resource.data.get('amount', 0) is number
-          && request.resource.data.get('amount', 0) > 0);
+          && reqTitle() != ''
+          && reqAmount() is number
+          && reqAmount() > 0);
       allow delete: if isSuperAdmin() || isOrgTrustee(orgId);
     }
 
@@ -3526,12 +3633,12 @@ service cloud.firestore {
     // no updates; delete by superadmin or the org's trustee.
     match /orgBroadcasts/{broadcastId} {
       allow read: if true;
-      allow create: if isOrgTrustee(request.resource.data.get('orgId', ''))
+      allow create: if isOrgTrustee(reqOrgId())
         && request.resource.data.keys().hasOnly(
           ['orgId', 'orgName', 'title', 'body', 'createdBy', 'createdByName',
            'audienceCount', 'createdAt'])
-        && request.resource.data.get('createdBy', '') == request.auth.uid
-        && request.resource.data.get('title', '') != ''
+        && uidIs(request.resource.data.get('createdBy', ''))
+        && reqTitle() != ''
         && request.resource.data.get('audienceCount', 0) is number
         && request.resource.data.get('createdAt', 0) is number;
       allow update: if false;
@@ -3555,7 +3662,7 @@ service cloud.firestore {
     // A well-formed pending invite FROM the writer (no one can invite as another).
     function familyLinkInviteContentOk(invite) {
       return invite != null
-        && invite.get('fromUid', '') == request.auth.uid
+        && uidIs(invite.get('fromUid', ''))
         && invite.get('status', '') == 'pending'
         && invite.keys().hasOnly(
           ['fromUid', 'fromName', 'fromPhoto', 'fromSanId', 'status', 'createdAt']);
@@ -3600,10 +3707,10 @@ service cloud.firestore {
       allow read: if isLoggedIn()
         && (request.auth.uid == docUid
           || (resource != null && request.auth.uid in resource.data.get('linkedUids', [])));
-      allow create, update: if isLoggedIn() && request.auth.uid == docUid
+      allow create, update: if isSelf(docUid)
         && request.resource.data.keys().hasOnly(
           ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites']);
-      allow delete: if isLoggedIn() && request.auth.uid == docUid;
+      allow delete: if isSelf(docUid);
       // Invite send → the TARGET's doc (create on first invite).
       allow create: if isLoggedIn() && request.auth.uid != docUid
         && request.resource.data.keys().hasOnly(['incomingInvites'])
@@ -3635,42 +3742,42 @@ service cloud.firestore {
     match /vdaAliases/{aliasId} {
       allow read: if isLoggedIn();
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
+        && uidIs(reqUid())
         && request.resource.data.get('alias', '') == aliasId
         && request.resource.data.keys().hasOnly(['alias', 'uid', 'sanId', 'createdAt']);
       // Releasing = delete; only the owning uid may release. No updates ever.
       allow update: if false;
       allow delete: if isLoggedIn()
-        && resource.data.get('uid', '') == request.auth.uid;
+        && uidIs(resUid());
     }
 
     // --- followers/{orgId}/users/{uid}: public read (counts); owner write.
     match /followers/{orgId}/users/{uid} {
       allow read: if true;
-      allow create: if isLoggedIn() && request.auth.uid == uid
-        && request.resource.data.get('uid', '') == uid;
+      allow create: if isSelf(uid)
+        && reqUid() == uid;
       allow update: if false;
-      allow delete: if isLoggedIn() && request.auth.uid == uid;
+      allow delete: if isSelf(uid);
     }
 
     // --- joinRequests/{orgId}_{uid}: deterministic id = one pending per
     match /joinRequests/{requestId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('userUid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resource.data.get('userUid', '')))
         || (isLoggedIn() && isOrgTrustee(resource.data.get('orgId', '')));
       allow create: if isLoggedIn()
-        && request.resource.data.get('userUid', '') == request.auth.uid
-        && request.resource.data.get('orgId', '') != ''
-        && request.resource.data.get('status', '') == 'PENDING';
+        && uidIs(request.resource.data.get('userUid', ''))
+        && reqOrgId() != ''
+        && reqStatus() == 'PENDING';
       allow update: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(resource.data.get('orgId', ''))
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && diffKeys()
             .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt'])
-          && request.resource.data.get('status', '') in ['APPROVED', 'REJECTED'])
-        || (isLoggedIn() && resource.data.get('userUid', '') == request.auth.uid
-          && resource.data.get('status', '') == 'REJECTED'
-          && request.resource.data.get('status', '') == 'PENDING'
-          && request.resource.data.diff(resource.data).affectedKeys()
+          && reqStatus() in ['APPROVED', 'REJECTED'])
+        || (isLoggedIn() && uidIs(resource.data.get('userUid', ''))
+          && resStatus() == 'REJECTED'
+          && reqStatus() == 'PENDING'
+          && diffKeys()
             .hasOnly(['status', 'message', 'createdAt']));
       allow delete: if false;
     }
@@ -3678,7 +3785,7 @@ service cloud.firestore {
     // --- orgInvites/{inviteId}: org â user invitations.
     function inviteMatchesMe() {
       return isLoggedIn() && (
-        resource.data.get('invitedUid', '') == request.auth.uid ||
+        uidIs(resource.data.get('invitedUid', '')) ||
         (request.auth.token.email != null
           && resource.data.get('invitedEmail', '') == request.auth.token.email) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -3692,17 +3799,17 @@ service cloud.firestore {
         || (isLoggedIn() && (inviteMatchesMe()
           || isOrgTrustee(resource.data.get('orgId', ''))));
       allow create: if isLoggedIn()
-        && request.resource.data.get('orgId', '') != ''
-        && request.resource.data.get('status', '') == 'PENDING'
+        && reqOrgId() != ''
+        && reqStatus() == 'PENDING'
         && request.resource.data.get('expiresAt', 0) > request.time.toMillis()
-        && request.resource.data.get('role', '') != ''
-        && grantableRole(request.resource.data.get('orgId', ''), request.resource.data.get('role', ''));
+        && reqRole() != ''
+        && grantableRole(reqOrgId(), reqRole());
       allow update: if isSuperAdmin()
         || (isLoggedIn() && inviteMatchesMe()
-          && resource.data.get('status', '') == 'PENDING'
+          && resStatus() == 'PENDING'
           && resource.data.get('expiresAt', 0) > request.time.toMillis()
           && diffKeysOnly(request.resource.data, resource.data, ['status', 'decidedAt'])
-          && request.resource.data.get('status', '') in DECISION_STATES());
+          && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
 
@@ -3720,32 +3827,32 @@ service cloud.firestore {
     }
     match /workspaceMembers/{memberId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && resource.data.get('uid', '') == request.auth.uid)
+        || (isLoggedIn() && uidIs(resUid()))
         || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', '')));
       allow create: if isLoggedIn()
-        && request.resource.data.get('workspaceId', '') != ''
-        && request.resource.data.get('uid', '') != ''
-        && request.resource.data.get('role', '') != ''
+        && reqWorkspaceId() != ''
+        && reqUid() != ''
+        && reqRole() != ''
         && (
           // (a) Trustee grants for another user (join approval / direct add)
-          (isOrgTrustee(request.resource.data.get('workspaceId', ''))
-            && grantableRole(request.resource.data.get('workspaceId', ''),
-              request.resource.data.get('role', '')))
+          (isOrgTrustee(reqWorkspaceId())
+            && grantableRole(reqWorkspaceId(),
+              reqRole()))
           // (b) Self-accept of an invite: the invite must name me, be
-          || (request.resource.data.get('uid', '') == request.auth.uid
+          || (uidIs(reqUid())
             && inviteAcceptOk(
               request.resource.data.get('viaInviteId', ''),
-              request.resource.data.get('workspaceId', ''),
-              request.resource.data.get('role', '')))
+              reqWorkspaceId(),
+              reqRole()))
           // (c) Workspace creator self-provisions as the first Trustee.
-          || (request.resource.data.get('uid', '') == request.auth.uid
-            && request.resource.data.get('role', '') == 'Trustee'
+          || (uidIs(reqUid())
+            && reqRole() == 'Trustee'
             && get(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).data.createdBy == request.auth.uid)
         );
       allow update: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', ''))
           && grantableRole(resource.data.get('workspaceId', ''),
-            request.resource.data.get('role', '')));
+            reqRole()));
       allow delete: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(resource.data.get('workspaceId', '')));
     }
@@ -3756,20 +3863,20 @@ service cloud.firestore {
 
       // --- In-app notification center --------------------
       match /items/{itemId} {
-        allow read: if isLoggedIn() && request.auth.uid == uid;
-        allow create: if isLoggedIn() && request.auth.uid == uid
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
           && request.resource.data.uid == uid
           && request.resource.data.keys().hasAll([
             'id', 'uid', 'kind', 'priority', 'title', 'body', 'dedupeKey', 'createdAt'
           ]);
-        allow update: if isLoggedIn() && request.auth.uid == uid
+        allow update: if isSelf(uid)
           && request.resource.data.uid == uid;
         allow delete: if false;
       }
 
       match /pushRequests/{reqId} {
-        allow read: if isLoggedIn() && request.auth.uid == uid;
-        allow create: if isLoggedIn() && request.auth.uid == uid
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
           && request.resource.data.toUser == uid
           && request.resource.data.status == 'pending';
         allow update, delete: if false;
@@ -3777,7 +3884,7 @@ service cloud.firestore {
 
       // --- Owner-only preferences ------------------------
       match /prefs {
-        allow read, write: if isLoggedIn() && request.auth.uid == uid;
+        allow read, write: if isSelf(uid);
       }
     }
 
@@ -3828,29 +3935,29 @@ service cloud.firestore {
     // P2P money requests (chat-embedded): parties-only, strict state machine, no delete.
     match /p2pRequests/{reqId} {
       allow read: if isLoggedIn()
-        && (resource.data.get('senderId', '') == request.auth.uid
-          || resource.data.get('receiverId', '') == request.auth.uid);
+        && (uidIs(resource.data.get('senderId', ''))
+          || uidIs(resource.data.get('receiverId', '')));
       allow create: if isLoggedIn()
-        && request.resource.data.get('senderId', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending';
+        && uidIs(request.resource.data.get('senderId', ''))
+        && reqStatus() == 'pending';
       allow update: if isLoggedIn()
-        && (resource.data.get('senderId', '') == request.auth.uid
-          || resource.data.get('receiverId', '') == request.auth.uid)
-        && request.resource.data.diff(resource.data).affectedKeys()
+        && (uidIs(resource.data.get('senderId', ''))
+          || uidIs(resource.data.get('receiverId', '')))
+        && diffKeys()
           .hasOnly(['status', 'updatedAt', 'paidRef', 'paidVia', 'paidAt', 'settledAt', 'supersededBy'])
         && (
-          (resource.data.get('receiverId', '') == request.auth.uid
-            && resource.data.get('status', '') == 'pending'
-            && request.resource.data.get('status', '') in ['accepted', 'declined', 'countered'])
-          || (resource.data.get('senderId', '') == request.auth.uid
-            && resource.data.get('status', '') == 'accepted'
-            && request.resource.data.get('status', '') == 'paid')
-          || (resource.data.get('receiverId', '') == request.auth.uid
-            && resource.data.get('status', '') == 'paid'
-            && request.resource.data.get('status', '') == 'settled')
-          || (resource.data.get('senderId', '') == request.auth.uid
-            && resource.data.get('status', '') == 'pending'
-            && request.resource.data.get('status', '') == 'cancelled'));
+          (uidIs(resource.data.get('receiverId', ''))
+            && resStatus() == 'pending'
+            && reqStatus() in ['accepted', 'declined', 'countered'])
+          || (uidIs(resource.data.get('senderId', ''))
+            && resStatus() == 'accepted'
+            && reqStatus() == 'paid')
+          || (uidIs(resource.data.get('receiverId', ''))
+            && resStatus() == 'paid'
+            && reqStatus() == 'settled')
+          || (uidIs(resource.data.get('senderId', ''))
+            && resStatus() == 'pending'
+            && reqStatus() == 'cancelled'));
       allow delete: if false;
     }
 
@@ -3874,12 +3981,12 @@ service cloud.firestore {
     match /zoneReports/{reportId} {
       allow read: if true;
       allow create: if isLoggedIn()
-        && request.resource.data.get('orgId', '') != ''
-        && request.resource.data.get('reportedBy', '') == request.auth.uid
+        && reqOrgId() != ''
+        && uidIs(request.resource.data.get('reportedBy', ''))
         && request.resource.data.keys().hasOnly(['id', 'orgId', 'zoneId',
           'zoneName', 'type', 'note', 'reportedBy', 'reporterName',
           'createdAt', 'expiresAt', 'serverAt'])
-        && (hasRole(request.resource.data.get('orgId', ''),
+        && (hasRole(reqOrgId(),
               ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Sevadar',
                'SEVADAR', 'Coordinator', 'COORDINATOR'])
             || isOwner());
@@ -3889,11 +3996,11 @@ service cloud.firestore {
 match /fileVault/{fileId} {
       allow read: if isLoggedIn()
         && (resource.data.get('visibility', 'private') == 'public'
-          || resource.data.get('ownerUid', '') == request.auth.uid
+          || uidIs(resource.data.get('ownerUid', ''))
           || (resource.data.get('visibility', '') == 'crisis'
             && isTenantMember(resource.data.get('tenantId', null))));
       allow create: if isLoggedIn()
-        && request.resource.data.get('ownerUid', '') == request.auth.uid
+        && uidIs(request.resource.data.get('ownerUid', ''))
         && request.resource.data.keys().hasOnly(['data', 'contentType', 'fileName',
           'size', 'hash', 'category', 'visibility', 'ownerUid', 'createdAt',
           'localOnly', 'chunkCount', 'tenantId'])
@@ -3916,16 +4023,16 @@ match /fileVault/{fileId} {
           || request.resource.data.get('localOnly', false) == true);
       allow update: if false;
       allow delete: if isLoggedIn()
-        && resource.data.get('ownerUid', '') == request.auth.uid;
+        && uidIs(resource.data.get('ownerUid', ''));
       // Chunks carry denormalized gating fields: authorized from the chunk doc alone.
       match /chunks/{n} {
         allow read: if isLoggedIn()
           && (resource.data.get('visibility', 'private') == 'public'
-            || resource.data.get('ownerUid', '') == request.auth.uid
+            || uidIs(resource.data.get('ownerUid', ''))
             || (resource.data.get('visibility', '') == 'crisis'
               && isTenantMember(resource.data.get('tenantId', null))));
         allow create: if isLoggedIn()
-          && request.resource.data.get('ownerUid', '') == request.auth.uid
+          && uidIs(request.resource.data.get('ownerUid', ''))
           && request.resource.data.get('visibility', '') in ['public', 'crisis']
           && request.resource.data.get('data', '').size() <= 512000
           && request.resource.data.get('i', -1) >= 0
@@ -3933,7 +4040,7 @@ match /fileVault/{fileId} {
             ['i', 'data', 'ownerUid', 'visibility', 'tenantId']);
         allow update: if false;
         allow delete: if isLoggedIn()
-          && resource.data.get('ownerUid', '') == request.auth.uid;
+          && uidIs(resource.data.get('ownerUid', ''));
       }
     }
 
@@ -3949,8 +4056,8 @@ match /fileVault/{fileId} {
      */
     match /translationSuggestions/{suggestionId} {
       allow create: if isLoggedIn()
-        && request.resource.data.get('uid', '') == request.auth.uid
-        && request.resource.data.get('status', '') == 'pending'
+        && uidIs(reqUid())
+        && reqStatus() == 'pending'
         && request.resource.data.keys().hasOnly(['lang', 'key', 'currentText',
           'suggestedText', 'uid', 'sanataniId', 'status', 'createdAt',
           'region', 'termKey'])
@@ -3967,10 +4074,10 @@ match /fileVault/{fileId} {
             && request.resource.data.get('termKey', '').matches('^[a-zA-Z]+$')));
       // A devotee may read their own suggestions; the owner reads the queue.
       allow read: if isLoggedIn()
-        && (resource.data.get('uid', '') == request.auth.uid || isOwner());
+        && (uidIs(resUid()) || isOwner());
       // Owner triage: approve or reject. Records are kept, never edited.
       allow update: if isOwner()
-        && request.resource.data.get('status', '') in ['approved', 'rejected'];
+        && reqStatus() in ['approved', 'rejected'];
       allow delete: if isOwner();
     }
 
@@ -3990,18 +4097,18 @@ match /fileVault/{fileId} {
       allow read, write: if false; // no collection-level access
 
       match /visits/{visitId} {
-        allow read: if isLoggedIn() && request.auth.uid == uid;
-        allow create: if isLoggedIn() && request.auth.uid == uid
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
           && request.resource.data.uid == uid
           && request.resource.data.get('templeName', '').size() > 0
           && request.resource.data.get('templeName', '').size() <= 120
           && request.resource.data.keys().hasOnly(TIRTHA_VISIT_KEYS());
-        allow update: if isLoggedIn() && request.auth.uid == uid
+        allow update: if isSelf(uid)
           && request.resource.data.uid == uid
           && request.resource.data.get('templeName', '').size() > 0
           && request.resource.data.get('templeName', '').size() <= 120
           && request.resource.data.keys().hasOnly(TIRTHA_VISIT_KEYS());
-        allow delete: if isLoggedIn() && request.auth.uid == uid;
+        allow delete: if isSelf(uid);
       }
     }
 
@@ -4009,18 +4116,18 @@ match /fileVault/{fileId} {
       allow read, write: if false; // no collection-level access
 
       match /yatras/{yatraId} {
-        allow read: if isLoggedIn() && request.auth.uid == uid;
-        allow create: if isLoggedIn() && request.auth.uid == uid
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
           && request.resource.data.uid == uid
-          && request.resource.data.get('name', '').size() > 0
-          && request.resource.data.get('name', '').size() <= 80
+          && reqName().size() > 0
+          && reqName().size() <= 80
           && request.resource.data.keys().hasOnly(TIRTHA_YATRA_KEYS());
-        allow update: if isLoggedIn() && request.auth.uid == uid
+        allow update: if isSelf(uid)
           && request.resource.data.uid == uid
-          && request.resource.data.get('name', '').size() > 0
-          && request.resource.data.get('name', '').size() <= 80
+          && reqName().size() > 0
+          && reqName().size() <= 80
           && request.resource.data.keys().hasOnly(TIRTHA_YATRA_KEYS());
-        allow delete: if isLoggedIn() && request.auth.uid == uid;
+        allow delete: if isSelf(uid);
       }
     }
 

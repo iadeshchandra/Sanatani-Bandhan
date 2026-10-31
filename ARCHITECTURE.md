@@ -464,3 +464,7 @@ Lite (id SEVA) ₹0 · Standard ₹499/৳700/$6/mo · Enterprise (id PREMIUM) �
 ## Appendix C. Contact (single source of truth: `src/config/contact.ts`)
 
 WhatsApp wa.me/8801608533529 · Sanatanibandhan@gmail.com
+
+## 18. Rules diet round 3 (2026-11-01)
+
+Production `firestore.rules` factored 33 new shared helpers (648 call sites): zero-param field getters in the `docWs()` idiom (`reqStatus()`, `resUid()`, `reqReferredBy()`, … — 22 request-form + 6 resource-form), identity shapes `isSelf(x)` / `uidIs(x)`, and cross-document lookups `reqGigDoc()` / `reqConsultDoc()` / `reqCreditDoc()`; plus reuse of `diffKeys()` / `docWs()` / `newDocWs()` at 18 more sites. 43,776 → 38,862 tokens; estimated compiled size 253,323–254,067 → 224,887–225,547 B (recovery ≈ 28.4–28.5 KB). Semantics proven unchanged by token-identical full expansion (79,310 = 79,310 tokens), structural equality (182 match blocks / 582 allows, zero one-arg `.get()`), and a hunk-by-hunk pure-factoring audit. With the J3 suggestions block (+1,205 tokens) the combined estimate is 231,860–232,541 B — ~23.5–24 KB of headroom under the 256,000 compiled cap, restoring room for J3 and beyond. Record + proofs: `~/workspace/staging/diet3/NOTES.md`.
