@@ -142,11 +142,20 @@ From Bangladesh by Bangla QR, from India by UPI, and internationally by Payoneer
 ### How do we contact Sanatani Bandhan?
 WhatsApp +8801608533529 or email Sanatanibandhan@gmail.com. The team replies within one working day, usually much sooner.
 
+## Help & manual — Margdarshan
+
+Margdarshan is the app's public help centre: a full manual (95 pages — every desk and topic explained with a real-life example first, who uses it, step-by-step how-to and common mistakes), a Feature Atlas of every capability grouped by family with its honest plan label, and — in the works — a suggestions board where users will propose ideas and watch them ship. Reading is free for everyone; no account is needed to read.
+
+- Margdarshan: https://sanatanibandhan.web.app/margdarshan
+- The manual: https://sanatanibandhan.web.app/margdarshan/manual
+- Feature Atlas: https://sanatanibandhan.web.app/margdarshan/features
+
 ## Contact
 
 - WhatsApp: +8801608533529 (https://wa.me/8801608533529)
 - Email: Sanatanibandhan@gmail.com
 - App: https://sanatanibandhan.web.app
+- Margdarshan (manual & features): https://sanatanibandhan.web.app/margdarshan
 - Ask any AI about us (ready-made prompts): https://sanatanibandhan.web.app/ask-ai
 - Machine-readable facts: https://sanatanibandhan.web.app/ai-facts.json
 - Source repository: https://github.com/iadeshchandra/Sanatani-Bandhan

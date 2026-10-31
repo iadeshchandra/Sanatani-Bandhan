@@ -35,6 +35,7 @@ import { devoteeNs as enDevotee } from './lang/en/devotee';
 import { orgNs as enOrg } from './lang/en/org';
 import { ritual as enRitual } from './lang/en/ritual';
 import { suites as enSuites } from './lang/en/suites';
+import { margNs as enMarg } from './lang/en/marg';
 
 export type { TranslationSchema };
 export { SUPPORTED_LANGUAGES, SUPPORTED_LANGUAGE_CODES, bcp47For };
@@ -79,13 +80,14 @@ function mergeFragments(
   // `dict.suites` node ever exists, and every t('suites.…') lookup falls
   // back to the raw key (QUEUED #47 — Goshala/Matha/Pathshala desks
   // rendered raw i18n keys). Type it loosely; deepMerge handles it.
-  suitesNs?: Record<string, unknown>
+  suitesNs?: Record<string, unknown>,
+  margNs?: Partial<TranslationSchema>
 ): TranslationSchema {
-  return deepMerge({}, core, professional, devoteeNs, orgNs, ritualNs, suitesNs) as TranslationSchema;
+  return deepMerge({}, core, professional, devoteeNs, orgNs, ritualNs, suitesNs, margNs) as TranslationSchema;
 }
 
 /** Eagerly merged English dictionary — the sync fallback. */
-const enDict: TranslationSchema = mergeFragments(enCore, enProfessional, enDevotee, enOrg, enRitual, { suites: enSuites });
+const enDict: TranslationSchema = mergeFragments(enCore, enProfessional, enDevotee, enOrg, enRitual, { suites: enSuites }, enMarg);
 
 /**
  * Load one namespace fragment for a language, falling back to the
@@ -108,7 +110,8 @@ function splitLang(
   loadDevotee: () => Promise<{ devoteeNs: Partial<TranslationSchema> }>,
   loadOrg: () => Promise<{ orgNs: Partial<TranslationSchema> }>,
   loadRitual?: () => Promise<{ ritual: Partial<TranslationSchema> }>,
-  loadSuites?: () => Promise<{ suites: Record<string, unknown> }>
+  loadSuites?: () => Promise<{ suites: Record<string, unknown> }>,
+  loadMarg?: () => Promise<{ margNs: Partial<TranslationSchema> }>
 ): () => Promise<{ default: TranslationSchema }> {
   return () =>
     Promise.all([
@@ -118,7 +121,8 @@ function splitLang(
       loadFragment(loadOrg(), { orgNs: enOrg }),
       loadRitual ? loadFragment(loadRitual(), { ritual: enRitual }) : Promise.resolve({ ritual: enRitual }),
       loadSuites ? loadFragment(loadSuites(), { suites: enSuites }) : Promise.resolve({ suites: enSuites }),
-    ]).then(([c, p, d, o, r, s]) => ({ default: mergeFragments(c.core, p.professional, d.devoteeNs, o.orgNs, r.ritual, { suites: s.suites }) }));
+      loadMarg ? loadFragment(loadMarg(), { margNs: enMarg }) : Promise.resolve({ margNs: enMarg }),
+    ]).then(([c, p, d, o, r, s, m]) => ({ default: mergeFragments(c.core, p.professional, d.devoteeNs, o.orgNs, r.ritual, { suites: s.suites }, m.margNs) }));
 }
 
 /**
@@ -134,7 +138,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/hi/devotee'),
     () => import('./lang/hi/org'),
     () => import('./lang/hi/ritual'),
-    () => import('./lang/hi/suites')
+    () => import('./lang/hi/suites'),
+    () => import('./lang/hi/marg')
   ),
   bn: splitLang(
     () => import('./lang/bn/core'),
@@ -142,7 +147,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/bn/devotee'),
     () => import('./lang/bn/org'),
     () => import('./lang/bn/ritual'),
-    () => import('./lang/bn/suites')
+    () => import('./lang/bn/suites'),
+    () => import('./lang/bn/marg')
   ),
   sa: splitLang(
     () => import('./lang/sa/core'),
@@ -150,7 +156,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/sa/devotee'),
     () => import('./lang/sa/org'),
     () => import('./lang/sa/ritual'),
-    () => import('./lang/sa/suites')
+    () => import('./lang/sa/suites'),
+    () => import('./lang/sa/marg')
   ),
   ta: splitLang(
     () => import('./lang/ta/core'),
@@ -158,7 +165,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/ta/devotee'),
     () => import('./lang/ta/org'),
     () => import('./lang/ta/ritual'),
-    () => import('./lang/ta/suites')
+    () => import('./lang/ta/suites'),
+    () => import('./lang/ta/marg')
   ),
   te: splitLang(
     () => import('./lang/te/core'),
@@ -166,7 +174,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/te/devotee'),
     () => import('./lang/te/org'),
     () => import('./lang/te/ritual'),
-    () => import('./lang/te/suites')
+    () => import('./lang/te/suites'),
+    () => import('./lang/te/marg')
   ),
   mr: splitLang(
     () => import('./lang/mr/core'),
@@ -174,7 +183,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/mr/devotee'),
     () => import('./lang/mr/org'),
     () => import('./lang/mr/ritual'),
-    () => import('./lang/mr/suites')
+    () => import('./lang/mr/suites'),
+    () => import('./lang/mr/marg')
   ),
   gu: splitLang(
     () => import('./lang/gu/core'),
@@ -182,7 +192,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/gu/devotee'),
     () => import('./lang/gu/org'),
     () => import('./lang/gu/ritual'),
-    () => import('./lang/gu/suites')
+    () => import('./lang/gu/suites'),
+    () => import('./lang/gu/marg')
   ),
   kn: splitLang(
     () => import('./lang/kn/core'),
@@ -190,7 +201,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/kn/devotee'),
     () => import('./lang/kn/org'),
     () => import('./lang/kn/ritual'),
-    () => import('./lang/kn/suites')
+    () => import('./lang/kn/suites'),
+    () => import('./lang/kn/marg')
   ),
   ml: splitLang(
     () => import('./lang/ml/core'),
@@ -198,7 +210,8 @@ const LANG_LOADERS: Record<string, () => Promise<{ default: TranslationSchema }>
     () => import('./lang/ml/devotee'),
     () => import('./lang/ml/org'),
     () => import('./lang/ml/ritual'),
-    () => import('./lang/ml/suites')
+    () => import('./lang/ml/suites'),
+    () => import('./lang/ml/marg')
   ),
 };
 

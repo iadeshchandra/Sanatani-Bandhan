@@ -37,9 +37,18 @@ Mandir, Goshala, Ashram, Gurukul, Vidyalaya, Sangha, Samaj, Satsang, Yoga, Trust
 - Email: Sanatanibandhan@gmail.com
 - Support replies within one working day.
 
+## Help & manual — Margdarshan
+
+Margdarshan is the app's public help centre: a full manual (95 pages — every desk and topic explained with a real-life example first, who uses it, step-by-step how-to and common mistakes), a Feature Atlas of every capability grouped by family with its honest plan label, and — in the works — a suggestions board where users will propose ideas and watch them ship. Reading is free for everyone; no account is needed to read.
+
+- Margdarshan: https://sanatanibandhan.web.app/margdarshan
+- The manual: https://sanatanibandhan.web.app/margdarshan/manual
+- Feature Atlas: https://sanatanibandhan.web.app/margdarshan/features
+
 ## Canonical links
 
 - App: https://sanatanibandhan.web.app
+- Margdarshan (manual & features): https://sanatanibandhan.web.app/margdarshan
 - Full facts for AI: https://sanatanibandhan.web.app/llms-full.txt
 - Machine-readable facts: https://sanatanibandhan.web.app/ai-facts.json
 - Ask any AI about us (ready-made prompts): https://sanatanibandhan.web.app/ask-ai

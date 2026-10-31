@@ -235,6 +235,15 @@ const MasterSettingsDesk = lazy(() => import('./components/domain6/MasterSetting
 // the same status).
 const AppStoreDesk = lazy(() => import('./components/domain6/AppStoreDesk').then(m => ({ default: m.AppStoreDesk })));
 const DeskDirectory = lazy(() => import('./components/dashboard/DeskDirectory').then(m => ({ default: m.DeskDirectory })));
+// Margdarshan J1: the Help, Manual & Community centre — in-app shell
+// chrome (mounted on activeModule 'margdarshan', the desk-directory
+// precedent) plus its public web mirror routes. Both lazy: the manual
+// content chunk must never weigh on the entry bundle.
+const MargdarshanCentre = lazy(() => import('./components/margdarshan/MargdarshanCentre').then(m => ({ default: m.MargdarshanCentre })));
+const PublicMargdarshanHome = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicMargdarshanHome })));
+const PublicManual = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicManual })));
+const PublicDeskPage = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicDeskPage })));
+const PublicAtlas = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicAtlas })));
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
@@ -568,6 +577,20 @@ const AppContent: React.FC = () => {
     // for them on every path (TypeScript's narrowing proves it here).
     if (activeModule === 'desk-directory') {
       return <DeskDirectory onNavigate={(id) => setActiveModule(id)} />;
+    }
+
+    // Margdarshan J1: the centre is shell chrome like the directory —
+    // no MODULE_CATALOG row (the 72-desk count law), and its desk
+    // doors are judged by the directory's own model inside the
+    // component, so the scope/Auditor gate below must not judge it
+    // either (a devotee never reaches this line — the strict guard
+    // above returns for them on every path).
+    if (activeModule === 'margdarshan') {
+      return (
+        <Suspense fallback={null}>
+          <MargdarshanCentre onNavigate={(id) => setActiveModule(id)} />
+        </Suspense>
+      );
     }
 
     // Blueprint B: desk-scope + Auditor enforcement at the ONE mount
@@ -1338,6 +1361,44 @@ const AppRoutes: React.FC = () => {
           />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/ask-ai" element={<AskAiPage />} />
+          {/* Margdarshan J1 — the public web mirror. The owner's
+              read/engage law: the manual, the atlas and every desk
+              page are readable by anyone with no login (nothing here
+              engages, so nothing here asks for an account). These
+              routes match before the MainAppView catch-all, so a
+              signed-out visitor is never bounced to /login. */}
+          <Route
+            path="/margdarshan"
+            element={
+              <Suspense fallback={null}>
+                <PublicMargdarshanHome />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/margdarshan/manual"
+            element={
+              <Suspense fallback={null}>
+                <PublicManual />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/margdarshan/manual/:pageId"
+            element={
+              <Suspense fallback={null}>
+                <PublicDeskPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/margdarshan/features"
+            element={
+              <Suspense fallback={null}>
+                <PublicAtlas />
+              </Suspense>
+            }
+          />
           {/* Secret Obfuscated Platform Route: Accessed via URL typing only, strictly guarded */}
           <Route
             path="/system-override"

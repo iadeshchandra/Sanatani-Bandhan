@@ -727,6 +727,31 @@ export const ProfileTab: React.FC = () => {
         </button>
       </Card>
 
+      {/* 📖 Margdarshan — the Manual & Help centre's Solo door (J1).
+          Reading never needs an account, so the door simply opens the
+          centre: in-app it renders the same public mirror every
+          visitor reads. Copy resolves through the marg.* dictionary
+          keys; the inline Lang3 is safeTranslate's fallback, per this
+          file's pattern. */}
+      <Card className="!p-0 overflow-hidden !border-amber-200">
+        <button
+          type="button"
+          onClick={() => navigate('/margdarshan')}
+          className="w-full flex items-center gap-3 text-left min-h-[72px] px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 transition-colors"
+        >
+          <span className="text-2xl shrink-0" aria-hidden>📖</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-extrabold text-stone-900">
+              {tr('marg.profileRowTitle', 'Margdarshan — Manual & Help', 'মার্গদর্শন — ম্যানুয়াল ও সাহায্য', 'मार्गदर्शन — मैनुअल और सहायता')}
+            </span>
+            <span className="block text-[11px] text-stone-500 mt-0.5">
+              {tr('marg.profileRowDesc', 'Guides for your personal Sanatani life, and every feature explained.', 'আপনার ব্যক্তিগত সনাতনী জীবনের গাইড, আর প্রতিটি বৈশিষ্ট্যের ব্যাখ্যা।', 'आपके व्यक्तिगत सनातनी जीवन की मार्गदर्शिकाएँ, और प्रत्येक सुविधा की व्याख्या।')}
+            </span>
+          </span>
+          <span className="text-amber-700 text-xl shrink-0" aria-hidden>→</span>
+        </button>
+      </Card>
+
       {/* 🪔 My Tirtha Diary — personal pilgrimage journal. Private: only this devotee. */}
       <Card>
         <button

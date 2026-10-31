@@ -273,6 +273,34 @@ export const DeskDirectory: React.FC<{
           )}
         </div>
 
+        {/* Margdarshan J1 — the centre's door in the directory. Shell
+            chrome like the directory itself (no catalog row): it opens
+            the manual/atlas centre, whose own doors are judged by the
+            same directory model. Browse mode only. */}
+        {!q && (
+          <button
+            type="button"
+            onClick={() => onNavigate('margdarshan')}
+            className="group flex min-h-[44px] w-full items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 text-left shadow-sm transition hover:border-orange-300 hover:shadow"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-white">
+              <BookOpen className="h-5 w-5 text-orange-600" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-black text-amber-900">
+                {t('marg.directoryRowTitle')}
+              </span>
+              <span className="mt-0.5 line-clamp-2 block text-xs leading-5 text-amber-700">
+                {t('marg.directoryRowDesc')}
+              </span>
+            </span>
+            <ArrowRight
+              className="h-4 w-4 shrink-0 text-amber-400 transition group-hover:text-orange-500"
+              aria-hidden="true"
+            />
+          </button>
+        )}
+
         {/* Suggested — only in browse mode (search narrows to matches). */}
         {!q && (visiblePending.length > 0 || recommendations.length > 0) && (
           <section aria-label={t('suites.seva.directory.suggestedTitle')}>

@@ -99,6 +99,26 @@ export default defineConfig(() => {
             // chunk they stay out of the precache (the glob takes only
             // assets/index-*.js) and arrive via the /assets/**
             // StaleWhileRevalidate runtime cache on first use.
+            // Margdarshan J1 (2026-10-31): the manual's authored
+            // content — 95 desk pages × en/hi/bn (what-it-does,
+            // real-life examples, steps, mistakes, capabilities) — is
+            // ~200 KB of pure data. Same law as ai-draft-content: as
+            // its own chunk it stays out of the precache (the glob
+            // takes only assets/index-*.js) and arrives via the
+            // /assets/** StaleWhileRevalidate runtime cache on first
+            // use. The centre UI itself is small and lazy-loaded.
+            'margdarshan-content': [
+              './src/lib/margdarshan/manual.ts',
+              './src/lib/margdarshan/content/manual-d1.ts',
+              './src/lib/margdarshan/content/manual-d2a.ts',
+              './src/lib/margdarshan/content/manual-d2b.ts',
+              './src/lib/margdarshan/content/manual-d3d7.ts',
+              './src/lib/margdarshan/content/manual-d4a.ts',
+              './src/lib/margdarshan/content/manual-d4b.ts',
+              './src/lib/margdarshan/content/manual-d5d6a.ts',
+              './src/lib/margdarshan/content/manual-d5d6b.ts',
+              './src/lib/margdarshan/content/manual-topics.ts',
+            ],
             'ai-draft-content': [
               './src/ai/lang/ta-locator.ts',
               './src/ai/lang/ta-howto.ts',

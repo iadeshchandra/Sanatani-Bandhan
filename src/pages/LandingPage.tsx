@@ -1829,6 +1829,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.treasuryAmp80g')}</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.goshalaAmpBhandar')}</button></li>
                 <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.whyDharma')}</button></li>
+                {/* Margdarshan J1: the public manual & help centre —
+                    readable by anyone, no account needed. */}
+                <li><button type="button" onClick={() => navigate('/margdarshan')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('marg.directoryRowTitle')}</button></li>
               </ul>
             </nav>
             <nav aria-label="Compare">

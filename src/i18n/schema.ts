@@ -115,6 +115,70 @@ export interface TranslationSchema {
     sandhyaAuto?: string;
     sandhyaAutoNote?: string;
   };
+  // Margdarshan J1 (2026-10-31) — the Help, Manual & Community
+  // centre's chrome. Optional-section pattern like vibe: en/hi/bn are
+  // authored in full; the 7 draft languages carry same-batch AI-DRAFT
+  // entries (labelled class) so the chrome never falls back silently.
+  // Manual CONTENT is not dictionary copy — it lives in the knowledge
+  // layer (src/lib/margdarshan), Lang3 en/hi/bn.
+  marg?: {
+    title?: string;
+    tagline?: string;
+    greeting?: string;
+    searchPlaceholder?: string;
+    wingManual?: string;
+    wingManualDesc?: string;
+    wingFeatures?: string;
+    wingFeaturesDesc?: string;
+    wingWhatsNew?: string;
+    wingWhatsNewDesc?: string;
+    wingVoice?: string;
+    wingVoiceDesc?: string;
+    wingSatsang?: string;
+    wingSatsangDesc?: string;
+    stateNext?: string;
+    stateWorks?: string;
+    mostNeeded?: string;
+    browseByDomain?: string;
+    browseAll?: string;
+    guidesTopics?: string;
+    soloTrack?: string;
+    manualTitle?: string;
+    manualDesc?: string;
+    atlasTitle?: string;
+    atlasDesc?: string;
+    inRealLife?: string;
+    whatItDoes?: string;
+    whoUsesIt?: string;
+    howTo?: string;
+    goodToKnow?: string;
+    youCanDo?: string;
+    worksOffline?: string;
+    needsInternet?: string;
+    openDesk?: string;
+    openInApp?: string;
+    doorLockedRole?: string;
+    doorLockedPlan?: string;
+    planEvery?: string;
+    planLabel?: string;
+    relatedPages?: string;
+    backToCentre?: string;
+    backToManual?: string;
+    backHome?: string;
+    searchResults?: string;
+    noResults?: string;
+    noResultsDesc?: string;
+    clearSearch?: string;
+    translationPending?: string;
+    pagesLabel?: string;
+    liveToday?: string;
+    directoryRowTitle?: string;
+    directoryRowDesc?: string;
+    profileRowTitle?: string;
+    profileRowDesc?: string;
+    publicNote?: string;
+    reviewedFor?: string;
+  };
   // Language Completion Sweep (2026-10-24) — surface copy wired out of
   // components into the dictionary, one bucket per surface. Index
   // signatures keep each bucket open as the sweep wires more strings;
