@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.01-fea167c',
+    date: '2026-11-01',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "Your Voice is open in Margdarshan: suggest an idea, support the ones you love, and watch each suggestion travel — received, reviewed, planned, shipped. Reading is free for everyone; the team answers on the board itself.",
+            hi: "मार्गदर्शन में आपकी आवाज़ खुल गई है: विचार सुझाएँ, जो पसंद आए उसका समर्थन करें, और हर सुझाव की यात्रा देखें — प्राप्त, समीक्षाधीन, नियोजित, पूर्ण। पढ़ना सबके लिए निःशुल्क है; टीम पटल पर ही उत्तर देती है।",
+            bn: "মার্গদর্শনে আপনার কণ্ঠ খুলে গেছে: ধারণা প্রস্তাব করুন, পছন্দেরটিকে সমর্থন করুন, এবং প্রতিটি প্রস্তাবের যাত্রা দেখুন — গৃহীত, পর্যালোচনাধীন, পরিকল্পিত, সম্পন্ন। পড়া সবার জন্য বিনামূল্যে; দল পটেই উত্তর দেয়।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.10.31-d22f97b',
     date: '2026-10-31',
     sections: {
