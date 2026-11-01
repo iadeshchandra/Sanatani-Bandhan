@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.01-88e081a',
+    date: '2026-11-01',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "The Sevak now answers from Margdarshan itself: ask how to do something, and the answer comes from the manual page that teaches it — with the page named and one tap away. And when the manual has no answer yet, the Sevak offers to carry your question to Your Voice as a suggestion.",
+            hi: "सेवक अब मार्गदर्शन से ही उत्तर देता है: पूछें कि कुछ कैसे करें, और उत्तर उसी मार्गदर्शिका-पृष्ठ से आता है जो वह सिखाता है — पृष्ठ का नाम सहित, एक दबाव की दूरी पर। और जब मार्गदर्शिका में उत्तर न हो, तो सेवक आपका प्रश्न सुझाव के रूप में आपकी आवाज़ तक पहुँचाने का प्रस्ताव देता है।",
+            bn: "সেবক এখন মার্গদর্শন থেকেই উত্তর দেয়: কিছু কীভাবে করবেন জিজ্ঞেস করুন, উত্তর আসে সেই নির্দেশিকা-পৃষ্ঠা থেকে যেটি তা শেখায় — পৃষ্ঠার নামসহ, এক চাপের দূরত্বে। আর নির্দেশিকায় উত্তর না থাকলে, সেবক আপনার প্রশ্নটি প্রস্তাব হিসেবে আপনার কণ্ঠে পৌঁছে দেওয়ার প্রস্তাব দেয়।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.01-fea167c',
     date: '2026-11-01',
     sections: {
