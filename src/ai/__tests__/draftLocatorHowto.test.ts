@@ -259,8 +259,10 @@ describe('functional proof — Gujarati + Malayalam (the sweep-deepened pair)', 
     expect(String(out.params['answer'])).toContain(overlay.name);
   });
 
-  test('howtoTask returns the Malayalam guide, not English', () => {
-    const out = howtoTask({
+  test('howtoTask returns the Malayalam guide, not English', async () => {
+    // J4: howtoTask is async now (the manual path composes from the
+    // lazy chunk) — the guide outcome itself is unchanged.
+    const out = await howtoTask({
       uid: 't',
       lang: 'ml',
       role: 'trustee',

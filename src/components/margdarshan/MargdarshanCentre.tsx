@@ -16,7 +16,7 @@
  * or role-closed → an honest explanation, never a dead button.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -36,6 +36,11 @@ import {
   searchManual,
   type ResolvedManualPage,
 } from '../../lib/margdarshan';
+import {
+  MARG_OPEN_PAGE_EVENT,
+  clearOpenManualPageRequest,
+  takeOpenManualPageRequest,
+} from '../../lib/margdarshan/openHandoff';
 import {
   AtlasView,
   DeskPageView,
@@ -120,6 +125,30 @@ export const MargdarshanCentre: React.FC<{
 
   const openPage = (slug: string, from: View['name'] & string) =>
     setView({ name: 'page', slug, from: (from as any) || 'home' });
+
+  /* J4 — the Copilot's citation door lands here. The assistant
+   * sheet hands a page slug over via lib/margdarshan/openHandoff:
+   * a sessionStorage note (read once on mount, for a centre that
+   * mounts BECAUSE of the tap) and a window event (for a centre
+   * already mounted). Whichever lands first opens the page; the
+   * other finds the note cleared. Slugs are canonicalised through
+   * getManualPage, so a joined topic slug opens its desk page. */
+  useEffect(() => {
+    const openSlug = (slug: string | null | undefined) => {
+      if (!slug) return;
+      const page = getManualPage(slug);
+      if (page) openPage(page.slug, 'home');
+    };
+    openSlug(takeOpenManualPageRequest());
+    const onEvent = (e: Event) => {
+      const slug = (e as CustomEvent<{ slug?: string }>).detail?.slug;
+      clearOpenManualPageRequest();
+      openSlug(slug);
+    };
+    window.addEventListener(MARG_OPEN_PAGE_EVENT, onEvent);
+    return () => window.removeEventListener(MARG_OPEN_PAGE_EVENT, onEvent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Most needed: this device's own most-opened desks first (counts
    * never leave the phone), filled out with the first-week starters. */

@@ -137,6 +137,46 @@ export interface AssistantResponse {
    * replaced with the computed figures.
    */
   verification?: VerificationMeta;
+  /**
+   * J4 — a Margdarshan manual citation riding the response: the page
+   * this answer was composed from, with its public deep link. The
+   * sheet renders it as a door under the bubble (tap → the manual
+   * opens at that page). Manual content is world-readable by the
+   * read law, so the citation is safe on every surface;
+   * surfaceGuard still runs last and drops it with everything else.
+   */
+  citation?: ManualCitation;
+  /**
+   * J4 — the ask-to-suggest bridge draft. INERT data (the Blueprint
+   * C draft law): the sheet renders the Your Voice offer card, and
+   * only a human File tap writes — through J3's suggestions
+   * service. Never auto-filed, never persisted with the thread.
+   */
+  suggest?: SuggestBridgeDraft;
+}
+
+/** J4 — a citation to one Margdarshan manual page. */
+export interface ManualCitation {
+  /** Canonical manual page slug (joins already resolved). */
+  slug: string;
+  /** The page's title in the reader's language (en/hi/bn; English
+   *  elsewhere — the manual model's own fallback). */
+  title: string;
+  /** Public deep link — /margdarshan/manual/<slug>. Signed-in
+   *  surfaces intercept the tap and open the in-app centre at the
+   *  same page; the link itself is the public one, per the J3
+   *  mirror precedent. */
+  href: string;
+}
+
+/** J4 — the bridge's inert draft: the user's own question, shaped. */
+export interface SuggestBridgeDraft {
+  /** 'manual-gap' = a how-to the manual lacked; 'feature' = a wish. */
+  kind: import('../lib/margdarshan/suggestions').SuggestionKind;
+  /** The question, trimmed to the rules' 140-char title limit. */
+  title: string;
+  /** The question in the user's own words (rules limit 2,000). */
+  body: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -247,6 +287,14 @@ export interface TaskOutcome {
    * preview card. Executors that set this have committed NOTHING.
    */
   draft?: import('./org/drafts').CopilotDraft;
+  /**
+   * J4 — the manual page this outcome's answer was composed from
+   * (see ManualCitation). Forwarded by the pipeline for EVERY role:
+   * the manual is public knowledge.
+   */
+  citation?: ManualCitation;
+  /** J4 — the ask-to-suggest bridge draft (inert; see above). */
+  suggest?: SuggestBridgeDraft;
 }
 
 export type TaskExecutor = (ctx: TaskCtx) => TaskOutcome | Promise<TaskOutcome>;

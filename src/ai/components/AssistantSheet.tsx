@@ -39,6 +39,15 @@ import type { CallerScope, OrgAssistantContext } from '../org/port';
 import { cardLabel, cardPrompt, taskCardsFor, type CopilotTaskCard } from '../org/cards';
 import { draftNeedsApproval, draftPreviewLines, type CopilotDraft } from '../org/drafts';
 import type { CopilotCommitServices } from '../org/commitDraft';
+/* Margdarshan J4 — citation door + ask-to-suggest bridge. The pure
+ * suggestion model is imported statically (small, firebase-free);
+ * the Firestore service loads LAZILY at the File tap, exactly like
+ * the Blueprint C write machinery above. */
+import type { ManualCitation, SuggestBridgeDraft } from '../types';
+import { validateSuggestionDraft } from '../../lib/margdarshan/suggestions';
+import { requestOpenManualPage } from '../../lib/margdarshan/openHandoff';
+import { resolveActorName } from '../../bahikhata/bahikhataStore';
+import { friendlyError } from '../../lib/friendlyError';
 
 /* ai/components/AssistantSheet.tsx — the devotee's chat with the assistant.
  * =====================================================================
@@ -391,13 +400,125 @@ const DraftPreviewCard: React.FC<{
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* Margdarshan J4 — the citation door + the ask-to-suggest bridge     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * CitationCard — the manual page an answer was composed from, as a
+ * tappable door under the bubble. Reading needs no account (the
+ * read law); the tap opens the manual at that very page.
+ */
+const CitationCard: React.FC<{
+  citation: ManualCitation;
+  onOpen: () => void;
+}> = ({ citation, onOpen }) => {
+  const { t } = useLanguage();
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mt-2.5 flex min-h-[48px] w-full items-center gap-2.5 rounded-2xl border border-amber-300 bg-amber-50/80 px-4 text-left transition-colors hover:bg-amber-100"
+    >
+      <span className="text-lg shrink-0" aria-hidden>
+        📖
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-extrabold uppercase tracking-wide text-amber-700">
+          {t('marg.citeFromManual')}
+        </span>
+        <span className="block truncate text-sm font-extrabold text-stone-800">
+          {citation.title}
+        </span>
+      </span>
+      <span className="shrink-0 text-[13px] font-extrabold text-amber-700">
+        {t('marg.citeOpen')} →
+      </span>
+    </button>
+  );
+};
+
+type SuggestStatus = 'pending' | 'busy' | 'done' | 'rejected' | 'error';
+
+/**
+ * SuggestCard — the ask-to-suggest bridge. The Sevak OFFERS; only
+ * the user's File tap writes (Blueprint C law — the card itself
+ * files nothing). The public-name warning sits ABOVE the File
+ * button, the J3 form's own pattern, in the reader's language.
+ * Dismiss leaves no trace anywhere.
+ */
+const SuggestCard: React.FC<{
+  draft: SuggestBridgeDraft;
+  status: SuggestStatus;
+  error?: string;
+  onFile: () => void;
+  onDismiss: () => void;
+}> = ({ draft, status, error, onFile, onDismiss }) => {
+  const { t } = useLanguage();
+  const locked = status === 'busy' || status === 'done' || status === 'rejected';
+  return (
+    <div className="mt-2.5 rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-4">
+      <p className="text-sm font-extrabold text-stone-800 mb-1">
+        🪔 {t('marg.aiSuggestTitle')}
+      </p>
+      <p className="text-xs text-stone-600 mb-3 leading-relaxed">
+        {t('marg.aiSuggestDesc')}
+      </p>
+      <div className="rounded-xl border border-amber-200 bg-white/80 px-3 py-2.5 mb-3">
+        <span className="mb-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-extrabold text-amber-800">
+          {draft.kind === 'feature'
+            ? t('marg.voiceKindFeature')
+            : t('marg.voiceKindManualGap')}
+        </span>
+        <p className="text-sm font-bold text-stone-800 leading-snug">{draft.title}</p>
+        {draft.body !== draft.title && (
+          <p className="mt-1 text-xs text-stone-600 leading-relaxed">{draft.body}</p>
+        )}
+      </div>
+      {status === 'done' ? (
+        <p className="text-sm font-bold text-emerald-700">{t('marg.aiSuggestFiled')}</p>
+      ) : status === 'rejected' ? (
+        <p className="text-sm font-bold text-stone-500">{t('marg.aiSuggestDiscarded')}</p>
+      ) : (
+        <>
+          <p className="mb-2.5 flex items-start gap-1.5 text-xs font-bold text-amber-800 leading-relaxed">
+            <span aria-hidden>⚠️</span>
+            <span>{t('marg.voicePublicWarning')}</span>
+          </p>
+          {status === 'error' && error && (
+            <p className="mb-2.5 text-xs font-bold text-red-600 leading-relaxed">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onFile}
+              disabled={locked}
+              className="flex-1 min-h-[48px] rounded-2xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:opacity-60 text-white text-sm font-extrabold px-4 transition-colors shadow-sm"
+            >
+              {status === 'busy' ? '…' : t('marg.aiSuggestFile')}
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              disabled={locked}
+              className="flex-1 min-h-[48px] rounded-2xl border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-60 text-stone-700 text-sm font-bold px-4 transition-colors"
+            >
+              {t('marg.aiSuggestDismiss')}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = ({
   open,
   onClose,
 }) => {
   const navigate = useNavigate();
   const { tr } = useLocaleText();
-  const { currentLang, region } = useLanguage();
+  const { currentLang, region, t } = useLanguage();
   const {
     firebaseUser,
     role,
@@ -531,6 +652,14 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
    *  renders the stale note (nothing was ever saved from it). */
   const [drafts, setDrafts] = useState<Record<string, CopilotDraft>>({});
   const [draftStatus, setDraftStatus] = useState<Record<string, DraftStatus>>({});
+  /** J4 — live citation doors + bridge drafts by message id. Same
+   *  law as drafts: deliberately NOT persisted — a reloaded thread
+   *  shows the answer text (whose citation line survives inside it)
+   *  without stale doors or half-offers. */
+  const [citations, setCitations] = useState<Record<string, ManualCitation>>({});
+  const [suggests, setSuggests] = useState<Record<string, SuggestBridgeDraft>>({});
+  const [suggestStatus, setSuggestStatus] = useState<Record<string, SuggestStatus>>({});
+  const [suggestError, setSuggestError] = useState<Record<string, string | undefined>>({});
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
@@ -638,6 +767,13 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
         setDrafts((prev) => ({ ...prev, [msg.id]: res.draft as CopilotDraft }));
         setDraftStatus((prev) => ({ ...prev, [msg.id]: 'pending' }));
       }
+      if (res.citation) {
+        setCitations((prev) => ({ ...prev, [msg.id]: res.citation as ManualCitation }));
+      }
+      if (res.suggest) {
+        setSuggests((prev) => ({ ...prev, [msg.id]: res.suggest as SuggestBridgeDraft }));
+        setSuggestStatus((prev) => ({ ...prev, [msg.id]: 'pending' }));
+      }
       setMessages((prev) => {
         const next = [...prev, msg];
         void saveThread(uidKey, next);
@@ -725,6 +861,96 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
     },
     [currentLang, pushAssistant]
   );
+
+  /* J4 — the citation door. In an org session the centre is the
+   * app's own module: hand the slug over (storage note + event, so
+   * mounted and not-yet-mounted centres both land on the page) and
+   * switch modules through the shell's desk-routing event. In a
+   * solo session the public mirror page IS the manual — navigate
+   * to the citation's own href. */
+  const openManualPage = useCallback(
+    (citation: ManualCitation) => {
+      if (sessionKind === 'org') {
+        requestOpenManualPage(citation.slug);
+        onClose();
+        try {
+          window.dispatchEvent(
+            new CustomEvent('sanatani:navigate', {
+              detail: { module: 'margdarshan' },
+            })
+          );
+        } catch {
+          /* non-DOM environment — nothing to navigate */
+        }
+      } else {
+        onClose();
+        navigate(citation.href);
+      }
+    },
+    [sessionKind, onClose, navigate]
+  );
+
+  /* J4 — the bridge's File tap: the ONLY write in this flow. Files
+   * through J3's own suggestions service (which shapes the payload
+   * via buildSuggestionCreate) — the author is the signed-in user,
+   * the name is their SAN display name, and loop-closure (their own
+   * device watches their suggestions) applies exactly as on the
+   * board. Signed out, the read/engage law routes to sign-in. */
+  const fileSuggest = useCallback(
+    async (msgId: string) => {
+      const draft = suggests[msgId];
+      if (!draft) return;
+      const status = suggestStatus[msgId] ?? 'pending';
+      if (status === 'busy' || status === 'done' || status === 'rejected') return;
+      if (uidKey === 'anon') {
+        onClose();
+        navigate('/login?next=/app');
+        return;
+      }
+      setSuggestStatus((prev) => ({ ...prev, [msgId]: 'busy' }));
+      setSuggestError((prev) => ({ ...prev, [msgId]: undefined }));
+      try {
+        const input = {
+          authorId: uidKey,
+          authorName: resolveActorName(
+            [currentUser?.fullName, currentUser?.name, firebaseUser?.displayName],
+            firebaseUser?.email
+          ),
+          kind: draft.kind,
+          deskId: null,
+          title: draft.title,
+          body: draft.body,
+          language: (currentLang || 'en').toLowerCase(),
+        };
+        const problems = validateSuggestionDraft(input);
+        if (problems.length > 0) throw new Error(`invalid:${problems.join(',')}`);
+        const { createSuggestion } = await import(
+          '../../lib/margdarshan/suggestionsService'
+        );
+        await createSuggestion(input);
+        setSuggestStatus((prev) => ({ ...prev, [msgId]: 'done' }));
+      } catch (e) {
+        setSuggestStatus((prev) => ({ ...prev, [msgId]: 'error' }));
+        setSuggestError((prev) => ({ ...prev, [msgId]: friendlyError(e, t, 'save') }));
+      }
+    },
+    [
+      suggests,
+      suggestStatus,
+      uidKey,
+      currentUser,
+      firebaseUser,
+      currentLang,
+      onClose,
+      navigate,
+      t,
+    ]
+  );
+
+  const dismissSuggest = useCallback((msgId: string) => {
+    // No service call, no write — the offer simply ceases to exist.
+    setSuggestStatus((prev) => ({ ...prev, [msgId]: 'rejected' }));
+  }, []);
 
   const warmError = useCallback(() => {
     pushAssistant({
@@ -896,6 +1122,10 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
     await clearThread(uidKey);
     setMessages([]);
     setDrafts({});
+    setCitations({});
+    setSuggests({});
+    setSuggestStatus({});
+    setSuggestError({});
     setDraftStatus({});
   }, [uidKey]);
 
@@ -1124,6 +1354,23 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
                         )}
                       </div>
                     ))}
+
+                  {citations[m.id] && (
+                    <CitationCard
+                      citation={citations[m.id]}
+                      onOpen={() => openManualPage(citations[m.id])}
+                    />
+                  )}
+
+                  {suggests[m.id] && (
+                    <SuggestCard
+                      draft={suggests[m.id]}
+                      status={suggestStatus[m.id] ?? 'pending'}
+                      error={suggestError[m.id]}
+                      onFile={() => void fileSuggest(m.id)}
+                      onDismiss={() => dismissSuggest(m.id)}
+                    />
+                  )}
 
                   {m.suggestions && m.suggestions.length > 0 && (
                     <SuggestionChips suggestions={m.suggestions} onPick={(s) => void send(s)} />

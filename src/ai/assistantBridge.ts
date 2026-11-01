@@ -47,6 +47,17 @@ export interface AssistantResponse {
    * ai/org/commitDraft.ts — the bridge only carries the data.
    */
   draft?: import('./org/drafts').CopilotDraft;
+  /**
+   * J4 — the Margdarshan manual citation (core types; the sheet
+   * renders its door under the bubble). Public knowledge, all roles.
+   */
+  citation?: import('./types').ManualCitation;
+  /**
+   * J4 — the ask-to-suggest bridge draft (inert). The sheet renders
+   * the Your Voice offer card; only its File tap writes, via J3's
+   * suggestions service.
+   */
+  suggest?: import('./types').SuggestBridgeDraft;
   action?: AssistantAction;
   /** Follow-up chips rendered under the message. */
   suggestions?: string[];

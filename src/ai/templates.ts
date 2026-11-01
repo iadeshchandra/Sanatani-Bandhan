@@ -190,19 +190,28 @@ const T: Record<TemplateKey, Record<string, LangMap<TFn>>> = {
           p['hasTour'] === '1'
             ? "I've opened the full guide for you — take it one step at a time. 🌼"
             : "That's the whole guide, right here — take it one step at a time. 🌼"
-        }`,
+        }${p['citationLine'] ? '\n\n' + String(p['citationLine']) : ''}`,
       hi: (p, c) =>
         `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**पहले कदम:**\n${p['steps']}\n\n**एक सुझाव:**\n${p['tips']}\n\n${
           p['hasTour'] === '1'
             ? 'आपके लिए पूरा मार्गदर्शक खोल दिया है — एक-एक कदम बढ़िए। 🌼'
             : 'पूरा मार्गदर्शक यहीं है — एक-एक कदम बढ़िए। 🌼'
-        }`,
+        }${p['citationLine'] ? '\n\n' + String(p['citationLine']) : ''}`,
       bn: (p, c) =>
         `🙏 **${p['guideName']}**\n\n${p['whatItIs']}\n\n**প্রথম পদক্ষেপ:**\n${p['steps']}\n\n**একটি পরামর্শ:**\n${p['tips']}\n\n${
           p['hasTour'] === '1'
             ? 'আপনার জন্য সম্পূর্ণ নির্দেশিকা খুলে দিয়েছি — এক পা এক পা করে এগোন। 🌼'
             : 'সম্পূর্ণ নির্দেশিকা এখানেই আছে — এক পা এক পা করে এগোন। 🌼'
-        }`,
+        }${p['citationLine'] ? '\n\n' + String(p['citationLine']) : ''}`,
+    },
+    // J4 — the composed, cited Margdarshan manual answer. The
+    // executor composes the text from the page itself (renderer-only
+    // law), so every language renders the param verbatim — the same
+    // passthrough class as org_locator's 'answer'.
+    manual: {
+      en: (p) => String(p['answer'] ?? ''),
+      hi: (p) => String(p['answer'] ?? ''),
+      bn: (p) => String(p['answer'] ?? ''),
     },
     clarify: {
       en: (p, c) =>
@@ -607,6 +616,13 @@ const T: Record<TemplateKey, Record<string, LangMap<TFn>>> = {
       bn: (p, c) =>
         `🙏 এটি পবিত্র শাস্ত্রের বিষয়, আর ধর্ম নিয়ে আমি কল্পনা করব না — তা পরম্পরার প্রতি অশ্রদ্ধা হবে।\n\n` +
         `**এটি আমাদের যাচাইকৃত গ্রন্থে নেই — আপনাকে কি পুরোহিতজির সাথে যুক্ত করে দেব?** একজন বিদ্বান পুরোহিত যথাযথ পথ দেখাবেন, যে স্নেহের এমন প্রশ্ন যোগ্য। 🌼`,
+    },
+    // J4 — the composed, cited Margdarshan manual answer (executor
+    // param, verbatim — the org_locator 'answer' passthrough class).
+    manual: {
+      en: (p) => String(p['answer'] ?? ''),
+      hi: (p) => String(p['answer'] ?? ''),
+      bn: (p) => String(p['answer'] ?? ''),
     },
     default: {
       en: (p, c) => `🙏 Forgive me — I'm still learning. Ask me about tithi, festivals, dana, sadhana, or booking a priest. 🌼`,

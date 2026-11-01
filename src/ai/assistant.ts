@@ -55,6 +55,9 @@ function responseTypeFor(intent: IntentId, hasAction: boolean, variant?: string)
   if (variant === 'need_amount' || variant === 'need_details' || variant === 'clarify') {
     return 'clarify';
   }
+  // J4 — a composed, cited manual answer (howto / fallback_unknown)
+  // is a complete answer in itself.
+  if (variant === 'manual') return 'answer';
   if (intent === 'fallback_unknown' && variant === 'dharma') return 'escalate';
   if (intent === 'dharma_question' && variant === 'escalate') return 'escalate';
   if (intent === 'nearby_temples' && variant === 'consent') return 'location_consent';
@@ -203,11 +206,19 @@ export async function ask(
     // The pipeline commits NOTHING here: no services exist in this
     // layer. Only the sheet's Approve tap (commitDraft.ts) writes.
     ...(outcome.draft ? { draft: outcome.draft } : {}),
+    // J4 — the manual citation + the ask-to-suggest bridge draft
+    // ride the same way: data only. The citation is public
+    // knowledge (the manual is world-readable); the bridge draft is
+    // the user's own question, written only on their File tap.
+    ...(outcome.citation ? { citation: outcome.citation } : {}),
+    ...(outcome.suggest ? { suggest: outcome.suggest } : {}),
   };
   // Blueprint C — org answers are NEVER voice-rephrased: their
   // figures and provenance lines must reach the user exactly as the
   // executor computed them (answer-hygiene law), and a draft's
-  // summary line must match the preview card word for word.
+  // summary line must match the preview card word for word. J4 adds
+  // cited answers to the same law: the manual's words and the
+  // citation line must reach the user exactly as composed.
   const ORG_INTENTS: ReadonlySet<string> = new Set([
     'org_giving',
     'org_expenses',
@@ -222,7 +233,7 @@ export async function ask(
     'org_locator',
   ]);
   const enhanced =
-    outcome.draft || ORG_INTENTS.has(route.intent)
+    outcome.draft || outcome.citation || ORG_INTENTS.has(route.intent)
       ? base
       : await maybeEnhanceWithVoice(base, lang, region);
 
@@ -269,7 +280,14 @@ export async function ask(
   if (role !== 'owner') {
     const guarded = guardSurface(verified.text, role, lang);
     if (guarded !== verified.text) {
-      return { ...verified, text: guarded, data: undefined };
+      // The guard replaces the WHOLE answer — its riders go with it.
+      return {
+        ...verified,
+        text: guarded,
+        data: undefined,
+        citation: undefined,
+        suggest: undefined,
+      };
     }
     return verified;
   }

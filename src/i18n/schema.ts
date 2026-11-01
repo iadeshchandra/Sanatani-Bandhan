@@ -221,6 +221,14 @@ export interface TranslationSchema {
     voiceTitlePlaceholder?: string;
     voiceBodyPlaceholder?: string;
     voicePublicWarning?: string;
+    citeFromManual?: string;
+    citeOpen?: string;
+    aiSuggestTitle?: string;
+    aiSuggestDesc?: string;
+    aiSuggestFile?: string;
+    aiSuggestDismiss?: string;
+    aiSuggestFiled?: string;
+    aiSuggestDiscarded?: string;
     voiceSubmit?: string;
     voiceCancel?: string;
     voiceFormInvalid?: string;

@@ -36,6 +36,13 @@ import {
   matchLocator,
   type LocatorEntry,
 } from '../locator';
+import {
+  citationForLocatorEntry,
+  citationLine,
+  manualEntryForLocatorEntry,
+  manualSources,
+  suggestDraftFor,
+} from '../manualAnswers';
 import { suggestionsFor } from '../templates';
 import type { TaskCtx, TaskOutcome } from '../types';
 
@@ -71,26 +78,43 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   }
 
   // Nothing taught for this name — warm honesty, never a guess.
+  // J4: the bridge rides along (kind 'manual-gap') — a where-is the
+  // app could not answer is exactly what Your Voice should hear.
+  // Inert draft; only the sheet's File tap files it.
   if (!isLocatable(m) || !m.best) {
     return {
       params: { answer: frames.dontKnow },
       variant: 'clarify',
+      suggest: suggestDraftFor(ctx, 'manual-gap'),
       suggestions,
     };
   }
 
   const entry = m.best;
   const scope = ctx.org?.scope;
+  // J4: every locator entry IS a manual page (the page model was
+  // built on the locator map) — a found place now also names the
+  // manual page that teaches it, with the citation as a door. The
+  // desk door above stays exactly as RBAC judged it; the citation
+  // opens the PUBLIC manual, never the desk itself.
+  const citation = citationForLocatorEntry(entry.id, lang);
+  const citedEntry = manualEntryForLocatorEntry(entry.id);
+  const citeLine = citation ? `\n\n${citationLine(lang, citation.title)}` : '';
+  const citeFields = {
+    ...(citation ? { citation } : {}),
+    ...(citedEntry ? { sources: manualSources(citedEntry) } : {}),
+  };
 
   // Solo-shell / public surfaces: the caller's own — always a real
   // route, in either shell.
   if (entry.kind === 'solo' || entry.kind === 'public') {
     return {
-      params: { answer: headed(entry, lang) },
+      params: { answer: headed(entry, lang) + citeLine },
       variant: 'answer',
       action: entry.route
         ? { kind: 'navigate', target: entry.route, label: takeMe }
         : undefined,
+      ...citeFields,
       suggestions,
     };
   }
@@ -99,21 +123,24 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   if (scope) {
     if (canOpenEntry(entry, scope)) {
       return {
-        params: { answer: headed(entry, lang) },
+        params: { answer: headed(entry, lang) + citeLine },
         variant: 'answer',
         action: entry.deskId
           ? { kind: 'openDesk', target: entry.deskId, label: takeMe }
           : undefined,
+        ...citeFields,
         suggestions,
       };
     }
     // Outside the caller's scope: name the place and whose desk it
-    // is — kindly, and with NO deep-link (RBAC honesty law).
+    // is — kindly, and with NO deep-link (RBAC honesty law). The
+    // citation still rides: the manual page is public reading.
     return {
       params: {
-        answer: `${headed(entry, lang)} ${frames.outOfScope(entryUsedByFor(entry, lang))}`,
+        answer: `${headed(entry, lang)} ${frames.outOfScope(entryUsedByFor(entry, lang))}${citeLine}`,
       },
       variant: 'answer',
+      ...citeFields,
       suggestions,
     };
   }
@@ -121,10 +148,11 @@ export function orgLocatorTask(ctx: TaskCtx): TaskOutcome {
   // Org feature asked from a solo session: the corpus-style path in.
   return {
     params: {
-      answer: `${headed(entry, lang)} ${frames.viaOrgsSuffix}`,
+      answer: `${headed(entry, lang)} ${frames.viaOrgsSuffix}${citeLine}`,
     },
     variant: 'answer',
     action: { kind: 'navigate', target: '/app/orgs', label: takeMe },
+    ...citeFields,
     suggestions,
   };
 }
