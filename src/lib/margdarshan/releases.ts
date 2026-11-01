@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.01-b608a1e',
+    date: '2026-11-01',
+    sections: {
+      fixed: [
+        {
+          text: {
+            en: "The Purohit verification ladder now works end to end: organisation endorsements are recorded as firm evidence, a purohit's claim to the next tier truly goes through (and says so plainly if it cannot), and every badge and ranking reads the real tier — the same certainty the Jyotish ladder received, now on both sides.",
+            hi: "पुरोहित सत्यापन-सीढ़ी अब सिरे से सिरे तक कार्य करती है: संस्था के अनुमोदन दृढ़ साक्ष्य के रूप में दर्ज होते हैं, पुरोहित का अगले स्तर का दावा सचमुच पूर्ण होता है (और न हो सके तो स्पष्ट कहता है), और हर बैज व श्रेणी वास्तविक स्तर ही दिखाती है — जो निश्चितता ज्योतिष-सीढ़ी को मिली, अब दोनों ओर।",
+            bn: "পুরোহিত যাচাই-সোপান এখন আগাগোড়া কাজ করে: প্রতিষ্ঠানের অনুমোদন দৃঢ় প্রমাণ হিসেবে নথিভুক্ত হয়, পুরোহিতের পরের স্তরের দাবি সত্যিই সম্পন্ন হয় (আর না হলে স্পষ্ট করে বলে), এবং প্রতিটি ব্যাজ ও ক্রম আসল স্তরই দেখায় — জ্যোতিষ-সোপান যে নিশ্চয়তা পেয়েছিল, এখন দুই দিকেই।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.01-88e081a',
     date: '2026-11-01',
     sections: {
