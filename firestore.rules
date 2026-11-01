@@ -1596,6 +1596,44 @@ service cloud.firestore {
           && (from == 'CREDENTIAL_VERIFIED' || from == 'ORG_ENDORSED' || from == 'VERIFIED')
           && endorsements >= 1 && gigs >= 10 && rating >= 4.5);
     }
+    // PUROHIT-PARITY (mirrors JY-FIX-B / JY-04 above) -- anchored
+    // endorsement step for purohits: endorsementCount may rise ONLY by
+    // exactly +1, naming (in lastEndorsementId) a NEW endorsement doc
+    // for THIS profile, created in the same transaction
+    // (endorsePurohit writes both atomically). The endorsement docs
+    // live in the top-level `endorsements` collection (the purohit
+    // twin of jyotishEndorsements). Mirrors p1JyotishEndorsementOk.
+    function p1PurohitEndorsementOk(purohitId) {
+      let eid = request.resource.data.get('lastEndorsementId', '');
+      let epath = /databases/$(database)/documents/endorsements/$(eid);
+      return eid != '' && eid != resource.data.get('lastEndorsementId', '')
+        && existsAfter(epath)
+        && getAfter(epath).data.get('purohitId', '') == purohitId
+        && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0) + 1;
+    }
+    // PUROHIT-PARITY -- the purohit tier claim: the target tier must
+    // be EARNED by the doc's own anchored fields, mirroring the client
+    // ladder (types/purohit.computeEffectiveTier, post-JY-05):
+    // ORG_ENDORSED needs CREDENTIAL_VERIFIED + at least 1 anchored
+    // endorsement; PLATFORM_VERIFIED additionally needs the merit bar
+    // (at least 10 completed gigs at a 4.5+ aggregate — both anchored
+    // fields themselves). A legacy 'VERIFIED' value (the SevaPro
+    // dialect GodMode once stamped, = CREDENTIAL_VERIFIED) may claim,
+    // which also heals the stored value to canonical. Mirrors
+    // jyotishTierClaimOk with the purohit merit field (completedGigs).
+    function purohitTierClaimOk() {
+      let from = resource.data.get('verificationTier', '');
+      let to = reqVerificationTier();
+      let endorsements = resource.data.get('endorsementCount', 0);
+      let gigs = resource.data.get('completedGigs', 0);
+      let rating = resource.data.get('ratingAggregate', 0);
+      return (to == 'ORG_ENDORSED'
+          && (from == 'CREDENTIAL_VERIFIED' || from == 'VERIFIED')
+          && endorsements >= 1)
+        || (to == 'PLATFORM_VERIFIED'
+          && (from == 'CREDENTIAL_VERIFIED' || from == 'ORG_ENDORSED' || from == 'VERIFIED')
+          && endorsements >= 1 && gigs >= 10 && rating >= 4.5);
+    }
     // SECURITY P1 -- completed-count anchors: the owner's own +1 is
     // legal only when it names (in lastCompletedGigId /
     // lastCompletedConsultationId) a NEWLY cited engagement that is
@@ -2676,13 +2714,23 @@ service cloud.firestore {
         && reqVerificationTier() == 'REGISTERED'
         && request.resource.data.get('ratingAggregate', 0) == 0
         && reqRatingCount() == 0
-        && request.resource.data.get('completedGigs', 0) == 0;
+        && request.resource.data.get('completedGigs', 0) == 0
+        // PUROHIT-PARITY: a profile is also born with ZERO anchored
+        // endorsements — the claim branch reads this field, so it must
+        // not be self-granted at birth (mirrors jyotishProfiles).
+        && request.resource.data.get('endorsementCount', 0) == 0;
       allow update: if isSuperAdmin()
         || (isLoggedIn()
           && uidIs(resUid())
           && uidIs(reqUid())
           && request.resource.data.get('id', '') == resource.data.get('id', '')
           && reqVerificationTier() == resource.data.get('verificationTier', '')
+          // PUROHIT-PARITY: the endorsement anchors are pinned here
+          // too — they move ONLY via the anchored endorsement branch
+          // below, never on the owner's plain say-so (mirrors the
+          // jyotishProfiles owner-branch anchor pins).
+          && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0)
+          && request.resource.data.get('lastEndorsementId', '') == resource.data.get('lastEndorsementId', '')
           // SECURITY P1: the rating aggregate never moves on the
           // owner's own say-so -- only via the anchored review branch
           // below. completedGigs may stay, or rise by exactly 1
@@ -2699,6 +2747,29 @@ service cloud.firestore {
           && diffKeys()
             .hasOnly(RATING_KEYS())
           && p1PurohitRatingOk(purohitId))
+        // PUROHIT-PARITY -- anchored endorsement step (see
+        // p1PurohitEndorsementOk): the endorsement counter moves only
+        // with the endorsement doc itself, in one transaction.
+        || (isLoggedIn()
+          && diffKeys()
+            .hasOnly(['endorsementCount', 'lastEndorsementId', 'updatedAt'])
+          && p1PurohitEndorsementOk(purohitId))
+        // PUROHIT-PARITY -- the tier CLAIM: before this branch, NO
+        // rules path let the owner advance their own verificationTier
+        // (the owner branch pins it), so claimTierAdvancement failed
+        // silently for every purohit — the JY-04 defect, one system
+        // over. The owner may now write ONLY verificationTier
+        // (+ updatedAt), and only to a step the doc's own anchored
+        // fields have earned (purohitTierClaimOk). Legacy note:
+        // endorsements recorded before this branch existed are not in
+        // the anchored count (rules cannot count a collection); an
+        // affected purohit's claim stays denied until their next
+        // (anchored) endorsement or a GodMode manual tier set.
+        || (isLoggedIn()
+          && uidIs(resUid())
+          && diffKeys()
+            .hasOnly(['verificationTier', 'updatedAt'])
+          && purohitTierClaimOk())
         // PHASE 3 â Pratham Seva counter advancement (order-anchored).
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;

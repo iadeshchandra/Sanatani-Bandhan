@@ -30,13 +30,14 @@ import {
   PUROHIT_TIER_META,
   tierIndex,
   computeEffectiveTier,
+  normalizePurohitTier,
 } from './purohit';
 
 /** Four-tier verification pipeline — SHARED with Purohit One (org-neutral). */
 export type JyotishVerificationTier = PurohitVerificationTier;
 export const JYOTISH_TIERS = PUROHIT_TIERS;
 export const JYOTISH_TIER_META = PUROHIT_TIER_META;
-export { tierIndex, computeEffectiveTier };
+export { tierIndex, computeEffectiveTier, normalizePurohitTier };
 
 /** Consultation types offered in the marketplace. */
 export const CONSULTATION_TYPES = [

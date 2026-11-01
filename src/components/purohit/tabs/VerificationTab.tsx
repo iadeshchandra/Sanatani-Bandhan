@@ -111,7 +111,7 @@ export const VerificationTab: React.FC = () => {
                   )}
                   {t === 'PLATFORM_VERIFIED' && (
                     <p className="text-[11px] font-bold mt-1 text-stone-600">
-                      {profile.completedGigs} gigs · ★ {profile.ratingAggregate.toFixed(1)} (need 10 gigs @ ≥ 4.5, or an endorsement)
+                      {profile.completedGigs} gigs · ★ {profile.ratingAggregate.toFixed(1)} (need 10 gigs @ ≥ 4.5)
                     </p>
                   )}
                 </div>
@@ -120,7 +120,20 @@ export const VerificationTab: React.FC = () => {
           })}
         </div>
         {canClaim && (
-          <PrimaryButton className="w-full mt-4" onClick={claimTierAdvancement}>
+          <PrimaryButton
+            className="w-full mt-4"
+            onClick={() => {
+              // PUROHIT-PARITY: a denied claim must SPEAK (mirrors
+              // JY-FIX-B's jyotish claim button). Before, the promise
+              // floated unhandled — with no rules branch permitting
+              // the write, every purohit claim failed in complete
+              // silence.
+              claimTierAdvancement().catch((err) => {
+                console.error(err);
+                alert(friendlyError(err, t, 'save'));
+              });
+            }}
+          >
             🎉 {t('purohit.overview.claimTier').replace('{tier}', PUROHIT_TIER_META[effectiveTier!].label)}
           </PrimaryButton>
         )}

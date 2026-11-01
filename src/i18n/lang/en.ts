@@ -377,7 +377,7 @@ const dict: TranslationSchema =  {
       endorsementsLabel: "Endorsements",
       needOne: "need ≥ 1",
       gigsLabel: "gigs",
-      needTen: "need 10 gigs @ ≥ 4.5, or an endorsement",
+      needTen: "need 10 gigs @ ≥ 4.5",
       ritualTypesLabel: "Ritual types recognized",
       },
       reviews: {

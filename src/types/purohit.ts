@@ -110,6 +110,16 @@ export interface PurohitIdentity {
   lastReviewId?: string;
   completedGigs: number;
   lastCompletedGigId?: string;
+  /** PUROHIT-PARITY anchors, mirroring the rating anchors above and
+   *  JyotishIdentity's JY-04 anchors: rules accept an endorsementCount
+   *  write only when it names the NEW endorsement doc in
+   *  lastEndorsementId and moves exactly +1 (written transactionally
+   *  by endorsePurohit). The tier-claim rules branch reads
+   *  endorsementCount from the doc itself. Endorsements recorded
+   *  before this parity batch are not in this count — see the claim
+   *  branch note in firestore.rules. */
+  endorsementCount?: number;
+  lastEndorsementId?: string;
   /** Dual identity: linked org staff record, if accepted as temple staff. */
   linkedOrgId?: string;
   linkedOrgName?: string;

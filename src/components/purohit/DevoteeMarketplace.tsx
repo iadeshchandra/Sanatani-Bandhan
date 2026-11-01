@@ -1,9 +1,18 @@
 /**
  * DevoteeMarketplace — the devotee-facing marketplace hub.
  * =====================================================================
- * Mounted inside PurohitPortalUnified's DEVOTEE_SPACE. Sub-tabs:
- *  Find a Purohit · Post Requirement · My Requirements · My Account.
- * Self-contained in a PurohitProvider (works in org context).
+ * Sub-tabs: Find a Purohit · Post Requirement · My Requirements ·
+ * My Account. Self-contained in a PurohitProvider (works in org
+ * context).
+ *
+ * MOUNT STATE (PUROHIT-PARITY audit, 2026-11-02 — PP-09): this hub is
+ * currently NOT MOUNTED anywhere. Its header previously claimed a
+ * mount inside PurohitPortalUnified's DEVOTEE_SPACE; that portal now
+ * delegates DEVOTEE_SPACE to DevoteeAccountPortal, and no file imports
+ * this component (bundle-verified: FindPurohit's strings are absent
+ * from the production build). Kept intact — the endorsement surface
+ * (FindPurohit's EndorseForm) is built here for parity; reviving the
+ * hub is a product/navigation decision, not a tier fix.
  */
 import React, { useState } from 'react';
 import { PurohitProvider } from '../../context/PurohitContext';

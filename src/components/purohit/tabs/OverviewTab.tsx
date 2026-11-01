@@ -4,6 +4,7 @@ import { usePurohit } from '../../../context/PurohitContext';
 import { PUROHIT_TIER_META, PUROHIT_TIERS } from '../../../types/purohit';
 import { Card, SectionTitle, GhostButton, Stars, EmptyState } from '../ui';
 import { useLanguage } from '../../../context/LanguageContext';
+import { friendlyError } from '../../../lib/friendlyError';
 
 export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
   const {
@@ -88,7 +89,16 @@ export const OverviewTab: React.FC<{ goTo: (t: any) => void }> = ({ goTo }) => {
         {canClaim ? (
           <button
             type="button"
-            onClick={claimTierAdvancement}
+            onClick={() => {
+              // PUROHIT-PARITY: a denied claim must SPEAK — same catch
+              // as the Verification tab's claim button (mirrors
+              // JY-FIX-B's jyotish claim button). This surface
+              // previously let the rejected promise float unhandled.
+              claimTierAdvancement().catch((err) => {
+                console.error(err);
+                alert(friendlyError(err, t, 'save'));
+              });
+            }}
             className="mt-4 w-full px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black transition-colors min-h-[44px]"
           >
             🎉 {t('purohit.overview.claimTier').replace('{tier}', PUROHIT_TIER_META[effectiveTier!].label)}

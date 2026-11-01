@@ -48,6 +48,7 @@ import {
   type PrathamSevaConfig, type CommissionScheduleBracket,
 } from '../../../lib/sevaPro/prathamSeva';
 import { tierBadge, TIER_ORDER, type SevaProTier } from '../../../lib/sevaPro/tiers';
+import { purohitTierToSevaProTier, normalizePurohitTier } from '../../../lib/sevaPro/tierMapping';
 import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../lib/sevaPro/sevaProCopy';
 
 
@@ -609,7 +610,15 @@ const ProfessionalControls: React.FC = () => {
       else {
         setPro(p);
         setFreeSevas(String(p.freeSevasRemaining));
-        setTier((p.verificationTier as SevaProTier) || 'REGISTERED');
+        // PUROHIT-PARITY (JY-03 class): getProfessional returns the
+        // RAW stored pipeline tier — CONVERT it into the SevaPro
+        // dialect this select speaks, never cast it. Cast, a canonical
+        // value matched no option (the select showed the first), the
+        // badge below read 'Registered', and an untouched "Set tier"
+        // passed the raw string into setTierManual, whose converter
+        // defaults unknown values to REGISTERED — a silent demotion
+        // of any approved professional.
+        setTier(purohitTierToSevaProTier(normalizePurohitTier(p.verificationTier)));
         setScheduleJson('');
       }
     } catch (e: any) { console.error(e); showToast(friendlyError(e, t, 'load'), 'error'); }
@@ -623,7 +632,9 @@ const ProfessionalControls: React.FC = () => {
     setWorking(null);
   };
 
-  const badge = pro ? tierBadge(pro.verificationTier, 'en') : null;
+  // PUROHIT-PARITY: same conversion as the lookup above — tierBadge
+  // speaks the SevaPro dialect; the stored value is the pipeline's.
+  const badge = pro ? tierBadge(purohitTierToSevaProTier(normalizePurohitTier(pro.verificationTier)), 'en') : null;
 
   return (
     <div className="space-y-3">

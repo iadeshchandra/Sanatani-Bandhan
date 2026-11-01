@@ -72,6 +72,7 @@ import {
   RemedyReferral,
   computeEffectiveTier,
   generateJyotishId,
+  normalizePurohitTier,
 } from '../types/jyotish';
 
 interface JyotishContextType {
@@ -755,7 +756,10 @@ export const JyotishProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       const rank: Record<string, number> = { PLATFORM_VERIFIED: 0, ORG_ENDORSED: 1, CREDENTIAL_VERIFIED: 2, REGISTERED: 3 };
       return list.sort(
-        (a, b) => (rank[a.verificationTier] ?? 3) - (rank[b.verificationTier] ?? 3) || (b.ratingAggregate || 0) - (a.ratingAggregate || 0)
+        // PUROHIT-PARITY whole-class twin of the browsePurohits fix
+        // (JY-13 precedent): rank by the NORMALISED tier, so a legacy
+        // SevaPro-dialect value ranks at its true step, not the floor.
+        (a, b) => (rank[normalizePurohitTier(a.verificationTier)] ?? 3) - (rank[normalizePurohitTier(b.verificationTier)] ?? 3) || (b.ratingAggregate || 0) - (a.ratingAggregate || 0)
       );
     },
     []

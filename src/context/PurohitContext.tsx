@@ -52,6 +52,7 @@ import { nextProfileAggregate } from '../lib/ratingAggregate';import {
   RitualGig,
   computeEffectiveTier,
   generatePurohitId,
+  normalizePurohitTier,
 } from '../types/purohit';
 
 interface PurohitContextType {
@@ -663,7 +664,11 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (filters.language) {
         list = list.filter((p) => p.languages?.includes(filters.language!));
       }
-      // PLATFORM_VERIFIED first, then by rating.
+      // PLATFORM_VERIFIED first, then by rating. PUROHIT-PARITY
+      // reader hardening (the FIX-B class): rank by the NORMALISED
+      // tier, so a legacy SevaPro-dialect value ('VERIFIED' /
+      // 'TRUSTED') ranks at its true step instead of sinking to the
+      // ?? 3 floor. Twin fix in JyotishContext.browseJyotishis.
       const rank: Record<string, number> = {
         PLATFORM_VERIFIED: 0,
         ORG_ENDORSED: 1,
@@ -672,7 +677,7 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       };
       return list.sort(
         (a, b) =>
-          (rank[a.verificationTier] ?? 3) - (rank[b.verificationTier] ?? 3) ||
+          (rank[normalizePurohitTier(a.verificationTier)] ?? 3) - (rank[normalizePurohitTier(b.verificationTier)] ?? 3) ||
           (b.ratingAggregate || 0) - (a.ratingAggregate || 0)
       );
     },
@@ -702,29 +707,38 @@ export const PurohitProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const isTrusteeLike = ['Trustee', 'SuperAdmin'].includes(currentRole as string);
       if (!isTrusteeLike) throw new Error('Only a Trustee can endorse on behalf of the organisation.');
       const ref = doc(collection(db, 'endorsements'));
-      await setDoc(ref, {
-        id: ref.id,
-        orgId: activeWorkspace.id,
-        orgName: activeWorkspace.name,
-        orgType: (activeWorkspace as any).type || (activeWorkspace as any).orgType || 'Organisation',
-        purohitId,
-        endorserUid: uid,
-        text: text.slice(0, 500),
-        ritualCount: Math.max(0, Math.floor(ritualCount)),
-        createdAt: now(),
+      const profileRef = doc(db, 'purohits', purohitId);
+      // PUROHIT-PARITY (mirrors JY-FIX-B / JY-04 on the jyotish side):
+      // the endorsement and the profile's anchored endorsement counter
+      // move in ONE transaction. The rules branch
+      // (p1PurohitEndorsementOk) accepts the counter write only when it
+      // names THIS new endorsement doc and moves exactly +1 — the same
+      // anchor pattern as the rating aggregate. The old code's separate
+      // "tier sync" write was rules-dead (a non-owner cannot write
+      // verificationTier) and silently swallowed; the tier step itself
+      // is now the purohit's own claim (claimTierAdvancement), which
+      // the rules claim branch permits against these anchored fields.
+      await runTransaction(db, async (tx) => {
+        const psnap = await tx.get(profileRef);
+        if (!psnap.exists()) throw new Error('Purohit profile not found');
+        const prevCount = Number((psnap.data() as any).endorsementCount || 0);
+        tx.set(ref, {
+          id: ref.id,
+          orgId: activeWorkspace.id,
+          orgName: activeWorkspace.name,
+          orgType: (activeWorkspace as any).type || (activeWorkspace as any).orgType || 'Organisation',
+          purohitId,
+          endorserUid: uid,
+          text: text.slice(0, 500),
+          ritualCount: Math.max(0, Math.floor(ritualCount)),
+          createdAt: now(),
+        });
+        tx.update(profileRef, {
+          endorsementCount: prevCount + 1,
+          lastEndorsementId: ref.id,
+          updatedAt: now(),
+        });
       });
-      // Auto-advance the tier along the ordered path (rules enforce the path).
-      try {
-        const psnap = await getDoc(doc(db, 'purohits', purohitId));
-        if (psnap.exists() && (psnap.data() as any).verificationTier === 'CREDENTIAL_VERIFIED') {
-          await updateDoc(doc(db, 'purohits', purohitId), {
-            verificationTier: 'ORG_ENDORSED',
-            updatedAt: now(),
-          });
-        }
-      } catch {
-        /* tier sync is best-effort; admin can sync */
-      }
       showToast('Endorsement recorded', 'success');
     },
     [uid, activeWorkspace, currentRole, showToast]
