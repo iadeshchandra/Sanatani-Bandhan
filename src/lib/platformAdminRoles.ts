@@ -22,7 +22,7 @@
  *               messages, content, support, translations, ranking,
  *               marketplace, professionals, growth, audit read).
  *   moderator — delegated trust & safety only: insights, users (lookup),
- *               moderation, support.
+ *               moderation, suggestion triage (J3), support.
  *
  * OWNER-ONLY, ALWAYS (never delegable from this UI): API keys, billing /
  * payment approvals, commission rates, finance, the raw database explorer,
@@ -56,6 +56,7 @@ export const DELEGATED_ADMIN_ROLES: readonly DelegatedAdminRole[] = ['admin', 'm
 /** Every GodMode console tab id (mirrors GodModeConsole2's TabId union). */
 export const GODMODE_TAB_IDS = [
   'overview', 'users', 'admins', 'workspaces', 'verification', 'moderation',
+  'suggestions',
   'billing', 'commission', 'finance', 'marketplace', 'professionals',
   'growth', 'apikeys', 'translations', 'ranking', 'messages', 'database',
   'content', 'settings', 'support', 'audit', 'system',
@@ -81,7 +82,7 @@ export const ADMIN_TABS: readonly GodModeTabId[] = GODMODE_TAB_IDS.filter(
 
 /** Delegated `moderator`: trust & safety surface only. */
 export const MODERATOR_TABS: readonly GodModeTabId[] = [
-  'overview', 'users', 'moderation', 'support',
+  'overview', 'users', 'moderation', 'suggestions', 'support',
 ];
 
 /** Tabs visible for an effective role. Null role → nothing. */
@@ -178,6 +179,6 @@ export function resolveEffectiveRole(input: {
 /** Human-readable capability summary for the Admins tab + toasts. */
 export const ROLE_DESCRIPTIONS: Record<PlatformRole, string> = {
   owner: 'Full platform control, including API keys, payments, settings and admin management. Never delegable.',
-  admin: 'Day-to-day operations: insights, users, workspaces, verification, moderation, messages, content, support, translations, ranking, marketplace, professionals, growth and the audit log. Cannot touch API keys, money, settings or admins.',
-  moderator: 'Trust & safety only: insights, user lookup, moderation and support. Nothing else.',
+  admin: 'Day-to-day operations: insights, users, workspaces, verification, moderation, suggestion triage, messages, content, support, translations, ranking, marketplace, professionals, growth and the audit log. Cannot touch API keys, money, settings or admins.',
+  moderator: 'Trust & safety only: insights, user lookup, moderation, suggestion triage and support. Nothing else.',
 };

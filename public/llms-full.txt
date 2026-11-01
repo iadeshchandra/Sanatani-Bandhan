@@ -144,12 +144,13 @@ WhatsApp +8801608533529 or email Sanatanibandhan@gmail.com. The team replies wit
 
 ## Help & manual — Margdarshan
 
-Margdarshan is the app's public help centre: a full manual (95 pages — every desk and topic explained with a real-life example first, who uses it, step-by-step how-to and common mistakes), a Feature Atlas of every capability grouped by family with its honest plan label, a What's New timeline that tells every shipped improvement in plain words as it lands, and — in the works — a suggestions board where users will propose ideas and watch them ship. Reading is free for everyone; no account is needed to read.
+Margdarshan is the app's public help centre: a full manual (95 pages — every desk and topic explained with a real-life example first, who uses it, step-by-step how-to and common mistakes), a Feature Atlas of every capability grouped by family with its honest plan label, a What's New timeline that tells every shipped improvement in plain words as it lands, and Your Voice — a public suggestions board where users propose ideas, support the ones they love, and watch each voice travel from Received to Shipped. Reading is free for everyone; no account is needed to read — an account is asked only at the moment of suggesting or supporting.
 
 - Margdarshan: https://sanatanibandhan.web.app/margdarshan
 - The manual: https://sanatanibandhan.web.app/margdarshan/manual
 - Feature Atlas: https://sanatanibandhan.web.app/margdarshan/features
 - What's New: https://sanatanibandhan.web.app/margdarshan/whats-new
+- Your Voice (suggestions board): https://sanatanibandhan.web.app/margdarshan/suggestions
 
 ## Contact
 

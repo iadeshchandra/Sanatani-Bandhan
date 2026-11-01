@@ -185,6 +185,59 @@ export interface TranslationSchema {
     profileRowDesc?: string;
     publicNote?: string;
     reviewedFor?: string;
+    // Margdarshan J3 (2026-11-01) — Your Voice: the suggestions
+    // board's chrome + the loop-closure Suchana copy. Board CONTENT
+    // (titles, bodies, replies) is the author's own language, shown
+    // as written — never dictionary copy.
+    voiceDesc?: string;
+    voiceBoardTab?: string;
+    voiceMine?: string;
+    voiceMineEmpty?: string;
+    voiceSortTop?: string;
+    voiceSortNew?: string;
+    voiceFilterAll?: string;
+    voiceStatusReceived?: string;
+    voiceStatusUnderReview?: string;
+    voiceStatusPlanned?: string;
+    voiceStatusInProgress?: string;
+    voiceStatusShipped?: string;
+    voiceStatusNotNow?: string;
+    voiceStatusDuplicate?: string;
+    voiceKindFeature?: string;
+    voiceKindProblem?: string;
+    voiceKindPraise?: string;
+    voiceKindManualGap?: string;
+    voiceSupport?: string;
+    voiceSupported?: string;
+    voiceShippedIn?: string;
+    voiceYoursTag?: string;
+    voiceTeamTag?: string;
+    voiceOfficialReply?: string;
+    voiceSuggestCta?: string;
+    voiceSignInPrompt?: string;
+    voiceFormKindLabel?: string;
+    voiceFormTitleLabel?: string;
+    voiceFormBodyLabel?: string;
+    voiceTitlePlaceholder?: string;
+    voiceBodyPlaceholder?: string;
+    voicePublicWarning?: string;
+    voiceSubmit?: string;
+    voiceCancel?: string;
+    voiceFormInvalid?: string;
+    voiceThanks?: string;
+    voiceEdit?: string;
+    voiceEditNote?: string;
+    voiceSave?: string;
+    voiceSaved?: string;
+    voiceDelete?: string;
+    voiceDeleteConfirm?: string;
+    voiceDeleted?: string;
+    voiceSeedNote?: string;
+    voiceOfflineNote?: string;
+    voiceEmpty?: string;
+    voiceNotifyTitle?: string;
+    voiceNotifyBody?: string;
+    voiceNotifyReplyBody?: string;
   };
   // Language Completion Sweep (2026-10-24) — surface copy wired out of
   // components into the dictionary, one bucket per surface. Index

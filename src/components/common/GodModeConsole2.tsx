@@ -30,7 +30,7 @@ import {
   ShieldAlert, CreditCard, MessageSquare, ScrollText, Server,
   X, AlertTriangle, CheckCircle2, RefreshCw,
   Database, Megaphone, SlidersHorizontal, LifeBuoy, HandCoins, Store, Crown, Rocket,
-  Wallet, Languages, ShieldCheck,
+  Wallet, Languages, ShieldCheck, Feather,
 } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider, sendPasswordResetEmail } from '../../firebase';
 import { isOwnerEmail } from '../../config/ownerAllowlist';
@@ -54,6 +54,7 @@ import { TranslationsTab } from './godmode/TranslationsTab';
 import { RankingTab } from './godmode/RankingTab';
 import { CopilotLauncher } from '../../ai/godmode/CopilotPanel';
 import { AdminsTab } from './godmode/AdminsTab';
+import { SuggestionTriageTab } from './godmode/SuggestionTriageTab';
 import { ConsoleHeader } from './godmode/ConsoleHeader';
 import { NeedsAttention } from './godmode/NeedsAttention';
 import { useConsoleStatus } from './godmode/useConsoleStatus';
@@ -67,6 +68,7 @@ interface GodModeConsole2Props {
 }
 
 type TabId = 'overview' | 'users' | 'admins' | 'workspaces' | 'verification' | 'moderation'
+  | 'suggestions'
   | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace'
   | 'professionals' | 'growth' | 'apikeys' | 'translations' | 'ranking' | 'system';
@@ -78,6 +80,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'workspaces', label: 'Workspaces', icon: <Building2 className="w-4 h-4" /> },
   { id: 'verification', label: 'Verification', icon: <BadgeCheck className="w-4 h-4" /> },
   { id: 'moderation', label: 'Moderation', icon: <ShieldAlert className="w-4 h-4" /> },
+  { id: 'suggestions', label: 'Suggestions', icon: <Feather className="w-4 h-4" /> },
   { id: 'billing', label: 'Billing', icon: <CreditCard className="w-4 h-4" /> },
   { id: 'commission', label: 'Commission', icon: <HandCoins className="w-4 h-4" /> },
   { id: 'finance', label: 'Finance', icon: <Wallet className="w-4 h-4" /> },
@@ -584,6 +587,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'workspaces': return <WorkspacesTab />;
       case 'verification': return <VerificationTab />;
       case 'moderation': return <ModerationTab />;
+      case 'suggestions': return <SuggestionTriageTab />;
       case 'billing': return <BillingTab />;
       case 'commission': return <CommissionTab />;
       case 'finance': return <FinanceTab goToTab={(t: string) => setTab(t as TabId)} />;

@@ -34,6 +34,7 @@ import { startEventReminders } from '../lib/eventReminderService';
 import { db } from '../firebase';
 import { startOrderNotify } from '../lib/orderNotifyService';
 import { startJyotishNotify } from '../lib/jyotishNotifyService';
+import { startSuggestionNotify } from '../lib/suggestionNotifyService';
 import { startApprovalNotify } from '../lib/approvalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
@@ -179,6 +180,18 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startJyotishNotify(uid);
+  }, [uid]);
+
+  // Your Voice loop-closure → NotificationCenter (self-listen,
+  // Margdarshan J3). My device reads MY OWN suggestions (the rules'
+  // author read path) and rings my own Suchana when the Triage Desk
+  // moves one — a status change or an official reply — so a voice
+  // raised in Margdarshan is never answered with silence.
+  // Baseline-silent first run; a per-suggestion ledger keeps every
+  // bell to once.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startSuggestionNotify(uid);
   }, [uid]);
 
   // Maker–checker approvals → NotificationCenter (self-listen,

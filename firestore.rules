@@ -2069,6 +2069,127 @@ service cloud.firestore {
       }
     }
 
+    // MARGDARSHAN (J0 candidate, 2026-10-31) — Your Voice: the public
+    // suggestion board (blueprint s5.3). NOT YET LIVE — this block is
+    // staged for the owner's complete-file review and ships with
+    // batch J3, together with the board UI. Read/engage law (owner,
+    // 2026-10-31): anyone may READ a visible suggestion with no
+    // sign-in; engagement (file, support, edit) requires sign-in.
+    // Hidden (moderated) suggestions are NEVER publicly readable —
+    // the read path below serves hidden == false, the author reading
+    // their own, or the SuperAdmin only. supporterCount is an
+    // ANCHORED counter (the polls ballot-box pattern): it may move
+    // ONLY in the same batch as the caller's own supporters/{uid}
+    // doc appearing (support, +1) or vanishing (withdraw, -1) —
+    // never by a direct write, never below zero.
+    function SUGG_KINDS() {
+      return ['feature', 'problem', 'praise', 'manual-gap'];
+    }
+    function SUGG_STATUSES() {
+      return ['received', 'under-review', 'planned', 'in-progress',
+        'shipped', 'not-now', 'duplicate'];
+    }
+    // One parameterized anchor for both directions (the compiled-size
+    // law: the two shapes differ only in the exists/existsAfter sense
+    // and the sign of the step, so they share one body).
+    function suggAnchorOk(suggId, up) {
+      let sp = /databases/$(database)/documents/suggestions/$(suggId)/supporters/$(request.auth.uid);
+      return (up ? (!exists(sp) && existsAfter(sp))
+                 : (exists(sp) && !existsAfter(sp)))
+        && resource.data.get('hidden', false) == false
+        && request.resource.data.get('supporterCount', 0)
+             == resource.data.get('supporterCount', 0) + (up ? 1 : -1)
+        && request.resource.data.get('supporterCount', 0) >= 0
+        && diffKeysOnly(request.resource.data, resource.data,
+             ['supporterCount', 'updatedAt']);
+    }
+    function suggVisible(suggId) {
+      return get(/databases/$(database)/documents/suggestions/$(suggId)).data
+        .get('hidden', false) == false;
+    }
+    // The deskId shape, shared by create and the author-edit path
+    // (a suggestion may concern no desk at all — deskId null).
+    function suggDeskIdOk() {
+      return request.resource.data.get('deskId', null) == null
+        || (request.resource.data.get('deskId', '') is string
+            && request.resource.data.get('deskId', '').size() <= 64);
+    }
+    function suggTitleBodyOk() {
+      return request.resource.data.get('title', '') is string
+        && request.resource.data.get('title', '').size() >= 1
+        && request.resource.data.get('title', '').size() <= 140
+        && request.resource.data.get('body', '') is string
+        && request.resource.data.get('body', '').size() >= 1
+        && request.resource.data.get('body', '').size() <= 2000;
+    }
+
+    match /suggestions/{suggId} {
+      // Public read of visible suggestions (read/engage law); hidden
+      // ones answer only to their author and the SuperAdmin. List
+      // queries from signed-out clients must filter hidden == false.
+      allow read: if resource.data.get('hidden', false) == false
+        || isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorId', '') == request.auth.uid);
+      allow create: if isLoggedIn()
+        && request.resource.data.get('authorId', '') == request.auth.uid
+        && request.resource.data.get('status', '') == 'received'
+        && request.resource.data.get('supporterCount', -1) == 0
+        && request.resource.data.get('hidden', true) == false
+        && request.resource.data.get('kind', '') in SUGG_KINDS()
+        && suggTitleBodyOk()
+        && request.resource.data.get('authorName', '') is string
+        && request.resource.data.get('authorName', '').size() >= 1
+        && request.resource.data.get('authorName', '').size() <= 80
+        && request.resource.data.get('language', '') is string
+        && request.resource.data.get('language', '').size() <= 8
+        && suggDeskIdOk()
+        && request.resource.data.get('officialReplies', []).size() == 0
+        && request.resource.data.get('statusHistory', []).size() <= 1
+        && request.resource.data.get('shippedVersion', null) == null
+        && request.resource.data.get('duplicateOf', null) == null
+        && request.resource.data.keys().hasOnly(
+             ['authorId', 'authorName', 'kind', 'deskId', 'title', 'body',
+              'language', 'status', 'statusHistory', 'officialReplies',
+              'supporterCount', 'hidden', 'createdAt', 'updatedAt',
+              'shippedVersion', 'duplicateOf']);
+      allow update: if (isLoggedIn()
+            && resource.data.get('authorId', '') == request.auth.uid
+            && resource.data.get('status', '') == 'received'
+            && request.resource.data.get('status', '') == 'received'
+            && diffKeysOnly(request.resource.data, resource.data,
+                 ['title', 'body', 'deskId', 'kind', 'updatedAt'])
+            && request.resource.data.get('kind', '') in SUGG_KINDS()
+            && suggTitleBodyOk()
+            && suggDeskIdOk())
+        || (isLoggedIn() && suggAnchorOk(suggId, true))
+        || (isLoggedIn() && suggAnchorOk(suggId, false))
+        || (isSuperAdmin()
+            && diffKeysOnly(request.resource.data, resource.data,
+                 ['status', 'statusHistory', 'officialReplies', 'hidden',
+                  'duplicateOf', 'shippedVersion', 'updatedAt'])
+            && request.resource.data.get('status', '') in SUGG_STATUSES()
+            && request.resource.data.get('officialReplies', []).size() <= 50
+            && request.resource.data.get('statusHistory', []).size() <= 50);
+      // Polls pattern: a suggestion with supporters is archive —
+      // its author deletes only while nobody has supported it.
+      allow delete: if isSuperAdmin()
+        || (isLoggedIn() && resource.data.get('authorId', '') == request.auth.uid
+            && resource.data.get('supporterCount', 0) == 0);
+
+      // One doc per supporter (the ballot box): existence = support.
+      // The doc itself stores no counter — only the anchor above may
+      // move the parent's supporterCount, in the same batch.
+      match /supporters/{supporterUid} {
+        allow read: if isSuperAdmin()
+          || (isLoggedIn() && supporterUid == request.auth.uid);
+        allow create: if isLoggedIn() && supporterUid == request.auth.uid
+          && suggVisible(suggId)
+          && request.resource.data.keys().hasOnly(['supportedAt']);
+        allow update: if false;
+        allow delete: if isLoggedIn() && supporterUid == request.auth.uid;
+      }
+    }
+
     // EVENTS + POLLS P0 (2026-10-24) — Trustee resolutions. Until this
     // batch, resolutions rode the generic operational block: any staff
     // member could rewrite the vote counters directly, the voters were

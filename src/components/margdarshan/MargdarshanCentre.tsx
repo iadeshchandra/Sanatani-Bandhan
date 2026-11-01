@@ -9,7 +9,8 @@
  *
  * Views: home (greeting, search, the four wings, most-needed) ·
  * manual (browse/search every page) · atlas · whatsnew (the J2
- * shipped-changes timeline) · one desk page.
+ * shipped-changes timeline) · voice (the J3 suggestions board) ·
+ * one desk page.
  * The desk page's role door: openable → a real door into the desk
  * (Bahi-Khata uses its deskPanel door, like the Sidebar); plan-locked
  * or role-closed → an honest explanation, never a dead button.
@@ -21,6 +22,8 @@ import { MODULE_CATALOG } from '../common/Sidebar';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useMembership } from '../../context/MembershipContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
+import { resolveActorName } from '../../bahikhata/bahikhataStore';
 import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { buildDirectoryModel } from '../../lib/deskDirectory';
 import { openDeskPanel } from '../../lib/deskPanel';
@@ -43,6 +46,7 @@ import {
   WhatsNewView,
   WingGrid,
 } from './views';
+import { VoiceBoard } from './VoiceBoard';
 import type { DeskPage } from '../../lib/margdarshan/types';
 
 type View =
@@ -50,21 +54,42 @@ type View =
   | { name: 'manual' }
   | { name: 'atlas' }
   | { name: 'whatsnew' }
+  | { name: 'voice' }
   | {
       name: 'page';
       slug: string;
-      from: 'home' | 'manual' | 'atlas' | 'whatsnew' | 'page';
+      from: 'home' | 'manual' | 'atlas' | 'whatsnew' | 'voice' | 'page';
     };
 
 export const MargdarshanCentre: React.FC<{
   onNavigate: (moduleId: string) => void;
 }> = ({ onNavigate }) => {
   const { t, currentLang } = useLanguage();
-  const { activeWorkspace, effectiveRole, checkPermission, firebaseUser } =
+  const { showToast } = useToast();
+  const { activeWorkspace, effectiveRole, checkPermission, firebaseUser, currentDevotee } =
     useAuthWorkspace();
   const { myMemberships } = useMembership();
   const [view, setView] = useState<View>({ name: 'home' });
   const [query, setQuery] = useState('');
+
+  /* Your Voice engagement: the signed-in user's filing identity —
+   * the SAN display name (resolveActorName law: a real profile name,
+   * never a placeholder). The centre lives inside the signed-in
+   * shell; a null engagement (edge session states) turns the board's
+   * acts into a sign-in door instead of a silent failure. */
+  const engagement = useMemo(
+    () =>
+      firebaseUser
+        ? {
+            uid: firebaseUser.uid,
+            authorName: resolveActorName(
+              [currentDevotee?.fullName, firebaseUser.displayName],
+              firebaseUser.email
+            ),
+          }
+        : null,
+    [firebaseUser, currentDevotee]
+  );
 
   const myMembership = useMemo(
     () =>
@@ -204,7 +229,9 @@ export const MargdarshanCentre: React.FC<{
                     ? { name: 'manual' }
                     : view.from === 'whatsnew'
                       ? { name: 'whatsnew' }
-                      : { name: 'home' }
+                      : view.from === 'voice'
+                        ? { name: 'voice' }
+                        : { name: 'home' }
               )
             }
             backLabel={
@@ -214,7 +241,9 @@ export const MargdarshanCentre: React.FC<{
                   ? t('marg.backToManual')
                   : view.from === 'whatsnew'
                     ? t('marg.wingWhatsNew')
-                    : t('marg.backToCentre')
+                    : view.from === 'voice'
+                      ? t('marg.wingVoice')
+                      : t('marg.backToCentre')
             }
           />
         ) : (
@@ -228,7 +257,9 @@ export const MargdarshanCentre: React.FC<{
                     ? t('marg.manualTitle')
                     : view.name === 'whatsnew'
                       ? t('marg.wingWhatsNew')
-                      : t('marg.greeting')}
+                      : view.name === 'voice'
+                        ? t('marg.wingVoice')
+                        : t('marg.greeting')}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-orange-50">
                 {view.name === 'atlas'
@@ -237,7 +268,9 @@ export const MargdarshanCentre: React.FC<{
                     ? t('marg.manualDesc')
                     : view.name === 'whatsnew'
                       ? t('marg.whatsNewDesc')
-                      : t('marg.tagline')}
+                      : view.name === 'voice'
+                        ? t('marg.voiceDesc')
+                        : t('marg.tagline')}
               </p>
               {view.name !== 'home' && (
                 <button
@@ -261,7 +294,9 @@ export const MargdarshanCentre: React.FC<{
                         ? { name: 'manual' }
                         : target === 'whatsnew'
                           ? { name: 'whatsnew' }
-                          : { name: 'atlas' }
+                          : target === 'voice'
+                            ? { name: 'voice' }
+                            : { name: 'atlas' }
                     )
                   }
                 />
@@ -304,6 +339,16 @@ export const MargdarshanCentre: React.FC<{
 
             {!results && view.name === 'whatsnew' && (
               <WhatsNewView onOpenPage={(s) => openPage(s, 'whatsnew')} />
+            )}
+
+            {!results && view.name === 'voice' && (
+              <VoiceBoard
+                engagement={engagement}
+                onNeedSignIn={() => {
+                  window.location.href = '/login?next=/app';
+                }}
+                showToast={(message, type) => showToast(message, type)}
+              />
             )}
           </>
         )}

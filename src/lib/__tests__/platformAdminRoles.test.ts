@@ -70,7 +70,9 @@ describe('delegated admin role — operations without the crown jewels', () => {
 
 describe('delegated moderator role — trust & safety only', () => {
   it('moderator sees exactly the trust & safety surface', () => {
-    expect([...MODERATOR_TABS].sort()).toEqual(['moderation', 'overview', 'support', 'users']);
+    // J3 (2026-11-01): the Margdarshan suggestion Triage Desk joined
+    // the trust & safety surface — pin records the new truth.
+    expect([...MODERATOR_TABS].sort()).toEqual(['moderation', 'overview', 'suggestions', 'support', 'users']);
   });
 
   it('moderator is denied operations and money tabs alike', () => {
@@ -227,6 +229,7 @@ describe('tab classification is exhaustive', () => {
     for (const tab of MODERATOR_TABS) {
       expect(ADMIN_TABS.includes(tab)).toBe(true);
     }
-    expect(GODMODE_TAB_IDS.length).toBe(22); // 21 legacy tabs + admins
+    // J3 (2026-11-01): +1 — the Margdarshan Suggestions triage tab.
+    expect(GODMODE_TAB_IDS.length).toBe(23); // 21 legacy tabs + admins + suggestions
   });
 });

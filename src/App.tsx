@@ -247,6 +247,7 @@ const PublicManual = lazy(() => import('./components/margdarshan/PublicMargdarsh
 const PublicDeskPage = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicDeskPage })));
 const PublicAtlas = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicAtlas })));
 const PublicWhatsNew = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicWhatsNew })));
+const PublicSuggestions = lazy(() => import('./components/margdarshan/PublicMargdarshan').then(m => ({ default: m.PublicSuggestions })));
 const TacticalPerimeterRadar = lazy(() => import('./components/domain6/TacticalPerimeterRadar').then(m => ({ default: m.TacticalPerimeterRadar })));
 const UserRolesDesk = lazy(() => import('./components/domain6/UserRolesDesk').then(m => ({ default: m.UserRolesDesk })));
 const AuditLogDesk = lazy(() => import('./components/domain6/AuditLogDesk').then(m => ({ default: m.AuditLogDesk })));
@@ -1449,6 +1450,17 @@ const AppRoutes: React.FC = () => {
             element={
               <Suspense fallback={<PublicWarmSkeleton />}>
                 <PublicWhatsNew />
+              </Suspense>
+            }
+          />
+          {/* J3 — Your Voice joins the public mirror: the board is
+              readable by anyone (read/engage law); its Support and
+              Suggest acts are sign-in doors inside the board. */}
+          <Route
+            path="/margdarshan/suggestions"
+            element={
+              <Suspense fallback={<PublicWarmSkeleton />}>
+                <PublicSuggestions />
               </Suspense>
             }
           />

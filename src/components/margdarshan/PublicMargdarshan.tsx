@@ -5,8 +5,9 @@
  * by anyone, with no login. These routes render the SAME components
  * and the SAME knowledge layer as the in-app centre (views.tsx +
  * lib/margdarshan) — thin wrappers only, no forked content, and no
- * auth context anywhere: nothing here engages, so nothing here asks
- * for an account. The desk door on a public page is a warm "open in
+ * auth context anywhere: reading never asks for an account (the one
+ * engage surface, the suggestions board, is covered below). The
+ * desk door on a public page is a warm "open in
  * the app" box — the desk itself lives in the app, and the page says
  * so instead of pretending.
  *
@@ -16,6 +17,13 @@
  *   /margdarshan/manual/:pageId  → PublicDeskPage
  *   /margdarshan/features        → PublicAtlas
  *   /margdarshan/whats-new       → PublicWhatsNew (J2)
+ *   /margdarshan/suggestions     → PublicSuggestions (J3)
+ *
+ * The suggestions board is the one public face with an ENGAGE act
+ * behind it: reading renders for everyone (the same board component
+ * the centre uses), and its Support / Suggest acts are sign-in
+ * doors — tapping one routes to /login and returns here after
+ * (the app's ?next= post-login return).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -38,6 +46,7 @@ import {
   WhatsNewView,
   WingGrid,
 } from './views';
+import { VoiceBoard } from './VoiceBoard';
 
 /* ------------------------------------------------------------------ */
 /* Public chrome (mirrors the AskAiPage / ContactPage pattern)         */
@@ -100,6 +109,9 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/margdarshan/whats-new">
               {t('marg.wingWhatsNew')}
             </Link>
+            <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/margdarshan/suggestions">
+              {t('marg.wingVoice')}
+            </Link>
             <Link className="inline-flex min-h-[44px] items-center font-bold hover:text-orange-600" to="/ask-ai">
               Ask AI
             </Link>
@@ -158,7 +170,9 @@ export const PublicMargdarshanHome: React.FC = () => {
                 ? '/margdarshan/manual'
                 : target === 'whatsnew'
                   ? '/margdarshan/whats-new'
-                  : '/margdarshan/features'
+                  : target === 'voice'
+                    ? '/margdarshan/suggestions'
+                    : '/margdarshan/features'
             )
           }
         />
@@ -316,6 +330,28 @@ export const PublicWhatsNew: React.FC = () => {
         <Hero title={t('marg.wingWhatsNew')} desc={t('marg.whatsNewDesc')} />
         <WhatsNewView
           onOpenPage={(s) => navigate(`/margdarshan/manual/${s}`)}
+        />
+      </div>
+    </PublicShell>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* /margdarshan/suggestions — Your Voice, the public board (J3)        */
+/* ------------------------------------------------------------------ */
+
+export const PublicSuggestions: React.FC = () => {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  return (
+    <PublicShell>
+      <div className="space-y-8">
+        <Hero title={t('marg.wingVoice')} desc={t('marg.voiceDesc')} />
+        <VoiceBoard
+          engagement={null}
+          onNeedSignIn={() =>
+            navigate('/login?next=/margdarshan/suggestions')
+          }
         />
       </div>
     </PublicShell>

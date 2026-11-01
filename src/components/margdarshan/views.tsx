@@ -105,7 +105,7 @@ const WING_ICONS: Record<Wing['id'], React.ReactNode> = {
  * because there is nothing behind it yet.
  */
 export const WingGrid: React.FC<{
-  onGo: (target: 'manual' | 'atlas' | 'whatsnew') => void;
+  onGo: (target: 'manual' | 'atlas' | 'whatsnew' | 'voice') => void;
 }> = ({ onGo }) => {
   const { t } = useLanguage();
   return (

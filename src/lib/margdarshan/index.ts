@@ -58,3 +58,31 @@ export {
   readWhatsNewSeen,
   markWhatsNewSeen,
 } from './whatsNewMarker';
+/* J3 — Your Voice: the suggestion model (pure, rules-mirrored),
+ * the launch seeds, and the Firestore service. */
+export {
+  SUGGESTION_KINDS,
+  SUGGESTION_STATUSES,
+  PIPELINE_STATUSES,
+  SUGGESTION_CREATE_KEYS,
+  SUGGESTION_TRIAGE_KEYS,
+  SUGGESTION_ANCHOR_KEYS,
+  buildSuggestionCreate,
+  validateSuggestionDraft,
+  nextStatusHistory,
+  sortBoard,
+  filterBoard,
+  type Suggestion,
+  type SuggestionKind,
+  type SuggestionStatus,
+  type SuggestionDraftInput,
+  type SuggestionStatusEntry,
+  type OfficialReply,
+  type BoardSort,
+} from './suggestions';
+export {
+  SUGGESTION_SEEDS,
+  TEAM_AUTHOR_NAME,
+  seedDisplayItems,
+  type SuggestionSeed,
+} from './suggestionSeeds';
