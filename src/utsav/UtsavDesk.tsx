@@ -58,7 +58,7 @@ const UtsavInner: React.FC = () => {
   }, [activeWorkspace.id, ensureSeeded]);
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-orange-50/60 via-stone-50 to-stone-100">
+    <div className="min-h-full bg-stone-50">
       <div className="bg-gradient-to-r from-orange-900 via-red-900 to-orange-900 text-orange-50 px-4 sm:px-6 py-4 shadow-lg no-print">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-orange-400/20 border border-orange-300/40 flex items-center justify-center text-2xl">🪔</div>

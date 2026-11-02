@@ -49,23 +49,23 @@ const QrUploadOptimizer: React.FC<{ onOptimized: (dataUrl: string, blob: Blob) =
   };
 
   return (
-    <div className="rounded-xl border border-dashed border-slate-600 p-3 bg-slate-950/50">
-      <p className="text-[11px] font-bold text-slate-300 mb-1">📷 Upload new QR (auto-optimized)</p>
-      <p className="text-[10px] text-slate-500 mb-2">We auto-crop to the QR, add a quiet zone, resize to 512×512 PNG. Or paste an image URL in the field above.</p>
+    <div className="rounded-xl border border-dashed border-temple-600 p-3 bg-temple-950/50">
+      <p className="text-[11px] font-bold text-temple-200 mb-1">📷 Upload new QR (auto-optimized)</p>
+      <p className="text-[10px] text-temple-300 mb-2">We auto-crop to the QR, add a quiet zone, resize to 512×512 PNG. Or paste an image URL in the field above.</p>
       <input type="file" accept="image/*" disabled={working}
         onChange={(e) => handleFile(e.target.files?.[0])}
-        className="block w-full text-xs text-slate-400 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-saffron-500 file:text-slate-950 min-h-[44px]" />
-      {working && <p className="text-xs text-slate-400 mt-2">Optimizing…</p>}
+        className="block w-full text-xs text-temple-300 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-saffron-500 file:text-temple-950 min-h-[44px]" />
+      {working && <p className="text-xs text-temple-300 mt-2">Optimizing…</p>}
       {previewUrl && result?.ok && (
         <div className="flex gap-3 mt-3 items-start">
-          <div><p className="text-[10px] text-slate-500 mb-1">Original ({(result.originalSize / 1024).toFixed(0)} KB)</p>
+          <div><p className="text-[10px] text-temple-300 mb-1">Original ({(result.originalSize / 1024).toFixed(0)} KB)</p>
             <img src={previewUrl} alt="original" className="w-24 h-24 object-contain bg-white rounded-lg" /></div>
-          <div><p className="text-[10px] text-slate-500 mb-1">Optimized ({(result.optimizedSize / 1024).toFixed(0)} KB · −{result.reduction}%)</p>
+          <div><p className="text-[10px] text-temple-300 mb-1">Optimized ({(result.optimizedSize / 1024).toFixed(0)} KB · −{result.reduction}%)</p>
             <img src={result.dataUrl} alt="optimized" className="w-24 h-24 object-contain bg-white rounded-lg border-2 border-emerald-500/50" /></div>
         </div>
       )}
       {result && !result.ok && <p className="text-xs text-red-400 mt-2">{result.error}</p>}
-      <p className="text-[10px] text-slate-600 mt-2">Note: to make it live in the app, save this method, then upload the optimized PNG to <span className="font-mono">public/bangla-qr.png</span> via GitHub web UI (or set the QR image URL above to a hosted link).</p>
+      <p className="text-[10px] text-temple-600 mt-2">Note: to make it live in the app, save this method, then upload the optimized PNG to <span className="font-mono">public/bangla-qr.png</span> via GitHub web UI (or set the QR image URL above to a hosted link).</p>
     </div>
   );
 };
@@ -110,42 +110,42 @@ const FlagsView: React.FC = () => {
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-temple-300">
         Kill-switches for major modules. The app reads these at startup; turning one off hides the module for all users.
       </p>
       {flags.length === 0 && (
         <Card className="border-dashed">
-          <p className="text-xs text-slate-500 mb-2">No flags yet. Suggested:</p>
+          <p className="text-xs text-temple-300 mb-2">No flags yet. Suggested:</p>
           <div className="flex flex-wrap gap-1.5">
             {SUGGESTED.map((k) => (
               <button key={k} type="button" onClick={() => setNewKey(k)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-[11px] font-mono text-saffron-300 hover:bg-slate-700 min-h-[36px]">{k}</button>
+                className="px-2.5 py-1.5 rounded-lg bg-temple-800 text-[11px] font-mono text-saffron-300 hover:bg-temple-700 min-h-[36px]">{k}</button>
             ))}
           </div>
         </Card>
       )}
       {flags.map((f) => (
         <button key={f.id} type="button" onClick={() => toggle(f)} disabled={working}
-          className="w-full flex items-center gap-3 p-3.5 min-h-[60px] rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-saffron-500/40 text-left disabled:opacity-50">
+          className="w-full flex items-center gap-3 p-3.5 min-h-[60px] rounded-2xl bg-temple-950/70 border border-temple-800 hover:border-saffron-500/40 text-left disabled:opacity-50">
           {f.enabled
             ? <ToggleRight className="w-7 h-7 text-emerald-400 shrink-0" />
-            : <ToggleLeft className="w-7 h-7 text-slate-600 shrink-0" />}
+            : <ToggleLeft className="w-7 h-7 text-temple-600 shrink-0" />}
           <span className="flex-1 min-w-0">
-            <span className="font-mono text-xs text-slate-200 block truncate">{f.key || f.id}</span>
-            {f.description && <span className="text-[11px] text-slate-500 block truncate">{f.description}</span>}
+            <span className="font-mono text-xs text-temple-200 block truncate">{f.key || f.id}</span>
+            {f.description && <span className="text-[11px] text-temple-300 block truncate">{f.description}</span>}
           </span>
-          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${f.enabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${f.enabled ? 'bg-emerald-500/20 text-emerald-300' : 'bg-temple-800 text-temple-300'}`}>
             {f.enabled ? 'on' : 'off'}
           </span>
         </button>
       ))}
       <Card>
-        <h4 className="text-xs font-bold text-slate-300 mb-2">Add flag</h4>
+        <h4 className="text-xs font-bold text-temple-200 mb-2">Add flag</h4>
         <div className="flex gap-2">
           <input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="e.g. sangam_enabled"
             className={inputCls + ' font-mono'} />
           <button type="button" onClick={add} disabled={working || !newKey.trim()}
-            className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black disabled:opacity-50">
+            className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black disabled:opacity-50">
             <Plus className="w-4 h-4" />
           </button>
         </div>
@@ -429,9 +429,9 @@ const PlansView: React.FC = () => {
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-temple-300">
         Every subscription price, usage limit and commission rate — editable here, live without a deploy.
-        Changes apply to <b className="text-slate-200">new checkouts and new orders</b> within ~5 minutes
+        Changes apply to <b className="text-temple-200">new checkouts and new orders</b> within ~5 minutes
         (open sessions keep cached terms briefly). Existing subscriptions and past orders never change.
       </p>
 
@@ -440,43 +440,43 @@ const PlansView: React.FC = () => {
         <Card key={p.id}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-bold text-white text-sm">{p.name} <span className="font-mono text-[11px] text-slate-500">plans/{p.id}</span></p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="font-bold text-white text-sm">{p.name} <span className="font-mono text-[11px] text-temple-300">plans/{p.id}</span></p>
+              <p className="text-xs text-temple-300 mt-1">
                 ₹{p.priceMonthlyINR.toLocaleString('en-IN')}/mo · ₹{p.priceYearlyINR.toLocaleString('en-IN')}/yr
                 {' · '}৳{p.priceMonthlyBDT.toLocaleString('en-IN')}/mo
                 {' · '}${p.priceMonthlyUSD.toLocaleString('en-IN')}/mo
                 {p.id === 'purohit_pro' && <> · commission {p.commissionPercent ?? 12}%</>}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1 font-mono">
+              <p className="text-[11px] text-temple-300 mt-1 font-mono">
                 devotees: {fmtLimVal(p.limits.maxDevotees)} · txns/mo: {fmtLimVal(p.limits.maxTransactionsPerMonth)} · seats: {fmtLimVal(p.limits.maxSeats)} · branches: {fmtLimVal(p.limits.maxBranches)}
               </p>
-              <p className="text-[10px] text-slate-600 mt-1">
+              <p className="text-[10px] text-temple-600 mt-1">
                 Last updated {fmtStamp(p.updatedAt)}{p.updatedBy ? ` by ${String(p.updatedBy).slice(0, 12)}…` : ''}
                 {!p.exists && ' · no stored doc yet — code defaults are live'}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${p.active !== false ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${p.active !== false ? 'bg-emerald-500/20 text-emerald-300' : 'bg-temple-800 text-temple-300'}`}>
                 {p.active !== false ? 'active' : 'off'}
               </span>
               <button type="button" aria-label={`Edit ${p.name} terms`}
                 onClick={() => setForm({ ...p, limits: { ...p.limits } })}
-                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300 hover:bg-slate-700">Edit terms</button>
+                className="px-4 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200 hover:bg-temple-700">Edit terms</button>
             </div>
           </div>
         </Card>
       ))}
       <div className="flex justify-end">
         <button type="button" onClick={askResetPlans} disabled={working}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-temple-200 text-xs font-bold border border-temple-700 disabled:opacity-50">
           <RefreshCw className="w-4 h-4" /> Reset plans to defaults
         </button>
       </div>
 
       {/* Commission terms */}
       <Card className="border-emerald-500/20">
-        <h4 className="text-sm font-bold text-slate-200 mb-1">Commission terms</h4>
-        <p className="text-[11px] text-slate-500 mb-3">{COMMISSION_PRECEDENCE_EXPLAINER}</p>
+        <h4 className="text-sm font-bold text-temple-200 mb-1">Commission terms</h4>
+        <p className="text-[11px] text-temple-300 mb-3">{COMMISSION_PRECEDENCE_EXPLAINER}</p>
         {shadowed && (
           <p className="text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-3 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -488,26 +488,26 @@ const PlansView: React.FC = () => {
           </p>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-[11px] text-slate-500">Community %<input type="number" value={commDraft.freeRate}
+          <label className="text-[11px] text-temple-300">Community %<input type="number" value={commDraft.freeRate}
             onChange={(e) => setCommDraft({ ...commDraft, freeRate: Number(e.target.value) })} className={inputCls} /></label>
-          <label className="text-[11px] text-slate-500">Pro · Rail-1 %<input type="number" value={commDraft.proRail1Rate}
+          <label className="text-[11px] text-temple-300">Pro · Rail-1 %<input type="number" value={commDraft.proRail1Rate}
             onChange={(e) => setCommDraft({ ...commDraft, proRail1Rate: Number(e.target.value) })} className={inputCls} /></label>
-          <label className="text-[11px] text-slate-500">Pro · Rail-2 %<input type="number" value={commDraft.proRail2Rate}
+          <label className="text-[11px] text-temple-300">Pro · Rail-2 %<input type="number" value={commDraft.proRail2Rate}
             onChange={(e) => setCommDraft({ ...commDraft, proRail2Rate: Number(e.target.value) })} className={inputCls} /></label>
-          <label className="text-[11px] text-slate-500">Free-tier gig cap (active gigs)<input type="number" value={commDraft.freeGigLimit}
+          <label className="text-[11px] text-temple-300">Free-tier gig cap (active gigs)<input type="number" value={commDraft.freeGigLimit}
             onChange={(e) => setCommDraft({ ...commDraft, freeGigLimit: Number(e.target.value) })} className={inputCls} /></label>
         </div>
-        <p className="text-[10px] text-slate-600 mt-2">
+        <p className="text-[10px] text-temple-600 mt-2">
           Rule min/max (₹) on the winning override or rule now clamp real orders too — they are no longer preview-only.
-          Advanced layers: global rules & overrides live in <b className="text-slate-400">Marketplace → Commission</b> (one editor; Commission → Rules edits the same rules).
+          Advanced layers: global rules & overrides live in <b className="text-temple-300">Marketplace → Commission</b> (one editor; Commission → Rules edits the same rules).
         </p>
         <div className="flex gap-2 mt-3">
           <button type="button" onClick={askSaveCommission} disabled={working}
-            className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+            className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
             {working ? 'Saving…' : 'Save commission terms'}
           </button>
           <button type="button" onClick={askResetCommission} disabled={working}
-            className="px-4 py-3 min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 disabled:opacity-50">
+            className="px-4 py-3 min-h-[44px] rounded-xl bg-temple-800 text-temple-200 text-xs font-bold border border-temple-700 disabled:opacity-50">
             Reset to defaults
           </button>
         </div>
@@ -515,8 +515,8 @@ const PlansView: React.FC = () => {
 
       {/* Terms history — full change insight (owner requirement) */}
       <Card>
-        <h4 className="text-sm font-bold text-slate-200 mb-1">Terms history</h4>
-        <p className="text-[11px] text-slate-500 mb-3">
+        <h4 className="text-sm font-bold text-temple-200 mb-1">Terms history</h4>
+        <p className="text-[11px] text-temple-300 mb-3">
           Every terms change ever saved — who, when, and the full old → new values per field.
           History is append-only: a revert restores earlier values as a new recorded change, never by rewriting the past.
           The same entries appear in the platform Audit view.
@@ -524,7 +524,7 @@ const PlansView: React.FC = () => {
         <div className="flex gap-1.5 overflow-x-auto pb-2">
           {[{ k: 'all', label: 'All changes' }, ...TERMS_PLAN_IDS.map((id) => ({ k: id, label: DEFAULT_TERMS.plans[id].name })), { k: 'commission', label: 'Commission' }].map((f) => (
             <button key={f.k} type="button" onClick={() => setHistFilter(f.k)}
-              className={`px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 ${histFilter === f.k ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}>
+              className={`px-3 py-2 min-h-[36px] rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 ${histFilter === f.k ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'}`}>
               {f.label}
             </button>
           ))}
@@ -545,32 +545,32 @@ const PlansView: React.FC = () => {
                   ? 'Commission terms'
                   : (e.after?.name || e.before?.name || e.planId || 'Plan');
                 return (
-                  <div key={e.id} className="bg-slate-900 rounded-xl px-3 py-2.5">
+                  <div key={e.id} className="bg-temple-900 rounded-xl px-3 py-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-200">
+                        <p className="text-xs font-bold text-temple-200">
                           {title}
-                          <span className={`ml-2 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${e.action === 'terms.plans.reset' ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-800 text-slate-400'}`}>
+                          <span className={`ml-2 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${e.action === 'terms.plans.reset' ? 'bg-violet-500/20 text-violet-300' : 'bg-temple-800 text-temple-300'}`}>
                             {e.action === 'terms.plans.reset' ? 'reset to defaults' : 'edit'}
                           </span>
                         </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">
+                        <p className="text-[10px] text-temple-300 mt-0.5">
                           {fmtStamp(e.at)} · by {e.actorEmail || (e.actorUid ? `${String(e.actorUid).slice(0, 12)}…` : 'owner')}
                         </p>
                       </div>
                       {e.before && (
                         <button type="button" onClick={() => askRevert(e)} disabled={working}
-                          className="px-3 py-2 min-h-[36px] rounded-lg bg-slate-800 text-[11px] font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-50 shrink-0">
+                          className="px-3 py-2 min-h-[36px] rounded-lg bg-temple-800 text-[11px] font-bold text-temple-200 hover:bg-temple-700 disabled:opacity-50 shrink-0">
                           Revert
                         </button>
                       )}
                     </div>
                     {lines.length > 0 ? (
                       <div className="mt-1.5">
-                        {lines.map((l) => <p key={l} className="text-[11px] font-mono text-slate-400 py-px">{l}</p>)}
+                        {lines.map((l) => <p key={l} className="text-[11px] font-mono text-temple-300 py-px">{l}</p>)}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-slate-500 mt-1">{e.before ? 'Values saved (no field differences from the previous state).' : 'First recorded state for these terms.'}</p>
+                      <p className="text-[11px] text-temple-300 mt-1">{e.before ? 'Values saved (no field differences from the previous state).' : 'First recorded state for these terms.'}</p>
                     )}
                     {Array.isArray(e.warnings) && e.warnings.length > 0 && (
                       <p className="text-[10px] text-amber-300/80 mt-1">⚠ Saved with {e.warnings.length} warning(s) acknowledged.</p>
@@ -586,21 +586,21 @@ const PlansView: React.FC = () => {
       {/* Plan editor modal */}
       {form && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-1">Edit terms — <span className="font-mono text-sm text-saffron-300">plans/{form.id}</span></h3>
-            <p className="text-[11px] text-slate-500 mb-4">Annual is normally 10 × monthly ("2 months free"). You will see a diff and confirm before anything saves.</p>
+            <p className="text-[11px] text-temple-300 mb-4">Annual is normally 10 × monthly ("2 months free"). You will see a diff and confirm before anything saves.</p>
             <div className="space-y-3">
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Display name" className={inputCls} />
               <div className="grid grid-cols-2 gap-2">
                 {PRICE_FIELDS.map((f) => (
-                  <label key={f.key} className="text-[11px] text-slate-500">{f.label}
+                  <label key={f.key} className="text-[11px] text-temple-300">{f.label}
                     <input type="number" value={(form[f.key] as number) ?? 0}
                       onChange={(e) => setForm({ ...form, [f.key]: Number(e.target.value) })} className={inputCls} /></label>
                 ))}
               </div>
               {form.id === 'purohit_pro' && (
-                <label className="text-[11px] text-slate-500">Pro commission % (advertised on the Pro plan)
+                <label className="text-[11px] text-temple-300">Pro commission % (advertised on the Pro plan)
                   <input type="number" value={form.commissionPercent ?? 12}
                     onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })} className={inputCls} /></label>
               )}
@@ -610,11 +610,11 @@ const PlansView: React.FC = () => {
                   const unlimited = v === -1;
                   return (
                     <div key={f.key}>
-                      <label className="text-[11px] text-slate-500">{f.label}
+                      <label className="text-[11px] text-temple-300">{f.label}
                         <input type="number" disabled={unlimited} value={unlimited ? '' : v} placeholder={unlimited ? '∞' : '0'}
                           onChange={(e) => setForm({ ...form, limits: { ...form.limits, [f.key]: Number(e.target.value) } })} className={inputCls} />
                       </label>
-                      <label className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1 min-h-[28px]">
+                      <label className="flex items-center gap-1.5 text-[11px] text-temple-300 mt-1 min-h-[28px]">
                         <input type="checkbox" checked={unlimited}
                           onChange={(e) => setForm({ ...form, limits: { ...form.limits, [f.key]: e.target.checked ? -1 : 0 } })}
                           className="w-4 h-4 accent-amber-500" /> Unlimited (∞)
@@ -623,14 +623,14 @@ const PlansView: React.FC = () => {
                   );
                 })}
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-300 min-h-[44px]">
+              <label className="flex items-center gap-2 text-sm text-temple-200 min-h-[44px]">
                 <input type="checkbox" checked={form.active !== false}
                   onChange={(e) => setForm({ ...form, active: e.target.checked })} className="w-5 h-5 accent-amber-500" /> Active
               </label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={askSavePlan} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   Review & save
                 </button>
               </div>
@@ -649,9 +649,9 @@ const PlansView: React.FC = () => {
           onCancel={() => setConfirmState(null)}
           onConfirm={() => { void confirmState.run(); }}
         >
-          <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3 mb-4 max-h-48 overflow-y-auto">
+          <div className="rounded-xl bg-temple-950/70 border border-temple-800 p-3 mb-4 max-h-48 overflow-y-auto">
             {confirmState.lines.map((l) => (
-              <p key={l} className="text-xs font-mono text-slate-300 py-0.5">{l}</p>
+              <p key={l} className="text-xs font-mono text-temple-200 py-0.5">{l}</p>
             ))}
             {confirmState.warnings.map((w) => (
               <p key={w} className="text-xs text-amber-300 py-0.5 flex items-start gap-1.5">
@@ -693,8 +693,8 @@ const MaintenanceView: React.FC = () => {
   if (loading) return <Loading />;
   return (
     <Card className={cfg.maintenanceMode ? 'border-red-500/40' : ''}>
-      <h4 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-        <Wrench className="w-4 h-4 text-slate-400" /> Maintenance mode
+      <h4 className="text-sm font-bold text-temple-200 mb-3 flex items-center gap-2">
+        <Wrench className="w-4 h-4 text-temple-300" /> Maintenance mode
       </h4>
       {cfg.maintenanceMode && (
         <p className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-3 flex items-center gap-2">
@@ -703,21 +703,21 @@ const MaintenanceView: React.FC = () => {
       )}
       <button type="button" onClick={() => setCfg({ ...cfg, maintenanceMode: !cfg.maintenanceMode })}
         className={`w-full flex items-center justify-center gap-2 py-3 min-h-[52px] rounded-xl text-sm font-black mb-3 ${
-          cfg.maintenanceMode ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300'
+          cfg.maintenanceMode ? 'bg-red-600 text-white' : 'bg-temple-800 text-temple-200'
         }`}>
         {cfg.maintenanceMode ? 'Turn maintenance OFF' : 'Turn maintenance ON'}
       </button>
-      <label className="text-[11px] text-slate-500">Message shown to users
+      <label className="text-[11px] text-temple-300">Message shown to users
         <textarea value={cfg.maintenanceMessage || ''} rows={3}
           onChange={(e) => setCfg({ ...cfg, maintenanceMessage: e.target.value })}
           placeholder="We are performing scheduled maintenance. Please check back soon. 🙏"
           className={inputCls + ' mt-1'} />
       </label>
       <button type="button" onClick={save} disabled={working}
-        className="mt-3 w-full py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50 flex items-center justify-center gap-2">
+        className="mt-3 w-full py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50 flex items-center justify-center gap-2">
         <Save className="w-4 h-4" /> {working ? 'Saving…' : 'Save config'}
       </button>
-      <p className="text-[11px] text-slate-500 mt-3">
+      <p className="text-[11px] text-temple-300 mt-3">
         When ON, every non-owner user sees a warm maintenance screen. The owner stays logged in so this can be turned back OFF.
       </p>
     </Card>
@@ -823,16 +823,16 @@ const PaymentsView: React.FC = () => {
   if (loading) return <Loading text="Loading payment methods…" />;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-temple-300">
         These are what users see on the billing page, per region. Toggle a method off to hide it instantly.
         QR image: upload your merchant QR via the GitHub web UI to <span className="font-mono text-saffron-300">public/bangla-qr.png</span> (drag &amp; drop),
         or paste any full image URL in the QR field below. Until then the billing page shows a placeholder.
       </p>
       {methods.length === 0 && (
         <Card className="border-dashed">
-          <p className="text-xs text-slate-500 mb-3">No payment methods configured yet. Seed the defaults:</p>
+          <p className="text-xs text-temple-300 mb-3">No payment methods configured yet. Seed the defaults:</p>
           <button type="button" onClick={seed} disabled={working}
-            className="px-5 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black disabled:opacity-50">
+            className="px-5 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black disabled:opacity-50">
             {working ? 'Seeding…' : 'Seed default methods'}
           </button>
         </Card>
@@ -842,7 +842,7 @@ const PaymentsView: React.FC = () => {
         if (list.length === 0) return null;
         return (
           <div key={region} className="space-y-2">
-            <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-500">{regionName(region)}</h4>
+            <h4 className="text-[11px] font-black uppercase tracking-widest text-temple-300">{regionName(region)}</h4>
             {list.map((m) => (
               <Card key={m.id}>
                 <div className="flex items-start gap-3">
@@ -850,16 +850,16 @@ const PaymentsView: React.FC = () => {
                     className="shrink-0 mt-0.5 disabled:opacity-50" aria-label="Toggle enabled">
                     {m.enabled !== false
                       ? <ToggleRight className="w-7 h-7 text-emerald-400" />
-                      : <ToggleLeft className="w-7 h-7 text-slate-600" />}
+                      : <ToggleLeft className="w-7 h-7 text-temple-600" />}
                   </button>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-white text-sm">{m.label || m.id}</p>
-                    <p className="text-[11px] text-slate-500 font-mono truncate">
+                    <p className="text-[11px] text-temple-300 font-mono truncate">
                       {[m.number, m.upiId, m.accountEmail].filter(Boolean).join(' · ') || m.type}
                     </p>
                   </div>
                   <button type="button" onClick={() => openEdit(m)}
-                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-200 shrink-0">
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200 shrink-0">
                     Edit
                   </button>
                 </div>
@@ -871,18 +871,18 @@ const PaymentsView: React.FC = () => {
 
       {editing && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-1">Edit {editing.label || editing.id}</h3>
-            <p className="text-[11px] text-slate-500 font-mono mb-4">{editing.id} · {editing.region} · {editing.type}</p>
+            <p className="text-[11px] text-temple-300 font-mono mb-4">{editing.id} · {editing.region} · {editing.type}</p>
             <div className="space-y-3">
               <label className="flex items-center gap-2.5 cursor-pointer min-h-[44px]">
                 <input type="checkbox" checked={!!form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
                   className="w-5 h-5 accent-emerald-500" />
-                <span className="text-sm text-slate-200 font-bold">Enabled (visible to users)</span>
+                <span className="text-sm text-temple-200 font-bold">Enabled (visible to users)</span>
               </label>
               {PM_FIELD_DEFS.map((f) => (
                 <div key={f.key}>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">{f.label}</label>
+                  <label className="block text-[11px] font-bold text-temple-300 mb-1">{f.label}</label>
                   <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                     placeholder={f.hint} className={inputCls} />
                   {f.key === 'qrImageUrl' && (
@@ -893,20 +893,20 @@ const PaymentsView: React.FC = () => {
                 </div>
               ))}
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Instructions — English (one step per line)</label>
+                <label className="block text-[11px] font-bold text-temple-300 mb-1">Instructions — English (one step per line)</label>
                 <textarea value={form.instructionsEn} onChange={(e) => setForm({ ...form, instructionsEn: e.target.value })}
                   rows={5} className={inputCls + ' font-normal'} />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Instructions — বাংলা (one step per line)</label>
+                <label className="block text-[11px] font-bold text-temple-300 mb-1">Instructions — বাংলা (one step per line)</label>
                 <textarea value={form.instructionsBn} onChange={(e) => setForm({ ...form, instructionsBn: e.target.value })}
                   rows={5} className={inputCls + ' font-normal'} />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setEditing(null)}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={save} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   {working ? 'Saving…' : 'Save'}</button>
               </div>
             </div>
@@ -974,14 +974,14 @@ export const SupportTab: React.FC = () => {
         {['all', 'new', 'contacted', 'resolved'].map((s) => (
           <button key={s} type="button" onClick={() => setFilter(s)}
             className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold capitalize shrink-0 ${
-              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
+              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'
             }`}>{s}</button>
         ))}
       </div>
       <div className="relative">
-        <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-temple-300 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search inquiries…"
-          className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-3 min-h-[44px] text-sm text-slate-200 outline-none focus:ring-2 focus:ring-saffron-500" />
+          className="w-full bg-temple-950 border border-temple-700 rounded-xl pl-10 pr-4 py-3 min-h-[44px] text-sm text-temple-200 outline-none focus:ring-2 focus:ring-saffron-500" />
       </div>
       {visible.length === 0 && <Empty text="No inquiries in this state. New /contact submissions appear here." />}
       {visible.map((l) => (
@@ -989,14 +989,14 @@ export const SupportTab: React.FC = () => {
           <div className="flex items-start justify-between gap-2 mb-1.5">
             <div className="min-w-0">
               <p className="font-bold text-white text-sm">{l.name || 'Unnamed'}</p>
-              <p className="text-[11px] text-slate-500">{l.institution || ''}{l.orgType ? ` · ${l.orgType}` : ''}</p>
-              <p className="text-[11px] text-slate-500 font-mono">{l.email || ''}{l.phone ? ` · ${l.phone}` : ''}</p>
+              <p className="text-[11px] text-temple-300">{l.institution || ''}{l.orgType ? ` · ${l.orgType}` : ''}</p>
+              <p className="text-[11px] text-temple-300 font-mono">{l.email || ''}{l.phone ? ` · ${l.phone}` : ''}</p>
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(l.status || 'new')}`}>
               {l.status || 'new'}
             </span>
           </div>
-          <p className="text-xs text-slate-300 bg-slate-900 rounded-xl p-3 mb-3 line-clamp-3">{l.message}</p>
+          <p className="text-xs text-temple-200 bg-temple-900 rounded-xl p-3 mb-3 line-clamp-3">{l.message}</p>
           <div className="flex gap-2">
             <button type="button" onClick={() => setSel(l)}
               className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-saffron-500/20 text-saffron-300 text-xs font-black border border-saffron-500/30 flex items-center justify-center gap-1.5">
@@ -1014,25 +1014,25 @@ export const SupportTab: React.FC = () => {
 
       {sel && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setSel(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-1">Reply to {sel.name}</h3>
-            <p className="text-[11px] text-slate-500 font-mono mb-4">{sel.email}</p>
-            <div className="bg-slate-950 rounded-xl p-3 mb-4">
-              <p className="text-[11px] text-slate-500 mb-1">Their message:</p>
-              <p className="text-xs text-slate-300">{sel.message}</p>
+            <p className="text-[11px] text-temple-300 font-mono mb-4">{sel.email}</p>
+            <div className="bg-temple-950 rounded-xl p-3 mb-4">
+              <p className="text-[11px] text-temple-300 mb-1">Their message:</p>
+              <p className="text-xs text-temple-200">{sel.message}</p>
             </div>
             <div className="space-y-3">
               <input value={reply.title} onChange={(e) => setReply({ ...reply, title: e.target.value })}
                 placeholder="Subject" className={inputCls} />
               <textarea value={reply.body} onChange={(e) => setReply({ ...reply, body: e.target.value })}
                 placeholder="Your reply…" rows={5} className={inputCls} />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-temple-300">
                 Delivered to their in-app inbox if they have an account; otherwise the inquiry is marked contacted.
               </p>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setSel(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setSel(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={sendReply} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   {working ? 'Sending…' : 'Send reply'}</button>
               </div>
             </div>

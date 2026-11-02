@@ -1279,7 +1279,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
                         <canvas ref={canvasRef} className="hidden" />
                         <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
-                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_#f59e0b] animate-pulse"></div>
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_var(--gold)] animate-pulse"></div>
                      </div>
                      <p className="text-white/50 text-xs mt-6 font-bold text-center">{gt('auth.alignQr')}</p>
                   </motion.div>
@@ -1382,7 +1382,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         disabled={loading}
                         onMouseMove={magneticGlow}
                         data-loading={loading}
-                        className="auth-cta w-full py-4 rounded-2xl bg-gradient-to-r from-saffron-500 via-amber-500 to-orange-500 hover:from-saffron-400 hover:via-amber-400 hover:to-orange-400 text-[#2a1503] font-black text-[15px] tracking-wide shadow-[0_12px_36px_rgba(255,142,0,0.45)] hover:shadow-[0_16px_44px_rgba(255,142,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
+                        className="auth-cta w-full py-4 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-[15px] tracking-wide shadow-[0_12px_36px_color-mix(in_srgb,var(--cta)_45%,transparent)] hover:shadow-[0_16px_44px_color-mix(in_srgb,var(--cta)_55%,transparent)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
                       >
                         <span className="auth-cta-shimmer" />
                         <span className="relative flex items-center gap-2">
@@ -1567,7 +1567,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         disabled={loading}
                         onMouseMove={magneticGlow}
                         data-loading={loading}
-                        className="auth-cta w-full py-4 rounded-2xl bg-gradient-to-r from-saffron-500 via-amber-500 to-orange-500 hover:from-saffron-400 hover:via-amber-400 hover:to-orange-400 text-[#2a1503] font-black text-[15px] tracking-wide shadow-[0_12px_36px_rgba(255,142,0,0.45)] hover:shadow-[0_16px_44px_rgba(255,142,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
+                        className="auth-cta w-full py-4 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-[15px] tracking-wide shadow-[0_12px_36px_color-mix(in_srgb,var(--cta)_45%,transparent)] hover:shadow-[0_16px_44px_color-mix(in_srgb,var(--cta)_55%,transparent)] hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60 disabled:hover:translate-y-0 flex justify-center items-center gap-2 min-h-[56px]"
                       >
                         <span className="auth-cta-shimmer" />
                         <span className="relative flex items-center gap-2">

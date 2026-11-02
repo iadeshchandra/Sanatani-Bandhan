@@ -2,7 +2,7 @@
  * SandhyaSettings.tsx — VIBE B3: Sandhya Mode (dusk theme) controls.
  * ============================================================================
  * One self-contained section, mounted in the devotee Profile and in
- * Master Settings beside the classic theme switch. Three choices —
+ * Master Settings (the Theme & Appearance card). Three choices —
  * Off / On / Automatic at dusk — every one the user's, persisted on
  * the device via lib/sandhyaMode. "Automatic" only ever applies the
  * dusk window the copy names (17:30–21:00 local); it never overrides

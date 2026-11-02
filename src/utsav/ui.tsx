@@ -70,7 +70,7 @@ export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { var
 }) => {
   const styles =
     variant === 'primary'
-      ? 'bg-gradient-to-r from-orange-700 to-red-800 text-orange-50 hover:from-orange-600 hover:to-red-700 shadow'
+      ? 'bg-cta text-white hover:bg-cta-hover shadow'
       : variant === 'danger'
         ? 'bg-red-600 text-white hover:bg-red-500 shadow'
         : 'bg-white text-stone-700 border border-stone-200 hover:border-orange-400';

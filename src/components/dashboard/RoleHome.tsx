@@ -111,7 +111,7 @@ const badgeTones: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
   rose: 'bg-rose-50 text-rose-700 border border-rose-100',
   indigo: 'bg-indigo-50 text-indigo-700 border border-indigo-100',
-  slate: 'bg-slate-100 text-slate-600 border border-slate-200',
+  slate: 'bg-temple-100 text-temple-600 border border-temple-200',
 };
 
 /** Big tappable work card — the 3-action surface building block. */
@@ -127,7 +127,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   <button
     type="button"
     onClick={onClick}
-    className="w-full text-left bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:border-saffron-300 hover:shadow transition-all cursor-pointer group min-h-[44px]"
+    className="w-full text-left bg-white p-4 rounded-xl shadow-sm border border-temple-200 hover:border-saffron-300 hover:shadow transition-all cursor-pointer group min-h-[44px]"
   >
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
@@ -135,18 +135,18 @@ export const ActionCard: React.FC<ActionCardProps> = ({
           <Icon className="w-5 h-5 text-saffron-600" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-900 truncate">{title}</p>
-          {subtitle && <p className="text-[11px] text-slate-500 truncate mt-0.5">{subtitle}</p>}
+          <p className="text-sm font-bold text-temple-900 truncate">{title}</p>
+          {subtitle && <p className="text-[11px] text-temple-600 truncate mt-0.5">{subtitle}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {value && <span className="text-xl font-black text-slate-900">{value}</span>}
+        {value && <span className="text-xl font-black text-temple-900">{value}</span>}
         {badge && (
           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${badgeTones[badgeTone]}`}>
             {badge}
           </span>
         )}
-        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-saffron-500 group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight className="w-4 h-4 text-temple-300 group-hover:text-saffron-500 group-hover:translate-x-0.5 transition-all" />
       </div>
     </div>
   </button>
@@ -158,11 +158,11 @@ export const RoleSectionTitle: React.FC<{ icon: React.ElementType; title: string
   hint,
 }) => (
   <div className="flex items-center justify-between">
-    <h2 className="text-xs font-bold uppercase tracking-widest text-slate-600 flex items-center gap-2">
+    <h2 className="text-xs font-bold uppercase tracking-widest text-temple-600 flex items-center gap-2">
       <Icon className="w-3.5 h-3.5 text-saffron-500" />
       {title}
     </h2>
-    {hint && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{hint}</span>}
+    {hint && <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{hint}</span>}
   </div>
 );
 
@@ -223,9 +223,9 @@ export const ShlokaCard: React.FC = () => {
   };
 
   return (
-    <div className="rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col anim-fade-up">
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-600 flex items-center gap-2">
+    <div className="rounded-xl bg-white border border-temple-200 shadow-sm flex flex-col anim-fade-up">
+      <div className="px-4 py-3 border-b border-temple-100 flex items-center justify-between bg-temple-50/50">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-temple-600 flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-saffron-500" />
           Daily Vedic Wisdom
         </h2>
@@ -235,8 +235,8 @@ export const ShlokaCard: React.FC = () => {
             onClick={handlePlayShlokaAudio}
             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] ${
               isPlayingAudio
-                ? 'bg-saffron-500/20 text-saffron-500 animate-pulse'
-                : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200'
+                ? 'bg-saffron-500/20 text-saffron-800 animate-pulse'
+                : 'bg-white hover:bg-temple-50 text-temple-600 border border-temple-200'
             }`}
           >
             <Volume2 className="w-3.5 h-3.5" />
@@ -245,7 +245,7 @@ export const ShlokaCard: React.FC = () => {
           <button
             type="button"
             onClick={handleNextShloka}
-            className="px-3 py-1.5 rounded-lg bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-500 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
+            className="px-3 py-1.5 rounded-lg bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-800 font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer min-h-[36px]"
           >
             <span className="hidden sm:inline">{t('surfaces.roleHome.nextShloka')}</span>
             <ChevronRight className="w-3 h-3" />
@@ -253,13 +253,13 @@ export const ShlokaCard: React.FC = () => {
         </div>
       </div>
       <div className="p-4 sm:p-5 flex flex-col gap-3">
-        <p className="font-serif text-lg sm:text-xl font-semibold text-slate-800 leading-relaxed whitespace-pre-line text-center sm:text-left">
+        <p className="font-serif text-lg sm:text-xl font-semibold text-temple-800 leading-relaxed whitespace-pre-line text-center sm:text-left">
           {currentShloka.sanskrit}
         </p>
-        <p className="text-[11px] font-mono text-slate-500 italic text-center sm:text-left">
+        <p className="text-[11px] font-mono text-temple-600 italic text-center sm:text-left">
           {cleanTransliteration(currentShloka.transliteration)}
         </p>
-        <div className="pt-3 mt-1 border-t border-slate-100 text-xs text-slate-600 leading-relaxed">
+        <div className="pt-3 mt-1 border-t border-temple-100 text-xs text-temple-600 leading-relaxed">
           <span className="font-bold text-indigo-600 uppercase tracking-wider mr-2">Meaning:</span>
           {getShlokaMeaning()}
         </div>
@@ -312,11 +312,11 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
         <div
           onClick={() => onNavigate('devotee-grid')}
           style={{ '--i': 0 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-indigo-300 transition-colors group"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-indigo-300 transition-colors group"
         >
           {/* F-DASH-4: the card carries the org's own directory name — Goshala's
               nav says "Gau Sevak Directory", so the KPI does too. */}
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">
             {isGoshalaLike
               ? safeTranslate('kpi_gau_sevak_directory', 'Gau Sevak Directory', 'গো সেবক তালিকা', 'गौ सेवक सूची')
               : safeTranslate('kpi_devotee_directory', 'Devotee Directory', 'ভক্ত তালিকা', 'भक्त सूची')}
@@ -326,7 +326,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
                 under windowing (DashboardHome's rule), and the old
                 "KYC 100%" pill is GONE — no member record carries a KYC
                 field, so the percentage was invented. */}
-            <span className="text-2xl font-bold text-slate-900"><CountUp value={collectionWindows.devotees.total ?? devotees.length} /></span>
+            <span className="text-2xl font-bold text-temple-900"><CountUp value={collectionWindows.devotees.total ?? devotees.length} /></span>
           </div>
         </div>
       )}
@@ -334,11 +334,11 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
         <div
           onClick={() => onNavigate('treasury-ledger')}
           style={{ '--i': 1 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors group"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors group"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.netTreasuryFund')}</span>
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.netTreasuryFund')}</span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-bold text-slate-900">
+            <span className="text-2xl font-bold text-temple-900">
               <CountUp value={netBalance} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
             </span>
             {treasuryIsPartial ? (
@@ -358,11 +358,11 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
           <div
             onClick={() => onNavigate('gurukulAcademy')}
             style={{ '--i': 2 } as React.CSSProperties}
-            className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors group"
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-amber-300 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.shishyaStudents')}</span>
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.shishyaStudents')}</span>
             <div className="flex items-end justify-between mt-1">
-              <span className="text-2xl font-bold text-slate-900"><CountUp value={gurukulStudents.length} /></span>
+              <span className="text-2xl font-bold text-temple-900"><CountUp value={gurukulStudents.length} /></span>
               <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">{t('surfaces.roleHome.brahmacharis')}</span>
             </div>
           </div>
@@ -372,17 +372,17 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
           <div
             onClick={() => onNavigate('pooja-booking')}
             style={{ '--i': 2 } as React.CSSProperties}
-            className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-rose-300 transition-colors group"
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-rose-300 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.reservedSankalps')}</span>
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.reservedSankalps')}</span>
             <div className="flex items-end justify-between mt-1">
-              <span className="text-2xl font-bold text-slate-900"><CountUp value={poojaBookings.length} /></span>
+              <span className="text-2xl font-bold text-temple-900"><CountUp value={poojaBookings.length} /></span>
               {/* F-DASH-5: a red "Active" pill on a zero count reads as an alert.
                   Zero-states stay quiet and neutral. */}
               {poojaBookings.length > 0 ? (
                 <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
               ) : (
-                <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
                   {safeTranslate('kpi_sankalp_none_yet', 'None yet', 'এখনও নেই', 'अभी कोई नहीं')}
                 </span>
               )}
@@ -394,13 +394,13 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
         <div
           onClick={() => onNavigate('gau-seva-goshala')}
           style={{ '--i': 3 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-saffron-300 transition-colors group"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-saffron-300 transition-colors group"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.gauSevaUnits')}</span>
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.gauSevaUnits')}</span>
           <div className="flex items-end justify-between mt-1">
             {/* QUEUED #59 (A4-1): same herd resolver as the Command
                 Center — the suite store is the register of record. */}
-            <span className="text-2xl font-bold text-slate-900"><CountUp value={resolveHerdCount(activeWorkspace.id, { legacyCowCount: cows.length })} /></span>
+            <span className="text-2xl font-bold text-temple-900"><CountUp value={resolveHerdCount(activeWorkspace.id, { legacyCowCount: cows.length })} /></span>
             <span className="text-[10px] text-saffron-600 font-bold bg-saffron-50 px-1.5 py-0.5 rounded">Gomata</span>
           </div>
         </div>
@@ -434,17 +434,17 @@ export const BranchComparisonPanel: React.FC = () => {
   if (visible.length === 0) return null;
 
   return (
-    <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-600 flex items-center gap-2">
+    <div className="rounded-xl bg-white border border-temple-200 shadow-sm overflow-hidden">
+      <div className="px-4 py-3 border-b border-temple-100 bg-temple-50/50 flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-temple-600 flex items-center gap-2">
           <GitBranch className="w-3.5 h-3.5 text-saffron-500" />
           Branch comparison
         </h2>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">
           Tap a branch to focus
         </span>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-temple-100">
         {visible.map((b) => {
           const bTx = recordsForBranch(treasury, b.id);
           const bIncome = bTx.filter((t) => t.type === 'Income').reduce((a, c) => a + c.amount, 0);
@@ -459,21 +459,21 @@ export const BranchComparisonPanel: React.FC = () => {
               className="w-full px-4 py-3 flex items-center gap-3 hover:bg-saffron-50/50 transition-colors cursor-pointer text-left"
             >
               <span className="flex-1 min-w-0">
-                <span className="block text-sm font-bold text-slate-900 truncate">
+                <span className="block text-sm font-bold text-temple-900 truncate">
                   {b.name}
                   {b.isMain && (
                     <span className="ml-1.5 text-[10px] font-black uppercase tracking-wider text-saffron-600">Main</span>
                   )}
                 </span>
-                {b.city && <span className="block text-[11px] text-slate-500">{b.city}</span>}
+                {b.city && <span className="block text-[11px] text-temple-600">{b.city}</span>}
               </span>
               <span className="text-right shrink-0">
                 <span className="block text-sm font-bold text-emerald-700">
                   {activeWorkspace.currencySymbol} {Math.round(bIncome - bExpense).toLocaleString('en-IN')}
                 </span>
-                <span className="block text-[10px] text-slate-500">{bDevotees} members · {bBookings} bookings</span>
+                <span className="block text-[10px] text-temple-600">{bDevotees} members · {bBookings} bookings</span>
               </span>
-              <ArrowUpRight className="w-4 h-4 text-slate-300 shrink-0" />
+              <ArrowUpRight className="w-4 h-4 text-temple-300 shrink-0" />
             </button>
           );
         })}
@@ -577,15 +577,15 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
   const featuredModules = rest;
   if (featuredModules.length === 0 && recommended.length === 0) return null;
   return (
-    <div className="rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-white">
+    <div className="rounded-xl bg-white border border-temple-200 shadow-sm flex flex-col overflow-hidden">
+      <div className="px-5 py-4 border-b border-temple-100 flex items-center justify-between bg-sanctum-sandal">
         <div>
-          <h2 className="text-sm font-bold text-slate-800">{t('surfaces.roleHome.discoverWorkspaceFeatures')}</h2>
-          <p className="text-[10px] text-slate-500 mt-0.5">{t('surfaces.roleHome.recommendedForYourInstitutionEveryDesk')}</p>
+          <h2 className="text-sm font-bold text-temple-800">{t('surfaces.roleHome.discoverWorkspaceFeatures')}</h2>
+          <p className="text-[10px] text-temple-600 mt-0.5">{t('surfaces.roleHome.recommendedForYourInstitutionEveryDesk')}</p>
         </div>
         <button
           onClick={() => onNavigate('desk-directory')}
-          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-100/50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[44px]"
+          className="text-[10px] font-bold text-peacock-700 hover:text-peacock-900 bg-peacock-100/50 hover:bg-peacock-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[44px]"
         >
           All Desks
         </button>
@@ -604,7 +604,7 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
                 type="button"
                 onClick={() => handleDismissRec(rec.moduleId)}
                 aria-label={`Dismiss ${mod.name} suggestion`}
-                className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-all text-sm leading-none"
+                className="absolute top-2 right-2 w-6 h-6 rounded-md flex items-center justify-center text-temple-600 hover:text-temple-600 hover:bg-temple-200/60 transition-all text-sm leading-none"
               >
                 ×
               </button>
@@ -612,9 +612,9 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
                 <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0 pr-4">
-                <h3 className="text-sm font-bold text-slate-800 truncate mb-0.5">{mod.name}</h3>
+                <h3 className="text-sm font-bold text-temple-800 truncate mb-0.5">{mod.name}</h3>
                 <p className="text-[11px] text-amber-700 font-medium leading-snug mb-1">{rec.reason}</p>
-                <p className="text-[11px] text-slate-500 leading-snug mb-2">{getModuleCopy(rec.moduleId, currentLang)}</p>
+                <p className="text-[11px] text-temple-600 leading-snug mb-2">{getModuleCopy(rec.moduleId, currentLang)}</p>
                 <button
                   type="button"
                   onClick={() => handleOpen(rec.moduleId)}
@@ -632,17 +632,17 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
             <div
               key={mod.id}
               onClick={() => onNavigate(mod.id)}
-              className="group p-4 rounded-xl border border-slate-100 hover:border-indigo-200 bg-slate-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer flex gap-3 items-start"
+              className="group p-4 rounded-xl border border-temple-100 hover:border-indigo-200 bg-temple-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer flex gap-3 items-start"
             >
-              <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform group-hover:border-indigo-300 group-hover:text-indigo-600 text-slate-500">
+              <div className="w-10 h-10 rounded-lg bg-white border border-temple-200 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform group-hover:border-indigo-300 group-hover:text-indigo-600 text-temple-600">
                 <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-slate-800 group-hover:text-indigo-900 truncate mb-1">
+                <h3 className="text-sm font-bold text-temple-800 group-hover:text-indigo-900 truncate mb-1">
                   {t(mod.id) !== mod.id ? t(mod.id) : mod.name}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium text-slate-500 truncate">{mod.domainTitle}</span>
+                  <span className="text-[10px] font-medium text-temple-600 truncate">{mod.domainTitle}</span>
                   {mod.badge && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600 shrink-0">{mod.badge}</span>
                   )}
@@ -666,14 +666,14 @@ export const ActionHub: React.FC<{
   const { memberNoun } = useWorkspaceTaxonomy();
 
   return (
-    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-      <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.dharmicActionHub')}</h3>
-      <p className="text-[10px] text-slate-500 mb-4">{t('surfaces.roleHome.fastWorkflowsAmpPassGeneration')}</p>
+    <div className="bg-white rounded-xl p-5 border border-temple-200 shadow-sm">
+      <h3 className="font-bold text-xs text-temple-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.dharmicActionHub')}</h3>
+      <p className="text-[10px] text-temple-600 mb-4">{t('surfaces.roleHome.fastWorkflowsAmpPassGeneration')}</p>
       <div className="space-y-2">
         <button
           type="button"
           onClick={onOpenQuickPay}
-          className="w-full p-2.5 rounded-lg bg-saffron-500 hover:bg-saffron-600 text-white font-bold text-[11px] flex items-center justify-between transition-colors shadow-sm cursor-pointer min-h-[44px]"
+          className="w-full p-2.5 rounded-lg bg-cta hover:bg-cta-hover text-white font-bold text-[11px] flex items-center justify-between transition-colors shadow-sm cursor-pointer min-h-[44px]"
         >
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4" />
@@ -685,20 +685,20 @@ export const ActionHub: React.FC<{
           <button
             type="button"
             onClick={onOpenMySpace}
-            className="w-full p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center justify-between border border-slate-200 transition-colors cursor-pointer min-h-[44px]"
+            className="w-full p-2.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 font-semibold text-[11px] flex items-center justify-between border border-temple-200 transition-colors cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <QrCode className="w-4 h-4 text-indigo-500" />
               <span>My {memberNoun} Smart Card</span>
             </div>
-            <ChevronRight className="w-3 h-3 text-slate-400" />
+            <ChevronRight className="w-3 h-3 text-temple-600" />
           </button>
         )}
         {checkPermission(['SUPER_ADMIN', 'MANAGER', 'TRUSTEE']) && (
           <button
             type="button"
             onClick={() => onNavigate('dharmic-assistant')}
-            className="w-full p-2.5 rounded-lg bg-gradient-to-r from-saffron-500/10 to-saffron-500/10 hover:from-saffron-500/20 hover:to-saffron-500/20 text-saffron-900 font-semibold text-[11px] flex items-center justify-between border border-saffron-500/30 transition-colors cursor-pointer group min-h-[44px]"
+            className="w-full p-2.5 rounded-lg bg-saffron-500/10 hover:bg-saffron-500/20 text-saffron-900 font-semibold text-[11px] flex items-center justify-between border border-saffron-500/30 transition-colors cursor-pointer group min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-saffron-700 text-sm">ॐ</span>
@@ -711,39 +711,39 @@ export const ActionHub: React.FC<{
           <button
             type="button"
             onClick={() => onNavigate('pooja-booking')}
-            className="w-full p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center justify-between border border-slate-200 transition-colors cursor-pointer min-h-[44px]"
+            className="w-full p-2.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 font-semibold text-[11px] flex items-center justify-between border border-temple-200 transition-colors cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <Flame className="w-4 h-4 text-rose-500" />
               <span>{t('surfaces.roleHome.reserveSacredSankalp')}</span>
             </div>
-            <ChevronRight className="w-3 h-3 text-slate-400" />
+            <ChevronRight className="w-3 h-3 text-temple-600" />
           </button>
         )}
         {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'SUPER_ADMIN']) && (
           <button
             type="button"
             onClick={() => onNavigate('universal-csv')}
-            className="w-full p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center justify-between border border-slate-200 transition-colors cursor-pointer min-h-[44px]"
+            className="w-full p-2.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 font-semibold text-[11px] flex items-center justify-between border border-temple-200 transition-colors cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
               <span>Bulk CSV {memberNoun} Ingestion</span>
             </div>
-            <ChevronRight className="w-3 h-3 text-slate-400" />
+            <ChevronRight className="w-3 h-3 text-temple-600" />
           </button>
         )}
         {checkPermission(['TRUSTEE', 'MANAGER', 'SUPER_ADMIN']) && (
           <button
             type="button"
             onClick={() => onNavigate('whatsapp-broadcaster')}
-            className="w-full p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-[11px] flex items-center justify-between border border-slate-200 transition-colors cursor-pointer min-h-[44px]"
+            className="w-full p-2.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 font-semibold text-[11px] flex items-center justify-between border border-temple-200 transition-colors cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-500" />
               <span>{t('surfaces.roleHome.whatsappSandeshEngine')}</span>
             </div>
-            <ChevronRight className="w-3 h-3 text-slate-400" />
+            <ChevronRight className="w-3 h-3 text-temple-600" />
           </button>
         )}
       </div>
@@ -759,11 +759,11 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
   void activeWorkspace;
   if (!checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'SUPER_ADMIN'])) return null;
   return (
-    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex-1">
+    <div className="bg-white rounded-xl p-5 border border-temple-200 shadow-sm flex-1">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.recentTreasury')}</h3>
-          <p className="text-[10px] text-slate-500">{t('surfaces.roleHome.doubleEntryAuditVerified')}</p>
+          <h3 className="font-bold text-xs text-temple-800 uppercase tracking-wide mb-1">{t('surfaces.roleHome.recentTreasury')}</h3>
+          <p className="text-[10px] text-temple-600">{t('surfaces.roleHome.doubleEntryAuditVerified')}</p>
         </div>
         <button
           type="button"
@@ -774,7 +774,7 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
           <ArrowUpRight className="w-3 h-3" />
         </button>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-temple-100">
         {treasury.slice(0, 5).map((tx, idx) => (
           <div key={`${tx.id}-${idx}`} className="py-2.5 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -788,15 +788,15 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
                 {tx.type === 'Income' ? '+' : '-'}
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-[11px] text-slate-800 truncate">{tx.category || 'General'}</p>
-                <p className="text-[9px] text-slate-500 truncate">{tx.devoteeName || tx.purpose}</p>
+                <p className="font-bold text-[11px] text-temple-800 truncate">{tx.category || 'General'}</p>
+                <p className="text-[9px] text-temple-600 truncate">{tx.devoteeName || tx.purpose}</p>
               </div>
             </div>
             <div className="text-right shrink-0">
               <p className={`font-black text-xs ${tx.type === 'Income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {tx.type === 'Income' ? '+' : '-'} {inr((tx.amount || 0))}
               </p>
-              <p className="text-[9px] text-slate-400 font-mono mt-0.5">{tx.date ? new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</p>
+              <p className="text-[9px] text-temple-600 font-mono mt-0.5">{tx.date ? new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</p>
             </div>
           </div>
         ))}
@@ -812,7 +812,7 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
 const statusTone: Record<string, string> = {
   Confirmed: 'bg-amber-50 text-amber-700 border border-amber-200',
   Completed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  Standby: 'bg-slate-100 text-slate-600 border border-slate-200',
+  Standby: 'bg-temple-100 text-temple-600 border border-temple-200',
   Cancelled: 'bg-rose-50 text-rose-600 border border-rose-200',
 };
 
@@ -841,7 +841,7 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
       <RoleSectionTitle icon={Flame} title={t('surfaces.roleHome.todaySPujas')} hint={`${todaysBookings.length} booking${todaysBookings.length === 1 ? '' : 's'}`} />
 
       {nextBooking ? (
-        <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-lg shadow-orange-500/20 anim-fade-up">
+        <div className="rounded-xl bg-cta p-5 text-white shadow-lg shadow-saffron-700/20 anim-fade-up">
           <p className="text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">{t('surfaces.roleHome.nextBooking')}</p>
           <p className="text-xl font-black">{nextBooking.poojaName}</p>
           <p className="text-sm text-white/90 mt-1">
@@ -866,14 +866,14 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
           </div>
         </div>
       ) : (
-        <div className="rounded-xl bg-white border border-slate-200 p-5 text-center">
-          <Flame className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-700">{t('surfaces.roleHome.noPujasBookedForToday')}</p>
-          <p className="text-[11px] text-slate-500 mt-1">{t('surfaces.roleHome.newSankalpsAppearHereTheMoment')}</p>
+        <div className="rounded-xl bg-white border border-temple-200 p-5 text-center">
+          <Flame className="w-8 h-8 text-temple-300 mx-auto mb-2" />
+          <p className="text-sm font-bold text-temple-700">{t('surfaces.roleHome.noPujasBookedForToday')}</p>
+          <p className="text-[11px] text-temple-600 mt-1">{t('surfaces.roleHome.newSankalpsAppearHereTheMoment')}</p>
           <button
             type="button"
             onClick={() => onNavigate('poojaBooking')}
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white text-sm font-bold cursor-pointer min-h-[44px]"
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-bold cursor-pointer min-h-[44px]"
           >
             Open Rituals Hub
           </button>
@@ -881,13 +881,13 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
       )}
 
       {todaysBookings.length > 1 && (
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="divide-y divide-slate-100">
+        <div className="rounded-xl bg-white border border-temple-200 shadow-sm overflow-hidden">
+          <div className="divide-y divide-temple-100">
             {todaysBookings.map((b) => (
               <div key={b.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate">{b.poojaName}</p>
-                  <p className="text-[11px] text-slate-500 truncate">
+                  <p className="text-sm font-bold text-temple-900 truncate">{b.poojaName}</p>
+                  <p className="text-[11px] text-temple-600 truncate">
                     {b.devoteeName} · {b.timeSlot || 'Time TBD'}
                   </p>
                 </div>
@@ -981,11 +981,11 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         <div
           onClick={() => onNavigate('treasury-ledger')}
           style={{ '--i': 0 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900">
+            <span className="text-2xl font-black text-temple-900">
               <CountUp value={todaysTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
             </span>
             <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -996,11 +996,11 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         <div
           onClick={() => onNavigate('taxReceipts')}
           style={{ '--i': 1 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-amber-300 transition-colors"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-amber-300 transition-colors"
         >
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.80gReceiptsPending')}</span>
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.80gReceiptsPending')}</span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900"><CountUp value={pending80G.length} /></span>
+            <span className="text-2xl font-black text-temple-900"><CountUp value={pending80G.length} /></span>
             <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
               {activeWorkspace.currencySymbol} {Math.round(pending80GTotal).toLocaleString('en-IN')} awaiting
             </span>
@@ -1010,16 +1010,16 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
 
       <div
         onClick={() => onNavigate('treasury-ledger')}
-        className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-emerald-300 transition-colors"
+        className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors"
       >
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('surfaces.roleHome.collectionsThisWeek')}</span>
+        <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsThisWeek')}</span>
         <div className="flex items-end justify-between mt-1">
-          <span className="text-2xl font-black text-slate-900">
+          <span className="text-2xl font-black text-temple-900">
             <CountUp value={weekTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
           </span>
           <span className="flex items-center gap-1.5">
             {treasuryWindowed && (
-              <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
                 {safeTranslate('kpi_treasury_partial', 'Loaded window')}
               </span>
             )}
@@ -1034,7 +1034,7 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         <button
           type="button"
           onClick={onOpenQuickPay}
-          className="w-full p-4 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-white font-bold text-sm flex items-center justify-between transition-colors shadow-md shadow-saffron-500/20 cursor-pointer min-h-[56px] pressable"
+          className="w-full p-4 rounded-xl bg-cta hover:bg-cta-hover text-white font-bold text-sm flex items-center justify-between transition-colors shadow-md shadow-saffron-700/20 cursor-pointer min-h-[56px] pressable"
         >
           <span className="flex items-center gap-2.5">
             <Coins className="w-5 h-5" />
@@ -1205,11 +1205,11 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
       {lapsedDonors.length > 0 && (
         <>
           <RoleSectionTitle icon={Heart} title={t('surfaces.roleHome.donorCare')} hint="Win-back" />
-          <div className="rounded-xl bg-white border border-slate-200 shadow-sm p-4">
-            <p className="text-sm font-bold text-slate-800">
+          <div className="rounded-xl bg-white border border-temple-200 shadow-sm p-4">
+            <p className="text-sm font-bold text-temple-800">
               {lapsedDonors.length} donor{lapsedDonors.length === 1 ? '' : 's'} quiet for 6+ months
             </p>
-            <p className="text-[11px] text-slate-500 mt-1 truncate">
+            <p className="text-[11px] text-temple-600 mt-1 truncate">
               {lapsedDonors.join(' · ')}
             </p>
             <button
@@ -1257,7 +1257,7 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
       <button
         type="button"
         onClick={() => onNavigate('sevadar-roster')}
-        className="w-full p-5 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold text-sm flex items-center justify-between transition-colors shadow-lg shadow-indigo-600/20 cursor-pointer min-h-[64px] pressable anim-fade-up"
+        className="w-full p-5 rounded-xl bg-cta hover:bg-cta-hover text-white font-bold text-sm flex items-center justify-between transition-colors shadow-lg shadow-saffron-700/20 cursor-pointer min-h-[64px] pressable anim-fade-up"
       >
         <span className="flex items-center gap-3">
           <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
@@ -1272,24 +1272,24 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
       </button>
 
       {displayShifts.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200 p-5 text-center">
-          <ClipboardList className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-700">{t('surfaces.roleHome.noShiftsAssignedForToday')}</p>
-          <p className="text-[11px] text-slate-500 mt-1">{t('surfaces.roleHome.restWellSevaSchedulesAppearHere')}</p>
+        <div className="rounded-xl bg-white border border-temple-200 p-5 text-center">
+          <ClipboardList className="w-8 h-8 text-temple-300 mx-auto mb-2" />
+          <p className="text-sm font-bold text-temple-700">{t('surfaces.roleHome.noShiftsAssignedForToday')}</p>
+          <p className="text-[11px] text-temple-600 mt-1">{t('surfaces.roleHome.restWellSevaSchedulesAppearHere')}</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <div className="rounded-xl bg-white border border-temple-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-temple-100 bg-temple-50/50">
+            <p className="text-[10px] font-black uppercase tracking-widest text-temple-600">
               {myShifts.length > 0 ? 'Your shifts' : "Today's roster"} · {displayShifts.length}
             </p>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-temple-100">
             {displayShifts.map((s) => (
               <div key={s.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate">{s.role}</p>
-                  <p className="text-[11px] text-slate-500 truncate">
+                  <p className="text-sm font-bold text-temple-900 truncate">{s.role}</p>
+                  <p className="text-[11px] text-temple-600 truncate">
                     {s.sevadarName} · {s.shiftTiming}
                   </p>
                 </div>

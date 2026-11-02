@@ -10,6 +10,7 @@ import { db } from '../../firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { isValidLatLng } from '../../utils/geo';
+import { CHART } from '../../lib/designTokens';
 import { MapContainer, Marker, Circle, Popup } from 'react-leaflet';
 import { ResilientTileLayer } from '../../maps/ResilientTileLayer';
 import L from 'leaflet';
@@ -18,14 +19,14 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 
 const redIcon = L.divIcon({
   className: 'custom-pin',
-  html: '<div class="animate-pulse" style="width: 16px; height: 16px; background-color: #dc2626; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px #dc2626;"></div>',
+  html: '<div class="animate-pulse" style="width: 16px; height: 16px; background-color: var(--kumkum); border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px var(--kumkum);"></div>',
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 });
 
 const greenIcon = L.divIcon({
   className: 'custom-pin',
-  html: '<div style="width: 16px; height: 16px; background-color: #16a34a; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px #16a34a;"></div>',
+  html: '<div style="width: 16px; height: 16px; background-color: var(--peacock-500); border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px var(--peacock-500);"></div>',
   iconSize: [16, 16],
   iconAnchor: [8, 8],
 });
@@ -137,10 +138,10 @@ export const CrisisCommandCenter: React.FC = () => {
       {/* Header & Score Metrics */}
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-black text-temple-900 tracking-tight flex items-center gap-2">
             <Crosshair className="w-7 h-7 text-red-600" /> Crisis Command Center
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-temple-600 font-medium mt-1">
             Live view of emergencies and response metrics — every number computed from real workspace data.
           </p>
         </div>
@@ -153,9 +154,9 @@ export const CrisisCommandCenter: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-black text-emerald-600 uppercase tracking-widest">Resolution Rate</p>
-              <h3 className="text-2xl font-black text-slate-900">
+              <h3 className="text-2xl font-black text-temple-900">
                 {resolutionRate === null ? '—' : `${resolutionRate}%`}
-                <span className="text-sm font-bold text-slate-400"> {totalIncidents} total</span>
+                <span className="text-sm font-bold text-temple-600"> {totalIncidents} total</span>
               </h3>
             </div>
           </div>
@@ -165,9 +166,9 @@ export const CrisisCommandCenter: React.FC = () => {
             </div>
             <div>
               <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Sevadars on Duty</p>
-              <h3 className="text-2xl font-black text-slate-900">
+              <h3 className="text-2xl font-black text-temple-900">
                 {sevadarsOnDuty}
-                <span className="text-sm font-bold text-slate-400"> today</span>
+                <span className="text-sm font-bold text-temple-600"> today</span>
               </h3>
             </div>
           </div>
@@ -175,37 +176,37 @@ export const CrisisCommandCenter: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-sm flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
             <AlertTriangle className="w-7 h-7" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Active Crises</h4>
-            <span className="text-3xl font-black text-slate-900">{activeIncidents.length}</span>
+            <h4 className="text-sm font-bold text-temple-600 uppercase tracking-wider">Active Crises</h4>
+            <span className="text-3xl font-black text-temple-900">{activeIncidents.length}</span>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-sm flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <CheckCircle2 className="w-7 h-7" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Resolved</h4>
-            <span className="text-3xl font-black text-slate-900">{resolvedIncidents.length}</span>
+            <h4 className="text-sm font-bold text-temple-600 uppercase tracking-wider">Resolved</h4>
+            <span className="text-3xl font-black text-temple-900">{resolvedIncidents.length}</span>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-sm flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
             <Clock className="w-7 h-7" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Avg Response Time</h4>
-            <span className="text-3xl font-black text-slate-900">
+            <h4 className="text-sm font-bold text-temple-600 uppercase tracking-wider">Avg Response Time</h4>
+            <span className="text-3xl font-black text-temple-900">
               {avgResponseMins === null ? '—' : avgResponseMins < 60
-                ? <>{avgResponseMins.toFixed(1)} <span className="text-lg text-slate-500">mins</span></>
-                : <>{(avgResponseMins / 60).toFixed(1)} <span className="text-lg text-slate-500">hrs</span></>}
+                ? <>{avgResponseMins.toFixed(1)} <span className="text-lg text-temple-600">mins</span></>
+                : <>{(avgResponseMins / 60).toFixed(1)} <span className="text-lg text-temple-600">hrs</span></>}
             </span>
             {avgResponseMins === null && (
-              <p className="text-[10px] text-slate-400 font-medium">No resolved incidents yet</p>
+              <p className="text-[10px] text-temple-600 font-medium">No resolved incidents yet</p>
             )}
           </div>
         </div>
@@ -223,10 +224,10 @@ export const CrisisCommandCenter: React.FC = () => {
                 <div key={inc.id} className="bg-white p-4 rounded-2xl shadow-sm border border-rose-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h4 className="text-rose-700 font-bold text-sm">{inc.situation?.replace('_', ' ') || 'Emergency SOS'}</h4>
-                    <p className="text-slate-600 text-xs mt-1 font-medium"><span className="font-bold text-slate-800">{inc.senderName}</span> requires assistance.</p>
-                    <div className="flex items-center gap-3 mt-2 text-[10px] font-bold text-slate-500 uppercase">
+                    <p className="text-temple-600 text-xs mt-1 font-medium"><span className="font-bold text-temple-800">{inc.senderName}</span> requires assistance.</p>
+                    <div className="flex items-center gap-3 mt-2 text-[10px] font-bold text-temple-600 uppercase">
                       {inc.location && <span className="flex items-center gap-1 text-indigo-600"><MapPin className="w-3 h-3" /> Location Tracked</span>}
-                      <span className="flex items-center gap-1 text-slate-400"><Clock className="w-3 h-3" /> {new Date(inc.timestamp).toLocaleTimeString(appLocale())}</span>
+                      <span className="flex items-center gap-1 text-temple-600"><Clock className="w-3 h-3" /> {new Date(inc.timestamp).toLocaleTimeString(appLocale())}</span>
                     </div>
                   </div>
                   {canResolve ? (
@@ -237,7 +238,7 @@ export const CrisisCommandCenter: React.FC = () => {
                       Acknowledge & Resolve
                     </button>
                   ) : (
-                    <span className="px-4 py-2 bg-slate-100 text-slate-500 font-bold text-[11px] rounded-xl whitespace-nowrap shrink-0">
+                    <span className="px-4 py-2 bg-temple-100 text-temple-600 font-bold text-[11px] rounded-xl whitespace-nowrap shrink-0">
                       Resolve restricted — Trustee / Manager only
                     </span>
                   )}
@@ -250,12 +251,12 @@ export const CrisisCommandCenter: React.FC = () => {
         {/* Left Column: Map & Chart */}
         <div className="xl:col-span-2 flex flex-col gap-6">
           {/* Live Map */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[400px]">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-white rounded-3xl border border-temple-200 shadow-sm overflow-hidden flex flex-col h-[400px]">
+            <div className="p-4 border-b border-temple-100 flex items-center justify-between bg-temple-50">
+              <h3 className="font-bold text-temple-800 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-indigo-600" /> Live Threat Map
               </h3>
-              <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
+              <div className="flex items-center gap-3 text-xs font-bold text-temple-600">
                 <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div> Active</span>
                 <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-600"></div> Resolved</span>
               </div>
@@ -285,7 +286,7 @@ export const CrisisCommandCenter: React.FC = () => {
                             {inc.situation?.replace('_', ' ')}
                           </strong>
                           <br />
-                          <span className="text-xs text-slate-500">{inc.senderName}</span>
+                          <span className="text-xs text-temple-600">{inc.senderName}</span>
                           <br />
                           <span className="text-xs font-medium">{inc.details || inc.text}</span>
                         </div>
@@ -298,8 +299,8 @@ export const CrisisCommandCenter: React.FC = () => {
           </div>
 
           {/* Incident Chart */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex-1">
-            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <div className="bg-white rounded-3xl border border-temple-200 shadow-sm p-6 flex-1">
+            <h3 className="font-bold text-temple-800 mb-6 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-indigo-600" /> Incident Frequency (Weekly)
             </h3>
             <div className="h-[200px] w-full">
@@ -307,20 +308,20 @@ export const CrisisCommandCenter: React.FC = () => {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#dc2626" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#dc2626" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={CHART.urgent} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={CHART.urgent} stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorRes" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                      <stop offset="5%" stopColor={CHART.positive} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={CHART.positive} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART.grid} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: CHART.axisTick }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: CHART.axisTick }} />
                   <RechartsTooltip />
-                  <Area type="monotone" dataKey="incidents" stroke="#dc2626" strokeWidth={3} fillOpacity={1} fill="url(#colorInc)" />
-                  <Area type="monotone" dataKey="resolved" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorRes)" />
+                  <Area type="monotone" dataKey="incidents" stroke={CHART.urgent} strokeWidth={3} fillOpacity={1} fill="url(#colorInc)" />
+                  <Area type="monotone" dataKey="resolved" stroke={CHART.positive} strokeWidth={3} fillOpacity={1} fill="url(#colorRes)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -328,17 +329,17 @@ export const CrisisCommandCenter: React.FC = () => {
         </div>
 
         {/* Right Column: Historical Logs */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[calc(100vh-250px)] min-h-[600px]">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-3xl border border-temple-200 shadow-sm flex flex-col h-[calc(100vh-250px)] min-h-[600px]">
+          <div className="p-6 border-b border-temple-100">
+            <h3 className="font-bold text-temple-800 flex items-center gap-2 mb-4">
               <Radio className="w-5 h-5 text-indigo-600" /> Master Incident Log
             </h3>
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <div className="flex bg-temple-100 p-1 rounded-xl">
               {['ALL', 'ACTIVE', 'RESOLVED'].map((f, idx) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f as any)}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${filter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${filter === f ? 'bg-white text-indigo-600 shadow-sm' : 'text-temple-600 hover:text-temple-700'}`}
                 >
                   {f}
                 </button>
@@ -348,7 +349,7 @@ export const CrisisCommandCenter: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {displayedIncidents.length === 0 ? (
-              <div className="text-center text-slate-400 p-8 text-sm font-medium">No incidents match this filter.</div>
+              <div className="text-center text-temple-600 p-8 text-sm font-medium">No incidents match this filter.</div>
             ) : (
               displayedIncidents.map((inc, idx) => {
                 const isResolved = inc.sosStatus === 'RESOLVED';
@@ -358,14 +359,14 @@ export const CrisisCommandCenter: React.FC = () => {
                       <span className={`text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded-md ${isResolved ? 'bg-emerald-100 text-emerald-700' : 'bg-red-200 text-red-800 animate-pulse'}`}>
                         {isResolved ? 'RESOLVED' : 'ACTIVE CRITICAL'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
+                      <span className="text-[10px] font-bold text-temple-600">
                         {new Date(inc.timestamp).toLocaleTimeString(appLocale())}
                       </span>
                     </div>
-                    <h4 className="text-sm font-bold text-slate-800">{inc.situation?.replace('_', ' ') || 'Emergency SOS'}</h4>
-                    <p className="text-xs font-medium text-slate-600 mt-1 line-clamp-2">{inc.details || inc.text}</p>
+                    <h4 className="text-sm font-bold text-temple-800">{inc.situation?.replace('_', ' ') || 'Emergency SOS'}</h4>
+                    <p className="text-xs font-medium text-temple-600 mt-1 line-clamp-2">{inc.details || inc.text}</p>
                     
-                    <div className="mt-3 pt-3 border-t border-slate-200/50 flex justify-between items-center text-[10px] font-bold text-slate-500">
+                    <div className="mt-3 pt-3 border-t border-temple-200/50 flex justify-between items-center text-[10px] font-bold text-temple-600">
                       <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {inc.senderName}</span>
                       {inc.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> Logged</span>}
                     </div>

@@ -117,13 +117,13 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Masthead — deep maroon, CSS mandala motif */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#3d0f1e] via-[#5c1a2a] to-[#7c2d12] p-6 sm:p-8 text-amber-50 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-maroon-deep via-maroon-wine to-maroon p-6 sm:p-8 text-amber-50 shadow-xl">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-16 w-72 h-72 rounded-full opacity-25"
           style={{
             background:
-              'repeating-conic-gradient(from 0deg, #f59e0b 0deg 6deg, transparent 6deg 18deg)',
+              'repeating-conic-gradient(from 0deg, var(--gold) 0deg 6deg, transparent 6deg 18deg)',
             maskImage: 'radial-gradient(circle, black 30%, transparent 68%)',
             WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 68%)',
           }}
@@ -131,7 +131,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         <div
           aria-hidden
           className="pointer-events-none absolute -left-10 -bottom-20 w-56 h-56 rounded-full opacity-20 blur-2xl"
-          style={{ background: 'radial-gradient(circle, #fbbf24 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, var(--gold-bright) 0%, transparent 70%)' }}
         />
         <div className="relative">
           <p className="font-serif text-3xl sm:text-4xl text-amber-200">गुरुकुलम्</p>
@@ -163,9 +163,9 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Dinacharya timeline */}
-        <section className="lg:col-span-2 rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
+        <section className="lg:col-span-2 rounded-3xl bg-sanctum-ivory border border-amber-200/60 p-5 sm:p-6 shadow-sm">
           <div className="flex items-baseline justify-between mb-1">
-            <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
+            <h3 className="font-serif text-xl font-bold text-maroon-wine">
               दिनचर्या <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.dailyRoutine')}</span>
             </h3>
             <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700">
@@ -180,7 +180,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
                 <li key={slot.label} className="relative pl-6 py-2">
                   <span
                     className={`absolute -left-[7px] top-3 w-3 h-3 rounded-full border-2 ${
-                      active ? 'bg-amber-500 border-amber-700 shadow-[0_0_8px_#f59e0b]' : 'bg-amber-100 border-amber-300'
+                      active ? 'bg-amber-500 border-amber-700 shadow-[0_0_8px_var(--gold)]' : 'bg-amber-100 border-amber-300'
                     }`}
                   />
                   <div
@@ -192,7 +192,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
                       <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
                         {slot.time}
                       </span>
-                      <span className="font-serif text-sm font-bold text-[#5c1a2a]">{slot.sanskrit}</span>
+                      <span className="font-serif text-sm font-bold text-maroon-wine">{slot.sanskrit}</span>
                       <span className="text-xs font-bold text-stone-700">{slot.label}</span>
                       {active && (
                         <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-200/70 px-2 py-0.5 rounded-full">
@@ -210,12 +210,12 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
         {/* Parampara + Parvas */}
         <section className="flex flex-col gap-6">
-          <div className="rounded-3xl bg-gradient-to-br from-[#3d0f1e] to-[#5c1a2a] p-5 text-amber-50 shadow-sm relative overflow-hidden">
+          <div className="rounded-3xl bg-gradient-to-br from-maroon-deep to-maroon-wine p-5 text-amber-50 shadow-sm relative overflow-hidden">
             <div
               aria-hidden
               className="pointer-events-none absolute -right-10 -bottom-10 w-40 h-40 rounded-full opacity-20"
               style={{
-                background: 'repeating-conic-gradient(from 0deg, #f59e0b 0deg 8deg, transparent 8deg 24deg)',
+                background: 'repeating-conic-gradient(from 0deg, var(--gold) 0deg 8deg, transparent 8deg 24deg)',
                 maskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
                 WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 70%)',
               }}
@@ -245,8 +245,8 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
             </p>
           </div>
 
-          <div className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 shadow-sm">
-            <h3 className="font-serif text-lg font-bold text-[#5c1a2a]">
+          <div className="rounded-3xl bg-sanctum-ivory border border-amber-200/60 p-5 shadow-sm">
+            <h3 className="font-serif text-lg font-bold text-maroon-wine">
               उत्सव-पर्व <span className="text-xs font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.upcomingObservances')}</span>
             </h3>
             <ul className="mt-3 space-y-2.5">
@@ -279,8 +279,8 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pathyakram progress */}
-        <section className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
-          <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
+        <section className="rounded-3xl bg-sanctum-ivory border border-amber-200/60 p-5 sm:p-6 shadow-sm">
+          <h3 className="font-serif text-xl font-bold text-maroon-wine">
             पाठ्यक्रम <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.curriculumByVarga')}</span>
           </h3>
           <p className="text-[11px] text-stone-500 mb-4 mt-0.5">{t('surfaces.gurukulHome.shishyaDistributionAcrossTheFourVarga')}</p>
@@ -299,7 +299,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
                   </div>
                   <div className="h-2.5 rounded-full bg-amber-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#7c2d12] via-amber-600 to-amber-400 transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-maroon via-amber-600 to-amber-400 transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -317,8 +317,8 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
         </section>
 
         {/* Kanthastha journeys — every shishya, unranked (E-11) */}
-        <section className="rounded-3xl bg-[#fffaf0] border border-amber-200/60 p-5 sm:p-6 shadow-sm">
-          <h3 className="font-serif text-xl font-bold text-[#5c1a2a]">
+        <section className="rounded-3xl bg-sanctum-ivory border border-amber-200/60 p-5 sm:p-6 shadow-sm">
+          <h3 className="font-serif text-xl font-bold text-maroon-wine">
             कण्ठस्थ <span className="text-sm font-sans font-semibold text-stone-500">{t('surfaces.gurukulHome.eachShishyaSJourney')}</span>
           </h3>
           <p className="text-[11px] text-stone-500 mb-4 mt-0.5">{t('surfaces.gurukulHome.shlokaRecitationTheHeartOfOral')}</p>
@@ -339,7 +339,7 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
                     <p className="text-[10px] text-stone-500 font-mono">{s.rollNo} · {s.courseLevel}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-black text-[#5c1a2a]">{s.shlokaRecitationScore}<span className="text-[10px] font-bold text-stone-400">/100</span></p>
+                    <p className="text-sm font-black text-maroon-wine">{s.shlokaRecitationScore}<span className="text-[10px] font-bold text-stone-600">/100</span></p>
                     <p className="text-[9px] uppercase tracking-widest text-amber-700 font-bold flex items-center gap-1 justify-end">
                       <Sparkles className="w-2.5 h-2.5" /> Kanthastha
                     </p>
@@ -359,10 +359,10 @@ export const GurukulHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
       </div>
 
       {/* Dawn invocation strip */}
-      <div className="rounded-3xl border border-amber-200/60 bg-gradient-to-r from-amber-50 via-[#fffaf0] to-amber-50 px-6 py-4 flex items-center gap-4 shadow-sm">
+      <div className="rounded-3xl border border-amber-200/60 bg-gradient-to-r from-amber-50 via-sanctum-ivory to-amber-50 px-6 py-4 flex items-center gap-4 shadow-sm">
         <span className="text-2xl" aria-hidden>🪔</span>
         <p className="text-xs text-stone-600 leading-relaxed">
-          <span className="font-serif font-bold text-[#5c1a2a]">गुरुकुलवासः — </span>
+          <span className="font-serif font-bold text-maroon-wine">गुरुकुलवासः — </span>
           the shishya rises at brahma-muhurta, serves the Guru and the gomata, and carries the Veda on the tongue.
           This home mirrors that day: <strong>Dinacharya</strong> (routine), <strong>Pathyakram</strong> (curriculum),{' '}
           <strong>Kanthastha</strong>{' '}{t('surfaces.gurukulHome.memorizationAnd')}{' '}<strong>Parampara</strong> (lineage).

@@ -22,6 +22,7 @@ import { festivalConcluded } from '../../lib/festivalMemory';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 import { useLanguage } from '../../context/LanguageContext';
 import { FestivalWarProvider, useFestivalWar, useWarPlan, useFestivalCloud } from './festivalWarStore';
+import { CHART } from '../../lib/designTokens';
 import { RosterCard } from './RosterCard';
 import { BudgetWarCard } from './BudgetWarCard';
 import { ChecklistOps } from './ChecklistOps';
@@ -31,11 +32,13 @@ import { PublishPanel } from './PublishPanel';
 const ReadinessRing: React.FC<{ score: number }> = ({ score }) => {
   const r = 34;
   const c = 2 * Math.PI * r;
-  const tone = score >= 75 ? '#047857' : score >= 40 ? '#b45309' : '#b91c1c';
+  /* E1: ring tones are the CHART tokens (peacock = ready, amber-700
+   * value = preparing, kumkum = attention) — no private hex. */
+  const tone = score >= 75 ? CHART.positive : score >= 40 ? CHART.warn : CHART.urgent;
   return (
     <div className="relative w-24 h-24 shrink-0" role="img" aria-label={`Readiness ${score} percent`}>
       <svg viewBox="0 0 84 84" className="w-24 h-24 -rotate-90">
-        <circle cx="42" cy="42" r={r} fill="none" stroke="#f5f0e8" strokeWidth="10" />
+        <circle cx="42" cy="42" r={r} fill="none" stroke={CHART.track} strokeWidth="10" />
         <circle cx="42" cy="42" r={r} fill="none" stroke={tone} strokeWidth="10"
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * score) / 100} />
       </svg>
@@ -104,7 +107,7 @@ const WarRoomInner: React.FC = () => {
                     : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
                 }`}>
                 <span className="block font-bold">{f.name.en}</span>
-                <span className={`block text-[11px] font-semibold ${active ? 'text-orange-200' : 'text-stone-400'}`}>{sub}</span>
+                <span className={`block text-[11px] font-semibold ${active ? 'text-orange-200' : 'text-stone-600'}`}>{sub}</span>
               </button>
             );
           })}
@@ -112,7 +115,7 @@ const WarRoomInner: React.FC = () => {
       )}
       {/* ── Header: countdown + readiness ─────────────────────────── */}
       <div className="rounded-2xl bg-gradient-to-br from-orange-900 via-red-900 to-stone-900 text-orange-50 p-5 shadow-lg overflow-hidden relative">
-        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 25% 15%, #fbbf24 0, transparent 45%), radial-gradient(circle at 80% 85%, #f97316 0, transparent 40%)' }} />
+        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 25% 15%, var(--gold-bright) 0, transparent 45%), radial-gradient(circle at 80% 85%, var(--saffron-500) 0, transparent 40%)' }} />
         <div className="relative flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-bold uppercase tracking-widest text-orange-300/80">
@@ -201,7 +204,7 @@ const WarRoomInner: React.FC = () => {
                   <span className="text-[10px] text-stone-500 font-semibold">{v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}</span>
                   <div className="w-full rounded-t-md bg-gradient-to-t from-orange-600 to-amber-400"
                     style={{ height: `${Math.max(6, (v / maxDay) * 56)}px` }} />
-                  <span className="text-[10px] text-stone-400"><T en={`Day ${i + 1}`} bn={`দিন ${i + 1}`} hi={`दिन ${i + 1}`} /></span>
+                  <span className="text-[10px] text-stone-600"><T en={`Day ${i + 1}`} bn={`দিন ${i + 1}`} hi={`दिन ${i + 1}`} /></span>
                 </div>
               ))}
             </div>
@@ -227,7 +230,7 @@ const WarRoomInner: React.FC = () => {
             </h3>
             <div className="text-right">
               <span className="text-lg font-black text-emerald-700">{cloud.arrivedHeadcount.toLocaleString('en-IN')}</span>
-              <span className="text-stone-400 font-bold"> / {cloud.rsvpHeadcount.toLocaleString('en-IN')} </span>
+              <span className="text-stone-600 font-bold"> / {cloud.rsvpHeadcount.toLocaleString('en-IN')} </span>
               <span className="text-[11px] text-stone-500">
                 <T en="arrived / expected" bn="এসেছেন / প্রত্যাশিত" hi="आए / अपेक्षित" />
               </span>
@@ -254,9 +257,9 @@ const WarRoomInner: React.FC = () => {
                     <li key={r.id} className="py-2 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <span className="text-sm font-bold text-stone-800">{r.name}</span>
-                        <span className="text-xs text-stone-400"> · {r.headcount}</span>
+                        <span className="text-xs text-stone-600"> · {r.headcount}</span>
                         {r.days && r.days.length > 0 && (
-                          <span className="text-[11px] text-stone-400"> · {r.days.map((d) => d.slice(5)).join(', ')}</span>
+                          <span className="text-[11px] text-stone-600"> · {r.days.map((d) => d.slice(5)).join(', ')}</span>
                         )}
                       </div>
                       <button
@@ -368,11 +371,11 @@ const WarRoomInner: React.FC = () => {
                     onChange={(e) => patch({ prasad: p.prasad.map((it) => it.id === row.id ? { ...it, unit: e.target.value as PrasadUnit } : it) })}>
                     <option value="g">g</option><option value="ml">ml</option><option value="pc">pc</option>
                   </select>
-                  <span className="text-[11px] text-stone-400 whitespace-nowrap"><T en="/ person" bn="/ জন" hi="/ व्यक्ति" /></span>
+                  <span className="text-[11px] text-stone-600 whitespace-nowrap"><T en="/ person" bn="/ জন" hi="/ व्यक्ति" /></span>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-base font-black text-orange-800">{row.display}</div>
-                  <div className="text-[10px] text-stone-400"><T en="to order" bn="অর্ডার" hi="ऑर्डर" /></div>
+                  <div className="text-[10px] text-stone-600"><T en="to order" bn="অর্ডার" hi="ऑर्डर" /></div>
                 </div>
               </div>
             </div>

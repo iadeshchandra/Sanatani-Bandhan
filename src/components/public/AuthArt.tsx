@@ -88,22 +88,22 @@ const Mandala: React.FC = () => {
     <svg viewBox="0 0 600 600" className="w-full h-full" aria-hidden="true" role="presentation">
       <defs>
         <radialGradient id="authMandalaGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffb03a" stopOpacity="0.28" />
-          <stop offset="60%" stopColor="#ff8e00" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#ff8e00" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--saffron-400)" stopOpacity="0.28" />
+          <stop offset="60%" stopColor="var(--saffron-500)" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="var(--saffron-500)" stopOpacity="0" />
         </radialGradient>
       </defs>
       <circle cx={cx} cy={cy} r={292} fill="url(#authMandalaGlow)" />
       {/* Counter-rotating outer geometry */}
       <g className="auth-spin-rev">
         {rings.map((r) => (
-          <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="#FFD58A" strokeOpacity="0.30" strokeWidth="1" />
+          <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="var(--brass-200)" strokeOpacity="0.30" strokeWidth="1" />
         ))}
         {petals24.map((deg) => (
           <ellipse
             key={'p24' + deg}
             cx={cx} cy={cy - 210} rx={17} ry={58}
-            fill="none" stroke="#FFD58A" strokeOpacity="0.32" strokeWidth="1"
+            fill="none" stroke="var(--brass-200)" strokeOpacity="0.32" strokeWidth="1"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
@@ -114,7 +114,7 @@ const Mandala: React.FC = () => {
           <ellipse
             key={'p16' + deg}
             cx={cx} cy={cy - 132} rx={26} ry={64}
-            fill="none" stroke="#FFCA6B" strokeOpacity="0.42" strokeWidth="1.1"
+            fill="none" stroke="var(--saffron-300)" strokeOpacity="0.42" strokeWidth="1.1"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
@@ -122,15 +122,15 @@ const Mandala: React.FC = () => {
           <line
             key={'t' + deg}
             x1={cx} y1={cy - 292} x2={cx} y2={cy - 280}
-            stroke="#FFE9B8" strokeOpacity="0.4" strokeWidth="1.4"
+            stroke="var(--saffron-100)" strokeOpacity="0.4" strokeWidth="1.4"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
       </g>
       {/* Still heart */}
-      <circle cx={cx} cy={cy} r={52} fill="none" stroke="#FFD58A" strokeOpacity="0.55" strokeWidth="1.2" />
-      <circle cx={cx} cy={cy} r={40} fill="none" stroke="#FFD58A" strokeOpacity="0.3" strokeWidth="1" />
-      <text x={cx} y={cy + 26} textAnchor="middle" fontSize="64" fill="#FFE9B8" fillOpacity="0.9" fontFamily="serif">ॐ</text>
+      <circle cx={cx} cy={cy} r={52} fill="none" stroke="var(--brass-200)" strokeOpacity="0.55" strokeWidth="1.2" />
+      <circle cx={cx} cy={cy} r={40} fill="none" stroke="var(--brass-200)" strokeOpacity="0.3" strokeWidth="1" />
+      <text x={cx} y={cy + 26} textAnchor="middle" fontSize="64" fill="var(--saffron-100)" fillOpacity="0.9" fontFamily="serif">ॐ</text>
     </svg>
   );
 };

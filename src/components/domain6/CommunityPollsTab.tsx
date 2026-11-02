@@ -573,7 +573,7 @@ export const CommunityPollsTab: React.FC = () => {
     
     if (timeLeft <= 0) return (
       <div className="mt-4 w-full">
-         <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">Voting Closed</span>
+         <span className="text-[10px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">Voting Closed</span>
       </div>
     );
 
@@ -589,15 +589,15 @@ export const CommunityPollsTab: React.FC = () => {
     return (
       <div className="mt-4 mb-2 w-full flex flex-col gap-1.5">
         <div className="flex justify-between items-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
             <Timer size={12} className={isUrgent ? 'text-saffron-500 animate-pulse' : 'text-blue-500'} />
             Poll Deadline
           </span>
-          <span className={`text-[10px] font-black tracking-wide ${isUrgent ? 'text-saffron-500' : 'text-gray-700'}`}>
+          <span className={`text-[10px] font-black tracking-wide ${isUrgent ? 'text-saffron-500' : 'text-stone-700'}`}>
             {timeText}
           </span>
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner border border-gray-200/50">
+        <div className="w-full bg-stone-100 rounded-full h-2 overflow-hidden shadow-inner border border-stone-200/50">
           <div 
             className={`h-full rounded-full transition-all duration-1000 ${isUrgent ? 'bg-saffron-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' : 'bg-blue-500'}`}
             style={{ width: `${percentLeft}%` }}
@@ -653,7 +653,7 @@ export const CommunityPollsTab: React.FC = () => {
   if (loading) return <div className="flex justify-center p-20 text-saffron-500"><Loader2 size={40} className="animate-spin" /></div>;
 
   return (
-    <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col h-full w-full relative space-y-6 sm:space-y-8 animate-in fade-in ring-1 ring-black/5 min-h-[90vh]">
+    <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-stone-100 flex flex-col h-full w-full relative space-y-6 sm:space-y-8 animate-in fade-in ring-1 ring-black/5 min-h-[90vh]">
       {!isOnline && (
         <div className="bg-red-600 text-white p-3 rounded-2xl flex items-center justify-center gap-3 shadow-lg animate-pulse">
           <WifiOff size={18} />
@@ -663,7 +663,7 @@ export const CommunityPollsTab: React.FC = () => {
 
       {/* GLOBAL CUSTOM TOAST ENGINE */}
       {toast && createPortal(
-        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[10000] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 ${toast.type === 'error' ? 'bg-red-900' : 'bg-gray-900'} text-white`}>
+        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-[10000] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 ${toast.type === 'error' ? 'bg-red-900' : 'bg-stone-900'} text-white`}>
            <div className={`p-2 rounded-full shrink-0 ${toast.type === 'offline' ? 'bg-saffron-500/20 text-saffron-500' : toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
              {toast.type === 'offline' ? <WifiOff size={20}/> : toast.type === 'error' ? <AlertTriangle size={20}/> : <CheckCircle2 size={20}/>}
            </div>
@@ -679,15 +679,15 @@ export const CommunityPollsTab: React.FC = () => {
 
       {/* CONFIRMATION DIALOG PORTAL */}
       {confirmDialog && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 text-center border-t-4 border-saffron-500">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner ${confirmDialog.isDanger ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
               {confirmDialog.isDanger ? <AlertTriangle size={32}/> : <CheckCircle2 size={32}/>}
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{confirmDialog.title}</h3>
-            <p className="text-sm font-bold text-gray-500 mb-8 leading-relaxed whitespace-pre-wrap">{confirmDialog.message}</p>
+            <h3 className="text-xl font-black text-stone-900 mb-2 tracking-tight">{confirmDialog.title}</h3>
+            <p className="text-sm font-bold text-stone-500 mb-8 leading-relaxed whitespace-pre-wrap">{confirmDialog.message}</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
+              <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
               <button onClick={confirmDialog.onConfirm} className={`flex-1 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 ${confirmDialog.isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}>
                 {confirmDialog.confirmText}
               </button>
@@ -698,12 +698,12 @@ export const CommunityPollsTab: React.FC = () => {
       )}
 
       {/* HEADER CONTROLS */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-gray-100 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-stone-100 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 tracking-tight">
+          <h2 className="text-2xl font-black text-stone-900 flex items-center gap-2 tracking-tight">
             <BarChart3 className="text-saffron-500" size={26} /> {t('nav.polls') || 'Community Voting'}
           </h2>
-          <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-widest">
+          <p className="text-xs text-stone-500 font-bold mt-1 uppercase tracking-widest">
             One member, one vote — every ballot recorded, results counted openly.
           </p>
         </div>
@@ -718,16 +718,16 @@ export const CommunityPollsTab: React.FC = () => {
              </button>
           )}
 
-          <div className="flex w-full sm:w-auto bg-gray-100 p-1.5 rounded-2xl shadow-inner border border-gray-200">
+          <div className="flex w-full sm:w-auto bg-stone-100 p-1.5 rounded-2xl shadow-inner border border-stone-200">
             <button 
               onClick={() => setActiveTab('ACTIVE')} 
-              className={`flex-1 sm:w-auto px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'ACTIVE' ? 'bg-white text-saffron-500 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex-1 sm:w-auto px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'ACTIVE' ? 'bg-white text-saffron-500 shadow-sm border border-stone-100' : 'text-stone-500 hover:text-stone-800'}`}
             >
               <PieChart size={14}/> Active ({activePolls.length})
             </button>
             <button 
               onClick={() => setActiveTab('CONCLUDED')} 
-              className={`flex-1 sm:w-auto px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'CONCLUDED' ? 'bg-white text-gray-900 shadow-sm border border-gray-100' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex-1 sm:w-auto px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'CONCLUDED' ? 'bg-white text-stone-900 shadow-sm border border-stone-100' : 'text-stone-500 hover:text-stone-800'}`}
             >
               <Flag size={14}/> Concluded ({concludedPolls.length})
             </button>
@@ -736,7 +736,7 @@ export const CommunityPollsTab: React.FC = () => {
           {isManagerOrAdmin && (
             <button 
               onClick={() => setShowCreateModal(true)} 
-              className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-5 py-3.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 shrink-0"
+              className="w-full sm:w-auto bg-stone-900 hover:bg-black text-white px-5 py-3.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 shrink-0"
             >
               <Plus size={16}/> Launch Poll
             </button>
@@ -746,13 +746,13 @@ export const CommunityPollsTab: React.FC = () => {
       
       {/* PANCHAYAT AI (DECISION INSIGHTS FOR ADMINS) */}
       {isManagerOrAdmin && panchayatInsights && activeTab === 'ACTIVE' && activePolls.length > 0 && (
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-4 sm:p-5 rounded-2xl shadow-inner flex flex-col sm:flex-row sm:items-center gap-4 animate-in slide-in-from-top-2">
+        <div className="bg-purple-50 border border-purple-200 p-4 sm:p-5 rounded-2xl shadow-inner flex flex-col sm:flex-row sm:items-center gap-4 animate-in slide-in-from-top-2">
           <div className="bg-purple-100 text-purple-600 p-3 rounded-xl shrink-0 self-start sm:self-auto">
             <BrainCircuit size={24} />
           </div>
           <div>
             <h3 className="text-xs font-black text-purple-900 uppercase tracking-widest mb-1">Panchayat AI Insight</h3>
-            <p className="text-sm font-bold text-gray-700 leading-snug">
+            <p className="text-sm font-bold text-stone-700 leading-snug">
               Active polls currently have a <strong>{panchayatInsights.activeTurnoutRate}% voter turnout</strong> rate. 
               {panchayatInsights.activeTurnoutRate < 50 ? " Consider sending a Broadcast reminder to increase engagement." : " Excellent community participation!"}
             </p>
@@ -761,13 +761,13 @@ export const CommunityPollsTab: React.FC = () => {
       )}
 
       {isManagerOrAdmin && panchayatInsights && activeTab === 'CONCLUDED' && concludedPolls.length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 p-4 sm:p-5 rounded-2xl shadow-inner flex flex-col sm:flex-row sm:items-center gap-4 animate-in slide-in-from-top-2">
+        <div className="bg-blue-50 border border-blue-200 p-4 sm:p-5 rounded-2xl shadow-inner flex flex-col sm:flex-row sm:items-center gap-4 animate-in slide-in-from-top-2">
           <div className="bg-blue-100 text-blue-600 p-3 rounded-xl shrink-0 self-start sm:self-auto">
             <BarChart2 size={24} />
           </div>
           <div>
             <h3 className="text-xs font-black text-blue-900 uppercase tracking-widest mb-1">Consensus Analytics</h3>
-            <p className="text-sm font-bold text-gray-700 leading-snug">
+            <p className="text-sm font-bold text-stone-700 leading-snug">
               {panchayatInsights.marginMessage}
             </p>
           </div>
@@ -776,29 +776,29 @@ export const CommunityPollsTab: React.FC = () => {
       
       {/* UX: QUICK GUIDE BANNER */}
       {showGuide && isManagerOrAdmin && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-5 sm:p-6 rounded-2xl shadow-inner animate-in slide-in-from-top-2 relative">
+        <div className="bg-blue-50 border border-blue-200 p-5 sm:p-6 rounded-2xl shadow-inner animate-in slide-in-from-top-2 relative">
           <button onClick={() => setShowGuide(false)} className="absolute top-4 right-4 text-blue-400 hover:text-blue-700 transition-colors"><X size={18}/></button>
           <h3 className="text-sm font-black text-blue-900 flex items-center gap-2 mb-4 uppercase tracking-widest"><Lightbulb size={18} className="text-blue-500"/> Voting System Guide</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><Lock size={16}/></div>
               <div>
-                <p className="text-xs font-black text-gray-900 mb-1">1. One Vote Each & Privacy</p>
-                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Each ballot is stored as a private vote under the voter's own account; the poll itself keeps only counts, so community ballots stay secret. Committee polls are named votes — committee members can open the ballot audit, and every opening is recorded in the workspace history.</p>
+                <p className="text-xs font-black text-stone-900 mb-1">1. One Vote Each & Privacy</p>
+                <p className="text-[10px] font-bold text-stone-600 leading-relaxed">Each ballot is stored as a private vote under the voter's own account; the poll itself keeps only counts, so community ballots stay secret. Committee polls are named votes — committee members can open the ballot audit, and every opening is recorded in the workspace history.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><BellRing size={16}/></div>
               <div>
-                <p className="text-xs font-black text-gray-900 mb-1">2. Final Reminders</p>
-                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Before a poll ends, click 'Remind' to publish a community announcement. Because ballots are private, the reminder reaches the whole community — it cannot target only those who have not voted.</p>
+                <p className="text-xs font-black text-stone-900 mb-1">2. Final Reminders</p>
+                <p className="text-[10px] font-bold text-stone-600 leading-relaxed">Before a poll ends, click 'Remind' to publish a community announcement. Because ballots are private, the reminder reaches the whole community — it cannot target only those who have not voted.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><FileText size={16}/></div>
               <div>
-                <p className="text-xs font-black text-gray-900 mb-1">3. Conclude & Report</p>
-                <p className="text-[10px] font-bold text-gray-600 leading-relaxed">Add official 'Admin Notes' upon conclusion explaining the decision. Members can download the official PDF report.</p>
+                <p className="text-xs font-black text-stone-900 mb-1">3. Conclude & Report</p>
+                <p className="text-[10px] font-bold text-stone-600 leading-relaxed">Add official 'Admin Notes' upon conclusion explaining the decision. Members can download the official PDF report.</p>
               </div>
             </div>
           </div>
@@ -827,12 +827,12 @@ export const CommunityPollsTab: React.FC = () => {
               }
 
               return (
-                <div key={poll.id} className={`bg-white rounded-3xl p-6 sm:p-8 shadow-sm border transition-all duration-300 ring-1 ring-black/5 flex flex-col justify-between group ${poll.status === 'ACTIVE' ? 'border-saffron-200 hover:shadow-md hover:border-saffron-300' : 'border-gray-200 opacity-90'}`}>
+                <div key={poll.id} className={`bg-white rounded-3xl p-6 sm:p-8 shadow-sm border transition-all duration-300 ring-1 ring-black/5 flex flex-col justify-between group ${poll.status === 'ACTIVE' ? 'border-saffron-200 hover:shadow-md hover:border-saffron-300' : 'border-stone-200 opacity-90'}`}>
 
                    <div>
                      <div className="flex justify-between items-start mb-4">
                        <div className="flex flex-wrap items-center gap-2">
-                         <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm ${poll.targetAudience === 'MANAGERS' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                         <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm ${poll.targetAudience === 'MANAGERS' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-stone-50 text-stone-600 border-stone-200'}`}>
                            {poll.targetAudience === 'MANAGERS' ? <ShieldCheck size={12}/> : <Users size={12}/>} 
                            {poll.targetAudience === 'MANAGERS' ? 'Committee Only' : 'Public Poll'}
                          </span>
@@ -841,7 +841,7 @@ export const CommunityPollsTab: React.FC = () => {
                              <Timer size={12}/> {getCountdown(poll.expiresAt)}
                            </span>
                          ) : (
-                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-gray-800 text-white border-gray-900 flex items-center gap-1.5 shadow-sm">
+                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-stone-800 text-white border-stone-900 flex items-center gap-1.5 shadow-sm">
                              <Lock size={12}/> Concluded
                            </span>
                          )}
@@ -849,9 +849,9 @@ export const CommunityPollsTab: React.FC = () => {
                      </div>
 
                      {poll.status === 'ACTIVE' && renderTimerProgress(poll)}
-                     <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-3 leading-tight tracking-tight">{poll.title}</h3>
+                     <h3 className="text-xl sm:text-2xl font-black text-stone-900 mb-3 leading-tight tracking-tight">{poll.title}</h3>
                      {poll.description && (
-                       <p className="text-xs font-bold text-gray-500 mb-6 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner">
+                       <p className="text-xs font-bold text-stone-500 mb-6 leading-relaxed bg-stone-50 p-4 rounded-xl border border-stone-100 shadow-inner">
                          {poll.description}
                        </p>
                      )}
@@ -862,7 +862,7 @@ export const CommunityPollsTab: React.FC = () => {
                      {kind === 'text' ? (
                        poll.status === 'ACTIVE' && !iVoted ? (
                          <div className="space-y-3">
-                           <p className="text-[11px] font-bold text-gray-500 leading-relaxed flex items-start gap-1.5">
+                           <p className="text-[11px] font-bold text-stone-500 leading-relaxed flex items-start gap-1.5">
                              <MessageSquare size={13} className="shrink-0 mt-0.5 text-saffron-500" />
                              {t('surfaces.events.textNote')}
                            </p>
@@ -872,27 +872,27 @@ export const CommunityPollsTab: React.FC = () => {
                              value={textDraft[poll.id] || ''}
                              onChange={(e) => setTextDraft(prev => ({ ...prev, [poll.id]: e.target.value }))}
                              placeholder={t('surfaces.events.textPlaceholder')}
-                             className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all resize-none shadow-sm"
+                             className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all resize-none shadow-sm"
                            />
                            <button
                              onClick={() => handleVoteText(poll.id)}
                              disabled={!(textDraft[poll.id] || '').trim()}
-                             className="w-full bg-gray-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
+                             className="w-full bg-stone-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
                            >
                              {t('surfaces.events.castVote')}
                            </button>
                          </div>
                        ) : (
-                         <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-inner">
-                           <p className="text-sm font-black text-gray-800">
+                         <div className="bg-stone-50 border border-stone-100 rounded-xl p-4 shadow-inner">
+                           <p className="text-sm font-black text-stone-800">
                              {totalVotes} {totalVotes === 1 ? 'response' : 'responses'} recorded
                            </p>
                            {myBallot?.text && (
-                             <p className="text-xs font-bold text-gray-500 mt-1.5">
+                             <p className="text-xs font-bold text-stone-500 mt-1.5">
                                {t('surfaces.events.responsesTitle')}: “{myBallot.text}”
                              </p>
                            )}
-                           <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest">
+                           <p className="text-[10px] font-bold text-stone-600 mt-1.5 uppercase tracking-widest">
                              {t('surfaces.events.textNote')}
                            </p>
                          </div>
@@ -900,7 +900,7 @@ export const CommunityPollsTab: React.FC = () => {
                      ) : poll.status === 'ACTIVE' && !iVoted ? (
                        kind === 'multi' ? (
                          <div className="space-y-3">
-                           <p className="text-[11px] font-bold text-gray-500">{t('surfaces.events.multiHint')}</p>
+                           <p className="text-[11px] font-bold text-stone-500">{t('surfaces.events.multiHint')}</p>
                            {options.map((opt) => {
                              const picked = (multiPick[poll.id] || []).includes(opt.id);
                              return (
@@ -908,10 +908,10 @@ export const CommunityPollsTab: React.FC = () => {
                                  key={opt.id}
                                  onClick={() => toggleMultiPick(poll.id, opt.id)}
                                  aria-pressed={picked}
-                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center ${picked ? 'border-saffron-500 bg-saffron-50/60' : 'border-gray-100 hover:border-saffron-300'}`}
+                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center ${picked ? 'border-saffron-500 bg-saffron-50/60' : 'border-stone-100 hover:border-saffron-300'}`}
                                >
-                                 <span className="text-sm font-black text-gray-700">{opt.text}</span>
-                                 <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${picked ? 'bg-saffron-500 border-saffron-500 text-white' : 'border-gray-300'}`}>
+                                 <span className="text-sm font-black text-stone-700">{opt.text}</span>
+                                 <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${picked ? 'bg-saffron-500 border-saffron-500 text-white' : 'border-stone-300'}`}>
                                    {picked && <CheckCircle2 size={13} />}
                                  </span>
                                </button>
@@ -920,7 +920,7 @@ export const CommunityPollsTab: React.FC = () => {
                            <button
                              onClick={() => handleVoteMulti(poll.id)}
                              disabled={(multiPick[poll.id] || []).length === 0}
-                             className="w-full bg-gray-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
+                             className="w-full bg-stone-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md"
                            >
                              {t('surfaces.events.castVote')}
                            </button>
@@ -930,10 +930,10 @@ export const CommunityPollsTab: React.FC = () => {
                            <button
                              key={opt.id}
                              onClick={() => handleVote(poll.id, opt.id)}
-                             className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-saffron-500 hover:bg-saffron-50/50 hover:shadow-sm transition-all flex justify-between items-center group/btn"
+                             className="w-full text-left p-4 rounded-xl border-2 border-stone-100 hover:border-saffron-500 hover:bg-saffron-50/50 hover:shadow-sm transition-all flex justify-between items-center group/btn"
                            >
-                             <span className="text-sm font-black text-gray-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
-                             <div className="w-5 h-5 rounded-full border-2 border-gray-300 group-hover/btn:border-saffron-500 transition-colors"></div>
+                             <span className="text-sm font-black text-stone-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
+                             <div className="w-5 h-5 rounded-full border-2 border-stone-300 group-hover/btn:border-saffron-500 transition-colors"></div>
                            </button>
                          ))
                        )
@@ -943,14 +943,14 @@ export const CommunityPollsTab: React.FC = () => {
                          const isMyChoice = kind === 'multi' ? (myBallot?.optionIds || []).includes(opt.id) : myVote === opt.id;
                          const isWinner = winnerId === opt.id;
                          return (
-                           <div key={opt.id} className="relative w-full bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                           <div key={opt.id} className="relative w-full bg-stone-50 border border-stone-100 rounded-xl overflow-hidden shadow-sm">
                              <div
-                               className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : isMyChoice ? 'bg-saffron-200 border-r-4 border-saffron-500' : 'bg-gray-200 border-r-4 border-gray-300'}`}
+                               className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : isMyChoice ? 'bg-saffron-200 border-r-4 border-saffron-500' : 'bg-stone-200 border-r-4 border-stone-300'}`}
                                style={{ width: `${percentage}%` }}
                              ></div>
                              <div className="relative z-10 p-4 flex justify-between items-center">
                                <div className="flex items-center gap-2">
-                                 <span className={`text-sm font-black ${isWinner ? 'text-green-900' : isMyChoice ? 'text-saffron-900' : 'text-gray-800'}`}>
+                                 <span className={`text-sm font-black ${isWinner ? 'text-green-900' : isMyChoice ? 'text-saffron-900' : 'text-stone-800'}`}>
                                    {opt.text}
                                  </span>
                                  {isMyChoice && (
@@ -961,17 +961,17 @@ export const CommunityPollsTab: React.FC = () => {
                                  )}
                                </div>
                                <div className="text-right">
-                                 <span className={`text-sm font-black ${isWinner ? 'text-green-800' : isMyChoice ? 'text-saffron-800' : 'text-gray-700'}`}>{percentage}%</span>
-                                 <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">{opt.votes} Votes</p>
+                                 <span className={`text-sm font-black ${isWinner ? 'text-green-800' : isMyChoice ? 'text-saffron-800' : 'text-stone-700'}`}>{percentage}%</span>
+                                 <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest mt-0.5">{opt.votes} Votes</p>
                                </div>
                              </div>
                            </div>
                          );
                        })
                      ) : (
-                       <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center shadow-inner">
-                         <Lock size={16} className="mx-auto text-gray-400 mb-1.5" />
-                         <p className="text-xs font-bold text-gray-500">
+                       <div className="bg-stone-50 border border-stone-100 rounded-xl p-4 text-center shadow-inner">
+                         <Lock size={16} className="mx-auto text-stone-600 mb-1.5" />
+                         <p className="text-xs font-bold text-stone-500">
                            {visRule === 'committee'
                              ? t('surfaces.events.resultsHiddenCommittee')
                              : visRule === 'afterClose'
@@ -999,14 +999,14 @@ export const CommunityPollsTab: React.FC = () => {
                      </div>
                    )}
 
-                   <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-center sm:justify-start gap-1.5 w-full sm:w-auto bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                   <div className="mt-6 pt-5 border-t border-stone-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                     <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest flex items-center justify-center sm:justify-start gap-1.5 w-full sm:w-auto bg-stone-50 px-3 py-1.5 rounded-lg border border-stone-100">
                        <CheckCircle2 size={14} className="text-green-500"/> {totalVotes} Total Votes
                      </p>
 
                      <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
                        {poll.status === 'CONCLUDED' && (
-                         <button onClick={() => handleDownloadPDF(poll)} className="flex-1 sm:flex-none bg-white hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200 text-gray-700 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
+                         <button onClick={() => handleDownloadPDF(poll)} className="flex-1 sm:flex-none bg-white hover:bg-red-50 hover:text-red-600 border border-stone-200 hover:border-red-200 text-stone-700 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
                            <FileText size={14}/> Report
                          </button>
                        )}
@@ -1018,7 +1018,7 @@ export const CommunityPollsTab: React.FC = () => {
                            </button>
 
                            {poll.status === 'ACTIVE' && pollIsEditable(poll, Date.now()) && (
-                             <button onClick={() => openEditPoll(poll)} className="flex-1 sm:flex-none bg-white hover:bg-gray-800 hover:text-white text-gray-700 border border-gray-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Edit — allowed only before the first vote">
+                             <button onClick={() => openEditPoll(poll)} className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Edit — allowed only before the first vote">
                                <FileText size={14}/> {t('surfaces.events.editPoll')}
                              </button>
                            )}
@@ -1027,7 +1027,7 @@ export const CommunityPollsTab: React.FC = () => {
                                <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind Unvoted Members">
                                  <BellRing size={14}/> Remind
                                </button>
-                               <button onClick={() => { setConcludeData({ id: poll.id, title: poll.title, note: '' }); setShowConcludeModal(true); }} className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-800 hover:text-white text-gray-600 border border-gray-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
+                               <button onClick={() => { setConcludeData({ id: poll.id, title: poll.title, note: '' }); setShowConcludeModal(true); }} className="flex-1 sm:flex-none bg-stone-100 hover:bg-stone-800 hover:text-white text-stone-600 border border-stone-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
                                  <Lock size={14}/> Conclude
                                </button>
                              </>
@@ -1038,7 +1038,7 @@ export const CommunityPollsTab: React.FC = () => {
                              </button>
                            )}
                            {poll.status === 'ACTIVE' && pollTotalVotes(poll) > 0 && (
-                             <span className="w-full text-center text-[9px] font-bold text-gray-400 uppercase tracking-widest pt-1">
+                             <span className="w-full text-center text-[9px] font-bold text-stone-600 uppercase tracking-widest pt-1">
                                {t('surfaces.events.editLockedNote')}
                              </span>
                            )}
@@ -1051,10 +1051,10 @@ export const CommunityPollsTab: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="text-center p-16 text-gray-400 font-bold bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm flex flex-col items-center justify-center h-64">
+          <div className="text-center p-16 text-stone-600 font-bold bg-white rounded-3xl border border-dashed border-stone-300 shadow-sm flex flex-col items-center justify-center h-64">
             <BarChart2 size={48} className="mx-auto mb-4 opacity-30 text-saffron-500" />
-            <p className="text-lg sm:text-xl font-black text-gray-900 mb-2">No {activeTab.toLowerCase()} polls available.</p>
-            <p className="text-[10px] sm:text-xs uppercase tracking-widest text-gray-500">
+            <p className="text-lg sm:text-xl font-black text-stone-900 mb-2">No {activeTab.toLowerCase()} polls available.</p>
+            <p className="text-[10px] sm:text-xs uppercase tracking-widest text-stone-500">
               {isManagerOrAdmin ? "Click 'Launch Poll' to start a community vote." : "Wait for the committee to announce a new vote."}
             </p>
           </div>
@@ -1062,56 +1062,56 @@ export const CommunityPollsTab: React.FC = () => {
       </div>
       
       {/* FOOTER CREDIT */}
-      <div className="pt-8 pb-4 flex flex-col items-center justify-center text-center opacity-70 border-t border-gray-200 mt-auto shrink-0">
-         <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1">
+      <div className="pt-8 pb-4 flex flex-col items-center justify-center text-center opacity-70 border-t border-stone-200 mt-auto shrink-0">
+         <div className="flex items-center gap-1.5 text-xs font-bold text-stone-500 mb-1">
            Made with <Heart size={12} className="text-red-500 fill-current"/> for <span className="font-black text-saffron-500">Dharmic institutions</span>
          </div>
-         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">© {new Date().getFullYear()} Sanatani Bandhan. Enterprise Edition.</p>
+         <p className="text-[10px] font-bold text-stone-600 uppercase tracking-widest">© {new Date().getFullYear()} Sanatani Bandhan. Enterprise Edition.</p>
       </div>
 
       {showCreateModal && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 fade-in border-t-4 border-saffron-500 ring-1 ring-white/20 max-h-[90vh] flex flex-col">
-             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4 shrink-0">
-               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+             <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4 shrink-0">
+               <h3 className="text-xl font-black text-stone-900 flex items-center gap-2">
                  <BarChart2 className="text-saffron-500" size={24}/> Launch New Poll
                </h3>
-               <button onClick={() => setShowCreateModal(false)} className="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-full text-gray-500 transition-colors shadow-sm"><X size={16}/></button>
+               <button onClick={() => setShowCreateModal(false)} className="bg-stone-100 hover:bg-stone-200 p-2.5 rounded-full text-stone-500 transition-colors shadow-sm"><X size={16}/></button>
              </div>
 
              <div className="overflow-y-auto pr-2 scrollbar-hide pb-4">
                <form onSubmit={handleCreatePoll} className="space-y-6">
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
                    <input 
                      type="text" required value={pollForm.title} onChange={e=>setPollForm({...pollForm, title: e.target.value})} 
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm" 
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm" 
                      placeholder="e.g. What color should we paint the new Mandir gates?" 
                    />
                  </div>
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Description / Context (Optional)</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Description / Context (Optional)</label>
                    <textarea 
                      rows={2} value={pollForm.description} onChange={e=>setPollForm({...pollForm, description: e.target.value})} 
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all resize-none shadow-sm" 
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all resize-none shadow-sm" 
                      placeholder="Provide extra details to help voters decide..."
                    ></textarea>
                  </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div>
-                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
-                     <input type="date" required value={pollForm.endDate} onChange={e=>setPollForm({...pollForm, endDate: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
+                     <input type="date" required value={pollForm.endDate} onChange={e=>setPollForm({...pollForm, endDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                    <div>
-                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
-                     <input type="time" value={pollForm.endTime} onChange={e=>setPollForm({...pollForm, endTime: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
+                     <input type="time" value={pollForm.endTime} onChange={e=>setPollForm({...pollForm, endTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                  </div>
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ShieldCheck size={12}/> Voting Audience</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ShieldCheck size={12}/> Voting Audience</label>
                    <select
                      value={pollForm.targetAudience} onChange={e=>setPollForm({...pollForm, targetAudience: e.target.value})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
                    >
                      <option value="ALL_MEMBERS">Public (All Devotees & Members)</option>
                      <option value="MANAGERS">Internal (Only Admins & Managers)</option>
@@ -1120,39 +1120,39 @@ export const CommunityPollsTab: React.FC = () => {
 
                  {/* EVENTS P1 — the shape, chosen at launch and frozen after. */}
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ListChecks size={12}/> {t('surfaces.events.kindLabel')}</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ListChecks size={12}/> {t('surfaces.events.kindLabel')}</label>
                    <select
                      value={pollForm.kind} onChange={e=>setPollForm({...pollForm, kind: e.target.value as typeof pollForm.kind})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
                    >
                      <option value="choice">{t('surfaces.events.kindChoice')}</option>
                      <option value="multi">{t('surfaces.events.kindMulti')}</option>
                      <option value="text">{t('surfaces.events.kindText')}</option>
                    </select>
                    {pollForm.kind === 'text' && (
-                     <p className="text-[11px] font-bold text-gray-400 mt-2 leading-relaxed">{t('surfaces.events.textNote')}</p>
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.textNote')}</p>
                    )}
                  </div>
 
                  {pollForm.kind !== 'text' && (
-                   <label className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-pointer shadow-sm">
+                   <label className="flex items-center gap-3 bg-stone-50 border border-stone-200 rounded-xl p-4 cursor-pointer shadow-sm">
                      <input
                        type="checkbox"
                        checked={pollForm.abstain}
                        onChange={e=>setPollForm({...pollForm, abstain: e.target.checked})}
                        className="w-4 h-4 accent-orange-500"
                      />
-                     <span className="text-sm font-bold text-gray-700">{t('surfaces.events.abstainToggle')}</span>
+                     <span className="text-sm font-bold text-stone-700">{t('surfaces.events.abstainToggle')}</span>
                    </label>
                  )}
 
                  {/* EVENTS P1 — the result rule, chosen at launch; the
                      rules freeze it once voting begins. */}
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
                    <select
                      value={pollForm.resultVisibility} onChange={e=>setPollForm({...pollForm, resultVisibility: e.target.value as typeof pollForm.resultVisibility})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
                    >
                      <option value="live">{t('surfaces.events.visLive')}</option>
                      <option value="afterVote">{t('surfaces.events.visAfterVote')}</option>
@@ -1162,8 +1162,8 @@ export const CommunityPollsTab: React.FC = () => {
                  </div>
 
                  {pollForm.kind !== 'text' && (
-                 <div className="border-t border-gray-100 pt-5 mt-2">
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Voting Options *</label>
+                 <div className="border-t border-stone-100 pt-5 mt-2">
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
                    <div className="space-y-3">
                      {pollForm.options.map((opt, index) => (
                        <div key={index} className="flex items-center gap-3">
@@ -1171,7 +1171,7 @@ export const CommunityPollsTab: React.FC = () => {
                          <input 
                            type="text" required={index < 2} 
                            value={opt} onChange={(e) => handleOptionChange(index, e.target.value)}
-                           className="w-full p-3.5 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none shadow-sm transition-colors" 
+                           className="w-full p-3.5 bg-white border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none shadow-sm transition-colors" 
                            placeholder={`Option ${index + 1}`}
                          />
                          {index >= 2 && (
@@ -1190,8 +1190,8 @@ export const CommunityPollsTab: React.FC = () => {
                  </div>
                  )}
 
-                 <div className="pt-4 mt-2 border-t border-gray-100">
-                   <button type="submit" disabled={submitting} className="w-full bg-gray-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
+                 <div className="pt-4 mt-2 border-t border-stone-100">
+                   <button type="submit" disabled={submitting} className="w-full bg-stone-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
                      {submitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18}/> LAUNCH POLL OFFICIALLY</>}
                    </button>
                  </div>
@@ -1203,43 +1203,43 @@ export const CommunityPollsTab: React.FC = () => {
       )}
 
       {editPoll && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 fade-in border-t-4 border-saffron-500 ring-1 ring-white/20 max-h-[90vh] flex flex-col">
-             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4 shrink-0">
-               <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+             <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4 shrink-0">
+               <h3 className="text-xl font-black text-stone-900 flex items-center gap-2">
                  <FileText className="text-saffron-500" size={24}/> {t('surfaces.events.editPoll')}
                </h3>
-               <button onClick={() => setEditPoll(null)} className="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-full text-gray-500 transition-colors shadow-sm"><X size={16}/></button>
+               <button onClick={() => setEditPoll(null)} className="bg-stone-100 hover:bg-stone-200 p-2.5 rounded-full text-stone-500 transition-colors shadow-sm"><X size={16}/></button>
              </div>
              <div className="overflow-y-auto pr-2 scrollbar-hide pb-4">
                <form onSubmit={handleEditPoll} className="space-y-6">
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
                    <input
                      type="text" required value={editForm.title} onChange={e=>setEditForm({...editForm, title: e.target.value})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm"
                    />
                  </div>
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Description / Context (Optional)</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Description / Context (Optional)</label>
                    <textarea
                      rows={2} value={editForm.description} onChange={e=>setEditForm({...editForm, description: e.target.value})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all resize-none shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 focus:ring-4 focus:ring-saffron-50 outline-none transition-all resize-none shadow-sm"
                    ></textarea>
                  </div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div>
-                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
-                     <input type="date" required value={editForm.endDate} onChange={e=>setEditForm({...editForm, endDate: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
+                     <input type="date" required value={editForm.endDate} onChange={e=>setEditForm({...editForm, endDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                    <div>
-                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
-                     <input type="time" value={editForm.endTime} onChange={e=>setEditForm({...editForm, endTime: e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-gray-700 cursor-pointer" />
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
+                     <input type="time" value={editForm.endTime} onChange={e=>setEditForm({...editForm, endTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                  </div>
                  {pollKind(editPoll) !== 'text' && (
                    <div>
-                     <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Voting Options *</label>
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
                      <div className="space-y-3">
                        {editForm.options.map((opt, index) => (
                          <div key={opt.id} className="flex items-center gap-3">
@@ -1248,7 +1248,7 @@ export const CommunityPollsTab: React.FC = () => {
                              type="text" required
                              value={opt.text}
                              onChange={(e) => setEditForm(prev => ({ ...prev, options: prev.options.map((o, i) => i === index ? { ...o, text: e.target.value } : o) }))}
-                             className="w-full p-3.5 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none shadow-sm transition-colors"
+                             className="w-full p-3.5 bg-white border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none shadow-sm transition-colors"
                            />
                          </div>
                        ))}
@@ -1256,10 +1256,10 @@ export const CommunityPollsTab: React.FC = () => {
                    </div>
                  )}
                  <div>
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><BarChart2 size={12}/> {t('surfaces.events.visibilityLabel')}</label>
                    <select
                      value={editForm.resultVisibility} onChange={e=>setEditForm({...editForm, resultVisibility: e.target.value as typeof editForm.resultVisibility})}
-                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
                    >
                      <option value="live">{t('surfaces.events.visLive')}</option>
                      <option value="afterVote">{t('surfaces.events.visAfterVote')}</option>
@@ -1267,8 +1267,8 @@ export const CommunityPollsTab: React.FC = () => {
                      <option value="committee">{t('surfaces.events.visCommittee')}</option>
                    </select>
                  </div>
-                 <div className="pt-4 mt-2 border-t border-gray-100">
-                   <button type="submit" disabled={submitting} className="w-full bg-gray-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
+                 <div className="pt-4 mt-2 border-t border-stone-100">
+                   <button type="submit" disabled={submitting} className="w-full bg-stone-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
                      {submitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18}/> SAVE CHANGES</>}
                    </button>
                  </div>
@@ -1280,25 +1280,25 @@ export const CommunityPollsTab: React.FC = () => {
       )}
 
       {showConcludeModal && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 border-t-4 border-gray-800 text-center sm:text-left">
-            <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-              <h3 className="text-xl font-black text-gray-900 flex items-center gap-2 tracking-tight">
-                 <Lock className="text-gray-700" size={24}/> Conclude Poll
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 border-t-4 border-stone-800 text-center sm:text-left">
+            <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
+              <h3 className="text-xl font-black text-stone-900 flex items-center gap-2 tracking-tight">
+                 <Lock className="text-stone-700" size={24}/> Conclude Poll
               </h3>
-              <button onClick={() => setShowConcludeModal(false)} className="bg-gray-100 hover:bg-gray-200 p-2.5 rounded-full text-gray-500 transition-colors shadow-sm"><X size={16}/></button>
+              <button onClick={() => setShowConcludeModal(false)} className="bg-stone-100 hover:bg-stone-200 p-2.5 rounded-full text-stone-500 transition-colors shadow-sm"><X size={16}/></button>
             </div>
             <form onSubmit={handleConcludePoll}>
-               <p className="text-xs font-bold text-gray-500 mb-5 leading-relaxed">
-                 You are concluding <strong className="text-gray-800">"{concludeData.title}"</strong>. This will permanently lock voting. 
+               <p className="text-xs font-bold text-stone-500 mb-5 leading-relaxed">
+                 You are concluding <strong className="text-stone-800">"{concludeData.title}"</strong>. This will permanently lock voting. 
                </p>
                <div className="mb-8 text-left">
                  <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><MessageSquare size={14}/> Official Committee Decision (Optional)</label>
                  <textarea rows={4} value={concludeData.note} onChange={e => setConcludeData({...concludeData, note: e.target.value})} className="w-full p-4 bg-blue-50/50 border border-blue-200 rounded-xl text-sm font-bold text-blue-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all resize-none shadow-sm" placeholder="e.g. Based on the majority vote, the committee will release the funds on Monday."></textarea>
                </div>
                <div className="flex gap-3">
-                 <button type="button" onClick={() => setShowConcludeModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
-                 <button type="submit" disabled={submitting} className="flex-[2] font-black py-4 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 bg-gray-900 hover:bg-black disabled:opacity-50 flex items-center justify-center gap-2">
+                 <button type="button" onClick={() => setShowConcludeModal(false)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{t('actions.cancel') || 'Cancel'}</button>
+                 <button type="submit" disabled={submitting} className="flex-[2] font-black py-4 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 bg-stone-900 hover:bg-black disabled:opacity-50 flex items-center justify-center gap-2">
                    {submitting ? <Loader2 size={16} className="animate-spin"/> : <><Lock size={16}/> CONCLUDE & PUBLISH</>}
                  </button>
                </div>
@@ -1309,20 +1309,20 @@ export const CommunityPollsTab: React.FC = () => {
       )}
 
       {auditPoll && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 pt-safe pb-safe">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border-t-4 border-blue-500 ring-1 ring-white/20 animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 shrink-0">
+            <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50/80 shrink-0">
               <div>
-                <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                <h3 className="text-xl font-black text-stone-900 flex items-center gap-2">
                   <ListChecks className="text-blue-600" size={24}/> Ballot Audit
                 </h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mt-1">
                   {auditPoll.targetAudience === 'MANAGERS'
                     ? 'Committee poll — named ballots; this opening was recorded'
                     : 'Community poll — ballots are private; counts only'}
                 </p>
               </div>
-              <button onClick={() => setAuditPoll(null)} className="p-2.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 transition-colors shadow-sm"><X size={16}/></button>
+              <button onClick={() => setAuditPoll(null)} className="p-2.5 rounded-full hover:bg-stone-200 text-stone-600 hover:text-stone-700 transition-colors shadow-sm"><X size={16}/></button>
             </div>
             <div className="overflow-y-auto flex-1 p-6 space-y-6 scrollbar-hide pb-12">
                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 shadow-sm relative overflow-hidden">
@@ -1332,28 +1332,28 @@ export const CommunityPollsTab: React.FC = () => {
                  <p className="text-[10px] font-bold text-blue-700 mt-1">{pollTotalVotes(auditPoll)} total votes counted</p>
                </div>
                {auditPoll.targetAudience !== 'MANAGERS' && pollKind(auditPoll) !== 'text' && (
-                 <p className="text-xs font-bold text-gray-500 leading-relaxed bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                 <p className="text-xs font-bold text-stone-500 leading-relaxed bg-stone-50 border border-stone-100 rounded-2xl p-4">
                    Individual ballots on community polls are private — each vote is stored under the voter's own account, and not even the committee can see who chose what. Only the counts below are visible.
                  </p>
                )}
                {pollKind(auditPoll) === 'text' && (
                  <div className="space-y-3">
-                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                   <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">
                      {t('surfaces.events.responsesTitle')} ({auditTexts.length})
                    </p>
-                   <p className="text-[11px] font-bold text-gray-400 leading-relaxed">
+                   <p className="text-[11px] font-bold text-stone-600 leading-relaxed">
                      {t('surfaces.events.textNote')}
                    </p>
                    {auditTexts.length === 0 ? (
-                     <p className="text-xs font-bold text-gray-400 italic">No responses yet.</p>
+                     <p className="text-xs font-bold text-stone-600 italic">No responses yet.</p>
                    ) : (
                      auditTexts.map(row => {
                        const member = devotees.find(m => m.id === row.uid || (m as any).userId === row.uid);
                        const displayName = member ? ((member as any).name || (member as any).fullName || 'Member') : 'Member';
                        return (
-                         <div key={row.uid} className="border border-gray-200 rounded-2xl p-4 bg-white shadow-sm">
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{displayName}</p>
-                           <p className="text-sm font-bold text-gray-800 leading-relaxed">“{row.text}”</p>
+                         <div key={row.uid} className="border border-stone-200 rounded-2xl p-4 bg-white shadow-sm">
+                           <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1">{displayName}</p>
+                           <p className="text-sm font-bold text-stone-800 leading-relaxed">“{row.text}”</p>
                          </div>
                        );
                      })
@@ -1374,33 +1374,33 @@ export const CommunityPollsTab: React.FC = () => {
                     : [];
                   const voterKeys = [...ballotUids, ...legacyUids];
                   return (
-                    <div key={optId} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-                      <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
-                        <span className="text-sm font-black text-gray-800">{opt.text}</span>
-                        <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-gray-200 text-gray-500 uppercase tracking-widest shadow-sm">{opt.votes} Votes</span>
+                    <div key={optId} className="border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+                      <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center">
+                        <span className="text-sm font-black text-stone-800">{opt.text}</span>
+                        <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-stone-200 text-stone-500 uppercase tracking-widest shadow-sm">{opt.votes} Votes</span>
                       </div>
                       {auditPoll.targetAudience === 'MANAGERS' && (
                         <div className="p-2 bg-white">
                           {voterKeys.length > 0 ? (
-                            <div className="divide-y divide-gray-50">
+                            <div className="divide-y divide-stone-50">
                                {voterKeys.map(uid => {
                                  const member = devotees.find(m => m.id === uid || (m as any).userId === uid);
                                  const displayName = member ? ((member as any).name || (member as any).fullName || 'Member') : 'Member';
                                  return (
-                                   <div key={uid} className="p-3 flex items-center justify-between hover:bg-gray-50 rounded-xl transition-colors group">
+                                   <div key={uid} className="p-3 flex items-center justify-between hover:bg-stone-50 rounded-xl transition-colors group">
                                      <div className="flex items-center gap-3">
                                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                                          {displayName.charAt(0).toUpperCase()}
                                        </div>
-                                       <span className="text-sm font-bold text-gray-900">{displayName}</span>
+                                       <span className="text-sm font-bold text-stone-900">{displayName}</span>
                                      </div>
-                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ballot recorded</span>
+                                     <span className="text-[10px] font-black text-stone-600 uppercase tracking-widest">Ballot recorded</span>
                                    </div>
                                  );
                                })}
                             </div>
                           ) : (
-                            <p className="text-[10px] font-bold text-gray-400 p-4 text-center italic uppercase tracking-widest">No votes cast for this option yet.</p>
+                            <p className="text-[10px] font-bold text-stone-600 p-4 text-center italic uppercase tracking-widest">No votes cast for this option yet.</p>
                           )}
                         </div>
                       )}

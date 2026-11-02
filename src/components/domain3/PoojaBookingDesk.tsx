@@ -534,7 +534,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab('book')}
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-saffron-500 hover:from-amber-400 hover:to-saffron-400 text-temple-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{t('ritual.pooja.schedulePuja')}</span>

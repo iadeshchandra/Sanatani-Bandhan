@@ -158,7 +158,7 @@ const Diya: React.FC<{ className?: string; flameDelay?: string }> = ({ className
       {/* glow */}
       <div
         className="absolute -inset-6 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(251,191,36,0.35) 0%, rgba(251,191,36,0) 70%)' }}
+        style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--gold-bright) 35%, transparent) 0%, transparent 70%)' }}
       />
       {/* flame */}
       <div className="diya-flame relative z-10" style={{ animationDelay: flameDelay }} />
@@ -167,8 +167,8 @@ const Diya: React.FC<{ className?: string; flameDelay?: string }> = ({ className
     <div
       className="w-16 h-6 rounded-b-full rounded-t-[6px] mt-1"
       style={{
-        background: 'linear-gradient(to bottom, #9a3412 0%, #7c2d12 55%, #571f0b 100%)',
-        boxShadow: '0 6px 14px rgba(124,45,18,0.4)',
+        background: 'linear-gradient(to bottom, var(--maroon-soft) 0%, var(--maroon) 55%, var(--maroon-dark) 100%)',
+        boxShadow: '0 6px 14px color-mix(in srgb, var(--maroon) 40%, transparent)',
       }}
     />
   </div>
@@ -177,7 +177,7 @@ const Diya: React.FC<{ className?: string; flameDelay?: string }> = ({ className
 /** Large, subtle, slow-rotating mandala rendered as inline SVG. */
 const Mandala: React.FC<{ className?: string }> = ({ className = '' }) => (
   <svg viewBox="0 0 400 400" className={`mandala-spin pointer-events-none ${className}`} aria-hidden="true">
-    <g fill="none" stroke="#EA580C" strokeWidth="1">
+    <g fill="none" stroke="var(--saffron-700)" strokeWidth="1">
       <circle cx="200" cy="200" r="190" />
       <circle cx="200" cy="200" r="160" strokeDasharray="4 6" />
       <circle cx="200" cy="200" r="120" />
@@ -197,7 +197,7 @@ const Mandala: React.FC<{ className?: string }> = ({ className = '' }) => (
         return <ellipse key={`p-${i}`} cx={cx} cy={cy} rx="14" ry="34" transform={`rotate(${i * 30} ${cx} ${cy})`} />;
       })}
       <circle cx="200" cy="200" r="18" />
-      <text x="200" y="209" textAnchor="middle" fontSize="22" fill="#EA580C" stroke="none">
+      <text x="200" y="209" textAnchor="middle" fontSize="22" fill="var(--saffron-700)" stroke="none">
         ॐ
       </text>
     </g>
@@ -654,7 +654,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const activeShowcase = SHOWCASE_TABS.find((t) => t.id === activeTab) ?? SHOWCASE_TABS[0];
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] text-stone-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-sanctum-ivory text-stone-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
       {/* Inline styles: diya flames, mandala, toran divider */}
       <style>{`
         @keyframes diya-flicker {
@@ -666,7 +666,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         .diya-flame {
           width: 22px;
           height: 36px;
-          background: radial-gradient(ellipse at 50% 72%, #fef3c7 0%, #fcd34d 30%, #f59e0b 55%, #ea580c 78%, rgba(234,88,12,0) 100%);
+          background: radial-gradient(ellipse at 50% 72%, var(--saffron-100) 0%, var(--saffron-300) 30%, var(--gold) 55%, var(--saffron-700) 78%, transparent 100%);
           border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
           transform-origin: 50% 100%;
           animation: diya-flicker 1.7s ease-in-out infinite;
@@ -683,14 +683,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         .toran-divider { position: relative; height: 22px; overflow: hidden; }
         .toran-string {
           position: absolute; top: 0; left: 0; right: 0; height: 2px;
-          background: #b45309;
+          background: var(--maroon-soft);
         }
         .toran-dots {
           position: absolute; top: 2px; left: 0; right: 0; height: 20px;
           background-image:
-            radial-gradient(circle at 14px 8px, #f59e0b 6px, #d97706 7px, rgba(217,119,6,0) 8px),
-            radial-gradient(circle at 42px 8px, #ea580c 6px, #c2410c 7px, rgba(194,65,12,0) 8px),
-            radial-gradient(circle at 70px 8px, #fbbf24 5px, #f59e0b 6px, rgba(245,158,11,0) 7px);
+            radial-gradient(circle at 14px 8px, var(--gold) 6px, var(--saffron-700) 7px, transparent 8px),
+            radial-gradient(circle at 42px 8px, var(--saffron-700) 6px, var(--cta-hover) 7px, transparent 8px),
+            radial-gradient(circle at 70px 8px, var(--gold-bright) 5px, var(--gold) 6px, transparent 7px);
           background-size: 84px 20px;
           background-repeat: repeat-x;
         }
@@ -735,7 +735,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       />
 
       {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-[#FFF8F0]/95 backdrop-blur-md border-b border-orange-100">
+      <header className="sticky top-0 z-40 bg-sanctum-ivory/95 backdrop-blur-md border-b border-orange-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-[72px] flex items-center justify-between">
           <button
             type="button"
@@ -832,7 +832,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={() => { setIsMobileMenuOpen(false); handleSignup(); }}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 text-white text-sm font-extrabold cursor-pointer pressable"
+              className="w-full py-3 rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold cursor-pointer pressable"
             >
               {safeTranslate('landing_nav_create_free', 'CREATE FREE ACCOUNT', 'বিনামূল্যে অ্যাকাউন্ট খুলুন', 'मुफ़्त खाता बनाएँ')}
             </button>
@@ -865,14 +865,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {heroAudience === 'devotee' ? (
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
                   {safeTranslate('landing_h1_devotee_a', 'Your Sanatani life,', 'আপনার সানাতনী জীবন,', 'आपका सनातनी जीवन,')}{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
+                  <span className="text-saffron-700">
                     {safeTranslate('landing_h1_devotee_b', 'beautifully in one place.', 'সুন্দরভাবে এক জায়গায়।', 'सुंदर ढंग से एक ही जगह।')}
                   </span>
                 </h1>
               ) : (
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08] text-stone-900 max-w-3xl">
                   {safeTranslate('landing_h1_inst_a', 'From paper registers to', 'কাগজের খাতা থেকে', 'कागज़ी रजिस्टर से')}{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">
+                  <span className="text-saffron-700">
                     {safeTranslate('landing_h1_inst_b', 'audit-ready in 60 seconds.', '৬০ সেকেন্ডে অডিট-প্রস্তুত।', '60 सेकंड में ऑडिट-तैयार।')}
                   </span>
                 </h1>
@@ -925,7 +925,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     type="button"
                     onClick={handleSignup}
-                    className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                    className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-saffron-700/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
                   >
                     {safeTranslate('landing_hero_join_devotee', '🙏 Join as a Devotee', '🙏 ভক্ত হিসেবে যোগ দিন', '🙏 भक्त बनकर जुड़ें')}
                     <ArrowRight className="w-4 h-4" />
@@ -943,7 +943,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       : safeTranslate('landing_explore_the_app', 'EXPLORE THE APP', 'অ্যাপটি দেখুন', 'ऐप देखें')}
                   </button>
                 </div>
-                <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
+                <p className="mt-6 text-xs text-stone-600 font-medium flex items-center justify-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   {safeTranslate('landing_hero_trust', 'Free forever · 60-second welcome · No card, no salesman', 'চিরদিন বিনামূল্যে · ৬০ সেকেন্ডে স্বাগত · কার্ড লাগবে না, বিক্রয়কর্মী নয়', 'हमेशा मुफ़्त · 60 सेकंड में स्वागत · कोई कार्ड नहीं, कोई सेल्समैन नहीं')}
                 </p>
@@ -1003,7 +1003,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={handleSignup}
-                className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+                className="w-full sm:w-auto min-h-[56px] px-9 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-saffron-700/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
               >
                 {safeTranslate('landing_nav_create_free', 'CREATE FREE ACCOUNT', 'বিনামূল্যে অ্যাকাউন্ট খুলুন', 'मुफ़्त खाता बनाएँ')}
                 <ArrowRight className="w-4 h-4" />
@@ -1031,7 +1031,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
             </div>
 
-            <p className="mt-6 text-xs text-stone-400 font-medium flex items-center justify-center gap-2">
+            <p className="mt-6 text-xs text-stone-600 font-medium flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Free forever · 60-second guided setup · No card, no salesman
             </p>
@@ -1078,7 +1078,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {ORG_PROFILES.map((o, i) => (
               <Reveal key={o.type} delay={(i % 3) * 90}>
                 <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-1 transition-all flex flex-col">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center mb-5 shadow-lg shadow-orange-500/25 mx-auto">
+                  <div className="w-14 h-14 rounded-2xl bg-cta text-white flex items-center justify-center mb-5 shadow-lg shadow-saffron-700/25 mx-auto">
                     <o.icon className="w-7 h-7" />
                   </div>
                   <h3 className="text-xl font-black text-stone-900 text-center">{o.label}</h3>
@@ -1096,7 +1096,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <button
                     type="button"
                     onClick={() => handleStartDemo(o.type)}
-                    className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-stone-900 hover:bg-orange-600 text-white text-sm font-extrabold transition-all cursor-pointer"
+                    className="mt-6 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold transition-all cursor-pointer"
                   >
                     <Play className="w-4 h-4 fill-white" />
                     Launch {o.label} demo
@@ -1106,7 +1106,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             ))}
             {/* Sixth tile: the platform promise */}
             <Reveal delay={180}>
-              <div className="h-full rounded-3xl p-7 flex flex-col justify-center text-center bg-gradient-to-br from-stone-900 to-stone-800 text-white shadow-xl">
+              <div className="h-full rounded-3xl p-7 flex flex-col justify-center text-center bg-stone-900 text-white shadow-xl">
                 <p className="text-2xl mb-3">ॐ</p>
                 <h3 className="text-xl font-black">{t('surfaces.landing.notListed')}</h3>
                 <p className="mt-2 text-sm text-stone-300 leading-relaxed">
@@ -1169,7 +1169,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Reveal>
               <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/25">
+                  <div className="w-11 h-11 rounded-2xl bg-cta text-white flex items-center justify-center shadow-lg shadow-saffron-700/25">
                     <Network className="w-5 h-5" />
                   </div>
                   <div>
@@ -1210,7 +1210,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Reveal delay={90}>
               <div className="h-full bg-white rounded-3xl border border-orange-100 p-7 shadow-sm">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/25">
+                  <div className="w-11 h-11 rounded-2xl bg-cta text-white flex items-center justify-center shadow-lg shadow-saffron-700/25">
                     <LayoutGrid className="w-5 h-5" />
                   </div>
                   <div>
@@ -1322,7 +1322,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <button
                 type="button"
                 onClick={isAuthenticated ? openApp : () => handleStartDemo(activeOrg)}
-                className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-extrabold transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-2xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold transition-all cursor-pointer"
               >
                 {isAuthenticated ? (
                   <>
@@ -1400,7 +1400,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <ToranDivider />
 
         {/* DHARMA SOUL STRIP */}
-        <section id="dharma" className="scroll-mt-24 bg-[#4a1710] text-orange-50">
+        <section id="dharma" className="scroll-mt-24 bg-maroon-dark text-orange-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
             <Reveal className="text-center max-w-2xl mx-auto mb-12">
               <p className="text-2xl mb-3">🪔</p>
@@ -1521,7 +1521,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             {/* STANDARD — canonical tier 'standard' (highlighted, POPULAR) */}
             <Reveal delay={80} className="h-full">
-              <div className="relative h-full rounded-[2rem] bg-gradient-to-br from-orange-600 to-amber-500 p-8 text-white shadow-2xl shadow-orange-500/30 overflow-hidden flex flex-col">
+              <div className="relative h-full rounded-[2rem] bg-cta p-8 text-white shadow-2xl shadow-saffron-700/30 overflow-hidden flex flex-col">
                 <span className="absolute top-4 right-6 text-[11px] font-black tracking-widest uppercase bg-white/20 px-3 py-1 rounded-full">
                   {card('standard').badge}
                 </span>
@@ -1568,21 +1568,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {card('premium').badge}
                 </span>
                 <h3 className="mt-4 text-2xl font-black text-white">{card('premium').name}</h3>
-                <p className="mt-1 text-sm text-stone-400">{card('premium').tagline}</p>
+                <p className="mt-1 text-sm text-stone-600">{card('premium').tagline}</p>
                 <p className="mt-4 flex items-baseline gap-2">
                   <span className="text-5xl font-black text-white">
                     {PLAN_PRICING.PREMIUM.price.currencySymbol}
                     {cardPerMonthInr(card('premium'), billingAnnual).toLocaleString('en-IN')}
                   </span>
-                  <span className="text-stone-400 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
+                  <span className="text-stone-600 font-bold">/ month{billingAnnual ? ', billed annually' : ''}</span>
                 </p>
                 {billingAnnual && (
-                  <p className="mt-1 text-xs font-bold text-stone-400">
+                  <p className="mt-1 text-xs font-bold text-stone-600">
                     {PLAN_PRICING.PREMIUM.price.currencySymbol}{card('premium').inrAnnual.toLocaleString('en-IN')}/year — 2 months free
                   </p>
                 )}
-                {altPrices(card('premium'), 'text-stone-400')}
-                <p className="mt-3 text-xs font-bold text-stone-400 uppercase tracking-wide">
+                {altPrices(card('premium'), 'text-stone-600')}
+                <p className="mt-3 text-xs font-bold text-stone-600 uppercase tracking-wide">
                   Unlimited everything · dedicated SLA
                 </p>
                 <ul className="mt-6 space-y-3 text-sm font-medium flex-1">
@@ -1703,7 +1703,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* FINAL CTA */}
         <section className="px-4 sm:px-6 pb-16 sm:pb-24 max-w-5xl mx-auto">
           <Reveal>
-            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-orange-700 via-orange-600 to-amber-500 p-8 sm:p-14 text-white text-center shadow-2xl shadow-orange-500/30">
+            <div className="relative overflow-hidden rounded-[2rem] bg-cta p-8 sm:p-14 text-white text-center shadow-2xl shadow-saffron-700/30">
               <div className="absolute inset-0 opacity-10" aria-hidden="true">
                 <Mandala className="absolute -right-24 -top-24 w-[420px] h-[420px] !opacity-100" />
               </div>
@@ -1758,7 +1758,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span className="font-bold text-stone-700">धर्मो रक्षति रक्षितः</span>
             <span>{t('surfaces.landing.yourRecordsAreEncryptedAuditedAnd')}</span>
           </div>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-stone-400 font-medium">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
             {['Deny-by-default data security', 'Dual-custody hundi counts', 'Append-only audit ledger', 'Role-based access'].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -1770,7 +1770,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-stone-950 text-stone-400 pt-14 pb-8 px-4 sm:px-6">
+      <footer className="bg-stone-950 text-stone-600 pt-14 pb-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 pb-10 border-b border-stone-800">
             <div className="col-span-2 sm:col-span-1">

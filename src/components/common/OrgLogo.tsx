@@ -8,12 +8,15 @@
  */
 import React, { useState } from 'react';
 import { monogramLetter } from '../../lib/orgBranding';
+import { MAROON as MAROON_TOKENS, SACRED } from '../../lib/designTokens';
 
-const MAROON_DARK = '#431407';
-const MAROON = '#7c2d12';
-const SAFFRON = '#fbbf24';
-const GOLD = '#f59e0b';
-const CREAM = '#fffbeb';
+/* DESIGN ELEVATION E1 — the monogram's colours are the canonical
+ * tokens (lib/designTokens MAROON / SACRED), not private copies. */
+const MAROON_DARK = MAROON_TOKENS.dark;
+const MAROON = MAROON_TOKENS.DEFAULT;
+const SAFFRON = SACRED.saffronBright;
+const GOLD = SACRED.gold;
+const CREAM = SACRED.cream;
 
 /**
  * Lotus/paisley-inspired monogram: 12 petals ring the initial letter,
@@ -133,7 +136,7 @@ export const OrgLogo: React.FC<OrgLogoProps> = ({
         height: size,
         borderRadius: radius,
         objectFit: 'cover',
-        background: '#fff',
+        background: 'white',
         display: 'block',
         flexShrink: 0,
         ...ring,

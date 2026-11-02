@@ -42,6 +42,7 @@ import { safeExternalUrl } from '../../../lib/safeUrl';
 import { useToast } from '../../../context/ToastContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { friendlyError } from '../../../lib/friendlyError';
+import { CHART, SACRED } from '../../../lib/designTokens';
 import { professionalsAdmin, type PendingApplication, type ProfessionalKind, type ProfessionalSummary } from '../../../lib/sevaPro/professionalsAdmin';
 import {
   DEFAULT_PRATHAM_CONFIG, sanitizeConfig, scheduleMultiplierFor,
@@ -54,13 +55,13 @@ import { sevaProCopy, REJECT_TEMPLATE_KEYS, type SevaProLang } from '../../../li
 
 /* ---------- local shared primitives (match AdminTabsC/G pattern) ---------- */
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
+  <div className={`rounded-2xl bg-temple-950/70 border border-temple-800 p-4 ${className}`}>{children}</div>
 );
 const Empty: React.FC<{ text: string }> = ({ text }) => (
-  <p className="text-xs text-slate-500 py-6 text-center">{text}</p>
+  <p className="text-xs text-temple-300 py-6 text-center">{text}</p>
 );
 const Loading: React.FC<{ text?: string }> = ({ text = 'Loading…' }) => (
-  <p className="text-xs text-slate-500 py-8 text-center animate-pulse">{text}</p>
+  <p className="text-xs text-temple-300 py-8 text-center animate-pulse">{text}</p>
 );
 
 /* ---------- helpers ---------- */
@@ -91,17 +92,17 @@ const AreaChart: React.FC<{ inSeries: number[]; outSeries: number[]; labels: str
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-44" role="img" aria-label="30-day cash flow chart">
         {[0.25, 0.5, 0.75, 1].map((f) => (
-          <line key={f} x1={PAD} x2={W - PAD} y1={y(max * f)} y2={y(max * f)} stroke="#1e293b" strokeWidth="1" />
+          <line key={f} x1={PAD} x2={W - PAD} y1={y(max * f)} y2={y(max * f)} stroke={CHART.gridDark} strokeWidth="1" />
         ))}
-        <path d={area(inSeries)} fill="#f59e0b" opacity="0.18" />
-        <path d={line(inSeries)} fill="none" stroke="#f59e0b" strokeWidth="2.5" />
-        <path d={area(outSeries)} fill="#10b981" opacity="0.12" />
-        <path d={line(outSeries)} fill="none" stroke="#10b981" strokeWidth="2.5" strokeDasharray="5 3" />
-        <text x={PAD} y={14} fill="#64748b" fontSize="10">{fmtINR(max)}</text>
-        <text x={PAD} y={H - 8} fill="#64748b" fontSize="10">{labels[0] || ''}</text>
-        <text x={W - PAD} y={H - 8} fill="#64748b" fontSize="10" textAnchor="end">{labels[labels.length - 1] || ''}</text>
+        <path d={area(inSeries)} fill={SACRED.gold} opacity="0.18" />
+        <path d={line(inSeries)} fill="none" stroke={SACRED.gold} strokeWidth="2.5" />
+        <path d={area(outSeries)} fill={CHART.positive} opacity="0.12" />
+        <path d={line(outSeries)} fill="none" stroke={CHART.positive} strokeWidth="2.5" strokeDasharray="5 3" />
+        <text x={PAD} y={14} fill={CHART.axisTickDark} fontSize="10">{fmtINR(max)}</text>
+        <text x={PAD} y={H - 8} fill={CHART.axisTickDark} fontSize="10">{labels[0] || ''}</text>
+        <text x={W - PAD} y={H - 8} fill={CHART.axisTickDark} fontSize="10" textAnchor="end">{labels[labels.length - 1] || ''}</text>
       </svg>
-      <div className="flex items-center gap-4 mt-1 text-[11px] text-slate-400">
+      <div className="flex items-center gap-4 mt-1 text-[11px] text-temple-300">
         <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-amber-500 inline-block" /> Money in (txn volume)</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-1 rounded bg-emerald-500 inline-block" /> Money out (payouts paid)</span>
       </div>
@@ -213,10 +214,10 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       rows: topups.length === 0 ? <Empty text="No pending top-ups." /> : (
         <ul className="space-y-2">
           {topups.slice(0, 8).map((r: any) => (
-            <li key={r.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl px-3 py-2.5 min-h-[44px]">
+            <li key={r.id} className="flex items-center justify-between gap-2 bg-temple-900 rounded-xl px-3 py-2.5 min-h-[44px]">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-200 truncate">{r.uid ? String(r.uid).slice(0, 12) + '…' : 'User'}</p>
-                <p className="text-[10px] text-slate-500">{fmtAge(r.createdAt)} ago · {r.currency || ''}</p>
+                <p className="text-xs font-bold text-temple-200 truncate">{r.uid ? String(r.uid).slice(0, 12) + '…' : 'User'}</p>
+                <p className="text-[10px] text-temple-300">{fmtAge(r.createdAt)} ago · {r.currency || ''}</p>
               </div>
               <span className="text-sm font-black text-amber-300 shrink-0">{fmtINR(r.amount)}</span>
             </li>
@@ -229,10 +230,10 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       rows: requestedPayouts.length === 0 ? <Empty text="No payouts requested." /> : (
         <ul className="space-y-2">
           {requestedPayouts.slice(0, 8).map((p: any) => (
-            <li key={p.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl px-3 py-2.5 min-h-[44px]">
+            <li key={p.id} className="flex items-center justify-between gap-2 bg-temple-900 rounded-xl px-3 py-2.5 min-h-[44px]">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-200 truncate">{p.providerUid ? String(p.providerUid).slice(0, 12) + '…' : 'Provider'}</p>
-                <p className="text-[10px] text-slate-500">{fmtAge(p.requestedAt)} ago</p>
+                <p className="text-xs font-bold text-temple-200 truncate">{p.providerUid ? String(p.providerUid).slice(0, 12) + '…' : 'Provider'}</p>
+                <p className="text-[10px] text-temple-300">{fmtAge(p.requestedAt)} ago</p>
               </div>
               <span className="text-sm font-black text-sky-300 shrink-0">{fmtINR(p.amount)}</span>
             </li>
@@ -245,9 +246,9 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       rows: overdueDues.length === 0 ? <Empty text="No overdue dues. All clear." /> : (
         <ul className="space-y-2">
           {overdueDues.slice(0, 8).map((d: any) => (
-            <li key={d.id} className="flex items-center justify-between gap-2 bg-slate-900 rounded-xl px-3 py-2.5 min-h-[44px]">
+            <li key={d.id} className="flex items-center justify-between gap-2 bg-temple-900 rounded-xl px-3 py-2.5 min-h-[44px]">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-200 truncate">{d.workspaceName || d.providerUid || 'Workspace'}</p>
+                <p className="text-xs font-bold text-temple-200 truncate">{d.workspaceName || d.providerUid || 'Workspace'}</p>
                 <p className="text-[10px] text-red-400/80">{ageDays(d.createdAt) - GRACE_DAYS}d overdue</p>
               </div>
               <span className="text-sm font-black text-red-300 shrink-0">{fmtINR(d.amount)}</span>
@@ -262,7 +263,7 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
   if (loading) return <Loading text="Computing live financial position…" />;
   if (loadError) return (
     <Card><p className="text-xs text-red-300 py-6 text-center">{loadError}</p>
-      <p className="text-center"><button type="button" onClick={load} className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-slate-800 text-slate-200">Retry</button></p>
+      <p className="text-center"><button type="button" onClick={load} className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-temple-800 text-temple-200">Retry</button></p>
     </Card>
   );
 
@@ -271,10 +272,10 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-black text-white flex items-center gap-2"><TrendingUp className="w-5 h-5 text-amber-400" /> Finance Command Center</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">Unified cash position — live from Firestore, owner-only.</p>
+          <p className="text-[11px] text-temple-300 mt-0.5">Unified cash position — live from Firestore, owner-only.</p>
         </div>
         <button type="button" onClick={load} aria-label="Refresh"
-          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">
+          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-temple-800 text-temple-200 flex items-center justify-center hover:bg-temple-700">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -285,7 +286,7 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
           <div key={k.label} className={`rounded-2xl border p-4 ${k.bg}`}>
             <div className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide ${k.tone}`}>{k.icon}{k.label}</div>
             <p className="text-xl font-black text-white mt-1.5">{k.value}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">{k.sub}</p>
+            <p className="text-[10px] text-temple-300 mt-0.5">{k.sub}</p>
           </div>
         ))}
       </div>
@@ -293,7 +294,7 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       {/* Cash flow */}
       <Card>
         <h3 className="text-sm font-extrabold text-white mb-1">Cash flow — last 30 days</h3>
-        <p className="text-[11px] text-slate-500 mb-3">Marketplace volume in vs payouts paid out, per day.</p>
+        <p className="text-[11px] text-temple-300 mb-3">Marketplace volume in vs payouts paid out, per day.</p>
         <AreaChart inSeries={cashflow.inS} outSeries={cashflow.outS} labels={cashflow.labels} />
       </Card>
 
@@ -312,17 +313,17 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
                 <span role="button" tabIndex={0} title={`Open ${q.tab}`}
                   onClick={(e) => { e.stopPropagation(); goToTab(q.tab); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') goToTab(q.tab); }}
-                  className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg text-slate-400 hover:text-amber-300 flex items-center justify-center">
+                  className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg text-temple-300 hover:text-amber-300 flex items-center justify-center">
                   <ExternalLink className="w-4 h-4" />
                 </span>
-                <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform md:hidden ${openQueue === q.id ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-temple-300 transition-transform md:hidden ${openQueue === q.id ? 'rotate-180' : ''}`} />
               </span>
             </button>
             <div className={`px-4 pb-4 ${openQueue === q.id ? 'block' : 'hidden'} md:block`}>
               {q.rows}
               {q.count > 8 && (
                 <button type="button" onClick={() => goToTab(q.tab)}
-                  className="mt-2 w-full min-h-[44px] rounded-xl text-xs font-bold bg-slate-800 text-amber-300 hover:bg-slate-700">
+                  className="mt-2 w-full min-h-[44px] rounded-xl text-xs font-bold bg-temple-800 text-amber-300 hover:bg-temple-700">
                   View all {q.count} in {q.tab === 'billing' ? 'Billing' : q.tab === 'commission' ? 'Commission' : 'Marketplace'} →
                 </button>
               )}
@@ -334,14 +335,14 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
       {/* Dues aging */}
       <Card>
         <h3 className="text-sm font-extrabold text-white mb-1">Dues aging</h3>
-        <p className="text-[11px] text-slate-500 mb-3">Pending platform dues by age since raised ({GRACE_DAYS}-day grace).</p>
+        <p className="text-[11px] text-temple-300 mb-3">Pending platform dues by age since raised ({GRACE_DAYS}-day grace).</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {aging.map((b) => (
-            <div key={b.label} className="bg-slate-900 rounded-xl p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{b.label}</p>
-              <p className="text-[10px] text-slate-600">{b.sub}</p>
-              <p className={`text-lg font-black mt-1 ${b.min === 0 ? 'text-slate-200' : b.min <= 22 ? 'text-amber-300' : 'text-red-300'}`}>{fmtINR(b.total)}</p>
-              <p className="text-[10px] text-slate-500">{b.count} due{b.count === 1 ? '' : 's'}</p>
+            <div key={b.label} className="bg-temple-900 rounded-xl p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-temple-300">{b.label}</p>
+              <p className="text-[10px] text-temple-600">{b.sub}</p>
+              <p className={`text-lg font-black mt-1 ${b.min === 0 ? 'text-temple-200' : b.min <= 22 ? 'text-amber-300' : 'text-red-300'}`}>{fmtINR(b.total)}</p>
+              <p className="text-[10px] text-temple-300">{b.count} due{b.count === 1 ? '' : 's'}</p>
             </div>
           ))}
         </div>
@@ -361,16 +362,16 @@ const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; sub?: strin
   <div className="flex items-start gap-3 mb-4">
     <div className="w-9 h-9 rounded-xl bg-saffron-500/15 border border-saffron-500/40 flex items-center justify-center text-saffron-300 shrink-0">{icon}</div>
     <div>
-      <h3 className="text-sm font-black text-slate-100">{title}</h3>
-      {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+      <h3 className="text-sm font-black text-temple-100">{title}</h3>
+      {sub && <p className="text-xs text-temple-300 mt-0.5">{sub}</p>}
     </div>
   </div>
 );
-const inputCls = 'w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-slate-200 outline-none focus:ring-2 focus:ring-saffron-500';
-const btnGhost = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors';
+const inputCls = 'w-full bg-temple-900 border border-temple-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-temple-200 outline-none focus:ring-2 focus:ring-saffron-500';
+const btnGhost = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-temple-800 text-temple-200 hover:bg-temple-700 transition-colors';
 const btnGreen = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-colors';
 const btnRed = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-red-600 text-white hover:bg-red-500 transition-colors';
-const btnSaffron = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-saffron-500 text-slate-950 hover:bg-saffron-400 transition-colors';
+const btnSaffron = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-saffron-500 text-temple-950 hover:bg-saffron-400 transition-colors';
 
 /* ============================ Review queue ============================= */
 
@@ -449,16 +450,16 @@ const ReviewQueue: React.FC = () => {
   };
 
   const renderDocValue = (v: any): React.ReactNode => {
-    if (v == null || v === '') return <span className="text-slate-600">—</span>;
+    if (v == null || v === '') return <span className="text-temple-600">—</span>;
     if (typeof v === 'string' && safeExternalUrl(v)) {
       return <a href={safeExternalUrl(v)!} target="_blank" rel="noreferrer" className="text-saffron-400 underline break-all">Open document ↗</a>;
     }
-    if (Array.isArray(v)) return <span className="text-slate-300">{v.join(', ')}</span>;
-    return <span className="text-slate-300 break-words">{String(v)}</span>;
+    if (Array.isArray(v)) return <span className="text-temple-200">{v.join(', ')}</span>;
+    return <span className="text-temple-200 break-words">{String(v)}</span>;
   };
 
   if (loading) {
-    return <p className="text-sm text-slate-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading review queue…</p>;
+    return <p className="text-sm text-temple-300 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading review queue…</p>;
   }
 
   return (
@@ -466,11 +467,11 @@ const ReviewQueue: React.FC = () => {
       <div className="flex gap-2 flex-wrap">
         {(['all', 'purohit', 'jyotish'] as const).map((k) => (
           <button key={k} type="button" onClick={() => setKind(k)}
-            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black capitalize ${kind === k ? 'bg-saffron-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black capitalize ${kind === k ? 'bg-saffron-500 text-temple-950' : 'bg-temple-800 text-temple-200'}`}>
             {k === 'all' ? 'All' : k === 'purohit' ? 'Purohits' : 'Jyotishis'}
           </button>
         ))}
-        <button type="button" onClick={load} className="ml-auto p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white" aria-label="Refresh">
+        <button type="button" onClick={load} className="ml-auto p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-white" aria-label="Refresh">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -479,8 +480,8 @@ const ReviewQueue: React.FC = () => {
         <Card>
           <div className="p-8 text-center">
             <p className="text-3xl mb-2">🪔</p>
-            <p className="text-sm font-bold text-slate-300">All credentials honored</p>
-            <p className="text-xs text-slate-500 mt-1">No pending applications. New ones appear here.</p>
+            <p className="text-sm font-bold text-temple-200">All credentials honored</p>
+            <p className="text-xs text-temple-300 mt-1">No pending applications. New ones appear here.</p>
           </div>
         </Card>
       ) : apps.map((a) => (
@@ -488,47 +489,47 @@ const ReviewQueue: React.FC = () => {
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-black text-slate-100">{a.displayName}</p>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold uppercase">{a.kind}</span>
+                <p className="text-sm font-black text-temple-100">{a.displayName}</p>
+                <span className="px-2 py-0.5 rounded-full bg-temple-800 text-temple-300 text-[10px] font-bold uppercase">{a.kind}</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/40 text-[10px] font-bold">PENDING</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-temple-300 mt-1">
                 {[a.city, a.experienceYears != null ? `${a.experienceYears} yrs` : null, a.idProofType].filter(Boolean).join(' · ')}
                 {a.createdAt && ` · applied ${new Date(a.createdAt).toLocaleDateString(appLocale())}`}
               </p>
             </div>
             <button type="button" onClick={() => setOpen(open === a.id ? null : a.id)}
-              className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-800 text-slate-300" aria-label="Toggle credentials">
+              className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-temple-800 text-temple-200" aria-label="Toggle credentials">
               {open === a.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
 
           {open === a.id && (
-            <div className="mt-3 rounded-xl bg-slate-900/80 border border-slate-800 p-3 space-y-2">
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+            <div className="mt-3 rounded-xl bg-temple-900/80 border border-temple-800 p-3 space-y-2">
+              <p className="text-[11px] font-black text-temple-300 uppercase tracking-wide flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5" /> Sacred credentials
               </p>
               {DOC_KEYS.map(({ key, required }) => {
                 const v = a.documents?.[key];
                 const present = v != null && v !== '';
                 return (
-                  <div key={key} className="flex items-start gap-2 text-xs py-1.5 border-b border-slate-800/60 last:border-0">
-                    <span className={`mt-0.5 ${present ? 'text-emerald-400' : required ? 'text-red-400' : 'text-slate-600'}`}>
+                  <div key={key} className="flex items-start gap-2 text-xs py-1.5 border-b border-temple-800/60 last:border-0">
+                    <span className={`mt-0.5 ${present ? 'text-emerald-400' : required ? 'text-red-400' : 'text-temple-600'}`}>
                       {present ? '●' : '○'}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="font-bold text-slate-300 capitalize">{key}</span>
-                      {!required && <span className="ml-2 text-[10px] text-slate-500">optional</span>}
+                      <span className="font-bold text-temple-200 capitalize">{key}</span>
+                      {!required && <span className="ml-2 text-[10px] text-temple-300">optional</span>}
                       <div className="mt-0.5">{renderDocValue(v)}</div>
                     </div>
                   </div>
                 );
               })}
               {(a.certificates?.length || a.specializations?.length || a.gurukulAffiliation) && (
-                <div className="text-xs text-slate-400 pt-1 space-y-0.5">
-                  {a.gurukulAffiliation && <p><span className="font-bold text-slate-300">Parampara:</span> {a.gurukulAffiliation}</p>}
-                  {a.certificates && a.certificates.length > 0 && <p><span className="font-bold text-slate-300">Certificates:</span> {a.certificates.join(', ')}</p>}
-                  {a.specializations && a.specializations.length > 0 && <p><span className="font-bold text-slate-300">Specializations:</span> {a.specializations.join(', ')}</p>}
+                <div className="text-xs text-temple-300 pt-1 space-y-0.5">
+                  {a.gurukulAffiliation && <p><span className="font-bold text-temple-200">Parampara:</span> {a.gurukulAffiliation}</p>}
+                  {a.certificates && a.certificates.length > 0 && <p><span className="font-bold text-temple-200">Certificates:</span> {a.certificates.join(', ')}</p>}
+                  {a.specializations && a.specializations.length > 0 && <p><span className="font-bold text-temple-200">Specializations:</span> {a.specializations.join(', ')}</p>}
                 </div>
               )}
             </div>
@@ -551,24 +552,24 @@ const ReviewQueue: React.FC = () => {
 
       {rejectFor && (
         <div className="fixed inset-0 z-[70] bg-black/70 flex items-end sm:items-center justify-center" onClick={() => setRejectFor(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-black text-slate-100 mb-1">Decline {rejectFor.displayName}</h3>
-            <p className="text-xs text-slate-400 mb-4">{sevaProCopy(tplLang, 'reasonRequired')}</p>
+          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-black text-temple-100 mb-1">Decline {rejectFor.displayName}</h3>
+            <p className="text-xs text-temple-300 mb-4">{sevaProCopy(tplLang, 'reasonRequired')}</p>
             <div className="flex gap-2 mb-3">
               {(['en', 'bn', 'hi'] as SevaProLang[]).map((l) => (
                 <button key={l} type="button" onClick={() => { setTplLang(l); setReason(sevaProCopy(l, template as any)); }}
-                  className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-black uppercase ${tplLang === l ? 'bg-saffron-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+                  className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-black uppercase ${tplLang === l ? 'bg-saffron-500 text-temple-950' : 'bg-temple-800 text-temple-200'}`}>
                   {l}
                 </button>
               ))}
             </div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5">Kind message template</label>
+            <label className="block text-xs font-bold text-temple-300 mb-1.5">Kind message template</label>
             <select value={template} onChange={(e) => { setTemplate(e.target.value); setReason(sevaProCopy(tplLang, e.target.value as any)); }} className={`${inputCls} mb-3`}>
               {REJECT_TEMPLATE_KEYS.map((k) => (
                 <option key={k} value={k}>{sevaProCopy('en', k as any).slice(0, 60)}…</option>
               ))}
             </select>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5">Reason (the applicant reads this)</label>
+            <label className="block text-xs font-bold text-temple-300 mb-1.5">Reason (the applicant reads this)</label>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={4} maxLength={500} className={`${inputCls} mb-4`} />
             <div className="flex gap-2">
               <button type="button" onClick={reject} disabled={working === rejectFor.id} className={`${btnRed} flex-1 disabled:opacity-50`}>
@@ -642,7 +643,7 @@ const ProfessionalControls: React.FC = () => {
         <div className="flex gap-2 flex-wrap">
           {(['purohit', 'jyotish'] as ProfessionalKind[]).map((k) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black capitalize ${kind === k ? 'bg-saffron-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+              className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black capitalize ${kind === k ? 'bg-saffron-500 text-temple-950' : 'bg-temple-800 text-temple-200'}`}>
               {k === 'purohit' ? 'Purohit' : 'Jyotishi'}
             </button>
           ))}
@@ -659,7 +660,7 @@ const ProfessionalControls: React.FC = () => {
         <>
           <Card>
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-sm font-black text-slate-100">{pro.displayName}</p>
+              <p className="text-sm font-black text-temple-100">{pro.displayName}</p>
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black ${badge.accentClass}`}>
                 <span>{badge.icon}</span> {badge.label}
               </span>
@@ -675,9 +676,9 @@ const ProfessionalControls: React.FC = () => {
                 { label: 'Completed', value: String(pro.completedSevas) },
                 { label: 'Rating', value: pro.ratingCount > 0 ? `${pro.ratingAggregate.toFixed(1)}★` : '—' },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl bg-slate-900 border border-slate-800 py-2.5">
-                  <p className="text-base font-black text-slate-100">{s.value}</p>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wide">{s.label}</p>
+                <div key={s.label} className="rounded-xl bg-temple-900 border border-temple-800 py-2.5">
+                  <p className="text-base font-black text-temple-100">{s.value}</p>
+                  <p className="text-[10px] text-temple-300 uppercase tracking-wide">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -760,7 +761,7 @@ const GlobalDefaults: React.FC = () => {
     setSaving(false);
   };
 
-  if (loading) return <p className="text-sm text-slate-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading defaults…</p>;
+  if (loading) return <p className="text-sm text-temple-300 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline mr-2" />Loading defaults…</p>;
 
   const bracketPreview = cfg.commissionSchedule.map((b, i) => {
     const span = typeof b.sevas === 'number' ? `${b.sevas}` : '∞';
@@ -774,17 +775,17 @@ const GlobalDefaults: React.FC = () => {
         <SectionTitle icon={<Settings2 className="w-4 h-4" />} title="Welcome blessing defaults" sub="Applied to every professional newly honored as VERIFIED. Existing professionals keep the schedule they were promised." />
         <div className="grid sm:grid-cols-3 gap-3">
           <label className="block">
-            <span className="block text-xs font-bold text-slate-400 mb-1.5">Default free sevas</span>
+            <span className="block text-xs font-bold text-temple-300 mb-1.5">Default free sevas</span>
             <input type="number" min={0} max={50} value={cfg.defaultFreeSevas}
               onChange={(e) => setCfg({ ...cfg, defaultFreeSevas: Number(e.target.value) })} className={inputCls} />
           </label>
           <label className="block">
-            <span className="block text-xs font-bold text-slate-400 mb-1.5">Trusted boost (days)</span>
+            <span className="block text-xs font-bold text-temple-300 mb-1.5">Trusted boost (days)</span>
             <input type="number" min={0} max={365} value={cfg.trustedBoostDays}
               onChange={(e) => setCfg({ ...cfg, trustedBoostDays: Number(e.target.value) })} className={inputCls} />
           </label>
           <label className="block">
-            <span className="block text-xs font-bold text-slate-400 mb-1.5">Manual boost default (days)</span>
+            <span className="block text-xs font-bold text-temple-300 mb-1.5">Manual boost default (days)</span>
             <input type="number" min={0} max={365} value={cfg.manualBoostDays}
               onChange={(e) => setCfg({ ...cfg, manualBoostDays: Number(e.target.value) })} className={inputCls} />
           </label>
@@ -811,7 +812,7 @@ const GlobalDefaults: React.FC = () => {
               }}
               className={`${inputCls} !w-32`} aria-label={`Bracket ${i + 1} rate multiplier`} />
             <button type="button" onClick={() => setCfg({ ...cfg, commissionSchedule: cfg.commissionSchedule.filter((_, j) => j !== i) })}
-              className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-slate-800 text-red-400" aria-label="Remove bracket">
+              className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl bg-temple-800 text-red-400" aria-label="Remove bracket">
               <XCircle className="w-4 h-4" />
             </button>
           </div>
@@ -819,8 +820,8 @@ const GlobalDefaults: React.FC = () => {
         <button type="button" onClick={() => setCfg({ ...cfg, commissionSchedule: [...cfg.commissionSchedule, { rate: 1 }] })} className={btnGhost}>
           + Add bracket
         </button>
-        <p className="text-[11px] text-slate-500 mt-3 font-mono break-words">{bracketPreview}</p>
-        <p className="text-[11px] text-slate-500 mt-1">
+        <p className="text-[11px] text-temple-300 mt-3 font-mono break-words">{bracketPreview}</p>
+        <p className="text-[11px] text-temple-300 mt-1">
           Preview at 12% standard: sevas 1–3 → 0%, 4–8 → {Math.round(scheduleMultiplierFor(cfg.commissionSchedule, 3) * 12 * 100) / 100}%, 9+ → 12%.
         </p>
       </Card>
@@ -847,7 +848,7 @@ export const ProfessionalsTab: React.FC = () => {
           { id: 'defaults', label: 'Program defaults', icon: <Settings2 className="w-3.5 h-3.5" /> },
         ] as const).map((s) => (
           <button key={s.id} type="button" onClick={() => setSection(s.id)}
-            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black inline-flex items-center gap-2 ${section === s.id ? 'bg-saffron-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+            className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black inline-flex items-center gap-2 ${section === s.id ? 'bg-saffron-500 text-temple-950' : 'bg-temple-800 text-temple-200'}`}>
             {s.icon} {s.label}
           </button>
         ))}

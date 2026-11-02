@@ -18,13 +18,13 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { friendlyError } from '../../../lib/friendlyError';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`rounded-2xl bg-slate-950/70 border border-slate-800 p-4 ${className}`}>{children}</div>
+  <div className={`rounded-2xl bg-temple-950/70 border border-temple-800 p-4 ${className}`}>{children}</div>
 );
 const Empty: React.FC<{ text: string }> = ({ text }) => (
-  <p className="text-xs text-slate-500 py-6 text-center">{text}</p>
+  <p className="text-xs text-temple-300 py-6 text-center">{text}</p>
 );
 const Loading: React.FC<{ text?: string }> = ({ text = 'Loading…' }) => (
-  <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+  <div className="flex items-center justify-center py-16 text-temple-300 text-sm">
     <RefreshCw className="w-5 h-5 animate-spin mr-2" /> {text}
   </div>
 );
@@ -33,13 +33,13 @@ const SubTabs: React.FC<{ tabs: string[]; active: string; onChange: (t: string) 
     {tabs.map((t) => (
       <button key={t} type="button" onClick={() => onChange(t)}
         className={`px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap shrink-0 ${
-          active === t ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
+          active === t ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'
         }`}>{t}</button>
     ))}
   </div>
 );
 
-const inputCls = 'w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-slate-200 outline-none focus:ring-2 focus:ring-saffron-500';
+const inputCls = 'w-full bg-temple-900 border border-temple-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-temple-200 outline-none focus:ring-2 focus:ring-saffron-500';
 
 /* ------------------------------ Commission ------------------------------ */
 
@@ -81,14 +81,14 @@ const RulesView: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-400">Platform fee per service type. Applies to future marketplace bookings.</p>
+        <p className="text-xs text-temple-300">Platform fee per service type. Applies to future marketplace bookings.</p>
         <button type="button" onClick={() => setForm(blank)}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black">
           <Plus className="w-4 h-4" /> New rule
         </button>
       </div>
-      <p className="text-[11px] text-slate-500 bg-slate-950/50 border border-slate-800 rounded-xl p-3">
-        These are the SAME global rules edited in <b className="text-slate-300">Marketplace → Commission</b> — one collection, two doors; edits here appear there.
+      <p className="text-[11px] text-temple-300 bg-temple-950/50 border border-temple-800 rounded-xl p-3">
+        These are the SAME global rules edited in <b className="text-temple-200">Marketplace → Commission</b> — one collection, two doors; edits here appear there.
         An active rule overrides the tier rates (Settings → Plans &amp; Terms) for matching orders, and its min/max now clamp real orders too (QUEUED #31).
       </p>
       {rules.length === 0 && <Empty text="No commission rules yet. Create one to define the platform fee." />}
@@ -97,18 +97,18 @@ const RulesView: React.FC = () => {
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-bold text-white text-sm capitalize">{r.serviceType} services</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-temple-300 mt-1">
                 <span className="text-amber-300 font-black">{r.ratePercent}%</span>
                 {r.minCommission > 0 && ` · min ₹${r.minCommission}`}
                 {r.maxCommission > 0 && ` · max ₹${r.maxCommission}`}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${r.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}`}>
+              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${r.active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-temple-800 text-temple-300'}`}>
                 {r.active ? 'active' : 'off'}
               </span>
               <button type="button" aria-label="Edit rule" onClick={() => setForm({ ...r })}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-white hover:bg-temple-800">
                 <Pencil className="w-4 h-4" />
               </button>
             </div>
@@ -124,25 +124,25 @@ const RulesView: React.FC = () => {
         <div className="flex gap-2 items-center">
           <input value={testGross} onChange={(e) => setTestGross(e.target.value)} inputMode="decimal"
             className={inputCls + ' max-w-[140px]'} placeholder="₹ gross" />
-          <div className="text-xs text-slate-300">
+          <div className="text-xs text-temple-200">
             {rules.filter((r) => r.active).map((r) => {
               const p = previewCommission(Number(testGross) || 0, r.ratePercent, r.minCommission || 0, r.maxCommission || 0);
               return (
                 <p key={r.id} className="mb-1">
-                  <span className="capitalize text-slate-500">{r.serviceType}:</span>{' '}
+                  <span className="capitalize text-temple-300">{r.serviceType}:</span>{' '}
                   fee <span className="font-bold text-amber-300">₹{p.commission}</span> · provider gets{' '}
                   <span className="font-bold text-emerald-300">₹{p.net}</span>
                 </p>
               );
             })}
-            {rules.filter((r) => r.active).length === 0 && <span className="text-slate-500">No active rules.</span>}
+            {rules.filter((r) => r.active).length === 0 && <span className="text-temple-300">No active rules.</span>}
           </div>
         </div>
       </Card>
 
       {form && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-4">{form.id ? 'Edit rule' : 'New rule'}</h3>
             <div className="space-y-3">
               <select value={form.serviceType} onChange={(e) => setForm({ ...form, serviceType: e.target.value })} className={inputCls}>
@@ -151,21 +151,21 @@ const RulesView: React.FC = () => {
                 <option value="jyotishi">Jyotishi only</option>
               </select>
               <div className="grid grid-cols-3 gap-2">
-                <label className="text-[11px] text-slate-500">Rate %<input type="number" value={form.ratePercent}
+                <label className="text-[11px] text-temple-300">Rate %<input type="number" value={form.ratePercent}
                   onChange={(e) => setForm({ ...form, ratePercent: Number(e.target.value) })} className={inputCls} /></label>
-                <label className="text-[11px] text-slate-500">Min ₹<input type="number" value={form.minCommission || ''}
+                <label className="text-[11px] text-temple-300">Min ₹<input type="number" value={form.minCommission || ''}
                   onChange={(e) => setForm({ ...form, minCommission: Number(e.target.value) })} className={inputCls} /></label>
-                <label className="text-[11px] text-slate-500">Max ₹ (0=none)<input type="number" value={form.maxCommission || ''}
+                <label className="text-[11px] text-temple-300">Max ₹ (0=none)<input type="number" value={form.maxCommission || ''}
                   onChange={(e) => setForm({ ...form, maxCommission: Number(e.target.value) })} className={inputCls} /></label>
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-300 min-h-[44px]">
+              <label className="flex items-center gap-2 text-sm text-temple-200 min-h-[44px]">
                 <input type="checkbox" checked={!!form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="w-5 h-5 accent-amber-500" /> Active
               </label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={save} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   {working ? 'Saving…' : 'Save rule'}
                 </button>
               </div>
@@ -227,7 +227,7 @@ const TransactionsView: React.FC = () => {
         {['all', 'pending', 'released', 'disputed'].map((s) => (
           <button key={s} type="button" onClick={() => setFilter(s)}
             className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold capitalize ${
-              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
+              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'
             }`}>{s}</button>
         ))}
       </div>
@@ -237,14 +237,14 @@ const TransactionsView: React.FC = () => {
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0">
               <p className="text-sm font-bold text-white capitalize">{t.serviceType || 'service'}</p>
-              <p className="text-[11px] text-slate-500 font-mono truncate">provider {t.providerUid || t.providerId || '—'}</p>
+              <p className="text-[11px] text-temple-300 font-mono truncate">provider {t.providerUid || t.providerId || '—'}</p>
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(t.status)}`}>{t.status}</span>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-            <div className="bg-slate-900 rounded-xl p-2"><p className="text-slate-500 text-[10px]">Gross</p><p className="font-black text-white">₹{Number(t.grossAmount || 0).toLocaleString('en-IN')}</p></div>
-            <div className="bg-slate-900 rounded-xl p-2"><p className="text-slate-500 text-[10px]">Fee ({t.commissionPercent}%)</p><p className="font-black text-amber-300">₹{Number(t.commissionAmount || 0).toLocaleString('en-IN')}</p></div>
-            <div className="bg-slate-900 rounded-xl p-2"><p className="text-slate-500 text-[10px]">Provider</p><p className="font-black text-emerald-300">₹{Number(t.netAmount || 0).toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2"><p className="text-temple-300 text-[10px]">Gross</p><p className="font-black text-white">₹{Number(t.grossAmount || 0).toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2"><p className="text-temple-300 text-[10px]">Fee ({t.commissionPercent}%)</p><p className="font-black text-amber-300">₹{Number(t.commissionAmount || 0).toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2"><p className="text-temple-300 text-[10px]">Provider</p><p className="font-black text-emerald-300">₹{Number(t.netAmount || 0).toLocaleString('en-IN')}</p></div>
           </div>
           {t.status === 'pending' && (
             <div className="flex gap-2">
@@ -259,19 +259,19 @@ const TransactionsView: React.FC = () => {
 
       {/* Provider earnings lookup */}
       <Card>
-        <h4 className="text-xs font-bold text-slate-200 mb-2">Provider earnings lookup</h4>
+        <h4 className="text-xs font-bold text-temple-200 mb-2">Provider earnings lookup</h4>
         <div className="flex gap-2">
           <input value={earnFor} onChange={(e) => setEarnFor(e.target.value)} placeholder="provider ID…"
             className={inputCls + ' font-mono'} />
           <button type="button" onClick={checkEarnings}
-            className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">Check</button>
+            className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black">Check</button>
         </div>
         {earnings && (
           <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-            <div className="bg-slate-900 rounded-xl p-2.5"><p className="text-slate-500 text-[10px]">Lifetime gross</p><p className="font-black text-white">₹{earnings.gross.toLocaleString('en-IN')}</p></div>
-            <div className="bg-slate-900 rounded-xl p-2.5"><p className="text-slate-500 text-[10px]">Platform fees</p><p className="font-black text-amber-300">₹{earnings.commission.toLocaleString('en-IN')}</p></div>
-            <div className="bg-slate-900 rounded-xl p-2.5"><p className="text-slate-500 text-[10px]">Released to provider</p><p className="font-black text-emerald-300">₹{earnings.netReleased.toLocaleString('en-IN')}</p></div>
-            <div className="bg-slate-900 rounded-xl p-2.5"><p className="text-slate-500 text-[10px]">Pending ({earnings.txnCount} txns)</p><p className="font-black text-slate-300">₹{earnings.netPending.toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2.5"><p className="text-temple-300 text-[10px]">Lifetime gross</p><p className="font-black text-white">₹{earnings.gross.toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2.5"><p className="text-temple-300 text-[10px]">Platform fees</p><p className="font-black text-amber-300">₹{earnings.commission.toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2.5"><p className="text-temple-300 text-[10px]">Released to provider</p><p className="font-black text-emerald-300">₹{earnings.netReleased.toLocaleString('en-IN')}</p></div>
+            <div className="bg-temple-900 rounded-xl p-2.5"><p className="text-temple-300 text-[10px]">Pending ({earnings.txnCount} txns)</p><p className="font-black text-temple-200">₹{earnings.netPending.toLocaleString('en-IN')}</p></div>
           </div>
         )}
       </Card>
@@ -335,7 +335,7 @@ const PayoutsView: React.FC = () => {
         {['requested', 'approved', 'paid', 'rejected', 'all'].map((s) => (
           <button key={s} type="button" onClick={() => setFilter(s)}
             className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold capitalize shrink-0 ${
-              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-slate-900 text-slate-400 border border-slate-800'
+              filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'
             }`}>{s}</button>
         ))}
       </div>
@@ -345,18 +345,18 @@ const PayoutsView: React.FC = () => {
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0">
               <p className="text-lg font-black text-white">₹{Number(p.amount || 0).toLocaleString('en-IN')}</p>
-              <p className="text-[11px] text-slate-500 font-mono truncate">provider {p.providerUid || p.providerId || '—'} · {p.method || '—'}</p>
-              {p.accountDetails && <p className="text-[11px] text-slate-500 font-mono truncate">{p.accountDetails}</p>}
+              <p className="text-[11px] text-temple-300 font-mono truncate">provider {p.providerUid || p.providerId || '—'} · {p.method || '—'}</p>
+              {p.accountDetails && <p className="text-[11px] text-temple-300 font-mono truncate">{p.accountDetails}</p>}
             </div>
             <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(p.status)}`}>{p.status}</span>
           </div>
-          {p.requestedAt && <p className="text-[11px] text-slate-500 mb-3">Requested {new Date(p.requestedAt).toLocaleString(appLocale())}</p>}
+          {p.requestedAt && <p className="text-[11px] text-temple-300 mb-3">Requested {new Date(p.requestedAt).toLocaleString(appLocale())}</p>}
           {p.status === 'requested' && (
             <div className="flex gap-2">
               <button type="button" onClick={() => setConfirm({ id: p.id, approve: true })}
                 className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 text-white text-xs font-black">Approve</button>
               <button type="button" onClick={() => setConfirm({ id: p.id, approve: false })}
-                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300">Reject</button>
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200">Reject</button>
             </div>
           )}
           {p.status === 'approved' && (
@@ -369,15 +369,15 @@ const PayoutsView: React.FC = () => {
       ))}
       {confirm && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setConfirm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-2">{confirm.approve ? 'Approve payout?' : 'Reject payout?'}</h3>
-            <p className="text-xs text-slate-400 mb-3">
+            <p className="text-xs text-temple-300 mb-3">
               {confirm.approve ? 'Verify the amount in your bank/UPI app before approving.' : 'The provider will see this as rejected.'}
             </p>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)"
               className={inputCls + ' mb-3'} />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setConfirm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+              <button type="button" onClick={() => setConfirm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
               <button type="button" onClick={decide} disabled={working}
                 className={`flex-1 py-3 min-h-[44px] rounded-xl text-sm font-black disabled:opacity-50 ${confirm.approve ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
                 {working ? 'Working…' : confirm.approve ? 'Approve' : 'Reject'}
@@ -444,7 +444,7 @@ const AnnouncementsView: React.FC = () => {
     <div className="space-y-3">
       <div className="flex justify-end">
         <button type="button" onClick={() => setForm({ title: '', body: '', type: 'info', active: true })}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black">
           <Plus className="w-4 h-4" /> New banner
         </button>
       </div>
@@ -454,21 +454,21 @@ const AnnouncementsView: React.FC = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-bold text-white text-sm">{a.title}</p>
-              <p className="text-xs text-slate-400 mt-1 line-clamp-2">{a.body}</p>
-              <p className="text-[11px] text-slate-500 mt-1.5 capitalize">{a.type} · {a.active ? 'visible' : 'hidden'}</p>
+              <p className="text-xs text-temple-300 mt-1 line-clamp-2">{a.body}</p>
+              <p className="text-[11px] text-temple-300 mt-1.5 capitalize">{a.type} · {a.active ? 'visible' : 'hidden'}</p>
             </div>
             <div className="flex gap-1 shrink-0">
               <button type="button" aria-label="Edit" onClick={() => setForm({ ...a })}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"><Pencil className="w-4 h-4" /></button>
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-white hover:bg-temple-800"><Pencil className="w-4 h-4" /></button>
               <button type="button" aria-label="Delete" onClick={() => setDel(a.id)}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-red-300 hover:bg-slate-800"><Trash2 className="w-4 h-4" /></button>
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-red-300 hover:bg-temple-800"><Trash2 className="w-4 h-4" /></button>
             </div>
           </div>
         </Card>
       ))}
       {form && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-4">{form.id ? 'Edit' : 'New'} announcement</h3>
             <div className="space-y-3">
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -481,15 +481,15 @@ const AnnouncementsView: React.FC = () => {
                   <option value="warning">Warning</option>
                   <option value="festival">Festival</option>
                 </select>
-                <label className="flex items-center gap-2 text-sm text-slate-300 px-3 min-h-[44px]">
+                <label className="flex items-center gap-2 text-sm text-temple-200 px-3 min-h-[44px]">
                   <input type="checkbox" checked={!!form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })}
                     className="w-5 h-5 accent-amber-500" /> Visible
                 </label>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={save} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   {working ? 'Saving…' : 'Save'}</button>
               </div>
             </div>
@@ -542,7 +542,7 @@ const TemplatesView: React.FC = () => {
     <div className="space-y-3">
       <div className="flex justify-end">
         <button type="button" onClick={() => setForm({ name: '', type: 'announcement', body: '', locale: 'en' })}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black">
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black">
           <Plus className="w-4 h-4" /> New template
         </button>
       </div>
@@ -552,21 +552,21 @@ const TemplatesView: React.FC = () => {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-bold text-white text-sm">{t.name}</p>
-              <p className="text-xs text-slate-400 mt-1 line-clamp-2">{t.body}</p>
-              <p className="text-[11px] text-slate-500 mt-1.5">{t.type} · {t.locale || 'en'}</p>
+              <p className="text-xs text-temple-300 mt-1 line-clamp-2">{t.body}</p>
+              <p className="text-[11px] text-temple-300 mt-1.5">{t.type} · {t.locale || 'en'}</p>
             </div>
             <div className="flex gap-1 shrink-0">
               <button type="button" aria-label="Edit" onClick={() => setForm({ ...t })}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"><Pencil className="w-4 h-4" /></button>
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-white hover:bg-temple-800"><Pencil className="w-4 h-4" /></button>
               <button type="button" aria-label="Delete" onClick={() => setDel(t.id)}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-red-300 hover:bg-slate-800"><Trash2 className="w-4 h-4" /></button>
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-red-300 hover:bg-temple-800"><Trash2 className="w-4 h-4" /></button>
             </div>
           </div>
         </Card>
       ))}
       {form && (
         <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setForm(null)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-4">{form.id ? 'Edit' : 'New'} template</h3>
             <div className="space-y-3">
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Template name" className={inputCls} />
@@ -586,9 +586,9 @@ const TemplatesView: React.FC = () => {
               <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })}
                 placeholder="Template body — use {{name}} for personalization" rows={5} className={inputCls} />
               <div className="flex gap-2">
-                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-slate-800 text-sm font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setForm(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={save} disabled={working}
-                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-sm font-black disabled:opacity-50">
+                  className="flex-1 py-3 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-sm font-black disabled:opacity-50">
                   {working ? 'Saving…' : 'Save'}</button>
               </div>
             </div>
@@ -633,16 +633,16 @@ const SiteContentView: React.FC = () => {
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-temple-300">
         Key-value content for the landing page. The app reads these keys when present, falling back to built-in copy.
       </p>
       {items.length === 0 && (
         <Card className="border-dashed">
-          <p className="text-xs text-slate-500 mb-2">No overrides yet. Suggested keys:</p>
+          <p className="text-xs text-temple-300 mb-2">No overrides yet. Suggested keys:</p>
           <div className="flex flex-wrap gap-1.5">
             {SUGGESTED.map((k) => (
               <button key={k} type="button" onClick={() => setNewKey(k)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-[11px] font-mono text-saffron-300 hover:bg-slate-700 min-h-[36px]">{k}</button>
+                className="px-2.5 py-1.5 rounded-lg bg-temple-800 text-[11px] font-mono text-saffron-300 hover:bg-temple-700 min-h-[36px]">{k}</button>
             ))}
           </div>
         </Card>
@@ -654,7 +654,7 @@ const SiteContentView: React.FC = () => {
             <div className="space-y-2">
               <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} className={inputCls} />
               <div className="flex gap-2">
-                <button type="button" onClick={() => setEditKey(null)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300">Cancel</button>
+                <button type="button" onClick={() => setEditKey(null)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200">Cancel</button>
                 <button type="button" onClick={() => save(it.key || it.id, draft)} disabled={working}
                   className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 text-white text-xs font-black disabled:opacity-50">
                   {working ? '…' : 'Save'}</button>
@@ -662,9 +662,9 @@ const SiteContentView: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-slate-300 flex-1 line-clamp-3">{it.value || '—'}</p>
+              <p className="text-xs text-temple-200 flex-1 line-clamp-3">{it.value || '—'}</p>
               <button type="button" onClick={() => { setEditKey(it.id); setDraft(it.value || ''); }}
-                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 shrink-0">
+                className="p-2.5 min-w-[44px] min-h-[44px] rounded-xl text-temple-300 hover:text-white hover:bg-temple-800 shrink-0">
                 <Pencil className="w-4 h-4" />
               </button>
             </div>
@@ -672,18 +672,18 @@ const SiteContentView: React.FC = () => {
         </Card>
       ))}
       <Card>
-        <h4 className="text-xs font-bold text-slate-300 mb-2">Add content key</h4>
+        <h4 className="text-xs font-bold text-temple-200 mb-2">Add content key</h4>
         <div className="flex gap-2">
           <input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="e.g. hero_title"
             className={inputCls + ' font-mono'} />
           <button type="button" onClick={() => { if (newKey.trim()) { setEditKey('__new'); setDraft(''); } }}
-            disabled={!newKey.trim()} className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-slate-950 text-xs font-black disabled:opacity-50">Add</button>
+            disabled={!newKey.trim()} className="px-5 min-h-[44px] rounded-xl bg-saffron-500 text-temple-950 text-xs font-black disabled:opacity-50">Add</button>
         </div>
         {editKey === '__new' && (
           <div className="space-y-2 mt-3">
             <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} placeholder="Content…" className={inputCls} />
             <div className="flex gap-2">
-              <button type="button" onClick={() => setEditKey(null)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-800 text-xs font-bold text-slate-300">Cancel</button>
+              <button type="button" onClick={() => setEditKey(null)} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200">Cancel</button>
               <button type="button" onClick={() => save(newKey, draft)} disabled={working}
                 className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 text-white text-xs font-black disabled:opacity-50">
                 {working ? '…' : 'Save'}</button>
@@ -754,8 +754,8 @@ const PanjikaIntelView: React.FC = () => {
       <Card>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h3 className="font-extrabold text-slate-100">🪔 Panjika Intelligence matrix</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-xl">
+            <h3 className="font-extrabold text-temple-100">🪔 Panjika Intelligence matrix</h3>
+            <p className="text-xs text-temple-300 mt-1 max-w-xl">
               Role-aware suchana before each tithi. Disable any reminder or adjust its lead
               days. Empty = built-in defaults. Changes apply to all users within minutes
               (local cache refresh).
@@ -776,21 +776,21 @@ const PanjikaIntelView: React.FC = () => {
               const key = `${d.eventType}:${d.role}`;
               const off = disabled.includes(key);
               return (
-                <div key={key} className={`rounded-xl border p-3 ${off ? 'border-slate-800 opacity-50' : 'border-slate-700/60'}`}>
+                <div key={key} className={`rounded-xl border p-3 ${off ? 'border-temple-800 opacity-50' : 'border-temple-700/60'}`}>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex-1 min-w-[200px]">
-                      <div className="text-sm font-bold text-slate-200">{d.title.en}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">{key}</div>
+                      <div className="text-sm font-bold text-temple-200">{d.title.en}</div>
+                      <div className="text-[11px] text-temple-300 font-mono">{key}</div>
                     </div>
-                    <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <label className="flex items-center gap-1.5 text-[11px] text-temple-300">
                       lead
                       <input type="number" min={0} max={90} value={leads[key] ?? d.leadDays}
                         onChange={(e) => setLead(key, Number(e.target.value))}
-                        className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-200" />
+                        className="w-16 bg-temple-900 border border-temple-700 rounded-lg px-2 py-1.5 text-sm text-temple-200" />
                       d
                     </label>
                     <button type="button" onClick={() => toggle(key)}
-                      className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold ${off ? 'bg-slate-800 text-slate-400' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40'}`}>
+                      className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold ${off ? 'bg-temple-800 text-temple-300' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40'}`}>
                       {off ? 'Disabled' : 'Enabled'}
                     </button>
                   </div>

@@ -204,7 +204,7 @@ describe('A3-10 guide anchors wired', () => {
 describe('mobile clipping fixes at the root', () => {
   it('Settings tabs wrap instead of scrolling behind a hidden scrollbar', () => {
     const src = read('domain6/MasterSettingsDesk.tsx');
-    expect(src).toContain('flex flex-wrap gap-2 border-b border-gray-200');
+    expect(src).toContain('flex flex-wrap gap-2 border-b border-stone-200');
     expect(src).not.toContain('overflow-x-auto scrollbar-hide');
   });
 

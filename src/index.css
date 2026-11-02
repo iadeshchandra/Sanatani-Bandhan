@@ -48,34 +48,28 @@
   --peacock-500: #1F6E6B;
   --peacock-700: #144E4C;
   --peacock-900: #0C3433;
-}
 
-:root[data-theme="classic"] {
-  /* Classic Theme - Indigo/Slate */
-  --saffron-50: #EEF2FF;
-  --saffron-100: #E0E7FF;
-  --saffron-200: #C7D2FE;
-  --saffron-300: #A5B4FC;
-  --saffron-400: #818CF8;
-  --saffron-500: #6366F1;
-  --saffron-600: #4F46E5;
-  --saffron-700: #4338CA;
-  --saffron-800: #3730A3;
-  --saffron-900: #312E81;
-  --saffron-950: #1E1B4B;
-  --sanatani-orange: #6366F1;
+  /* DESIGN ELEVATION E1 — the ONE primary-action token (audit taste
+     rule 1; closes DE-03). Deepened marigold: white text on
+     saffron-700 measures 4.63:1 (AA for normal text); on saffron-500
+     it measured 2.30:1. Every primary button fills with --cta and
+     deepens to --cta-hover. Saffron-500 itself stays the bright
+     accent (icons, tints, flames) — it is no longer a text ground. */
+  --cta: var(--saffron-700);
+  --cta-hover: var(--saffron-800);
 
-  --temple-50: #F8FAFC;
-  --temple-100: #F1F5F9;
-  --temple-200: #E2E8F0;
-  --temple-300: #CBD5E1;
-  --temple-400: #94A3B8;
-  --temple-500: #64748B;
-  --temple-600: #475569;
-  --temple-700: #334155;
-  --temple-800: #1E293B;
-  --temple-900: #0F172A;
-  --temple-950: #020617;
+  /* DESIGN ELEVATION E1 — sacred golds + the ONE maroon, promoted to
+     CSS tokens (they mirror SACRED / MAROON in lib/designTokens.ts,
+     the canonical TS source). --maroon-deep / --maroon-wine are the
+     Gurukul hero's stops, promoted from hardcoded hex so the hero
+     speaks tokens like everything else. */
+  --gold: #F59E0B;
+  --gold-bright: #FBBF24;
+  --maroon-dark: #431407;
+  --maroon: #7C2D12;
+  --maroon-soft: #9A3412;
+  --maroon-deep: #3D0F1E;
+  --maroon-wine: #5C1A2A;
 }
 
 @theme {
@@ -124,6 +118,21 @@
   --color-peacock-500: var(--peacock-500);
   --color-peacock-700: var(--peacock-700);
   --color-peacock-900: var(--peacock-900);
+
+  /* DESIGN ELEVATION E1 — primary-action utilities (bg-cta,
+     hover:bg-cta-hover, …) riding the token above. */
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+
+  /* DESIGN ELEVATION E1 — gold + maroon utilities (bg-maroon,
+     text-maroon-wine, …) riding the tokens above. */
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-maroon-dark: var(--maroon-dark);
+  --color-maroon: var(--maroon);
+  --color-maroon-soft: var(--maroon-soft);
+  --color-maroon-deep: var(--maroon-deep);
+  --color-maroon-wine: var(--maroon-wine);
 }
 
 

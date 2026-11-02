@@ -227,7 +227,7 @@ export const DeskDirectory: React.FC<{
     requiredTierForModule(id) === 'PREMIUM' ? 'Premium' : 'Standard';
 
   return (
-    <div className="min-h-full bg-slate-50/60 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full bg-temple-50/60 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Header */}
         <div className="flex flex-wrap items-start gap-4">
@@ -235,14 +235,14 @@ export const DeskDirectory: React.FC<{
             <LayoutGrid className="h-6 w-6 text-orange-600" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+            <h1 className="text-xl font-black tracking-tight text-temple-900 sm:text-2xl">
               {t('suites.seva.directory.title')}
             </h1>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-temple-600">
               {t('suites.seva.directory.subtitle')}
             </p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600">
+          <span className="rounded-full border border-temple-200 bg-white px-3 py-1.5 text-xs font-black text-temple-600">
             {model.desks.length}
           </span>
         </div>
@@ -250,7 +250,7 @@ export const DeskDirectory: React.FC<{
         {/* Search */}
         <div className="relative">
           <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-temple-600"
             aria-hidden="true"
           />
           <input
@@ -259,14 +259,14 @@ export const DeskDirectory: React.FC<{
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('suites.seva.directory.searchPlaceholder')}
             aria-label={t('suites.seva.directory.searchPlaceholder')}
-            className="min-h-[48px] w-full rounded-2xl border border-slate-200 bg-white py-3 pl-12 pr-12 text-sm font-medium text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+            className="min-h-[48px] w-full rounded-2xl border border-temple-200 bg-white py-3 pl-12 pr-12 text-sm font-medium text-temple-800 shadow-sm outline-none transition placeholder:text-temple-600 focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
               aria-label="Clear search"
-              className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-temple-600 transition hover:bg-temple-100 hover:text-temple-600"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -281,7 +281,7 @@ export const DeskDirectory: React.FC<{
           <button
             type="button"
             onClick={() => onNavigate('margdarshan')}
-            className="group flex min-h-[44px] w-full items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 text-left shadow-sm transition hover:border-orange-300 hover:shadow"
+            className="group flex min-h-[44px] w-full items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm transition hover:border-orange-300 hover:shadow"
           >
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-white">
               <BookOpen className="h-5 w-5 text-orange-600" aria-hidden="true" />
@@ -304,7 +304,7 @@ export const DeskDirectory: React.FC<{
         {/* Suggested — only in browse mode (search narrows to matches). */}
         {!q && (visiblePending.length > 0 || recommendations.length > 0) && (
           <section aria-label={t('suites.seva.directory.suggestedTitle')}>
-            <h2 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
+            <h2 className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-temple-600">
               <Sparkles className="h-4 w-4 text-orange-500" aria-hidden="true" />
               {t('suites.seva.directory.suggestedTitle')}
             </h2>
@@ -327,7 +327,7 @@ export const DeskDirectory: React.FC<{
                     return (
                       <div
                         key={r.moduleId}
-                        className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                        className="flex items-start gap-3 rounded-2xl border border-temple-200 bg-white p-4 shadow-sm"
                       >
                         <div
                           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${fam.chipClass}`}
@@ -335,16 +335,16 @@ export const DeskDirectory: React.FC<{
                           <Icon className={`h-5 w-5 ${fam.iconClass}`} aria-hidden="true" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-slate-800">
+                          <p className="truncate text-sm font-black text-temple-800">
                             {getModuleName(r.moduleId, currentLang)}
                           </p>
-                          <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-500">
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-temple-600">
                             {localizeText(r.reason, currentLang)}
                           </p>
                           <button
                             type="button"
                             onClick={() => handleOpenRecommendation(r)}
-                            className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-orange-500 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-orange-600"
+                            className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-cta px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-cta-hover"
                           >
                             {t('suites.seva.cards.open')}
                             <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -366,9 +366,9 @@ export const DeskDirectory: React.FC<{
           );
           return (
             <section key={family.id} aria-label={t(family.dictKey)}>
-              <h2 className="mb-3 flex items-baseline gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
+              <h2 className="mb-3 flex items-baseline gap-2 text-xs font-black uppercase tracking-widest text-temple-600">
                 {t(family.dictKey)}
-                <span className="font-bold normal-case tracking-normal text-slate-300">
+                <span className="font-bold normal-case tracking-normal text-temple-300">
                   {items.length}
                 </span>
               </h2>
@@ -386,7 +386,7 @@ export const DeskDirectory: React.FC<{
                       <button
                         type="button"
                         onClick={() => handleDeskClick(m)}
-                        className="group flex min-h-[44px] w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-200 hover:shadow"
+                        className="group flex min-h-[44px] w-full items-start gap-3 rounded-2xl border border-temple-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-200 hover:shadow"
                       >
                         <span
                           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${family.chipClass}`}
@@ -395,11 +395,11 @@ export const DeskDirectory: React.FC<{
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-1.5">
-                            <span className="truncate text-sm font-black text-slate-800">
+                            <span className="truncate text-sm font-black text-temple-800">
                               {labelFor(m)}
                             </span>
                             {model.nativeIds.has(m.id) && (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                              <span className="rounded-full bg-temple-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-temple-600">
                                 {t('suites.seva.directory.coreBadge')}
                               </span>
                             )}
@@ -415,12 +415,12 @@ export const DeskDirectory: React.FC<{
                               </span>
                             )}
                           </span>
-                          <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500">
+                          <span className="mt-1 line-clamp-2 block text-xs leading-5 text-temple-600">
                             {getModuleCopy(m.id, currentLang)}
                           </span>
                         </span>
                         <ArrowRight
-                          className="mt-1 h-4 w-4 shrink-0 text-slate-300 transition group-hover:text-orange-500"
+                          className="mt-1 h-4 w-4 shrink-0 text-temple-300 transition group-hover:text-orange-500"
                           aria-hidden="true"
                         />
                       </button>
@@ -486,17 +486,17 @@ export const DeskDirectory: React.FC<{
         })}
 
         {groups.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-            <p className="text-base font-black text-slate-700">
+          <div className="rounded-2xl border border-dashed border-temple-300 bg-white px-6 py-12 text-center">
+            <p className="text-base font-black text-temple-700">
               {t('suites.seva.directory.emptyTitle')}
             </p>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-temple-600">
               {t('suites.seva.directory.emptyDesc')}
             </p>
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="mt-4 inline-flex min-h-[44px] items-center rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white transition hover:bg-slate-800"
+              className="mt-4 inline-flex min-h-[44px] items-center rounded-xl bg-temple-900 px-5 py-2.5 text-sm font-black text-white transition hover:bg-temple-800"
             >
               {t('suites.seva.directory.title')}
             </button>

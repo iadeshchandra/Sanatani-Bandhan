@@ -82,27 +82,29 @@ export const MasterSettingsDesk: React.FC = () => {
   const [historyPartialError, setHistoryPartialError] = useState<string | null>(null);
   const [historyRetry, setHistoryRetry] = useState(0);
   
-  const [appTheme, setAppTheme] = useState<'saffron' | 'classic'>(() => {
-    return (localStorage.getItem('app-theme') as 'saffron' | 'classic') || 'saffron';
+  const [appTheme, setAppTheme] = useState<'saffron'>(() => {
+    // DESIGN ELEVATION E1 — the alternate 'classic' indigo theme is
+    // retired (audit DE-12): the sanctum theme is the only theme. A
+    // device that stored 'classic' (or any unknown id) lands on the
+    // default sanctum theme, and the stored value is healed here so
+    // the retired id never round-trips again.
+    if (localStorage.getItem('app-theme') !== 'saffron') {
+      localStorage.setItem('app-theme', 'saffron');
+    }
+    return 'saffron';
   });
 
-  const toggleTheme = (newTheme: 'saffron' | 'classic') => {
-    setAppTheme(newTheme);
-    localStorage.setItem('app-theme', newTheme);
-    if (newTheme === 'classic') {
-      document.documentElement.setAttribute('data-theme', 'classic');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    showToast(`Theme updated to ${newTheme === 'saffron' ? 'Saffron' : 'Classic'} Mode`, "success");
+  const toggleTheme = () => {
+    setAppTheme('saffron');
+    localStorage.setItem('app-theme', 'saffron');
+    document.documentElement.removeAttribute('data-theme');
+    showToast('Theme updated to Saffron Mode', "success");
   };
 
   useEffect(() => {
-    if (appTheme === 'classic') {
-      document.documentElement.setAttribute('data-theme', 'classic');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
+    // The sanctum theme is the :root default; no data-theme override
+    // exists any more (E1). Clear any attribute a retired theme left.
+    document.documentElement.removeAttribute('data-theme');
   }, [appTheme]);
   
   const [confirmDialog, setConfirmDialog] = useState<any>(null);
@@ -404,15 +406,15 @@ export const MasterSettingsDesk: React.FC = () => {
 
       {/* ✨ CONFIRMATION DIALOG PORTAL */}
       {confirmDialog && createPortal(
-        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 text-center border-t-4 border-sanatani-orange max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner ${confirmDialog.isDanger ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
               {confirmDialog.isDanger ? <AlertTriangle size={32}/> : <CheckCircle2 size={32}/>}
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{confirmDialog.title}</h3>
-            <p className="text-sm font-bold text-gray-500 mb-8 leading-relaxed whitespace-pre-wrap">{confirmDialog.message}</p>
+            <h3 className="text-xl font-black text-stone-900 mb-2 tracking-tight">{confirmDialog.title}</h3>
+            <p className="text-sm font-bold text-stone-500 mb-8 leading-relaxed whitespace-pre-wrap">{confirmDialog.message}</p>
             <div className="flex gap-3">
-              {confirmDialog.isDanger && <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{localSafeTranslate('btn_cancel', 'Cancel')}</button>}
+              {confirmDialog.isDanger && <button onClick={() => setConfirmDialog(null)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm">{localSafeTranslate('btn_cancel', 'Cancel')}</button>}
               <button onClick={confirmDialog.onConfirm} className={`flex-1 font-black py-3.5 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 ${confirmDialog.isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>
                 {confirmDialog.confirmText}
               </button>
@@ -432,13 +434,13 @@ export const MasterSettingsDesk: React.FC = () => {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl shadow-sm ring-1 ring-black/5">
         <div>
-          <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 tracking-tight">
+          <h2 className="text-2xl font-black text-stone-900 flex items-center gap-2 tracking-tight">
             <Settings className="text-sanatani-orange" size={28} /> {localSafeTranslate('nav_settings', 'Workspace Settings')}
           </h2>
-          <p className="text-xs text-gray-500 font-bold mt-1 uppercase tracking-widest">{localSafeTranslate('settings_subtitle', 'Manage identity, usage counters, and secure access.')}</p>
+          <p className="text-xs text-stone-500 font-bold mt-1 uppercase tracking-widest">{localSafeTranslate('settings_subtitle', 'Manage identity, usage counters, and secure access.')}</p>
         </div>
         {!isAdmin && (
-           <div className="bg-gray-100 text-gray-500 border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm w-fit">
+           <div className="bg-stone-100 text-stone-500 border border-stone-200 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm w-fit">
              <Lock size={16}/> <span className="text-[10px] font-black uppercase tracking-widest">View Only Mode</span>
            </div>
         )}
@@ -449,15 +451,15 @@ export const MasterSettingsDesk: React.FC = () => {
           with its scrollbar hidden, so "Billing & Subscription" clipped
           mid-word with no affordance. Tabs now WRAP to a second row on
           narrow screens — every label fully visible, nothing hidden. */}
-      <div className="flex flex-wrap gap-2 border-b border-gray-200 mb-2">
-         <button onClick={() => setActiveTab('GENERAL')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GENERAL' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+      <div className="flex flex-wrap gap-2 border-b border-stone-200 mb-2">
+         <button onClick={() => setActiveTab('GENERAL')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GENERAL' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-stone-600 hover:text-stone-700'}`}>
            <Settings size={16}/> General Settings
          </button>
-         <button onClick={() => setActiveTab('BILLING')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'BILLING' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+         <button onClick={() => setActiveTab('BILLING')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'BILLING' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-stone-600 hover:text-stone-700'}`}>
            <CreditCard size={16}/> Billing & Subscription
          </button>
          {isOwnerEmail(auth.currentUser?.email) && (
-           <button onClick={() => setActiveTab('GEO')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GEO' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-gray-400 hover:text-gray-700'}`}>
+           <button onClick={() => setActiveTab('GEO')} className={`pb-3 pt-2 min-h-[44px] text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-2 whitespace-nowrap px-2 ${activeTab === 'GEO' ? 'text-sanatani-orange border-b-2 border-sanatani-orange' : 'text-stone-600 hover:text-stone-700'}`}>
              <Globe size={16}/> Geo Payments
            </button>
          )}
@@ -472,14 +474,14 @@ export const MasterSettingsDesk: React.FC = () => {
               maker–checker dual control: edits file an approval
               request; a second pair of eyes applies the change. */}
           <PaymentDetailsCard />
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
+          <div className="bg-white rounded-3xl shadow-sm border border-stone-100 relative overflow-hidden ring-1 ring-black/5">
 
              {/* Dynamic Banner Area */}
-             <div className="h-32 sm:h-40 bg-gray-200 relative group">
+             <div className="h-32 sm:h-40 bg-stone-200 relative group">
                 {workspaceInfo.bannerUrl ? (
                    <img src={workspaceInfo.bannerUrl || undefined} alt="Cover Banner" className="w-full h-full object-cover" />
                 ) : (
-                   <div className="w-full h-full bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center text-gray-400">
+                   <div className="w-full h-full bg-stone-200 flex items-center justify-center text-stone-600">
                      <ImageIcon size={32} className="opacity-50"/>
                    </div>
                 )}
@@ -518,11 +520,11 @@ export const MasterSettingsDesk: React.FC = () => {
                  </div>
                </div>
 
-               <h3 className="text-sm font-black text-gray-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest">
+               <h3 className="text-sm font-black text-stone-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-stone-100 pb-4 uppercase tracking-widest">
                  <div className="flex items-center gap-2">
                    <Building2 size={18} className="text-sanatani-orange" /> {localSafeTranslate('official_identity', 'Official Identity')}
                  </div>
-                 <span className="text-[10px] bg-gray-50 text-gray-500 px-3 py-1.5 rounded-lg font-mono font-bold border border-gray-200 shadow-sm flex items-center gap-1.5">
+                 <span className="text-[10px] bg-stone-50 text-stone-500 px-3 py-1.5 rounded-lg font-mono font-bold border border-stone-200 shadow-sm flex items-center gap-1.5">
                     <QrCode size={12}/> ID: {activeWorkspace?.id}
                  </span>
                </h3>
@@ -531,14 +533,14 @@ export const MasterSettingsDesk: React.FC = () => {
                   {/* BASIC INFO */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{`${workspaceTypeNameLabel(workspaceInfo.type, localSafeTranslate('name', 'Name'))} *`}</label>
-                      <input type="text" required value={workspaceInfo.name} onChange={e=>setWorkspaceInfo({...workspaceInfo, name: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{`${workspaceTypeNameLabel(workspaceInfo.type, localSafeTranslate('name', 'Name'))} *`}</label>
+                      <input type="text" required value={workspaceInfo.name} onChange={e=>setWorkspaceInfo({...workspaceInfo, name: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" />
                     </div>
                     {/* LOCKED ORGANIZATION TYPE */}
                     <div className="relative">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">{localSafeTranslate('org_type', 'Organization Type')}</label>
-                      <input type="text" value={workspaceInfo.type} disabled={true} className="w-full p-4 pr-10 bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 outline-none shadow-inner cursor-not-allowed" />
-                      <Lock size={14} className="absolute right-4 top-[40px] text-gray-400" />
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">{localSafeTranslate('org_type', 'Organization Type')}</label>
+                      <input type="text" value={workspaceInfo.type} disabled={true} className="w-full p-4 pr-10 bg-stone-100 border border-stone-200 rounded-xl text-sm font-bold text-stone-500 outline-none shadow-inner cursor-not-allowed" />
+                      <Lock size={14} className="absolute right-4 top-[40px] text-stone-600" />
                     </div>
                   </div>
 
@@ -547,16 +549,16 @@ export const MasterSettingsDesk: React.FC = () => {
                       OWN name only. */}
                   <div className="grid grid-cols-1 gap-5">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe size={12}/> Public Profile Link (Slug)</label>
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe size={12}/> Public Profile Link (Slug)</label>
                       <div className="flex items-stretch gap-2">
-                        <span className="hidden sm:flex items-center px-3 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 font-mono whitespace-nowrap">sanatanibandhan.web.app/org/</span>
-                        <input type="text" value={workspaceInfo.publicSlug} onChange={e=>setWorkspaceInfo({...workspaceInfo, publicSlug: e.target.value})} placeholder={slugResolution.suggested || 'your-organisation'} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold font-mono text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
+                        <span className="hidden sm:flex items-center px-3 bg-stone-100 border border-stone-200 rounded-xl text-xs font-bold text-stone-500 font-mono whitespace-nowrap">sanatanibandhan.web.app/org/</span>
+                        <input type="text" value={workspaceInfo.publicSlug} onChange={e=>setWorkspaceInfo({...workspaceInfo, publicSlug: e.target.value})} placeholder={slugResolution.suggested || 'your-organisation'} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold font-mono text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" />
                       </div>
-                      <p className="text-[11px] font-bold text-gray-400 mt-1.5 leading-relaxed">
+                      <p className="text-[11px] font-bold text-stone-600 mt-1.5 leading-relaxed">
                         {slugResolution.value
-                          ? <>Your public page: <span className="font-mono text-gray-500">/org/{slugResolution.value}</span></>
+                          ? <>Your public page: <span className="font-mono text-stone-500">/org/{slugResolution.value}</span></>
                           : slugResolution.suggested
-                            ? <>Not set yet — your page currently answers to <span className="font-mono text-gray-500">/org/{slugResolution.suggested}</span>, suggested from your organisation's own name. Save a slug here only if you want a different one.</>
+                            ? <>Not set yet — your page currently answers to <span className="font-mono text-stone-500">/org/{slugResolution.suggested}</span>, suggested from your organisation's own name. Save a slug here only if you want a different one.</>
                             : 'Not set yet — type a short link name (letters, numbers, dashes) for your public page.'}
                       </p>
                     </div>
@@ -564,8 +566,8 @@ export const MasterSettingsDesk: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe size={12}/> {localSafeTranslate('operating_currency', 'Operating Currency')}</label>
-                      <select value={workspaceInfo.currencyCode} onChange={e=>setWorkspaceInfo({...workspaceInfo, currencyCode: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm cursor-pointer appearance-none disabled:text-gray-500 disabled:cursor-not-allowed">
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe size={12}/> {localSafeTranslate('operating_currency', 'Operating Currency')}</label>
+                      <select value={workspaceInfo.currencyCode} onChange={e=>setWorkspaceInfo({...workspaceInfo, currencyCode: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm cursor-pointer appearance-none disabled:text-stone-500 disabled:cursor-not-allowed">
                         <option value="BDT">BDT (৳) - Bangladesh</option>
                         <option value="INR">INR (₹) - India</option>
                         <option value="NPR">NPR (रु) - Nepal</option>
@@ -575,39 +577,39 @@ export const MasterSettingsDesk: React.FC = () => {
                     </div>
 
                     <div className="relative">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin size={12}/> {localSafeTranslate('country', 'Country')}</label>
-                      <input type="text" value={workspaceInfo.country} onChange={e=>setWorkspaceInfo({...workspaceInfo, country: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm uppercase tracking-wider disabled:text-gray-500 disabled:cursor-not-allowed" />
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin size={12}/> {localSafeTranslate('country', 'Country')}</label>
+                      <input type="text" value={workspaceInfo.country} onChange={e=>setWorkspaceInfo({...workspaceInfo, country: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm uppercase tracking-wider disabled:text-stone-500 disabled:cursor-not-allowed" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="relative">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Phone size={12}/> {localSafeTranslate('official_phone', 'Official Phone')}</label>
-                      <input type="tel" value={workspaceInfo.phone} onChange={e=>setWorkspaceInfo({...workspaceInfo, phone: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Phone size={12}/> {localSafeTranslate('official_phone', 'Official Phone')}</label>
+                      <input type="tel" value={workspaceInfo.phone} onChange={e=>setWorkspaceInfo({...workspaceInfo, phone: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" />
                     </div>
                     <div className="relative">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Mail size={12}/> {localSafeTranslate('official_email', 'Official Email')}</label>
-                      <input type="email" value={workspaceInfo.email} onChange={e=>setWorkspaceInfo({...workspaceInfo, email: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" />
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Mail size={12}/> {localSafeTranslate('official_email', 'Official Email')}</label>
+                      <input type="email" value={workspaceInfo.email} onChange={e=>setWorkspaceInfo({...workspaceInfo, email: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-5">
                     <div className="w-full">
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin size={12}/> {localSafeTranslate('physical_address', 'Physical Address')}</label>
-                      <input type="text" value={workspaceInfo.address} onChange={e=>setWorkspaceInfo({...workspaceInfo, address: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="House, Street, City, Region..."/>
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin size={12}/> {localSafeTranslate('physical_address', 'Physical Address')}</label>
+                      <input type="text" value={workspaceInfo.address} onChange={e=>setWorkspaceInfo({...workspaceInfo, address: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="House, Street, City, Region..."/>
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-100 pt-6 mt-6">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-5 flex items-center gap-1.5"><Briefcase size={14}/> {localSafeTranslate('legal_info', 'Legal & Extended Information')}</h4>
+                  <div className="border-t border-stone-100 pt-6 mt-6">
+                    <h4 className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-5 flex items-center gap-1.5"><Briefcase size={14}/> {localSafeTranslate('legal_info', 'Legal & Extended Information')}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                       <div>
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('reg_no', 'Registration No.')}</label>
-                        <input type="text" value={workspaceInfo.registrationNo} onChange={e=>setWorkspaceInfo({...workspaceInfo, registrationNo: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="Trust/Society Reg No."/>
+                        <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('reg_no', 'Registration No.')}</label>
+                        <input type="text" value={workspaceInfo.registrationNo} onChange={e=>setWorkspaceInfo({...workspaceInfo, registrationNo: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="Trust/Society Reg No."/>
                       </div>
                       <div>
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('tax_id', 'Tax ID (PAN/BIN/EIN)')}</label>
-                        <input type="text" value={workspaceInfo.taxId} onChange={e=>setWorkspaceInfo({...workspaceInfo, taxId: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="Official Tax Identity"/>
+                        <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('tax_id', 'Tax ID (PAN/BIN/EIN)')}</label>
+                        <input type="text" value={workspaceInfo.taxId} onChange={e=>setWorkspaceInfo({...workspaceInfo, taxId: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="Official Tax Identity"/>
                       </div>
                     </div>
                     {/* H-1: 80G registration gate — receipts are SAMPLE until this is set */}
@@ -623,9 +625,9 @@ export const MasterSettingsDesk: React.FC = () => {
                           disabled={!isAdmin}
                           className="mt-1 w-5 h-5 accent-amber-600 cursor-pointer"
                         />
-                        <span className="text-xs font-bold text-gray-800 leading-relaxed">
+                        <span className="text-xs font-bold text-stone-800 leading-relaxed">
                           This organisation is registered under Section 80G of the Income Tax Act, 1961
-                          <span className="block text-[11px] font-medium text-gray-500 mt-0.5">
+                          <span className="block text-[11px] font-medium text-stone-500 mt-0.5">
                             Until enabled, all 80G receipts are clearly marked SAMPLE and carry no URN — issuing
                             unregistered 80G receipts is a compliance violation.
                           </span>
@@ -633,12 +635,12 @@ export const MasterSettingsDesk: React.FC = () => {
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">80G URN (from IT Portal)</label>
-                          <input type="text" value={workspaceInfo.eightyGURN} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGURN: e.target.value.toUpperCase()})} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
+                          <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">80G URN (from IT Portal)</label>
+                          <input type="text" value={workspaceInfo.eightyGURN} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGURN: e.target.value.toUpperCase()})} disabled={!isAdmin} className="w-full p-4 bg-white border border-stone-200 rounded-xl text-sm font-mono font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">80G Registration No.</label>
-                          <input type="text" value={workspaceInfo.eightyGRegNo} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGRegNo: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="CIT(E) approval number"/>
+                          <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">80G Registration No.</label>
+                          <input type="text" value={workspaceInfo.eightyGRegNo} onChange={e=>setWorkspaceInfo({...workspaceInfo, eightyGRegNo: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-white border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="CIT(E) approval number"/>
                         </div>
                       </div>
                     </div>
@@ -686,9 +688,9 @@ export const MasterSettingsDesk: React.FC = () => {
                           disabled={!isAdmin}
                           className="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer"
                         />
-                        <span className="text-xs font-bold text-gray-800 leading-relaxed">
+                        <span className="text-xs font-bold text-stone-800 leading-relaxed">
                           Registered under Section 12A / 12AB of the Income Tax Act, 1961
-                          <span className="block text-[11px] font-medium text-gray-500 mt-0.5">
+                          <span className="block text-[11px] font-medium text-stone-500 mt-0.5">
                             12A registration establishes the trust as a recognised charitable institution —
                             required alongside 80G for donor tax benefits.
                           </span>
@@ -696,15 +698,15 @@ export const MasterSettingsDesk: React.FC = () => {
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">12A Registration No.</label>
-                          <input type="text" value={(workspaceInfo as any).twelveANumber || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, twelveANumber: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
+                          <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">12A Registration No.</label>
+                          <input type="text" value={(workspaceInfo as any).twelveANumber || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, twelveANumber: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} className="w-full p-4 bg-white border border-stone-200 rounded-xl text-sm font-mono font-bold text-stone-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088RF20214"/>
                         </div>
                         <div>
-                          <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Trust / Organisation PAN</label>
-                          <input type="text" value={(workspaceInfo as any).trustPAN || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, trustPAN: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} maxLength={10} className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-mono font-bold text-gray-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088R"/>
+                          <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Trust / Organisation PAN</label>
+                          <input type="text" value={(workspaceInfo as any).trustPAN || ''} onChange={e=>setWorkspaceInfo({...workspaceInfo, trustPAN: e.target.value.toUpperCase()} as any)} disabled={!isAdmin} maxLength={10} className="w-full p-4 bg-white border border-stone-200 rounded-xl text-sm font-mono font-bold text-stone-900 focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="e.g. AAATK1088R"/>
                         </div>
                       </div>
-                      <p className="text-[11px] font-medium text-gray-500 mt-3 leading-relaxed">
+                      <p className="text-[11px] font-medium text-stone-500 mt-3 leading-relaxed">
                         Completing the 80G item above flips the flag the receipt desks gate on — receipts stay
                         in SAMPLE mode until a real URN is saved.
                       </p>
@@ -714,14 +716,14 @@ export const MasterSettingsDesk: React.FC = () => {
                     <BranchManager />
 
 <div>
-                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><FileSignature size={12}/> {localSafeTranslate('mission_desc', 'Mission / Description')}</label>
-                      <textarea rows={3} value={workspaceInfo.description} onChange={e=>setWorkspaceInfo({...workspaceInfo, description: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm resize-none disabled:text-gray-500 disabled:cursor-not-allowed" placeholder="Describe your organization's mission..."></textarea>
+                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><FileSignature size={12}/> {localSafeTranslate('mission_desc', 'Mission / Description')}</label>
+                      <textarea rows={3} value={workspaceInfo.description} onChange={e=>setWorkspaceInfo({...workspaceInfo, description: e.target.value})} disabled={!isAdmin} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-sanatani-orange focus:ring-4 focus:ring-saffron-50 outline-none transition-all shadow-sm resize-none disabled:text-stone-500 disabled:cursor-not-allowed" placeholder="Describe your organization's mission..."></textarea>
                     </div>
                   </div>
 
                   {isAdmin && (
                     <div className="flex justify-end pt-4">
-                      <button type="submit" disabled={saving} className="w-full sm:w-auto bg-gray-900 hover:bg-black text-white font-black py-4 px-8 rounded-xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
+                      <button type="submit" disabled={saving} className="w-full sm:w-auto bg-stone-900 hover:bg-black text-white font-black py-4 px-8 rounded-xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
                         {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} {localSafeTranslate('btn_save_settings', 'SAVE SETTINGS')}
                       </button>
                     </div>
@@ -731,14 +733,14 @@ export const MasterSettingsDesk: React.FC = () => {
           </div>
 
           {/* GEOLOCATION SECTION */}
-          <div className="bg-white border border-gray-100 p-6 sm:p-8 rounded-3xl shadow-sm ring-1 ring-black/5">
-            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest">
+          <div className="bg-white border border-stone-100 p-6 sm:p-8 rounded-3xl shadow-sm ring-1 ring-black/5">
+            <h3 className="text-sm font-black text-stone-900 flex items-center gap-2 mb-6 border-b border-stone-100 pb-4 uppercase tracking-widest">
               <MapPin size={18} className="text-rose-500" />
               {localSafeTranslate('global_footprint', 'Global Footprint & Geolocation')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-1 space-y-4">
-                <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase tracking-widest">
+                <p className="text-[11px] font-bold text-stone-500 leading-relaxed uppercase tracking-widest">
                   {localSafeTranslate('geo_desc', "Pinpoint your organization's exact global coordinates. This enables nearby devotee discovery and localized panchang timings.")}
                 </p>
                 <button
@@ -746,7 +748,7 @@ export const MasterSettingsDesk: React.FC = () => {
                   disabled={!isAdmin || isDetectingLocation}
                   className={`flex items-center justify-center w-full gap-2 py-3.5 px-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-sm ${
                     !isAdmin || isDetectingLocation 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      ? 'bg-stone-100 text-stone-600 cursor-not-allowed'
                       : 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 hover:-translate-y-0.5'
                   }`}
                 >
@@ -757,24 +759,24 @@ export const MasterSettingsDesk: React.FC = () => {
                 </button>
               </div>
               
-              <div className="md:col-span-2 relative overflow-hidden rounded-2xl bg-gray-50 border border-gray-200 h-48 flex items-center justify-center">
+              <div className="md:col-span-2 relative overflow-hidden rounded-2xl bg-stone-50 border border-stone-200 h-48 flex items-center justify-center">
                 <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
                 
                 {coords ? (
-                  <div className="relative z-10 flex flex-col items-center bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-lg border border-gray-200/50">
+                  <div className="relative z-10 flex flex-col items-center bg-white/90 backdrop-blur-md p-5 rounded-2xl shadow-lg border border-stone-200/50">
                     <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3 shadow-inner">
                       <CheckCircle2 size={24} />
                     </div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">
+                    <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mb-1.5">
                       {localSafeTranslate('coords_locked', 'Coordinates Locked')}
                     </p>
-                    <div className="flex gap-4 text-xs font-black font-mono text-gray-700 bg-gray-100 px-4 py-2 rounded-xl">
+                    <div className="flex gap-4 text-xs font-black font-mono text-stone-700 bg-stone-100 px-4 py-2 rounded-xl">
                       <span>LAT: {coords.lat.toFixed(6)}</span>
                       <span>LNG: {coords.lng.toFixed(6)}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative z-10 flex flex-col items-center text-gray-400">
+                  <div className="relative z-10 flex flex-col items-center text-stone-600">
                     <MapPin size={32} className="mb-3 opacity-50" />
                     <p className="text-xs font-black uppercase tracking-widest">
                       {localSafeTranslate('no_coords', 'No Coordinates Set')}
@@ -805,23 +807,17 @@ export const MasterSettingsDesk: React.FC = () => {
           <AccessReviewCard />
           <AssistedSessionCard />
           <PrivacyNoticeCard />
-          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
-            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest"><Palette size={18} className="text-sanatani-orange" /> {localSafeTranslate('theme_appearance', 'Theme & Appearance')}</h3>
-            <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase tracking-widest mb-4">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-100 relative overflow-hidden ring-1 ring-black/5">
+            <h3 className="text-sm font-black text-stone-900 flex items-center gap-2 mb-6 border-b border-stone-100 pb-4 uppercase tracking-widest"><Palette size={18} className="text-sanatani-orange" /> {localSafeTranslate('theme_appearance', 'Theme & Appearance')}</h3>
+            <p className="text-[11px] font-bold text-stone-500 leading-relaxed uppercase tracking-widest mb-4">
               {localSafeTranslate('theme_desc', 'Customize the visual atmosphere of the portal. This preference is saved securely on this device.')}
             </p>
-            <div className="flex bg-gray-100 p-1.5 rounded-2xl shadow-inner border border-gray-200 w-full">
-              <button 
+            <div className="flex bg-stone-100 p-1.5 rounded-2xl shadow-inner border border-stone-200 w-full">
+              <button
                 type="button"
-                onClick={() => toggleTheme('saffron')} 
-                className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${appTheme === 'saffron' ? 'bg-white text-saffron-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
+                onClick={() => toggleTheme()}
+                className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${appTheme === 'saffron' ? 'bg-white text-saffron-600 shadow-sm border border-stone-200' : 'text-stone-500 hover:text-stone-700 hover:bg-stone-200'}`}>
                 <Crown size={16} /> Saffron Mode
-              </button>
-              <button 
-                type="button"
-                onClick={() => toggleTheme('classic')} 
-                className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex justify-center gap-2 items-center ${appTheme === 'classic' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}>
-                <Shield size={16} /> Classic Mode
               </button>
             </div>
             {/* VIBE B3 — Sandhya Mode (the dusk theme): Off / On /
@@ -832,17 +828,17 @@ export const MasterSettingsDesk: React.FC = () => {
           </div>
 
           {isAdmin && (
-            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden ring-1 ring-black/5">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-100 relative overflow-hidden ring-1 ring-black/5">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-              <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest"><Shield size={18} className="text-blue-600" /> {localSafeTranslate('admin_security', 'Admin Security')}</h3>
+              <h3 className="text-sm font-black text-stone-900 flex items-center gap-2 mb-6 border-b border-stone-100 pb-4 uppercase tracking-widest"><Shield size={18} className="text-blue-600" /> {localSafeTranslate('admin_security', 'Admin Security')}</h3>
                <form onSubmit={handleChangePassword} className="space-y-5">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('new_master_pass', 'New Master Password')}</label>
-                    <input type="password" required placeholder={localSafeTranslate('min_6_char', "Min 6 characters")} value={passwordData.newPassword} onChange={e=>setPasswordData({...passwordData, newPassword:e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" />
+                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('new_master_pass', 'New Master Password')}</label>
+                    <input type="password" required placeholder={localSafeTranslate('min_6_char', "Min 6 characters")} value={passwordData.newPassword} onChange={e=>setPasswordData({...passwordData, newPassword:e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('confirm_pass', 'Confirm Password')}</label>
-                    <input type="password" required placeholder={localSafeTranslate('retype_pass', "Retype password")} value={passwordData.confirmPassword} onChange={e=>setPasswordData({...passwordData, confirmPassword:e.target.value})} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" />
+                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{localSafeTranslate('confirm_pass', 'Confirm Password')}</label>
+                    <input type="password" required placeholder={localSafeTranslate('retype_pass', "Retype password")} value={passwordData.confirmPassword} onChange={e=>setPasswordData({...passwordData, confirmPassword:e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-stone-900 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" />
                   </div>
                   <div className="flex justify-end pt-2">
                     <button type="submit" disabled={passLoading} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-8 rounded-xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
@@ -861,8 +857,8 @@ export const MasterSettingsDesk: React.FC = () => {
         
         {/* LEFT COLUMN: Payment History */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-black/5">
-            <h3 className="text-sm font-black text-gray-900 flex items-center gap-2 mb-6 border-b border-gray-100 pb-4 uppercase tracking-widest">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-100 ring-1 ring-black/5">
+            <h3 className="text-sm font-black text-stone-900 flex items-center gap-2 mb-6 border-b border-stone-100 pb-4 uppercase tracking-widest">
               <History size={18} className="text-blue-600" /> Payment & Request History
             </h3>
 
@@ -875,7 +871,7 @@ export const MasterSettingsDesk: React.FC = () => {
             
             {historyView === 'loading' ? (
               <div className="flex justify-center p-12">
-                <Loader2 className="animate-spin text-gray-400" size={32} />
+                <Loader2 className="animate-spin text-stone-600" size={32} />
               </div>
             ) : historyView === 'error' ? (
               <div className="text-center py-12 bg-red-50 rounded-2xl border border-red-200 border-dashed px-6">
@@ -885,18 +881,18 @@ export const MasterSettingsDesk: React.FC = () => {
                 <button type="button" onClick={() => setHistoryRetry((n) => n + 1)} className="px-5 py-2.5 min-h-[44px] bg-white border border-red-300 text-red-700 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-red-100 transition-colors">Retry</button>
               </div>
             ) : historyView === 'empty' ? (
-              <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-200 border-dashed px-6">
-                <FileText size={40} className="mx-auto text-gray-300 mb-4" />
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">No payment records found.</p>
-                <p className="text-[11px] font-bold text-gray-400 mt-2 normal-case tracking-normal">Upgrade requests and payments you submit will appear here.</p>
+              <div className="text-center py-16 bg-stone-50 rounded-2xl border border-stone-200 border-dashed px-6">
+                <FileText size={40} className="mx-auto text-stone-300 mb-4" />
+                <p className="text-xs font-bold text-stone-500 uppercase tracking-widest">No payment records found.</p>
+                <p className="text-[11px] font-bold text-stone-600 mt-2 normal-case tracking-normal">Upgrade requests and payments you submit will appear here.</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {paymentHistory.map(record => (
-                  <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-gray-50 border border-gray-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all group">
+                  <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-stone-50 border border-stone-100 rounded-2xl hover:bg-white hover:shadow-sm transition-all group">
                     <div className="mb-3 sm:mb-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                         <span className="text-sm font-black text-gray-900 tracking-tight">{record.planLabel}</span>
+                         <span className="text-sm font-black text-stone-900 tracking-tight">{record.planLabel}</span>
                          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md border ${
                            record.statusLabel === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' :
                            record.statusLabel === 'REJECTED' ? 'bg-red-50 text-red-600 border-red-200' :
@@ -904,15 +900,15 @@ export const MasterSettingsDesk: React.FC = () => {
                          }`}>{record.statusLabel}</span>
                          <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-md border bg-blue-50 text-blue-600 border-blue-200">{record.sourceLabel}</span>
                       </div>
-                      <p className="text-[10px] font-bold text-gray-500 font-mono tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> TRX: {record.transactionId}</p>
-                      <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{record.timestampMillis ? new Date(record.timestampMillis).toLocaleString(appLocale()) : '—'}</p>
+                      <p className="text-[10px] font-bold text-stone-500 font-mono tracking-widest flex items-center gap-1.5"><FileDigit size={12}/> TRX: {record.transactionId}</p>
+                      <p className="text-[10px] font-bold text-stone-600 mt-1 uppercase tracking-widest">{record.timestampMillis ? new Date(record.timestampMillis).toLocaleString(appLocale()) : '—'}</p>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="text-[10px] font-black text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 inline-flex items-center gap-1.5 uppercase tracking-widest shadow-sm">
+                      <p className="text-[10px] font-black text-stone-600 bg-white px-3 py-1.5 rounded-lg border border-stone-200 inline-flex items-center gap-1.5 uppercase tracking-widest shadow-sm">
                         <CreditCard size={12}/> {record.methodLabel}
                       </p>
                       {record.amountLabel && (
-                        <p className="text-[10px] font-bold text-gray-400 mt-1.5">{record.amountLabel}</p>
+                        <p className="text-[10px] font-bold text-stone-600 mt-1.5">{record.amountLabel}</p>
                       )}
                     </div>
                   </div>
@@ -927,27 +923,27 @@ export const MasterSettingsDesk: React.FC = () => {
             (settingsHonesty resolvers fed by planLimits.checkLimit). */}
         <div className="space-y-6">
           {/* CURRENT PLAN — the org's plan is always NAMED (D9a) */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-black/5">
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5 border-b border-gray-100 pb-4 flex items-center gap-2"><Crown size={16} className="text-sanatani-orange"/> Current Plan</h3>
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-100 ring-1 ring-black/5">
+            <h3 className="text-xs font-black text-stone-500 uppercase tracking-widest mb-5 border-b border-stone-100 pb-4 flex items-center gap-2"><Crown size={16} className="text-sanatani-orange"/> Current Plan</h3>
             {planLoading && !planInfo ? (
               <div className="flex items-center gap-3 py-4">
-                <Loader2 className="animate-spin text-gray-400" size={20} />
-                <p className="text-xs font-bold text-gray-400">Loading your plan…</p>
+                <Loader2 className="animate-spin text-stone-600" size={20} />
+                <p className="text-xs font-bold text-stone-600">Loading your plan…</p>
               </div>
             ) : planInfo ? (
               <div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <p className="text-2xl font-black text-gray-900 tracking-tight">{planInfo.name}</p>
+                  <p className="text-2xl font-black text-stone-900 tracking-tight">{planInfo.name}</p>
                   <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md border ${
                     planInfo.status === 'active' ? 'bg-green-50 text-green-600 border-green-200' :
                     planInfo.status === 'expired' ? 'bg-red-50 text-red-600 border-red-200' :
                     planInfo.status === 'grace' ? 'bg-orange-50 text-orange-600 border-orange-200' :
-                    'bg-gray-50 text-gray-500 border-gray-200'
+                    'bg-stone-50 text-stone-500 border-stone-200'
                   }`}>{planStatusLabel}</span>
                 </div>
-                <p className="text-xs font-bold text-gray-500 mt-2">{planInfo.periodLabel}</p>
+                <p className="text-xs font-bold text-stone-500 mt-2">{planInfo.periodLabel}</p>
                 {planInfo.planId !== 'seva' && termsSnapshot && (
-                  <p className="text-xs font-bold text-gray-600 mt-1.5">
+                  <p className="text-xs font-bold text-stone-600 mt-1.5">
                     {planPriceLabel(termsSnapshot.plans[planInfo.planId], wsCurrencyCode, 'monthly')} · {planPriceLabel(termsSnapshot.plans[planInfo.planId], wsCurrencyCode, 'annual')}
                   </p>
                 )}
@@ -958,46 +954,46 @@ export const MasterSettingsDesk: React.FC = () => {
                 )}
               </div>
             ) : (
-              <p className="text-xs font-bold text-gray-500 leading-relaxed">Plan details couldn't be loaded. Reopen this tab to try again.</p>
+              <p className="text-xs font-bold text-stone-500 leading-relaxed">Plan details couldn't be loaded. Reopen this tab to try again.</p>
             )}
           </div>
 
           {/* CURRENT LIMITS — real usage vs the plan's terms limits (D9b) */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 ring-1 ring-black/5">
-            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5 border-b border-gray-100 pb-4 flex items-center gap-2"><Settings size={16}/> {localSafeTranslate('current_limits', 'Current Limits')}</h3>
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-100 ring-1 ring-black/5">
+            <h3 className="text-xs font-black text-stone-500 uppercase tracking-widest mb-5 border-b border-stone-100 pb-4 flex items-center gap-2"><Settings size={16}/> {localSafeTranslate('current_limits', 'Current Limits')}</h3>
             {planLoading && !planInfo ? (
               <div className="flex items-center gap-3 py-4">
-                <Loader2 className="animate-spin text-gray-400" size={20} />
-                <p className="text-xs font-bold text-gray-400">Counting your workspace…</p>
+                <Loader2 className="animate-spin text-stone-600" size={20} />
+                <p className="text-xs font-bold text-stone-600">Counting your workspace…</p>
               </div>
             ) : planInfo ? (
               <>
                 <div className="space-y-6">
                   {usageRows.map((row) => (
-                    <div key={row.metric} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <div key={row.metric} className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
                       <div className="flex justify-between items-end mb-2.5">
-                        <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest">{row.label}</p>
-                        <p className="text-base font-black text-gray-900">{row.used} <span className="text-gray-400 text-xs font-bold">/ {row.limit === -1 ? '∞' : row.limit}</span></p>
+                        <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest">{row.label}</p>
+                        <p className="text-base font-black text-stone-900">{row.used} <span className="text-stone-600 text-xs font-bold">/ {row.limit === -1 ? '∞' : row.limit}</span></p>
                       </div>
-                      <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden shadow-inner">
-                        <div className={`h-full rounded-full transition-all duration-1000 ${row.overLimit ? 'bg-red-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} style={{ width: row.limit === -1 ? '100%' : `${row.percent}%` }}></div>
+                      <div className="w-full bg-stone-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${row.overLimit ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: row.limit === -1 ? '100%' : `${row.percent}%` }}></div>
                       </div>
-                      {row.limit === -1 && <p className="text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-widest">Unlimited on your plan</p>}
+                      {row.limit === -1 && <p className="text-[10px] font-bold text-stone-600 mt-1.5 uppercase tracking-widest">Unlimited on your plan</p>}
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] font-bold text-gray-400 mt-4 leading-relaxed">
+                <p className="text-[10px] font-bold text-stone-600 mt-4 leading-relaxed">
                   Counted live from your workspace records against your plan's limits — the same numbers the app enforces everywhere.
                 </p>
               </>
             ) : (
-              <p className="text-xs font-bold text-gray-500 leading-relaxed">Limits couldn't be loaded. Reopen this tab to try again.</p>
+              <p className="text-xs font-bold text-stone-500 leading-relaxed">Limits couldn't be loaded. Reopen this tab to try again.</p>
             )}
           </div>
 
           {/* UPGRADE — the real next plan from the terms snapshot */}
           {planInfo && offerPlan ? (
-             <div className="bg-gradient-to-br from-saffron-500 to-red-600 p-6 sm:p-8 rounded-3xl shadow-lg text-white text-center relative overflow-hidden group">
+             <div className="bg-cta p-6 sm:p-8 rounded-3xl shadow-lg text-white text-center relative overflow-hidden group">
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                 <Crown size={48} className="mx-auto mb-3 text-yellow-300 drop-shadow-md" />
                 <h3 className="text-2xl font-black mb-1 tracking-tight">Upgrade to {offerPlan.name}</h3>
@@ -1011,7 +1007,7 @@ export const MasterSettingsDesk: React.FC = () => {
                 </div>
 
                 {isAdmin ? (
-                  <button onClick={() => openPlanUpgrade(planInfo?.nextPlanId ? tierForPlan(planInfo.nextPlanId) : undefined)} className="w-full bg-white text-sanatani-orange hover:bg-gray-50 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 relative z-10 flex items-center justify-center gap-2">
+                  <button onClick={() => openPlanUpgrade(planInfo?.nextPlanId ? tierForPlan(planInfo.nextPlanId) : undefined)} className="w-full bg-white text-sanatani-orange hover:bg-stone-50 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 relative z-10 flex items-center justify-center gap-2">
                     {localSafeTranslate('offer_dakshina', 'OFFER DAKSHINA (UPGRADE)')}
                   </button>
                 ) : (
@@ -1021,11 +1017,11 @@ export const MasterSettingsDesk: React.FC = () => {
                 )}
              </div>
           ) : planInfo ? (
-            <div className="bg-gradient-to-br from-saffron-50 to-saffron-50 p-8 rounded-3xl shadow-sm border border-saffron-200 text-center relative overflow-hidden">
+            <div className="bg-saffron-50 p-8 rounded-3xl shadow-sm border border-saffron-200 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Crown size={120}/></div>
                 <Crown size={48} className="mx-auto mb-4 text-sanatani-orange relative z-10" />
-                <h3 className="text-xl font-black text-gray-900 mb-2 relative z-10">You are on {planInfo.name}!</h3>
-                <p className="text-xs font-bold text-gray-600 leading-relaxed relative z-10">This is the highest plan — every feature is open to your workspace. Dhanyavaad for walking with Sanatani Bandhan.</p>
+                <h3 className="text-xl font-black text-stone-900 mb-2 relative z-10">You are on {planInfo.name}!</h3>
+                <p className="text-xs font-bold text-stone-600 leading-relaxed relative z-10">This is the highest plan — every feature is open to your workspace. Dhanyavaad for walking with Sanatani Bandhan.</p>
             </div>
           ) : null}
         </div>

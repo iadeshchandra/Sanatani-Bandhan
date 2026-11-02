@@ -40,7 +40,7 @@ export const PreviewFrame: React.FC<{
   }, []);
 
   return (
-    <div className="min-h-full bg-gradient-to-b from-amber-100 via-orange-50 to-amber-50">
+    <div className="min-h-full bg-sanctum-sandal">
       {/* ── The persistent preview bar ─────────────────────────────── */}
       <div className="sticky top-0 z-40 bg-amber-400 text-stone-950 shadow-md shadow-amber-900/10 border-b-2 border-amber-600">
         <div className="max-w-5xl mx-auto px-3 sm:px-5 py-2.5 flex items-center gap-3">
@@ -75,7 +75,7 @@ export const PreviewFrame: React.FC<{
           <button
             type="button"
             onClick={onExit}
-            className="shrink-0 inline-flex items-center gap-2 min-h-[48px] px-4 rounded-xl bg-stone-950 text-white text-sm font-extrabold hover:bg-stone-800 transition-colors cursor-pointer"
+            className="shrink-0 inline-flex items-center gap-2 min-h-[48px] px-4 rounded-xl bg-cta text-white text-sm font-extrabold hover:bg-cta-hover transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" aria-hidden />
             {safeTranslate('preview_exit', 'Return to my view', 'আমার ভিউতে ফিরুন', 'मेरे दृश्य पर लौटें')}

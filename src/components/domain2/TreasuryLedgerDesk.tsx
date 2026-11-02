@@ -86,6 +86,7 @@ import { GuideButton } from '../suchana/GuideButton';
 import { AuditTrailView } from '../treasury/AuditTrailDesk';
 import { BahiKhataDesk } from '../../bahikhata/BahiKhataDesk';
 import { useLanguage } from '../../context/LanguageContext';
+import { CHART } from '../../lib/designTokens';
 
 interface TreasuryLedgerDeskProps {
   onOpenQuickPay?: () => void;
@@ -140,14 +141,16 @@ const TRUST_FUNDS: FundDefinition[] = [
   },
 ];
 
-const DONUT_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#a855f7', '#ec4899'];
+/* E1: donut palette is the CHART token palette (gold, peacock,
+   brass, kumkum, peacock-light) — no private rainbow hex. */
+const DONUT_COLORS = CHART.donut;
 
 const CHART_TOOLTIP_STYLE = {
-  backgroundColor: '#171006',
-  border: '1px solid #44403c',
+  backgroundColor: CHART.tooltipBg,
+  border: `1px solid ${CHART.tooltipBorder}`,
   borderRadius: '12px',
   fontSize: '12px',
-  color: '#fde68a',
+  color: CHART.tooltipText,
 };
 
 interface FundCardProps {
@@ -902,9 +905,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 setVoucherType('Expense');
                 setShowVoucherModal(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-600/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5 min-h-[44px]"
+              className="px-4 py-2.5 rounded-xl bg-cta hover:bg-cta-hover text-white font-black text-xs sm:text-sm shadow-xl shadow-saffron-700/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5 min-h-[44px]"
             >
-              <Plus className="w-4 h-4 text-temple-950" />
+              <Plus className="w-4 h-4 text-white" />
               <span>{t('org.finance.treasury.newVoucherEntry')}</span>
             </button>
             )}
@@ -1226,12 +1229,12 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   <BarChart data={monthlyFlow} margin={{ top: 12, right: 10, left: 0, bottom: 0 }}>
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 10, fill: '#a8a29e', fontWeight: 700 }}
+                      tick={{ fontSize: 10, fill: CHART.axisTickWarm, fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 10, fill: '#a8a29e', fontWeight: 700 }}
+                      tick={{ fontSize: 10, fill: CHART.axisTickWarm, fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v: number) => (v >= 1000 ? `${wsCurrency.symbol}${(v / 1000).toFixed(0)}k` : `${wsCurrency.symbol}${v}`)}
@@ -1242,8 +1245,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       formatter={(value: any) => fmtAmount(Number(value))}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="income" name="Income" fill={CHART.positive} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    <Bar dataKey="expense" name="Expense" fill={CHART.urgent} radius={[4, 4, 0, 0]} maxBarSize={28} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1547,7 +1550,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                               record with no donor is anonymous and
                               honestly carries no receipt. */}
                           {isIncome && receiptCoverageFor(tx) === 'missing' && (
-                            <p className="text-[9px] font-sans font-bold text-amber-500 mt-0.5">
+                            <p className="text-[9px] font-sans font-bold text-amber-700 mt-0.5">
                               {t('org.audit.receipts.noReceiptNo')}
                             </p>
                           )}
@@ -2057,7 +2060,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-temple-950 font-black text-xs shadow-lg shadow-amber-600/30 transition-all cursor-pointer"
+                    className="px-6 py-2.5 rounded-xl bg-cta hover:bg-cta-hover text-white font-black text-xs shadow-lg shadow-saffron-700/30 transition-all cursor-pointer"
                   >
                     Post Voucher to General Ledger
                   </button>
