@@ -14,6 +14,8 @@ import {
 } from 'recharts';
 import { KpiCardSkeleton, TableSkeleton } from '../common/DeskSkeletons';
 import { EmptyState } from '../common/EmptyState';
+import { Button } from '../common/ui/Button';
+import { Segmented } from '../common/ui/Segmented';
 import { OfflineSevakStatus } from '../common/OfflineSevakStatus';
 import { DataExportButton } from '../common/DataExportButton';
 import { formatDateIST } from '../../utils/format';
@@ -898,18 +900,17 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 Auditor role: Blueprint B — the Auditor watches the
                 ledger, never writes it) */}
             {effectiveRole !== 'Auditor' && (
-            <button
-              type="button"
+            <Button
               id="new-voucher-entry-btn"
               onClick={() => {
                 setVoucherType('Expense');
                 setShowVoucherModal(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-cta hover:bg-cta-hover text-white font-black text-xs sm:text-sm shadow-xl shadow-saffron-700/30 transition-all transform active:scale-95 cursor-pointer flex items-center gap-1.5 min-h-[44px]"
+              className="active:scale-95"
             >
               <Plus className="w-4 h-4 text-white" />
               <span>{t('org.finance.treasury.newVoucherEntry')}</span>
-            </button>
+            </Button>
             )}
 
             {/* Bahi-Khata Seva door — paper dan-khata digitization with
@@ -1392,26 +1393,21 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-temple-800/80">
             <div className="flex flex-wrap items-center gap-2">
               {/* Type Switcher */}
-              <div className="flex items-center gap-1 bg-temple-950 p-1 rounded-xl border border-temple-800">
-                {(['all', 'Income', 'Expense'] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setFilterType(type)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      filterType === type
-                        ? type === 'Income'
-                          ? 'bg-emerald-500 text-temple-950'
-                          : type === 'Expense'
-                          ? 'bg-rose-500 text-white'
-                          : 'bg-amber-500 text-temple-950'
-                        : 'text-temple-400 hover:text-temple-200'
-                    }`}
-                  >
-                    {type === 'all' ? 'All Vouchers' : type === 'Income' ? 'Receipts (Income)' : 'Payments (Expense)'}
-                  </button>
-                ))}
-              </div>
+              {/* DESIGN ELEVATION E2: the switcher is the house Segmented
+                  (dark, dense class); Receipts/Payments keep their
+                  data-semantic active fills via activeClassName. */}
+              <Segmented
+                tone="dark"
+                size="sm"
+                ariaLabel="Voucher type filter"
+                options={[
+                  { id: 'all', label: 'All Vouchers', activeClassName: 'bg-amber-500 text-temple-950 shadow' },
+                  { id: 'Income', label: 'Receipts (Income)', activeClassName: 'bg-emerald-500 text-temple-950 shadow' },
+                  { id: 'Expense', label: 'Payments (Expense)', activeClassName: 'bg-rose-500 text-white shadow' },
+                ]}
+                value={filterType}
+                onChange={(id) => setFilterType(id as 'all' | 'Income' | 'Expense')}
+              />
 
               {/* Category Dropdown */}
               <div className="relative">
@@ -1650,18 +1646,21 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                             )}
 
                             {/* Record history — Blueprint A master audit stream */}
-                            <button
-                              type="button"
+                            <Button
+                              variant="secondary"
+                              tone="dark"
+                              size="sm"
                               onClick={() => setHistoryTxId(tx.id)}
-                              className="px-2 py-1 rounded-lg bg-temple-800 hover:bg-temple-750 text-temple-200 hover:text-white border border-temple-700 text-xs font-semibold flex items-center gap-1 transition-colors"
                               title={t('org.audit.history.title')}
                             >
                               <span>{t('org.audit.history.button')}</span>
-                            </button>
+                            </Button>
 
                             {/* Thermal print slip */}
-                            <button
-                              type="button"
+                            <Button
+                              variant="secondary"
+                              tone="dark"
+                              size="sm"
                               onClick={async () => {
                                 try {
                                   await printThermalReceipt(tx, activeWorkspace);
@@ -1670,11 +1669,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                                   showToast(t('org.finance.treasury.printError'), 'error');
                                 }
                               }}
-                              className="px-2 py-1 rounded-lg bg-temple-800 hover:bg-temple-750 text-indigo-300 hover:text-white border border-temple-700 text-xs font-semibold flex items-center gap-1 transition-colors"
                               title={t('org.finance.treasury.print80mmCounterVoucher')}
                             >
                               <span>Slip</span>
-                            </button>
+                            </Button>
 
                             {/* 80G receipt — QUEUED #51 gate: an OFFICIAL
                                 certificate action exists only when the

@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.02-da8a20a',
+    date: '2026-11-02',
+    sections: {
+      improved: [
+        {
+          text: {
+            en: "One calmer button, everywhere — the main action buttons across the app (landing, sign-in, home, treasury, bookings) now share a single deep-marigold colour that stays easy to read in bright light, and the old blue-grey tones have retired in favour of warm temple stone. The alternate 'Classic' theme has been retired; anyone who had chosen it simply lands on the standard sanctum theme.",
+            hi: "हर जगह एक ही शांत बटन — पूरे ऐप के मुख्य बटन (होम, साइन-इन, ख़ज़ाना, बुकिंग) अब एक ही गहरे गेंदे रंग में हैं, जो तेज़ रोशनी में भी साफ़ पढ़ा जाता है, और पुराने नीले-स्लेटी रंगों की जगह गर्म मंदिर-पत्थर के रंग आ गए हैं। पुरानी 'क्लासिक' थीम समाप्त कर दी गई है; जिसने भी उसे चुना था, वह अब स्वतः मानक थीम पर आ जाएगा।",
+            bn: "সব জায়গায় একই শান্ত বোতাম — অ্যাপের প্রধান বোতামগুলো (হোম, সাইন-ইন, কোষাগার, বুকিং) এখন একটাই গভীর গাঁদা রঙে, যা উজ্জ্বল আলোতেও স্পষ্ট পড়া যায়, আর পুরনো নীল-ধূসর রঙের বদলে এসেছে উষ্ণ মন্দির-পাথরের রঙ। পুরনো 'ক্লাসিক' থিমটি অবসর নিয়েছে; যিনি সেটি বেছে রেখেছিলেন, তিনি এখন আপনাআপনি মানক থিমেই থাকবেন।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.01-b608a1e',
     date: '2026-11-01',
     sections: {

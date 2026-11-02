@@ -30,6 +30,11 @@ import { expiryState } from '../../lib/membershipAccess';
 import { APPROVAL_REQUIRED } from '../../lib/approvals';
 import { resolveEdgeRole } from '../../lib/landingSurface';
 import { friendlyError } from '../../lib/friendlyError';
+import { Segmented } from '../common/ui/Segmented';
+import { Card } from '../common/ui/Card';
+import { Chip } from '../common/ui/Chip';
+import { Button } from '../common/ui/Button';
+import { EmptyState } from '../common/EmptyState';
 
 type Tab = 'MEMBERS' | 'REQUESTS' | 'INVITE';
 
@@ -263,26 +268,23 @@ export const MembershipDesk: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-stone-100 p-1 rounded-2xl mb-5 overflow-x-auto">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => { setTab(t.id); setError(''); }}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap min-h-[44px] ${
-              tab === t.id ? 'bg-white text-amber-800 shadow' : 'text-stone-500 hover:text-stone-700'
-            }`}
-          >
-            {t.icon}
-            {t.label}
-            {typeof t.count === 'number' && t.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.id ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-600'}`}>
-                {t.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — DESIGN ELEVATION E2: this desk's trough WAS the winning
+          idiom; it is now the shared Segmented component (DE-05). The
+          tab click still clears the error line, exactly as before. */}
+      <Segmented
+        tone="light"
+        caps
+        className="mb-5"
+        ariaLabel="Membership sections"
+        options={tabs.map((t) => ({
+          id: t.id,
+          label: t.label,
+          icon: t.icon,
+          badge: typeof t.count === 'number' && t.count > 0 ? t.count : undefined,
+        }))}
+        value={tab}
+        onChange={(id) => { setTab(id as Tab); setError(''); }}
+      />
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-xs font-bold text-center mb-4">
@@ -294,17 +296,18 @@ export const MembershipDesk: React.FC = () => {
       {tab === 'MEMBERS' && (
         <div className="space-y-2">
           {orgMembers.length === 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center">
-              <Users size={36} className="text-stone-300 mx-auto mb-3" />
-              <p className="text-sm font-bold text-stone-600">No members yet</p>
-              <p className="text-xs text-stone-400 mt-1">Approved join requests and accepted invites appear here.</p>
-            </div>
+            <EmptyState
+              tone="light"
+              icon={Users}
+              title="No members yet"
+              description="Approved join requests and accepted invites appear here."
+            />
           )}
           {orgMembers.map((m) => {
             const tpl = templateById(m.templateId);
             const expState = expiryState(m, Date.now());
             return (
-              <div key={m.id} className="bg-white border border-stone-200 rounded-2xl p-4">
+              <Card key={m.id} tone="light" padding="sm" className="border-stone-200">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-white font-black text-sm shrink-0">
                     {(m.displayName || 'M').charAt(0).toUpperCase()}
@@ -316,27 +319,23 @@ export const MembershipDesk: React.FC = () => {
                     </p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {tpl && (
-                        <span className="text-[10px] font-black text-amber-800 bg-amber-100 rounded-full px-2 py-0.5">
-                          {t(tpl.nameKey)}
-                        </span>
+                        <Chip tone="amber">{t(tpl.nameKey)}</Chip>
                       )}
                       {Array.isArray(m.deskScope) && (
-                        <span className="text-[10px] font-black text-stone-600 bg-stone-100 rounded-full px-2 py-0.5">
+                        <Chip tone="stone">
                           {m.deskScope.length} {t('org.access.member.desksWord')}
-                        </span>
+                        </Chip>
                       )}
                       {expState === 'expired' && (
-                        <span className="text-[10px] font-black text-red-700 bg-red-100 rounded-full px-2 py-0.5 flex items-center gap-1">
+                        <Chip tone="rose">
                           <CalendarClock size={10} /> {t('org.access.member.roleExpired')}
-                        </span>
+                        </Chip>
                       )}
                       {(expState === 'active' || expState === 'expiringSoon') && m.roleExpiresAt != null && (
-                        <span className={`text-[10px] font-black rounded-full px-2 py-0.5 flex items-center gap-1 ${
-                          expState === 'expiringSoon' ? 'text-amber-800 bg-amber-100' : 'text-stone-600 bg-stone-100'
-                        }`}>
+                        <Chip tone={expState === 'expiringSoon' ? 'amber' : 'stone'}>
                           <CalendarClock size={10} />
                           {t('org.access.member.expiresOn')} {new Date(m.roleExpiresAt).toLocaleDateString(appLocale())}
-                        </span>
+                        </Chip>
                       )}
                     </div>
                   </div>
@@ -364,24 +363,26 @@ export const MembershipDesk: React.FC = () => {
                       isSuperAdmin={currentRole === 'SuperAdmin'}
                     />
                     <div className="flex gap-2 mt-4">
-                      <button
+                      <Button
+                        variant="primary"
                         onClick={() => saveEdit(m)}
-                        disabled={busyId === m.id}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black min-h-[44px] disabled:opacity-50"
+                        loading={busyId === m.id}
+                        icon={<Check size={14} />}
+                        className="flex-1"
                       >
-                        {busyId === m.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                         {t('org.access.member.saveAccess')}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
                         onClick={() => setEditingId(null)}
-                        className="flex-1 py-2.5 rounded-xl bg-white border border-stone-300 text-stone-600 text-xs font-black min-h-[44px]"
+                        className="flex-1"
                       >
                         {t('org.access.member.cancelEdit')}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
           <p className="text-[11px] text-stone-400 flex items-center gap-1.5 pt-1">
@@ -394,14 +395,15 @@ export const MembershipDesk: React.FC = () => {
       {tab === 'REQUESTS' && (
         <div className="space-y-2">
           {orgJoinRequests.length === 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center">
-              <Inbox size={36} className="text-stone-300 mx-auto mb-3" />
-              <p className="text-sm font-bold text-stone-600">No pending requests</p>
-              <p className="text-xs text-stone-400 mt-1">When devotees tap “Request to Join” on your public page, they appear here.</p>
-            </div>
+            <EmptyState
+              tone="light"
+              icon={Inbox}
+              title="No pending requests"
+              description="When devotees tap “Request to Join” on your public page, they appear here."
+            />
           )}
           {orgJoinRequests.map((r) => (
-            <div key={r.id} className="bg-white border border-stone-200 rounded-2xl p-4">
+            <Card key={r.id} tone="light" padding="sm" className="border-stone-200">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white font-black text-sm shrink-0 overflow-hidden">
                   {r.userPhoto ? <img src={r.userPhoto} alt="" className="w-full h-full object-cover" /> : (r.userName || 'D').charAt(0).toUpperCase()}
@@ -415,29 +417,33 @@ export const MembershipDesk: React.FC = () => {
                 <p className="text-xs text-stone-600 bg-stone-50 border border-stone-100 rounded-xl p-3 mt-3">“{r.message}”</p>
               )}
               <div className="flex gap-2 mt-3">
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => decide(r, true)}
-                  disabled={busyId === r.id}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black min-h-[44px] disabled:opacity-50"
+                  loading={busyId === r.id}
+                  icon={<Check size={14} />}
+                  className="flex-1"
                 >
-                  {busyId === r.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Approve
-                </button>
-                <button
+                  Approve
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => decide(r, false)}
                   disabled={busyId === r.id}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white border border-stone-300 hover:border-red-300 text-stone-600 hover:text-red-600 text-xs font-black min-h-[44px] disabled:opacity-50"
+                  icon={<X size={14} />}
+                  className="flex-1"
                 >
-                  <X size={14} /> Decline
-                </button>
+                  Decline
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* ---- INVITE ---- */}
       {tab === 'INVITE' && (
-        <form onSubmit={submitInvite} className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 space-y-4">
+        <form onSubmit={submitInvite} className="bg-white border border-amber-100 rounded-2xl shadow-[0_2px_10px_rgba(120,72,20,0.06),0_18px_36px_-24px_rgba(120,72,20,0.25)] p-5 space-y-4">
           <p className="text-xs text-stone-500">
             Invite by email, phone, or user ID. They’ll see it in their account area and can accept in one tap.
             {currentRole !== 'SuperAdmin' && (
@@ -476,14 +482,15 @@ export const MembershipDesk: React.FC = () => {
             </label>
             <textarea value={invite.message} onChange={(e) => setInvite({ ...invite, message: e.target.value.slice(0, 300) })} rows={2} maxLength={300} placeholder="e.g. We’d love you to join our sevadar team…" className={`${inputCls} resize-none`} />
           </div>
-          <button
+          <Button
             type="submit"
-            disabled={inviteBusy}
-            className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-black py-3 rounded-xl text-sm shadow-md disabled:opacity-50 min-h-[44px]"
+            variant="primary"
+            loading={inviteBusy}
+            icon={<Send size={16} />}
+            className="w-full"
           >
-            {inviteBusy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             {inviteBusy ? 'Sending…' : 'Send Invitation'}
-          </button>
+          </Button>
           <p className="text-[11px] text-stone-400">Invitations expire after 30 days.</p>
 
           {orgInvites.length > 0 && (
@@ -496,13 +503,12 @@ export const MembershipDesk: React.FC = () => {
                       {inv.invitedEmail || inv.invitedPhone || inv.invitedName || inv.invitedUid || '—'}
                       <span className="ml-2 font-medium text-stone-400">→ {inv.role}</span>
                     </span>
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                      inv.status === 'PENDING' ? 'bg-amber-100 text-amber-700'
-                      : inv.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-stone-200 text-stone-500'
-                    }`}>
+                    <Chip
+                      tone={inv.status === 'PENDING' ? 'amber' : inv.status === 'ACCEPTED' ? 'emerald' : 'stone'}
+                      className="uppercase"
+                    >
                       {inv.status}
-                    </span>
+                    </Chip>
                   </div>
                 ))}
               </div>

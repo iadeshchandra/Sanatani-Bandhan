@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Tabs } from '../common/ui/Tabs';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
 import {
   UserCircle, QrCode, Shield, Sparkles, Flame, Heart, 
@@ -757,37 +758,23 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         </div>
 
         {/* Tab Navigation Ribbon */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 overflow-x-auto custom-scrollbar flex items-center gap-2 border-t border-stone-800/80 pt-2 pb-2">
-          {[
-            { id: 'PASS', label: '1. Digital Pass & ID', icon: QrCode, badge: 'Vault QR' },
-            { id: 'SADHANA', label: '2. Sadhana & Vrats', icon: Flame, badge: 'Japa Mala' },
-            { id: 'SEVA_RECEIPTS', label: '3. Seva & 80G Receipts', icon: FileText, badge: 'Tax Deduct' },
-            { id: 'FAMILY_PITRU', label: '4. Family & Pitru', icon: Heart, badge: 'Shradh' },
-            { id: 'PILGRIMAGE', label: '5. Pilgrimage Footprint', icon: Compass, badge: 'YatraNet' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as DevoteePortalTab)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-300 border border-amber-500/50 shadow-sm'
-                    : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900 border border-transparent'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-stone-500'}`} />
-                <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black uppercase ${
-                  isActive ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-stone-400'
-                }`}>
-                  {tab.badge}
-                </span>
-              </button>
-            );
-          })}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 border-t border-stone-800/80 pt-2 pb-2">
+          {/* DESIGN ELEVATION E2: house Tabs (dark) — tabs only; the
+              portal interior is E5's. Numbered labels + badges verbatim;
+              the amber-glass gradient idiom retires here too (DE-05). */}
+          <Tabs
+            tone="dark"
+            ariaLabel="Devotee portal sections"
+            tabs={[
+              { id: 'PASS', label: '1. Digital Pass & ID', icon: <QrCode className="w-4 h-4" />, badge: 'Vault QR' },
+              { id: 'SADHANA', label: '2. Sadhana & Vrats', icon: <Flame className="w-4 h-4" />, badge: 'Japa Mala' },
+              { id: 'SEVA_RECEIPTS', label: '3. Seva & 80G Receipts', icon: <FileText className="w-4 h-4" />, badge: 'Tax Deduct' },
+              { id: 'FAMILY_PITRU', label: '4. Family & Pitru', icon: <Heart className="w-4 h-4" />, badge: 'Shradh' },
+              { id: 'PILGRIMAGE', label: '5. Pilgrimage Footprint', icon: <Compass className="w-4 h-4" />, badge: 'YatraNet' },
+            ]}
+            value={activeTab}
+            onChange={(id) => setActiveTab(id as DevoteePortalTab)}
+          />
         </div>
       </header>
 

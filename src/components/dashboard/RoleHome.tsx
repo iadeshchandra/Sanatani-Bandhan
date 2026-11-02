@@ -31,6 +31,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from '../../context/DataContext';
 import { WindowedNotice } from '../common/WindowedNotice';
+import { Button } from '../common/ui/Button';
+import { Chip } from '../common/ui/Chip';
 import { resolveHerdCount } from '../../lib/herdCount';
 import { useToast } from '../../context/ToastContext';
 import { CountUp } from '../common/ui/CountUp';
@@ -102,7 +104,7 @@ interface ActionCardProps {
   subtitle?: string;
   value?: React.ReactNode;
   badge?: string;
-  badgeTone?: 'amber' | 'emerald' | 'rose' | 'indigo' | 'slate';
+  badgeTone?: 'amber' | 'emerald' | 'rose' | 'peacock' | 'slate';
   onClick?: () => void;
 }
 
@@ -110,7 +112,7 @@ const badgeTones: Record<string, string> = {
   amber: 'bg-amber-50 text-amber-700 border border-amber-100',
   emerald: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
   rose: 'bg-rose-50 text-rose-700 border border-rose-100',
-  indigo: 'bg-indigo-50 text-indigo-700 border border-indigo-100',
+  peacock: 'bg-peacock-100 text-peacock-900 border border-peacock-300',
   slate: 'bg-temple-100 text-temple-600 border border-temple-200',
 };
 
@@ -260,7 +262,7 @@ export const ShlokaCard: React.FC = () => {
           {cleanTransliteration(currentShloka.transliteration)}
         </p>
         <div className="pt-3 mt-1 border-t border-temple-100 text-xs text-temple-600 leading-relaxed">
-          <span className="font-bold text-indigo-600 uppercase tracking-wider mr-2">Meaning:</span>
+          <span className="font-bold text-peacock-700 uppercase tracking-wider mr-2">Meaning:</span>
           {getShlokaMeaning()}
         </div>
       </div>
@@ -312,7 +314,7 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
         <div
           onClick={() => onNavigate('devotee-grid')}
           style={{ '--i': 0 } as React.CSSProperties}
-          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-indigo-300 transition-colors group"
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-peacock-300 transition-colors group"
         >
           {/* F-DASH-4: the card carries the org's own directory name — Goshala's
               nav says "Gau Sevak Directory", so the KPI does too. */}
@@ -615,13 +617,12 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
                 <h3 className="text-sm font-bold text-temple-800 truncate mb-0.5">{mod.name}</h3>
                 <p className="text-[11px] text-amber-700 font-medium leading-snug mb-1">{rec.reason}</p>
                 <p className="text-[11px] text-temple-600 leading-snug mb-2">{getModuleCopy(rec.moduleId, currentLang)}</p>
-                <button
-                  type="button"
+                <Button
                   onClick={() => handleOpen(rec.moduleId)}
-                  className="text-[11px] font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all min-h-[44px]"
+                  className="uppercase tracking-wider px-3"
                 >
                   Open
-                </button>
+                </Button>
               </div>
             </div>
           );
@@ -632,19 +633,19 @@ export const DiscoverGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ o
             <div
               key={mod.id}
               onClick={() => onNavigate(mod.id)}
-              className="group p-4 rounded-xl border border-temple-100 hover:border-indigo-200 bg-temple-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer flex gap-3 items-start"
+              className="group p-4 rounded-xl border border-temple-100 hover:border-peacock-300 bg-temple-50/50 hover:bg-peacock-100/40 transition-all cursor-pointer flex gap-3 items-start"
             >
-              <div className="w-10 h-10 rounded-lg bg-white border border-temple-200 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform group-hover:border-indigo-300 group-hover:text-indigo-600 text-temple-600">
+              <div className="w-10 h-10 rounded-lg bg-white border border-temple-200 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform group-hover:border-peacock-300 group-hover:text-peacock-700 text-temple-600">
                 <Icon className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-temple-800 group-hover:text-indigo-900 truncate mb-1">
+                <h3 className="text-sm font-bold text-temple-800 group-hover:text-peacock-900 truncate mb-1">
                   {t(mod.id) !== mod.id ? t(mod.id) : mod.name}
                 </h3>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium text-temple-600 truncate">{mod.domainTitle}</span>
                   {mod.badge && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600 shrink-0">{mod.badge}</span>
+                    <Chip tone="peacock" className="shrink-0">{mod.badge}</Chip>
                   )}
                 </div>
               </div>
@@ -688,7 +689,7 @@ export const ActionHub: React.FC<{
             className="w-full p-2.5 rounded-lg bg-temple-50 hover:bg-temple-100 text-temple-700 font-semibold text-[11px] flex items-center justify-between border border-temple-200 transition-colors cursor-pointer min-h-[44px]"
           >
             <div className="flex items-center gap-2">
-              <QrCode className="w-4 h-4 text-indigo-500" />
+              <QrCode className="w-4 h-4 text-peacock-700" />
               <span>My {memberNoun} Smart Card</span>
             </div>
             <ChevronRight className="w-3 h-3 text-temple-600" />
@@ -768,7 +769,7 @@ export const RecentTreasury: React.FC<{ onNavigate: (id: string) => void }> = ({
         <button
           type="button"
           onClick={() => onNavigate('treasury-ledger')}
-          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 bg-indigo-50 px-2 py-1 rounded min-h-[36px]"
+          className="text-[10px] font-bold text-peacock-700 hover:text-peacock-900 flex items-center gap-0.5 bg-peacock-100 px-2 py-1 rounded min-h-[36px]"
         >
           <span>Full</span>
           <ArrowUpRight className="w-3 h-3" />

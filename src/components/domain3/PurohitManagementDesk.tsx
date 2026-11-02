@@ -16,6 +16,10 @@ import { InviteFromMarketplace } from '../purohit/InviteFromMarketplace';
 import { JyotishProvider } from '../../context/JyotishContext';
 import { InviteJyotishFromMarketplace } from '../../jyotish/InviteJyotishFromMarketplace';
 import { useLanguage } from '../../context/LanguageContext';
+import { Button } from '../common/ui/Button';
+import { Tabs } from '../common/ui/Tabs';
+import { Chip } from '../common/ui/Chip';
+import { EmptyState } from '../common/EmptyState';
 import { PurohitProfile, PoojaBooking, ResidentPujaSchedule } from '../../types';
 
 // Tab Identifiers
@@ -686,15 +690,14 @@ export const PurohitManagementDesk: React.FC = () => {
             )}
 
             {isAdminOrTrustee && (
-              <button
-                type="button"
+              <Button
                 onClick={() => setIsAddPriestOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5"
               >
-                <UserPlus className="w-4 h-4 text-stone-950" />
+                <UserPlus className="w-4 h-4 text-white" />
                 <span className="hidden sm:inline">{t('surfaces.purohitMgmt.registerAcharya')}</span>
                 <span className="sm:hidden">Add</span>
-              </button>
+              </Button>
             )}
 
             <button
@@ -710,37 +713,23 @@ export const PurohitManagementDesk: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-2 overflow-x-auto custom-scrollbar border-t border-stone-800/80 pt-2 pb-2">
-          {[
-            { id: 'DIRECTORY', label: '1. Purohit Directory', icon: Users, badge: `${allPurohits.length} Acharyas` },
-            { id: 'ASSIGNMENT', label: '2. Smart Ritual Assignment', icon: Flame, badge: `${displayBookings.length} Bookings` },
-            { id: 'ROSTER', label: '3. Duty Roster & Aarti Shifts', icon: Calendar, badge: 'Daily Rotations' },
-            { id: 'DAKSHINA', label: '4. Dakshina & Honorarium', icon: Coins, badge: `${inr(financialTotals.gross)}` },
-            { id: 'MARKETPLACE', label: '5. Invite from Marketplace', icon: Search, badge: 'Purohit One' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as PurohitDeskTab)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-amber-300 border border-amber-500/50 shadow-sm'
-                    : 'text-stone-400 hover:text-stone-200 hover:bg-stone-900 border border-transparent'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-stone-500'}`} />
-                <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black uppercase ${
-                  isActive ? 'bg-amber-400 text-stone-950' : 'bg-stone-800 text-stone-400'
-                }`}>
-                  {tab.badge}
-                </span>
-              </button>
-            );
-          })}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 border-t border-stone-800/80 pt-2 pb-2">
+          {/* DESIGN ELEVATION E2: house Tabs (dark) — numbered labels and
+              count badges carried verbatim; the amber-glass gradient tab
+              idiom retires here (DE-05). */}
+          <Tabs
+            tone="dark"
+            ariaLabel="Purohit management sections"
+            tabs={[
+              { id: 'DIRECTORY', label: '1. Purohit Directory', icon: <Users className="w-4 h-4" />, badge: `${allPurohits.length} Acharyas` },
+              { id: 'ASSIGNMENT', label: '2. Smart Ritual Assignment', icon: <Flame className="w-4 h-4" />, badge: `${displayBookings.length} Bookings` },
+              { id: 'ROSTER', label: '3. Duty Roster & Aarti Shifts', icon: <Calendar className="w-4 h-4" />, badge: 'Daily Rotations' },
+              { id: 'DAKSHINA', label: '4. Dakshina & Honorarium', icon: <Coins className="w-4 h-4" />, badge: `${inr(financialTotals.gross)}` },
+              { id: 'MARKETPLACE', label: '5. Invite from Marketplace', icon: <Search className="w-4 h-4" />, badge: 'Purohit One' },
+            ]}
+            value={activeTab}
+            onChange={(id) => setActiveTab(id as PurohitDeskTab)}
+          />
         </div>
       </header>
 
@@ -807,18 +796,15 @@ export const PurohitManagementDesk: React.FC = () => {
                 {['ALL', 'Rigveda', 'Yajurveda', 'Samaveda', 'Atharvaveda', 'Smartha', 'Tantrik'].map((veda) => {
                   const isSel = selectedVedaBranch.toUpperCase() === veda.toUpperCase();
                   return (
-                    <button
+                    <Chip
                       key={veda}
-                      type="button"
+                      tone="neutral"
+                      surface="dark"
+                      selected={isSel}
                       onClick={() => setSelectedVedaBranch(veda)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                        isSel
-                          ? 'bg-amber-500 text-stone-950 shadow-md font-black'
-                          : 'bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-800'
-                      }`}
                     >
                       {veda === 'ALL' ? 'All Traditions' : veda}
-                    </button>
+                    </Chip>
                   );
                 })}
               </div>
@@ -944,14 +930,13 @@ export const PurohitManagementDesk: React.FC = () => {
                             <Phone className="w-3.5 h-3.5" />
                           </a>
                         )}
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
                           onClick={() => setSelectedPriestModal(priest)}
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black text-xs shadow-md flex items-center gap-1 transition-all cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5 text-stone-950" />
+                          <Eye className="w-3.5 h-3.5 text-white" />
                           <span>Dossier</span>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -960,11 +945,12 @@ export const PurohitManagementDesk: React.FC = () => {
             </div>
 
             {filteredPurohits.length === 0 && (
-              <div className="text-center py-12 bg-stone-950/40 rounded-3xl border border-stone-800">
-                <Users className="w-10 h-10 text-stone-600 mx-auto mb-2" />
-                <h4 className="text-base font-bold text-stone-300">{t('surfaces.purohitMgmt.noPurohitsMatchingFilterCriteria')}</h4>
-                <p className="text-xs text-stone-500 mt-1">{t('surfaces.purohitMgmt.tryResettingYourSearchQueryOr')}</p>
-              </div>
+              <EmptyState
+                tone="dark"
+                icon={Users}
+                title={t('surfaces.purohitMgmt.noPurohitsMatchingFilterCriteria')}
+                description={t('surfaces.purohitMgmt.tryResettingYourSearchQueryOr')}
+              />
             )}
           </div>
         )}

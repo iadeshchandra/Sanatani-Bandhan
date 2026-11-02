@@ -18,12 +18,17 @@ interface SkeletonProps {
   className?: string;
   /** Accessible label for the loading region. */
   label?: string;
+  /** Ground the block shimmers on (default dark = the original temple
+   *  tint). 'light' is the sandal shimmer for ivory surfaces — the
+   *  block takes the sanctum sandal tone so the sweep reads as
+   *  lamplight, not grey (Design Elevation E2, taste rule 12). */
+  tone?: 'dark' | 'light';
 }
 
-/** The primitive: a shimmering block. */
-export const Skeleton: React.FC<SkeletonProps> = ({ className = '', label }) => (
+/** The primitive: a shimmering block in the content's own shape. */
+export const Skeleton: React.FC<SkeletonProps> = ({ className = '', label, tone = 'dark' }) => (
   <div
-    className={`anim-skeleton bg-temple-800/60 rounded-xl ${className}`}
+    className={`anim-skeleton rounded-xl ${tone === 'dark' ? 'bg-temple-800/60' : 'bg-sanctum-sandal-deep/60'} ${className}`}
     aria-hidden={label ? undefined : true}
     aria-label={label}
     role={label ? 'status' : undefined}

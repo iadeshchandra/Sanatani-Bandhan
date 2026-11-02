@@ -1,5 +1,7 @@
 import React, { useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { Button as HouseButton } from '../components/common/ui/Button';
+import { Tabs as HouseTabs } from '../components/common/ui/Tabs';
 
 /* Utsav One — shared UI primitives (locale-aware, festival palette).
  *
@@ -63,24 +65,25 @@ export const Stat: React.FC<{ label: React.ReactNode; value: React.ReactNode; su
   );
 };
 
+/* DESIGN ELEVATION E2: Btn delegates to the house Button (DE-04) —
+ * the kit keeps its name/API so all 45 call sites are untouched.
+ * primary → house primary (--cta token); danger → house danger;
+ * 'ghost' here was always a white bordered button = house secondary. */
 export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'danger' }> = ({
   variant = 'primary',
   className = '',
+  children,
   ...rest
-}) => {
-  const styles =
-    variant === 'primary'
-      ? 'bg-cta text-white hover:bg-cta-hover shadow'
-      : variant === 'danger'
-        ? 'bg-red-600 text-white hover:bg-red-500 shadow'
-        : 'bg-white text-stone-700 border border-stone-200 hover:border-orange-400';
-  return (
-    <button
-      {...rest}
-      className={`rounded-xl px-4 py-2.5 text-sm font-bold transition min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed ${styles} ${className}`}
-    />
-  );
-};
+}) => (
+  <HouseButton
+    variant={variant === 'ghost' ? 'secondary' : variant}
+    tone="light"
+    className={className}
+    {...rest}
+  >
+    {children}
+  </HouseButton>
+);
 
 export const Field: React.FC<{ label: React.ReactNode; children: React.ReactNode; className?: string }> = ({
   label,
@@ -124,6 +127,9 @@ export const Modal: React.FC<{ title: React.ReactNode; onClose: () => void; chil
   );
 };
 
+/* DESIGN ELEVATION E2: the Utsav tab row IS the house Tabs idiom now
+ * (DE-05) — same props and the same dictionary-resolved labels; only
+ * the retired orange→red gradient active fill is gone. */
 export const Tabs: React.FC<{ tabs: Array<{ id: string }>; active: string; onChange: (id: string) => void }> = ({
   tabs,
   active,
@@ -131,24 +137,16 @@ export const Tabs: React.FC<{ tabs: Array<{ id: string }>; active: string; onCha
 }) => {
   const { t: tr } = useLanguage();
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-print">
-      {tabs.map((t) => {
-        const primary = tr(`ritual.utsav.tabs.${t.id}`);
-        return (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold border transition min-h-[44px] ${
-              active === t.id
-                ? 'bg-gradient-to-r from-orange-700 to-red-800 text-orange-50 border-orange-800 shadow'
-                : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
-            }`}
-          >
-            <span className="font-bold">{primary}</span>
-          </button>
-        );
-      })}
-    </div>
+    <HouseTabs
+      tabs={tabs.map((t) => ({
+        id: t.id,
+        label: <span className="font-bold">{tr(`ritual.utsav.tabs.${t.id}`)}</span>,
+      }))}
+      value={active}
+      onChange={onChange}
+      tone="light"
+      className="pb-2 -mx-1 px-1 no-print"
+    />
   );
 };
 

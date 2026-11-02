@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "./ui/Button";
 import { Layers, LayoutDashboard, LayoutGrid,
   Users,
   Home,
@@ -722,18 +723,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Quick Switch to Devotee App Preview — unmistakable hat labeling */}
         {!isCollapsed && (
           <div className="p-3 bg-gradient-to-r from-saffron-500/10 via-saffron-500/10 to-transparent border-b border-temple-800">
-            <button
+            {/* DESIGN ELEVATION E2: the preview switch is the house Button
+                (primary = --cta token); the spread layout rides in one
+                full-width inner span so Button's own box is untouched. */}
+            <Button
               id="sidebar-btn-switch-personal"
               onClick={handleSwitchToPersonal}
-              className="min-h-[44px] w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-saffron-500 to-saffron-600 hover:from-saffron-600 hover:to-saffron-700 text-temple-950 rounded-xl font-bold text-xs shadow-md transition-all border border-saffron-400 cursor-pointer group"
+              className="group w-full px-3"
               title="Preview what your devotees see in their app"
             >
-              <div className="flex items-center gap-2">
-                <UserCircle className="w-4 h-4 text-temple-950" />
-                <span className="font-extrabold">Devotee App Preview</span>
-              </div>
-              <ArrowLeftRight className="w-3.5 h-3.5 text-temple-950 group-hover:rotate-180 transition-transform duration-300" />
-            </button>
+              <span className="flex w-full items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <UserCircle className="w-4 h-4 text-white" />
+                  <span className="font-extrabold">Devotee App Preview</span>
+                </span>
+                <ArrowLeftRight className="w-3.5 h-3.5 text-white group-hover:rotate-180 transition-transform duration-300" />
+              </span>
+            </Button>
             <p className="text-[10px] text-temple-400 mt-1.5 px-1 leading-snug">
               See the devotee-facing app. You're currently in the <span className="font-bold text-temple-200">Institution ERP</span>.
             </p>
@@ -743,9 +749,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Collapsed Rail Quick Switch Icon */}
         {isCollapsed && (
           <div className="p-2 border-b border-temple-800 flex justify-center">
+            {/* E2: icon-only rail switch keeps its 44×44 element; its fill
+                is the --cta token pair now (was saffron-500/600). */}
             <button
               onClick={handleSwitchToPersonal}
-              className="w-11 h-11 rounded-xl bg-saffron-500 hover:bg-saffron-600 text-temple-950 flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-cta hover:bg-cta-hover text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
               title="Devotee App Preview — what your community members see"
             >
               <UserCircle className="w-5 h-5" />

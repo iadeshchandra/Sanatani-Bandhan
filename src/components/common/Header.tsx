@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Button } from './ui/Button';
 import {
   Sparkles,
   QrCode,
@@ -250,16 +251,18 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Quick Chanda Button - Visible on all sizes but icon only on tiny screens */}
-        <button
-          type="button"
+        {/* DESIGN ELEVATION E2: the Quick Chanda / Pay pill is the house
+            Button primary (--cta token) — the degenerate saffron gradient
+            and its ~2.6:1 white-on-saffron-500 contrast retire (E1 §10). */}
+        <Button
           onClick={handleQuickPay}
-          className="flex items-center gap-1.5 px-2.5 sm:px-4 min-h-[44px] py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-500 hover:from-saffron-500 hover:to-saffron-600 text-white font-bold text-xs sm:text-sm transition-all shadow-lg shadow-saffron-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron-300"
+          className="px-2.5 sm:px-4"
         >
           <Coins className="w-4 h-4" />
           {/* H-7: was t('quickPay') with no dictionary entry — rendered the literal key in production. */}
           <span className="hidden sm:inline">Quick Chanda</span>
           <span className="sm:hidden">Pay</span>
-        </button>
+        </Button>
 
         {/* Desktop Icons */}
         <div className="hidden md:flex items-center gap-2">
@@ -294,7 +297,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenSahayata}
-              className="hidden 2xl:flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold transition-all"
+              className="hidden 2xl:flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-peacock-500/10 hover:bg-peacock-500/20 border border-peacock-500/30 text-peacock-300 text-xs font-bold transition-all"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Community</span>

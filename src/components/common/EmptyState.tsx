@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { Button } from './ui/Button';
 
 /**
  * EmptyState — friendly zero-results block used across desks (Pillar 5 pass).
@@ -70,14 +71,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       >
         {description}
       </p>
+      {/* DESIGN ELEVATION E2: the one action that fills the empty state
+          is the house Button (primary = --cta token), on both tones. */}
       {actionLabel && onAction && (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          tone={dark ? 'dark' : 'light'}
           onClick={onAction}
-          className="pressable mt-4 px-5 py-2.5 min-h-[44px] rounded-xl bg-amber-500 hover:bg-amber-400 text-temple-950 text-xs font-black shadow-lg shadow-amber-600/20 transition-all cursor-pointer"
+          className="pressable mt-4"
         >
           {actionLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

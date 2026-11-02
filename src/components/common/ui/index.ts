@@ -1,6 +1,12 @@
 export { Button } from './Button';
-export type { ButtonVariant, ButtonSize } from './Button';
+export type { ButtonVariant, ButtonSize, ButtonTone } from './Button';
 export { Card, CardHeader } from './Card';
+export { Tabs } from './Tabs';
+export type { TabItem } from './Tabs';
+export { Segmented } from './Segmented';
+export type { SegmentedOption } from './Segmented';
+export { Chip } from './Chip';
+export type { ChipTone } from './Chip';
 export { Badge } from './Badge';
 export type { BadgeTone } from './Badge';
 export { Modal } from './Modal';

@@ -71,10 +71,12 @@ export const ConfirmProvider: React.FC = () => {
       size="sm"
       footer={
         <>
-          <Button variant="secondary" onClick={() => settle(false)}>
+          {/* ConfirmDialog renders inside the dark Modal — pin tone so
+              secondary/ghost keep their dark-ground classes (E2). */}
+          <Button variant="secondary" tone="dark" onClick={() => settle(false)}>
             {current.cancelLabel || 'Cancel'}
           </Button>
-          <Button variant={current.danger ? 'danger' : 'primary'} onClick={() => settle(true)} autoFocus>
+          <Button variant={current.danger ? 'danger' : 'primary'} tone="dark" onClick={() => settle(true)} autoFocus>
             {current.confirmLabel || 'Confirm'}
           </Button>
         </>

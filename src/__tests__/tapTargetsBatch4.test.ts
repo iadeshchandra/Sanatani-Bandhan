@@ -33,10 +33,19 @@ const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf-8');
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 
 describe('D-12 — shared patterns meet the 44px law', () => {
-  it('the UI kit small Button is 44px, not 36px', () => {
+  it('the UI kit Button: default (md) is 44px; sm is the declared E2 dense class', () => {
     const btn = read('src/components/common/ui/Button.tsx');
-    expect(btn).toContain("sm: 'min-h-[44px]");
-    expect(btn).not.toContain('min-h-[36px]');
+    // DESIGN ELEVATION E2 (2026-11-02) — pin moved with declaration:
+    // the E2 component spec formalises `sm` as a NAMED dense class
+    // (36px) allowed ONLY in dense desk toolbars/row actions and slim
+    // shell bars — never a surface's primary action. The 44px law
+    // itself is unchanged: the default size md stays 44px, and the
+    // allowed-places rule must stay written in the component.
+    // (design-e2 NOTES.md §gates declares this pin change.)
+    expect(btn).toContain("md: 'min-h-[44px]");
+    expect(btn).toContain("sm: 'min-h-[36px]");
+    expect(btn).toContain('DENSE class only');
+    expect(btn).toContain("never a screen's primary action");
   });
 
   it('the Sidebar pin toggle is 44 wide (was w-9 = 36)', () => {
@@ -51,10 +60,15 @@ describe('D-12 — shared patterns meet the 44px law', () => {
     expect(sb).toContain('min-h-[44px] inline-flex items-center justify-center');
     // domain accordion header
     expect(sb).toContain('min-h-[44px] w-full flex items-center justify-between');
-    // Devotee App Preview switch
-    expect(sb).toContain('min-h-[44px] w-full flex items-center justify-between px-3 py-2');
+    // Devotee App Preview switch — DESIGN ELEVATION E2: the switch is
+    // the house Button now (md = 44px by construction), so the law is
+    // pinned on the component usage + id, not the retired local
+    // gradient class string. The rail switch keeps its 44×44 box; its
+    // fill is the --cta token (bg-cta), not saffron-500.
+    expect(sb).toContain('id="sidebar-btn-switch-personal"');
+    expect(sb).toContain('from "./ui/Button"');
     // collapsed-rail preview switch is a full 44×44
-    expect(sb).toContain('w-11 h-11 rounded-xl bg-saffron-500');
+    expect(sb).toContain('w-11 h-11 rounded-xl bg-cta');
     // desk search field
     expect(sb).toContain('min-h-[44px] w-full bg-temple-800/80');
   });
