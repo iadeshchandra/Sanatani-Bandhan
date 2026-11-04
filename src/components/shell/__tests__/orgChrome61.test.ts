@@ -210,7 +210,13 @@ describe('mobile clipping fixes at the root', () => {
 
   it('Rituals prices never shrink or break', () => {
     const src = read('domain3/PoojaBookingDesk.tsx');
-    expect(src).toMatch(/font-mono font-bold text-amber-400 text-\[11px\] shrink-0 whitespace-nowrap/);
+    // DESIGN ELEVATION E3 PIN MOVE (declared): the colour step in this
+    // literal moved amber-400 → amber-700 because the Pooja desk's dark
+    // theme retired (DE-01) and amber-400 text fails on the light
+    // sanctum ground. The behaviour this pin guards — shrink-0 +
+    // whitespace-nowrap, the price never shrinks or breaks — is
+    // unchanged, character for character.
+    expect(src).toMatch(/font-mono font-bold text-amber-700 text-\[11px\] shrink-0 whitespace-nowrap/);
   });
 
   it('the directory filter strip can shrink within its card (min-w-0) and wraps on mobile', () => {

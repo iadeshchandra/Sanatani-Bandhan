@@ -103,27 +103,29 @@ const WarRoomInner: React.FC = () => {
                 onClick={() => setSelKey(f.key)}
                 className={`shrink-0 rounded-xl px-3.5 py-2.5 text-sm border transition min-h-[44px] text-left ${
                   active
-                    ? 'bg-gradient-to-r from-orange-700 to-red-800 text-orange-50 border-orange-800 shadow'
-                    : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
+                    ? 'bg-cta text-white border-transparent shadow'
+                    : 'bg-white text-stone-600 border-stone-200 hover:border-saffron-400'
                 }`}>
                 <span className="block font-bold">{f.name.en}</span>
-                <span className={`block text-[11px] font-semibold ${active ? 'text-orange-200' : 'text-stone-600'}`}>{sub}</span>
+                <span className={`block text-[11px] font-semibold ${active ? 'text-white/85' : 'text-stone-600'}`}>{sub}</span>
               </button>
             );
           })}
         </div>
       )}
       {/* ── Header: countdown + readiness ─────────────────────────── */}
-      <div className="rounded-2xl bg-gradient-to-br from-orange-900 via-red-900 to-stone-900 text-orange-50 p-5 shadow-lg overflow-hidden relative">
-        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 25% 15%, var(--gold-bright) 0, transparent 45%), radial-gradient(circle at 80% 85%, var(--saffron-500) 0, transparent 40%)' }} />
+      {/* E3 (DE-01): the orange→red→stone gradient panel joins the
+          sanctum family (ivory ground, lamplight, brass hairline);
+          kumkum survives only as the LIVE chip's accent. */}
+      <div className="rounded-3xl sanctum-header lamplight alpana-watermark border border-brass-200 text-temple-900 p-5 shadow-sm overflow-hidden relative">
         <div className="relative flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-orange-300/80">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-brass-600">
               <T en="Festival war-room" bn="উৎসব ওয়ার-রুম" hi="उत्सव वॉर-रूम" />
             </div>
-            <h2 className="text-2xl font-black mt-1">{wf.name.en}</h2>
-            <div className="text-sm text-orange-200/90 mt-0.5">🪔 {wf.tithiLine}</div>
-            <div className="text-xs text-orange-200/70 mt-1">
+            <h2 className="font-display text-2xl font-semibold tracking-tight mt-1">{wf.name.en}</h2>
+            <div className="text-sm text-amber-800 mt-0.5">🪔 {wf.tithiLine}</div>
+            <div className="text-xs text-stone-500 mt-1">
               {fmtDate(wf.dateISO)}{wf.days > 1 ? ` → ${fmtDate(wf.endDateISO)}` : ''}
             </div>
             {/* The demo moment: a big, calm countdown */}
@@ -131,19 +133,19 @@ const WarRoomInner: React.FC = () => {
               {wf.phase === 'countdown' ? (
                 <>
                   <span className="text-6xl font-black leading-none tracking-tight">{wf.daysUntil}</span>
-                  <span className="pb-1.5 text-sm font-semibold text-orange-200/90">
+                  <span className="pb-1.5 text-sm font-semibold text-stone-500">
                     <T en="days to go" bn="দিন বাকি" hi="दिन शेष" />
                   </span>
                 </>
               ) : (
-                <span className="inline-flex items-center gap-2 rounded-full bg-red-500/25 border border-red-300/40 px-4 py-2 text-sm font-black">
-                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2 text-sm font-black">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
                   <T en={`Live now · day ${Math.max(1, -wf.daysUntil + 1)} of ${wf.days}`} bn={`চলছে · ${wf.days} দিনের ${Math.max(1, -wf.daysUntil + 1)}তম দিন`} hi={`चल रहा है · ${wf.days} दिनों का ${Math.max(1, -wf.daysUntil + 1)}वां दिन`} />
                 </span>
               )}
             </div>
             {cloudStatus !== 'local' && (
-              <div className="text-[11px] text-orange-200/60 mt-2">
+              <div className="text-[11px] text-stone-500 mt-2">
                 {cloudStatus === 'syncing' ? '☁️ syncing…' : cloudStatus === 'synced' ? '☁️ shared with your team' : '📴 offline — plans stay on this device'}
               </div>
             )}
@@ -151,7 +153,7 @@ const WarRoomInner: React.FC = () => {
           <ReadinessRing score={score} />
         </div>
         {overdueIds.length > 0 && (
-          <div className="mt-3 rounded-xl bg-amber-400/15 border border-amber-300/30 px-3 py-2 text-xs text-amber-100">
+          <div className="mt-3 rounded-xl bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900">
             🪔 <T en={`${overdueIds.length} preparation task${overdueIds.length > 1 ? 's' : ''} would like attention — see the checklist below.`}
               bn={`${overdueIds.length}টি প্রস্তুতির কাজে মনোযোগ দরকার — নিচের তালিকা দেখুন।`}
               hi={`${overdueIds.length} तैयारी कार्यों पर ध्यान चाहिए — नीचे सूची देखें।`} />

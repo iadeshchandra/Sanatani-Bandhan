@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { KpiCardSkeleton, TableSkeleton } from '../common/DeskSkeletons';
 import { EmptyState } from '../common/EmptyState';
-import { Button } from '../common/ui/Button';
+import { Button, Chip, DeskHero } from '../common/ui';
 import { Segmented } from '../common/ui/Segmented';
 import { OfflineSevakStatus } from '../common/OfflineSevakStatus';
 import { DataExportButton } from '../common/DataExportButton';
@@ -175,8 +175,8 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
       onClick={() => onSelect(isSelected ? 'all' : fund.id)}
       className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
         isSelected
-          ? 'bg-amber-500/15 border-amber-500/60 shadow-md ring-1 ring-amber-500/40'
-          : 'bg-temple-950/60 border-temple-800 hover:border-temple-700'
+          ? 'bg-amber-50 border-amber-400 shadow-md ring-1 ring-amber-500/40'
+          : 'bg-sanctum-sandal/70 border-stone-200 hover:border-stone-200'
       }`}
     >
       <div>
@@ -184,28 +184,28 @@ const FundCard: React.FC<FundCardProps> = React.memo(({ fund, income, expense, n
           <span
             className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
               fund.type === 'Unrestricted'
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                ? 'bg-sky-100 text-sky-700 border border-sky-200'
+                : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
             }`}
           >
             {fund.type}
           </span>
-          {isSelected && <span className="text-[10px] font-bold text-amber-400">Active</span>}
+          {isSelected && <span className="text-[10px] font-bold text-amber-700">Active</span>}
         </div>
-        <p className="font-bold text-xs text-temple-100 line-clamp-1">{fund.name}</p>
-        <p className="text-[10px] text-temple-400 mt-0.5 line-clamp-1">{fund.description}</p>
+        <p className="font-bold text-xs text-temple-900 line-clamp-1">{fund.name}</p>
+        <p className="text-[10px] text-temple-600 mt-0.5 line-clamp-1">{fund.description}</p>
       </div>
 
-      <div className="mt-3 pt-2 border-t border-temple-800/80">
+      <div className="mt-3 pt-2 border-t border-stone-200">
         <div className="flex justify-between text-[11px] font-mono">
-          <span className="text-temple-400">{t('org.finance.treasury.netCorpus')}</span>
-          <span className={`font-bold ${net >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+          <span className="text-temple-600">{t('org.finance.treasury.netCorpus')}</span>
+          <span className={`font-bold ${net >= 0 ? 'text-amber-700' : 'text-rose-600'}`}>
             {formatAmount(net)}
           </span>
         </div>
-        <div className="flex justify-between text-[10px] text-temple-400 mt-0.5">
-          <span className="text-emerald-400">+{formatAmount(income)}</span>
-          <span className="text-rose-400">-{formatAmount(expense)}</span>
+        <div className="flex justify-between text-[10px] text-temple-600 mt-0.5">
+          <span className="text-emerald-600">+{formatAmount(income)}</span>
+          <span className="text-rose-600">-{formatAmount(expense)}</span>
         </div>
       </div>
     </button>
@@ -871,30 +871,27 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         {/* VIBE B2 — the offline sevak strip: treasury writes queue on
             this device; its real state, in the user's language. */}
         <OfflineSevakStatus variant="bar" />
-        {/* Top Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-temple-950 via-temple-900 to-amber-950/70 border border-amber-500/30 p-6 rounded-3xl shadow-2xl">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                <Landmark className="w-3.5 h-3.5 text-emerald-400" />
+        {/* Top Header — E3 (DE-01): the dark-brown gradient band retires;
+            the desk hero is the shared sanctum DeskHero. Chips, title,
+            subtitle and every toolbar action carry over unchanged. */}
+        <DeskHero
+          titleAs="h2"
+          title={t('org.finance.treasury.treasuryFundBalanceSheet')}
+          subtitle={t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')}
+          chips={
+            <>
+              <Chip tone="emerald">
+                <Landmark className="w-3.5 h-3.5 text-emerald-600" />
                 {t('org.finance.treasury.doubleentryTreasuryLedger')}
-              </span>
-              <span className="text-xs text-temple-300 font-mono bg-temple-950/60 px-2.5 py-0.5 rounded-lg border border-temple-800">
+              </Chip>
+              <Chip tone="stone" className="tnum">
                 {t('org.finance.treasury.charitableTrustAccountingStandard')}
-              </span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">
-              {t('org.finance.treasury.treasuryFundBalanceSheet')}
-            </h2>
-            <p className="text-xs sm:text-sm text-temple-400 mt-1 max-w-2xl">
-              {t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')}
-            </p>
-          </div>
-
-          {/* Action Toolbar — F-TREAS-1: the 4 most-used actions stay visible;
-              everything else lives under "More actions" (spec §1: restraint). */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            <GuideButton moduleId="treasury" className="!text-amber-300 hover:!text-amber-200 hover:!bg-white/10" />
+              </Chip>
+            </>
+          }
+          actions={
+            <>
+            <GuideButton moduleId="treasury" className="!text-amber-700 hover:!text-amber-800 hover:!bg-amber-100" />
 
             {/* New Voucher Entry — primary (hidden for the read-only
                 Auditor role: Blueprint B — the Auditor watches the
@@ -923,7 +920,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px] ${
                 showBahiKhata
                   ? 'bg-amber-500 border-amber-400 text-temple-950'
-                  : 'bg-temple-900 hover:bg-temple-800 border-amber-500/50 text-amber-200'
+                  : 'bg-white hover:bg-amber-50 border-amber-300 text-amber-800'
               }`}
             >
               <span>{t('surfaces.treasury.bahiKhataSeva')}</span>
@@ -949,8 +946,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               aria-expanded={showAuditTrail}
               className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px] ${
                 showAuditTrail
-                  ? 'bg-emerald-600/25 border-emerald-500/60 text-emerald-200'
-                  : 'bg-emerald-950 hover:bg-emerald-900 border-emerald-500/50 text-emerald-200 hover:text-white'
+                  ? 'bg-emerald-100 border-emerald-500 text-emerald-900'
+                  : 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-800 hover:text-emerald-900'
               }`}
               title={safeTranslate(
                 'treasury_audit_trail_title',
@@ -959,7 +956,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 'छेड़छाड़-रहित ऑडिट ट्रेल खोलें — हर रुपये की यात्रा'
               )}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>
                 {showAuditTrail
                   ? safeTranslate('treasury_close_audit_trail', 'Close Audit Trail', 'অডিট ট্রেইল বন্ধ করুন', 'ऑडिट ट्रेल बंद करें')
@@ -971,10 +968,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             <button
               type="button"
               onClick={handleExportPDF}
-              className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-amber-300 hover:text-amber-200 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px]"
+              className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-amber-700 hover:text-amber-800 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px]"
               title={t('org.finance.treasury.printAuditedStatementPdf')}
             >
-              <Printer className="w-4 h-4 text-amber-400" />
+              <Printer className="w-4 h-4 text-amber-600" />
               <span>{t('org.finance.treasury.printStatementPdf')}</span>
             </button>
 
@@ -985,7 +982,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 onClick={() => setShowMoreActions((v) => !v)}
                 aria-expanded={showMoreActions}
                 aria-haspopup="menu"
-                className="px-3.5 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 border border-temple-700 text-temple-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
+                className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-temple-700 hover:text-temple-900 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
                 <span>{safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}</span>
@@ -1002,7 +999,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   <div
                     role="menu"
                     aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
-                    className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-temple-700 bg-temple-900 p-1.5 shadow-2xl"
+                    className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-2xl"
                   >
                     {/* Hundi & Golak Dual Audit Desk — direct navigation once it is
                         in the org's working set; until then an in-context
@@ -1013,10 +1010,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                           type="button"
                           role="menuitem"
                           onClick={() => { setShowMoreActions(false); onNavigate('hundi-audit'); }}
-                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-300 hover:bg-white/5 transition-colors cursor-pointer"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
                           title={t('org.finance.treasury.openHundiGolakDualcustodyVaultCountingDe')}
                         >
-                          <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
                           <span>{t('org.finance.treasury.hundiVaultDesk')}</span>
                         </button>
                       ) : (
@@ -1030,10 +1027,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       type="button"
                       role="menuitem"
                       onClick={() => { setShowMoreActions(false); handleExportTallyCSV(); }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-indigo-200 hover:bg-white/5 transition-colors cursor-pointer"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-peacock-800 hover:bg-peacock-100/40 transition-colors cursor-pointer"
                       title={t('org.finance.treasury.downloadFormattedColumnarCsvForTallyPrim')}
                     >
-                      <FileSpreadsheet className="w-4 h-4 text-indigo-400 shrink-0" />
+                      <FileSpreadsheet className="w-4 h-4 text-peacock-600 shrink-0" />
                       <span>{t('org.finance.treasury.exportToTallyCsv')}</span>
                     </button>
 
@@ -1042,7 +1039,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       type="button"
                       role="menuitem"
                       onClick={() => { setShowMoreActions(false); handleExportStandardCSV(); }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-temple-300 hover:bg-white/5 transition-colors cursor-pointer"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-temple-700 hover:bg-stone-100 transition-colors cursor-pointer"
                       title={t('org.finance.treasury.exportAllRowsToCsv')}
                     >
                       <Download className="w-4 h-4 shrink-0" />
@@ -1055,7 +1052,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                         type="button"
                         role="menuitem"
                         onClick={() => { setShowMoreActions(false); setP2pLedgerOpen(true); }}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-teal-200 hover:bg-white/5 transition-colors cursor-pointer"
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-teal-800 hover:bg-teal-50 transition-colors cursor-pointer"
                         title={safeTranslate(
                           'treasury_p2p_title',
                           'Open the organisation\u2019s P2P money-request ledger',
@@ -1063,7 +1060,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                           'संगठन का P2P धन-अनुरोध खाता खोलें'
                         )}
                       >
-                        <Receipt className="w-4 h-4 text-teal-400 shrink-0" />
+                        <Receipt className="w-4 h-4 text-teal-600 shrink-0" />
                         <span>{safeTranslate('treasury_p2p_requests', 'P2P Requests', 'P2P অনুরোধ', 'P2P अनुरोध')}</span>
                       </button>
                     )}
@@ -1071,8 +1068,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 </>
               )}
             </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* Pillar 4 — Audit Trail (trustee/accountant-only; devotees see the Transparency tab inside) */}
         {showAuditTrail && (
@@ -1107,17 +1105,17 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             calm number, not three competing ones). Inflow/outflow are demoted
             to the quiet secondary row below. */}
         <WindowedNotice collection="treasury" variant="totals" loaded={allLedgerRecords.length} className="mb-4" />
-        <div className="rounded-3xl border border-amber-500/40 bg-gradient-to-b from-amber-950/50 via-temple-900 to-temple-900/90 p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
-          <div className="flex items-center justify-center gap-2 text-amber-400">
-            <ShieldCheck className="w-5 h-5 text-amber-400" />
+        <div className="rounded-3xl border border-brass-200 sanctum-header lamplight p-6 sm:p-8 text-center shadow-sm relative overflow-hidden">
+          <div className="flex items-center justify-center gap-2 text-brass-600">
+            <ShieldCheck className="w-5 h-5 text-brass-500" />
             <span className="text-xs font-black uppercase tracking-[0.2em]">
               {t('org.finance.treasury.netAvailableTreasury')}
             </span>
           </div>
-          <p className="mt-3 text-4xl sm:text-5xl font-black text-amber-300 tracking-tight">
+          <p className="mt-3 text-4xl sm:text-5xl font-black text-temple-900 tracking-tight">
             {fmtAmount(financialKPIs.netBalance)}
           </p>
-          <p className="mt-2 text-[11px] text-temple-400 font-mono">
+          <p className="mt-2 text-[11px] text-temple-500">
             {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
           </p>
         </div>
@@ -1129,24 +1127,24 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
         {/* Quiet secondary row — inflow / outflow, demoted (F-TREAS-1) */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-temple-800 bg-temple-900/60 px-4 py-3">
+          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3">
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-temple-500">
               <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500/70" />
               <span className="truncate">{t('org.finance.treasury.totalIncomeInflow')}</span>
             </div>
-            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
+            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-800">
               + {fmtAmount(financialKPIs.totalIncome)}
             </p>
             <p className="text-[10px] text-temple-500 mt-0.5 truncate">
               {t('org.finance.treasury.pranamiSevaAnnadanamHundiCollections')}
             </p>
           </div>
-          <div className="rounded-2xl border border-temple-800 bg-temple-900/60 px-4 py-3">
+          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3">
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-temple-500">
               <ArrowUpRight className="w-3.5 h-3.5 text-rose-500/70" />
               <span className="truncate">{t('org.finance.treasury.totalExpensesOutflow')}</span>
             </div>
-            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-200">
+            <p className="mt-1 text-lg sm:text-xl font-bold text-temple-800">
               - {fmtAmount(financialKPIs.totalExpense)}
             </p>
             <p className="text-[10px] text-temple-500 mt-0.5 truncate">
@@ -1156,30 +1154,30 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         </div>
 
         {/* FUND SEGREGATION: Restricted vs. Unrestricted Funds */}
-        <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-temple-800">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-lg space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200">
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-amber-400" />
+              <Layers className="w-5 h-5 text-amber-700" />
               <div>
-                <h3 className="text-sm font-bold text-temple-100">
+                <h3 className="text-sm font-bold text-temple-900">
                   {t('org.finance.treasury.trustFundSegregationRestrictedVsUnrestri')}
                 </h3>
-                <p className="text-[11px] text-temple-400">
+                <p className="text-[11px] text-temple-600">
                   {t('org.finance.treasury.statutoryAdherenceToDonorMandatesUnderTh')}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3 text-xs font-mono">
-              <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
-                <span className="text-temple-400 mr-1.5">{t('org.finance.treasury.unrestrictedCorpus')}</span>
-                <span className="font-bold text-amber-400">
+              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
+                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.unrestrictedCorpus')}</span>
+                <span className="font-bold text-amber-700">
                   {fmtAmount(fundBreakdown.unrestrictedNet)}
                 </span>
               </div>
-              <div className="px-3 py-1 rounded-lg bg-temple-950 border border-temple-800">
-                <span className="text-temple-400 mr-1.5">{t('org.finance.treasury.restrictedEarmarked')}</span>
-                <span className="font-bold text-emerald-400">
+              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
+                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.restrictedEarmarked')}</span>
+                <span className="font-bold text-emerald-600">
                   {fmtAmount(fundBreakdown.restrictedNet)}
                 </span>
               </div>
@@ -1216,12 +1214,12 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Monthly Income vs Expense */}
-              <div className="lg:col-span-2 bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg">
+              <div className="lg:col-span-2 bg-white border border-stone-200 rounded-2xl p-5 shadow-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-5 h-5 text-amber-400" />
+                  <TrendingUp className="w-5 h-5 text-amber-700" />
                   <div>
-                    <h3 className="text-sm font-bold text-temple-100">{t('org.finance.treasury.treasuryFlowAnalytics')}</h3>
-                    <p className="text-[11px] text-temple-400">
+                    <h3 className="text-sm font-bold text-temple-900">{t('org.finance.treasury.treasuryFlowAnalytics')}</h3>
+                    <p className="text-[11px] text-temple-600">
                       Monthly Income vs Expense · Last 8 months
                     </p>
                   </div>
@@ -1253,12 +1251,12 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               </div>
 
               {/* Trust-fund income mix donut */}
-              <div className="bg-temple-900/90 border border-temple-800 rounded-2xl p-5 shadow-lg flex flex-col">
+              <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-lg flex flex-col">
                 <div className="flex items-center gap-2 mb-3">
-                  <Layers className="w-5 h-5 text-amber-400" />
+                  <Layers className="w-5 h-5 text-amber-700" />
                   <div>
-                    <h3 className="text-sm font-bold text-temple-100">{t('org.finance.treasury.incomeByTrustFund')}</h3>
-                    <p className="text-[11px] text-temple-400">{t('org.finance.treasury.donormandateSegmentation')}</p>
+                    <h3 className="text-sm font-bold text-temple-900">{t('org.finance.treasury.incomeByTrustFund')}</h3>
+                    <p className="text-[11px] text-temple-600">{t('org.finance.treasury.donormandateSegmentation')}</p>
                   </div>
                 </div>
                 {fundDonutData.length > 0 ? (
@@ -1294,16 +1292,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                             className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }}
                           />
-                          <span className="text-temple-300 truncate flex-1">{entry.name}</span>
-                          <span className="font-mono font-bold text-temple-100">
+                          <span className="text-temple-700 truncate flex-1">{entry.name}</span>
+                          <span className="font-mono font-bold text-temple-900">
                             {fundDonutTotal > 0 ? ((entry.value / fundDonutTotal) * 100).toFixed(1) : '0.0'}%
                           </span>
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-2 pt-2 border-t border-temple-800 text-[11px] text-temple-400 flex justify-between">
+                    <p className="mt-2 pt-2 border-t border-stone-200 text-[11px] text-temple-600 flex justify-between">
                       <span>{t('org.finance.treasury.totalInflow')}</span>
-                      <span className="font-mono font-bold text-amber-300">{fmtAmount(fundDonutTotal)}</span>
+                      <span className="font-mono font-bold text-amber-700">{fmtAmount(fundDonutTotal)}</span>
                     </p>
                   </>
                 ) : (
@@ -1320,23 +1318,23 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           ))}
 
         {/* Filters & Search Toolbar */}
-        <div className="bg-temple-900/90 border border-temple-800 p-4 rounded-2xl shadow-md space-y-3">
+        <div className="bg-white border border-stone-200 p-4 rounded-2xl shadow-md space-y-3">
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-temple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-temple-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder={t('org.finance.treasury.searchByVoucherIdCategoryDonorVendorCust')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-temple-950/80 border border-temple-700/80 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-temple-100 placeholder-temple-500 focus:outline-none focus:border-amber-500 font-medium"
+                className="w-full bg-white border border-stone-300 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-temple-900 placeholder-temple-500 focus:outline-none focus:border-amber-500 font-medium"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-temple-400 hover:text-temple-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-temple-600 hover:text-temple-800"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1345,25 +1343,25 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
             {/* Date Range Filters */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-temple-950/80 border border-temple-700/80 rounded-xl px-2.5 py-1.5 text-xs text-temple-300">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-temple-400 text-[11px]">From:</span>
+              <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-xl px-2.5 py-1.5 text-xs text-temple-700">
+                <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                <span className="text-temple-600 text-[11px]">From:</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent text-temple-100 text-xs focus:outline-none"
+                  className="bg-transparent text-temple-900 text-xs focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-1.5 bg-temple-950/80 border border-temple-700/80 rounded-xl px-2.5 py-1.5 text-xs text-temple-300">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-temple-400 text-[11px]">To:</span>
+              <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-xl px-2.5 py-1.5 text-xs text-temple-700">
+                <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                <span className="text-temple-600 text-[11px]">To:</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent text-temple-100 text-xs focus:outline-none"
+                  className="bg-transparent text-temple-900 text-xs focus:outline-none"
                 />
               </div>
 
@@ -1374,14 +1372,14 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     setStartDate('');
                     setEndDate('');
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold"
+                  className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-100 text-temple-700 text-xs font-semibold"
                 >
                   Clear Dates
                 </button>
               )}
 
               {dateRangeInvalid && (
-                <p className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
+                <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{t('surfaces.treasury.startDateIsAfterEndDate')}</span>
                 </p>
@@ -1390,7 +1388,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
 
           {/* Quick Filter Tabs: Transaction Type & Category */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-temple-800/80">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-200">
             <div className="flex flex-wrap items-center gap-2">
               {/* Type Switcher */}
               {/* DESIGN ELEVATION E2: the switcher is the house Segmented
@@ -1414,7 +1412,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-temple-950 border border-temple-700/80 text-temple-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-500"
+                  className="bg-white border border-stone-300 text-temple-800 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-500"
                 >
                   <option value="all">{t('surfaces.treasury.allLedgerHeads')}</option>
                   {availableCategories.map((cat) => (
@@ -1430,7 +1428,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-xs text-amber-400 hover:underline font-bold px-2"
+                  className="text-xs text-amber-700 hover:underline font-bold px-2"
                 >
                   Reset All Filters
                 </button>
@@ -1438,8 +1436,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-xs text-temple-400">
-                Showing <span className="font-bold text-amber-400">{filteredTransactions.length}</span> of{' '}
+              <div className="text-xs text-temple-600">
+                Showing <span className="font-bold text-amber-700">{filteredTransactions.length}</span> of{' '}
                 {allLedgerRecords.length} entries
               </div>
               <DataExportButton
@@ -1488,7 +1486,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             <TableSkeleton rows={8} />
           </div>
         ) : filteredTransactions.length === 0 ? (
-          <div className="bg-temple-900/90 border border-temple-800 rounded-3xl p-6 shadow-xl">
+          <div className="bg-white border border-stone-200 rounded-3xl p-6 shadow-xl">
             <EmptyState
               icon={Receipt}
               title={hasActiveFilters ? t('vibe.sevakNoMatchTitle') : t('org.finance.treasury.noTreasuryRecordsYet')}
@@ -1502,10 +1500,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             />
           </div>
         ) : (
-          <div className="bg-temple-900/90 border border-temple-800 rounded-3xl shadow-xl overflow-hidden">
+          <div className="bg-white border border-stone-200 rounded-3xl shadow-xl overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-xs text-temple-200">
-              <thead className="bg-temple-950/90 text-temple-400 border-b border-temple-800 text-[11px] uppercase tracking-wider font-extrabold">
+              <table className="w-full text-left text-xs text-temple-800">
+              <thead className="bg-sanctum-sandal text-temple-600 border-b border-stone-200 text-[11px] uppercase tracking-wider font-extrabold">
                 <tr>
                   <th className="py-3.5 px-4">Date</th>
                   <th className="py-3.5 px-3">{t('org.finance.treasury.voucherRefId')}</th>
@@ -1517,7 +1515,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-temple-800/60 font-medium">
+              <tbody className="divide-y divide-stone-200 font-medium">
                 {filteredTransactions.map((tx, idx) => {
                     const isIncome = tx.type === 'Income';
                     const fund = getTransactionFund(tx);
@@ -1526,16 +1524,16 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     return (
                       <tr
                         key={`${tx.id}-${idx}`}
-                        className="hover:bg-temple-800/40 transition-colors"
+                        className="hover:bg-stone-100/40 transition-colors"
                       >
                         {/* Date */}
-                        <td className="py-3 px-4 font-mono text-temple-300 whitespace-nowrap">
+                        <td className="py-3 px-4 font-mono text-temple-700 whitespace-nowrap">
                           {formatDateIST(tx.date)}
                         </td>
 
                         {/* Voucher / Ref ID */}
                         <td className="py-3 px-3 whitespace-nowrap font-mono">
-                          <p className="font-bold text-amber-300">
+                          <p className="font-bold text-amber-700">
                             {tx.taxReceiptNumber || tx.referenceNo || tx.id}
                           </p>
                           <p className="text-[10px] text-temple-500">{tx.id}</p>
@@ -1562,8 +1560,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide border ${
                               isIncome
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                ? 'bg-emerald-100 text-emerald-600 border-emerald-300'
+                                : 'bg-rose-100 text-rose-600 border-rose-300'
                             }`}
                           >
                             {isIncome ? 'Receipt' : 'Payment'}
@@ -1572,18 +1570,18 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
                         {/* Ledger Head (Category) & Fund Tag */}
                         <td className="py-3 px-3">
-                          <p className="font-bold text-temple-100">{tx.category || 'General Ledger'}</p>
+                          <p className="font-bold text-temple-900">{tx.category || 'General Ledger'}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span
                               className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${
                                 fund.type === 'Unrestricted'
-                                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                  ? 'bg-blue-500/15 text-sky-700 border-sky-200'
+                                  : 'bg-emerald-100 text-emerald-700 border-emerald-300'
                               }`}
                             >
                               {fund.name}
                             </span>
-                            <span className="text-[10px] text-temple-400 truncate max-w-[160px]">
+                            <span className="text-[10px] text-temple-600 truncate max-w-[160px]">
                               {tx.purpose}
                             </span>
                           </div>
@@ -1591,21 +1589,21 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
                         {/* Payment Mode */}
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-temple-800 text-temple-300 text-[11px] font-mono border border-temple-700">
+                          <span className="px-2 py-0.5 rounded bg-stone-100 text-temple-700 text-[11px] font-mono border border-stone-200">
                             {tx.paymentMode || 'Cash'}
                           </span>
                         </td>
 
                         {/* Entity (Donor / Vendor / Payee) */}
                         <td className="py-3 px-3">
-                          <p className="font-bold text-temple-100 truncate max-w-[180px]">
+                          <p className="font-bold text-temple-900 truncate max-w-[180px]">
                             {entityName}
                           </p>
                           {/* QUEUED #59 (A4-4): seeded vouchers are MARKED sample. */}
                           {isSampleRecord(tx) && <SampleBadge className="mt-1" />}
                           {tx.isPractice && <PracticeBadge className="mt-1 ml-1" />}
-                          <p className="text-[10px] text-temple-400">
-                            Handled by: <span className="text-temple-300">{tx.handledBy || 'Admin'}</span>
+                          <p className="text-[10px] text-temple-600">
+                            Handled by: <span className="text-temple-700">{tx.handledBy || 'Admin'}</span>
                           </p>
                         </td>
 
@@ -1613,18 +1611,18 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <span
                             className={`font-black font-mono text-sm sm:text-base ${
-                              isIncome ? 'text-emerald-400' : 'text-rose-400'
+                              isIncome ? 'text-emerald-600' : 'text-rose-600'
                             }`}
                           >
                             {isIncome ? '+' : '-'} {fmtAmount(tx.amount || 0)}
                           </span>
                           {tx.is80GEligible && eightyGReceiptGate(tx, activeWorkspace).mode === 'official' && (
-                            <div className="text-[9px] font-mono text-amber-400 mt-0.5">
+                            <div className="text-[9px] font-mono text-amber-700 mt-0.5">
                               80G Tax Deductible
                             </div>
                           )}
                           {tx.is80GEligible && eightyGReceiptGate(tx, activeWorkspace).mode === 'sample' && (
-                            <div className="text-[9px] font-mono text-temple-400 mt-0.5">
+                            <div className="text-[9px] font-mono text-temple-600 mt-0.5">
                               80G marked · SAMPLE receipt only
                             </div>
                           )}
@@ -1638,10 +1636,10 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                               <button
                                 type="button"
                                 onClick={() => setSelectedMemoUrl(tx.memoImageUrl!)}
-                                className="p-1.5 rounded-lg bg-temple-800 hover:bg-temple-750 text-temple-300 hover:text-amber-300 transition-colors"
+                                className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-100 text-temple-700 hover:text-amber-700 transition-colors"
                                 title={t('org.finance.treasury.viewAttachedPaymentMemo')}
                               >
-                                <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                                <ImageIcon className="w-3.5 h-3.5 text-amber-700" />
                               </button>
                             )}
 
@@ -1704,8 +1702,8 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                                   }}
                                   className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
                                     official
-                                      ? 'bg-amber-500/20 hover:bg-amber-500 hover:text-temple-950 text-amber-300 border border-amber-500/40'
-                                      : 'bg-temple-800 hover:bg-temple-700 text-temple-300 border border-temple-600'
+                                      ? 'bg-amber-100 hover:bg-amber-500 hover:text-temple-950 text-amber-700 border border-amber-300'
+                                      : 'bg-stone-100 hover:bg-stone-200 text-temple-700 border border-stone-300'
                                   }`}
                                   title={gate.explanation}
                                 >
@@ -1728,13 +1726,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         {/* ATTACHED MEMO MODAL */}
         {selectedMemoUrl && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
-            <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
+            <div className="bg-white border border-stone-200 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-900 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-200 mb-3">
                 <h4 className="font-bold text-xs">{t('org.finance.treasury.attachedPaymentMemoVoucherPhoto')}</h4>
                 <button
                   type="button"
                   onClick={() => setSelectedMemoUrl(null)}
-                  className="text-temple-400 hover:text-temple-100"
+                  className="text-temple-600 hover:text-temple-900"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1742,7 +1740,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <img
                 src={selectedMemoUrl || undefined}
                 alt={t('org.finance.treasury.paymentMemo')}
-                className="rounded-xl w-full max-h-96 object-contain border border-temple-800"
+                className="rounded-xl w-full max-h-96 object-contain border border-stone-200"
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -1753,13 +1751,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             voucher, from the hash-chained audit stream. */}
         {historyTxId && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
-            <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
+            <div className="bg-white border border-stone-200 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-900 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-stone-200 mb-3">
                 <h4 className="font-bold text-xs">{t('org.audit.history.title')}</h4>
                 <button
                   type="button"
                   onClick={() => setHistoryTxId(null)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-400 hover:text-temple-100"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-600 hover:text-temple-900"
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" />
@@ -1778,22 +1776,22 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
         {/* NEW VOUCHER ENTRY MODAL */}
         {showVoucherModal && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md animate-in fade-in">
-            <div className="bg-temple-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl p-6 text-temple-200 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl p-6 text-temple-800 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
               {/* Modal Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-temple-800 mb-4">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-200 mb-4">
                 <div>
-                  <h3 className="text-xl font-extrabold text-amber-300 flex items-center gap-2">
-                    <Landmark className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-xl font-extrabold text-amber-700 flex items-center gap-2">
+                    <Landmark className="w-5 h-5 text-amber-700" />
                     New General Ledger Voucher Entry
                   </h3>
-                  <p className="text-xs text-temple-400 mt-0.5">
+                  <p className="text-xs text-temple-600 mt-0.5">
                     Log double-entry disbursements, priest honorariums, vendor bills, or manual receipts.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowVoucherModal(false)}
-                  className="p-1.5 rounded-xl bg-temple-800 hover:bg-temple-700 text-temple-400 hover:text-white transition-colors"
+                  className="p-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-temple-600 hover:text-white transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1802,7 +1800,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               <form onSubmit={handleSaveVoucher} className="space-y-4">
                 {/* Voucher Type Selector */}
                 <div>
-                  <label className="block text-xs font-bold text-temple-300 uppercase mb-1.5">
+                  <label className="block text-xs font-bold text-temple-700 uppercase mb-1.5">
                     Voucher Type *
                   </label>
                   <div className="grid grid-cols-2 gap-3">
@@ -1815,7 +1813,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all border ${
                         voucherType === 'Expense'
                           ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/25'
-                          : 'bg-temple-950 text-temple-400 border-temple-800 hover:border-temple-700'
+                          : 'bg-white text-temple-600 border-stone-200 hover:border-stone-200'
                       }`}
                     >
                       Payment Voucher (Expense Outflow)
@@ -1829,7 +1827,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all border ${
                         voucherType === 'Income'
                           ? 'bg-emerald-500 text-temple-950 border-emerald-400 shadow-md shadow-emerald-500/25'
-                          : 'bg-temple-950 text-temple-400 border-temple-800 hover:border-temple-700'
+                          : 'bg-white text-temple-600 border-stone-200 hover:border-stone-200'
                       }`}
                     >
                       Receipt Voucher (Income Inflow)
@@ -1840,7 +1838,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 {/* Amount & Date */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Amount ({wsCurrency.symbol}) *
                     </label>
                     <input
@@ -1851,12 +1849,12 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       placeholder="0.00"
                       value={voucherAmount}
                       onChange={(e) => setVoucherAmount(e.target.value ? Number(e.target.value) : '')}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3.5 py-2 text-base font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2 text-base font-mono font-bold text-amber-700 focus:outline-none focus:border-amber-500"
                       autoFocus
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Voucher Date *
                     </label>
                     <input
@@ -1864,7 +1862,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       required
                       value={voucherDate}
                       onChange={(e) => setVoucherDate(e.target.value)}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3.5 py-2 text-sm text-temple-200 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2 text-sm text-temple-800 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1872,13 +1870,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 {/* Ledger Head & Fund Segregation */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Ledger Head / Category *
                     </label>
                     <select
                       value={voucherCategory}
                       onChange={(e) => setVoucherCategory(e.target.value)}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                     >
                       {voucherType === 'Expense' ? (
                         <>
@@ -1906,13 +1904,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Fund Allocation Tag
                     </label>
                     <select
                       value={voucherFundId}
                       onChange={(e) => setVoucherFundId(e.target.value)}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                     >
                       {TRUST_FUNDS.map((f) => (
                         <option key={f.id} value={f.id}>
@@ -1925,7 +1923,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
 
                 {/* Entity (Donor / Vendor Name) */}
                 <div>
-                  <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                  <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                     {voucherType === 'Expense' ? 'Payee / Vendor Name *' : 'Devotee / Donor Name *'}
                   </label>
                   <MemberSearchSelect
@@ -1942,13 +1940,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 {/* Payment Mode & Ref / UTR */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Payment Mode *
                     </label>
                     <select
                       value={voucherPaymentMode}
                       onChange={(e) => setVoucherPaymentMode(e.target.value)}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                     >
                       <option value="Bank Transfer (NEFT/RTGS)">{t('org.finance.treasury.bankTransferNeftrtgs')}</option>
                       <option value="UPI">UPI</option>
@@ -1959,7 +1957,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                    <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                       Cheque / UTR / Voucher Ref No
                     </label>
                     <input
@@ -1967,14 +1965,14 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                       placeholder={t('org.finance.treasury.egUtr123456Chq00123')}
                       value={voucherRefNo}
                       onChange={(e) => setVoucherRefNo(e.target.value)}
-                      className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
 
                 {/* Purpose / Narration */}
                 <div>
-                  <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                  <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                     Narration / Purpose *
                   </label>
                   <input
@@ -1983,13 +1981,13 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     placeholder={t('org.finance.treasury.specificPurposeForCaAuditTrailAndTallyNa')}
                     value={voucherPurpose}
                     onChange={(e) => setVoucherPurpose(e.target.value)}
-                    className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 {/* Custody Handled By */}
                 <div>
-                  <label className="block text-xs font-bold text-temple-300 uppercase mb-1">
+                  <label className="block text-xs font-bold text-temple-700 uppercase mb-1">
                     Custody (Handled By)
                   </label>
                   <input
@@ -1997,7 +1995,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     required
                     value={voucherHandledBy}
                     onChange={(e) => setVoucherHandledBy(e.target.value)}
-                    className="w-full bg-temple-950 border border-temple-700/80 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
@@ -2006,21 +2004,21 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                     official certificate; otherwise the toggle is disabled
                     with the honest reason instead of a silent fiction. */}
                 {voucherType === 'Income' && (
-                  <div className="pt-2 border-t border-temple-800">
-                    <label className={`flex items-center gap-2 text-xs ${canMark80G ? 'text-temple-300 cursor-pointer' : 'text-temple-500 cursor-not-allowed'}`}>
+                  <div className="pt-2 border-t border-stone-200">
+                    <label className={`flex items-center gap-2 text-xs ${canMark80G ? 'text-temple-700 cursor-pointer' : 'text-temple-500 cursor-not-allowed'}`}>
                       <input
                         type="checkbox"
                         checked={voucherIs80G && canMark80G}
                         disabled={!canMark80G}
                         onChange={(e) => setVoucherIs80G(e.target.checked)}
-                        className="rounded bg-temple-950 border-temple-700 text-amber-500 focus:ring-0 disabled:opacity-40"
+                        className="rounded bg-white border-stone-200 text-amber-600 focus:ring-0 disabled:opacity-40"
                       />
-                      <span className="font-semibold text-amber-300">
+                      <span className="font-semibold text-amber-700">
                         Mark as Section 80G(5)(vi) Tax Exemption Eligible
                       </span>
                     </label>
                     {!canMark80G && (
-                      <p className="text-[11px] text-temple-400 mt-1.5 leading-relaxed">
+                      <p className="text-[11px] text-temple-600 mt-1.5 leading-relaxed">
                         {org80G.reason === 'not-registered'
                           ? 'Unavailable: this organisation is not 80G-registered, so its receipts are SAMPLE only. Add the registration in Settings → Legal & Compliance to enable official 80G marking.'
                           : 'Unavailable: the 80G registration is saved without a URN / registration number. Add it in Settings → Legal & Compliance to enable official 80G marking.'}
@@ -2030,29 +2028,29 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 )}
 
                 {/* Voucher Memo Photo Attachment */}
-                <div className="pt-2 border-t border-temple-800">
-                  <label className="block text-xs font-bold text-temple-400 mb-1">
+                <div className="pt-2 border-t border-stone-200">
+                  <label className="block text-xs font-bold text-temple-600 mb-1">
                     Attach Bill / Invoice / Voucher Photo (Compressed locally)
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleMemoUpload}
-                    className="w-full text-xs text-temple-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-temple-800 file:text-temple-300 hover:file:bg-temple-750 cursor-pointer"
+                    className="w-full text-xs text-temple-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-temple-700 hover:file:bg-stone-100 cursor-pointer"
                   />
                   {voucherMemoUrl && (
-                    <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-semibold">
+                    <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1 font-semibold">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Voucher photo compressed and attached
                     </p>
                   )}
                 </div>
 
                 {/* Modal Actions */}
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-temple-800">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
                   <button
                     type="button"
                     onClick={() => setShowVoucherModal(false)}
-                    className="px-4 py-2.5 rounded-xl bg-temple-800 hover:bg-temple-750 text-temple-300 text-xs font-semibold transition-colors"
+                    className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-100 text-temple-700 text-xs font-semibold transition-colors"
                   >
                     Cancel
                   </button>

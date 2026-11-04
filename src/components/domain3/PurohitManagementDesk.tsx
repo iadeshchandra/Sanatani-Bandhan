@@ -17,6 +17,7 @@ import { JyotishProvider } from '../../context/JyotishContext';
 import { InviteJyotishFromMarketplace } from '../../jyotish/InviteJyotishFromMarketplace';
 import { useLanguage } from '../../context/LanguageContext';
 import { Button } from '../common/ui/Button';
+import { DeskHero } from '../common/ui/DeskHero';
 import { Tabs } from '../common/ui/Tabs';
 import { Chip } from '../common/ui/Chip';
 import { EmptyState } from '../common/EmptyState';
@@ -650,41 +651,30 @@ export const PurohitManagementDesk: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100 flex flex-col font-sans pb-20 selection:bg-amber-500 selection:text-stone-950">
-      
-      {/* ========================================================
-          1. HEADER & TOP CONTROLS
-      ======================================================== */}
-      <header className="sticky top-0 z-30 bg-stone-950/95 backdrop-blur-md border-b border-amber-900/40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
-          
-          {/* Left Title & Temple Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-800 p-0.5 shadow-lg shadow-amber-950/60 flex items-center justify-center">
-              <div className="w-full h-full bg-stone-950 rounded-[14px] flex items-center justify-center text-amber-400 font-black text-xl">
-                🪔
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-black text-amber-100 tracking-tight leading-none">
-                  Purohit & Vedic Rituals Management Desk
-                </h1>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Vedic Parishad
-                </span>
-              </div>
-              <p className="text-xs text-amber-400/80 font-medium mt-0.5">
-                {activeWorkspace?.name || 'Sanatani Bandhan'} • Acharya Accreditation, Smart Dispatch & Aarti Rotations
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-stone-50 text-stone-800 flex flex-col font-sans pb-20 selection:bg-amber-500 selection:text-stone-950">
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-2">
+      {/* ========================================================
+          1. DESK HERO & TAB NAVIGATION — E3 (DE-01/DE-07): the
+          full-black sticky header retires; the desk hero is the
+          shared sanctum DeskHero (in-flow) and the E2 house Tabs
+          take their light ground under it. Title, subtitle, the
+          Vedic Parishad chip (now the hero's brass chip) and every
+          header action carry over unchanged.
+      ======================================================== */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-4 sm:pt-6">
+        <DeskHero
+          title="Purohit & Vedic Rituals Management Desk"
+          subtitle={
+            <>
+              {activeWorkspace?.name || 'Sanatani Bandhan'} • Acharya Accreditation, Smart Dispatch & Aarti Rotations
+            </>
+          }
+          chips={<span className="muhurat-chip">Vedic Parishad</span>}
+          actions={
+            <>
             {isPriest && currentPriestProfile && (
-              <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <div className="px-3 py-1.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 text-xs font-bold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 <span>Namaskar, {currentPriestProfile.name}</span>
               </div>
             )}
@@ -703,22 +693,22 @@ export const PurohitManagementDesk: React.FC = () => {
             <button
               type="button"
               onClick={handlePrintRoster}
-              className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-stone-600 hover:text-temple-900 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
               title={t('surfaces.purohitMgmt.printCurrentDeskView')}
             >
               <Printer className="w-4 h-4" />
             </button>
-          </div>
-
-        </div>
+            </>
+          }
+        />
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 border-t border-stone-800/80 pt-2 pb-2">
-          {/* DESIGN ELEVATION E2: house Tabs (dark) — numbered labels and
-              count badges carried verbatim; the amber-glass gradient tab
-              idiom retires here (DE-05). */}
+        <div className="pt-3">
+          {/* DESIGN ELEVATION E2: house Tabs — numbered labels and
+              count badges carried verbatim; E3 moves them to their
+              light ground with the desk (DE-05/DE-07). */}
           <Tabs
-            tone="dark"
+            tone="light"
             ariaLabel="Purohit management sections"
             tabs={[
               { id: 'DIRECTORY', label: '1. Purohit Directory', icon: <Users className="w-4 h-4" />, badge: `${allPurohits.length} Acharyas` },
@@ -731,7 +721,7 @@ export const PurohitManagementDesk: React.FC = () => {
             onChange={(id) => setActiveTab(id as PurohitDeskTab)}
           />
         </div>
-      </header>
+      </div>
 
       {/* ========================================================
           MAIN VIEW CONTAINER
@@ -745,23 +735,23 @@ export const PurohitManagementDesk: React.FC = () => {
           <div className="space-y-6 animate-fadeIn">
             
             {/* Search & Veda Filters Bar */}
-            <div className="bg-stone-950/70 p-4 rounded-3xl border border-stone-800 space-y-3">
+            <div className="bg-white p-4 rounded-3xl border border-stone-200 space-y-3">
               <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
                 
                 {/* Search Input */}
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t('surfaces.purohitMgmt.searchByAcharyaNameCityGotra')}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-stone-900 border border-stone-800 text-xs sm:text-sm text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs sm:text-sm text-stone-700 placeholder-stone-500 focus:outline-none focus:border-amber-500 transition-colors"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-temple-900"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -770,14 +760,14 @@ export const PurohitManagementDesk: React.FC = () => {
 
                 {/* Availability Filter */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-bold text-stone-400 flex items-center gap-1">
+                  <span className="text-xs font-bold text-stone-500 flex items-center gap-1">
                     <Filter className="w-3.5 h-3.5 text-amber-500" />
                     Status:
                   </span>
                   <select
                     value={selectedAvailability}
                     onChange={(e) => setSelectedAvailability(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-stone-900 border border-stone-800 text-xs font-bold text-stone-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs font-bold text-stone-700 focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     <option value="ALL">{t('surfaces.purohitMgmt.allStatus')}</option>
                     <option value="AVAILABLE">Available</option>
@@ -790,7 +780,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
               {/* Veda Shakha Filter Chips */}
               <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pt-1">
-                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider shrink-0 mr-1">
+                <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider shrink-0 mr-1">
                   Veda Shakha:
                 </span>
                 {['ALL', 'Rigveda', 'Yajurveda', 'Samaveda', 'Atharvaveda', 'Smartha', 'Tantrik'].map((veda) => {
@@ -799,7 +789,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     <Chip
                       key={veda}
                       tone="neutral"
-                      surface="dark"
+                      surface="light"
                       selected={isSel}
                       onClick={() => setSelectedVedaBranch(veda)}
                     >
@@ -819,91 +809,104 @@ export const PurohitManagementDesk: React.FC = () => {
                 return (
                   <div
                     key={priest.id}
-                    className="bg-stone-950/80 border border-stone-800 hover:border-amber-500/40 rounded-3xl p-5 shadow-xl hover:shadow-2xl hover:shadow-amber-950/30 transition-all flex flex-col justify-between group relative overflow-hidden"
+                    className="bg-white border border-stone-200 hover:border-amber-500 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group relative overflow-hidden"
                   >
                     {/* Top Glow Accent */}
-                    <div className="absolute -top-12 -right-12 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
+                    <div className="absolute -top-12 -right-12 w-28 h-28 bg-amber-50 rounded-full blur-2xl group-hover:bg-amber-100 transition-all pointer-events-none" />
 
                     <div>
-                      {/* Header: Photo & Title */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 p-0.5 shadow-md flex items-center justify-center shrink-0">
-                            <div className="w-full h-full bg-stone-950 rounded-[14px] flex items-center justify-center text-amber-400 font-black text-xl">
-                              {priest.name ? priest.name.charAt(0) : '🕉️'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <h3 className="text-base font-black text-white group-hover:text-amber-200 transition-colors leading-tight">
-                                {priest.name || priest.fullName}
-                              </h3>
-                              {priest.verifiedByMandirTrust && (
-                                <span title={t('surfaces.purohitMgmt.parishadVerified')}>
-                                  <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-amber-400 font-semibold line-clamp-1 mt-0.5">
-                              {priest.vidwatTitle || 'Vedic Acharya'}
-                            </p>
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              {priest.vedicBranch || 'Yajurveda'} • {priest.gotra || 'Kashyapa'} Gotra
-                            </span>
+                      {/* Header: Photo & Title — E3 (DE-07): the text
+                          column takes min-w-0 and the name may wrap to
+                          two lines; the availability pill leaves this
+                          row entirely (it opens the meta row below),
+                          so neither the name nor the pill is ever
+                          squeezed into "AVAILAB…" again. */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-amber-300 p-0.5 shadow-md flex items-center justify-center shrink-0">
+                          <div className="w-full h-full bg-amber-50 rounded-[14px] flex items-center justify-center text-amber-600 font-black text-xl">
+                            {priest.name ? priest.name.charAt(0) : '🕉️'}
                           </div>
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-base font-black text-temple-900 group-hover:text-amber-800 transition-colors leading-tight line-clamp-2 min-w-0">
+                              {priest.name || priest.fullName}
+                            </h3>
+                            {priest.verifiedByMandirTrust && (
+                              <span title={t('surfaces.purohitMgmt.parishadVerified')} className="shrink-0">
+                                <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-amber-700 font-semibold line-clamp-1 mt-0.5">
+                            {priest.vidwatTitle || 'Vedic Acharya'}
+                          </p>
+                        </div>
+                      </div>
 
-                        {/* Availability Pill */}
+                      {/* Meta row — availability + branch & gotra,
+                          wrapping freely (DE-07) */}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-3">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 whitespace-nowrap ${
                             isAvail
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                               : isOnCall
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-rose-100 text-rose-700 border border-rose-300'
                           }`}
                         >
                           {priest.availability || 'Available'}
                         </span>
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                          {priest.vedicBranch || 'Yajurveda'} • {priest.gotra || 'Kashyapa'} Gotra
+                        </span>
                       </div>
 
-                      {/* Qualification & Experience */}
-                      <p className="text-xs text-stone-300 line-clamp-2 bg-stone-900/60 p-2.5 rounded-2xl border border-stone-800/80 mb-3">
-                        <span className="text-amber-400 font-bold block text-[11px] mb-0.5">{t('surfaces.purohitMgmt.vedicQualification')}</span>
-                        {priest.vedicQualification || 'Rig-Yajur Veda Samhita Adhyayan'}
-                      </p>
+                      {/* Qualification & Experience — E3 (DE-07): the
+                          label stands above the text instead of eating
+                          its first clamped line; the text gets three
+                          relaxed lines, so no more mid-word cuts. */}
+                      <div className="text-xs text-stone-600 bg-stone-50 p-2.5 rounded-2xl border border-stone-200 mb-3">
+                        <span className="text-amber-700 font-bold block text-[11px] mb-0.5">{t('surfaces.purohitMgmt.vedicQualification')}</span>
+                        <p className="line-clamp-3 leading-relaxed">
+                          {priest.vedicQualification || 'Rig-Yajur Veda Samhita Adhyayan'}
+                        </p>
+                      </div>
 
-                      {/* Rating & Location Meta */}
+                      {/* Rating & Location Meta — E3 (DE-07): label
+                          stacks above the value; the two blocks no
+                          longer collide in a justify-between row. */}
                       <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                        <div className="bg-stone-900/90 p-2 rounded-xl border border-stone-800 flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-stone-400">Rating</span>
-                          <span className="font-extrabold text-amber-400 flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <div className="bg-stone-50 p-2 rounded-xl border border-stone-200 flex flex-col gap-0.5">
+                          <span className="text-[10px] uppercase font-bold text-stone-500">Rating</span>
+                          <span className="font-extrabold text-amber-700 flex items-center gap-1 tnum">
+                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                             {priest.rating} ({priest.reviewCount || 100}+)
                           </span>
                         </div>
-                        <div className="bg-stone-900/90 p-2 rounded-xl border border-stone-800 flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-bold text-stone-400">Experience</span>
-                          <span className="font-bold text-stone-200">{priest.experienceYears} Years</span>
+                        <div className="bg-stone-50 p-2 rounded-xl border border-stone-200 flex flex-col gap-0.5">
+                          <span className="text-[10px] uppercase font-bold text-stone-500">Experience</span>
+                          <span className="font-bold text-stone-700 tnum">{priest.experienceYears} Years</span>
                         </div>
                       </div>
 
                       {/* Specializations Badges */}
                       <div className="space-y-1 mb-4">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">
+                        <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">
                           Specializations:
                         </span>
                         <div className="flex flex-wrap gap-1">
                           {(priest.specializations || []).slice(0, 3).map((spec, idx) => (
                             <span
                               key={idx}
-                              className="px-2 py-0.5 rounded-lg bg-stone-900 text-stone-300 border border-stone-800 text-[11px] font-medium"
+                              className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 border border-stone-200 text-[11px] font-medium"
                             >
                               {spec}
                             </span>
                           ))}
                           {(priest.specializations || []).length > 3 && (
-                            <span className="px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] font-bold">
+                            <span className="px-1.5 py-0.5 rounded-lg bg-amber-100 text-amber-700 text-[10px] font-bold">
                               +{(priest.specializations || []).length - 3} more
                             </span>
                           )}
@@ -912,10 +915,10 @@ export const PurohitManagementDesk: React.FC = () => {
                     </div>
 
                     {/* Footer Contact & Actions */}
-                    <div className="pt-3 border-t border-stone-800 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-2">
                       <div className="text-left">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">Dakshina</span>
-                        <span className="text-xs font-black text-amber-300">
+                        <span className="text-[10px] uppercase font-bold text-stone-500 block">Dakshina</span>
+                        <span className="text-xs font-black text-amber-700">
                           {priest.dakshinaRange || inr(priest.suggestedDakshina ?? 5100)}
                         </span>
                       </div>
@@ -924,7 +927,7 @@ export const PurohitManagementDesk: React.FC = () => {
                         {priest.phone && (
                           <a
                             href={`tel:${priest.phone}`}
-                            className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-emerald-400 border border-stone-800 transition-colors"
+                            className="p-2 rounded-xl bg-white hover:bg-emerald-50 text-stone-600 hover:text-emerald-700 border border-stone-300 transition-colors min-h-[36px] min-w-[36px] inline-flex items-center justify-center"
                             title="Call Acharya"
                           >
                             <Phone className="w-3.5 h-3.5" />
@@ -946,7 +949,7 @@ export const PurohitManagementDesk: React.FC = () => {
 
             {filteredPurohits.length === 0 && (
               <EmptyState
-                tone="dark"
+                tone="light"
                 icon={Users}
                 title={t('surfaces.purohitMgmt.noPurohitsMatchingFilterCriteria')}
                 description={t('surfaces.purohitMgmt.tryResettingYourSearchQueryOr')}
@@ -962,21 +965,21 @@ export const PurohitManagementDesk: React.FC = () => {
           <div className="space-y-6 animate-fadeIn">
             
             {/* Top Overview & Filter */}
-            <div className="bg-stone-950/70 p-5 rounded-3xl border border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white p-5 rounded-3xl border border-stone-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-black text-temple-900 flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-amber-700" />
                   <span>{t('surfaces.purohitMgmt.smartRitualPujaAssignmentEngine')}</span>
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">
+                <p className="text-xs text-stone-500 mt-0.5">
                   Algorithmic matching of pending devotee sankalpa bookings with accredited Purohits based on Veda Shakha, specialization, and availability.
                 </p>
               </div>
 
               {/* Status Filter */}
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-stone-400">View:</span>
-                <div className="flex items-center bg-stone-900 p-1 rounded-2xl border border-stone-800">
+                <span className="text-xs font-bold text-stone-500">View:</span>
+                <div className="flex items-center bg-stone-100 p-1 rounded-2xl border border-stone-200">
                   {(['UNASSIGNED', 'ASSIGNED', 'ALL'] as const).map((filterOpt) => (
                     <button
                       key={filterOpt}
@@ -984,8 +987,8 @@ export const PurohitManagementDesk: React.FC = () => {
                       onClick={() => setAssignmentBookingFilter(filterOpt)}
                       className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         assignmentBookingFilter === filterOpt
-                          ? 'bg-amber-500 text-stone-950 font-black'
-                          : 'text-stone-400 hover:text-stone-200'
+                          ? 'bg-white text-temple-900 font-black shadow ring-1 ring-stone-900/5'
+                          : 'text-temple-600 hover:text-temple-900'
                       }`}
                     >
                       {filterOpt === 'UNASSIGNED' ? 'Pending Priest' : filterOpt === 'ASSIGNED' ? 'Assigned' : 'All'}
@@ -1006,8 +1009,8 @@ export const PurohitManagementDesk: React.FC = () => {
                     key={booking.id}
                     className={`p-5 rounded-3xl border transition-all ${
                       isPending
-                        ? 'bg-stone-950/90 border-amber-500/40 hover:border-amber-400 shadow-lg shadow-amber-950/20'
-                        : 'bg-stone-950/60 border-stone-800'
+                        ? 'bg-white border-amber-300 hover:border-amber-500 shadow-lg shadow-stone-900/10'
+                        : 'bg-white border-stone-200'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -1015,69 +1018,69 @@ export const PurohitManagementDesk: React.FC = () => {
                       {/* Left: Puja & Devotee Details */}
                       <div className="space-y-2 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700 border border-amber-200">
                             {booking.receiptRef || booking.id}
                           </span>
-                          <h3 className="text-base font-black text-white">
+                          <h3 className="text-base font-black text-temple-900">
                             {booking.poojaName}
                           </h3>
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                               isPending
-                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
-                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                ? 'bg-rose-100 text-rose-700 border border-rose-300 animate-pulse'
+                                : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                             }`}
                           >
                             {isPending ? 'Needs Acharya' : 'Priest Assigned'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-stone-300">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-stone-600">
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">Yajamana</span>
-                            <span className="font-bold text-white">{booking.devoteeName}</span>
+                            <span className="text-[10px] text-stone-500 uppercase font-bold block">Yajamana</span>
+                            <span className="font-bold text-temple-900">{booking.devoteeName}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraNakshatra')}</span>
-                            <span className="font-semibold text-amber-300">
+                            <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraNakshatra')}</span>
+                            <span className="font-semibold text-amber-700">
                               {booking.gotra} {booking.nakshatra ? `• ${booking.nakshatra}` : ''}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.dateMuhurat')}</span>
-                            <span className="font-semibold text-stone-200">
+                            <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.dateMuhurat')}</span>
+                            <span className="font-semibold text-stone-700">
                               {booking.bookingDate || booking.tithiDate || 'Upcoming'} ({booking.timeSlot})
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 uppercase font-bold block">Dakshina</span>
-                            <span className="font-black text-amber-400">
+                            <span className="text-[10px] text-stone-500 uppercase font-bold block">Dakshina</span>
+                            <span className="font-black text-amber-700">
                               {inr(booking.dakshinaAmount ?? 2100)}
                             </span>
                           </div>
                         </div>
 
                         {booking.sankalpDescription && (
-                          <p className="text-xs text-stone-400 italic bg-stone-900/60 p-2 rounded-xl border border-stone-800">
+                          <p className="text-xs text-stone-500 italic bg-stone-50 p-2 rounded-xl border border-stone-200">
                             " {booking.sankalpDescription} "
                           </p>
                         )}
                       </div>
 
                       {/* Right: Assigned Status & Action */}
-                      <div className="flex sm:items-center justify-between lg:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-stone-800 shrink-0">
+                      <div className="flex sm:items-center justify-between lg:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-stone-200 shrink-0">
                         {assigned ? (
-                          <div className="flex items-center gap-2 bg-stone-900/90 px-3.5 py-2 rounded-2xl border border-emerald-500/30">
-                            <UserCheck className="w-4 h-4 text-emerald-400" />
+                          <div className="flex items-center gap-2 bg-stone-50 px-3.5 py-2 rounded-2xl border border-emerald-200">
+                            <UserCheck className="w-4 h-4 text-emerald-600" />
                             <div>
-                              <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.leadPurohit')}</span>
-                              <span className="text-xs font-black text-emerald-300">{assigned}</span>
+                              <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.leadPurohit')}</span>
+                              <span className="text-xs font-black text-emerald-700">{assigned}</span>
                             </div>
                             {isAdminOrTrustee && (
                               <button
                                 type="button"
                                 onClick={() => setSelectedBookingForMatch(booking)}
-                                className="ml-2 text-stone-400 hover:text-amber-400 text-xs font-bold underline cursor-pointer"
+                                className="ml-2 text-stone-500 hover:text-amber-700 text-xs font-bold underline cursor-pointer"
                               >
                                 Reassign
                               </button>
@@ -1087,7 +1090,7 @@ export const PurohitManagementDesk: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedBookingForMatch(booking)}
-                            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black text-xs shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                            className="px-4 py-2.5 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-xs shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
                           >
                             <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
                             <span>{t('surfaces.purohitMgmt.autoMatchAssignPurohit')}</span>
@@ -1101,9 +1104,9 @@ export const PurohitManagementDesk: React.FC = () => {
               })}
 
               {displayBookings.length === 0 && (
-                <div className="text-center py-12 bg-stone-950/40 rounded-3xl border border-stone-800">
+                <div className="text-center py-12 bg-white rounded-3xl border border-stone-200">
                   <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h4 className="text-base font-bold text-stone-300">{t('surfaces.purohitMgmt.allRitualBookingsAreAssigned')}</h4>
+                  <h4 className="text-base font-bold text-stone-600">{t('surfaces.purohitMgmt.allRitualBookingsAreAssigned')}</h4>
                   <p className="text-xs text-stone-500 mt-1">{t('surfaces.purohitMgmt.thereAreNoPendingRitualsWaiting')}</p>
                 </div>
               )}
@@ -1119,25 +1122,25 @@ export const PurohitManagementDesk: React.FC = () => {
           <div className="space-y-6 animate-fadeIn">
             
             {/* Date Switcher & Header */}
-            <div className="bg-stone-950/70 p-4 sm:p-5 rounded-3xl border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-amber-100 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-black text-temple-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-700" />
                   <span>{t('surfaces.purohitMgmt.sanctumAartiDailyDutyRotations')}</span>
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">
+                <p className="text-xs text-stone-500 mt-0.5">
                   Official shift ledger for temple Sanctum Sanctorum, Bhoga preparations, and evening Ganga Aarti rotations.
                 </p>
               </div>
 
               {/* Date Selector */}
-              <div className="flex items-center gap-2 bg-stone-900 p-1.5 rounded-2xl border border-stone-800">
-                <Calendar className="w-4 h-4 text-amber-400 ml-2" />
+              <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-stone-200">
+                <Calendar className="w-4 h-4 text-amber-700 ml-2" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-xs sm:text-sm font-bold text-white focus:outline-none pr-2 cursor-pointer"
+                  className="bg-transparent text-xs sm:text-sm font-bold text-temple-900 focus:outline-none pr-2 cursor-pointer"
                 />
               </div>
             </div>
@@ -1151,39 +1154,39 @@ export const PurohitManagementDesk: React.FC = () => {
                 return (
                   <div
                     key={shift.id}
-                    className="bg-stone-950/80 border border-stone-800 hover:border-amber-500/30 rounded-3xl p-5 shadow-xl transition-all relative overflow-hidden"
+                    className="bg-white border border-stone-200 hover:border-amber-200 rounded-3xl p-5 shadow-xl transition-all relative overflow-hidden"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       
                       {/* Left: Timing & Shift Details */}
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-black text-lg shrink-0">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-black text-lg shrink-0">
                           {idx + 1}
                         </div>
 
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs font-black text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
+                            <span className="font-mono text-xs font-black text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
                               {shift.timings}
                             </span>
-                            <h3 className="text-base font-black text-white">{shift.pujaName}</h3>
+                            <h3 className="text-base font-black text-temple-900">{shift.pujaName}</h3>
                             <span
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                                 isCompleted
-                                  ? 'bg-stone-800 text-stone-400'
+                                  ? 'bg-stone-100 text-stone-500'
                                   : isInProgress
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse'
-                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300 animate-pulse'
+                                  : 'bg-amber-100 text-amber-700 border border-amber-300'
                               }`}
                             >
                               {shift.status}
                             </span>
                           </div>
 
-                          <p className="text-xs text-stone-400 flex items-center gap-2">
-                            <span>Sanctum: <strong className="text-stone-200">{shift.sanctum}</strong></span>
+                          <p className="text-xs text-stone-500 flex items-center gap-2">
+                            <span>Sanctum: <strong className="text-stone-700">{shift.sanctum}</strong></span>
                             <span>•</span>
-                            <span>Deity: <strong className="text-amber-300">{shift.deity}</strong></span>
+                            <span>Deity: <strong className="text-amber-700">{shift.deity}</strong></span>
                           </p>
 
                           {shift.dressCode && (
@@ -1195,12 +1198,12 @@ export const PurohitManagementDesk: React.FC = () => {
                       </div>
 
                       {/* Right: On-Duty Priests & Swap Action */}
-                      <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-stone-800 shrink-0">
+                      <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-stone-200 shrink-0">
                         <div className="text-left md:text-right">
-                          <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.purohitMgmt.leadAcharya')}</span>
-                          <span className="text-xs font-black text-amber-300">{shift.leadPurohit}</span>
+                          <span className="text-[10px] uppercase font-bold text-stone-500 block">{t('surfaces.purohitMgmt.leadAcharya')}</span>
+                          <span className="text-xs font-black text-amber-700">{shift.leadPurohit}</span>
                           {shift.assistantPurohit && (
-                            <span className="text-[10px] text-stone-400 block mt-0.5">
+                            <span className="text-[10px] text-stone-500 block mt-0.5">
                               Sahayaka: {shift.assistantPurohit}
                             </span>
                           )}
@@ -1213,7 +1216,7 @@ export const PurohitManagementDesk: React.FC = () => {
                               setShiftEditModal(shift);
                               setNewLeadPurohit(shift.leadPurohit);
                             }}
-                            className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-stone-200 text-amber-700 border border-stone-200 text-xs font-bold transition-colors cursor-pointer"
                           >
                             Reassign Shift
                           </button>
@@ -1237,45 +1240,45 @@ export const PurohitManagementDesk: React.FC = () => {
             
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
-                <div className="flex items-center justify-between text-stone-400 mb-2">
+              <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xl">
+                <div className="flex items-center justify-between text-stone-500 mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.grossDakshinaVolume')}</span>
-                  <Coins className="w-4 h-4 text-amber-400" />
+                  <Coins className="w-4 h-4 text-amber-700" />
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-black text-temple-900">
                   {inr(financialTotals.gross)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.fromAllScheduledTempleRituals')}</p>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
-                <div className="flex items-center justify-between text-stone-400 mb-2">
+              <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xl">
+                <div className="flex items-center justify-between text-stone-500 mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.disbursedToAcharyas')}</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 </div>
-                <div className="text-2xl font-black text-emerald-400">
+                <div className="text-2xl font-black text-emerald-600">
                   {inr(financialTotals.settled)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.successfullySettledViaDirectTransfer')}</p>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
-                <div className="flex items-center justify-between text-stone-400 mb-2">
+              <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xl">
+                <div className="flex items-center justify-between text-stone-500 mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.pendingDisbursals')}</span>
-                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
                 </div>
-                <div className="text-2xl font-black text-rose-400">
+                <div className="text-2xl font-black text-rose-600">
                   {inr(financialTotals.pending)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.awaitingTrustApprovalDisbursement')}</p>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl">
-                <div className="flex items-center justify-between text-stone-400 mb-2">
+              <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-xl">
+                <div className="flex items-center justify-between text-stone-500 mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider">{t('surfaces.purohitMgmt.averageHonorarium')}</span>
-                  <TrendingUp className="w-4 h-4 text-amber-400" />
+                  <TrendingUp className="w-4 h-4 text-amber-700" />
                 </div>
-                <div className="text-2xl font-black text-amber-300">
+                <div className="text-2xl font-black text-amber-700">
                   {inr(financialTotals.avgPerPuja)}
                 </div>
                 <p className="text-[11px] text-stone-500 mt-1">{t('surfaces.purohitMgmt.perRitualCeremonyCompleted')}</p>
@@ -1283,13 +1286,13 @@ export const PurohitManagementDesk: React.FC = () => {
             </div>
 
             {/* Per-Priest Honorarium Breakdown Table */}
-            <div className="bg-stone-950/80 rounded-3xl border border-stone-800 p-5 shadow-xl space-y-4">
+            <div className="bg-white rounded-3xl border border-stone-200 p-5 shadow-xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-black text-amber-100">
+                  <h3 className="text-base font-black text-temple-900">
                     Acharya Honorarium & Welfare Reconciliation
                   </h3>
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs text-stone-500">
                     Net priest dakshina reflects 85% payable honorarium after 15% Mandir Kalyan Nidhi deduction.
                   </p>
                 </div>
@@ -1298,7 +1301,7 @@ export const PurohitManagementDesk: React.FC = () => {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-stone-800 text-stone-400 uppercase text-[10px] tracking-wider">
+                    <tr className="border-b border-stone-200 text-stone-500 uppercase text-[10px] tracking-wider">
                       <th className="py-3 px-3">{t('surfaces.purohitMgmt.acharyaName')}</th>
                       <th className="py-3 px-3">Pujas</th>
                       <th className="py-3 px-3">{t('surfaces.purohitMgmt.grossDakshina')}</th>
@@ -1309,29 +1312,29 @@ export const PurohitManagementDesk: React.FC = () => {
                       <th className="py-3 px-3 text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-800/60">
+                  <tbody className="divide-y divide-stone-200">
                     {priestHonorariumStats.map((stat, idx) => (
-                      <tr key={idx} className="hover:bg-stone-900/50 transition-colors">
-                        <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-black">
+                      <tr key={idx} className="hover:bg-stone-100 transition-colors">
+                        <td className="py-3 px-3 font-bold text-temple-900 flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">
                             🕉️
                           </span>
                           <span>{stat.priestName}</span>
                         </td>
-                        <td className="py-3 px-3 font-semibold text-stone-300">{stat.totalPujas}</td>
-                        <td className="py-3 px-3 font-semibold text-stone-300">{inr(stat.grossDakshina)}</td>
-                        <td className="py-3 px-3 font-semibold text-stone-400">{inr(stat.trustShare)}</td>
-                        <td className="py-3 px-3 font-black text-amber-400">{inr(stat.netPayable)}</td>
-                        <td className="py-3 px-3 font-bold text-emerald-400">{inr(stat.settledAmount)}</td>
-                        <td className="py-3 px-3 font-bold text-rose-400">{inr(stat.pendingAmount)}</td>
+                        <td className="py-3 px-3 font-semibold text-stone-600">{stat.totalPujas}</td>
+                        <td className="py-3 px-3 font-semibold text-stone-600">{inr(stat.grossDakshina)}</td>
+                        <td className="py-3 px-3 font-semibold text-stone-500">{inr(stat.trustShare)}</td>
+                        <td className="py-3 px-3 font-black text-amber-700">{inr(stat.netPayable)}</td>
+                        <td className="py-3 px-3 font-bold text-emerald-600">{inr(stat.settledAmount)}</td>
+                        <td className="py-3 px-3 font-bold text-rose-600">{inr(stat.pendingAmount)}</td>
                         <td className="py-3 px-3 text-right">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                               stat.pendingAmount === 0 && stat.netPayable > 0
-                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                                 : stat.pendingAmount > 0
-                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                : 'bg-stone-800 text-stone-400'
+                                ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                                : 'bg-stone-100 text-stone-500'
                             }`}
                           >
                             {stat.pendingAmount === 0 && stat.netPayable > 0 ? 'All Settled' : stat.pendingAmount > 0 ? 'Pending' : 'No Dues'}
@@ -1345,8 +1348,8 @@ export const PurohitManagementDesk: React.FC = () => {
             </div>
 
             {/* Individual Rituals Disbursal Ledger */}
-            <div className="bg-stone-950/80 rounded-3xl border border-stone-800 p-5 shadow-xl space-y-4">
-              <h3 className="text-base font-black text-amber-100">
+            <div className="bg-white rounded-3xl border border-stone-200 p-5 shadow-xl space-y-4">
+              <h3 className="text-base font-black text-temple-900">
                 Individual Ritual Disbursal Approvals
               </h3>
 
@@ -1360,23 +1363,23 @@ export const PurohitManagementDesk: React.FC = () => {
                   return (
                     <div
                       key={booking.id}
-                      className="p-3.5 bg-stone-900/70 rounded-2xl border border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      className="p-3.5 bg-white rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">{booking.poojaName}</span>
+                          <span className="font-bold text-temple-900">{booking.poojaName}</span>
                           <span className="text-stone-500">•</span>
-                          <span className="text-stone-300">Yajamana: {booking.devoteeName}</span>
+                          <span className="text-stone-600">Yajamana: {booking.devoteeName}</span>
                         </div>
-                        <p className="text-[11px] text-stone-400">
-                          Acharya: <strong className="text-amber-300">{assigned || 'Unassigned'}</strong> • Dakshina: {inr(booking.dakshinaAmount)} • Net Honorarium: <strong className="text-emerald-400">{inr(netAmount)}</strong>
+                        <p className="text-[11px] text-stone-500">
+                          Acharya: <strong className="text-amber-700">{assigned || 'Unassigned'}</strong> • Dakshina: {inr(booking.dakshinaAmount)} • Net Honorarium: <strong className="text-emerald-600">{inr(netAmount)}</strong>
                         </p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         {isSettled ? (
                           <div className="text-right">
-                            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                            <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Settled ({settlementData?.ref || 'Direct'})</span>
                             </span>
@@ -1389,7 +1392,7 @@ export const PurohitManagementDesk: React.FC = () => {
                                 setSettlingBooking(booking);
                                 setSettlementRefInput(`UPI-SB-${Date.now().toString().slice(-4)}`);
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
                             >
                               Disburse Honorarium
                             </button>
@@ -1429,25 +1432,25 @@ export const PurohitManagementDesk: React.FC = () => {
       ======================================================== */}
       {selectedBookingForMatch && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+          <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl max-w-2xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-stone-800 pb-4 px-6 pt-5 shrink-0">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-4 px-6 pt-5 shrink-0">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-700 border border-amber-200">
                   Smart Match Engine
                 </span>
-                <h3 className="text-lg font-black text-amber-100 mt-1">
+                <h3 className="text-lg font-black text-temple-900 mt-1">
                   Assign Acharya to: {selectedBookingForMatch.poojaName}
                 </h3>
-                <p className="text-xs text-stone-400 mt-0.5">
+                <p className="text-xs text-stone-500 mt-0.5">
                   Yajamana: {selectedBookingForMatch.devoteeName} ({selectedBookingForMatch.gotra} Gotra) • Date: {selectedBookingForMatch.bookingDate || 'Upcoming'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedBookingForMatch(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="p-1 rounded-xl bg-white hover:bg-stone-100 text-stone-500 hover:text-temple-900"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1458,33 +1461,33 @@ export const PurohitManagementDesk: React.FC = () => {
               {rankedPriestsForBooking.map(({ priest, score }) => (
                 <div
                   key={priest.id}
-                  className="bg-stone-900/90 border border-stone-800 hover:border-amber-500/40 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                  className="bg-stone-50 border border-stone-200 hover:border-amber-300 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
                 >
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-black text-white">{priest.name || priest.fullName}</h4>
-                      <span className="px-2 py-0.2 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      <h4 className="text-sm font-black text-temple-900">{priest.name || priest.fullName}</h4>
+                      <span className="px-2 py-0.2 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 border border-amber-300">
                         {score}% Match
                       </span>
                     </div>
 
-                    <p className="text-xs text-amber-400 font-semibold">
+                    <p className="text-xs text-amber-700 font-semibold">
                       {priest.vedicBranch} Shakha • {priest.vidwatTitle}
                     </p>
 
                     <div className="flex flex-wrap gap-1 pt-1">
                       {(priest.specializations || []).slice(0, 3).map((s, idx) => (
-                        <span key={idx} className="text-[10px] px-1.5 py-0.2 bg-stone-950 text-stone-400 rounded">
+                        <span key={idx} className="text-[10px] px-1.5 py-0.2 bg-white text-stone-500 rounded">
                           {s}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-800">
+                  <div className="flex items-center gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-200">
                     <div className="text-right">
-                      <span className="text-[10px] text-stone-400 block">{t('surfaces.purohitMgmt.suggestedDakshina')}</span>
-                      <span className="text-xs font-bold text-amber-300">
+                      <span className="text-[10px] text-stone-500 block">{t('surfaces.purohitMgmt.suggestedDakshina')}</span>
+                      <span className="text-xs font-bold text-amber-700">
                         {inr(priest.suggestedDakshina ?? 5100)}
                       </span>
                     </div>
@@ -1492,7 +1495,7 @@ export const PurohitManagementDesk: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleAssignPriestToBooking(selectedBookingForMatch.id, priest.name || priest.fullName || 'Acharya')}
-                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black text-xs shadow-md transition-all cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white font-black text-xs shadow-md transition-all cursor-pointer"
                     >
                       Assign
                     </button>
@@ -1510,21 +1513,21 @@ export const PurohitManagementDesk: React.FC = () => {
       ======================================================== */}
       {isAddPriestOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+          <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl max-w-xl w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-lg font-black text-amber-100">
+                <h3 className="text-lg font-black text-temple-900">
                   Register Vedic Acharya into Parishad
                 </h3>
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-stone-500">
                   Accredit a qualified Purohit for temple duty rosters and devotee private rituals.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddPriestOpen(false)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="p-1 rounded-xl bg-white hover:bg-stone-100 text-stone-500 hover:text-temple-900"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1534,36 +1537,36 @@ export const PurohitManagementDesk: React.FC = () => {
               <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.acharyaFullName')}</label>
+                  <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.acharyaFullName')}</label>
                   <input
                     type="text"
                     required
                     value={newPriestForm.name}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, name: e.target.value })}
                     placeholder={t('surfaces.purohitMgmt.ptDevendraShastri')}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vidwatTitle')}</label>
+                  <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.vidwatTitle')}</label>
                   <input
                     type="text"
                     value={newPriestForm.vidwatTitle}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, vidwatTitle: e.target.value })}
                     placeholder={t('surfaces.purohitMgmt.vedaVibhushanAcharya')}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vedaShakha')}</label>
+                  <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.vedaShakha')}</label>
                   <select
                     value={newPriestForm.vedicBranch}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, vedicBranch: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   >
                     <option value="Rigveda">Rigveda</option>
                     <option value="Yajurveda">{t('surfaces.purohitMgmt.yajurvedaShuklaKrishna')}</option>
@@ -1575,98 +1578,98 @@ export const PurohitManagementDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Gotra</label>
+                  <label className="text-stone-500 font-bold block mb-1">Gotra</label>
                   <input
                     type="text"
                     value={newPriestForm.gotra}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, gotra: e.target.value })}
                     placeholder={t('surfaces.purohitMgmt.bharadwajaKashyapa')}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.contactPhone')}</label>
+                  <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.contactPhone')}</label>
                   <input
                     type="tel"
                     required
                     value={newPriestForm.phone}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, phone: e.target.value })}
                     placeholder="+91 98765 43210"
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Email</label>
+                  <label className="text-stone-500 font-bold block mb-1">Email</label>
                   <input
                     type="email"
                     value={newPriestForm.email}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, email: e.target.value })}
                     placeholder="acharya@mandir.org"
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.vedicQualificationsGurukul')}</label>
+                <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.vedicQualificationsGurukul')}</label>
                 <input
                   type="text"
                   value={newPriestForm.vedicQualification}
                   onChange={(e) => setNewPriestForm({ ...newPriestForm, vedicQualification: e.target.value })}
                   placeholder={t('surfaces.purohitMgmt.acharyaInShuklaYajurvedaSampurnanandSanskrit')}
-                  className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                  className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.ritualSpecializationsCommaSeparated')}</label>
+                <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.ritualSpecializationsCommaSeparated')}</label>
                 <input
                   type="text"
                   value={newPriestForm.specializations}
                   onChange={(e) => setNewPriestForm({ ...newPriestForm, specializations: e.target.value })}
                   placeholder={t('surfaces.purohitMgmt.rudrabhishekNavagrahaHavanVivahSamskaraVastu')}
-                  className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                  className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.yearsOfExperience')}</label>
+                  <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.yearsOfExperience')}</label>
                   <input
                     type="number"
                     value={newPriestForm.experienceYears}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, experienceYears: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Suggested Dakshina ({wsCurrency.symbol})</label>
+                  <label className="text-stone-500 font-bold block mb-1">Suggested Dakshina ({wsCurrency.symbol})</label>
                   <input
                     type="number"
                     value={newPriestForm.suggestedDakshina}
                     onChange={(e) => setNewPriestForm({ ...newPriestForm, suggestedDakshina: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               </div>
-              <div className="border-t border-stone-800 flex items-center justify-end gap-2 shrink-0 px-6 py-4">
+              <div className="border-t border-stone-200 flex items-center justify-end gap-2 shrink-0 px-6 py-4">
                 <button
                   type="button"
                   onClick={() => setIsAddPriestOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 font-bold"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-stone-100 text-stone-500 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black shadow-lg"
+                  className="px-5 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white font-black shadow-lg"
                 >
                   Complete Accreditation
                 </button>
@@ -1682,21 +1685,21 @@ export const PurohitManagementDesk: React.FC = () => {
       ======================================================== */}
       {selectedPriestModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
+          <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl max-w-lg w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3 px-6 pt-5 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-black text-xl">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-black text-xl">
                   🕉️
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">{selectedPriestModal.name || selectedPriestModal.fullName}</h3>
-                  <p className="text-xs text-amber-400 font-semibold">{selectedPriestModal.vidwatTitle}</p>
+                  <h3 className="text-base font-black text-temple-900">{selectedPriestModal.name || selectedPriestModal.fullName}</h3>
+                  <p className="text-xs text-amber-700 font-semibold">{selectedPriestModal.vidwatTitle}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedPriestModal(null)}
-                className="p-1 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="p-1 rounded-xl bg-white hover:bg-stone-100 text-stone-500 hover:text-temple-900"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1704,36 +1707,36 @@ export const PurohitManagementDesk: React.FC = () => {
 
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800">
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.vedaShakha2')}</span>
-                  <span className="font-extrabold text-amber-300">{selectedPriestModal.vedicBranch}</span>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200">
+                  <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.vedaShakha2')}</span>
+                  <span className="font-extrabold text-amber-700">{selectedPriestModal.vedicBranch}</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800">
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraSampradaya')}</span>
-                  <span className="font-bold text-stone-200">{selectedPriestModal.gotra} Gotra</span>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200">
+                  <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.gotraSampradaya')}</span>
+                  <span className="font-bold text-stone-700">{selectedPriestModal.gotra} Gotra</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-stone-900 border border-stone-800 space-y-1">
-                <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.academicQualification')}</span>
-                <p className="text-stone-300">{selectedPriestModal.vedicQualification}</p>
+              <div className="p-3 rounded-2xl bg-white border border-stone-200 space-y-1">
+                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.academicQualification')}</span>
+                <p className="text-stone-600">{selectedPriestModal.vedicQualification}</p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-stone-900 border border-stone-800 space-y-1.5">
-                <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.specializedRituals')}</span>
+              <div className="p-3 rounded-2xl bg-white border border-stone-200 space-y-1.5">
+                <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.specializedRituals')}</span>
                 <div className="flex flex-wrap gap-1">
                   {(selectedPriestModal.specializations || []).map((s, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-lg bg-stone-950 text-amber-300 border border-stone-800 text-[11px]">
+                    <span key={idx} className="px-2 py-0.5 rounded-lg bg-white text-amber-700 border border-stone-200 text-[11px]">
                       {s}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-stone-900 border border-stone-800">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-white border border-stone-200">
                 <div>
-                  <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.purohitMgmt.honorariumRange')}</span>
-                  <span className="font-black text-amber-400">
+                  <span className="text-[10px] text-stone-500 uppercase font-bold block">{t('surfaces.purohitMgmt.honorariumRange')}</span>
+                  <span className="font-black text-amber-700">
                     {selectedPriestModal.dakshinaRange || inr(selectedPriestModal.suggestedDakshina || 0)}
                   </span>
                 </div>
@@ -1757,43 +1760,43 @@ export const PurohitManagementDesk: React.FC = () => {
       ======================================================== */}
       {settlingBooking && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
+          <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">{t('surfaces.purohitMgmt.disbursePriestHonorarium')}</h3>
-                <p className="text-xs text-stone-400">{settlingBooking.poojaName}</p>
+                <h3 className="text-base font-black text-temple-900">{t('surfaces.purohitMgmt.disbursePriestHonorarium')}</h3>
+                <p className="text-xs text-stone-500">{settlingBooking.poojaName}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSettlingBooking(null)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 text-stone-500 hover:text-temple-900"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
-              <div className="p-3 bg-stone-900 rounded-2xl border border-stone-800 space-y-1">
+              <div className="p-3 bg-white rounded-2xl border border-stone-200 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">{t('surfaces.purohitMgmt.grossDakshina2')}</span>
-                  <span className="font-bold text-white">{inr(settlingBooking.dakshinaAmount)}</span>
+                  <span className="text-stone-500">{t('surfaces.purohitMgmt.grossDakshina2')}</span>
+                  <span className="font-bold text-temple-900">{inr(settlingBooking.dakshinaAmount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">{t('surfaces.purohitMgmt.mandirKalyanNidhi15')}</span>
-                  <span className="font-bold text-stone-400">
+                  <span className="text-stone-500">{t('surfaces.purohitMgmt.mandirKalyanNidhi15')}</span>
+                  <span className="font-bold text-stone-500">
                     -{inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.15))}
                   </span>
                 </div>
-                <div className="border-t border-stone-800 pt-1 flex justify-between text-sm font-black">
-                  <span className="text-amber-400">{t('surfaces.purohitMgmt.netPayable2')}</span>
-                  <span className="text-emerald-400">
+                <div className="border-t border-stone-200 pt-1 flex justify-between text-sm font-black">
+                  <span className="text-amber-700">{t('surfaces.purohitMgmt.netPayable2')}</span>
+                  <span className="text-emerald-600">
                     {inr(Math.round((settlingBooking.dakshinaAmount || 2100) * 0.85))}
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">
+                <label className="text-stone-500 font-bold block mb-1">
                   Payment Reference / Transaction ID
                 </label>
                 <input
@@ -1801,7 +1804,7 @@ export const PurohitManagementDesk: React.FC = () => {
                   value={settlementRefInput}
                   onChange={(e) => setSettlementRefInput(e.target.value)}
                   placeholder={t('surfaces.purohitMgmt.upiSb8821OrBankTx')}
-                  className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                  className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -1809,14 +1812,14 @@ export const PurohitManagementDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSettlingBooking(null)}
-                  className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 font-bold"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-stone-100 text-stone-500 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmDisbursal}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md cursor-pointer"
                 >
                   Confirm Settlement
                 </button>
@@ -1831,16 +1834,16 @@ export const PurohitManagementDesk: React.FC = () => {
       ======================================================== */}
       {shiftEditModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="bg-stone-950 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-            <div className="flex items-start justify-between border-b border-stone-800 pb-3 px-6 pt-5 shrink-0">
+          <div className="bg-white border border-amber-300 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-start justify-between border-b border-stone-200 pb-3 px-6 pt-5 shrink-0">
               <div>
-                <h3 className="text-base font-black text-white">{t('surfaces.purohitMgmt.reassignAartiDutyShift')}</h3>
-                <p className="text-xs text-amber-400 font-medium">{shiftEditModal.pujaName} ({shiftEditModal.timings})</p>
+                <h3 className="text-base font-black text-temple-900">{t('surfaces.purohitMgmt.reassignAartiDutyShift')}</h3>
+                <p className="text-xs text-amber-700 font-medium">{shiftEditModal.pujaName} ({shiftEditModal.timings})</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShiftEditModal(null)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 hover:text-white"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-stone-100 text-stone-500 hover:text-temple-900"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1848,11 +1851,11 @@ export const PurohitManagementDesk: React.FC = () => {
 
             <div className="space-y-3 text-xs overflow-y-auto min-h-0 grow px-6 py-4">
               <div>
-                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.purohitMgmt.selectLeadAcharya')}</label>
+                <label className="text-stone-500 font-bold block mb-1">{t('surfaces.purohitMgmt.selectLeadAcharya')}</label>
                 <select
                   value={newLeadPurohit}
                   onChange={(e) => setNewLeadPurohit(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-stone-200 focus:outline-none focus:border-amber-500"
+                  className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-700 focus:outline-none focus:border-amber-500"
                 >
                   {allPurohits.map((p) => (
                     <option key={p.id} value={p.name || p.fullName}>
@@ -1866,14 +1869,14 @@ export const PurohitManagementDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShiftEditModal(null)}
-                  className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-400 font-bold"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-stone-100 text-stone-500 font-bold"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleUpdateShiftAssignment}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 font-black shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white font-black shadow-md cursor-pointer"
                 >
                   Update Duty Shift
                 </button>

@@ -1,6 +1,7 @@
 export { Button } from './Button';
 export type { ButtonVariant, ButtonSize, ButtonTone } from './Button';
 export { Card, CardHeader } from './Card';
+export { DeskHero } from './DeskHero';
 export { Tabs } from './Tabs';
 export type { TabItem } from './Tabs';
 export { Segmented } from './Segmented';

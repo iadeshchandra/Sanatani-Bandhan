@@ -12,6 +12,7 @@ import { ProgramTab } from './ProgramTab';
 import { SafetyTab } from './SafetyTab';
 import { ReportsTab } from './ReportsTab';
 import { WarRoomTab } from '../components/festival/WarRoomTab';
+import { DeskHero } from '../components/common/ui';
 import './print.css';
 
 /* ------------------------------------------------------------------ */
@@ -59,20 +60,23 @@ const UtsavInner: React.FC = () => {
 
   return (
     <div className="min-h-full bg-stone-50">
-      <div className="bg-gradient-to-r from-orange-900 via-red-900 to-orange-900 text-orange-50 px-4 sm:px-6 py-4 shadow-lg no-print">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-orange-400/20 border border-orange-300/40 flex items-center justify-center text-2xl">🪔</div>
-          <div>
-            <h1 className="text-xl font-extrabold leading-tight">
+      {/* E3 (DE-01): the kumkum-red hero band retires — the desk hero is
+          the shared sanctum DeskHero, and kumkum returns to accent duty
+          (taste rule 3) in the War Room's live chip below. */}
+      <div className="px-3 sm:px-6 pt-4 max-w-7xl mx-auto no-print">
+        <DeskHero
+          title={
+            <>
               {t('ritual.utsav.title')}{' '}
-              <span className="font-normal text-orange-200/90 text-sm">(Festival Management)</span>
-            </h1>
-            <p className="text-xs text-orange-200/80">
-              ॥ उत्सवो हि परमानन्दः ॥ —{' '}
-              {t('ritual.utsav.subtitle')}
-            </p>
-          </div>
-        </div>
+              <span className="font-sans font-normal text-temple-500 text-sm">(Festival Management)</span>
+            </>
+          }
+          subtitle={
+            <>
+              ॥ उत्सवो हि परमानन्दः ॥ — {t('ritual.utsav.subtitle')}
+            </>
+          }
+        />
       </div>
 
       <div className="px-3 sm:px-6 py-4 max-w-7xl mx-auto">

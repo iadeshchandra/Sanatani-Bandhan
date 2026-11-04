@@ -33,6 +33,7 @@ import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { safeExternalUrl } from '../../lib/safeUrl';
 import { WindowedNotice } from '../common/WindowedNotice';
+import { Chip, DeskHero } from '../common/ui';
 import { useLanguage } from '../../context/LanguageContext';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
 import { PoojaBooking, PurohitProfile } from '../../types';
@@ -397,42 +398,35 @@ export const PoojaBookingDesk: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       <WindowedNotice collection="puja_bookings" variant="list" loaded={puja_bookings.length} />
-      {/* Top Banner & Mode Switcher */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-amber-950 via-temple-950 to-saffron-950 border border-amber-500/40 p-6 sm:p-8 rounded-3xl shadow-2xl">
-        <div className="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-saffron-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-saffron-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-                <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                Vedic Sankalp & Ritual Command
-              </span>
-              <span className="text-xs text-amber-200/80 font-mono bg-temple-950/80 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
-                RBAC: {effectiveRole}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-saffron-300">
-              Sanatani Bandhan Puja & Acharya Desk
-            </h1>
-
-            <p className="text-xs sm:text-sm text-amber-200/70 max-w-2xl leading-relaxed">
-              Intelligent ritual scheduling synchronized with real-time Vedic Panchang, Rahu Kaal collision defense, consecrated Sankalp slips, and sanctum master rosters.
-            </p>
-          </div>
-
-          {/* Role Navigation Pills */}
-          <div className="flex flex-wrap items-center gap-2 bg-temple-950/90 p-1.5 rounded-2xl border border-amber-500/30 shadow-inner self-start md:self-auto">
+      {/* Top Banner & Mode Switcher — E3 (DE-01): the black-brown
+          gradient banner retires; the desk hero is the shared sanctum
+          DeskHero. The role pills keep their handlers and carry the
+          house Segmented's light dress (stone trough, raised white
+          active) inside the hero's actions slot. */}
+      <DeskHero
+        title="Sanatani Bandhan Puja & Acharya Desk"
+        subtitle="Intelligent ritual scheduling synchronized with real-time Vedic Panchang, Rahu Kaal collision defense, consecrated Sankalp slips, and sanctum master rosters."
+        chips={
+          <>
+            <Chip tone="saffron">
+              <Flame className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+              Vedic Sankalp & Ritual Command
+            </Chip>
+            <Chip tone="stone" className="tnum">
+              RBAC: {effectiveRole}
+            </Chip>
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2 bg-stone-100 p-1.5 rounded-2xl border border-stone-200 shadow-inner self-start md:self-auto">
             {isPriestOrAdmin && (
               <button
                 type="button"
                 onClick={() => setActiveTab('roster')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                   activeTab === 'roster'
-                    ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
-                    : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
+                    ? 'bg-white text-temple-900 shadow font-extrabold ring-1 ring-stone-900/5'
+                    : 'text-temple-600 hover:text-temple-900 hover:bg-white/70'
                 }`}
               >
                 <Users className="w-4 h-4" />
@@ -445,8 +439,8 @@ export const PoojaBookingDesk: React.FC = () => {
               onClick={() => setActiveTab('book')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                 activeTab === 'book'
-                  ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
-                  : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
+                  ? 'bg-white text-temple-900 shadow font-extrabold ring-1 ring-stone-900/5'
+                  : 'text-temple-600 hover:text-temple-900 hover:bg-white/70'
               }`}
             >
               <Plus className="w-4 h-4" />
@@ -458,16 +452,16 @@ export const PoojaBookingDesk: React.FC = () => {
               onClick={() => setActiveTab('history')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer min-h-[44px] ${
                 activeTab === 'history'
-                  ? 'bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 shadow-md font-extrabold'
-                  : 'text-amber-200/80 hover:text-amber-100 hover:bg-temple-900'
+                  ? 'bg-white text-temple-900 shadow font-extrabold ring-1 ring-stone-900/5'
+                  : 'text-temple-600 hover:text-temple-900 hover:bg-white/70'
               }`}
             >
               <FileText className="w-4 h-4" />
               <span>{isDevotee ? 'My Bookings' : 'Personal Records'}</span>
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* ========================================================================= */}
       {/* 1. PRIEST / ADMIN MASTER ROSTER VIEW                                     */}
@@ -475,12 +469,12 @@ export const PoojaBookingDesk: React.FC = () => {
       {activeTab === 'roster' && (
         <div className="space-y-6">
           {/* Controls Bar: Date Picker, Quick Today/Tomorrow, Grouping, Filter */}
-          <div className="bg-gradient-to-b from-temple-900/90 to-temple-950 border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-temple-800">
+          <div className="bg-white border border-amber-200 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-200">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5 text-amber-400" />
-                  <span className="text-xs font-black text-amber-200 uppercase tracking-wider">
+                  <CalendarIcon className="w-5 h-5 text-amber-700" />
+                  <span className="text-xs font-black text-amber-800 uppercase tracking-wider">
                     Roster Date:
                   </span>
                 </div>
@@ -488,12 +482,12 @@ export const PoojaBookingDesk: React.FC = () => {
                   type="date"
                   value={rosterDate}
                   onChange={(e) => setRosterDate(e.target.value)}
-                  className="bg-temple-950 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-amber-100 focus:outline-none focus:border-amber-400"
+                  className="bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-amber-900 focus:outline-none focus:border-amber-500"
                 />
                 <button
                   type="button"
                   onClick={() => setRosterDate(new Date().toISOString().slice(0, 10))}
-                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer min-h-[44px]"
+                  className="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold cursor-pointer min-h-[44px]"
                 >
                   Today
                 </button>
@@ -504,7 +498,7 @@ export const PoojaBookingDesk: React.FC = () => {
                     tom.setDate(tom.getDate() + 1);
                     setRosterDate(tom.toISOString().slice(0, 10));
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-200 border border-temple-700 text-xs font-medium cursor-pointer min-h-[44px]"
+                  className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-stone-100 text-amber-800 border border-stone-300 text-xs font-medium cursor-pointer min-h-[44px]"
                 >
                   Tomorrow
                 </button>
@@ -514,7 +508,7 @@ export const PoojaBookingDesk: React.FC = () => {
                   className={`px-2.5 py-1.5 rounded-xl border text-xs font-medium cursor-pointer min-h-[44px] ${
                     !rosterDate
                       ? 'bg-amber-500 text-temple-950 border-amber-400 font-bold'
-                      : 'bg-temple-900 text-temple-400 border-temple-700 hover:text-amber-200'
+                      : 'bg-white text-temple-600 border-stone-300 hover:text-amber-800'
                   }`}
                 >
                   All Dates
@@ -526,9 +520,9 @@ export const PoojaBookingDesk: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsScannerOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-temple-900 hover:bg-temple-800 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer min-h-[44px]"
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-stone-100 text-amber-700 border border-amber-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer min-h-[44px]"
                 >
-                  <Scan className="w-4 h-4 text-amber-400" />
+                  <Scan className="w-4 h-4 text-amber-700" />
                   <span>{t('ritual.pooja.scanPass')}</span>
                 </button>
                 <button
@@ -545,25 +539,25 @@ export const PoojaBookingDesk: React.FC = () => {
             {/* Filter Row: Search, Group By, Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="relative flex-1 max-w-md">
-                <Search className="w-3.5 h-3.5 text-temple-400 absolute left-3 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-temple-600 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   placeholder={t('ritual.pooja.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-temple-950 border border-temple-800 rounded-xl pl-9 pr-3 py-2 text-xs text-amber-100 placeholder-temple-500 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-stone-200 rounded-xl pl-9 pr-3 py-2 text-xs text-amber-900 placeholder-temple-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 {/* Group By Selector */}
-                <div className="flex items-center gap-1 bg-temple-950 p-1 rounded-xl border border-temple-800">
-                  <span className="text-[10px] text-temple-400 font-bold uppercase px-2">{t('ritual.pooja.group')}</span>
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200">
+                  <span className="text-[10px] text-temple-600 font-bold uppercase px-2">{t('ritual.pooja.group')}</span>
                   <button
                     type="button"
                     onClick={() => setGroupBy('priest')}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      groupBy === 'priest' ? 'bg-amber-500 text-temple-950' : 'text-temple-400 hover:text-amber-200'
+                      groupBy === 'priest' ? 'bg-amber-500 text-temple-950' : 'text-temple-600 hover:text-amber-800'
                     }`}
                   >
                     By Priest
@@ -572,7 +566,7 @@ export const PoojaBookingDesk: React.FC = () => {
                     type="button"
                     onClick={() => setGroupBy('time')}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      groupBy === 'time' ? 'bg-amber-500 text-temple-950' : 'text-temple-400 hover:text-amber-200'
+                      groupBy === 'time' ? 'bg-amber-500 text-temple-950' : 'text-temple-600 hover:text-amber-800'
                     }`}
                   >
                     By Time Slot
@@ -581,7 +575,7 @@ export const PoojaBookingDesk: React.FC = () => {
                     type="button"
                     onClick={() => setGroupBy('none')}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      groupBy === 'none' ? 'bg-amber-500 text-temple-950' : 'text-temple-400 hover:text-amber-200'
+                      groupBy === 'none' ? 'bg-amber-500 text-temple-950' : 'text-temple-600 hover:text-amber-800'
                     }`}
                   >
                     Flat Grid
@@ -592,7 +586,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-temple-950 border border-temple-800 rounded-xl px-3 py-1.5 text-xs text-amber-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                  className="bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-amber-800 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   <option value="all">{t('ritual.pooja.allStatuses')}</option>
                   <option value="Pending">{t('ritual.pooja.statusPending')}</option>
@@ -607,12 +601,12 @@ export const PoojaBookingDesk: React.FC = () => {
 
           {/* Roster Listing */}
           {filteredRosterBookings.length === 0 ? (
-            <div className="bg-temple-900/60 border border-temple-800/80 rounded-3xl p-12 text-center space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="bg-white border border-stone-200 rounded-3xl p-12 text-center space-y-3">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700">
                 <Flame className="w-7 h-7" />
               </div>
-              <h3 className="text-base font-bold text-amber-200">{t('ritual.pooja.noBookings')}</h3>
-              <p className="text-xs text-temple-400 max-w-md mx-auto">
+              <h3 className="text-base font-bold text-amber-800">{t('ritual.pooja.noBookings')}</h3>
+              <p className="text-xs text-temple-600 max-w-md mx-auto">
                 No bookings match your selected date ({rosterDate || 'All'}) and filter criteria. You can schedule a new sacred ritual above.
               </p>
             </div>
@@ -627,26 +621,26 @@ export const PoojaBookingDesk: React.FC = () => {
                 return (
                   <div
                     key={priestNameGroup}
-                    className="bg-temple-900/90 border border-amber-500/30 rounded-3xl p-6 shadow-xl space-y-4"
+                    className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl space-y-4"
                   >
                     {/* Priest Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-temple-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-saffron-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 font-bold text-base shadow-sm">
-                          <User className="w-5 h-5 text-amber-400" />
+                        <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 font-bold text-base shadow-sm">
+                          <User className="w-5 h-5 text-amber-700" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-black text-base text-amber-200">
+                            <h3 className="font-black text-base text-amber-800">
                               {priestNameGroup}
                             </h3>
                             {matchedPurohit?.vidwatTitle && (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold border border-amber-200">
                                 {matchedPurohit.vidwatTitle}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-temple-400">
+                          <p className="text-xs text-temple-600">
                             {matchedPurohit?.vedicBranch ? `${matchedPurohit.vedicBranch} Branch • ` : ''}
                             {bookings.length} Ritual{bookings.length > 1 ? 's' : ''} Allocated
                           </p>
@@ -654,8 +648,8 @@ export const PoojaBookingDesk: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-temple-400">{t('ritual.pooja.totalDakshina')}</span>
-                        <span className="font-mono font-bold text-amber-300">
+                        <span className="text-temple-600">{t('ritual.pooja.totalDakshina')}</span>
+                        <span className="font-mono font-bold text-amber-700">
                           {inr(bookings.reduce((acc, cur) => acc + (cur.dakshinaAmount || 0), 0))}
                         </span>
                       </div>
@@ -688,18 +682,18 @@ export const PoojaBookingDesk: React.FC = () => {
               {groupedByTime.map(([slotGroup, bookings]) => (
                 <div
                   key={slotGroup}
-                  className="bg-temple-900/90 border border-amber-500/30 rounded-3xl p-6 shadow-xl space-y-4"
+                  className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl space-y-4"
                 >
-                  <div className="flex items-center justify-between pb-3 border-b border-temple-800">
+                  <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                     <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-700 border border-amber-200">
                         <Clock className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="font-black text-base text-amber-200 font-mono">
+                        <h3 className="font-black text-base text-amber-800 font-mono">
                           {slotGroup}
                         </h3>
-                        <p className="text-xs text-temple-400">
+                        <p className="text-xs text-temple-600">
                           {bookings.length} Ritual{bookings.length > 1 ? 's' : ''} in this window
                         </p>
                       </div>
@@ -753,29 +747,29 @@ export const PoojaBookingDesk: React.FC = () => {
       {activeTab === 'book' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Booking Form (8 Columns) */}
-          <div className="lg:col-span-8 bg-gradient-to-b from-temple-900/90 to-temple-950 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
-            <div className="pb-4 border-b border-temple-800 flex items-center justify-between">
+          <div className="lg:col-span-8 bg-white border border-amber-200 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+            <div className="pb-4 border-b border-stone-200 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700">
                   Devotee Ritual Initiation
                 </span>
-                <h2 className="text-xl sm:text-2xl font-black text-amber-100">
+                <h2 className="text-xl sm:text-2xl font-black text-amber-900">
                   Book Sacred Puja / Sankalp
                 </h2>
                 <div className="mt-2"><LocalOnlyBadge /></div>
-                <p className="text-xs text-temple-400 mt-0.5">
+                <p className="text-xs text-temple-600 mt-0.5">
                   Configure ritual parameters, gotra, nakshatra, and sanctum offering with automatic Vedic ephemeris alignment.
                 </p>
               </div>
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                <Sparkles className="w-6 h-6 text-amber-400" />
+              <div className="p-3 rounded-2xl bg-amber-100 border border-amber-200 text-amber-700">
+                <Sparkles className="w-6 h-6 text-amber-700" />
               </div>
             </div>
 
             <form onSubmit={handleSubmitBooking} className="space-y-5 text-xs">
               {/* Puja Type */}
               <div>
-                <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                   Sacred Ritual / Puja Type *
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
@@ -788,8 +782,8 @@ export const PoojaBookingDesk: React.FC = () => {
                         onClick={() => handlePujaChange(p.name)}
                         className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? 'bg-gradient-to-br from-amber-500/20 to-saffron-500/20 border-amber-400 shadow-md ring-1 ring-amber-400'
-                            : 'bg-temple-950/70 border-temple-800 hover:border-amber-500/40 text-temple-300'
+                            ? 'bg-amber-100 border-amber-400 shadow-md ring-1 ring-amber-400'
+                            : 'bg-sanctum-sandal border-stone-200 hover:border-amber-300 text-temple-700'
                         }`}
                       >
                         {/* QUEUED #61 (mobile clipping): the price span
@@ -797,14 +791,14 @@ export const PoojaBookingDesk: React.FC = () => {
                             digit at 390px. The row now wraps and the
                             price never shrinks or breaks. */}
                         <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-0.5 mb-1">
-                          <span className={`font-bold text-xs min-w-0 ${isSelected ? 'text-amber-200' : 'text-temple-200'}`}>
+                          <span className={`font-bold text-xs min-w-0 ${isSelected ? 'text-amber-800' : 'text-temple-800'}`}>
                             {p.name}
                           </span>
-                          <span className="font-mono font-bold text-amber-400 text-[11px] shrink-0 whitespace-nowrap">
+                          <span className="font-mono font-bold text-amber-700 text-[11px] shrink-0 whitespace-nowrap">
                             {inr(p.dakshina)}
                           </span>
                         </div>
-                        <p className="text-[10px] text-temple-400 line-clamp-2 leading-relaxed">
+                        <p className="text-[10px] text-temple-600 line-clamp-2 leading-relaxed">
                           {p.desc}
                         </p>
                       </button>
@@ -814,11 +808,11 @@ export const PoojaBookingDesk: React.FC = () => {
               </div>
 
               {/* Date & Time Slot Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-temple-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-stone-200">
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
                     <span>{t('ritual.pooja.ritualDate')}</span>
-                    <span className="text-[10px] font-mono text-temple-400">
+                    <span className="text-[10px] font-mono text-temple-600">
                       {dailyPanchang.vaara}
                     </span>
                   </label>
@@ -827,19 +821,19 @@ export const PoojaBookingDesk: React.FC = () => {
                     required
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-amber-100 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-amber-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px]">
+                    <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px]">
                       Time Slot *
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsCustomSlot(!isCustomSlot)}
-                      className="text-[10px] text-amber-400 hover:underline cursor-pointer"
+                      className="text-[10px] text-amber-700 hover:underline cursor-pointer"
                     >
                       {isCustomSlot ? 'Pick Standard Slot' : 'Custom Time Slot'}
                     </button>
@@ -849,7 +843,7 @@ export const PoojaBookingDesk: React.FC = () => {
                     <select
                       value={timeSlot}
                       onChange={(e) => setTimeSlot(e.target.value)}
-                      className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400 cursor-pointer font-mono"
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500 cursor-pointer font-mono"
                     >
                       {STANDARD_TIME_SLOTS.map((slot) => {
                         const clash = checkRahuKaalOverlap(slot, dailyPanchang?.rahuKaal || '');
@@ -866,7 +860,7 @@ export const PoojaBookingDesk: React.FC = () => {
                       placeholder="e.g. 09:00 AM - 11:00 AM"
                       value={customTimeInput}
                       onChange={(e) => setCustomTimeInput(e.target.value)}
-                      className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-100 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-900 focus:outline-none focus:border-amber-500"
                     />
                   )}
                 </div>
@@ -874,28 +868,28 @@ export const PoojaBookingDesk: React.FC = () => {
 
               {/* PROMINENT RAHU KAAL WARNING BANNER */}
               {isRahuKaalClash && (
-                <div className="p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-200 shadow-xl flex items-start gap-3.5 animate-pulse">
+                <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-400 text-rose-800 shadow-xl flex items-start gap-3.5 animate-pulse">
                   <div className="p-2 rounded-xl bg-rose-600 text-white shrink-0 shadow-md">
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="font-black text-sm text-rose-100 tracking-wide uppercase">
+                    <h4 className="font-black text-sm text-rose-800 tracking-wide uppercase">
                       ⚠️ Astrological Warning: Selected Time Overlaps with Rahu Kaal!
                     </h4>
-                    <p className="text-xs text-rose-200/90 leading-relaxed">
+                    <p className="text-xs text-rose-700 leading-relaxed">
                       Rahu Kaal for {dailyPanchang.gregorianDate} is calculated as <strong className="font-mono text-white underline">{dailyPanchang.rahuKaal}</strong>. Vedic scriptures strictly advise against initiating auspicious rituals, yajnas, or sankalpas during this period.
                     </p>
-                    <p className="text-[11px] text-rose-300 font-semibold pt-1">
-                      Recommended Auspicious Alternative: <span className="font-mono text-amber-300 underline font-bold">Abhijit Muhurat ({dailyPanchang.abhijitMuhurat})</span> or an early morning pratahkaal slot.
+                    <p className="text-[11px] text-rose-700 font-semibold pt-1">
+                      Recommended Auspicious Alternative: <span className="font-mono text-amber-700 underline font-bold">Abhijit Muhurat ({dailyPanchang.abhijitMuhurat})</span> or an early morning pratahkaal slot.
                     </p>
                   </div>
                 </div>
               )}
 
               {/* Devotee Info: Individual vs Organization, Name, Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-temple-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-stone-200">
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                     Devotee / Yajamana Full Name *
                   </label>
                   <input
@@ -904,12 +898,12 @@ export const PoojaBookingDesk: React.FC = () => {
                     value={devoteeName}
                     onChange={(e) => setDevoteeName(e.target.value)}
                     placeholder="e.g. Pt. Raghunath Sharma"
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                     Contact Phone Number
                   </label>
                   <input
@@ -917,7 +911,7 @@ export const PoojaBookingDesk: React.FC = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-100 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-mono text-amber-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -925,9 +919,9 @@ export const PoojaBookingDesk: React.FC = () => {
               {/* Gotra & Nakshatra */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
                     <span>{t('ritual.pooja.gotra')}</span>
-                    <span className="text-[10px] text-temple-400">{t('ritual.pooja.yajamanaLineage')}</span>
+                    <span className="text-[10px] text-temple-600">{t('ritual.pooja.yajamanaLineage')}</span>
                   </label>
                   <div className="relative">
                     <input
@@ -936,7 +930,7 @@ export const PoojaBookingDesk: React.FC = () => {
                       value={gotra}
                       onChange={(e) => setGotra(e.target.value)}
                       placeholder="e.g. Kashyapa, Bharadwaja"
-                      className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500"
                     />
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {COMMON_GOTRAS.slice(0, 6).map((g) => (
@@ -944,7 +938,7 @@ export const PoojaBookingDesk: React.FC = () => {
                           key={g}
                           type="button"
                           onClick={() => setGotra(g)}
-                          className="px-2 py-0.5 rounded-md bg-temple-950 text-[10px] text-amber-300/80 border border-temple-800 hover:border-amber-500/50 cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-white text-[10px] text-amber-700 border border-stone-200 hover:border-amber-400 cursor-pointer"
                         >
                           {g}
                         </button>
@@ -954,14 +948,14 @@ export const PoojaBookingDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center justify-between">
                     <span>{t('ritual.pooja.janmaNakshatra')}</span>
-                    <span className="text-[10px] text-amber-400 font-mono">Today: {dailyPanchang.nakshatra}</span>
+                    <span className="text-[10px] text-amber-700 font-mono">Today: {dailyPanchang.nakshatra}</span>
                   </label>
                   <select
                     value={nakshatra}
                     onChange={(e) => setNakshatra(e.target.value)}
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400 cursor-pointer font-mono"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500 cursor-pointer font-mono"
                   >
                     {VEDIC_NAKSHATRAS.map((nak) => (
                       <option key={nak} value={nak}>
@@ -974,7 +968,7 @@ export const PoojaBookingDesk: React.FC = () => {
 
               {/* Sankalp Description */}
               <div>
-                <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                   Sacred Sankalp Description & Divine Intention *
                 </label>
                 <textarea
@@ -983,20 +977,20 @@ export const PoojaBookingDesk: React.FC = () => {
                   value={sankalpDescription}
                   onChange={(e) => setSankalpDescription(e.target.value)}
                   placeholder={t('ritual.pooja.purposePlaceholder')}
-                  className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400 leading-relaxed"
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500 leading-relaxed"
                 />
               </div>
 
               {/* Priest Assignment & Dakshina Amount */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-temple-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-stone-200">
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                     Lead Purohit / Acharya
                   </label>
                   <select
                     value={priestAssigned}
                     onChange={(e) => setPriestAssigned(e.target.value)}
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs text-amber-100 focus:outline-none focus:border-amber-400 cursor-pointer"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs text-amber-900 focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     {purohits && purohits.length > 0 ? (
                       purohits.map((p) => {
@@ -1018,7 +1012,7 @@ export const PoojaBookingDesk: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+                  <label className="block text-amber-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                     Dakshina / Ritual Offering ({wsCurrency.symbol}) *
                   </label>
                   <input
@@ -1027,23 +1021,23 @@ export const PoojaBookingDesk: React.FC = () => {
                     min={101}
                     value={dakshinaAmount}
                     onChange={(e) => setDakshinaAmount(Number(e.target.value))}
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-xs font-mono font-black text-amber-300 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-mono font-black text-amber-700 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               {/* Optional Live Stream Field */}
-              <div className="p-3.5 rounded-2xl bg-temple-950/60 border border-temple-800 space-y-2">
+              <div className="p-3.5 rounded-2xl bg-sanctum-sandal border border-stone-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-200 flex items-center gap-1.5">
-                    <Video className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[11px] font-bold text-amber-800 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-amber-700" />
                     Online Darshan / Sanctum Live Stream
                   </span>
                   <input
                     type="checkbox"
                     checked={liveStreamRequested}
                     onChange={(e) => setLiveStreamRequested(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 bg-temple-900 border-temple-700 cursor-pointer"
+                    className="w-4 h-4 rounded text-amber-500 bg-white border-stone-300 cursor-pointer"
                   />
                 </div>
                 {liveStreamRequested && (
@@ -1052,20 +1046,20 @@ export const PoojaBookingDesk: React.FC = () => {
                     value={liveStreamUrl}
                     onChange={(e) => setLiveStreamUrl(e.target.value)}
                     placeholder="https://temple.stream/darshan-live..."
-                    className="w-full bg-temple-950 border border-amber-500/40 rounded-xl px-3 py-2 text-xs font-mono text-amber-100 focus:outline-none focus:border-amber-400"
+                    className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono text-amber-900 focus:outline-none focus:border-amber-500"
                   />
                 )}
               </div>
 
               {/* Submit Button */}
-              <div className="pt-4 border-t border-temple-800 flex items-center justify-between gap-4">
-                <div className="text-[11px] text-temple-400">
-                  {t('ritual.pooja.totalDakshina')} <span className="font-mono font-black text-amber-300 text-sm">{inr(Number(dakshinaAmount || 0))}</span>
+              <div className="pt-4 border-t border-stone-200 flex items-center justify-between gap-4">
+                <div className="text-[11px] text-temple-600">
+                  {t('ritual.pooja.totalDakshina')} <span className="font-mono font-black text-amber-700 text-sm">{inr(Number(dakshinaAmount || 0))}</span>
                 </div>
                 <button
                   type="submit"
                   data-guide-anchor="org-rituals-book"
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-500 hover:from-amber-400 hover:to-saffron-400 text-temple-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all"
+                  className="px-6 py-3 rounded-2xl bg-cta hover:bg-cta-hover text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-saffron-700/20 cursor-pointer transition-all"
                 >
                   <Flame className="w-4 h-4" />
                   <span>{t('ritual.pooja.confirmBooking')}</span>
@@ -1077,70 +1071,70 @@ export const PoojaBookingDesk: React.FC = () => {
           {/* Astrological Validation & Panchang Preview Sidebar (4 Columns) */}
           <div className="lg:col-span-4 space-y-6">
             {/* Live Panchang Card for the Date */}
-            <div className="bg-gradient-to-b from-temple-900 to-temple-950 border border-amber-500/30 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-temple-800">
+            <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                 <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-amber-400 animate-spin-slow" />
-                  <h3 className="font-black text-sm text-amber-200 uppercase tracking-wider">
+                  <Compass className="w-5 h-5 text-amber-700 animate-spin-slow" />
+                  <h3 className="font-black text-sm text-amber-800 uppercase tracking-wider">
                     Vedic Ephemeris
                   </h3>
                 </div>
-                <span className="text-[10px] font-mono text-temple-400">
+                <span className="text-[10px] font-mono text-temple-600">
                   {dailyPanchang.gregorianDate.split(',')[0]}
                 </span>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-2xl bg-temple-950/80 border border-temple-800 flex items-center justify-between">
-                  <span className="text-temple-400 font-bold">{t('ritual.pooja.tithi')}</span>
-                  <span className="font-bold text-amber-200">{dailyPanchang.tithi}</span>
+                <div className="p-3 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
+                  <span className="text-temple-600 font-bold">{t('ritual.pooja.tithi')}</span>
+                  <span className="font-bold text-amber-800">{dailyPanchang.tithi}</span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-temple-950/80 border border-temple-800 flex items-center justify-between">
-                  <span className="text-temple-400 font-bold">{t('ritual.pooja.nakshatra')}</span>
-                  <span className="font-bold text-amber-200">{dailyPanchang.nakshatra}</span>
+                <div className="p-3 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
+                  <span className="text-temple-600 font-bold">{t('ritual.pooja.nakshatra')}</span>
+                  <span className="font-bold text-amber-800">{dailyPanchang.nakshatra}</span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-temple-950/80 border border-temple-800 flex items-center justify-between">
-                  <span className="text-temple-400 font-bold">{t('ritual.pooja.suryaUdaya')}</span>
-                  <span className="font-mono text-amber-200">{dailyPanchang.sunrise} - {dailyPanchang.sunset}</span>
+                <div className="p-3 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
+                  <span className="text-temple-600 font-bold">{t('ritual.pooja.suryaUdaya')}</span>
+                  <span className="font-mono text-amber-800">{dailyPanchang.sunrise} - {dailyPanchang.sunset}</span>
                 </div>
 
                 {/* Rahu Kaal Highlight Card */}
                 <div className={`p-3.5 rounded-2xl border transition-all ${
                   isRahuKaalClash
-                    ? 'bg-rose-950/90 border-rose-500 ring-2 ring-rose-500/50'
-                    : 'bg-temple-950/80 border-rose-500/40'
+                    ? 'bg-rose-50 border-rose-400 ring-2 ring-rose-300'
+                    : 'bg-white border-rose-300'
                 }`}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-black uppercase text-rose-400 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="text-[10px] font-black uppercase text-rose-600 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                       Rahu Kaal (Avoid)
                     </span>
-                    <span className="text-[10px] font-mono text-rose-300">
+                    <span className="text-[10px] font-mono text-rose-700">
                       8-Part Daylight Segment
                     </span>
                   </div>
-                  <p className="text-base font-black font-mono text-rose-200">
+                  <p className="text-base font-black font-mono text-rose-700">
                     {dailyPanchang.rahuKaal}
                   </p>
-                  <p className="text-[10px] text-rose-300/80 mt-1">
+                  <p className="text-[10px] text-rose-700 mt-1">
                     Inauspicious for initiating yajnas or vow commitments.
                   </p>
                 </div>
 
                 {/* Abhijit Muhurat Highlight Card */}
-                <div className="p-3.5 rounded-2xl bg-temple-950/80 border border-emerald-500/40">
+                <div className="p-3.5 rounded-2xl bg-white border border-emerald-300">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-black uppercase text-emerald-400 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[10px] font-black uppercase text-emerald-600 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       Abhijit Muhurat (Highest Merit)
                     </span>
                   </div>
-                  <p className="text-base font-black font-mono text-emerald-300">
+                  <p className="text-base font-black font-mono text-emerald-700">
                     {dailyPanchang.abhijitMuhurat}
                   </p>
-                  <p className="text-[10px] text-emerald-300/80 mt-1">
+                  <p className="text-[10px] text-emerald-700 mt-1">
                     Universal dosha nullifier; ideal for midday sankalpas.
                   </p>
                 </div>
@@ -1148,9 +1142,9 @@ export const PoojaBookingDesk: React.FC = () => {
             </div>
 
             {/* Quick Sanctuary Notice */}
-            <div className="bg-temple-900/60 border border-temple-800 rounded-3xl p-5 text-xs text-temple-400 space-y-2">
-              <h4 className="font-bold text-amber-200 flex items-center gap-1.5">
-                <BadgeCheck className="w-4 h-4 text-amber-400" />
+            <div className="bg-white border border-stone-200 rounded-3xl p-5 text-xs text-temple-600 space-y-2">
+              <h4 className="font-bold text-amber-800 flex items-center gap-1.5">
+                <BadgeCheck className="w-4 h-4 text-amber-700" />
                 Sanctum Consecration Protocol
               </h4>
               <p className="leading-relaxed">
@@ -1166,15 +1160,15 @@ export const PoojaBookingDesk: React.FC = () => {
       {/* ========================================================================= */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-b from-temple-900/90 to-temple-950 border border-amber-500/30 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white border border-amber-200 rounded-3xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-700">
                 Personal Sanctuary Ledger
               </span>
-              <h2 className="text-xl font-black text-amber-100">
+              <h2 className="text-xl font-black text-amber-900">
                 {isDevotee ? 'My Sacred Ritual Bookings' : 'Devotee Bookings Registry'}
               </h2>
-              <p className="text-xs text-temple-400">
+              <p className="text-xs text-temple-600">
                 Review your active and completed pujas, download physical Sankalp slips, and access livestream darshan.
               </p>
             </div>
@@ -1182,7 +1176,7 @@ export const PoojaBookingDesk: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('book')}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-saffron-500 text-temple-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2.5 rounded-2xl bg-cta text-white font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
               <span>{t('ritual.pooja.bookAnother')}</span>
@@ -1190,12 +1184,12 @@ export const PoojaBookingDesk: React.FC = () => {
           </div>
 
           {personalBookings.length === 0 ? (
-            <div className="bg-temple-900/60 border border-temple-800/80 rounded-3xl p-12 text-center space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="bg-white border border-stone-200 rounded-3xl p-12 text-center space-y-3">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700">
                 <FileText className="w-7 h-7" />
               </div>
-              <h3 className="text-base font-bold text-amber-200">{t('ritual.pooja.noPersonal')}</h3>
-              <p className="text-xs text-temple-400 max-w-md mx-auto">
+              <h3 className="text-base font-bold text-amber-800">{t('ritual.pooja.noPersonal')}</h3>
+              <p className="text-xs text-temple-600 max-w-md mx-auto">
                 You haven't initiated any pujas or sankalpas yet. Click above to schedule your first sacred ritual.
               </p>
             </div>
@@ -1204,65 +1198,65 @@ export const PoojaBookingDesk: React.FC = () => {
               {personalBookings.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-temple-900/90 border border-amber-500/30 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-amber-400 transition-colors"
+                  className="bg-white border border-amber-200 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-amber-400 transition-colors"
                 >
                   <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-temple-800">
+                    <div className="flex items-start justify-between gap-2 pb-3 border-b border-stone-200">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
                           <Flame className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-black text-sm text-amber-200">{b.poojaName}</h4>
-                          <p className="text-xs text-temple-400">{b.devoteeName} ({b.gotra})</p>
+                          <h4 className="font-black text-sm text-amber-800">{b.poojaName}</h4>
+                          <p className="text-xs text-temple-600">{b.devoteeName} ({b.gotra})</p>
                         </div>
                       </div>
 
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                           b.status === 'Completed'
-                            ? 'bg-emerald-950 text-emerald-400 border-emerald-800/50'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : b.status === 'Confirmed'
-                            ? 'bg-blue-950 text-blue-400 border-blue-800/50'
+                            ? 'bg-sky-50 text-sky-700 border-sky-200'
                             : b.status === 'In-Progress'
-                            ? 'bg-amber-950 text-amber-400 border-amber-800/50 animate-pulse'
-                            : 'bg-temple-800 text-temple-400 border-temple-700'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                            : 'bg-stone-100 text-temple-600 border-stone-300'
                         }`}
                       >
                         {b.status || 'Pending'}
                       </span>
                     </div>
 
-                    <div className="space-y-1.5 text-xs text-temple-300">
+                    <div className="space-y-1.5 text-xs text-temple-700">
                       <div className="flex items-center justify-between">
-                        <span className="text-temple-400">{t('ritual.pooja.dateSlot')}</span>
-                        <span className="font-mono text-amber-200 font-bold">{b.bookingDate} • {b.timeSlot}</span>
+                        <span className="text-temple-600">{t('ritual.pooja.dateSlot')}</span>
+                        <span className="font-mono text-amber-800 font-bold">{b.bookingDate} • {b.timeSlot}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-temple-400">{t('ritual.pooja.purohit')}</span>
-                        <span className="text-temple-200">{b.priestAssigned || 'Sansthan Acharya'}</span>
+                        <span className="text-temple-600">{t('ritual.pooja.purohit')}</span>
+                        <span className="text-temple-800">{b.priestAssigned || 'Sansthan Acharya'}</span>
                       </div>
                       {b.nakshatra && (
                         <div className="flex items-center justify-between">
-                          <span className="text-temple-400">{t('ritual.pooja.nakshatra')}</span>
-                          <span className="text-temple-200">{b.nakshatra}</span>
+                          <span className="text-temple-600">{t('ritual.pooja.nakshatra')}</span>
+                          <span className="text-temple-800">{b.nakshatra}</span>
                         </div>
                       )}
                       {b.sankalpText && (
-                        <div className="pt-2 border-t border-temple-800 text-[11px] text-amber-200/80 italic line-clamp-2">
+                        <div className="pt-2 border-t border-stone-200 text-[11px] text-amber-700 italic line-clamp-2">
                           "{b.sankalpText}"
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-temple-800 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-temple-400 font-mono shrink-0 whitespace-nowrap">{inr(b.dakshinaAmount || 0)}</span>
+                  <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-temple-600 font-mono shrink-0 whitespace-nowrap">{inr(b.dakshinaAmount || 0)}</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handlePrintSankalp(b)}
-                        className="px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
                       >
                         <Printer className="w-3.5 h-3.5" />
                         <span>{t('ritual.pooja.sankalpSlip')}</span>
@@ -1272,7 +1266,7 @@ export const PoojaBookingDesk: React.FC = () => {
                           href={safeExternalUrl(b.liveStreamUrl)!}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold flex items-center gap-1"
                         >
                           <Video className="w-3.5 h-3.5" />
                           <span>{t('ritual.pooja.watch')}</span>
@@ -1299,13 +1293,13 @@ export const PoojaBookingDesk: React.FC = () => {
           completed or cancelled this ritual, from the audit stream. */}
       {historyBookingId && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/85 backdrop-blur-md">
-          <div className="bg-temple-900 border border-temple-700 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-temple-800 mb-3">
+          <div className="bg-white border border-stone-300 rounded-t-3xl sm:rounded-2xl max-w-md w-full p-4 text-temple-900 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-stone-200 mb-3">
               <h4 className="font-bold text-xs">{t('org.audit.history.title')}</h4>
               <button
                 type="button"
                 onClick={() => setHistoryBookingId(null)}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-400 hover:text-temple-100"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-temple-600 hover:text-temple-900"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -1323,26 +1317,26 @@ export const PoojaBookingDesk: React.FC = () => {
 
       {/* Cancellation Modal */}
       {cancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-temple-950/80 backdrop-blur-md">
-          <div className="bg-temple-900 border border-rose-500/40 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden text-temple-100 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
-            <div className="flex items-center justify-between pb-3 border-b border-temple-800 px-6 pt-5 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-white backdrop-blur-md">
+          <div className="bg-white border border-rose-300 rounded-t-3xl sm:rounded-3xl max-w-md w-full flex flex-col overflow-hidden text-temple-900 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 px-6 pt-5 shrink-0">
             <div className="overflow-y-auto min-h-0 px-6 py-4 space-y-4 grow">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-rose-400" />
-                <h3 className="font-black text-sm text-rose-200 uppercase tracking-wider">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+                <h3 className="font-black text-sm text-rose-700 uppercase tracking-wider">
                   Cancel Ritual Booking
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="text-temple-400 hover:text-temple-100 cursor-pointer"
+                className="text-temple-600 hover:text-temple-900 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-temple-300 leading-relaxed">
+            <p className="text-xs text-temple-700 leading-relaxed">
               Please enter the reason for cancellation. The devotee and priest will be updated accordingly.
             </p>
 
@@ -1352,7 +1346,7 @@ export const PoojaBookingDesk: React.FC = () => {
               value={cancellationReason}
               onChange={(e) => setCancellationReason(e.target.value)}
               placeholder="e.g. Yajamana unavailable / rescheduled / unfavorable tithi..."
-              className="w-full bg-temple-950 border border-temple-700 rounded-xl px-3 py-2 text-xs text-temple-200 focus:outline-none focus:border-rose-400"
+              className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-temple-800 focus:outline-none focus:border-rose-400"
             />
 
             </div>
@@ -1360,7 +1354,7 @@ export const PoojaBookingDesk: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-temple-800 text-temple-300 font-bold text-xs cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-stone-100 text-temple-700 font-bold text-xs cursor-pointer"
               >
                 Keep Booking
               </button>
@@ -1409,19 +1403,19 @@ const RosterBookingCard: React.FC<{
   // `t` — wire the hook locally so tsc is clean.
   const { t } = useLanguage();
   return (
-    <div className="bg-temple-950/80 border border-temple-800 hover:border-amber-500/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3 transition-colors">
+    <div className="bg-white border border-stone-200 hover:border-amber-400 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3 transition-colors">
       <div>
         {/* Header */}
-        <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-temple-800/80">
+        <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-stone-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
               <Flame className="w-4 h-4" />
             </div>
             <div className="truncate">
-              <h4 className="font-black text-sm text-amber-100 truncate">
+              <h4 className="font-black text-sm text-amber-900 truncate">
                 {booking.poojaName}
               </h4>
-              <p className="text-xs text-amber-300 font-semibold truncate">
+              <p className="text-xs text-amber-700 font-semibold truncate">
                 {booking.devoteeName}
               </p>
             </div>
@@ -1430,14 +1424,14 @@ const RosterBookingCard: React.FC<{
           <span
             className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
               booking.status === 'Completed'
-                ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/50'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 : booking.status === 'Confirmed'
-                ? 'bg-blue-950 text-blue-400 border border-blue-800/50'
+                ? 'bg-blue-950 text-sky-600 border border-sky-200'
                 : booking.status === 'In-Progress'
-                ? 'bg-amber-950 text-amber-400 border border-amber-800/50 animate-pulse'
+                ? 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
                 : booking.status === 'Cancelled'
-                ? 'bg-rose-950 text-rose-400 border border-rose-800/50'
-                : 'bg-temple-800 text-temple-400 border border-temple-700'
+                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                : 'bg-stone-100 text-temple-600 border border-stone-300'
             }`}
           >
             {booking.status || 'Pending'}
@@ -1445,34 +1439,34 @@ const RosterBookingCard: React.FC<{
         </div>
 
         {/* Details */}
-        <div className="py-2 space-y-1.5 text-xs text-temple-300">
+        <div className="py-2 space-y-1.5 text-xs text-temple-700">
           <div className="flex items-center justify-between">
-            <span className="text-temple-400">{t('ritual.pooja.gotraNakshatra')}</span>
-            <span className="font-semibold text-amber-200">
+            <span className="text-temple-600">{t('ritual.pooja.gotraNakshatra')}</span>
+            <span className="font-semibold text-amber-800">
               {booking.gotra} {booking.nakshatra ? `(${booking.nakshatra})` : ''}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-temple-400">{t('ritual.pooja.dateSlot')}</span>
-            <span className="font-mono text-amber-200 font-bold">
+            <span className="text-temple-600">{t('ritual.pooja.dateSlot')}</span>
+            <span className="font-mono text-amber-800 font-bold">
               {booking.bookingDate} | {booking.timeSlot}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-temple-400">{t('ritual.pooja.acharya')}</span>
-            <span className="text-temple-200">
+            <span className="text-temple-600">{t('ritual.pooja.acharya')}</span>
+            <span className="text-temple-800">
               {booking.priestAssigned || booking.purohitAssigned || 'Sansthan Pool'}
             </span>
           </div>
 
           {booking.sankalpText && (
-            <div className="pt-2 border-t border-temple-800/80">
-              <span className="text-[10px] text-amber-400 uppercase font-black tracking-wider block">
+            <div className="pt-2 border-t border-stone-200">
+              <span className="text-[10px] text-amber-700 uppercase font-black tracking-wider block">
                 Sankalp Purpose:
               </span>
-              <p className="text-[11px] text-amber-200/80 italic line-clamp-2">
+              <p className="text-[11px] text-amber-700 italic line-clamp-2">
                 "{booking.sankalpText}"
               </p>
             </div>
@@ -1481,8 +1475,8 @@ const RosterBookingCard: React.FC<{
       </div>
 
       {/* Action Footer */}
-      <div className="pt-3 border-t border-temple-800 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[11px] font-mono font-bold text-amber-400 whitespace-nowrap">
+      <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[11px] font-mono font-bold text-amber-700 whitespace-nowrap">
           {inr((booking.dakshinaAmount || 0))}
         </div>
 
@@ -1492,7 +1486,7 @@ const RosterBookingCard: React.FC<{
             type="button"
             onClick={onPrintSankalp}
             title={t('ritual.pooja.slipTitle')}
-            className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-black flex items-center gap-1 shadow-sm cursor-pointer transition-all"
+            className="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-100 text-amber-700 border border-amber-300 text-[11px] font-black flex items-center gap-1 shadow-sm cursor-pointer transition-all"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>{t('ritual.pooja.sankalpSlip')}</span>
@@ -1504,7 +1498,7 @@ const RosterBookingCard: React.FC<{
               type="button"
               onClick={onHistory}
               title={t('org.audit.history.title')}
-              className="px-2.5 py-1.5 rounded-xl bg-temple-900 hover:bg-temple-800 text-temple-200 border border-temple-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+              className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-stone-100 text-temple-800 border border-stone-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all"
             >
               <History className="w-3.5 h-3.5" />
               <span>{t('org.audit.history.button')}</span>
@@ -1518,7 +1512,7 @@ const RosterBookingCard: React.FC<{
                 <button
                   type="button"
                   onClick={() => onUpdateStatus('Confirmed')}
-                  className="px-2 py-1.5 rounded-xl bg-blue-950 hover:bg-blue-900 text-blue-300 border border-blue-800 text-[10px] font-bold cursor-pointer"
+                  className="px-2 py-1.5 rounded-xl bg-blue-950 hover:bg-sky-100 text-sky-700 border border-sky-200 text-[10px] font-bold cursor-pointer"
                 >
                   Confirm
                 </button>
@@ -1526,7 +1520,7 @@ const RosterBookingCard: React.FC<{
               <button
                 type="button"
                 onClick={() => onUpdateStatus('Completed')}
-                className="px-2 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                className="px-2 py-1.5 rounded-xl bg-emerald-950 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
               >
                 <CheckCircle2 className="w-3 h-3" />
                 <span>{t('ritual.pooja.done')}</span>
@@ -1534,7 +1528,7 @@ const RosterBookingCard: React.FC<{
               <button
                 type="button"
                 onClick={onCancel}
-                className="p-1.5 rounded-xl bg-temple-900 hover:bg-rose-950 text-temple-400 hover:text-rose-400 border border-temple-800 cursor-pointer"
+                className="p-1.5 rounded-xl bg-white hover:bg-rose-50 text-temple-600 hover:text-rose-600 border border-stone-200 cursor-pointer"
                 title={t('ritual.pooja.cancelBookingTitle')}
               >
                 <XCircle className="w-3.5 h-3.5" />
