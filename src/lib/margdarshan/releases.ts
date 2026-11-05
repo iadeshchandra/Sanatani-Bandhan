@@ -63,6 +63,22 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.04-cb2170a',
+    date: '2026-11-04',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "One sanctum face for every desk: the Treasury, Puja, Panchang, Utsav and Purohit Management desks now open with the same warm ivory-and-brass hero as your home, instead of five different dark themes — and the Purohit directory cards are repaired, so names, availability and qualifications read in full.",
+            hi: "हर डेस्क का एक ही पवित्र मुख: कोषागार, पूजा, पंचांग, उत्सव और पुरोहित प्रबंधन डेस्क अब पाँच अलग गहरे रंगों की जगह आपके होम जैसे ही उष्ण हाथी-दांत और पीतल रंग के आवरण से खुलते हैं — और पुरोहित निर्देशिका के कार्ड ठीक हो गए हैं, जिससे नाम, उपलब्धता और योग्यता पूरी पढ़ी जा सकती है।",
+            bn: "প্রতিটি ডেস্কে একই পবিত্র মুখ: কোষাগার, পূজা, পঞ্চাঙ্গ, উৎসব ও পুরোহিত ব্যবস্থাপনা ডেস্ক এখন পাঁচটি আলাদা গাঢ় থিমের বদলে আপনার হোমের মতোই উষ্ণ হাতির-দাঁত ও পিতল রঙের আবরণে খোলে — আর পুরোহিত নির্দেশিকার কার্ড ঠিক হয়েছে, ফলে নাম, উপলব্ধতা ও যোগ্যতা পুরোটা পড়া যায়।",
+          },
+          deskRefs: ['treasury', 'poojaBooking', 'panchang', 'utsav-one', 'purohitDesk'],
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.02-82d4113',
     date: '2026-11-02',
     sections: {
