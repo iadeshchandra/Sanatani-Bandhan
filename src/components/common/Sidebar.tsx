@@ -689,7 +689,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {activeWorkspace?.name || 'Organisation'}
                 </span>
                 <span className="text-[10px] text-temple-500 font-bold uppercase tracking-widest block">
-                  {filteredModules.length} Desks Console
+                  {filteredModules.length} of {MODULE_CATALOG.length} Desks Console
                 </span>
               </div>
             )}

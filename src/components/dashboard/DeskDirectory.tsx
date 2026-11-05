@@ -243,7 +243,7 @@ export const DeskDirectory: React.FC<{
             </p>
           </div>
           <span className="rounded-full border border-temple-200 bg-white px-3 py-1.5 text-xs font-black text-temple-600">
-            {model.desks.length}
+            {model.desks.length} of {model.totalDesks}
           </span>
         </div>
 

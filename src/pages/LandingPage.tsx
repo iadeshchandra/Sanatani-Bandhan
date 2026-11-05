@@ -740,17 +740,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-2.5 cursor-pointer"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer"
             aria-label="Sanatani Bandhan home"
           >
             <img
               src="/icon-96x96.png"
               alt="Sanatani Bandhan"
-              className="w-10 h-10 rounded-2xl shadow-md shadow-orange-500/25"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl shadow-md shadow-orange-500/25"
               width={40}
               height={40}
             />
-            <span className="text-lg sm:text-xl font-extrabold tracking-tight">
+            <span className="whitespace-nowrap text-base sm:text-xl font-extrabold tracking-tight">
               Sanatani <span className="text-orange-600">Bandhan</span>
             </span>
           </button>

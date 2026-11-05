@@ -97,13 +97,13 @@ const Mandala: React.FC = () => {
       {/* Counter-rotating outer geometry */}
       <g className="auth-spin-rev">
         {rings.map((r) => (
-          <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="var(--brass-200)" strokeOpacity="0.30" strokeWidth="1" />
+          <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="var(--brass-500)" strokeOpacity="0.38" strokeWidth="1" />
         ))}
         {petals24.map((deg) => (
           <ellipse
             key={'p24' + deg}
             cx={cx} cy={cy - 210} rx={17} ry={58}
-            fill="none" stroke="var(--brass-200)" strokeOpacity="0.32" strokeWidth="1"
+            fill="none" stroke="var(--brass-500)" strokeOpacity="0.4" strokeWidth="1"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
@@ -114,7 +114,7 @@ const Mandala: React.FC = () => {
           <ellipse
             key={'p16' + deg}
             cx={cx} cy={cy - 132} rx={26} ry={64}
-            fill="none" stroke="var(--saffron-300)" strokeOpacity="0.42" strokeWidth="1.1"
+            fill="none" stroke="var(--saffron-600)" strokeOpacity="0.45" strokeWidth="1.1"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
@@ -122,15 +122,15 @@ const Mandala: React.FC = () => {
           <line
             key={'t' + deg}
             x1={cx} y1={cy - 292} x2={cx} y2={cy - 280}
-            stroke="var(--saffron-100)" strokeOpacity="0.4" strokeWidth="1.4"
+            stroke="var(--saffron-700)" strokeOpacity="0.4" strokeWidth="1.4"
             transform={`rotate(${deg} ${cx} ${cy})`}
           />
         ))}
       </g>
       {/* Still heart */}
-      <circle cx={cx} cy={cy} r={52} fill="none" stroke="var(--brass-200)" strokeOpacity="0.55" strokeWidth="1.2" />
-      <circle cx={cx} cy={cy} r={40} fill="none" stroke="var(--brass-200)" strokeOpacity="0.3" strokeWidth="1" />
-      <text x={cx} y={cy + 26} textAnchor="middle" fontSize="64" fill="var(--saffron-100)" fillOpacity="0.9" fontFamily="serif">ॐ</text>
+      <circle cx={cx} cy={cy} r={52} fill="none" stroke="var(--brass-600)" strokeOpacity="0.6" strokeWidth="1.2" />
+      <circle cx={cx} cy={cy} r={40} fill="none" stroke="var(--brass-500)" strokeOpacity="0.38" strokeWidth="1" />
+      <text x={cx} y={cy + 26} textAnchor="middle" fontSize="64" fill="var(--saffron-700)" fillOpacity="0.9" fontFamily="serif">ॐ</text>
     </svg>
   );
 };
@@ -162,9 +162,9 @@ export const AuthArt: React.FC<AuthArtProps> = ({ lang, compact = false, classNa
           <span key={i} className="auth-diya" style={{ left: d.left, ['--dd' as any]: d.delay, ['--dur' as any]: d.dur, ['--drift' as any]: d.drift, width: d.size, height: d.size }} />
         ))}
         <div className="relative z-10 px-6 pt-10 pb-6 text-center">
-          <p className="auth-rise text-[10px] font-black tracking-[0.35em] uppercase text-saffron-300" style={{ ['--d' as any]: '0.1s' }}>{copy.eyebrow}</p>
-          <h1 className="auth-rise mt-2 text-2xl font-black text-white leading-tight" style={{ ['--d' as any]: '0.22s' }}>
-            {copy.headline[0]} <span className="text-transparent bg-clip-text bg-gradient-to-r from-saffron-300 to-amber-200">{copy.headline[1]}</span>
+          <p className="auth-rise text-[10px] font-black tracking-[0.35em] uppercase text-amber-800" style={{ ['--d' as any]: '0.1s' }}>{copy.eyebrow}</p>
+          <h1 className="auth-rise mt-2 font-display text-2xl font-black text-temple-950 leading-tight" style={{ ['--d' as any]: '0.22s' }}>
+            {copy.headline[0]} <span className="text-amber-800">{copy.headline[1]}</span>
           </h1>
         </div>
       </div>
@@ -187,10 +187,10 @@ export const AuthArt: React.FC<AuthArtProps> = ({ lang, compact = false, classNa
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-[radial-gradient(80%_60%_at_50%_100%,rgba(255,142,0,0.22),transparent_70%)] pointer-events-none" />
 
       <div className="auth-parallax relative z-10 flex flex-col items-center text-center px-10 pt-14">
-        <p className="auth-rise text-[11px] font-black tracking-[0.45em] uppercase text-saffron-300" style={{ ['--d' as any]: '0.15s' }}>
+        <p className="auth-rise text-[11px] font-black tracking-[0.45em] uppercase text-amber-800" style={{ ['--d' as any]: '0.15s' }}>
           {copy.eyebrow}
         </p>
-        <h1 className="mt-5 text-[2.9rem] leading-[1.08] font-black text-white tracking-tight max-w-md">
+        <h1 className="mt-5 font-display text-[2.9rem] leading-[1.08] font-black text-temple-950 tracking-tight max-w-md">
           {words.map((w, i) => (
             <React.Fragment key={i}>
               <span className="auth-rise inline-block mr-[0.28em]" style={{ ['--d' as any]: `${0.3 + i * 0.09}s` }}>{w}</span>
@@ -198,7 +198,7 @@ export const AuthArt: React.FC<AuthArtProps> = ({ lang, compact = false, classNa
             </React.Fragment>
           ))}
         </h1>
-        <p className="auth-rise mt-5 text-[15px] leading-relaxed text-white/65 max-w-sm font-medium" style={{ ['--d' as any]: '0.85s' }}>
+        <p className="auth-rise mt-5 text-[15px] leading-relaxed text-temple-600 max-w-sm font-medium" style={{ ['--d' as any]: '0.85s' }}>
           {copy.sub}
         </p>
       </div>
@@ -208,16 +208,16 @@ export const AuthArt: React.FC<AuthArtProps> = ({ lang, compact = false, classNa
         <div className="auth-fade relative min-h-[92px] flex items-center justify-center text-center" style={{ ['--d' as any]: '1s' }}>
           {copy.quotes.map((q, i) => (
             <div key={i} className="auth-quote" data-active={i === quoteIdx}>
-              <p className="text-xl font-bold text-saffron-200 font-serif tracking-wide">{q.line}</p>
-              <p className="mt-1.5 text-[13px] text-white/55 italic">{q.meaning}</p>
+              <p className="text-xl font-bold text-amber-900 font-display tracking-wide">{q.line}</p>
+              <p className="mt-1.5 text-[13px] text-temple-600 italic">{q.meaning}</p>
             </div>
           ))}
         </div>
         {/* Honest trust badges */}
         <div className="auth-fade mt-6 flex items-center justify-center gap-2.5 flex-wrap" style={{ ['--d' as any]: '1.15s' }}>
           {copy.badges.map((b) => (
-            <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-bold text-white/75 backdrop-blur-sm">
-              <span className="text-saffron-300">{badgeIcon(b.icon)}</span>
+            <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-brass-200 bg-white/70 px-3.5 py-1.5 text-[11px] font-bold text-temple-700">
+              <span className="text-amber-700">{badgeIcon(b.icon)}</span>
               {b.text}
             </span>
           ))}

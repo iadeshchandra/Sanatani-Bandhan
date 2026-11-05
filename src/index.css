@@ -759,3 +759,49 @@ body.sb-form-sos {
     radial-gradient(ellipse 85% 46% at 50% -8%, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0) 70%),
     radial-gradient(rgba(233, 210, 154, 0.05) 1px, transparent 1.4px);
 }
+
+/* ------------------------------------------------------------
+   Design Elevation E4 — the auth scene at dusk. E4 moved auth
+   onto light surfaces the first remap never knew: the ivory
+   .auth-glass card (a custom class — it kept its day surface
+   while its temple text flipped cream), the /60, /40 and /85
+   translucencies, the temple-100/80 doors trough, emerald-900
+   strip text, red-50 error grounds, amber-950 banner text and
+   the body-portalled /95 toast grounds. Without these rules
+   dusk left light text on light surfaces — unreadable. All
+   rules stay scoped under [data-sandhya="on"] (+ .auth-scene /
+   .auth-toast where the class is generic): day is untouched.
+   text-emerald-800 is deliberately NOT remapped: its only auth
+   use sits on the pale emerald-100 chip, which stays pale.
+   ------------------------------------------------------------ */
+[data-sandhya="on"] .auth-glass {
+  background: linear-gradient(160deg, rgba(56, 34, 15, 0.97), rgba(38, 22, 9, 0.96));
+  border-color: rgba(233, 210, 154, 0.32);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 214, 140, 0.25),
+    inset 0 -14px 26px -16px rgba(255, 158, 44, 0.3);
+}
+[data-sandhya="on"] .auth-label { color: #cbb28a; }
+[data-sandhya="on"] .auth-field input:focus ~ .auth-label,
+[data-sandhya="on"] .auth-field input:not(:placeholder-shown) ~ .auth-label,
+[data-sandhya="on"] .auth-field textarea:focus ~ .auth-label,
+[data-sandhya="on"] .auth-field textarea:not(:placeholder-shown) ~ .auth-label { color: #efc26e; }
+[data-sandhya="on"] .auth-scene .bg-white\/60 { background-color: #2c1d12; }
+[data-sandhya="on"] .auth-scene .bg-white\/40 { background-color: rgba(44, 29, 18, 0.55); }
+[data-sandhya="on"] .auth-scene .bg-white\/85 { background-color: #2c1d12; }
+[data-sandhya="on"] .auth-scene .bg-temple-100\/80 { background-color: #332416; }
+[data-sandhya="on"] .auth-scene .bg-red-50 { background-color: #33181a; }
+[data-sandhya="on"] .auth-scene .text-red-700 { color: #f0a390; }
+[data-sandhya="on"] .auth-scene .text-red-800 { color: #f3b8a8; }
+[data-sandhya="on"] .auth-scene .border-red-200 { border-color: #6e3a30; }
+[data-sandhya="on"] .auth-scene .text-emerald-900 { color: #a7e8d4; }
+[data-sandhya="on"] .auth-scene .text-amber-950 { color: #f7dca8; }
+[data-sandhya="on"] .auth-scene .border-amber-300 { border-color: #57401f; }
+[data-sandhya="on"] .auth-scene .bg-\[\#FFF8EC\]\/95 { background-color: rgba(28, 15, 6, 0.96); }
+[data-sandhya="on"] .auth-scene .placeholder\:text-temple-500::placeholder { color: #cbb28a; }
+[data-sandhya="on"] .auth-toast { background-color: #2c1d12; border-color: #57401f; color: #faf1dc; }
+[data-sandhya="on"] .auth-toast .bg-red-100 { background-color: #4a2018; }
+[data-sandhya="on"] .auth-toast .bg-amber-100 { background-color: #38250f; }
+[data-sandhya="on"] .auth-toast .bg-emerald-100 { background-color: #123330; }
+[data-sandhya="on"] .auth-toast .text-red-700 { color: #f0a390; }

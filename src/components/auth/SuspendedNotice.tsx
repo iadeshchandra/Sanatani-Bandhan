@@ -17,7 +17,7 @@ export const SuspendedNotice: React.FC<{ info: SuspensionInfo; onDismiss?: () =>
       <div className="max-w-md w-full rounded-3xl border border-amber-200/60 bg-amber-50 p-8 text-center shadow-xl">
         <p className="text-4xl mb-3">🪔</p>
         <h1 className="text-xl font-black text-amber-900">{t('surfaces.portalLogin.yourAccountHasBeenPaused')}</h1>
-        <p className="text-sm text-amber-800/80 mt-3 leading-relaxed">
+        <p className="text-sm text-amber-900 mt-3 leading-relaxed">
           With care for our community, access to your account is temporarily paused.
           {info.reason ? (
             <>
@@ -26,13 +26,13 @@ export const SuspendedNotice: React.FC<{ info: SuspensionInfo; onDismiss?: () =>
             </>
           ) : null}
         </p>
-        <p className="text-sm text-amber-800/80 mt-3 leading-relaxed">
+        <p className="text-sm text-amber-900 mt-3 leading-relaxed">
           If you believe this is a mistake, please reach out — every appeal is read by a human.
         </p>
         <div className="flex flex-col gap-2 mt-6">
           <a
             href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Account pause appeal')}`}
-            className="min-h-[44px] inline-flex items-center justify-center rounded-xl bg-amber-600 text-white text-sm font-black px-5 py-3 hover:bg-amber-700"
+            className="min-h-[44px] inline-flex items-center justify-center rounded-xl bg-cta text-white text-sm font-black px-5 py-3 hover:bg-cta-hover"
           >
             ✉️ Appeal via email
           </a>
@@ -56,7 +56,7 @@ export const SuspendedNotice: React.FC<{ info: SuspensionInfo; onDismiss?: () =>
             </button>
           )}
         </div>
-        <p className="text-[11px] text-amber-700/60 mt-5">
+        <p className="text-[11px] text-amber-800 mt-5">
           Sanatani Bandhan keeps this community safe and kind for every devotee. 🙏
         </p>
       </div>

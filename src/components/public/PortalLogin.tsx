@@ -1094,7 +1094,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   const darkError = error && (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-        <div className="bg-red-500/15 border border-red-400/30 text-red-200 p-3.5 rounded-2xl text-[12.5px] font-bold text-center shadow-sm flex items-center justify-center gap-2">
+        <div className="bg-red-50 border border-red-200 text-red-800 p-3.5 rounded-2xl text-[12.5px] font-bold text-center shadow-sm flex items-center justify-center gap-2">
           <AlertTriangle size={14} className="shrink-0" /> {error}
         </div>
       </motion.div>
@@ -1102,7 +1102,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
   );
 
   return (
-    <div className="auth-scene relative min-h-screen font-sans overflow-x-hidden bg-[#0b0620] text-white">
+    <div className="auth-scene relative min-h-screen font-sans overflow-x-hidden bg-[#FFF8EC] text-temple-950">
       {/* Step 8: soft-ban — a paused account sees dignity, not a login form. */}
       {accountSuspended && (
         <div className="relative z-10">
@@ -1112,14 +1112,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
       {!accountSuspended && (<>
       {/* ============ IMMERSIVE DAWN SCENE ============ */}
       <div className="fixed inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[linear-gradient(168deg,#08041a_0%,#170d38_30%,#3c1756_50%,#8f3413_70%,#e07f16_88%,#f7b733_100%)]" />
+        <div className="absolute inset-0 bg-[#FFF8EC]" />
         <div className="absolute inset-x-0 bottom-0 h-[60%] bg-[radial-gradient(85%_65%_at_50%_112%,rgba(255,190,80,0.55),rgba(255,130,30,0.14)_55%,transparent_78%)]" />
         <div className="auth-rays absolute -inset-[25%] bg-[conic-gradient(from_205deg_at_50%_118%,transparent_0deg,rgba(255,205,120,0.10)_7deg,transparent_15deg,rgba(255,205,120,0.07)_24deg,transparent_33deg,rgba(255,205,120,0.10)_44deg,transparent_52deg)]" />
         <div
           className="auth-grain absolute inset-0 opacity-[0.055]"
           style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'140\' height=\'140\' viewBox=\'0 0 140 140\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'2\'/%3E%3C/filter%3E%3Crect width=\'140\' height=\'140\' filter=\'url(%23n)\' opacity=\'1\'/%3E%3C/svg%3E")' }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(115%_85%_at_50%_38%,transparent_52%,rgba(4,2,14,0.6)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(115%_85%_at_50%_38%,transparent_52%,rgba(176,138,46,0.10)_100%)]" />
       </div>
 
       {/* ============ GLOBAL TOAST ============ */}
@@ -1129,13 +1129,13 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
-            className={`fixed top-6 left-1/2 -translate-x-1/2 z-[10000] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-950/90 border-red-500/40' : toast.type === 'offline' ? 'bg-amber-950/90 border-amber-500/40' : 'bg-emerald-950/90 border-emerald-500/40'} text-white`}
+            className={`auth-toast fixed top-6 left-1/2 -translate-x-1/2 z-[10000] px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-50/95 border-red-300' : toast.type === 'offline' ? 'bg-amber-50/95 border-amber-300' : 'bg-emerald-50/95 border-emerald-300'} text-temple-950`}
           >
-             <div className={`p-2 rounded-full shrink-0 ${toast.type === 'offline' ? 'bg-saffron-500/20 text-saffron-400' : toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+             <div className={`p-2 rounded-full shrink-0 ${toast.type === 'offline' ? 'bg-amber-100 text-amber-700' : toast.type === 'error' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                {toast.type === 'offline' ? <WifiOff size={20}/> : toast.type === 'error' ? <AlertTriangle size={20}/> : <CheckCircle2 size={20}/>}
              </div>
              <div>
-               <p className={`text-[11px] font-black uppercase tracking-widest mb-0.5 ${toast.type === 'offline' ? 'text-saffron-400' : toast.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+               <p className={`text-[11px] font-black uppercase tracking-widest mb-0.5 ${toast.type === 'offline' ? 'text-amber-700' : toast.type === 'error' ? 'text-red-700' : 'text-emerald-700'}`}>
                  {toast.type === 'offline' ? 'Offline Cache' : toast.type === 'error' ? 'Error' : 'Success'}
                </p>
                <p className="text-sm font-bold">{toast.message}</p>
@@ -1152,7 +1152,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-0 inset-x-0 z-[110] bg-red-600/95 backdrop-blur text-white p-2 text-center flex items-center justify-center gap-2 shadow-lg"
+            className="fixed top-0 inset-x-0 z-[110] bg-amber-100/95 backdrop-blur text-amber-950 border-b border-amber-300 p-2 text-center flex items-center justify-center gap-2 shadow-lg"
           >
             <WifiOff size={14} />
             <span className="text-[13px] font-bold">{gt('auth.offlineMode')}</span>
@@ -1165,7 +1165,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
         <header className="auth-rise w-full max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-8 pt-5" style={{ ['--d' as any]: '0s' }}>
           <button
             onClick={onBack}
-            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md px-4 py-2 text-[13px] font-bold text-white/80 hover:text-white hover:border-white/30 hover:bg-white/[0.10] transition-all min-h-[40px]"
+            className="group inline-flex items-center gap-2 rounded-full border border-brass-200 bg-white/70 px-4 py-2 text-[13px] font-bold text-temple-700 hover:text-temple-950 hover:border-brass-300 hover:bg-white transition-all min-h-[44px]"
           >
             <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
             {t('back')}
@@ -1173,31 +1173,31 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
           {/* World-Readiness B4 (G-L9): the canonical language door — the
               old private 3-language <select> is gone; the local dict still
               serves its un-migrated keys via the clamped sync below. */}
-          <PublicLanguageButton tone="dark" />
+          <PublicLanguageButton tone="light" />
         </header>
 
         {/* ============ SCENE GRID ============ */}
         <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 grid gap-6 lg:gap-10 lg:grid-cols-[1.04fr_0.96fr] items-stretch">
           {/* Mobile compact art band */}
-          <AuthArt lang={authLang} compact className="auth-rise lg:hidden rounded-3xl border border-white/10 bg-white/[0.05] backdrop-blur-md shadow-[0_18px_50px_rgba(0,0,0,0.4)]" />
+          <AuthArt lang={authLang} compact className="auth-rise lg:hidden rounded-3xl border border-brass-200 bg-white/60 shadow-[0_18px_50px_rgba(122,52,12,0.25)]" />
 
           {/* Desktop ambient art panel (mouse parallax) */}
           <div ref={artWrapRef} onMouseMove={handleParallax} className="hidden lg:block">
             <AuthArt
               lang={authLang}
-              className="auth-rise flex h-full min-h-[76vh] rounded-[2rem] border border-white/10 bg-black/20 backdrop-blur-sm shadow-[0_30px_90px_rgba(0,0,0,0.5)]"
+              className="auth-rise flex h-full min-h-[76vh] rounded-[2rem] border border-brass-200 bg-white/40 shadow-[0_30px_90px_rgba(122,52,12,0.3)]"
             />
           </div>
 
           {/* ============ GLASS AUTH CARD ============ */}
           <main className="auth-rise w-full min-w-0 flex" style={{ ['--d' as any]: '0.28s' }}>
             <div className="auth-glass relative w-full min-w-0 rounded-[1.75rem] p-5 sm:p-8 flex flex-col overflow-hidden my-auto">
-              <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-saffron-300/70 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-brass-400/80 to-transparent" />
 
               {/* Card header */}
               <div className="flex items-center gap-3.5 mb-6">
                 <div className="auth-float shrink-0 drop-shadow-[0_0_18px_rgba(255,142,0,0.45)]">
-                  <AppLogo size="md" showText={false} textVariant="light" glow />
+                  <AppLogo size="md" showText={false} textVariant="dark" glow />
                 </div>
                 <div className="min-w-0">
                   <AnimatePresence mode="wait">
@@ -1208,8 +1208,8 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.25 }}
                     >
-                      <h2 className="text-[22px] sm:text-2xl font-black text-white tracking-tight leading-tight">{viewMeta[activeView].title}</h2>
-                      <p className="text-[12.5px] text-white/55 font-medium mt-0.5 truncate">{viewMeta[activeView].sub}</p>
+                      <h2 className="font-display text-[22px] sm:text-2xl font-black text-temple-950 tracking-tight leading-tight">{viewMeta[activeView].title}</h2>
+                      <p className="text-[12.5px] text-temple-600 font-medium mt-0.5 truncate">{viewMeta[activeView].sub}</p>
                     </motion.div>
                   </AnimatePresence>
                 </div>
@@ -1241,21 +1241,21 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.96 }}
-                    className="absolute inset-0 bg-[#120826]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-6 shadow-2xl border border-white/15"
+                    className="absolute inset-0 bg-[#FFF8EC]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-6 shadow-2xl border border-brass-200"
                   >
-                     <button onClick={() => setIsBiometricPromptActive(false)} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label="Close">
+                     <button onClick={() => setIsBiometricPromptActive(false)} className="absolute top-4 right-4 bg-temple-100 text-temple-700 p-2 rounded-full hover:bg-red-100 transition-colors z-50" aria-label="Close">
                        <X size={24}/>
                      </button>
-                     <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center relative mb-6">
+                     <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center relative mb-6">
                        <div className="absolute inset-0 border-[3px] border-emerald-500/30 rounded-full animate-ping"></div>
                        <div className="absolute inset-2 border-[2px] border-emerald-500/50 rounded-full animate-pulse"></div>
-                       <Fingerprint size={48} className="text-emerald-400 relative z-10" />
+                       <Fingerprint size={48} className="text-emerald-600 relative z-10" />
                      </div>
-                     <h3 className="text-white text-lg font-black uppercase tracking-widest mb-2 text-center">{gt('surfaces.portalLogin.touchSensor')}</h3>
-                     <p className="text-white/50 text-xs font-bold text-center leading-relaxed">
+                     <h3 className="font-display text-temple-950 text-lg font-black uppercase tracking-widest mb-2 text-center">{gt('surfaces.portalLogin.touchSensor')}</h3>
+                     <p className="text-temple-600 text-xs font-bold text-center leading-relaxed">
                        Waiting for device biometric verification.<br/>Use Touch ID, Face ID, or your device PIN.
                      </p>
-                     <button onClick={() => setIsBiometricPromptActive(false)} className="mt-8 text-white/50 text-sm font-medium hover:text-white transition-colors border-b border-white/20 pb-1">
+                     <button onClick={() => setIsBiometricPromptActive(false)} className="mt-8 text-temple-600 text-sm font-medium hover:text-temple-900 transition-colors border-b border-temple-300 pb-1">
                        Use Manual Password Instead
                      </button>
                   </motion.div>
@@ -1269,19 +1269,19 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                     initial={{ opacity: 0, scale: 0.96 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.96 }}
-                    className="absolute inset-0 bg-[#120826]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-4 shadow-2xl border border-white/15"
+                    className="absolute inset-0 bg-[#FFF8EC]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-center rounded-[1.75rem] p-4 shadow-2xl border border-brass-200"
                   >
-                     <button onClick={stopScanner} className="absolute top-4 right-4 bg-white/10 text-white p-2 rounded-full hover:bg-red-500 transition-colors z-50" aria-label={gt('auth.closeScanner')}>
+                     <button onClick={stopScanner} className="absolute top-4 right-4 bg-temple-100 text-temple-700 p-2 rounded-full hover:bg-red-100 transition-colors z-50" aria-label={gt('auth.closeScanner')}>
                        <X size={24}/>
                      </button>
-                     <h3 className="text-white font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/>{' '}{gt('auth.scanId')}</h3>
+                     <h3 className="font-display text-temple-950 font-black uppercase tracking-widest mb-4 flex items-center gap-2"><QrCode/>{' '}{gt('auth.scanId')}</h3>
                      <div className="relative w-64 h-64 rounded-3xl overflow-hidden border-4 border-saffron-500 shadow-[0_0_50px_rgba(245,158,11,0.3)]">
                         <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" />
                         <canvas ref={canvasRef} className="hidden" />
                         <div className="absolute inset-0 border-[3px] border-white/30 m-8 rounded-xl pointer-events-none"></div>
                         <div className="absolute top-1/2 left-0 w-full h-0.5 bg-saffron-500/50 shadow-[0_0_8px_var(--gold)] animate-pulse"></div>
                      </div>
-                     <p className="text-white/50 text-xs mt-6 font-bold text-center">{gt('auth.alignQr')}</p>
+                     <p className="text-temple-600 text-xs mt-6 font-bold text-center">{gt('auth.alignQr')}</p>
                   </motion.div>
                 )}
                 </AnimatePresence>
@@ -1297,24 +1297,24 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       onSubmit={handleSmartLogin as any}
                       className={`space-y-4 ${isScanning ? 'opacity-0' : 'opacity-100'}`}
                     >
-                      <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3">
-                        <ShieldCheck size={16} className="text-emerald-300 shrink-0" />
-                        <p className="text-[11.5px] font-bold text-white/60 tracking-wide">{gt('surfaces.portalLogin.secureLoginForAdminsMembersPurohits')}</p>
+                      <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
+                        <p className="text-[11.5px] font-bold text-emerald-900 tracking-wide">{gt('surfaces.portalLogin.secureLoginForAdminsMembersPurohits')}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                         <button type="button" onClick={startScanner} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
-                           <span className="p-2.5 rounded-xl bg-saffron-500/20 text-saffron-300 group-hover:scale-110 transition-transform shrink-0"><QrCode size={19}/></span>
+                         <button type="button" onClick={startScanner} className="group rounded-2xl border border-temple-200 bg-white/70 hover:bg-white hover:border-brass-300 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
+                           <span className="p-2.5 rounded-xl bg-amber-100 text-amber-800 group-hover:scale-110 transition-transform shrink-0"><QrCode size={19}/></span>
                            <span className="min-w-0">
-                             <span className="block text-[13px] font-bold text-white leading-tight">{gt('auth.scanPass')}</span>
-                             <span className="block text-[10.5px] text-white/45 font-medium">{gt('auth.qrLogin')}</span>
+                             <span className="block text-[13px] font-bold text-temple-900 leading-tight">{gt('auth.scanPass')}</span>
+                             <span className="block text-[10.5px] text-temple-600 font-medium">{gt('auth.qrLogin')}</span>
                            </span>
                          </button>
-                         <button type="button" onClick={handleBiometricLogin} className="group rounded-2xl border border-white/12 bg-white/[0.06] hover:bg-white/[0.11] hover:border-white/25 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
-                           <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 group-hover:scale-110 transition-transform shrink-0"><Fingerprint size={19}/></span>
+                         <button type="button" onClick={handleBiometricLogin} className="group rounded-2xl border border-temple-200 bg-white/70 hover:bg-white hover:border-brass-300 px-3.5 py-3 flex items-center gap-3 text-left transition-all hover:-translate-y-0.5 min-h-[44px]">
+                           <span className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 group-hover:scale-110 transition-transform shrink-0"><Fingerprint size={19}/></span>
                            <span className="min-w-0">
-                             <span className="block text-[13px] font-bold text-white leading-tight">Re-confirm</span>
-                             <span className="block text-[10.5px] text-white/45 font-medium">Biometric</span>
+                             <span className="block text-[13px] font-bold text-temple-900 leading-tight">Re-confirm</span>
+                             <span className="block text-[10.5px] text-temple-600 font-medium">Biometric</span>
                            </span>
                          </button>
                       </div>
@@ -1323,9 +1323,9 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       <GoogleSignInButton mode="login" onSuccess={handleGoogleLogin} onError={handleGoogleError} />
 
                       <div className="flex items-center gap-4 py-1 opacity-70">
-                         <div className="h-px bg-white/15 flex-1"></div>
-                         <span className="text-[10.5px] font-black tracking-[0.22em] text-white/45">{gt('auth.orUseCredentials')}</span>
-                         <div className="h-px bg-white/15 flex-1"></div>
+                         <div className="h-px bg-temple-200 flex-1"></div>
+                         <span className="text-[10.5px] font-black tracking-[0.22em] text-temple-600">{gt('auth.orUseCredentials')}</span>
+                         <div className="h-px bg-temple-200 flex-1"></div>
                       </div>
 
                       <AuthField
@@ -1351,7 +1351,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           }
                         />
                         <div className="flex justify-end mt-2">
-                          <button type="button" onClick={handleForgotPassword} className="text-[12.5px] font-bold text-saffron-300/90 hover:text-saffron-200 transition-colors">
+                          <button type="button" onClick={handleForgotPassword} className="inline-flex min-h-[44px] items-center text-[12.5px] font-bold text-amber-800 hover:text-amber-900 transition-colors">
                             {t('login_forgot')}
                           </button>
                         </div>
@@ -1364,12 +1364,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         <button
                           type="button"
                           onClick={handleBiometricLogin}
-                          className="w-full py-3 px-4 rounded-2xl border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-white/70 hover:text-white font-bold text-[13px] tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 min-h-[52px]"
+                          className="w-full py-3 px-4 rounded-2xl border border-temple-200 bg-white/60 hover:bg-white text-temple-600 hover:text-temple-950 font-bold text-[13px] tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 min-h-[52px]"
                         >
-                          <Fingerprint className="w-5 h-5 text-emerald-300/80" />
+                          <Fingerprint className="w-5 h-5 text-emerald-700" />
                           <span>{gt('surfaces.portalLogin.reConfirmSessionWithFaceidTouchid')}</span>
                         </button>
-                        <p className="text-[10.5px] text-center text-white/40 mt-2 font-medium leading-relaxed px-2">
+                        <p className="text-[10.5px] text-center text-temple-600 mt-2 font-medium leading-relaxed px-2">
                           Device-unlock grade: re-confirms your existing signed-in session on this device.
                           It cannot sign you in or grant access by itself — sign in with your credentials first.
                         </p>
@@ -1415,30 +1415,30 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       {(signupCreds || orgRegisterOnly) ? null : !googleUser ? (
                         <GoogleSignInButton mode="signup" onSuccess={handleGoogleSignup} onError={handleGoogleError} />
                       ) : (
-                        <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
-                          <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
-                          <p className="text-[12px] font-bold text-emerald-200">
+                        <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center gap-3">
+                          <CheckCircle2 size={18} className="text-emerald-700 shrink-0" />
+                          <p className="text-[12px] font-bold text-emerald-900">
                             Google linked ({googleUser.email}) — no password needed. Complete the organisation details below.
                           </p>
                         </div>
                       )}
 
-                      <div className="bg-amber-500/10 border border-amber-400/25 p-4 rounded-2xl flex items-start gap-3">
-                        <AlertTriangle className="text-amber-300 shrink-0 mt-0.5" size={20} />
+                      <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="text-amber-700 shrink-0 mt-0.5" size={20} />
                         <div>
-                          <h4 className="text-white font-bold text-[13.5px] mb-1">{t('reg_warning_title')}</h4>
-                          <p className="text-[12.5px] text-white/60">
-                            {t('reg_warning_desc_1')}<strong className="font-bold text-amber-200">{regData.type}</strong>{t('reg_warning_desc_2')}
+                          <h4 className="text-temple-950 font-bold text-[13.5px] mb-1">{t('reg_warning_title')}</h4>
+                          <p className="text-[12.5px] text-temple-600">
+                            {t('reg_warning_desc_1')}<strong className="font-bold text-amber-900">{regData.type}</strong>{t('reg_warning_desc_2')}
                           </p>
                         </div>
                       </div>
 
-                      <div className="space-y-4 pt-4 border-t border-white/10">
-                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
+                      <div className="space-y-4 pt-4 border-t border-brass-200">
+                        <h4 className="text-[11px] font-black text-temple-600 uppercase tracking-[0.18em] flex items-center gap-2"><Building2 size={14}/> {t('reg_step1')}</h4>
 
                         <div>
-                          <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{t('reg_org_type')}</label>
-                          <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full px-4 py-3.5 bg-white/[0.07] border border-white/15 rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
+                          <label className="block text-[10px] font-black text-amber-800 uppercase tracking-[0.15em] mb-1.5">{t('reg_org_type')}</label>
+                          <select value={regData.type} onChange={e=>setRegData({...regData, type: e.target.value as WorkspaceType})} className="w-full px-4 py-3.5 bg-white/85 border border-temple-200 rounded-2xl text-[14px] font-semibold text-temple-950 outline-none focus:border-saffron-700 focus:bg-white transition-colors cursor-pointer appearance-none [&>option]:text-temple-900">
                             <option value="Mandir">{gt('surfaces.portalLogin.mandirTemple')}</option>
                             <option value="Ashram">{gt('surfaces.portalLogin.ashram')}</option>
                             <option value="Goshala">{gt('surfaces.portalLogin.goshala')}</option>
@@ -1465,15 +1465,15 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                           error={fieldErrors.orgName}
                         />
 
-                        <div className="space-y-4 pt-4 border-t border-white/10">
-                           <div className="flex items-center gap-2 text-[11px] font-black text-white/45 uppercase tracking-[0.18em]">
+                        <div className="space-y-4 pt-4 border-t border-brass-200">
+                           <div className="flex items-center gap-2 text-[11px] font-black text-temple-600 uppercase tracking-[0.18em]">
                              <MapPin size={14}/> Location Details
                            </div>
                            <div>
-                             <label className="block text-[10px] font-black text-saffron-300/90 uppercase tracking-[0.15em] mb-1.5">{gt('auth.country')}</label>
+                             <label className="block text-[10px] font-black text-amber-800 uppercase tracking-[0.15em] mb-1.5">{gt('auth.country')}</label>
                              <div className="relative">
-                               <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
-                               <select required value={regData.country} onChange={e=>{clearFieldError('country'); handleCountryChange(e);}} className={`w-full pl-11 pr-4 py-3.5 bg-white/[0.07] border ${fieldErrors.country ? 'border-red-400/60' : 'border-white/15'} rounded-2xl text-[14px] font-semibold text-white outline-none focus:border-saffron-400/70 focus:bg-white/[0.10] transition-colors cursor-pointer appearance-none [&>option]:text-temple-900`}>
+                               <Globe2 size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 pointer-events-none" />
+                               <select required value={regData.country} onChange={e=>{clearFieldError('country'); handleCountryChange(e);}} className={`w-full pl-11 pr-4 py-3.5 bg-white/85 border ${fieldErrors.country ? 'border-red-400' : 'border-temple-200'} rounded-2xl text-[14px] font-semibold text-temple-950 outline-none focus:border-saffron-700 focus:bg-white transition-colors cursor-pointer appearance-none [&>option]:text-temple-900`}>
                                  <option value="" disabled>{gt('auth.selectCountry')}</option>
                                  <option value="India">{gt('surfaces.portalLogin.india')}</option>
                                  <option value="Bangladesh">{gt('surfaces.portalLogin.bangladesh')}</option>
@@ -1485,7 +1485,7 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                                </select>
                              </div>
                              {fieldErrors.country && (
-                               <p className="text-[12px] font-semibold text-red-300 mt-1.5 ml-1">{fieldErrors.country}</p>
+                               <p className="text-[12px] font-semibold text-red-700 mt-1.5 ml-1">{fieldErrors.country}</p>
                              )}
                            </div>
                            <div className="grid grid-cols-2 gap-3">
@@ -1503,14 +1503,14 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                         />
                       </div>
 
-                      <div className="space-y-4 pt-4 border-t border-white/10">
-                        <h4 className="text-[11px] font-black text-white/45 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
+                      <div className="space-y-4 pt-4 border-t border-brass-200">
+                        <h4 className="text-[11px] font-black text-temple-600 uppercase tracking-[0.18em] flex items-center gap-2"><User size={14}/> {t('reg_step2')}</h4>
 
                         {(signupCreds || orgRegisterOnly) ? (
                           /* Identity already established — just the phone. */
-                          <div className="bg-emerald-500/15 border border-emerald-400/30 p-3.5 rounded-2xl flex items-center gap-3">
-                            <CheckCircle2 size={18} className="text-emerald-300 shrink-0" />
-                            <p className="text-[12px] font-bold text-emerald-200">
+                          <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex items-center gap-3">
+                            <CheckCircle2 size={18} className="text-emerald-700 shrink-0" />
+                            <p className="text-[12px] font-bold text-emerald-900">
                               {t('reg_unified_note').replace('{name}', signupCreds?.displayName || sessionDisplayName || (firebaseUser as any)?.email || '')}
                             </p>
                           </div>
@@ -1587,12 +1587,12 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
                       transition={{ duration: 0.32 }}
                       className="py-10 flex flex-col items-center text-center gap-4"
                     >
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-saffron-400 to-orange-600 flex items-center justify-center shadow-[0_10px_30px_rgba(255,142,0,0.45)]">
+                      <div className="w-16 h-16 rounded-full bg-cta flex items-center justify-center shadow-[0_10px_30px_rgba(194,83,0,0.4)]">
                         <Loader2 size={28} className="animate-spin text-white" />
                       </div>
                       <div>
-                        <p className="text-white font-black text-[15px]">{t('solo_minting')}</p>
-                        <p className="text-white/50 text-[12.5px] font-medium mt-1">{t('cred_secure_note')}</p>
+                        <p className="font-display text-temple-950 font-black text-[15px]">{t('solo_minting')}</p>
+                        <p className="text-temple-600 text-[12.5px] font-medium mt-1">{t('cred_secure_note')}</p>
                       </div>
                       {darkError}
                     </motion.div>
@@ -1609,10 +1609,10 @@ export const PortalLogin: React.FC<PortalLoginProps> = ({ initialMode = 'login',
               </div>
 
               {/* ============ TRUST STRIP ============ */}
-              <div className="mt-7 pt-5 border-t border-white/10 flex items-center justify-center gap-2 flex-wrap">
+              <div className="mt-7 pt-5 border-t border-brass-200 flex items-center justify-center gap-2 flex-wrap">
                 {trustBadges.map((b) => (
-                  <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 text-[10.5px] font-bold text-white/60">
-                    <span className="text-saffron-300/90">{b.icon}</span>
+                  <span key={b.text} className="inline-flex items-center gap-1.5 rounded-full border border-brass-200 bg-white/60 px-3 py-1.5 text-[10.5px] font-bold text-temple-600">
+                    <span className="text-amber-700">{b.icon}</span>
                     {b.text}
                   </span>
                 ))}

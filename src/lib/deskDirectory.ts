@@ -73,6 +73,9 @@ export interface DirectoryModel<T extends DirectoryDeskLike = DirectoryDeskLike>
   doors: DeskDoor[];
   /** Registry natives for the workspace type — the "Core" set. */
   nativeIds: Set<string>;
+  /** E4 (DE-18ii): the full catalog size — every visible count in the
+   *  app shows "visible of total" from this one source of truth. */
+  totalDesks: number;
 }
 
 /**
@@ -134,6 +137,7 @@ export function buildDirectoryModel<T extends DirectoryDeskLike>(
 
   return {
     desks,
+    totalDesks: catalog.length,
     lockedIds,
     doors: doorsForVisibleDesks(desks.map((d) => d.id)),
     nativeIds,

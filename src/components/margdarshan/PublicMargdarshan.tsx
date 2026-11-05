@@ -62,17 +62,17 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="flex cursor-pointer items-center gap-2.5"
+            className="flex cursor-pointer items-center gap-2 sm:gap-2.5"
             aria-label="Sanatani Bandhan home"
           >
             <img
               src="/icon-96x96.png"
               alt="Sanatani Bandhan"
-              className="h-10 w-10 rounded-2xl shadow-md shadow-orange-500/25"
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl shadow-md shadow-orange-500/25"
               width={40}
               height={40}
             />
-            <span className="text-lg font-extrabold tracking-tight sm:text-xl">
+            <span className="whitespace-nowrap text-base font-extrabold tracking-tight sm:text-xl">
               Sanatani <span className="text-orange-600">Bandhan</span>
             </span>
           </button>

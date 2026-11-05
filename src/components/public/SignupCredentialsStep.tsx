@@ -32,7 +32,7 @@ interface SignupCredentialsStepProps {
 }
 
 const inputCls =
-  'w-full pl-4 pr-4 py-3.5 bg-temple-50 hover:bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-400 focus:bg-white focus:border-saffron-500 focus:ring-2 focus:ring-saffron-500/20 outline-none transition-all shadow-sm';
+  'w-full pl-4 pr-4 py-3.5 bg-white border border-temple-200 hover:border-temple-300 rounded-xl text-sm font-medium text-temple-900 placeholder:text-temple-500 focus:bg-white focus:border-saffron-700 focus:ring-2 focus:ring-saffron-700/20 outline-none transition-all shadow-sm';
 
 export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ onComplete, t }) => {
   const [displayName, setDisplayName] = useState('');
@@ -101,11 +101,11 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{ duration: 0.32, ease: 'easeOut' }}
-      className="rounded-2xl bg-[#f7f4ef]/95 p-4 sm:p-6 shadow-[inset_0_2px_14px_rgba(0,0,0,0.07)]"
+      className="rounded-2xl border border-brass-200 bg-temple-50 p-4 sm:p-6 shadow-[inset_0_2px_14px_rgba(176,138,46,0.10)]"
     >
       <div className="text-center mb-5">
         <h3 className="text-lg font-black text-temple-900">{t('cred_title')}</h3>
-        <p className="text-[12.5px] text-temple-500 font-medium mt-1">{t('cred_sub')}</p>
+        <p className="text-[12.5px] text-temple-600 font-medium mt-1">{t('cred_sub')}</p>
       </div>
 
       {/* Primary: Google — lowest friction */}
@@ -116,7 +116,7 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
 
       <div className="flex items-center gap-4 py-4 opacity-70">
         <div className="h-px bg-temple-200 flex-1" />
-        <span className="text-[10.5px] font-black tracking-[0.22em] text-temple-400">
+        <span className="text-[10.5px] font-black tracking-[0.22em] text-temple-600">
           {t('cred_or_email')}
         </span>
         <div className="h-px bg-temple-200 flex-1" />
@@ -166,7 +166,7 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 p-3.5 rounded-xl text-xs font-bold text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs font-bold text-center">
             {error}
           </div>
         )}
@@ -174,13 +174,13 @@ export const SignupCredentialsStep: React.FC<SignupCredentialsStepProps> = ({ on
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-3.5 rounded-xl shadow-md transition-all text-sm disabled:opacity-50 min-h-[52px]"
+          className="w-full bg-cta hover:bg-cta-hover text-white font-black py-3.5 rounded-xl shadow-md transition-all text-sm disabled:opacity-50 min-h-[52px]"
         >
           {loading ? t('cred_creating') : t('cred_continue')}
         </button>
       </form>
 
-      <p className="text-[11px] text-temple-400 text-center mt-3 flex items-center justify-center gap-1.5">
+      <p className="text-[11px] text-temple-600 text-center mt-3 flex items-center justify-center gap-1.5">
         <CheckCircle2 size={13} className="text-emerald-600" />
         {t('cred_secure_note')}
       </p>

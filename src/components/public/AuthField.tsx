@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * AuthField — floating-label input for the dark glass auth card.
+ * AuthField — floating-label input for the light sanctum auth card (E4).
  * Label floats up on focus / filled (pure CSS, :placeholder-shown).
  * Focus ring glows saffron. transform/opacity only.
  */
@@ -19,7 +19,7 @@ export const AuthField: React.FC<AuthFieldProps> = ({
 }) => {
   const fieldId = id || `auth-field-${label.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
   const shell = 'auth-field relative';
-  const box = `peer auth-ring w-full bg-white/[0.07] border rounded-2xl text-white text-[15px] font-medium placeholder:text-transparent outline-none transition-colors focus:bg-white/[0.10] ${error ? 'border-red-400/60' : 'border-white/15'}`;
+  const box = `peer auth-ring w-full bg-white/85 border rounded-2xl text-temple-950 text-[15px] font-medium placeholder:text-transparent outline-none transition-colors focus:bg-white ${error ? 'border-red-400' : 'border-temple-200'}`;
   const padIcon = icon ? 'pl-11' : 'pl-4';
   const padRight = rightSlot ? 'pr-11' : 'pr-4';
 
@@ -27,7 +27,7 @@ export const AuthField: React.FC<AuthFieldProps> = ({
     <div className={`${shell} ${className}`}>
       <div className="relative">
         {icon && (
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none transition-colors peer-focus:text-saffron-300">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-temple-400 pointer-events-none transition-colors peer-focus:text-amber-700">
             {icon}
           </span>
         )}
@@ -48,14 +48,14 @@ export const AuthField: React.FC<AuthFieldProps> = ({
           />
         )}
         {rightSlot && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-saffron-300 transition-colors">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-temple-500 hover:text-amber-800 transition-colors">
             {rightSlot}
           </span>
         )}
         <label htmlFor={fieldId} className="auth-label">{label}</label>
       </div>
       {error && (
-        <p className="text-[12px] font-semibold text-red-300 mt-1.5 ml-1">{error}</p>
+        <p className="text-[12px] font-semibold text-red-700 mt-1.5 ml-1">{error}</p>
       )}
     </div>
   );
