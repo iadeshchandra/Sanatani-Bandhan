@@ -657,49 +657,49 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100 flex flex-col font-sans pb-24 selection:bg-amber-500 selection:text-stone-950">
+    <div className="min-h-screen bg-sanctum-ivory text-temple-950 e5-portal flex flex-col font-sans pb-24 selection:bg-amber-500 selection:text-temple-950">
       
       {/* ========================================================
           1. DUAL-SPACE & RBAC SWITCHER HEADER
       ======================================================== */}
-      <header className="sticky top-0 z-40 bg-stone-950/95 backdrop-blur-md border-b border-amber-900/40 shadow-xl">
+      <header className="sticky top-0 z-40 bg-sanctum-ivory/95 backdrop-blur-md border-b border-brass-200 shadow-xl">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
           
           {/* Left: Devotee Space Identity */}
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-800 p-0.5 shadow-lg shadow-amber-900/40 flex items-center justify-center">
-                <div className="w-full h-full bg-stone-950 rounded-[14px] flex items-center justify-center font-bold text-amber-400 text-lg">
+                <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center font-bold text-amber-700 text-lg">
                   {profileData.fullName ? profileData.fullName.charAt(0) : '🕉️'}
                 </div>
               </div>
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-stone-950 rounded-full" title={t('surfaces.devoteePortal.personalSpaceActive')} />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title={t('surfaces.devoteePortal.personalSpaceActive')} />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black tracking-tight text-amber-100 leading-none">
+                <h1 className="text-base sm:text-lg font-black tracking-tight text-temple-950 leading-none">
                   {profileData.spiritualName || profileData.fullName}
                 </h1>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 border border-brass-200">
                   {profileData.gotra} Gotra
                 </span>
               </div>
-              <p className="text-xs text-amber-400/80 font-medium flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs text-amber-700 font-medium flex items-center gap-1.5 mt-0.5">
                 <span>{activeWorkspace?.name || 'Sanatani Bandhan'}</span>
                 <span>•</span>
-                <span className="text-stone-400 font-mono text-[11px]">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
+                <span className="text-temple-600 font-mono text-[11px]">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
               </p>
             </div>
           </div>
 
           {/* Center: Dual-Space Switcher Toggle */}
-          <div className="flex items-center bg-stone-900/90 p-1 rounded-2xl border border-stone-800 shadow-inner">
+          <div className="flex items-center bg-temple-50 p-1 rounded-2xl border border-temple-200 shadow-inner">
             <button
               type="button"
-              className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-amber-700 text-stone-950 shadow-md flex items-center gap-1.5 cursor-default transition-all"
+              className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-black bg-cta text-white shadow-md flex items-center gap-1.5 cursor-default transition-all"
             >
-              <UserCircle className="w-4 h-4 text-stone-950" />
+              <UserCircle className="w-4 h-4 text-white" />
               <span>{t('surfaces.devoteePortal.personalSpace')}</span>
             </button>
 
@@ -707,13 +707,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <button
                 type="button"
                 onClick={handleSwitchToOrganisation}
-                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold text-stone-300 hover:text-amber-300 hover:bg-stone-800/80 transition-all flex items-center gap-1.5 cursor-pointer group"
+                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold text-temple-700 hover:text-amber-800 hover:bg-temple-100 transition-all flex items-center gap-1.5 cursor-pointer group"
                 title={`Switch to ${activeWorkspace?.name || 'Mandir'} Administrative Console`}
               >
                 <Building2 className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
                 <span className="hidden xs:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="xs:hidden">Org</span>
-                <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded bg-amber-100 text-amber-800 border border-brass-200">
                   {orgConsoleRole || currentRole || 'Staff'}
                 </span>
               </button>
@@ -722,9 +722,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 type="button"
                 onClick={() => setShowOrgLockSheet(true)}
                 aria-haspopup="dialog"
-                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-medium text-stone-400 hover:text-amber-300 hover:bg-stone-800/80 flex items-center gap-1.5 cursor-pointer opacity-80 hover:opacity-100 transition-all"
+                className="px-3 sm:px-4 py-1.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-medium text-temple-600 hover:text-amber-800 hover:bg-temple-100 flex items-center gap-1.5 cursor-pointer opacity-80 hover:opacity-100 transition-all"
               >
-                <Lock className="w-3.5 h-3.5 text-stone-500" />
+                <Lock className="w-3.5 h-3.5 text-temple-500" />
                 <span className="hidden sm:inline">{t('surfaces.devoteePortal.organisationView')}</span>
                 <span className="sm:hidden">Org</span>
               </button>
@@ -737,7 +737,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <button
               type="button"
               onClick={() => setShowSosModal(true)}
-              className="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white text-xs font-black shadow-lg shadow-red-950/60 border border-red-400/40 flex items-center gap-1.5 animate-pulse cursor-pointer transition-all active:scale-95"
+              className="px-3.5 sm:px-4 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-lg shadow-red-950/60 border border-red-400/40 flex items-center gap-1.5 animate-pulse cursor-pointer transition-all active:scale-95"
               title={t('surfaces.devoteePortal.emergencySosPanicBroadcastLiveDistress')}
             >
               <ShieldAlert className="w-4 h-4 text-white" />
@@ -748,7 +748,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <button
               type="button"
               onClick={() => setShowSettingsModal(true)}
-              className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-amber-400 transition-colors cursor-pointer"
+              className="w-11 h-11 rounded-xl bg-temple-50 hover:bg-temple-100 border border-temple-200 text-temple-700 hover:text-amber-700 transition-colors cursor-pointer flex items-center justify-center"
               title={t('surfaces.devoteePortal.personalPreferencesQuickSettings')}
             >
               <Sliders className="w-4 h-4" />
@@ -758,12 +758,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         </div>
 
         {/* Tab Navigation Ribbon */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 border-t border-stone-800/80 pt-2 pb-2">
-          {/* DESIGN ELEVATION E2: house Tabs (dark) — tabs only; the
-              portal interior is E5's. Numbered labels + badges verbatim;
-              the amber-glass gradient idiom retires here too (DE-05). */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 border-t border-temple-200 pt-2 pb-2">
+          {/* DESIGN ELEVATION E2: house Tabs — tabs only; numbered
+              labels + badges verbatim; the amber-glass gradient idiom
+              retires here too (DE-05). DESIGN ELEVATION E5: the ribbon
+              takes the light tone with the rest of the portal. */}
           <Tabs
-            tone="dark"
+            tone="light"
             ariaLabel="Devotee portal sections"
             tabs={[
               { id: 'PASS', label: '1. Digital Pass & ID', icon: <QrCode className="w-4 h-4" />, badge: 'Vault QR' },
@@ -789,13 +790,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         {activeTab === 'PASS' && (
           <div className="space-y-6 animate-fadeIn">
             {/* Top Quick Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-950/70 p-4 rounded-3xl border border-stone-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-3xl border border-temple-200">
               <div>
-                <h2 className="text-xl font-black text-amber-200 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-amber-400" />
+                <h2 className="font-display text-xl font-black text-temple-950 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-amber-700" />
                   <span>Sanatani Bandhan Official Smart Pass</span>
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">
+                <p className="text-xs text-temple-600 mt-0.5">
                   Cryptographically verified temple credential for sanctum fast-track entry, prasad token redemption, and emergency telemetry.
                 </p>
               </div>
@@ -804,25 +805,25 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl bg-temple-50 hover:bg-temple-100 text-amber-800 border border-brass-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                  <Edit3 className="w-3.5 h-3.5 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.editIdentity')}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDownloadIdCard}
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
                 >
-                  <Download className="w-3.5 h-3.5 text-stone-950" />
+                  <Download className="w-3.5 h-3.5 text-white" />
                   <span>{t('surfaces.devoteePortal.downloadPdfPass')}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="p-2 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 hover:text-white transition-colors cursor-pointer"
+                  className="w-11 h-11 rounded-xl bg-temple-50 hover:bg-temple-100 border border-temple-200 text-temple-700 hover:text-temple-950 transition-colors cursor-pointer flex items-center justify-center"
                   title={t('surfaces.devoteePortal.printDigitalId')}
                 >
                   <Printer className="w-4 h-4" />
@@ -834,33 +835,33 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Holographic ID Pass Card (Left 7 Cols) */}
-              <div className="lg:col-span-7 bg-gradient-to-br from-amber-950/70 via-stone-900 to-stone-950 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+              <div className="lg:col-span-7 receipt-paper lamplight rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
                 
                 {/* Background Temple Watermark Filigree */}
-                <div className="absolute -top-10 -right-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 right-4 text-[120px] font-serif opacity-5 text-amber-400 pointer-events-none select-none">
+                <div className="absolute -top-10 -right-10 w-64 h-64 paper-glow rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 right-4 text-[120px] font-serif opacity-5 paper-watermark pointer-events-none select-none">
                   🕉️
                 </div>
 
                 {/* Card Header */}
-                <div className="flex items-start justify-between border-b border-amber-500/20 pb-4 mb-6">
+                <div className="flex items-start justify-between border-b paper-line pb-4 mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-lg flex items-center justify-center">
-                      <div className="w-full h-full bg-stone-950 rounded-[14px] flex items-center justify-center text-amber-400 font-black text-xl">
+                      <div className="w-full h-full paper-panel rounded-[14px] flex items-center justify-center rp-amount font-black text-xl">
                         ॐ
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-black text-amber-100 tracking-wide uppercase">
+                      <h3 className="font-display text-base sm:text-lg font-black rp-title tracking-wide uppercase">
                         {activeWorkspace?.name || 'Sanatani Bandhan Trust'}
                       </h3>
-                      <p className="text-[11px] text-amber-400/90 font-semibold tracking-wider uppercase">
+                      <p className="text-[11px] rp-eyebrow font-semibold tracking-wider uppercase">
                         Vedic Devotee Credential & Sanctum Pass
                       </p>
                     </div>
                   </div>
 
-                  <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm">
+                  <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase paper-inset rp-soft border paper-line shadow-sm">
                     🙏 Sanatani Member
                   </span>
                 </div>
@@ -871,7 +872,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   {/* Left: Avatar & Identity Details */}
                   <div className="sm:col-span-7 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400/60 p-1 flex items-center justify-center text-3xl shadow-inner shrink-0">
+                      <div className="w-16 h-16 rounded-2xl paper-inset border-2 paper-line p-1 flex items-center justify-center text-3xl shadow-inner shrink-0">
                         {profileData.avatarUrl ? (
                           <img src={profileData.avatarUrl} alt="" className="w-full h-full object-cover rounded-xl" />
                         ) : (
@@ -879,48 +880,48 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         )}
                       </div>
                       <div>
-                        <h4 className="text-lg sm:text-xl font-black text-white leading-tight">
+                        <h4 className="text-lg sm:text-xl font-black rp-title leading-tight">
                           {profileData.fullName}
                         </h4>
                         {profileData.spiritualName && (
-                          <p className="text-xs text-amber-300 font-bold italic">
+                          <p className="text-xs rp-soft font-bold italic">
                             Dharmic: {profileData.spiritualName}
                           </p>
                         )}
-                        <p className="text-[11px] text-stone-400 font-mono mt-0.5">
-                          ID: <span className="text-amber-400 font-bold">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
+                        <p className="text-[11px] rp-faint font-mono mt-0.5">
+                          ID: <span className="rp-amount font-bold">{displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}</span>
                         </p>
                       </div>
                     </div>
 
                     {/* Metadata Grid */}
                     <div className="grid grid-cols-2 gap-2.5 pt-2 text-xs">
-                      <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.gotraLineage')}</span>
-                        <span className="font-extrabold text-amber-300">{profileData.gotra} Gotra</span>
+                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('surfaces.devoteePortal.gotraLineage')}</span>
+                        <span className="font-extrabold rp-ink">{profileData.gotra} Gotra</span>
                       </div>
-                      <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('org.people.devoteeGrid.bloodGroup2')}</span>
-                        <span className="font-extrabold text-rose-400">{profileData.bloodGroup}</span>
+                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.bloodGroup2')}</span>
+                        <span className="font-extrabold rp-alert">{profileData.bloodGroup}</span>
                       </div>
-                      <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('org.people.devoteeGrid.emergencyPhone')}</span>
-                        <a href={`tel:${profileData.emergencyPhone}`} className="font-mono font-bold text-amber-300 hover:underline">
+                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.emergencyPhone')}</span>
+                        <a href={`tel:${profileData.emergencyPhone}`} className="font-mono font-bold rp-amount hover:underline">
                           {profileData.emergencyPhone}
                         </a>
                       </div>
-                      <div className="bg-stone-900/90 p-2.5 rounded-xl border border-stone-800">
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block">Kuladevata</span>
-                        <span className="font-bold text-stone-200 truncate block">{profileData.kuladevata || 'Sri Shiva'}</span>
+                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">Kuladevata</span>
+                        <span className="font-bold rp-ink truncate block">{profileData.kuladevata || 'Sri Shiva'}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Right: Scan-Ready QR Code */}
-                  <div className="sm:col-span-5 flex flex-col items-center justify-center bg-stone-950/80 p-4 rounded-2xl border border-amber-500/30 shadow-inner text-center">
+                  <div className="sm:col-span-5 flex flex-col items-center justify-center paper-panel p-4 rounded-2xl border paper-line shadow-inner text-center">
                     <div 
                       onClick={() => setIsQrModalOpen(true)}
-                      className="p-2.5 bg-white rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                      className="p-2.5 paper-panel rounded-xl shadow-lg cursor-pointer hover:scale-105 transition-transform"
                       title={t('surfaces.devoteePortal.tapToViewFullscreenScanQr')}
                     >
                       <QRCodeSVG
@@ -931,12 +932,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       />
                     </div>
 
-                    <div className="mt-2.5 flex items-center justify-between w-full text-[10px] text-stone-400">
-                      <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                    <div className="mt-2.5 flex items-center justify-between w-full text-[10px] rp-faint">
+                      <span className="flex items-center gap-1 rp-ok font-bold">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
                         Dynamic Token
                       </span>
-                      <span className="font-mono text-amber-300 font-bold">
+                      <span className="font-mono rp-amount font-bold">
                         {tokenRefreshCounter}s
                       </span>
                     </div>
@@ -945,7 +946,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       <button
                         type="button"
                         onClick={handleManualRefreshToken}
-                        className="flex-1 py-1 px-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] py-2 px-2 rounded-lg paper-inset rp-ink border paper-line hover:brightness-105 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                         title={t('surfaces.devoteePortal.rotateSecurityTokenNow')}
                       >
                         <RefreshCw className="w-2.5 h-2.5" />
@@ -954,7 +955,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       <button
                         type="button"
                         onClick={handleCopyToken}
-                        className="flex-1 py-1 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="flex-1 min-h-[44px] py-2 px-2 rounded-lg paper-inset rp-soft border paper-line hover:brightness-105 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
                         {copiedToken ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
                         <span>{copiedToken ? 'Copied' : 'Copy'}</span>
@@ -965,9 +966,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 </div>
 
                 {/* Card Footer */}
-                <div className="mt-6 pt-4 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-400">
+                <div className="mt-6 pt-4 border-t paper-line flex flex-wrap items-center justify-between gap-2 text-[11px] rp-faint">
                   <span>Issued: {profileData.joinedDate || 'Chaitra 2081'}</span>
-                  <span className="text-amber-400/90 font-mono font-bold">{t('surfaces.devoteePortal.secureSha256VaultVerified')}</span>
+                  <span className="rp-amount font-mono font-bold">{t('surfaces.devoteePortal.secureSha256VaultVerified')}</span>
                 </div>
 
               </div>
@@ -976,56 +977,56 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <div className="lg:col-span-5 space-y-4">
                 
                 {/* Fast-Track Privileges Box */}
-                <div className="bg-stone-950/70 p-5 rounded-3xl border border-stone-800 space-y-3">
-                  <h4 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
-                    <Award className="w-4 h-4 text-amber-400" />
+                <div className="bg-white p-5 rounded-3xl border border-temple-200 space-y-3">
+                  <h4 className="text-sm font-black text-temple-950 uppercase tracking-wider flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.yourCredentialPrivileges')}</span>
                   </h4>
 
-                  <ul className="space-y-2.5 text-xs text-stone-300">
+                  <ul className="space-y-2.5 text-xs text-temple-700">
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                       <span><strong>{t('surfaces.devoteePortal.fastTrackDarshan')}</strong>{' '}{t('surfaces.devoteePortal.presentThisPassAtSanctumGate')}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                       <span><strong>{t('surfaces.devoteePortal.annapurnaAnnaDaanMahaprasad')}</strong>{' '}{t('surfaces.devoteePortal.directQrScanVerificationForDevotee')}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                       <span><strong>{t('surfaces.devoteePortal.yatranetMeshNode')}</strong>{' '}{t('surfaces.devoteePortal.offlineP2pLocationBroadcastDuringMassive')}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                       <span><strong>{t('surfaces.devoteePortal.section80gTaxExemption')}</strong>{' '}{t('surfaces.devoteePortal.automaticTaxReceiptGenerationWithValid')}</span>
                     </li>
                   </ul>
                 </div>
 
                 {/* Emergency Contact & Safety Card */}
-                <div className="bg-rose-950/30 border border-rose-500/30 p-5 rounded-3xl space-y-3">
+                <div className="bg-red-50 border border-red-200 p-5 rounded-3xl space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-black text-rose-200 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                    <h4 className="text-sm font-black text-red-800 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
                       <span>{t('surfaces.devoteePortal.emergencySafetyRecord')}</span>
                     </h4>
-                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 font-mono font-bold text-[10px]">
                       {profileData.bloodGroup}
                     </span>
                   </div>
 
-                  <p className="text-xs text-rose-200/80">
+                  <p className="text-xs text-red-700">
                     In the event of crowd surge, medical emergency, or lost kin, temple sevadars immediately scan this pass to contact:
                   </p>
 
-                  <div className="p-3 bg-stone-900/90 rounded-2xl border border-stone-800 flex items-center justify-between">
+                  <div className="p-3 bg-temple-50 rounded-2xl border border-temple-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-stone-400 uppercase font-bold block">{t('surfaces.devoteePortal.designatedContact')}</span>
-                      <span className="text-xs font-bold text-white">{profileData.emergencyContact || 'Family Kin'}</span>
+                      <span className="text-[10px] text-temple-600 uppercase font-bold block">{t('surfaces.devoteePortal.designatedContact')}</span>
+                      <span className="text-xs font-bold text-temple-950">{profileData.emergencyContact || 'Family Kin'}</span>
                     </div>
                     <a
                       href={`tel:${profileData.emergencyPhone}`}
-                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors"
+                      className="px-4 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       <span>{t('surfaces.devoteePortal.callSos')}</span>
@@ -1045,29 +1046,29 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 Grow (create / join an organisation) and Margdarshan
                 (the manual & help centre — readable by everyone). */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6" aria-label={t('surfaces.devoteePortal.growTitle')}>
-              <div className="bg-stone-950/70 p-5 rounded-3xl border border-amber-500/30 space-y-3">
-                <h4 className="text-sm font-black text-amber-200 uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
+              <div className="bg-white p-5 rounded-3xl border border-brass-200 space-y-3">
+                <h4 className="text-sm font-black text-temple-950 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.growTitle')}</span>
                 </h4>
-                <p className="text-xs leading-relaxed text-stone-400">
+                <p className="text-xs leading-relaxed text-temple-600">
                   {t('surfaces.devoteePortal.growDesc')}
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
                     onClick={handleCreateOrg}
-                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
                   >
-                    <Building2 className="w-3.5 h-3.5 text-stone-950" />
+                    <Building2 className="w-3.5 h-3.5 text-white" />
                     <span>{t('surfaces.devoteePortal.growCreateBtn')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleJoinOrg}
-                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="px-3.5 py-2 min-h-[44px] rounded-xl bg-temple-50 hover:bg-temple-100 text-amber-800 border border-brass-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.growJoinBtn')}</span>
                   </button>
                 </div>
@@ -1076,16 +1077,16 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <button
                 type="button"
                 onClick={handleOpenMargdarshan}
-                className="text-left bg-stone-950/70 p-5 rounded-3xl border border-stone-800 hover:border-amber-500/40 transition-colors cursor-pointer space-y-2 group"
+                className="text-left bg-white p-5 rounded-3xl border border-temple-200 hover:border-brass-200 transition-colors cursor-pointer space-y-2 group"
               >
                 <span className="flex items-center gap-2">
                   <span className="text-xl" aria-hidden>📖</span>
-                  <span className="text-sm font-black text-amber-200 uppercase tracking-wider">
+                  <span className="text-sm font-black text-temple-950 uppercase tracking-wider">
                     {t('marg.profileRowTitle')}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-amber-400 ml-auto group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-amber-700 ml-auto group-hover:translate-x-0.5 transition-transform" />
                 </span>
-                <span className="block text-xs leading-relaxed text-stone-400">
+                <span className="block text-xs leading-relaxed text-temple-600">
                   {t('marg.profileRowDesc')}
                 </span>
               </button>
@@ -1100,30 +1101,30 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           <div className="space-y-6 animate-fadeIn">
             
             {/* Header / Daily Sankalpa */}
-            <div className="bg-gradient-to-r from-amber-950/60 via-stone-900 to-stone-950 p-5 sm:p-6 rounded-3xl border border-amber-500/30 shadow-xl">
+            <div className="sanctum-header p-5 sm:p-6 rounded-3xl border border-brass-200 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
                     Nitya Sadhana • Your Daily Rhythm
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-black text-amber-100 mt-1">
+                  <h2 className="font-display text-xl sm:text-2xl font-black text-temple-950 mt-1">
                     Japa Mala & Sacred Vrat Tracking
                   </h2>
-                  <p className="text-xs text-stone-400 mt-0.5">
+                  <p className="text-xs text-temple-600 mt-0.5">
                     Your own quiet record of daily practice — kept for you, never scored, never watched.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="bg-stone-950/80 px-4 py-2 rounded-2xl border border-amber-500/30 text-center">
-                    <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.malasCompleted')}</span>
-                    <span className="text-lg font-black text-amber-400 flex items-center justify-center gap-1">
+                  <div className="bg-white px-4 py-2 rounded-2xl border border-brass-200 text-center">
+                    <span className="text-[10px] uppercase font-bold text-temple-600 block">{t('surfaces.devoteePortal.malasCompleted')}</span>
+                    <span className="text-lg font-black text-amber-700 flex items-center justify-center gap-1">
                       📿 {sadhanaState.completedMalas}
                     </span>
                   </div>
-                  <div className="bg-stone-950/80 px-4 py-2 rounded-2xl border border-amber-500/30 text-center">
-                    <span className="text-[10px] uppercase font-bold text-stone-400 block">Meditation</span>
-                    <span className="text-lg font-black text-amber-400">
+                  <div className="bg-white px-4 py-2 rounded-2xl border border-brass-200 text-center">
+                    <span className="text-[10px] uppercase font-bold text-temple-600 block">Meditation</span>
+                    <span className="text-lg font-black text-amber-700">
                       🧘 {sadhanaState.meditationMinutes}m
                     </span>
                   </div>
@@ -1131,14 +1132,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
               {/* Daily Sankalpa Input */}
-              <div className="mt-4 pt-4 border-t border-stone-800 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                <span className="text-xs font-black uppercase text-amber-400 shrink-0">{t('surfaces.devoteePortal.todaySSankalpa')}</span>
+              <div className="mt-4 pt-4 border-t border-temple-200 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <span className="text-xs font-black uppercase text-amber-700 shrink-0">{t('surfaces.devoteePortal.todaySSankalpa')}</span>
                 <input
                   type="text"
                   value={sadhanaState.dailySankalpa}
                   onChange={(e) => updateSadhana({ dailySankalpa: e.target.value })}
                   placeholder={t('surfaces.devoteePortal.enterYourDailySpiritualDedication')}
-                  className="w-full bg-stone-950/70 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-amber-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-temple-200 rounded-xl px-3 py-1.5 text-xs text-temple-950 focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -1147,16 +1148,16 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Left 6 cols: Tactile Japa Mala Chanting Counter */}
-              <div className="lg:col-span-6 bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-5">
-                <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                  <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-amber-400" />
+              <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-5">
+                <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+                  <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.interactiveJapaMalaCounter')}</span>
                   </h3>
                   <button
                     type="button"
                     onClick={handleResetJapa}
-                    className="text-xs text-stone-500 hover:text-stone-300 font-bold transition-colors cursor-pointer"
+                    className="text-xs text-temple-500 hover:text-temple-700 font-bold transition-colors cursor-pointer"
                   >
                     Reset Count
                   </button>
@@ -1164,13 +1165,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
                 {/* Mantra Selector */}
                 <div>
-                  <label className="text-xs font-bold text-stone-400 block mb-1.5">
+                  <label className="text-xs font-bold text-temple-600 block mb-1.5">
                     Select Sacred Mantra:
                   </label>
                   <select
                     value={sadhanaState.selectedMantraIndex}
                     onChange={(e) => updateSadhana({ selectedMantraIndex: Number(e.target.value) })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-amber-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-xs font-bold text-temple-950 focus:outline-none focus:border-amber-500 cursor-pointer"
                   >
                     {mantrasList.map((m, idx) => (
                       <option key={idx} value={idx}>
@@ -1181,8 +1182,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 </div>
 
                 {/* Sanskrit Verse Display */}
-                <div className="bg-stone-900/90 p-4 rounded-2xl border border-amber-900/30 text-center">
-                  <p className="text-sm sm:text-base font-serif font-black text-amber-300 tracking-wide leading-relaxed">
+                <div className="bg-temple-50 p-4 rounded-2xl border border-brass-200 text-center">
+                  <p className="text-sm sm:text-base font-serif font-black text-amber-800 tracking-wide leading-relaxed">
                     {mantrasList[sadhanaState.selectedMantraIndex].sanskrit}
                   </p>
                 </div>
@@ -1192,13 +1193,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleIncrementJapa(1)}
-                    className="w-40 h-40 rounded-full bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-stone-950 font-black shadow-2xl shadow-amber-950/80 border-4 border-amber-400/80 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer group"
+                    className="japa-bead w-40 h-40 rounded-full bg-gradient-to-tr from-amber-700 via-amber-600 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-temple-950 font-black shadow-2xl shadow-amber-950/80 border-4 border-amber-400/80 flex flex-col items-center justify-center transition-all transform active:scale-95 cursor-pointer group"
                   >
                     <span className="text-3xl font-black">{sadhanaState.japaCount}</span>
-                    <span className="text-[11px] uppercase tracking-wider font-extrabold text-stone-900 mt-1">
+                    <span className="text-[11px] uppercase tracking-wider font-extrabold text-saffron-950 mt-1">
                       Tap To Chant (108)
                     </span>
-                    <span className="text-[10px] text-stone-900/80 font-bold">
+                    <span className="text-[10px] text-saffron-950 font-bold">
                       {sadhanaState.japaCount % 108}/108 Beads
                     </span>
                   </button>
@@ -1207,14 +1208,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleIncrementJapa(10)}
-                      className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 border border-stone-800 text-amber-300 font-bold text-xs transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-temple-50 hover:bg-temple-100 border border-temple-200 text-amber-800 font-bold text-xs transition-colors cursor-pointer"
                     >
                       +10 Chants
                     </button>
                     <button
                       type="button"
                       onClick={() => handleIncrementJapa(108)}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-500/30 border border-brass-200 text-amber-800 font-bold text-xs transition-colors cursor-pointer"
                     >
                       +1 Full Mala (108)
                     </button>
@@ -1222,14 +1223,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 </div>
 
                 {/* Mala Progress Bar */}
-                <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 space-y-2">
+                <div className="bg-temple-50 p-4 rounded-2xl border border-temple-200 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-stone-400 font-bold">{t('surfaces.devoteePortal.dailyMalasCompleted')}</span>
-                    <span className="text-amber-300 font-black">
+                    <span className="text-temple-600 font-bold">{t('surfaces.devoteePortal.dailyMalasCompleted')}</span>
+                    <span className="text-amber-800 font-black">
                       {sadhanaState.completedMalas} / {sadhanaState.targetMalas} Malas Goal
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-stone-950 rounded-full overflow-hidden p-0.5 border border-stone-800">
+                  <div className="w-full h-3 bg-white rounded-full overflow-hidden p-0.5 border border-temple-200">
                     <div
                       className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, (sadhanaState.completedMalas / sadhanaState.targetMalas) * 100)}%` }}
@@ -1240,18 +1241,18 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
               {/* Right 6 cols: Active Vrats & Fasting Rules Checklist */}
-              <div className="lg:col-span-6 bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-5">
-                <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                  <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-amber-400" />
+              <div className="lg:col-span-6 bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-5">
+                <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+                  <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.sacredVratsUpavasaChecklist')}</span>
                   </h3>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-500/40">
                     Panchang Aligned
                   </span>
                 </div>
 
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-temple-600">
                   Track your adherence to Vedic dietary and ritual fasting observances. Check items as observed:
                 </p>
 
@@ -1295,26 +1296,26 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         onClick={() => handleToggleVrat(vrat.key as any)}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 ${
                           isChecked
-                            ? 'bg-amber-950/30 border-amber-500/50 shadow-sm'
-                            : 'bg-stone-900/60 border-stone-800 hover:border-stone-700'
+                            ? 'bg-amber-50 border-brass-300 shadow-sm'
+                            : 'bg-temple-50 border-temple-200 hover:border-temple-300'
                         }`}
                       >
                         <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                          isChecked ? 'bg-amber-500 border-amber-400 text-stone-950' : 'border-stone-600 bg-stone-950'
+                          isChecked ? 'bg-amber-500 border-amber-400 text-temple-950' : 'border-temple-300 bg-white'
                         }`}>
                           {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                         </div>
 
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <h4 className={`text-xs font-black ${isChecked ? 'text-amber-200' : 'text-stone-300'}`}>
+                            <h4 className={`text-xs font-black ${isChecked ? 'text-temple-950' : 'text-temple-700'}`}>
                               {vrat.title}
                             </h4>
-                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-brass-200">
                               {vrat.badge}
                             </span>
                           </div>
-                          <p className="text-[11px] text-stone-400 mt-1">
+                          <p className="text-[11px] text-temple-600 mt-1">
                             {vrat.desc}
                           </p>
                         </div>
@@ -1324,10 +1325,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 </div>
 
                 {/* Meditation Log Action */}
-                <div className="bg-stone-900 p-4 rounded-2xl border border-stone-800 flex items-center justify-between">
+                <div className="bg-temple-50 p-4 rounded-2xl border border-temple-200 flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-bold text-stone-300 block">{t('surfaces.devoteePortal.logMeditationSession')}</span>
-                    <span className="text-[11px] text-stone-500">{t('surfaces.devoteePortal.recordMinutesSpentInSilentDhyana')}</span>
+                    <span className="text-xs font-bold text-temple-700 block">{t('surfaces.devoteePortal.logMeditationSession')}</span>
+                    <span className="text-[11px] text-temple-500">{t('surfaces.devoteePortal.recordMinutesSpentInSilentDhyana')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {[15, 30, 45, 60].map(mins => (
@@ -1338,7 +1339,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                           updateSadhana({ meditationMinutes: sadhanaState.meditationMinutes + mins });
                           showToast(t('surfaces.devoteePortal.toastDhyanaLogged').replace('{mins}', String(mins)), 'success');
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-stone-950 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold transition-colors cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-white hover:bg-temple-100 text-amber-800 border border-temple-200 text-xs font-bold transition-colors cursor-pointer"
                       >
                         +{mins}m
                       </button>
@@ -1360,68 +1361,68 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             
             {/* Header & Stats Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.totalLifetimeSeva')}</span>
-                <span className="text-2xl font-black text-amber-400">
+              <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-md">
+                <span className="text-[10px] uppercase font-bold text-temple-600 block">{t('surfaces.devoteePortal.totalLifetimeSeva')}</span>
+                <span className="text-2xl font-black text-amber-700">
                   {inr(userDonations.reduce((sum, d) => sum + d.amount, 0))}
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.dharmicChandaSponsorships')}</span>
+                <span className="text-[10px] text-temple-500 block mt-1">{t('surfaces.devoteePortal.dharmicChandaSponsorships')}</span>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.80gEligibleDeductions')}</span>
-                <span className="text-2xl font-black text-emerald-400">
+              <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-md">
+                <span className="text-[10px] uppercase font-bold text-temple-600 block">{t('surfaces.devoteePortal.80gEligibleDeductions')}</span>
+                <span className="text-2xl font-black text-emerald-700">
                   {inr(userDonations.filter(d => d.is80GEligible).reduce((sum, d) => sum + d.amount, 0))}
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.section80g5ViVerified')}</span>
+                <span className="text-[10px] text-temple-500 block mt-1">{t('surfaces.devoteePortal.section80g5ViVerified')}</span>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.activePujaBookings')}</span>
-                <span className="text-2xl font-black text-amber-300">
+              <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-md">
+                <span className="text-[10px] uppercase font-bold text-temple-600 block">{t('surfaces.devoteePortal.activePujaBookings')}</span>
+                <span className="text-2xl font-black text-amber-800">
                   {userPoojaBookings.length || 2} Pujas
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.sankalpasOnRoster')}</span>
+                <span className="text-[10px] text-temple-500 block mt-1">{t('surfaces.devoteePortal.sankalpasOnRoster')}</span>
               </div>
 
-              <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-md">
-                <span className="text-[10px] uppercase font-bold text-stone-400 block">{t('surfaces.devoteePortal.volunteerSevaHours')}</span>
-                <span className="text-2xl font-black text-amber-300">
+              <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-md">
+                <span className="text-[10px] uppercase font-bold text-temple-600 block">{t('surfaces.devoteePortal.volunteerSevaHours')}</span>
+                <span className="text-2xl font-black text-amber-800">
                   {profileData.volunteerHours || 36} Hours
                 </span>
-                <span className="text-[10px] text-stone-500 block mt-1">{t('surfaces.devoteePortal.annadanamQueueSeva')}</span>
+                <span className="text-[10px] text-temple-500 block mt-1">{t('surfaces.devoteePortal.annadanamQueueSeva')}</span>
               </div>
             </div>
 
             {/* Quick Action Banner */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-stone-950/60 p-4 rounded-2xl border border-stone-800">
-              <p className="text-xs text-stone-300">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-temple-200">
+              <p className="text-xs text-temple-700">
                 Download your official Section 80G tax deduction receipts or Sankalpa slips instantly for IT filing.
               </p>
               <button
                 type="button"
                 onClick={handleDownloadAnnualSummary}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all"
+                className="px-4 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all"
               >
-                <Download className="w-3.5 h-3.5 text-stone-950" />
+                <Download className="w-3.5 h-3.5 text-white" />
                 <span>{t('surfaces.devoteePortal.downloadForm10beAnnualSummary')}</span>
               </button>
             </div>
 
             {/* Puja Bookings Section */}
-            <div className="bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-amber-400" />
+            <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+                <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.personalPujaBookingsSankalpaSlips')}</span>
                 </h3>
-                <span className="text-xs text-stone-500">
+                <span className="text-xs text-temple-500">
                   {userPoojaBookings.length} Recorded
                 </span>
               </div>
 
               {userPoojaBookings.length === 0 ? (
-                <div className="p-8 text-center text-stone-500 text-xs">
+                <div className="p-8 text-center text-temple-500 text-xs">
                   No upcoming puja bookings found under your devotee profile.
                 </div>
               ) : (
@@ -1429,45 +1430,45 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   {userPoojaBookings.map((booking) => (
                     <div
                       key={booking.id}
-                      className="bg-stone-900/80 p-4 rounded-2xl border border-stone-800 flex flex-col justify-between space-y-3"
+                      className="bg-temple-50 p-4 rounded-2xl border border-temple-200 flex flex-col justify-between space-y-3"
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className="text-sm font-black text-amber-200">
+                          <h4 className="text-sm font-black text-temple-950">
                             {booking.poojaName}
                           </h4>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                             booking.status === 'Confirmed'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-500/40'
+                              : 'bg-amber-100 text-amber-800 border border-brass-200'
                           }`}>
                             {booking.status}
                           </span>
                         </div>
 
-                        <p className="text-xs text-stone-400 mt-1">
+                        <p className="text-xs text-temple-600 mt-1">
                           <strong>Date: </strong>{booking.bookingDate || booking.tithiDate || 'Upcoming Tithi'} • <strong>Time: </strong>{booking.timeSlot}
                         </p>
-                        <p className="text-xs text-stone-400">
+                        <p className="text-xs text-temple-600">
                           <strong>Gotra: </strong>{booking.gotra} Gotra
                         </p>
                         {booking.sankalpDescription && (
-                          <p className="text-[11px] text-amber-400/80 italic mt-1 line-clamp-2">
+                          <p className="text-[11px] text-amber-700 italic mt-1 line-clamp-2">
                             "{booking.sankalpDescription}"
                           </p>
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between">
-                        <span className="text-xs font-black text-amber-300">
+                      <div className="pt-2 border-t border-temple-200 flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-800">
                           Dakshina: {inr((booking.dakshinaAmount || 1100))}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleDownloadSankalp(booking)}
-                          className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="px-3 py-1 rounded-lg bg-amber-100 hover:bg-amber-500/30 text-amber-800 border border-brass-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <Download className="w-3 h-3 text-amber-400" />
+                          <Download className="w-3 h-3 text-amber-700" />
                           <span>{t('ritual.pooja.sankalpSlip')}</span>
                         </button>
                       </div>
@@ -1478,25 +1479,25 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             </div>
 
             {/* 80G Tax Receipts & Donations Section */}
-            <div className="bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-400" />
+            <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+                <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.section80gTaxExemptionReceipts')}</span>
                 </h3>
-                <span className="text-xs text-stone-500 font-mono">
+                <span className="text-xs text-temple-500 font-mono">
                   TRUST PAN: {activeWorkspace?.taxExemptionNumber || 'CIT(E)/80G/SB-2024'}
                 </span>
               </div>
 
               {userDonations.length === 0 ? (
-                <div className="p-8 text-center text-stone-500 text-xs">
+                <div className="p-8 text-center text-temple-500 text-xs">
                   No individual donation records found. Please donate via Quick Chanda to generate instant receipts.
                 </div>
               ) : (
                 <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left text-xs text-stone-300">
-                    <thead className="bg-stone-900 text-stone-400 uppercase text-[10px] tracking-wider border-b border-stone-800">
+                  <table className="w-full text-left text-xs text-temple-700">
+                    <thead className="bg-temple-50 text-temple-600 uppercase text-[10px] tracking-wider border-b border-temple-200">
                       <tr>
                         <th className="py-3 px-4">Date</th>
                         <th className="py-3 px-4">{t('surfaces.devoteePortal.purposeCategory')}</th>
@@ -1506,15 +1507,15 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         <th className="py-3 px-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-800/60 font-medium">
+                    <tbody className="divide-y divide-temple-200 font-medium">
                       {userDonations.map((tx) => (
-                        <tr key={tx.id} className="hover:bg-stone-900/40 transition-colors">
-                          <td className="py-3 px-4 font-mono text-stone-400">{tx.date}</td>
-                          <td className="py-3 px-4 font-bold text-amber-100">{tx.purpose || tx.category}</td>
-                          <td className="py-3 px-4 font-black text-amber-400">{inr(tx.amount)}</td>
-                          <td className="py-3 px-4 text-stone-400">{tx.paymentMode}</td>
+                        <tr key={tx.id} className="hover:bg-temple-50 transition-colors">
+                          <td className="py-3 px-4 font-mono text-temple-600">{tx.date}</td>
+                          <td className="py-3 px-4 font-bold text-temple-950">{tx.purpose || tx.category}</td>
+                          <td className="py-3 px-4 font-black text-amber-700">{inr(tx.amount)}</td>
+                          <td className="py-3 px-4 text-temple-600">{tx.paymentMode}</td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-500/40">
                               80G Eligible
                             </span>
                           </td>
@@ -1522,9 +1523,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                             <button
                               type="button"
                               onClick={() => handleDownload80GReceipt(tx)}
-                              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-500/30 text-amber-800 border border-brass-200 text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
                             >
-                              <Download className="w-3 h-3 text-amber-400" />
+                              <Download className="w-3 h-3 text-amber-700" />
                               <span>{t('surfaces.devoteePortal.80gPdf')}</span>
                             </button>
                           </td>
@@ -1546,24 +1547,24 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           <div className="space-y-6 animate-fadeIn">
             
             {/* Household Family Registry Card */}
-            <div className="bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 pb-3">
+            <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-temple-200 pb-3">
                 <div>
-                  <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-amber-700" />
                     <span>Household Family Registry • {userFamily.familyName}</span>
                   </h3>
-                  <p className="text-xs text-stone-400 mt-0.5">
-                    Gotra: <strong className="text-amber-300">{userFamily.gotra}</strong>{' '}{t('surfaces.devoteePortal.kuladevata')}{' '}<strong className="text-amber-300">{userFamily.kuladevata}</strong>
+                  <p className="text-xs text-temple-600 mt-0.5">
+                    Gotra: <strong className="text-amber-800">{userFamily.gotra}</strong>{' '}{t('surfaces.devoteePortal.kuladevata')}{' '}<strong className="text-amber-800">{userFamily.kuladevata}</strong>
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => showToast(t('surfaces.devoteePortal.familyCensusSyncActiveContactMandir'), 'info')}
-                  className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-amber-300 border border-stone-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-temple-50 hover:bg-temple-100 text-amber-800 border border-temple-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <Plus className="w-3.5 h-3.5 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.addKinNote')}</span>
                 </button>
               </div>
@@ -1572,25 +1573,25 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {householdMembers.map((member, idx) => (
                   <div
                     key={idx}
-                    className="bg-stone-900/90 p-4 rounded-2xl border border-stone-800 space-y-2"
+                    className="bg-temple-50 p-4 rounded-2xl border border-temple-200 space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 font-bold flex items-center justify-center text-xs">
+                      <span className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs">
                         {member.name.charAt(0)}
                       </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-stone-800 text-stone-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-temple-100 text-temple-700">
                         {member.relation}
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-xs sm:text-sm font-black text-white">{member.name}</h4>
-                      <p className="text-[11px] text-stone-400">{member.gotra} Gotra</p>
+                      <h4 className="text-xs sm:text-sm font-black text-temple-950">{member.name}</h4>
+                      <p className="text-[11px] text-temple-600">{member.gotra} Gotra</p>
                     </div>
 
-                    <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px]">
-                      <span className="text-rose-400 font-bold">{member.bloodGroup}</span>
-                      <a href={`tel:${member.phone}`} className="text-amber-400 hover:underline font-mono">
+                    <div className="pt-2 border-t border-temple-200 flex items-center justify-between text-[11px]">
+                      <span className="text-red-600 font-bold">{member.bloodGroup}</span>
+                      <a href={`tel:${member.phone}`} className="text-amber-700 hover:underline font-mono">
                         {member.phone}
                       </a>
                     </div>
@@ -1599,32 +1600,32 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
               {householdMembers.length === 0 && (
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-temple-600">
                   No household record yet — when your family is linked by your mandir, they will appear here. Nothing is ever filled in on your behalf.
                 </p>
               )}
             </div>
 
             {/* Ancestral Pitru Shradh Tithi Countdown Registry */}
-            <div className="bg-stone-950/80 p-6 rounded-3xl border border-stone-800 shadow-xl space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-800 pb-3">
+            <div className="bg-white p-6 rounded-3xl border border-temple-200 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-temple-200 pb-3">
                 <div>
-                  <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.ancestralPitruShradhTithiCalendar')}</span>
                   </h3>
-                  <p className="text-xs text-stone-400 mt-0.5">
+                  <p className="text-xs text-temple-600 mt-0.5">
                     Automated lunar Tithi reminders and Pinda Daan puja booking countdown.
                   </p>
                 </div>
 
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
                   Pitru Rin Mukti
                 </span>
               </div>
 
               {userPitruRecords.length === 0 && (
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-temple-600">
                   No pitru records yet — when your mandir records your ancestors' tithis, their
                   shradh reminders will rest here. Your family's truth only, never invented names.
                 </p>
@@ -1633,35 +1634,35 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 {userPitruRecords.map((pitru) => (
                   <div
                     key={pitru.id}
-                    className="bg-stone-900/90 p-5 rounded-2xl border border-stone-800 flex flex-col justify-between space-y-4"
+                    className="bg-temple-50 p-5 rounded-2xl border border-temple-200 flex flex-col justify-between space-y-4"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="text-sm font-black text-amber-100">{pitru.ancestorName}</h4>
-                          <span className="text-xs text-stone-400 font-bold">{pitru.relationship}</span>
+                          <h4 className="text-sm font-black text-temple-950">{pitru.ancestorName}</h4>
+                          <span className="text-xs text-temple-600 font-bold">{pitru.relationship}</span>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
                           {pitru.gotra} Gotra
                         </span>
                       </div>
 
-                      <div className="mt-3 p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 space-y-1 text-xs">
-                        <p className="text-stone-300">
+                      <div className="mt-3 p-3 bg-white rounded-xl border border-temple-200 space-y-1 text-xs">
+                        <p className="text-temple-700">
                           <strong>{t('surfaces.devoteePortal.lunarDemiseTithi')}{' '}</strong>
-                          <span className="text-amber-300 font-bold">{pitru.tithiLunar}</span>
+                          <span className="text-amber-800 font-bold">{pitru.tithiLunar}</span>
                         </p>
-                        <p className="text-stone-400">
+                        <p className="text-temple-600">
                           <strong>{t('surfaces.devoteePortal.sacredKshetra')}{' '}</strong>{pitru.shradhLocation}
                         </p>
-                        <p className="text-stone-400">
+                        <p className="text-temple-600">
                           <strong>{t('surfaces.devoteePortal.smsWhatsappAlert')}{' '}</strong>{pitru.annualShradhAlert ? '✅ Active 7 Days Prior' : 'Disabled'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-stone-800 flex items-center justify-between">
-                      <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
+                    <div className="pt-2 border-t border-temple-200 flex items-center justify-between">
+                      <span className="text-xs text-amber-700 font-bold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{t('surfaces.devoteePortal.annualShradhTithiApproaching')}</span>
                       </span>
@@ -1669,7 +1670,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       <button
                         type="button"
                         onClick={() => showToast(t('surfaces.devoteePortal.toastPindaDaan').replace('{ancestor}', pitru.ancestorName), 'success')}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black transition-all cursor-pointer"
                       >
                         Book Pinda Daan
                       </button>
@@ -1689,15 +1690,15 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           <div className="space-y-6 animate-fadeIn">
             
             {/* Header & Geo Check-In Action */}
-            <div className="bg-stone-950/80 p-5 rounded-3xl border border-stone-800 shadow-xl flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-xl flex flex-wrap items-center justify-between gap-4">
               <div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
                   YatraNet Mesh Telemetry
                 </span>
-                <h2 className="text-xl font-black text-amber-100 mt-1">
+                <h2 className="text-xl font-black text-temple-950 mt-1">
                   Sacred Pilgrimage Footprint & Geo Check-Ins
                 </h2>
-                <p className="text-xs text-stone-400 mt-0.5">
+                <p className="text-xs text-temple-600 mt-0.5">
                   Verified pilgrimage stamps logged through temple mesh beacons and sacred geo-fences.
                 </p>
               </div>
@@ -1706,9 +1707,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 type="button"
                 onClick={handleGeoCheckInNow}
                 disabled={isLocating}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-stone-950 text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
               >
-                <MapPin className="w-4 h-4 text-stone-950" />
+                <MapPin className="w-4 h-4 text-white" />
                 <span>{isLocating ? 'Locating...' : 'Log GPS Check-In Here'}</span>
               </button>
             </div>
@@ -1716,10 +1717,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             {/* Interactive Shrine Map & Footprint History — real check-ins
                 only; an honest empty state until the first one (G-M2). */}
             {pilgrimageFootprint.length === 0 ? (
-              <div className="bg-stone-950/90 rounded-3xl border border-stone-800 p-8 shadow-xl text-center space-y-2">
+              <div className="bg-white rounded-3xl border border-temple-200 p-8 shadow-xl text-center space-y-2">
                 <p className="text-2xl" aria-hidden>🚩</p>
-                <p className="text-sm font-bold text-stone-200">{t('surfaces.devoteePortal.noYatraRecordedYet')}</p>
-                <p className="text-xs text-stone-400 max-w-md mx-auto">
+                <p className="text-sm font-bold text-temple-800">{t('surfaces.devoteePortal.noYatraRecordedYet')}</p>
+                <p className="text-xs text-temple-600 max-w-md mx-auto">
                   When you check in at a shrine with the GPS button above, your darshan will be
                   kept here — your own true pilgrimage footprint, nothing invented.
                 </p>
@@ -1728,18 +1729,18 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
               {/* Left 7 Cols: Leaflet Interactive Mini-Map */}
-              <div className="lg:col-span-7 bg-stone-950/90 rounded-3xl border border-stone-800 p-4 shadow-xl space-y-3">
+              <div className="lg:col-span-7 bg-white rounded-3xl border border-temple-200 p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <MapIcon className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-xs font-black text-temple-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <MapIcon className="w-4 h-4 text-amber-700" />
                     <span>{t('surfaces.devoteePortal.interactiveYatraMap')}</span>
                   </h3>
-                  <span className="text-[11px] text-amber-400 font-bold">
+                  <span className="text-[11px] text-amber-700 font-bold">
                     {pilgrimageFootprint.length} Shrines Visited
                   </span>
                 </div>
 
-                <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-stone-800 z-0">
+                <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-temple-200 z-0">
                   <MapContainer
                     center={pilgrimageFootprint[activeShrineIndex].coords}
                     zoom={6}
@@ -1758,9 +1759,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         }}
                       >
                         <Popup className="custom-leaflet-popup">
-                          <div className="p-1 text-stone-900 text-xs">
+                          <div className="p-1 text-temple-900 text-xs">
                             <strong className="block text-amber-800 font-bold">{shrine.shrineName}</strong>
-                            <p className="text-[10px] text-stone-600">{shrine.location}</p>
+                            <p className="text-[10px] text-temple-600">{shrine.location}</p>
                             <span className="text-[9px] font-bold text-emerald-700 block mt-1">
                               Ritual: {shrine.darshanType}
                             </span>
@@ -1774,7 +1775,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
               {/* Right 5 Cols: Visited Shrines List */}
               <div className="lg:col-span-5 space-y-3">
-                <h3 className="text-xs font-black text-stone-300 uppercase tracking-wider">
+                <h3 className="text-xs font-black text-temple-700 uppercase tracking-wider">
                   Verified Yatra Log
                 </h3>
 
@@ -1786,28 +1787,28 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       onClick={() => setActiveShrineIndex(idx)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-amber-950/40 border-amber-500/60 shadow-md'
-                          : 'bg-stone-950/70 border-stone-800 hover:border-stone-700'
+                          ? 'bg-amber-50 border-brass-300 shadow-md'
+                          : 'bg-white border-temple-200 hover:border-temple-300'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="text-xs sm:text-sm font-black text-white">
+                          <h4 className="text-xs sm:text-sm font-black text-temple-950">
                             {shrine.shrineName}
                           </h4>
-                          <p className="text-[11px] text-stone-400 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3 text-amber-400" />
+                          <p className="text-[11px] text-temple-600 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 text-amber-700" />
                             <span>{shrine.location}</span>
                           </p>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
                           {shrine.badge}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px] text-stone-400">
+                      <div className="mt-2.5 pt-2 border-t border-temple-200 flex items-center justify-between text-[11px] text-temple-600">
                         <span>{shrine.visitedDate}</span>
-                        <span className="text-emerald-400 font-bold">{t('surfaces.devoteePortal.verified')}</span>
+                        <span className="text-emerald-700 font-bold">{t('surfaces.devoteePortal.verified')}</span>
                       </div>
                     </div>
                   );
@@ -1835,24 +1836,24 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
       {isQrModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-stone-950 border-2 border-amber-500/50 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl relative max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+          <div className="bg-white border-2 border-brass-300 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-4 shadow-2xl relative max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
             <button
               type="button"
               onClick={() => setIsQrModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-stone-900 text-stone-400 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-4 right-4 w-11 h-11 rounded-full bg-temple-50 text-temple-600 hover:text-temple-950 transition-colors cursor-pointer flex items-center justify-center"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">
+            <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl font-bold">
               ॐ
             </div>
 
             <div>
-              <h3 className="text-lg font-black text-amber-100">
+              <h3 className="text-lg font-black text-temple-950">
                 {profileData.fullName}
               </h3>
-              <p className="text-xs text-amber-400 font-mono">
+              <p className="text-xs text-amber-700 font-mono">
                 {displaySanataniId(profileData.sanataniId, t('surfaces.devoteePortal.idPending'))}
               </p>
             </div>
@@ -1866,7 +1867,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               />
             </div>
 
-            <p className="text-[11px] text-stone-400">
+            <p className="text-[11px] text-temple-600">
               Hold this QR steady against the Sanctum Turnstile Scanner or present to Sevadar.
             </p>
 
@@ -1874,7 +1875,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <button
                 type="button"
                 onClick={handleManualRefreshToken}
-                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold transition-colors cursor-pointer"
+                className="px-4 py-2 min-h-[44px] rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold transition-colors cursor-pointer"
               >
                 Refresh Token ({tokenRefreshCounter}s)
               </button>
@@ -1888,16 +1889,16 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       ======================================================== */}
       {isEditProfileOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-950 border border-stone-800 rounded-t-3xl sm:rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-amber-400" />
+          <div className="bg-white border border-temple-200 rounded-t-3xl sm:rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+              <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-amber-700" />
                 <span>{t('surfaces.devoteePortal.updatePersonalDevoteeDetails')}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setIsEditProfileOpen(false)}
-                className="text-stone-400 hover:text-white cursor-pointer"
+                className="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-temple-600 hover:text-temple-950 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1906,43 +1907,43 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.fullLegalName')}</label>
+                  <label className="text-temple-600 font-bold block mb-1">{t('surfaces.devoteePortal.fullLegalName')}</label>
                   <input
                     type="text"
                     required
                     value={editFormData.fullName}
                     onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('org.people.devoteeGrid.spiritualDikshaName')}</label>
+                  <label className="text-temple-600 font-bold block mb-1">{t('org.people.devoteeGrid.spiritualDikshaName')}</label>
                   <input
                     type="text"
                     value={editFormData.spiritualName}
                     onChange={(e) => setEditFormData({ ...editFormData, spiritualName: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">Gotra</label>
+                  <label className="text-temple-600 font-bold block mb-1">Gotra</label>
                   <input
                     type="text"
                     required
                     value={editFormData.gotra}
                     onChange={(e) => setEditFormData({ ...editFormData, gotra: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
+                  <label className="text-temple-600 font-bold block mb-1">{t('org.people.devoteeGrid.bloodGroup2')}</label>
                   <select
                     value={editFormData.bloodGroup}
                     onChange={(e) => setEditFormData({ ...editFormData, bloodGroup: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold cursor-pointer"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold cursor-pointer"
                   >
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
                       <option key={bg} value={`${bg} Positive`}>{bg}</option>
@@ -1953,47 +1954,47 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyKinPhone')}</label>
+                  <label className="text-temple-600 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyKinPhone')}</label>
                   <input
                     type="tel"
                     required
                     value={editFormData.emergencyPhone}
                     onChange={(e) => setEditFormData({ ...editFormData, emergencyPhone: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyRelation')}</label>
+                  <label className="text-temple-600 font-bold block mb-1">{t('surfaces.devoteePortal.emergencyRelation')}</label>
                   <input
                     type="text"
                     value={editFormData.emergencyContact}
                     onChange={(e) => setEditFormData({ ...editFormData, emergencyContact: e.target.value })}
-                    className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                    className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-stone-400 font-bold block mb-1">{t('surfaces.devoteePortal.residenceAddressKshetra')}</label>
+                <label className="text-temple-600 font-bold block mb-1">{t('surfaces.devoteePortal.residenceAddressKshetra')}</label>
                 <input
                   type="text"
                   value={editFormData.address}
                   onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-white font-bold"
+                  className="w-full bg-temple-50 border border-temple-200 rounded-xl px-3 py-2 text-temple-950 font-bold"
                 />
               </div>
 
-              <div className="pt-3 border-t border-stone-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-temple-200 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-900 text-stone-300 font-bold hover:bg-stone-800 cursor-pointer"
+                  className="px-4 py-2 min-h-[44px] rounded-xl bg-temple-50 text-temple-700 font-bold hover:bg-temple-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 text-stone-950 font-black hover:from-amber-500 hover:to-amber-600 cursor-pointer shadow-md"
+                  className="px-5 py-2 min-h-[44px] rounded-xl bg-cta text-white font-black hover:bg-cta-hover cursor-pointer shadow-md"
                 >
                   Save Profile
                 </button>
@@ -2008,28 +2009,28 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       ======================================================== */}
       {showSosModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-stone-950 border-2 border-red-500/70 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl shadow-red-950/80 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-red-900/40 pb-3">
-              <div className="flex items-center gap-2 text-red-400">
+          <div className="bg-white border-2 border-red-500/70 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl shadow-red-950/80 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-red-200 pb-3">
+              <div className="flex items-center gap-2 text-red-600">
                 <ShieldAlert className="w-6 h-6 animate-pulse" />
-                <h3 className="text-lg font-black tracking-wide text-white">{t('surfaces.devoteePortal.emergencySosPanic')}</h3>
+                <h3 className="text-lg font-black tracking-wide text-temple-950">{t('surfaces.devoteePortal.emergencySosPanic')}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowSosModal(false)}
-                className="text-stone-400 hover:text-white cursor-pointer"
+                className="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-temple-600 hover:text-temple-950 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-stone-300">
+            <p className="text-xs text-temple-700">
               This broadcasts immediate code red distress telemetry to temple sevadars, campus doctors, and crowd management dispatch:
             </p>
 
             {/* Situation Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-400 block">{t('surfaces.devoteePortal.selectEmergencyNature')}</label>
+              <label className="text-xs font-bold text-temple-600 block">{t('surfaces.devoteePortal.selectEmergencyNature')}</label>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
                   { id: 'MEDICAL', label: '🚑 Medical / Cardiac' },
@@ -2041,10 +2042,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     key={s.id}
                     type="button"
                     onClick={() => setSosSituation(s.id as any)}
-                    className={`p-2.5 rounded-xl border font-bold text-left transition-all cursor-pointer ${
+                    className={`p-2.5 min-h-[44px] flex items-center rounded-xl border font-bold text-left transition-all cursor-pointer ${
                       sosSituation === s.id
-                        ? 'bg-red-600/30 border-red-500 text-white shadow-inner'
-                        : 'bg-stone-900 border-stone-800 text-stone-400 hover:border-stone-700'
+                        ? 'bg-red-600 border-red-600 text-white shadow-inner'
+                        : 'bg-temple-50 border-temple-200 text-temple-600 hover:border-temple-300'
                     }`}
                   >
                     {s.label}
@@ -2055,17 +2056,17 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
             {/* Optional details */}
             <div>
-              <label className="text-xs font-bold text-stone-400 block mb-1">{t('surfaces.devoteePortal.additionalDetailsOptional')}</label>
+              <label className="text-xs font-bold text-temple-600 block mb-1">{t('surfaces.devoteePortal.additionalDetailsOptional')}</label>
               <textarea
                 rows={2}
                 value={sosDetails}
                 onChange={(e) => setSosDetails(e.target.value)}
                 placeholder={t('surfaces.devoteePortal.eGNearSanctumPillar08')}
-                className="w-full bg-stone-900 border border-stone-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-red-500"
+                className="w-full bg-temple-50 border border-temple-200 rounded-xl p-2.5 text-xs text-temple-950 focus:outline-none focus:border-red-500"
               />
             </div>
 
-            <div className="p-3 bg-red-950/40 rounded-xl border border-red-900/30 text-[11px] text-red-200">
+            <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-[11px] text-red-800">
               <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and Live GPS.
             </div>
 
@@ -2073,7 +2074,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSosModal(false)}
-                className="flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 font-bold text-xs cursor-pointer transition-colors"
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-temple-50 hover:bg-temple-100 text-temple-700 font-bold text-xs cursor-pointer transition-colors"
               >
                 Cancel
               </button>
@@ -2081,7 +2082,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 type="button"
                 onClick={handleTriggerEmergencySOS}
                 disabled={isBroadcastingSos}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs shadow-lg shadow-red-950/80 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-lg shadow-red-950/80 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
                 {isBroadcastingSos ? 'Broadcasting...' : 'DISPATCH SOS NOW'}
               </button>
@@ -2095,16 +2096,16 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       ======================================================== */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-stone-950 border border-stone-800 rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-black text-amber-200 flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-amber-400" />
+          <div className="bg-white border border-temple-200 rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-temple-200 pb-3">
+              <h3 className="text-base font-black text-temple-950 flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-amber-700" />
                 <span>{t('surfaces.devoteePortal.devoteePreferences')}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="text-stone-400 hover:text-white cursor-pointer"
+                className="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-temple-600 hover:text-temple-950 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2113,8 +2114,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="space-y-4 text-xs">
               {/* Language Selection */}
               <div>
-                <label className="text-stone-400 font-bold block mb-1.5 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-amber-400" />
+                <label className="text-temple-600 font-bold block mb-1.5 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-amber-700" />
                   <span>{t('surfaces.devoteePortal.language')}</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -2133,8 +2134,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       }}
                       className={`p-2 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                         language === lang.code
-                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-black'
-                          : 'bg-stone-900 border-stone-800 text-stone-400 hover:border-stone-700'
+                          ? 'bg-amber-100 border-amber-500 text-amber-800 font-black'
+                          : 'bg-temple-50 border-temple-200 text-temple-600 hover:border-temple-300'
                       }`}
                     >
                       {lang.label}
@@ -2144,32 +2145,32 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               </div>
 
               {/* Theme Toggle */}
-              <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl border border-stone-800">
+              <div className="flex items-center justify-between p-3 bg-temple-50 rounded-xl border border-temple-200">
                 <div className="flex items-center gap-2">
-                  {isDarkMode ? <Moon className="w-4 h-4 text-amber-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
-                  <span className="font-bold text-stone-200">
+                  {isDarkMode ? <Moon className="w-4 h-4 text-amber-700" /> : <Sun className="w-4 h-4 text-amber-700" />}
+                  <span className="font-bold text-temple-800">
                     {isDarkMode ? 'Temple Night Mode' : 'Solar Light Mode'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={toggleDarkMode}
-                  className="px-3 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs cursor-pointer transition-colors"
+                  className="px-3 py-1 rounded-lg bg-temple-100 hover:bg-temple-200 text-amber-800 font-bold text-xs cursor-pointer transition-colors"
                 >
                   Toggle
                 </button>
               </div>
 
               {/* Sound Alerts */}
-              <div className="flex items-center justify-between p-3 bg-stone-900 rounded-xl border border-stone-800">
+              <div className="flex items-center justify-between p-3 bg-temple-50 rounded-xl border border-temple-200">
                 <div className="flex items-center gap-2">
-                  {soundAlertsEnabled ? <Bell className="w-4 h-4 text-amber-400" /> : <BellOff className="w-4 h-4 text-stone-500" />}
-                  <span className="font-bold text-stone-200">{t('surfaces.devoteePortal.aartiSirenSounds')}</span>
+                  {soundAlertsEnabled ? <Bell className="w-4 h-4 text-amber-700" /> : <BellOff className="w-4 h-4 text-temple-500" />}
+                  <span className="font-bold text-temple-800">{t('surfaces.devoteePortal.aartiSirenSounds')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={toggleSoundAlerts}
-                  className="px-3 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs cursor-pointer transition-colors"
+                  className="px-3 py-1 rounded-lg bg-temple-100 hover:bg-temple-200 text-amber-800 font-bold text-xs cursor-pointer transition-colors"
                 >
                   {soundAlertsEnabled ? 'Enabled' : 'Muted'}
                 </button>
@@ -2180,7 +2181,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(false)}
-                className="w-full py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-black text-xs transition-colors cursor-pointer"
+                className="w-full py-2 rounded-xl bg-amber-100 hover:bg-amber-500/30 text-amber-800 font-black text-xs transition-colors cursor-pointer"
               >
                 Close Settings
               </button>
@@ -2192,7 +2193,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       {/* ========================================================
           MOBILE-FIRST BOTTOM NAVIGATION BAR
       ======================================================== */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-stone-950/95 backdrop-blur-md border-t border-amber-900/40 px-2 py-1.5 shadow-2xl flex items-center justify-around">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-sanctum-ivory/95 backdrop-blur-md border-t border-brass-200 px-2 py-1.5 shadow-2xl flex items-center justify-around">
         {[
           { id: 'PASS', label: 'PASS', icon: QrCode },
           { id: 'SADHANA', label: 'SADHANA', icon: Flame },
@@ -2207,13 +2208,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               key={item.id}
               type="button"
               onClick={() => setActiveTab(item.id as DevoteePortalTab)}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 isActive
-                  ? 'text-amber-400 scale-105 font-black'
-                  : 'text-stone-500 hover:text-stone-300 font-semibold'
+                  ? 'text-amber-700 scale-105 font-black'
+                  : 'text-temple-600 hover:text-temple-800 font-semibold'
               }`}
             >
-              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-amber-400' : 'text-stone-500'}`} />
+              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-amber-700' : 'text-temple-600'}`} />
               <span className="text-[10px] mt-0.5 tracking-tight">{item.label}</span>
               {isActive && <span className="w-1 h-1 bg-amber-400 rounded-full mt-0.5" />}
             </button>
@@ -2224,11 +2225,11 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         <button
           type="button"
           onClick={() => setShowSosModal(true)}
-          className="flex flex-col items-center justify-center py-1 px-2 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+          className="flex flex-col items-center justify-center flex-1 min-h-[44px] py-1 px-2 text-red-600 hover:text-red-700 transition-colors cursor-pointer"
           title={t('surfaces.devoteePortal.emergencySos')}
         >
           <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 animate-pulse" />
-          <span className="text-[10px] mt-0.5 font-black text-red-400">SOS</span>
+          <span className="text-[10px] mt-0.5 font-black text-red-600">SOS</span>
         </button>
       </nav>
 

@@ -242,21 +242,21 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
         <div
           role="dialog"
           aria-modal="true"
-          className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b from-stone-900 to-stone-950 border border-stone-700/80 shadow-2xl p-6 sm:p-7 text-center space-y-5"
+          className="relative w-full max-w-sm overflow-hidden rounded-3xl e5-biometric bg-sanctum-ivory border border-brass-200 shadow-2xl lamplight p-6 sm:p-7 text-center space-y-5"
         >
           {/* Close button */}
           <button
             type="button"
             onClick={handleCancel}
-            className="absolute top-4 right-4 p-2 rounded-full text-stone-400 hover:text-white hover:bg-stone-800/80 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 w-11 h-11 rounded-full text-temple-500 hover:text-temple-950 hover:bg-temple-100 flex items-center justify-center transition-colors cursor-pointer"
             aria-label="Cancel Biometric Verification"
           >
             <X className="w-4 h-4" />
           </button>
 
           {/* Top Security Badge */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] font-bold uppercase tracking-wider">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-brass-300 text-amber-800 text-[11px] font-bold uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
             <span>Device Biometric</span>
           </div>
 
@@ -266,16 +266,16 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
               {modalStage === 'SCANNING' ? (
                 <>
                   {/* Pulsing rings while the OS biometric prompt is live */}
-                  <div className="absolute inset-0 rounded-full border-2 border-amber-400/20 animate-ping opacity-60"></div>
-                  <div className="absolute inset-2 rounded-full border border-amber-500/40 animate-pulse"></div>
-                  <div className="relative w-20 h-20 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
-                    <Scan className="w-10 h-10 animate-pulse text-amber-400" />
-                    <Fingerprint className="w-7 h-7 absolute text-amber-300/80" />
+                  <div className="absolute inset-0 rounded-full border-2 border-brass-300/50 animate-ping opacity-60"></div>
+                  <div className="absolute inset-2 rounded-full border border-brass-300 animate-pulse"></div>
+                  <div className="relative w-20 h-20 rounded-2xl bg-amber-100 border border-brass-300 flex items-center justify-center text-amber-700 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
+                    <Scan className="w-10 h-10 animate-pulse text-amber-700" />
+                    <Fingerprint className="w-7 h-7 absolute text-amber-600" />
                   </div>
                 </>
               ) : (
-                <div className="relative w-20 h-20 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.35)] scale-105 transition-transform duration-300">
-                  <CheckCircle2 className="w-11 h-11 text-emerald-400 animate-in zoom-in-75 duration-200" />
+                <div className="relative w-20 h-20 rounded-2xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-700 shadow-[0_0_30px_rgba(16,185,129,0.35)] scale-105 transition-transform duration-300">
+                  <CheckCircle2 className="w-11 h-11 text-emerald-600 animate-in zoom-in-75 duration-200" />
                 </div>
               )}
             </div>
@@ -283,14 +283,14 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
 
           {/* Action Context Title */}
           <div>
-            <h3 className="text-base font-black text-stone-100 tracking-tight">
+            <h3 className="text-base font-black text-temple-950 tracking-tight">
               {modalStage === 'SCANNING'
                 ? (activePromptAction ? `${activePromptAction} Authorization` : 'Biometric Security Scan')
                 : modalStage === 'SUCCESS'
                   ? 'Biometric Authenticated!'
                   : 'Verification Cancelled'}
             </h3>
-            <p className="text-xs text-stone-400 mt-1 font-medium leading-relaxed">
+            <p className="text-xs text-temple-600 mt-1 font-medium leading-relaxed">
               {modalStage === 'SCANNING'
                 ? 'Complete the biometric prompt on your device (FaceID / TouchID / Windows Hello) to confirm identity'
                 : modalStage === 'SUCCESS'
@@ -300,14 +300,14 @@ export function useBiometricAuth(): UseBiometricAuthReturn {
           </div>
 
           {/* System Hint Footer */}
-          <div className="pt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px] text-stone-500">
+          <div className="pt-2 border-t border-temple-200 flex items-center justify-between text-[11px] text-temple-500">
             <span className="font-mono">
               {platformAvailable === false ? 'No platform sensor detected' : 'FaceID / TouchID / Hello'}
             </span>
             <button
               type="button"
               onClick={handleCancel}
-              className="text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer"
+              className="text-amber-700 hover:text-amber-800 font-bold hover:underline inline-flex min-h-[44px] items-center cursor-pointer"
             >
               Use PIN Instead
             </button>

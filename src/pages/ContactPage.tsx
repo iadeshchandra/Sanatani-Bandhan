@@ -136,7 +136,7 @@ export const ContactPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="min-h-[44px] px-6 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
+              className="min-h-[44px] px-6 rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
             >
               LOGIN
             </button>
@@ -152,7 +152,7 @@ export const ContactPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/')}
-                className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-stone-400 hover:text-orange-600 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 min-h-[44px] px-1 text-xs font-extrabold uppercase tracking-widest text-stone-400 hover:text-orange-600 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to home
@@ -443,11 +443,11 @@ export const ContactPage: React.FC = () => {
               </span>
             </div>
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium" aria-label="Footer">
-              <button type="button" onClick={() => navigate('/')} className="hover:text-orange-400 transition-colors cursor-pointer">Home</button>
-              <button type="button" onClick={() => navigate('/login')} className="hover:text-orange-400 transition-colors cursor-pointer">Login</button>
-              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer">{t('surfaces.contact.createFreeAccount')}</button>
-              <button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Privacy</button>
-              <button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer">Terms</button>
+              <button type="button" onClick={() => navigate('/')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center px-1">Home</button>
+              <button type="button" onClick={() => navigate('/login')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center px-1">Login</button>
+              <button type="button" onClick={() => navigate('/signup')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center px-1">{t('surfaces.contact.createFreeAccount')}</button>
+              <button type="button" onClick={() => setPrivacyOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center px-1">Privacy</button>
+              <button type="button" onClick={() => setTosOpen(true)} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center px-1">Terms</button>
             </nav>
           </div>
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">

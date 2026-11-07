@@ -8,8 +8,9 @@
  * closed-door law: a closed door must explain itself and offer the
  * honest next step, never sit mute.
  *
- * This sheet is that explanation, in the portal's own dark stone /
- * amber idiom, rendered through a body portal — the sheet opens from
+ * This sheet is that explanation, in the portal's own sanctum
+ * idiom (ivory, brass, amber — light since Design Elevation E5),
+ * rendered through a body portal — the sheet opens from
  * inside the portal's sticky backdrop-blur header, and a header's
  * backdrop-filter creates a containing block that traps
  * position:fixed descendants (the fixed-overlay ancestor law; see
@@ -53,18 +54,18 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
       aria-label={t('surfaces.devoteePortal.orgLockSheetTitle').replace('{org}', org)}
     >
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
-      <div className="absolute inset-x-0 bottom-0 sm:mx-auto sm:max-w-lg max-h-[88dvh] overflow-y-auto bg-stone-950 rounded-t-3xl shadow-2xl border-t border-amber-900/50 text-stone-100">
-        <div className="sticky top-0 bg-stone-950/95 backdrop-blur rounded-t-3xl z-10 px-5 pt-3 pb-3 border-b border-stone-800">
-          <div className="mx-auto w-10 h-1.5 rounded-full bg-stone-700/80" />
+      <div className="absolute inset-x-0 bottom-0 sm:mx-auto sm:max-w-lg max-h-[88dvh] overflow-y-auto bg-white rounded-t-3xl shadow-2xl border-t border-brass-200 text-temple-900">
+        <div className="sticky top-0 bg-sanctum-ivory/95 backdrop-blur rounded-t-3xl z-10 px-5 pt-3 pb-3 border-b border-temple-200">
+          <div className="mx-auto w-10 h-1.5 rounded-full bg-temple-300/80" />
           <div className="flex items-center gap-2.5 mt-2">
-            <span className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <Lock className="w-5 h-5 text-amber-400" aria-hidden />
+            <span className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-2xl bg-amber-100 border border-brass-200 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5 text-amber-700" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-[17px] font-black text-amber-100 leading-snug">
+              <h2 className="text-[17px] font-black text-temple-950 leading-snug">
                 {t('surfaces.devoteePortal.orgLockSheetTitle').replace('{org}', org)}
               </h2>
-              <p className="text-[12px] text-stone-400">
+              <p className="text-[12px] text-temple-600">
                 {t('surfaces.devoteePortal.orgLockSheetSub')}
               </p>
             </div>
@@ -72,7 +73,7 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
               type="button"
               onClick={onClose}
               aria-label={t('surfaces.devoteePortal.orgLockClose')}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-stone-900 hover:bg-stone-800 border border-stone-800 flex items-center justify-center text-stone-400 shrink-0 cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-temple-50 hover:bg-temple-100 border border-temple-200 flex items-center justify-center text-temple-600 shrink-0 cursor-pointer"
             >
               <X className="w-5 h-5" aria-hidden />
             </button>
@@ -80,7 +81,7 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          <p className="text-[13px] leading-relaxed text-stone-300">
+          <p className="text-[13px] leading-relaxed text-temple-700">
             {t('surfaces.devoteePortal.orgLockWhy').replace('{org}', org)}
           </p>
 
@@ -88,14 +89,14 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
             <button
               type="button"
               onClick={onGoHome}
-              className="w-full min-h-[60px] rounded-2xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-2.5 flex items-center gap-3 text-left transition-colors cursor-pointer"
+              className="w-full min-h-[60px] rounded-2xl border border-brass-200 bg-amber-50 hover:bg-amber-100 px-4 py-2.5 flex items-center gap-3 text-left transition-colors cursor-pointer"
             >
-              <Home className="w-5 h-5 text-amber-400 shrink-0" aria-hidden />
+              <Home className="w-5 h-5 text-amber-700 shrink-0" aria-hidden />
               <span className="min-w-0">
-                <span className="block text-[15px] font-bold text-amber-100 leading-snug">
+                <span className="block text-[15px] font-bold text-temple-950 leading-snug">
                   {t('surfaces.devoteePortal.orgLockDoorHomeTitle')}
                 </span>
-                <span className="block text-[12px] text-stone-400">
+                <span className="block text-[12px] text-temple-600">
                   {t('surfaces.devoteePortal.orgLockDoorHomeDesc')}
                 </span>
               </span>
@@ -104,23 +105,23 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
             <button
               type="button"
               onClick={onCreateOrg}
-              className="w-full min-h-[60px] rounded-2xl border border-stone-800 bg-stone-900 hover:border-amber-500/40 px-4 py-2.5 flex items-center gap-3 text-left transition-colors cursor-pointer"
+              className="w-full min-h-[60px] rounded-2xl border border-temple-200 bg-temple-50 hover:border-brass-200 px-4 py-2.5 flex items-center gap-3 text-left transition-colors cursor-pointer"
             >
-              <Sprout className="w-5 h-5 text-amber-400 shrink-0" aria-hidden />
+              <Sprout className="w-5 h-5 text-amber-700 shrink-0" aria-hidden />
               <span className="min-w-0">
-                <span className="block text-[15px] font-bold text-stone-100 leading-snug">
+                <span className="block text-[15px] font-bold text-temple-900 leading-snug">
                   {t('surfaces.devoteePortal.orgLockDoorCreateTitle')}
                 </span>
-                <span className="block text-[12px] text-stone-400">
+                <span className="block text-[12px] text-temple-600">
                   {t('surfaces.devoteePortal.orgLockDoorCreateDesc')}
                 </span>
               </span>
             </button>
           </div>
 
-          <div className="flex items-start gap-2.5 rounded-2xl bg-stone-900/70 border border-stone-800 px-4 py-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" aria-hidden />
-            <p className="text-[12px] leading-relaxed text-stone-400">
+          <div className="flex items-start gap-2.5 rounded-2xl bg-temple-50 border border-temple-200 px-4 py-3">
+            <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" aria-hidden />
+            <p className="text-[12px] leading-relaxed text-temple-600">
               {t('surfaces.devoteePortal.orgLockStaffNote').replace('{org}', org)}
             </p>
           </div>

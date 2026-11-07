@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.05-9508421',
+    date: '2026-11-05',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "Sign-in, sign-up and the lost-page door now open into the light: the sign-in and sign-up pages used to open into a dark purple scene that felt like a different app. They now welcome you the way the rest of Sanatani Bandhan does — warm ivory light, a brass hairline, the temple mandala, and the same deep-saffron button as everywhere else. The \"page not found\" door matches too. Desk counts now always show their full number (\"66 of 72 desks\"), and the Sanatani Bandhan name no longer breaks across two lines on small phones. Nothing about how you sign in has changed — only the light.",
+            hi: "साइन-इन, साइन-अप और खोया-पृष्ठ द्वार अब उजाले में खुलते हैं: साइन-इन और साइन-अप पेज पहले एक गहरे बैंगनी दृश्य में खुलते थे, जो किसी और ऐप जैसा लगता था। अब वे उसी तरह आपका स्वागत करते हैं जैसे बाकी सनातनी बंधन करता है — गर्म हाथी-दांत जैसी रोशनी, पीतल की महीन रेखा, मंदिर मंडल, और हर जगह वाला वही गहरा केसरिया बटन। \"पृष्ठ नहीं मिला\" वाला द्वार भी अब वैसा ही है। डेस्क की गिनती अब हमेशा पूरी संख्या दिखाती है (\"72 में से 66 डेस्क\"), और छोटे फ़ोनों पर सनातनी बंधन का नाम अब दो पंक्तियों में नहीं टूटता। साइन-इन करने का तरीका बिल्कुल नहीं बदला — सिर्फ़ रोशनी बदली है।",
+            bn: "সাইন-ইন, সাইন-আপ আর হারানো-পৃষ্ঠার দরজা এখন আলোয় খোলে: সাইন-ইন ও সাইন-আপ পৃষ্ঠা আগে এক গাঢ় বেগুনি দৃশ্যে খুলত, যা মনে হত অন্য কোনো অ্যাপ। এখন তারা ঠিক সেভাবেই আপনাকে স্বাগত জানায় যেভাবে বাকি সনাতনী বন্ধন জানায় — উষ্ণ হাতির-দাঁতের মতো আলো, পিতলের সরু রেখা, মন্দির মণ্ডল, আর সব জায়গার সেই একই গাঢ় জাফরান বোতাম। \"পৃষ্ঠা পাওয়া যায়নি\" দরজাটিও এখন মিলে গেছে। ডেস্কের সংখ্যা এখন সবসময় পুরো সংখ্যায় দেখায় (\"৭২টির মধ্যে ৬৬টি ডেস্ক\"), আর ছোট ফোনে সনাতনী বন্ধন নামটি আর দুই লাইনে ভাঙে না। সাইন-ইন করার পদ্ধতি একদমই বদলায়নি — শুধু আলোটা বদলেছে।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.04-cb2170a',
     date: '2026-11-04',
     sections: {

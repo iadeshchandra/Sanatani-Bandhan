@@ -587,6 +587,20 @@ body.sb-form-sos {
 .receipt-paper .rp-faint { color: #9a7b3f; }
 .receipt-paper .rp-blessing { color: #6b4e1e; }
 
+/* DESIGN ELEVATION E5 — the paper's own inner surfaces. The Smart
+   Pass card wears the paper dress, so its tiles, panels and
+   hairlines are defined HERE, in the paper family — never as
+   theme utilities — which is what keeps the whole card, QR tile
+   included, exactly itself at dusk: no Sandhya rule reaches in,
+   and no remapped utility lives inside. */
+.receipt-paper .paper-panel { background-color: #ffffff; }
+.receipt-paper .paper-inset { background-color: rgba(255, 255, 255, 0.55); }
+.receipt-paper .paper-line { border-color: rgba(176, 138, 46, 0.45); }
+.receipt-paper .paper-glow { background-color: rgba(251, 191, 36, 0.18); }
+.receipt-paper .paper-watermark { color: rgba(176, 138, 46, 0.55); }
+.receipt-paper .rp-ok { color: #047857; }
+.receipt-paper .rp-alert { color: #b3271e; }
+
 /* ============================================================
    VIBE B3 — SANDHYA MODE (the dusk theme).
    "Day = temple courtyard; evening = sanctum." Deep warm maroon
@@ -805,3 +819,44 @@ body.sb-form-sos {
 [data-sandhya="on"] .auth-toast .bg-amber-100 { background-color: #38250f; }
 [data-sandhya="on"] .auth-toast .bg-emerald-100 { background-color: #123330; }
 [data-sandhya="on"] .auth-toast .text-red-700 { color: #f0a390; }
+
+/* ------------------------------------------------------------
+   Design Elevation E5 — the devotee portal + biometric ceremony
+   at dusk. E5 moved the portal onto light surfaces; most of its
+   classes were already in the remap above (white/temple/amber-50·
+   100 grounds, temple text, brass-200 hairlines, the sanctum
+   tokens themselves). What the first remap never knew: the SOS
+   red family on light grounds (red-50/100 surfaces, red-600/700/
+   800 text, red-200 borders), emerald-100 chips + emerald-800
+   text + emerald-300 borders, brass-300 hairlines, the receipts
+   table's divide colour, and the amber-600 fingerprint glyph.
+   Scoped under the E5 hook classes (.e5-portal on the portal
+   root, .e5-biometric on the ceremony card — the modal is
+   body-portalled, so the hook rides the card itself): day
+   rendering is untouched. The Smart Pass card needs NO rule
+   here at all: it wears the paper dress defined with the
+   receipt family in Vibe B3, whose inner surfaces are paper
+   classes, not utilities — paper stays paper at dusk by
+   construction. One bead guard follows: the japa bead is a
+   marigold gradient object whose count must stay dark on
+   the gold.
+   ------------------------------------------------------------ */
+[data-sandhya="on"] .e5-portal .bg-red-50,
+[data-sandhya="on"] .e5-biometric .bg-red-50 { background-color: #33181a; }
+[data-sandhya="on"] .e5-portal .bg-red-100 { background-color: #4a2018; }
+[data-sandhya="on"] .e5-portal .text-red-600 { color: #f0856f; }
+[data-sandhya="on"] .e5-portal .text-red-700,
+[data-sandhya="on"] .e5-biometric .text-red-700 { color: #f0a390; }
+[data-sandhya="on"] .e5-portal .text-red-800 { color: #f3b8a8; }
+[data-sandhya="on"] .e5-portal .border-red-200 { border-color: #6e3a30; }
+[data-sandhya="on"] .e5-portal .bg-emerald-100,
+[data-sandhya="on"] .e5-biometric .bg-emerald-100 { background-color: #123330; }
+[data-sandhya="on"] .e5-portal .text-emerald-800 { color: #a7e8d4; }
+[data-sandhya="on"] .e5-biometric .border-emerald-300 { border-color: #1e4d43; }
+[data-sandhya="on"] .e5-portal .border-brass-300,
+[data-sandhya="on"] .e5-biometric .border-brass-300 { border-color: #8a6a2f; }
+[data-sandhya="on"] .e5-biometric .text-amber-600 { color: #f5a83d; }
+[data-sandhya="on"] .e5-portal .divide-temple-200 > :not([hidden]) ~ :not([hidden]) { border-color: #57401f; }
+/* The bead guard: the count stays dark on the marigold bead
+   (its sublabels ride text-saffron-950, which never remaps). */
+[data-sandhya="on"] .japa-bead { color: #262321; }

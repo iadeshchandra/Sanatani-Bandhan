@@ -756,10 +756,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </button>
 
           <nav className="hidden lg:flex items-center gap-7 text-sm font-bold text-stone-600" aria-label={t('surfaces.landing.pageSections')}>
-            <button type="button" onClick={() => scrollTo('institutions')} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={() => scrollTo('institutions')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               {safeTranslate('landing_nav_institutions', 'Institutions', 'প্রতিষ্ঠানসমূহ', 'संस्थान')}
             </button>
-            <button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-600 transition-colors cursor-pointer">
+            <button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
               {safeTranslate('landing_nav_features', 'Features', 'বৈশিষ্ট্য', 'विशेषताएँ')}
             </button>
             <button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-600 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">
@@ -785,7 +785,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={handleGoToLogin}
-              className="hidden sm:inline-flex min-h-[44px] px-6 items-center rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
+              className="hidden sm:inline-flex min-h-[44px] px-6 items-center rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
             >
               {safeTranslate('landing_nav_login', 'LOGIN', 'লগইন', 'लॉगिन')}
             </button>
@@ -824,7 +824,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <button
               type="button"
               onClick={() => { setIsMobileMenuOpen(false); handleGoToLogin(); }}
-              className="w-full py-3 rounded-xl bg-stone-900 text-white text-sm font-extrabold cursor-pointer"
+              className="w-full py-3 min-h-[44px] rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold cursor-pointer"
             >
               {safeTranslate('landing_nav_login', 'LOGIN', 'লগইন', 'लॉगिन')}
             </button>

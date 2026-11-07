@@ -81,7 +81,7 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="min-h-[44px] cursor-pointer rounded-xl bg-stone-900 px-6 text-sm font-extrabold tracking-wide text-white transition-all hover:bg-stone-800"
+              className="min-h-[44px] cursor-pointer rounded-xl bg-cta px-6 text-sm font-extrabold tracking-wide text-white transition-all hover:bg-cta-hover"
             >
               LOGIN
             </button>
@@ -290,7 +290,7 @@ export const PublicDeskPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/margdarshan/manual')}
-            className="mt-4 inline-flex min-h-[44px] cursor-pointer items-center rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-black text-white transition hover:bg-stone-800"
+            className="mt-4 inline-flex min-h-[44px] cursor-pointer items-center rounded-xl bg-cta px-5 py-2.5 text-sm font-black text-white transition hover:bg-cta-hover"
           >
             {t('marg.backToManual')}
           </button>
