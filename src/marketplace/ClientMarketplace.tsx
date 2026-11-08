@@ -39,6 +39,8 @@ import { serviceCardPostFromCloud } from '../sangam/providerCards';
 import { SevaBookingSheet } from '../sangam/SevaBookingSheet';
 import type { SangamPost } from '../sangam/types';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
+import { PurohitProvider } from '../context/PurohitContext';
+import { PostRequirement } from '../components/purohit/PostRequirement';
 import type { AuthorInfo } from '../sangam/sangamStore';
 import { friendlyErrorText } from '../lib/friendlyError';
 
@@ -518,7 +520,7 @@ export const ClientMarketplace: React.FC = () => {
   // QUEUED #29: Suchana order cards deep-link here with ?view=bookings —
   // land the devotee on MyBookings (their order journey + #26 timeline),
   // not the browse grid. Read once at mount, like the ?ref= parse above.
-  const [view, setView] = useState<'browse' | 'bookings'>(() =>
+  const [view, setView] = useState<'browse' | 'bookings' | 'post'>(() =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('view') === 'bookings'
       ? 'bookings'
@@ -588,13 +590,23 @@ export const ClientMarketplace: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5 items-center">
-        {([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`]] as const).map(([id, label]) => (
+        {([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`], ['post', '📝 Post Requirement']] as const).map(([id, label]) => (
           <button key={id} type="button" onClick={() => setView(id)}
             className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black ${view === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>{label}</button>
         ))}
         <GuideButton moduleId="marketplace" />
       </div>
-      {view === 'bookings' ? (
+      {/* PP-09 (E6): the 'post' view below carries the devotee requirement
+          board from the retired DevoteeMarketplace hub into this live
+          marketplace, self-contained in PurohitProvider (the
+          BecomePurohitEntry precedent). Browsing stays signed-out friendly;
+          postGig itself refuses signed-out posting ('Sign in to post a
+          requirement', surfaced via friendlyError in the form). */}
+      {view === 'post' ? (
+        <PurohitProvider>
+          <PostRequirement />
+        </PurohitProvider>
+      ) : view === 'bookings' ? (
         <MyBookings
           onRebookGig={(g, note) => openBooking(g, note)}
           onBrowseSimilar={(pt) => { setPtype(pt); setCat('all'); setQ(''); setView('browse'); }}

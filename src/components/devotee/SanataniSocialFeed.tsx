@@ -623,17 +623,20 @@ export const SanataniSocialFeed: React.FC = () => {
           </button>
         </div>
 
-        {/* Global Online SOS Trigger */}
-        <button 
-          onClick={() => setShowSOSModal(true)}
-          className="mt-4 w-full p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-lg shadow-red-600/20 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 transition-transform active:scale-95 border border-red-500"
-        >
-          <ShieldAlert className="w-6 h-6 animate-pulse" />
-          <div className="text-center sm:text-left">
-            <h3 className="text-sm font-semibold tracking-widest uppercase">Emergency Panic SOS</h3>
-            <p className="text-[10px] font-bold text-red-200 uppercase tracking-widest">Broadcast Alert Globally • Send Location to Rescuers</p>
-          </div>
-        </button>
+        {/* Global Online SOS Trigger — E6/F-08: a calm, compact pill,
+            not a full-width shouting slab. Same tap, same confirm modal
+            (the flow behind it is untouched); red stays sanctioned for
+            SOS alone, and the pill never goes below the 44px floor. */}
+        <div className="e6-feed-sos mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <button
+            onClick={() => setShowSOSModal(true)}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-red-600 px-4 py-2.5 text-white shadow-md shadow-red-600/20 border border-red-500 transition-transform hover:bg-red-700 active:scale-95"
+          >
+            <ShieldAlert className="w-5 h-5 animate-pulse" />
+            <span className="text-sm font-semibold tracking-widest uppercase">Emergency Panic SOS</span>
+          </button>
+          <p className="sos-caption text-[11px] font-semibold text-red-700">Broadcast Alert Globally • Send Location to Rescuers</p>
+        </div>
 
         {/* Facebook-style Quick Share Box */}
         <div 

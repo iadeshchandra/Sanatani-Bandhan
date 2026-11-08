@@ -860,3 +860,14 @@ body.sb-form-sos {
 /* The bead guard: the count stays dark on the marigold bead
    (its sublabels ride text-saffron-950, which never remaps). */
 [data-sandhya="on"] .japa-bead { color: #262321; }
+
+/* ------------------------------------------------------------
+   Design Elevation E6 — the member feed's SOS pill at dusk.
+   The pill itself (white on red-600) is dusk-correct unregistered,
+   but its caption rides text-red-700, which measures ~2.5:1 on the
+   deep dusk ground. At dusk the caption takes the SOS family's
+   registered dusk step (the same #f0a390 the E5 subsection gives
+   red-700 text) — scoped under the feed hook (.e6-feed-sos on the
+   pill row); day rendering is untouched.
+   ------------------------------------------------------------ */
+[data-sandhya="on"] .e6-feed-sos .sos-caption { color: #f0a390; }

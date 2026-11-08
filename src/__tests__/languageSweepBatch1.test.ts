@@ -474,7 +474,6 @@ const WIRED: Array<[string, string]> = [
   ["components/public/SecurityWhitepaper.tsx", "surfaces.security.infrastructureCompliance"],
   ["components/public/SecurityWhitepaper.tsx", "surfaces.security.offlineFirstLocalPersistence"],
   ["components/public/SecurityWhitepaper.tsx", "surfaces.security.securityArchitecture"],
-  ["components/public/SmartLoginRouter.tsx", "surfaces.chrome.zeroTrustSso"],
   ["components/public/TermsOfService.tsx", "surfaces.terms.1AcceptanceOfTerms"],
   ["components/public/TermsOfService.tsx", "surfaces.terms.2DescriptionOfService"],
   ["components/public/TermsOfService.tsx", "surfaces.terms.3UserAccountsAndSecurity"],

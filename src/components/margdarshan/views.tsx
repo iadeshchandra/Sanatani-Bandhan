@@ -109,7 +109,7 @@ export const WingGrid: React.FC<{
 }> = ({ onGo }) => {
   const { t } = useLanguage();
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {WINGS.map((wing) => {
         const body = (
           <>
@@ -231,7 +231,7 @@ export const GroupedPageList: React.FC<{
         <h2 className="mb-3 text-xs font-black uppercase tracking-widest text-amber-700/70">
           {label}
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((p) => (
             <PageCard key={p.slug} page={p} onOpen={onOpen} />
           ))}
@@ -355,7 +355,7 @@ export const DeskPageView: React.FC<{
       {r.capabilities.length > 0 && (
         <section aria-label={t('marg.youCanDo')}>
           <SectionTitle>{t('marg.youCanDo')}</SectionTitle>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {r.capabilities.map((c, i) => (
               <li
                 key={i}
@@ -396,7 +396,7 @@ export const DeskPageView: React.FC<{
       {related.length > 0 && (
         <section aria-label={t('marg.relatedPages')}>
           <SectionTitle>{t('marg.relatedPages')}</SectionTitle>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {related.map((p) => (
               <PageCard key={p.slug} page={p} onOpen={onOpenPage} />
             ))}
@@ -430,7 +430,7 @@ export const AtlasView: React.FC<{
               {dom.entries.length} {t('marg.pagesLabel')}
             </span>
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {dom.entries.map((e) => (
               <button
                 key={e.slug}

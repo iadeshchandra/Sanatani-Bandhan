@@ -42,6 +42,10 @@ interface TourStep {
  * walks them through the 4 highest-value moments and ends at signup.
  * Shows once per demo session (sessionStorage), dismissible at any step,
  * and never in non-demo workspaces. No videos, no heavy assets — a single
+ * Reserved lane (E6/F-08): the card never parks on the SOS PanicButton's
+ * corner — bottom-left on sm+, and lifted above the FAB's mobile anchor
+ * (bottom 92px + 48px mini + margin) on phones. Same keep-out law the
+ * CoachMark placement already obeys (KEEP_OUT_RIGHT/BOTTOM there).
  * fixed card; entrance animation is CSS-only (covered by the global
  * prefers-reduced-motion kill-switch in motion.css).
  */
@@ -139,7 +143,7 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
 
   return (
     <div
-      className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[380px] z-[90] anim-fade-up"
+      className="fixed inset-x-3 bottom-[152px] sm:inset-x-auto sm:left-6 sm:right-auto sm:bottom-6 sm:w-[380px] z-[90] anim-fade-up"
       role="dialog"
       aria-label={t('surfaces.demo.demoTour')}
       aria-describedby="demo-tour-body"

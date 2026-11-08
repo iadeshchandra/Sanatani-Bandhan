@@ -58,11 +58,11 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="flex min-h-screen flex-col bg-[#FFF8F0] font-sans text-stone-900 selection:bg-orange-500 selection:text-white">
       <header className="sticky top-0 z-40 border-b border-orange-100 bg-[#FFF8F0]/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:h-[72px] sm:px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:h-[72px] sm:px-6">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="flex cursor-pointer items-center gap-2 sm:gap-2.5"
+            className="flex min-w-0 cursor-pointer items-center gap-2 sm:gap-2.5"
             aria-label="Sanatani Bandhan home"
           >
             <img
@@ -72,16 +72,16 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               width={40}
               height={40}
             />
-            <span className="whitespace-nowrap text-base font-extrabold tracking-tight sm:text-xl">
+            <span className="whitespace-nowrap text-sm font-extrabold tracking-tight sm:text-xl">
               Sanatani <span className="text-orange-600">Bandhan</span>
             </span>
           </button>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <PublicLanguageButton />
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="min-h-[44px] cursor-pointer rounded-xl bg-cta px-6 text-sm font-extrabold tracking-wide text-white transition-all hover:bg-cta-hover"
+              className="min-h-[44px] cursor-pointer rounded-xl bg-cta px-4 text-sm font-extrabold tracking-wide text-white transition-all hover:bg-cta-hover sm:px-6"
             >
               LOGIN
             </button>
@@ -180,7 +180,7 @@ export const PublicMargdarshanHome: React.FC = () => {
           <h2 className="mb-3 text-xs font-black uppercase tracking-widest text-amber-700/70">
             {t('marg.mostNeeded')}
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {starters.map((p) => (
               <PageCard
                 key={p.slug}
@@ -216,7 +216,7 @@ export const PublicManual: React.FC = () => {
               {t('marg.searchResults')} · {results.length}
             </h2>
             {results.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {results.map((p) => (
                   <PageCard
                     key={p.slug}
