@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.07-b8c940a',
+    date: '2026-11-07',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "Your devotee portal opens in the light now. The Smart Pass rests on warm temple paper, and the SOS PANIC and Call SOS buttons stand at full finger size, ready the moment they are needed. The fingerprint ceremony, the public LOGIN doors, and the footer links across our public pages all welcome you in the same calm sanctum colours, with every tap target a comfortable size.",
+            hi: "आपका भक्त पोर्टल अब उजाले में खुलता है। स्मार्ट पास गर्म मंदिर-काग़ज़ पर विराजता है, और SOS PANIC व Call SOS बटन पूरी उँगली के आकार में खड़े हैं — ज़रूरत के क्षण में हमेशा तैयार। फ़िंगरप्रिंट समारोह, सार्वजनिक LOGIN द्वार और हमारे सार्वजनिक पृष्ठों के निचले लिंक — सब आपको उन्हीं शांत गर्भगृह रंगों में स्वागत करते हैं, और हर टैप आरामदायक आकार का है।",
+            bn: "আপনার ভক্ত পোর্টাল এখন আলোয় খোলে। স্মার্ট পাস উষ্ণ মন্দির-কাগজে বিরাজ করে, আর SOS PANIC ও Call SOS বোতাম পূর্ণ আঙুলের মাপে দাঁড়িয়ে — প্রয়োজনের মুহূর্তে সবসময় প্রস্তুত। আঙুলের ছাপের অনুষ্ঠান, সর্বজনীন LOGIN দরজা আর আমাদের সর্বজনীন পৃষ্ঠাগুলোর নিচের লিংক — সবই আপনাকে একই শান্ত গর্ভগৃহ রঙে স্বাগত জানায়, আর প্রতিটি ট্যাপ আরামদায়ক মাপের।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.05-9508421',
     date: '2026-11-05',
     sections: {
