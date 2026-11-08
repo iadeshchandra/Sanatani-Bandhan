@@ -63,6 +63,42 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.08-295f970',
+    date: '2026-11-08',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "Calmer pages, a calmer SOS, and a home for your requirements: Margdarshan now fits your phone properly — the manual, the atlas and every desk page open without sideways scrolling, even on the smallest screens.",
+            hi: "शांत पृष्ठ, शांत SOS, और आपकी आवश्यकताओं का नया घर: मार्गदर्शन अब आपके फ़ोन पर ठीक से खुलता है — नियमावली, एटलस और हर डेस्क पृष्ठ, सबसे छोटी स्क्रीन पर भी, बिना इधर-उधर खिसके खुलते हैं।",
+            bn: "শান্ত পৃষ্ঠা, শান্ত SOS, আর আপনার প্রয়োজন জানানোর নতুন ঘর: মার্গদর্শন এখন আপনার ফোনে ঠিকঠাক খোলে — ম্যানুয়াল, অ্যাটলাস আর প্রতিটি ডেস্ক পৃষ্ঠা, সবচেয়ে ছোট স্ক্রিনেও, পাশে সরে যাওয়া ছাড়াই খোলে।",
+          },
+        },
+        {
+          text: {
+            en: "The emergency SOS in your feed is now a calm, clear pill — always in sight, always one tap from help, without shouting over your darshan.",
+            hi: "आपकी फ़ीड में आपातकालीन SOS अब एक शांत, स्पष्ट गोली (पिल) के रूप में है — हमेशा सामने, मदद से हमेशा एक स्पर्श दूर, बिना आपके दर्शन पर चिल्लाए।",
+            bn: "আপনার ফিডে জরুরি SOS এখন একটি শান্ত, স্পষ্ট পিল — সবসময় চোখের সামনে, সাহায্য থেকে সবসময় এক ছোঁয়া দূরে, আপনার দর্শনের উপর চিৎকার না করে।",
+          },
+        },
+        {
+          text: {
+            en: "You can now post a ritual requirement right inside the Seva Bazar marketplace — tell verified purohits what you need, and they can accept it directly.",
+            hi: "अब आप सेवा बाज़ार में ही अपनी पूजा-आवश्यकता डाल सकते हैं — सत्यापित पुरोहितों को बताइए कि आपको क्या चाहिए, वे सीधे स्वीकार कर सकते हैं।",
+            bn: "এখন আপনি সেবা বাজারের ভিতরেই আপনার পূজার প্রয়োজন জানাতে পারেন — যাচাইকৃত পুরোহিতদের বলুন আপনার কী চাই, তাঁরা সরাসরি গ্রহণ করতে পারবেন।",
+          },
+        },
+        {
+          text: {
+            en: "Behind the scenes we retired some unused doors, so the app stays light and quick for everyone.",
+            hi: "पर्दे के पीछे हमने कुछ अप्रयुक्त द्वार बंद किए हैं, ताकि ऐप सबके लिए हल्का और तेज़ बना रहे।",
+            bn: "পর্দার আড়ালে আমরা কিছু অব্যবহৃত দরজা সরিয়েছি, যাতে অ্যাপটি সবার জন্য হালকা ও দ্রুত থাকে।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.07-b8c940a',
     date: '2026-11-07',
     sections: {
