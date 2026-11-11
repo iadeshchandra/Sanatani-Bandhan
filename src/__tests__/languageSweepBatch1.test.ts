@@ -54,9 +54,11 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     expect(keysOf(hi)).toEqual(keysOf(en));
     expect(keysOf(bn)).toEqual(keysOf(en));
     // 416 through Vibe B3; World-Readiness B4 adds surfaces.notFound (4) +
-    // surfaces.orgDirectory (7); Events+Polls P1 adds surfaces.events (47)
+    // surfaces.orgDirectory (7); Events+Polls P1 adds surfaces.events (47);
+    // Clean Dashboard D1 adds 4 surfaces.roleHome keys (expensesToday,
+    // yesterdayAmount, awaitingYourDecision, standbyBookingsCount)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(474);
+    expect(keysOf(en).length).toBe(478);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

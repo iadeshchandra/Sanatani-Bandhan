@@ -309,7 +309,12 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
   const treasuryIsPartial = treasuryWindowed && !useExactTotals;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0 anim-stagger">
+    // Clean Dashboard D1: phone grid is 2-across (was grid-cols-1) —
+    // the Day Band grid law (spec §2.2). KpiGrid now serves DefaultHome
+    // only (TrusteeHome carries TrusteeDayBand below); its card set is
+    // unchanged. At ~163px columns the figure/pill row wraps instead of
+    // overflowing (measured on the live demo DOM, 2026-11-09).
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0 anim-stagger">
       {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
         <div
           onClick={() => onNavigate('devotee-grid')}
@@ -406,6 +411,191 @@ export const KpiGrid: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavi
             <span className="text-[10px] text-saffron-600 font-bold bg-saffron-50 px-1.5 py-0.5 rounded">Gomata</span>
           </div>
         </div>
+      )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* TrusteeDayBand — Clean Dashboard D1: the Day Band (Trustee home).   */
+/* Four glance cards opening the Trustee work surface, directly under  */
+/* Zone A: (1) Collections Today with yesterday beneath, (2) the Net   */
+/* Treasury Fund, (3) Awaiting Your Decision — the maker–checker       */
+/* queue's glance form; the wide amber banner in the attention section */
+/* below stays as its detail — and (4) the org-aware seva slot         */
+/* (Shishyas / Gau Seva units / Reserved Sankalps, the KpiGrid         */
+/* variants; ONE slot per org type per spec §3.1 — for Mandir the      */
+/* displaced bookings total still rides the Zone A hero chip). The     */
+/* Devotee Directory card does NOT enter the band (spec §3.1); it      */
+/* stays in KpiGrid, which now serves DefaultHome only. Every sum      */
+/* inherits the windowed-honesty rule: a partial treasury window is    */
+/* labelled, never exact-presented.                                    */
+/* ------------------------------------------------------------------ */
+
+export const TrusteeDayBand: React.FC<{
+  onNavigate: (id: string) => void;
+  approvalsAwaiting: number;
+  standbyCount: number;
+}> = ({ onNavigate, approvalsAwaiting, standbyCount }) => {
+  const { t, safeTranslate } = useLanguage();
+  const { activeWorkspace, checkPermission } = useAuthWorkspace();
+  const { treasury, poojaBookings, cows, gurukulStudents, collectionWindows, treasuryExactTotals } = useData();
+
+  const orgTypeKey = (activeWorkspace.type || 'Mandir').toLowerCase();
+  const isGurukulLike = ['gurukul', 'vidyalaya', 'pathshala'].includes(orgTypeKey);
+  const isGoshalaLike = orgTypeKey === 'goshala';
+  const isMandirLike = ['mandir', 'kashikshetra', 'tirth'].includes(orgTypeKey);
+  const showGauSevaKpi = isGoshalaLike || isMandirLike;
+
+  // Net treasury fund — KpiGrid's exact computation and honesty rule
+  // (QUEUED #59 A4-7): exact server totals under windowing when they
+  // exist; the pill says which of the two the number really is.
+  const windowedIncome = treasury
+    .filter((tx) => tx.type === 'Income')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  const windowedExpense = treasury
+    .filter((tx) => tx.type === 'Expense')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  const treasuryWindowed = collectionWindows.treasury.windowed;
+  const useExactTotals = treasuryWindowed && treasuryExactTotals != null;
+  const totalIncome = useExactTotals ? treasuryExactTotals.totalIncome : windowedIncome;
+  const totalExpense = useExactTotals ? treasuryExactTotals.totalExpense : windowedExpense;
+  const netBalance = totalIncome - totalExpense;
+  const treasuryIsPartial = treasuryWindowed && !useExactTotals;
+
+  // Today / yesterday collections — AccountantHome's day filter
+  // ((tx.date || '').slice(0, 10) === iso); yesterday = today − 1.
+  // Both sums read the loaded treasury window, so a partial window
+  // carries the Net card's honesty pill here too.
+  const today = todayISO();
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = todayISO(yesterdayDate);
+  const todaysIncome = treasury.filter(
+    (tx) => tx.type === 'Income' && (tx.date || '').slice(0, 10) === today
+  );
+  const collectionsToday = todaysIncome.reduce((a, c) => a + (c.amount || 0), 0);
+  const collectionsYesterday = treasury
+    .filter((tx) => tx.type === 'Income' && (tx.date || '').slice(0, 10) === yesterday)
+    .reduce((a, c) => a + (c.amount || 0), 0);
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 shrink-0 anim-stagger">
+      {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'SUPER_ADMIN']) && (
+        <div
+          onClick={() => onNavigate('treasury-ledger')}
+          style={{ '--i': 0 } as React.CSSProperties}
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors group"
+        >
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
+          <div className="flex items-end justify-between mt-1 gap-2">
+            <span className="text-2xl font-black text-temple-900 tnum">
+              <CountUp value={collectionsToday} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
+            </span>
+            <span className="flex flex-col items-end gap-1 shrink-0">
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                {todaysIncome.length} entries
+              </span>
+              {treasuryIsPartial && (
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+                </span>
+              )}
+            </span>
+          </div>
+          <p className="text-[10px] text-temple-600 mt-1">
+            {t('surfaces.roleHome.yesterdayAmount').replace('{amount}', `${activeWorkspace.currencySymbol} ${Math.round(collectionsYesterday).toLocaleString('en-IN')}`)}
+          </p>
+        </div>
+      )}
+      {checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'SUPER_ADMIN']) && (
+        <div
+          onClick={() => onNavigate('treasury-ledger')}
+          style={{ '--i': 1 } as React.CSSProperties}
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors group"
+        >
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.netTreasuryFund')}</span>
+          <div className="flex items-end justify-between mt-1">
+            <span className="text-2xl font-black text-temple-900 tnum">
+              <CountUp value={netBalance} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
+            </span>
+            {treasuryIsPartial ? (
+              <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+              </span>
+            ) : (
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                {safeTranslate('kpi_treasury_full', 'Full ledger', 'সম্পূর্ণ খাতা', 'पूरा खाता')}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+      {checkPermission(['TRUSTEE', 'SUPER_ADMIN']) && (
+        <div
+          onClick={() => onNavigate('treasury')}
+          style={{ '--i': 2 } as React.CSSProperties}
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-amber-300 transition-colors group"
+        >
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.awaitingYourDecision')}</span>
+          <div className="flex items-end justify-between mt-1">
+            <span className="text-2xl font-black text-temple-900 tnum"><CountUp value={approvalsAwaiting} /></span>
+          </div>
+          <p className="text-[10px] text-temple-600 mt-1">
+            {t('surfaces.roleHome.standbyBookingsCount').replace('{count}', String(standbyCount))}
+          </p>
+        </div>
+      )}
+      {isGurukulLike ? (
+        checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
+          <div
+            onClick={() => onNavigate('gurukulAcademy')}
+            style={{ '--i': 3 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-amber-300 transition-colors group"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.shishyaStudents')}</span>
+            <div className="flex items-end justify-between mt-1">
+              <span className="text-2xl font-black text-temple-900 tnum"><CountUp value={gurukulStudents.length} /></span>
+              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">{t('surfaces.roleHome.brahmacharis')}</span>
+            </div>
+          </div>
+        )
+      ) : showGauSevaKpi ? (
+        checkPermission(['TRUSTEE', 'MANAGER', 'VOLUNTEER', 'SUPER_ADMIN']) && (
+          <div
+            onClick={() => onNavigate('gau-seva-goshala')}
+            style={{ '--i': 3 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-saffron-300 transition-colors group"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.gauSevaUnits')}</span>
+            <div className="flex items-end justify-between mt-1">
+              <span className="text-2xl font-black text-temple-900 tnum"><CountUp value={resolveHerdCount(activeWorkspace.id, { legacyCowCount: cows.length })} /></span>
+              <span className="text-[10px] text-saffron-600 font-bold bg-saffron-50 px-1.5 py-0.5 rounded">Gomata</span>
+            </div>
+          </div>
+        )
+      ) : (
+        checkPermission(['TRUSTEE', 'ACCOUNTANT', 'MANAGER', 'PUROHIT', 'SUPER_ADMIN']) && (
+          <div
+            onClick={() => onNavigate('pooja-booking')}
+            style={{ '--i': 3 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-rose-300 transition-colors group"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.reservedSankalps')}</span>
+            <div className="flex items-end justify-between mt-1">
+              <span className="text-2xl font-black text-temple-900 tnum"><CountUp value={poojaBookings.length} /></span>
+              {/* F-DASH-5: a red "Active" pill on a zero count reads as an alert.
+                  Zero-states stay quiet and neutral. */}
+              {poojaBookings.length > 0 ? (
+                <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">Active</span>
+              ) : (
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_sankalp_none_yet', 'None yet', 'এখনও নেই', 'अभी कोई नहीं')}
+                </span>
+              )}
+            </div>
+          </div>
+        )
       )}
     </div>
   );
@@ -968,6 +1158,35 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
   );
   const weekTotal = weekIncome.reduce((a, c) => a + (c.amount || 0), 0);
   const treasuryWindowed = !!(collectionWindows as any)?.treasury?.windowed;
+
+  // Clean Dashboard D1: yesterday's collections (the Today card's
+  // sub-line) and today's / yesterday's expenses (the new Expenses
+  // Today card) — the same day filter as today's collections, read
+  // from the same loaded window, so the windowed pill covers them too.
+  const yesterdayISO = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return todayISO(d);
+  }, []);
+  const collectionsYesterday = useMemo(
+    () =>
+      treasury
+        .filter((tx) => tx.type === 'Income' && (tx.date || '').slice(0, 10) === yesterdayISO)
+        .reduce((a, c) => a + (c.amount || 0), 0),
+    [treasury, yesterdayISO]
+  );
+  const todaysExpenses = useMemo(
+    () => treasury.filter((tx) => tx.type === 'Expense' && (tx.date || '').slice(0, 10) === today),
+    [treasury, today]
+  );
+  const todaysExpenseTotal = todaysExpenses.reduce((a, c) => a + (c.amount || 0), 0);
+  const expensesYesterday = useMemo(
+    () =>
+      treasury
+        .filter((tx) => tx.type === 'Expense' && (tx.date || '').slice(0, 10) === yesterdayISO)
+        .reduce((a, c) => a + (c.amount || 0), 0),
+    [treasury, yesterdayISO]
+  );
   const pending80G = useMemo(
     () => treasury.filter((tx) => tx.type === 'Income' && !tx.taxReceiptNumber),
     [treasury]
@@ -978,56 +1197,98 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
     <div className="flex flex-col gap-4">
       <RoleSectionTitle icon={Wallet} title={t('surfaces.roleHome.todaySBooks')} hint={today} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 anim-stagger">
+      {/* Clean Dashboard D1: the Accountant Day Band — one 4-card grid
+          in spec §3.2 order (Collections Today, Expenses Today,
+          Collections This Week, 80G Receipts Pending). The week card
+          moves in from its full-width row; every figure keeps its
+          computation, target and pills and gains the band's tabular
+          figures. The today cards carry the windowed-honesty pill
+          beside the entries pill, exactly as the week card always did. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 anim-stagger">
         <div
           onClick={() => onNavigate('treasury-ledger')}
           style={{ '--i': 0 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors"
         >
           <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
-          <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-black text-temple-900">
+          <div className="flex items-end justify-between mt-1 gap-2">
+            <span className="text-2xl font-black text-temple-900 tnum">
               <CountUp value={todaysTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
             </span>
-            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-              {todaysIncome.length} entries
+            <span className="flex flex-col items-end gap-1 shrink-0">
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                {todaysIncome.length} entries
+              </span>
+              {treasuryWindowed && (
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_treasury_partial', 'Loaded window')}
+                </span>
+              )}
+            </span>
+          </div>
+          <p className="text-[10px] text-temple-600 mt-1">
+            {t('surfaces.roleHome.yesterdayAmount').replace('{amount}', `${activeWorkspace.currencySymbol} ${Math.round(collectionsYesterday).toLocaleString('en-IN')}`)}
+          </p>
+        </div>
+        <div
+          onClick={() => onNavigate('treasury-ledger')}
+          style={{ '--i': 1 } as React.CSSProperties}
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-rose-300 transition-colors"
+        >
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.expensesToday')}</span>
+          <div className="flex items-end justify-between mt-1 gap-2">
+            <span className="text-2xl font-black text-temple-900 tnum">
+              <CountUp value={todaysExpenseTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
+            </span>
+            <span className="flex flex-col items-end gap-1 shrink-0">
+              <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">
+                {todaysExpenses.length} entries
+              </span>
+              {treasuryWindowed && (
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_treasury_partial', 'Loaded window')}
+                </span>
+              )}
+            </span>
+          </div>
+          <p className="text-[10px] text-temple-600 mt-1">
+            {t('surfaces.roleHome.yesterdayAmount').replace('{amount}', `${activeWorkspace.currencySymbol} ${Math.round(expensesYesterday).toLocaleString('en-IN')}`)}
+          </p>
+        </div>
+        <div
+          onClick={() => onNavigate('treasury-ledger')}
+          style={{ '--i': 2 } as React.CSSProperties}
+          className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors"
+        >
+          <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsThisWeek')}</span>
+          <div className="flex flex-wrap items-end justify-between mt-1 gap-x-2 gap-y-1">
+            <span className="text-2xl font-black text-temple-900 tnum">
+              <CountUp value={weekTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
+            </span>
+            <span className="flex items-center gap-1.5">
+              {treasuryWindowed && (
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
+                  {safeTranslate('kpi_treasury_partial', 'Loaded window')}
+                </span>
+              )}
+              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                {weekIncome.length} entries · 7 days
+              </span>
             </span>
           </div>
         </div>
         <div
           onClick={() => onNavigate('taxReceipts')}
-          style={{ '--i': 1 } as React.CSSProperties}
+          style={{ '--i': 3 } as React.CSSProperties}
           className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-amber-300 transition-colors"
         >
           <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.80gReceiptsPending')}</span>
           <div className="flex items-end justify-between mt-1">
-            <span className="text-2xl font-black text-temple-900"><CountUp value={pending80G.length} /></span>
+            <span className="text-2xl font-black text-temple-900 tnum"><CountUp value={pending80G.length} /></span>
             <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
               {activeWorkspace.currencySymbol} {Math.round(pending80GTotal).toLocaleString('en-IN')} awaiting
             </span>
           </div>
-        </div>
-      </div>
-
-      <div
-        onClick={() => onNavigate('treasury-ledger')}
-        className="bg-white p-4 rounded-xl shadow-sm border border-temple-200 cursor-pointer hover:border-emerald-300 transition-colors"
-      >
-        <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsThisWeek')}</span>
-        <div className="flex items-end justify-between mt-1">
-          <span className="text-2xl font-black text-temple-900">
-            <CountUp value={weekTotal} format={(n) => `${activeWorkspace.currencySymbol} ${Math.round(n).toLocaleString('en-IN')}`} />
-          </span>
-          <span className="flex items-center gap-1.5">
-            {treasuryWindowed && (
-              <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
-                {safeTranslate('kpi_treasury_partial', 'Loaded window')}
-              </span>
-            )}
-            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-              {weekIncome.length} entries · 7 days
-            </span>
-          </span>
         </div>
       </div>
 
@@ -1134,7 +1395,9 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
           window in large-organisation mode — labelled, never exact-
           presented. Renders nothing when fully synced. */}
       <WindowedNotice collection="treasury" variant="totals" loaded={treasury.length} />
-      <KpiGrid onNavigate={onNavigate} />
+      {/* Clean Dashboard D1: the Day Band opens the Trustee surface;
+          KpiGrid remains the DefaultHome body. */}
+      <TrusteeDayBand onNavigate={onNavigate} approvalsAwaiting={approvalsAwaiting} standbyCount={standbyBookings.length} />
       <UtsavReadinessCard onPlan={() => onNavigate('utsav-one')} />
       <BranchComparisonPanel />
 

@@ -23,11 +23,14 @@ interface DashboardHomeProps {
 /**
  * DashboardHome — the sacred home.
  *
- * The top banner (workspace identity + live Panjika) and the Daily Vedic
- * Wisdom shloka are the soul of the app: identical for every role.
- * Below them, RoleHomeSwitch renders each role's 3-action work surface
- * (Priest / Accountant / Trustee / Sevadar); every other role falls back
- * to the full dashboard body.
+ * The top banner (workspace identity + live Panjika) is Zone A:
+ * identical for every role. Below it, RoleHomeSwitch renders each
+ * role's work surface (Priest / Accountant / Trustee / Sevadar),
+ * opening with the Day Band (Clean Dashboard D1); every other role
+ * falls back to the full dashboard body. The Daily Vedic Wisdom
+ * shloka and the festival journey follow the role body head —
+ * demoted to Zone E by owner-approved Q1, never deleted — still
+ * identical for every role.
  */
 export const DashboardHome: React.FC<DashboardHomeProps> = ({
   onSelectModule,
@@ -170,13 +173,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           labelled). One tap deep, like everything on this home. */}
       <OrgUsualRow onNavigate={handleNav} />
 
-      {/* Sacred soul — identical for every role */}
-      <ShlokaCard />
-
-      {/* Blueprint D — the festival journey, when a festival is near */}
-      <FestivalJourneyCard onNavigate={handleNav} />
-
-      {/* Role-based work surface — or the dedicated Gurukul home */}
+      {/* Role-based work surface — or the dedicated Gurukul home.
+          Clean Dashboard D1: the role body (and its Day Band) now
+          opens the home directly under Zone A, so the day's figures
+          greet the eye before anything else. */}
       {isGurukulLike ? (
         <GurukulHome onNavigate={handleNav} />
       ) : (
@@ -186,6 +186,15 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           onOpenMySpace={onOpenMySpace}
         />
       )}
+
+      {/* Sacred soul — identical for every role. Clean Dashboard D1
+          (owner-approved Q1): demoted below the role body head into
+          Zone E — the greeting in Zone A still opens the home, and
+          the shloka's content is unchanged. */}
+      <ShlokaCard />
+
+      {/* Blueprint D — the festival journey, when a festival is near */}
+      <FestivalJourneyCard onNavigate={handleNav} />
 
       {/* Module-system redesign (2026-10-23): the door to the complete
           All-Desks Directory — every home carries it (Gurukul included),
