@@ -841,6 +841,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "இந்த வார வசூல்கள்",
         expensesToday: "இன்றைய செலவுகள்",
         yesterdayAmount: "நேற்று {amount}",
+        collectionsLast7Days: "வசூல்கள் · கடந்த 7 நாட்கள்",
         logADonationIn2Taps: "2 தட்டல்களில் தானை பதிவு செய்யவும்",
         everythingIsSettledNoPendingApprovals: "அனைத்தும் தீர்க்கப்பட்டது — நிலுவையில் உள்ள அங்கீகாரங்கள், கட்டணங்கள் அல்லது ரசீதுகள் இல்லை.",
         markYourAttendanceInTheRoster: "பட்டியலில் உங்கள் வருகையைக் குறிக்கவும்",

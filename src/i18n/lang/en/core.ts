@@ -372,6 +372,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "Collections this week",
         expensesToday: "Expenses today",
         yesterdayAmount: "yesterday {amount}",
+        collectionsLast7Days: "Collections · last 7 days",
         logADonationIn2Taps: "Log a donation in 2 taps",
         everythingIsSettledNoPendingApprovals: "Everything is settled — no pending approvals, payments, or receipts.",
         markYourAttendanceInTheRoster: "Mark your attendance in the roster",

@@ -602,6 +602,22 @@ body.sb-form-sos {
 .receipt-paper .rp-alert { color: #b3271e; }
 
 /* ============================================================
+   CLEAN DASHBOARD D2 — the Week Shape's bar fills.
+   The 7-day sparkline on the role homes is hand-rolled SVG; its
+   fills live here as semantic classes (never presentation
+   attributes) so the Sandhya section below can carry their dusk
+   steps — the E4 law: every new surface class is registered.
+   Income = the emerald family, expense = warm rose, today =
+   the house --cta, empty days and the baseline rest in
+   temple-200.
+   ============================================================ */
+.week-shape .ws-bar-income { fill: #059669; }
+.week-shape .ws-bar-expense { fill: #fda4af; }
+.week-shape .ws-bar-today { fill: var(--cta); }
+.week-shape .ws-bar-empty { fill: #d3cfcb; }
+.week-shape .ws-baseline { fill: #d3cfcb; }
+
+/* ============================================================
    VIBE B3 — SANDHYA MODE (the dusk theme).
    "Day = temple courtyard; evening = sanctum." Deep warm maroon
    and lamplight derived from the sanctum palette — not a generic
@@ -871,3 +887,18 @@ body.sb-form-sos {
    pill row); day rendering is untouched.
    ------------------------------------------------------------ */
 [data-sandhya="on"] .e6-feed-sos .sos-caption { color: #f0a390; }
+
+/* ------------------------------------------------------------
+   Clean Dashboard D2 — the Week Shape at dusk.
+   The sparkline's fills take their dusk steps so the week's
+   shape stays legible on the deep dusk card: income lifts to
+   emerald-400, expense to rose-400, today warms to the E5
+   subsection's lamplight amber (#f5a83d), and empty days and
+   the baseline deepen to the dusk border wood. Scoped under
+   .week-shape; day rendering is untouched.
+   ------------------------------------------------------------ */
+[data-sandhya="on"] .week-shape .ws-bar-income { fill: #34d399; }
+[data-sandhya="on"] .week-shape .ws-bar-expense { fill: #fb7185; }
+[data-sandhya="on"] .week-shape .ws-bar-today { fill: #f5a83d; }
+[data-sandhya="on"] .week-shape .ws-bar-empty { fill: #57401f; }
+[data-sandhya="on"] .week-shape .ws-baseline { fill: #57401f; }

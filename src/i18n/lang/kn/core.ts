@@ -841,6 +841,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "ಈ ವಾರದ ಸಂಗ್ರಹ",
         expensesToday: "ಇಂದಿನ ವೆಚ್ಚಗಳು",
         yesterdayAmount: "ನಿನ್ನೆ {amount}",
+        collectionsLast7Days: "ಸಂಗ್ರಹ · ಕಳೆದ 7 ದಿನಗಳು",
         logADonationIn2Taps: "2 ಒತ್ತುವಿಕೆಗಳಲ್ಲಿ ದಾನ ದಾಖಲಿಸಿ",
         everythingIsSettledNoPendingApprovals: "ಎಲ್ಲವೂ ಇತ್ಯರ್ಥವಾಗಿದೆ — ಯಾವುದೇ ಬಾಕಿ ಅನುಮೋದನೆಗಳು, ಪಾವತಿಗಳು, ಅಥವಾ ರಸೀದಿಗಳು ಇಲ್ಲ.",
         markYourAttendanceInTheRoster: "ಪಟ್ಟಿಯಲ್ಲಿ ನಿಮ್ಮ ಹಾಜರಾತಿಯನ್ನು ಗುರುತಿಸಿ",

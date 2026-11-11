@@ -841,6 +841,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "या आठवड्याची वसुली",
         expensesToday: "आजचे खर्च",
         yesterdayAmount: "काल {amount}",
+        collectionsLast7Days: "वसुली · मागील 7 दिवस",
         logADonationIn2Taps: "2 स्पर्शांत दान नोंदवा",
         everythingIsSettledNoPendingApprovals: "सर्वकाही निकाली निघाले आहे — कोणतीही प्रलंबित मंजुरी, भरणा किंवा पावत्या नाहीत.",
         markYourAttendanceInTheRoster: "यादीत तुमची उपस्थिती नोंदवा",

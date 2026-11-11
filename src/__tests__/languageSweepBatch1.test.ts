@@ -56,9 +56,11 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // 416 through Vibe B3; World-Readiness B4 adds surfaces.notFound (4) +
     // surfaces.orgDirectory (7); Events+Polls P1 adds surfaces.events (47);
     // Clean Dashboard D1 adds 4 surfaces.roleHome keys (expensesToday,
-    // yesterdayAmount, awaitingYourDecision, standbyBookingsCount)
+    // yesterdayAmount, awaitingYourDecision, standbyBookingsCount);
+    // Clean Dashboard D2 adds 1 surfaces.roleHome key
+    // (collectionsLast7Days — the Week Shape caption)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(478);
+    expect(keysOf(en).length).toBe(479);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

@@ -48,6 +48,7 @@ import { useMembership } from '../../context/MembershipContext';
 import { effectiveDeskScope } from '../../lib/membershipAccess';
 import { isDeskOpenableFor } from '../../lib/deskDirectory';
 import { UtsavReadinessCard, LunarClosingCard } from '../panjika/IntelligenceCards';
+import { WeekShape } from './WeekShape';
 
 /* ------------------------------------------------------------------ */
 /* Shared helpers                                                      */
@@ -1292,6 +1293,10 @@ export const AccountantHome: React.FC<{ onNavigate: (id: string) => void; onOpen
         </div>
       </div>
 
+      {/* Clean Dashboard D2: the Week Shape — Zone C directly under
+          the Day Band (income bars with each day's expense behind). */}
+      <WeekShape variant="incomeExpense" />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
           type="button"
@@ -1398,6 +1403,9 @@ export const TrusteeHome: React.FC<{ onNavigate: (id: string) => void; onOpenQui
       {/* Clean Dashboard D1: the Day Band opens the Trustee surface;
           KpiGrid remains the DefaultHome body. */}
       <TrusteeDayBand onNavigate={onNavigate} approvalsAwaiting={approvalsAwaiting} standbyCount={standbyBookings.length} />
+      {/* Clean Dashboard D2: the Week Shape — Zone C directly under
+          the Day Band (7-day collections, hand-rolled SVG). */}
+      <WeekShape variant="income" />
       <UtsavReadinessCard onPlan={() => onNavigate('utsav-one')} />
       <BranchComparisonPanel />
 

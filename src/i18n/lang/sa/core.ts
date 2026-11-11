@@ -841,6 +841,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "अस्मिन् सप्ताहे सङ्ग्रहः",
         expensesToday: "अद्य व्ययाः",
         yesterdayAmount: "ह्यः {amount}",
+        collectionsLast7Days: "सङ्ग्रहः · गतसप्तदिनम्",
         logADonationIn2Taps: "स्पर्शद्वये दानं लिखतु",
         everythingIsSettledNoPendingApprovals: "सर्वं निपटितम् — न किमपि प्रतीक्षमानम् अनुमोदनं, भुगतानं, प्राप्तिपत्रं वा।",
         markYourAttendanceInTheRoster: "सूच्यां स्वोपस्थितिं चिह्नयतु",

@@ -372,6 +372,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "এই সপ্তাহের সংগ্রহ",
         expensesToday: "আজকের খরচ",
         yesterdayAmount: "গতকাল {amount}",
+        collectionsLast7Days: "সংগ্রহ · গত 7 দিন",
         logADonationIn2Taps: "২ ট্যাপে একটি দান লগ করুন",
         everythingIsSettledNoPendingApprovals: "সবকিছু মিটে গেছে — কোনো মুলতবি অনুমোদন, পেমেন্ট বা রসিদ নেই।",
         markYourAttendanceInTheRoster: "রোস্টারে আপনার উপস্থিতি চিহ্নিত করুন",

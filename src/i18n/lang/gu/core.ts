@@ -803,6 +803,7 @@ export const core: CoreFragment = {
         collectionsThisWeek: "આ અઠવાડિયાનો સંગ્રહ",
         expensesToday: "આજના ખર્ચ",
         yesterdayAmount: "ગઈકાલે {amount}",
+        collectionsLast7Days: "સંગ્રહ · છેલ્લા 7 દિવસ",
         collectionsToday: "આજનો સંગ્રહ",
         crisisCommand: "કટોકટી કમાન્ડ",
         darshanGateCheckIn: "દર્શન અને ગેટ ચેક-ઇન",
