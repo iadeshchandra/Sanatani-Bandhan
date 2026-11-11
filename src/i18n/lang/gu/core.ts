@@ -941,6 +941,7 @@ export const core: CoreFragment = {
         allLedgerHeads: "-- બધા ખાતાવહી મદ --",
         bahiKhataSeva: "📖 બહી-ખાતા સેવા",
         onlyTrusteesCanAdoptNewDesks: "ફક્ત ટ્રસ્ટીઓ જ આ સંસ્થા માટે નવા ડેસ્ક અપનાવી શકે છે.",
+        thisWeekNet: "આ સપ્તાહનો ચોખ્ખો",
         startDateIsAfterEndDate: "શરૂઆત તારીખ અંતિમ તારીખ પછી છે — તારીખ ફિલ્ટર અવગણાયું.",
       },
       ashram: {

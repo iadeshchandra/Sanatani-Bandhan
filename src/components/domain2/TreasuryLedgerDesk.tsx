@@ -460,6 +460,67 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
     };
   }, [allLedgerRecords, collectionWindows.treasury.windowed, treasuryExactTotals]);
 
+  // Clean Dashboard D3 — the Day Band's three day/week sums (NEW
+  // COMPUTATIONS, spec §3.3): Collections Today, Expenses Today and
+  // This Week Net over the desk's own ledger records, using the Day
+  // Band day-filter pattern (D1, Role Home): the record's ISO day
+  // ((tx.date || '').slice(0, 10)) against the local calendar day;
+  // the week is the last 7 days including today. Practice rows never
+  // count (the desk's totals law, as in financialKPIs above). Unlike
+  // the headline KPIs these sums have no server exact-totals rescue,
+  // so in windowed mode the band cards carry the honesty pill — a
+  // windowed sum is never presented as exact.
+  const dayFigures = useMemo(() => {
+    const ymd = (d: Date) => {
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${m}-${day}`;
+    };
+    const today = ymd(new Date());
+    const weekStartDate = new Date();
+    weekStartDate.setDate(weekStartDate.getDate() - 6);
+    const weekStart = ymd(weekStartDate);
+    let collectionsToday = 0;
+    let collectionsTodayCount = 0;
+    let expensesToday = 0;
+    let expensesTodayCount = 0;
+    let weekIncome = 0;
+    let weekExpense = 0;
+    let weekEntries = 0;
+    for (const tx of allLedgerRecords) {
+      if (tx.isPractice) continue;
+      const day = (tx.date || '').slice(0, 10);
+      const amount = Number(tx.amount || 0);
+      if (day === today) {
+        if (tx.type === 'Income') {
+          collectionsToday += amount;
+          collectionsTodayCount += 1;
+        } else if (tx.type === 'Expense') {
+          expensesToday += amount;
+          expensesTodayCount += 1;
+        }
+      }
+      if (day >= weekStart && day <= today) {
+        if (tx.type === 'Income') {
+          weekIncome += amount;
+          weekEntries += 1;
+        } else if (tx.type === 'Expense') {
+          weekExpense += amount;
+          weekEntries += 1;
+        }
+      }
+    }
+    return {
+      collectionsToday,
+      collectionsTodayCount,
+      expensesToday,
+      expensesTodayCount,
+      weekNet: weekIncome - weekExpense,
+      weekEntries,
+    };
+  }, [allLedgerRecords]);
+  const bandWindowed = collectionWindows.treasury.windowed;
+
   // Fund Segregation Breakdown (Restricted vs. Unrestricted)
   const fundBreakdown = useMemo(() => {
     const map = new Map<string, { fund: FundDefinition; income: number; expense: number; net: number }>();
@@ -872,12 +933,17 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             this device; its real state, in the user's language. */}
         <OfflineSevakStatus variant="bar" />
         {/* Top Header — E3 (DE-01): the dark-brown gradient band retires;
-            the desk hero is the shared sanctum DeskHero. Chips, title,
-            subtitle and every toolbar action carry over unchanged. */}
+            the desk hero is the shared sanctum DeskHero. Clean Dashboard
+            D3 slimming (spec §3.3): the marketing paragraph leaves the
+            hero (it belongs on the public page, not in a working desk);
+            title + chips stay, and the toolbar collapses to New Voucher
+            + Bahi-Khata Seva + More actions — POS Chanda, Audit Trail
+            and Print Statement move into the More menu below, handlers
+            and labels unchanged. */}
+        <div className="relative">
         <DeskHero
           titleAs="h2"
           title={t('org.finance.treasury.treasuryFundBalanceSheet')}
-          subtitle={t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')}
           chips={
             <>
               <Chip tone="emerald">
@@ -927,55 +993,9 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
             </button>
             )}
 
-            {/* Quick Chanda Button (If parent passed callback) */}
-            {onOpenQuickPay && (
-              <button
-                type="button"
-                onClick={onOpenQuickPay}
-                className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer min-h-[44px]"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{t('org.finance.treasury.posChanda')}</span>
-              </button>
-            )}
-
-            {/* Pillar 4 — Audit Trail: the 10-second "where did my money go?" view */}
-            <button
-              type="button"
-              onClick={() => setShowAuditTrail((v) => !v)}
-              aria-expanded={showAuditTrail}
-              className={`px-3.5 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px] ${
-                showAuditTrail
-                  ? 'bg-emerald-100 border-emerald-500 text-emerald-900'
-                  : 'bg-white hover:bg-emerald-50 border-emerald-300 text-emerald-800 hover:text-emerald-900'
-              }`}
-              title={safeTranslate(
-                'treasury_audit_trail_title',
-                'Open the tamper-evident audit trail — every rupee\u2019s journey',
-                'টেম্পার-প্রমাণ অডিট ট্রেইল খুলুন — প্রতিটি টাকার যাত্রা',
-                'छेड़छाड़-रहित ऑडिट ट्रेल खोलें — हर रुपये की यात्रा'
-              )}
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>
-                {showAuditTrail
-                  ? safeTranslate('treasury_close_audit_trail', 'Close Audit Trail', 'অডিট ট্রেইল বন্ধ করুন', 'ऑडिट ट्रेल बंद करें')
-                  : safeTranslate('treasury_audit_trail', 'Audit Trail', 'অডিট ট্রেইল', 'ऑडिट ट्रेल')}
-              </span>
-            </button>
-
-            {/* Statement PDF */}
-            <button
-              type="button"
-              onClick={handleExportPDF}
-              className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-amber-700 hover:text-amber-800 text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer min-h-[44px]"
-              title={t('org.finance.treasury.printAuditedStatementPdf')}
-            >
-              <Printer className="w-4 h-4 text-amber-600" />
-              <span>{t('org.finance.treasury.printStatementPdf')}</span>
-            </button>
-
-            {/* Overflow — secondary actions (F-TREAS-1: ≤4 visible) */}
+            {/* Overflow — secondary actions (F-TREAS-1: ≤4 visible).
+                Clean Dashboard D3: POS Chanda, Audit Trail and Print
+                Statement live in this menu now (first three items). */}
             <div className="relative">
               <button
                 type="button"
@@ -987,90 +1007,152 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 <ChevronDown className={`w-4 h-4 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
                 <span>{safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}</span>
               </button>
-              {showMoreActions && (
-                <>
-                  <button
-                    type="button"
-                    aria-hidden
-                    tabIndex={-1}
-                    onClick={() => setShowMoreActions(false)}
-                    className="fixed inset-0 z-40 cursor-default bg-transparent"
-                  />
-                  <div
-                    role="menu"
-                    aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
-                    className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-2xl"
-                  >
-                    {/* Hundi & Golak Dual Audit Desk — direct navigation once it is
-                        in the org's working set; until then an in-context
-                        cross-link card that opens it (and adopts it). */}
-                    {onNavigate &&
-                      (isModuleAvailable('hundi-audit') ? (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={() => { setShowMoreActions(false); onNavigate('hundi-audit'); }}
-                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
-                          title={t('org.finance.treasury.openHundiGolakDualcustodyVaultCountingDe')}
-                        >
-                          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                          <span>{t('org.finance.treasury.hundiVaultDesk')}</span>
-                        </button>
-                      ) : (
-                        <div className="px-1.5 py-1">
-                          <ModuleUpsellCard moduleId="hundi-audit" compact onOpen={handleOpenSuggestion} />
-                        </div>
-                      ))}
-
-                    {/* Tally CSV Export */}
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => { setShowMoreActions(false); handleExportTallyCSV(); }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-peacock-800 hover:bg-peacock-100/40 transition-colors cursor-pointer"
-                      title={t('org.finance.treasury.downloadFormattedColumnarCsvForTallyPrim')}
-                    >
-                      <FileSpreadsheet className="w-4 h-4 text-peacock-600 shrink-0" />
-                      <span>{t('org.finance.treasury.exportToTallyCsv')}</span>
-                    </button>
-
-                    {/* Standard CSV */}
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => { setShowMoreActions(false); handleExportStandardCSV(); }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-temple-700 hover:bg-stone-100 transition-colors cursor-pointer"
-                      title={t('org.finance.treasury.exportAllRowsToCsv')}
-                    >
-                      <Download className="w-4 h-4 shrink-0" />
-                      <span>{t('org.finance.treasury.fullCsv')}</span>
-                    </button>
-
-                    {/* P2P Request Ledger — trustee/accountant only */}
-                    {canViewOrgLedger(myOrgRole) && (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => { setShowMoreActions(false); setP2pLedgerOpen(true); }}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-teal-800 hover:bg-teal-50 transition-colors cursor-pointer"
-                        title={safeTranslate(
-                          'treasury_p2p_title',
-                          'Open the organisation\u2019s P2P money-request ledger',
-                          'সংগঠনের P2P অর্থ-অনুরোধ খতিয়ান খুলুন',
-                          'संगठन का P2P धन-अनुरोध खाता खोलें'
-                        )}
-                      >
-                        <Receipt className="w-4 h-4 text-teal-600 shrink-0" />
-                        <span>{safeTranslate('treasury_p2p_requests', 'P2P Requests', 'P2P অনুরোধ', 'P2P अनुरोध')}</span>
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
             </div>
             </>
           }
         />
+
+          {/* D3 repair (found in verification): the More menu used
+              to render INSIDE DeskHero, whose root clips overflow
+              (overflow-hidden) — every item past the first was cut
+              off and unclickable (pre-existing in the hero-actions
+              mount; the D3 collapse routes three more actions into
+              this menu, so it must work). The menu now mounts as
+              the hero wrapper's child — same block, same handlers,
+              same classes; it drops from the hero's bottom-right,
+              clear of the clipping ancestor. */}
+          {showMoreActions && (
+            <>
+              <button
+                type="button"
+                aria-hidden
+                tabIndex={-1}
+                onClick={() => setShowMoreActions(false)}
+                className="fixed inset-0 z-40 cursor-default bg-transparent"
+              />
+              <div
+                role="menu"
+                aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
+                className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-2xl"
+              >
+                {/* Quick Chanda (POS) — D3: moved from the hero toolbar;
+                    same parent callback, same render condition. */}
+                {onOpenQuickPay && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setShowMoreActions(false); onOpenQuickPay(); }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{t('org.finance.treasury.posChanda')}</span>
+                  </button>
+                )}
+
+                {/* Pillar 4 — Audit Trail toggle — D3: moved from the hero
+                    toolbar; same state, dynamic label, title and
+                    aria-expanded. */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setShowMoreActions(false); setShowAuditTrail((v) => !v); }}
+                  aria-expanded={showAuditTrail}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer"
+                  title={safeTranslate(
+                    'treasury_audit_trail_title',
+                    'Open the tamper-evident audit trail — every rupee\u2019s journey',
+                    'টেম্পার-প্রমাণ অডিট ট্রেইল খুলুন — প্রতিটি টাকার যাত্রা',
+                    'छेड़छाड़-रहित ऑडिट ट्रेल खोलें — हर रुपये की यात्रा'
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    {showAuditTrail
+                      ? safeTranslate('treasury_close_audit_trail', 'Close Audit Trail', 'অডিট ট্রেইল বন্ধ করুন', 'ऑडिट ट्रेल बंद करें')
+                      : safeTranslate('treasury_audit_trail', 'Audit Trail', 'অডিট ট্রেইল', 'ऑडिट ट्रेल')}
+                  </span>
+                </button>
+
+                {/* Statement PDF — D3: moved from the hero toolbar;
+                    same export handler and title. */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setShowMoreActions(false); handleExportPDF(); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
+                  title={t('org.finance.treasury.printAuditedStatementPdf')}
+                >
+                  <Printer className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>{t('org.finance.treasury.printStatementPdf')}</span>
+                </button>
+
+                {/* Hundi & Golak Dual Audit Desk — direct navigation once it is
+                    in the org's working set; until then an in-context
+                    cross-link card that opens it (and adopts it). */}
+                {onNavigate &&
+                  (isModuleAvailable('hundi-audit') ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => { setShowMoreActions(false); onNavigate('hundi-audit'); }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
+                      title={t('org.finance.treasury.openHundiGolakDualcustodyVaultCountingDe')}
+                    >
+                      <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>{t('org.finance.treasury.hundiVaultDesk')}</span>
+                    </button>
+                  ) : (
+                    <div className="px-1.5 py-1">
+                      <ModuleUpsellCard moduleId="hundi-audit" compact onOpen={handleOpenSuggestion} />
+                    </div>
+                  ))}
+
+                {/* Tally CSV Export */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setShowMoreActions(false); handleExportTallyCSV(); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-peacock-800 hover:bg-peacock-100/40 transition-colors cursor-pointer"
+                  title={t('org.finance.treasury.downloadFormattedColumnarCsvForTallyPrim')}
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-peacock-600 shrink-0" />
+                  <span>{t('org.finance.treasury.exportToTallyCsv')}</span>
+                </button>
+
+                {/* Standard CSV */}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setShowMoreActions(false); handleExportStandardCSV(); }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-temple-700 hover:bg-stone-100 transition-colors cursor-pointer"
+                  title={t('org.finance.treasury.exportAllRowsToCsv')}
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>{t('org.finance.treasury.fullCsv')}</span>
+                </button>
+
+                {/* P2P Request Ledger — trustee/accountant only */}
+                {canViewOrgLedger(myOrgRole) && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setShowMoreActions(false); setP2pLedgerOpen(true); }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 min-h-[44px] text-left text-xs font-bold text-teal-800 hover:bg-teal-50 transition-colors cursor-pointer"
+                    title={safeTranslate(
+                      'treasury_p2p_title',
+                      'Open the organisation\u2019s P2P money-request ledger',
+                      'সংগঠনের P2P অর্থ-অনুরোধ খতিয়ান খুলুন',
+                      'संगठन का P2P धन-अनुरोध खाता खोलें'
+                    )}
+                  >
+                    <Receipt className="w-4 h-4 text-teal-600 shrink-0" />
+                    <span>{safeTranslate('treasury_p2p_requests', 'P2P Requests', 'P2P অনুরোধ', 'P2P अनुरोध')}</span>
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Pillar 4 — Audit Trail (trustee/accountant-only; devotees see the Transparency tab inside) */}
         {showAuditTrail && (
@@ -1101,23 +1183,88 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
         )}
 
-        {/* Hero — one big calm number (F-TREAS-1, spec §1: premium = one big
-            calm number, not three competing ones). Inflow/outflow are demoted
-            to the quiet secondary row below. */}
+        {/* Zone B — the Day Band (Clean Dashboard D3, spec §3.3): four
+            glance cards directly under the hero. The F-TREAS-1 hero
+            figure block retires — its Net Available figure becomes
+            card 1 with the computation unchanged (financialKPIs, exact
+            totals under windowing) and its reconciled sub-line kept;
+            cards 2–4 are the day/week sums (dayFigures above). Card
+            anatomy per spec §2.1 in the D1 band's class vocabulary;
+            figures render through the desk's own fmtAmount path with
+            tabular digits (.tnum). The day/week cards carry the
+            windowed-honesty pill when the loaded window is partial —
+            those sums have no exact-totals rescue. */}
         <WindowedNotice collection="treasury" variant="totals" loaded={allLedgerRecords.length} className="mb-4" />
-        <div className="rounded-3xl border border-brass-200 sanctum-header lamplight p-6 sm:p-8 text-center shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-center gap-2 text-brass-600">
-            <ShieldCheck className="w-5 h-5 text-brass-500" />
-            <span className="text-xs font-black uppercase tracking-[0.2em]">
-              {t('org.finance.treasury.netAvailableTreasury')}
-            </span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 anim-stagger">
+          <div
+            style={{ '--i': 0 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('org.finance.treasury.netAvailableTreasury')}</span>
+            <div className="flex items-end justify-between mt-1">
+              <span className="text-2xl font-black text-temple-900 tnum">{fmtAmount(financialKPIs.netBalance)}</span>
+            </div>
+            <p className="text-[10px] text-temple-600 mt-1">
+              {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
+            </p>
           </div>
-          <p className="mt-3 text-4xl sm:text-5xl font-black text-temple-900 tracking-tight">
-            {fmtAmount(financialKPIs.netBalance)}
-          </p>
-          <p className="mt-2 text-[11px] text-temple-500">
-            {t('org.finance.treasury.reconciledAcrossBankCashUpiLedgers')}
-          </p>
+          <div
+            style={{ '--i': 1 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.collectionsToday')}</span>
+            <div className="flex items-end justify-between mt-1 gap-2">
+              <span className="text-2xl font-black text-temple-900 tnum">{fmtAmount(dayFigures.collectionsToday)}</span>
+              <span className="flex flex-col items-end gap-1 shrink-0">
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                  {dayFigures.collectionsTodayCount} entries
+                </span>
+                {bandWindowed && (
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                    {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+          <div
+            style={{ '--i': 2 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.roleHome.expensesToday')}</span>
+            <div className="flex items-end justify-between mt-1 gap-2">
+              <span className="text-2xl font-black text-temple-900 tnum">{fmtAmount(dayFigures.expensesToday)}</span>
+              <span className="flex flex-col items-end gap-1 shrink-0">
+                <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">
+                  {dayFigures.expensesTodayCount} entries
+                </span>
+                {bandWindowed && (
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                    {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+          <div
+            style={{ '--i': 3 } as React.CSSProperties}
+            className="bg-white p-4 rounded-xl shadow-sm border border-temple-200"
+          >
+            <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{t('surfaces.treasury.thisWeekNet')}</span>
+            <div className="flex items-end justify-between mt-1 gap-2">
+              <span className="text-2xl font-black text-temple-900 tnum">{fmtAmount(dayFigures.weekNet)}</span>
+              <span className="flex flex-col items-end gap-1 shrink-0">
+                <span className="text-[10px] text-temple-600 font-bold bg-temple-100 px-1.5 py-0.5 rounded">
+                  {dayFigures.weekEntries} entries · 7 days
+                </span>
+                {bandWindowed && (
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded">
+                    {safeTranslate('kpi_treasury_partial', 'Loaded window only', 'শুধু লোড করা অংশ', 'केवल लोड किया भाग')}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Blueprint B — maker–checker queue (renders only when
@@ -1153,55 +1300,11 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
           </div>
         </div>
 
-        {/* FUND SEGREGATION: Restricted vs. Unrestricted Funds */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-lg space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-amber-700" />
-              <div>
-                <h3 className="text-sm font-bold text-temple-900">
-                  {t('org.finance.treasury.trustFundSegregationRestrictedVsUnrestri')}
-                </h3>
-                <p className="text-[11px] text-temple-600">
-                  {t('org.finance.treasury.statutoryAdherenceToDonorMandatesUnderTh')}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
-                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.unrestrictedCorpus')}</span>
-                <span className="font-bold text-amber-700">
-                  {fmtAmount(fundBreakdown.unrestrictedNet)}
-                </span>
-              </div>
-              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
-                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.restrictedEarmarked')}</span>
-                <span className="font-bold text-emerald-600">
-                  {fmtAmount(fundBreakdown.restrictedNet)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Fund Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            {fundBreakdown.funds.map((entry) => (
-              <FundCard
-                key={entry.fund.id}
-                fund={entry.fund}
-                income={entry.income}
-                expense={entry.expense}
-                net={entry.net}
-                isSelected={selectedFundId === entry.fund.id}
-                onSelect={setSelectedFundId}
-                formatAmount={fmtAmount}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* TREASURY FLOW ANALYTICS — 8-month Income vs Expense + Trust-fund income mix */}
+        {/* TREASURY FLOW ANALYTICS — 8-month Income vs Expense + Trust-fund income mix.
+            Clean Dashboard D3 (Zone C promotion, spec §3.3): this section
+            moves to directly under the stat cards (band + all-time
+            inflow/outflow row), above Fund Segregation — same components,
+            same data, new position only. */}
         {!loading &&
           (allLedgerRecords.length === 0 ? (
             <EmptyState
@@ -1316,6 +1419,54 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
               </div>
             </div>
           ))}
+
+        {/* FUND SEGREGATION: Restricted vs. Unrestricted Funds */}
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-lg space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-amber-700" />
+              <div>
+                <h3 className="text-sm font-bold text-temple-900">
+                  {t('org.finance.treasury.trustFundSegregationRestrictedVsUnrestri')}
+                </h3>
+                <p className="text-[11px] text-temple-600">
+                  {t('org.finance.treasury.statutoryAdherenceToDonorMandatesUnderTh')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-mono">
+              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
+                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.unrestrictedCorpus')}</span>
+                <span className="font-bold text-amber-700">
+                  {fmtAmount(fundBreakdown.unrestrictedNet)}
+                </span>
+              </div>
+              <div className="px-3 py-1 rounded-lg bg-sanctum-sandal border border-brass-200">
+                <span className="text-temple-600 mr-1.5">{t('org.finance.treasury.restrictedEarmarked')}</span>
+                <span className="font-bold text-emerald-600">
+                  {fmtAmount(fundBreakdown.restrictedNet)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Fund Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            {fundBreakdown.funds.map((entry) => (
+              <FundCard
+                key={entry.fund.id}
+                fund={entry.fund}
+                income={entry.income}
+                expense={entry.expense}
+                net={entry.net}
+                isSelected={selectedFundId === entry.fund.id}
+                onSelect={setSelectedFundId}
+                formatAmount={fmtAmount}
+              />
+            ))}
+          </div>
+        </div>
 
         {/* Filters & Search Toolbar */}
         <div className="bg-white border border-stone-200 p-4 rounded-2xl shadow-md space-y-3">

@@ -438,6 +438,7 @@ export const core: CoreFragment = {
         startDateIsAfterEndDate: "प्रारंभ तिथि समाप्ति तिथि के बाद है — तिथि फ़िल्टर अनदेखा किया गया।",
         allLedgerHeads: "-- सभी लेजर हेड --",
         onlyTrusteesCanAdoptNewDesks: "केवल ट्रस्टी ही इस संगठन के लिए नए डेस्क अपना सकते हैं।",
+        thisWeekNet: "इस सप्ताह का शुद्ध",
       },
           portalLogin: {
         touchSensor: "टच सेंसर",

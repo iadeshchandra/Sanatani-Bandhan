@@ -907,6 +907,7 @@ export const core: CoreFragment = {
         startDateIsAfterEndDate: "ആരംഭ തീയതി അവസാന തീയതിക്ക് ശേഷമാണ് — തീയതി ഫിൽട്ടർ അവഗണിച്ചു.",
         allLedgerHeads: "-- എല്ലാ ലെഡ്ജർ ഇനങ്ങളും --",
         onlyTrusteesCanAdoptNewDesks: "ഈ സ്ഥാപനത്തിനായി പുതിയ ഡെസ്കുകൾ സ്വീകരിക്കാൻ ട്രസ്റ്റിമാർക്ക് മാത്രമേ കഴിയൂ.",
+        thisWeekNet: "ഈ ആഴ്ചയിലെ നെറ്റ്",
       },
       portalLogin: {
         touchSensor: "ടച്ച് സെൻസർ",

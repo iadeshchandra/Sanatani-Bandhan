@@ -58,9 +58,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // Clean Dashboard D1 adds 4 surfaces.roleHome keys (expensesToday,
     // yesterdayAmount, awaitingYourDecision, standbyBookingsCount);
     // Clean Dashboard D2 adds 1 surfaces.roleHome key
+    // Clean Dashboard D3 adds 1 surfaces.treasury key (thisWeekNet)
     // (collectionsLast7Days — the Week Shape caption)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(479);
+    expect(keysOf(en).length).toBe(480);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

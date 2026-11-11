@@ -438,6 +438,7 @@ export const core: CoreFragment = {
         startDateIsAfterEndDate: "Start date is after end date — date filter ignored.",
         allLedgerHeads: "-- All Ledger Heads --",
         onlyTrusteesCanAdoptNewDesks: "Only Trustees can adopt new desks for this organisation.",
+        thisWeekNet: "This Week Net",
       },
           portalLogin: {
         touchSensor: "Touch Sensor",

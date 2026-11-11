@@ -99,7 +99,12 @@ describe('D-05 desk wiring', () => {
     expect(treasury).toContain("t('org.finance.treasury.treasuryFundBalanceSheet')");
     expect(treasury).toContain("t('org.finance.treasury.doubleentryTreasuryLedger')");
     expect(treasury).toContain("t('org.finance.treasury.charitableTrustAccountingStandard')");
-    expect(treasury).toContain("t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')");
+    // Clean Dashboard D3 (spec §3.3): the hero's marketing-paragraph
+    // subtitle is deleted from the desk — it belongs on the public
+    // page, not in a working desk. The pin flips to hold its ABSENCE,
+    // so the paragraph cannot quietly return; the dictionary key
+    // itself stays (the key-presence pin above is unchanged).
+    expect(treasury).not.toContain("t('org.finance.treasury.auditedDoubleentryLedgerWithRestrictedVs')");
     expect(treasury).not.toContain('>Treasury & Fund Balance Sheet<');
     expect(treasury).not.toContain('Trust Fund Segregation (Restricted vs. Unrestricted)');
     expect(treasury).toContain("t('org.finance.treasury.trustFundSegregationRestrictedVsUnrestri')");

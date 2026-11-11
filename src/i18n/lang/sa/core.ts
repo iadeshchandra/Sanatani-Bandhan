@@ -907,6 +907,7 @@ export const core: CoreFragment = {
         startDateIsAfterEndDate: "आरम्भदिनाङ्कः समाप्तिदिनाङ्कात् परम् — दिनाङ्कच्छानकम् उपेक्षितम्।",
         allLedgerHeads: "-- सर्वाणि पञ्जिकाशीर्षाणि --",
         onlyTrusteesCanAdoptNewDesks: "केवलं न्यासिनः एव अस्यै संस्थायै नवीनान् डेस्कान् स्वीकार्तुम् अर्हन्ति।",
+        thisWeekNet: "अस्य सप्ताहस्य शुद्धम्",
       },
       portalLogin: {
         touchSensor: "स्पर्शसंवेदकम्",
