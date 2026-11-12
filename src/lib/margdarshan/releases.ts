@@ -63,6 +63,53 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.12-d0d6678',
+    date: '2026-11-12',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "A Day Band on your organisation's home: today's collections — with yesterday's figure resting quietly beneath — the net treasury fund, and everything awaiting your decision, all in one glance just under the greeting. The daily shloka now sits just below the band, and morning darshan still opens the page.",
+            hi: "आपकी संस्था के मुखपृष्ठ पर अब एक डे बैंड है: आज का संग्रह — कल का आँकड़ा शांति से उसके नीचे — शुद्ध कोषागार राशि, और आपके निर्णय की प्रतीक्षा में सब कुछ, अभिवादन के ठीक नीचे एक ही नज़र में। दैनिक श्लोक अब बैंड के ठीक नीचे है, और पृष्ठ अब भी प्रातः दर्शन से ही खुलता है।",
+            bn: "আপনার প্রতিষ্ঠানের হোমে এখন একটি ডে ব্যান্ড: আজকের সংগ্রহ — গতকালের অঙ্ক শান্তভাবে তার নিচে — নিট কোষাগার তহবিল, আর আপনার সিদ্ধান্তের অপেক্ষায় থাকা সবকিছু, শুভেচ্ছার ঠিক নিচে এক নজরে। দৈনিক শ্লোক এখন ব্যান্ডের ঠিক নিচে, আর পৃষ্ঠা এখনও প্রাতঃদর্শন দিয়েই খোলে।",
+          },
+        },
+        {
+          text: {
+            en: "A gentle Week Shape beneath the band — seven small bars showing the last seven days of collections, so the week's rhythm is visible at a glance. Accountants see income and expenses standing together.",
+            hi: "बैंड के नीचे एक सौम्य सप्ताह-आकार — सात छोटे स्तंभ पिछले सात दिनों का संग्रह दिखाते हैं, ताकि सप्ताह की लय एक नज़र में दिखे। लेखाकारों को आय और व्यय साथ-साथ दिखते हैं।",
+            bn: "ব্যান্ডের নিচে একটি কোমল সপ্তাহ-আকৃতি — সাতটি ছোট স্তম্ভ গত সাত দিনের সংগ্রহ দেখায়, যাতে সপ্তাহের ছন্দ এক নজরে দেখা যায়। হিসাবরক্ষকরা আয় ও ব্যয় পাশাপাশি দেখেন।",
+          },
+        },
+        {
+          text: {
+            en: "BahiKhata now greets you with its queue at a glance: drafts in progress, registers awaiting your review, and everything committed to the books — counted honestly, before a single row becomes money.",
+            hi: "बहिखाता अब अपनी कतार एक नज़र में दिखाता है: चल रहे ड्राफ़्ट, आपकी समीक्षा की प्रतीक्षा में रजिस्टर, और खातों में दर्ज सब कुछ — ईमानदारी से गिना हुआ, एक भी पंक्ति के धन बनने से पहले।",
+            bn: "বহিখাতা এখন তার সারি এক নজরে দেখায়: চলমান খসড়া, আপনার পর্যালোচনার অপেক্ষায় থাকা রেজিস্টার, আর খাতায় তোলা সবকিছু — সততার সঙ্গে গোনা, একটি সারিও অর্থ হয়ে ওঠার আগে।",
+          },
+        },
+      ],
+      improved: [
+        {
+          text: {
+            en: "The Treasury desk now opens with its figures, not a paragraph: net available, today's collections and expenses, and this week's net stand at the head of the desk, with the charts moved up to sit with them.",
+            hi: "कोषागार डेस्क अब परिचय से नहीं, आँकड़ों से खुलता है: उपलब्ध शुद्ध राशि, आज का संग्रह और व्यय, और इस सप्ताह का शुद्ध — सब डेस्क के शीर्ष पर हैं, और चार्ट भी ऊपर आकर उनके साथ बैठ गए हैं।",
+            bn: "কোষাগার ডেস্ক এখন ভূমিকা দিয়ে নয়, অঙ্ক দিয়ে খোলে: প্রাপ্য নিট অর্থ, আজকের সংগ্রহ ও ব্যয়, আর এই সপ্তাহের নিট — সব ডেস্কের মাথায়, আর চার্টগুলোও উপরে উঠে তাদের পাশে বসেছে।",
+          },
+        },
+      ],
+      fixed: [
+        {
+          text: {
+            en: "The Treasury desk's More menu could hide its own lower items behind the desk's frame, leaving them untappable. The menu now drops clear of the frame — every action in it can be reached and tapped, including Audit Trail and Print.",
+            hi: "कोषागार डेस्क का 'अधिक' मेनू अपने ही निचले विकल्पों को डेस्क के फ़्रेम के पीछे छिपा देता था, जिससे वे छुए नहीं जा सकते थे। मेनू अब फ़्रेम के बाहर खुलकर आता है — ऑडिट ट्रेल और प्रिंट समेत उसका हर विकल्प अब पहुँचा और छुआ जा सकता है।",
+            bn: "কোষাগার ডেস্কের 'আরও' মেনু তার নিজের নিচের বিকল্পগুলোকে ডেস্কের ফ্রেমের আড়ালে লুকিয়ে ফেলত, ফলে সেগুলো ছোঁয়া যেত না। মেনু এখন ফ্রেমের বাইরে খোলে — অডিট ট্রেইল ও প্রিন্টসহ তার প্রতিটি বিকল্প এখন পৌঁছানো ও ছোঁয়া যায়।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.08-295f970',
     date: '2026-11-08',
     sections: {
