@@ -39,6 +39,13 @@ export const BK: Dict = {
   voiceBatchLabel: { en: 'Dan khata — voice entry', bn: 'দান খাতা — কণ্ঠ এন্ট্রি', hi: 'दान खाता — वाणी प्रविष्टि' },
   myBatches: { en: 'Batches', bn: 'ব্যাচসমূহ', hi: 'बैच' },
   awaitingReview: { en: 'Waiting for your review', bn: 'আপনার যাচাইয়ের অপেক্ষায়', hi: 'आपकी जाँच की प्रतीक्षा में' },
+  /* ---- Clean Dashboard D4: the queue strip (counts only, never money) ---- */
+  stripAwaiting: { en: 'Awaiting review', bn: 'যাচাইয়ের অপেক্ষায়', hi: 'जाँच की प्रतीक्षा में' },
+  stripRowsWaiting: { en: '{count} rows waiting', bn: '{count}টি সারি অপেক্ষায়', hi: '{count} पंक्तियाँ प्रतीक्षा में' },
+  stripDrafts: { en: 'Drafts in progress', bn: 'খসড়া চলছে', hi: 'मसौदे चल रहे हैं' },
+  stripRowsDraft: { en: '{count} rows so far', bn: '{count}টি সারি এখন পর্যন্ত', hi: '{count} पंक्तियाँ अब तक' },
+  stripCommitted: { en: 'Committed (all time)', bn: 'সম্পন্ন (সর্বমোট)', hi: 'पूर्ण (सर्वकालिक)' },
+  stripRowsEntered: { en: '{count} rows entered the books', bn: '{count}টি সারি হিসাবে গেছে', hi: '{count} पंक्तियाँ बही में दर्ज' },
   noBatches: { en: 'No batches yet. Start one above — the paper book is safe: nothing becomes real until approval.', bn: 'এখনো কোনো ব্যাচ নেই। উপরে একটি শুরু করুন — কাগজের খাতাই নিরাপদ: অনুমোদনের আগে কিছুই চূড়ান্ত নয়।', hi: 'अभी कोई बैच नहीं। ऊपर से एक शुरू करें — कागज़ की बही सुरक्षित है: स्वीकृति से पहले कुछ भी अंतिम नहीं।' },
   stateDraft: { en: 'Draft', bn: 'খসড়া', hi: 'मसौदा' },
   statePending: { en: 'Waiting for approval', bn: 'অনুমোদনের অপেক্ষায়', hi: 'स्वीकृति की प्रतीक्षा' },

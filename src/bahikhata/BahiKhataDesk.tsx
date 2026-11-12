@@ -19,7 +19,7 @@ import { createManifestRecorder, manifestHasWrites } from './commitManifest';
 import { checkUndoGuards, executeUndo, type UndoResult } from './undo';
 import { isClosedVocabField } from './scan/corrections';
 import { learnPair, noteFieldOutcome } from './scan/registerProfile';
-import { phoneKey } from './normalize';
+import { displayDigits, phoneKey } from './normalize';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -365,6 +365,25 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
   );
   const visibleBatches = myBatches.filter((b) => offered.includes(b.target));
 
+  /* Clean Dashboard D4 — the queue strip's counts (spec §3.4): pure
+   * counts over the batches this door actually shows (the offered
+   * targets). The spec's "submitted" is this lifecycle's `pending`
+   * state (the submit transition lands there). NO money, ever: a
+   * batch's rows become treasury records only at commit, so a
+   * pre-commit sum here would double-count against the Treasury
+   * desk (spec §5). Committed rows = Σ commitSummary.added — the
+   * records each commit actually entered. */
+  const queue = { awaiting: 0, awaitingRows: 0, drafts: 0, draftRows: 0, committed: 0, committedRows: 0 };
+  for (const b of visibleBatches) {
+    if (b.state === 'pending') { queue.awaiting += 1; queue.awaitingRows += b.rows.length; }
+    else if (b.state === 'draft') { queue.drafts += 1; queue.draftRows += b.rows.length; }
+    else if (b.state === 'committed') { queue.committed += 1; queue.committedRows += b.commitSummary?.added ?? 0; }
+  }
+  const queueCard = 'bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-stone-200';
+  const queueLabel = 'block text-[10px] font-bold text-stone-500 uppercase tracking-widest';
+  const queueFigure = (n: number) => `text-2xl font-black tnum ${n > 0 ? 'text-stone-900' : 'text-stone-400'}`;
+  const queueSub = 'text-[10px] text-stone-500 mt-1';
+
   const modeCard =
     'flex items-center gap-3 w-full text-left min-h-[64px] px-4 py-3 rounded-2xl border-2 font-black text-base transition';
 
@@ -375,6 +394,37 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
           <BookOpen className="w-7 h-7" /> {bk(lang, 'doorTitle')}
         </h2>
         <p className="text-sm text-amber-100/90 mt-1 max-w-2xl leading-relaxed">{bk(lang, 'doorSub')}</p>
+      </div>
+
+      {/* Clean Dashboard D4 — the queue strip (spec §3.4): the desk's
+          glance, in the D1 Day Band anatomy (label / tabular figure /
+          plain sub-line), at the head of the home view above "What
+          are you entering?". Glance-only cards: the desk has no
+          filtered batch-list view, so no navigation is invented for
+          them — the sections below remain the working surface. Zero
+          counts render quiet stone (F-DASH-5: no alarm on zeros). */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className={queueCard}>
+          <span className={queueLabel}>{bk(lang, 'stripAwaiting')}</span>
+          <div className="mt-1">
+            <span className={queueFigure(queue.awaiting)}>{displayDigits(queue.awaiting, lang)}</span>
+          </div>
+          <p className={queueSub}>{bk(lang, 'stripRowsWaiting', { count: displayDigits(queue.awaitingRows, lang) })}</p>
+        </div>
+        <div className={queueCard}>
+          <span className={queueLabel}>{bk(lang, 'stripDrafts')}</span>
+          <div className="mt-1">
+            <span className={queueFigure(queue.drafts)}>{displayDigits(queue.drafts, lang)}</span>
+          </div>
+          <p className={queueSub}>{bk(lang, 'stripRowsDraft', { count: displayDigits(queue.draftRows, lang) })}</p>
+        </div>
+        <div className={queueCard}>
+          <span className={queueLabel}>{bk(lang, 'stripCommitted')}</span>
+          <div className="mt-1">
+            <span className={queueFigure(queue.committed)}>{displayDigits(queue.committed, lang)}</span>
+          </div>
+          <p className={queueSub}>{bk(lang, 'stripRowsEntered', { count: displayDigits(queue.committedRows, lang) })}</p>
+        </div>
       </div>
 
       {canEnter && (
