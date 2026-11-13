@@ -60,8 +60,14 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // Clean Dashboard D2 adds 1 surfaces.roleHome key
     // Clean Dashboard D3 adds 1 surfaces.treasury key (thisWeekNet)
     // (collectionsLast7Days — the Week Shape caption)
+    // Clean Dashboard D6 adds 17 surfaces.roleHome keys (the Priest +
+    // Sevadar Day Bands: nextPuja, standby, devoteesToday,
+    // completedCount, allDoneForToday, awaitingConfirmation,
+    // expectedToday, myShifts, onTeamRoster, teamToday,
+    // sevadarsOnRoster, present, checkedInSoFar, myStatus, notYet,
+    // sevaRecorded, checkInBelow)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(480);
+    expect(keysOf(en).length).toBe(497);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

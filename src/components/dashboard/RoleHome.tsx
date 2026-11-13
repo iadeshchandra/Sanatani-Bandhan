@@ -38,7 +38,7 @@ import { useToast } from '../../context/ToastContext';
 import { CountUp } from '../common/ui/CountUp';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { isModuleAllowed, workspaceRegistry } from '../../lib/workspaceRegistry';
-import { ROLE_MIGRATION_MAP, type UserRole } from '../../types';
+import { ROLE_MIGRATION_MAP, type PoojaBooking, type SevadarDutyShift, type UserRole } from '../../types';
 import { getRecommendations, localizeText } from '../../suggestions/recommend';
 import { getUpcomingFestival } from '../../suggestions/festivals';
 import { getModuleCopy } from '../../suggestions/moduleCopy';
@@ -1008,6 +1008,141 @@ const statusTone: Record<string, string> = {
   Cancelled: 'bg-rose-50 text-rose-600 border border-rose-200',
 };
 
+/* ------------------------------------------------------------------ */
+/* GlanceBandCard — Clean Dashboard D6: the Day Band card anatomy in  */
+/* its glance-only form. Trustee (D1) and Accountant (D1) band cards  */
+/* navigate; the Priest and Sevadar bands only LOOK — the homes' own  */
+/* buttons below keep their jobs — so this card carries no onClick,   */
+/* no cursor, no hover state, and adds zero interactive elements.     */
+/* Every surface class is one the Day Band already uses (bg-white,    */
+/* border-temple-200, temple-600 label, temple-900 figure), so the    */
+/* Sandhya remap layer in index.css already covers them all.          */
+/* ------------------------------------------------------------------ */
+
+const GlanceBandCard: React.FC<{
+  index: number;
+  label: string;
+  figure: React.ReactNode;
+  sub?: string;
+}> = ({ index, label, figure, sub }) => (
+  <div
+    style={{ '--i': index } as React.CSSProperties}
+    className="bg-white p-4 rounded-xl shadow-sm border border-temple-200"
+  >
+    <span className="text-[10px] font-bold text-temple-600 uppercase tracking-widest">{label}</span>
+    <div className="flex items-end justify-between mt-1">
+      <span className="text-2xl font-black text-temple-900 tnum">{figure}</span>
+    </div>
+    {sub != null && <p className="text-[10px] text-temple-600 mt-1 truncate">{sub}</p>}
+  </div>
+);
+
+/* ------------------------------------------------------------------ */
+/* PriestDayBand — Clean Dashboard D6: the Day Band grammar at the    */
+/* head of PriestHome, completing the set Trustee (D1) and            */
+/* Accountant (D1) opened. Four glance cards over the SAME            */
+/* todaysBookings array (and the same nextBooking) the home already   */
+/* computes — no second filter, no new data. Counting rule, stated    */
+/* for honesty: Cancelled bookings count NOWHERE in this band — a     */
+/* cancelled puja is not part of today. Card 1's figure is therefore  */
+/* the non-Cancelled total, and its sub-line says how many of those   */
+/* stand completed.                                                   */
+/* ------------------------------------------------------------------ */
+
+export const PriestDayBand: React.FC<{
+  todaysBookings: PoojaBooking[];
+  nextBooking?: PoojaBooking;
+}> = ({ todaysBookings, nextBooking }) => {
+  const { t } = useLanguage();
+  const active = todaysBookings.filter((b) => b.status !== 'Cancelled');
+  const completedCount = active.filter((b) => b.status === 'Completed').length;
+  const standbyCount = active.filter((b) => b.status === 'Standby').length;
+  const devoteeCount = new Set(active.map((b) => b.devoteeName)).size;
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 shrink-0 anim-stagger">
+      <GlanceBandCard
+        index={0}
+        label={t('surfaces.roleHome.todaySPujas')}
+        figure={<CountUp value={active.length} />}
+        sub={t('surfaces.roleHome.completedCount').replace('{count}', String(completedCount))}
+      />
+      <GlanceBandCard
+        index={1}
+        label={t('surfaces.roleHome.nextPuja')}
+        figure={nextBooking?.timeSlot || '—'}
+        sub={nextBooking ? nextBooking.poojaName : t('surfaces.roleHome.allDoneForToday')}
+      />
+      <GlanceBandCard
+        index={2}
+        label={t('surfaces.roleHome.standby')}
+        figure={<CountUp value={standbyCount} />}
+        sub={t('surfaces.roleHome.awaitingConfirmation')}
+      />
+      <GlanceBandCard
+        index={3}
+        label={t('surfaces.roleHome.devoteesToday')}
+        figure={<CountUp value={devoteeCount} />}
+        sub={t('surfaces.roleHome.expectedToday')}
+      />
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* SevadarDayBand — Clean Dashboard D6: the same grammar at the head  */
+/* of SevadarHome, over the todaysShifts / myShifts values the home   */
+/* already computes. Card 1 counts MY shifts; when I have none, its   */
+/* sub-line honestly reports the team roster size instead of letting  */
+/* a borrowed number wear my name. Card 4 is a word, not a number —   */
+/* my own attendance state — and shiftTiming text is shown verbatim,  */
+/* never parsed into invented times.                                  */
+/* ------------------------------------------------------------------ */
+
+export const SevadarDayBand: React.FC<{
+  todaysShifts: SevadarDutyShift[];
+  myShifts: SevadarDutyShift[];
+}> = ({ todaysShifts, myShifts }) => {
+  const { t } = useLanguage();
+  const teamCount = new Set(todaysShifts.map((s) => s.sevadarName)).size;
+  const presentCount = todaysShifts.filter((s) => s.attended).length;
+  const iAmPresent = myShifts.some((s) => s.attended);
+  const firstMine = myShifts[0];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 shrink-0 anim-stagger">
+      <GlanceBandCard
+        index={0}
+        label={t('surfaces.roleHome.myShifts')}
+        figure={<CountUp value={myShifts.length} />}
+        sub={
+          firstMine
+            ? `${firstMine.role} · ${firstMine.shiftTiming}`
+            : t('surfaces.roleHome.onTeamRoster').replace('{count}', String(todaysShifts.length))
+        }
+      />
+      <GlanceBandCard
+        index={1}
+        label={t('surfaces.roleHome.teamToday')}
+        figure={<CountUp value={todaysShifts.length} />}
+        sub={t('surfaces.roleHome.sevadarsOnRoster').replace('{count}', String(teamCount))}
+      />
+      <GlanceBandCard
+        index={2}
+        label={t('surfaces.roleHome.present')}
+        figure={<CountUp value={presentCount} />}
+        sub={t('surfaces.roleHome.checkedInSoFar')}
+      />
+      <GlanceBandCard
+        index={3}
+        label={t('surfaces.roleHome.myStatus')}
+        figure={iAmPresent ? t('surfaces.roleHome.present') : t('surfaces.roleHome.notYet')}
+        sub={iAmPresent ? t('surfaces.roleHome.sevaRecorded') : t('surfaces.roleHome.checkInBelow')}
+      />
+    </div>
+  );
+};
+
 export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
   const { t } = useLanguage();
   const { poojaBookings, updatePoojaStatus } = useData();
@@ -1030,6 +1165,9 @@ export const PriestHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onN
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Clean Dashboard D6: the Priest Day Band opens the surface,
+          above the Today's Pujas title — glance only. */}
+      <PriestDayBand todaysBookings={todaysBookings} nextBooking={nextBooking} />
       <RoleSectionTitle icon={Flame} title={t('surfaces.roleHome.todaySPujas')} hint={`${todaysBookings.length} booking${todaysBookings.length === 1 ? '' : 's'}`} />
 
       {nextBooking ? (
@@ -1524,6 +1662,9 @@ export const SevadarHome: React.FC<{ onNavigate: (id: string) => void }> = ({ on
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Clean Dashboard D6: the Sevadar Day Band opens the surface,
+          above the check-in button — glance only. */}
+      <SevadarDayBand todaysShifts={todaysShifts} myShifts={myShifts} />
       <RoleSectionTitle icon={ClipboardList} title={t('surfaces.roleHome.mySevaToday')} hint={today} />
 
       <button
