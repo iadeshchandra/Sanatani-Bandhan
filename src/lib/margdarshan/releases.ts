@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.13-20ef885',
+    date: '2026-11-13',
+    sections: {
+      new: [
+        {
+          text: {
+            en: "Every role now opens with its day at a glance: the Priest's home begins with today's pujas, the next puja, those on standby, and the devotees expected — and the Sevadar's home begins with their shifts, the team today, who has checked in, and their own status. The same calm band that trustees and accountants received earlier this week now completes the set, so nobody starts their morning by hunting.",
+            hi: "अब हर भूमिका का दिन एक नज़र में खुलता है: पुरोहित का मुखपृष्ठ आज की पूजाओं, अगली पूजा, प्रतीक्षा-सूची और अपेक्षित भक्तों से शुरू होता है — और सेवादार का मुखपृष्ठ उनकी पाली, आज की टीम, उपस्थिति और उनकी अपनी स्थिति से। वही शांत बैंड, जो इस सप्ताह संरक्षकों और लेखाकारों को मिला था, अब सबके लिए पूर्ण हो गया है — अब किसी को अपनी सुबह खोजने से शुरू नहीं करनी पड़ती।",
+            bn: "এখন প্রতিটি ভূমিকার দিন এক নজরে খোলে: পুরোহিতের হোম শুরু হয় আজকের পূজা, পরের পূজা, অপেক্ষমাণ তালিকা আর প্রত্যাশিত ভক্তদের দিয়ে — আর সেবাদারের হোম শুরু হয় তাঁর পালা, আজকের দল, উপস্থিতি আর নিজের অবস্থা দিয়ে। এই সপ্তাহে ট্রাস্টি ও হিসাবরক্ষকরা যে শান্ত ব্যান্ডটি পেয়েছিলেন, তা এখন সবার জন্য সম্পূর্ণ — আর কাউকে সকালটা খোঁজাখুঁজি দিয়ে শুরু করতে হয় না।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.12-d0d6678',
     date: '2026-11-12',
     sections: {
