@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
+import { Money } from '../common/Money';
 import {
   Boxes,
   Scroll,
@@ -818,7 +819,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 <ChefHat className="w-3.5 h-3.5 text-amber-400" />
                 Domain 4 • Supply Chain & Temple Bhandar Command
               </span>
-              <span className="text-xs text-stone-400 font-mono">
+              <span className="text-xs text-stone-400 tnum">
                 Storefront: <span className="text-amber-200 font-bold">{activeWorkspace?.name || 'Sri Mandir Bhandar'}</span>
               </span>
             </div>
@@ -828,7 +829,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
             </h1>
 
             <p className="text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
-              Enterprise inventory control with mathematical stock reservation (<code className="text-amber-300 font-mono">{t('surfaces.smartBhandar.availablePhysicalCommitted')}</code>), automated WhatsApp purchase order dispatch, and 1-click GRN reconciliation with Central Treasury Ledger.
+              Enterprise inventory control with mathematical stock reservation (<code className="text-amber-300">{t('surfaces.smartBhandar.availablePhysicalCommitted')}</code>), automated WhatsApp purchase order dispatch, and 1-click GRN reconciliation with Central Treasury Ledger.
             </p>
           </div>
 
@@ -1050,7 +1051,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                               {item.sanskritName}
                             </span>
                           )}
-                          <span className="text-[10px] text-stone-500 font-mono block mt-0.5">
+                          <span className="text-[10px] text-stone-500 block mt-0.5">
                             📍 {item.storageLocation}
                           </span>
                         </td>
@@ -1063,35 +1064,35 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                         </td>
 
                         {/* Unit */}
-                        <td className="py-3.5 px-4 text-center font-mono text-stone-300">
+                        <td className="py-3.5 px-4 text-center tnum text-stone-300">
                           {item.unit}
                         </td>
 
                         {/* Physical Stock */}
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-stone-200">
+                        <td className="py-3.5 px-4 text-right tnum font-bold text-stone-200">
                           {item.physicalStock.toLocaleString('en-IN')}
                         </td>
 
                         {/* Committed Stock */}
-                        <td className="py-3.5 px-4 text-right font-mono text-amber-400 font-bold">
+                        <td className="py-3.5 px-4 text-right tnum text-amber-400 font-bold">
                           {item.committedStock.toLocaleString('en-IN')}
                         </td>
 
                         {/* Available Stock */}
-                        <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
+                        <td className="py-3.5 px-4 text-right tnum font-black text-sm">
                           <span className={isDeficit ? 'text-rose-400' : isLow ? 'text-amber-300' : 'text-emerald-400'}>
                             {available.toLocaleString('en-IN')}
                           </span>
                         </td>
 
                         {/* Reorder Threshold */}
-                        <td className="py-3.5 px-4 text-right font-mono text-stone-400">
+                        <td className="py-3.5 px-4 text-right tnum text-stone-400">
                           {item.reorderThreshold}
                         </td>
 
                         {/* Unit Cost */}
-                        <td className="py-3.5 px-4 text-right font-mono text-stone-300">
-                          {inr(item.unitCost)}
+                        <td className="py-3.5 px-4 text-right text-stone-300">
+                          <Money value={inr(item.unitCost)} />
                         </td>
 
                         {/* Status Flag */}
@@ -1192,7 +1193,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-300 border border-amber-500/30">
                       {recipe.type.replace('_', ' ')}
                     </span>
-                    <span className="text-[11px] text-stone-400 font-mono font-bold">
+                    <span className="text-[11px] text-stone-400 tnum font-bold">
                       Base: {recipe.baseUnitLabel}
                     </span>
                   </div>
@@ -1218,7 +1219,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                           <div key={idx} className="flex items-center justify-between text-xs">
                             <span className="text-stone-300 truncate max-w-[170px]">{ing.itemName}</span>
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-amber-300 font-bold">
+                              <span className="tnum text-amber-300 font-bold">
                                 {ing.quantityPerUnit} {ing.unit}
                               </span>
                               <span
@@ -1307,7 +1308,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                         {/* PO No */}
                         <td className="py-3.5 px-4">
                           <div className="font-mono font-bold text-white text-sm">{po.poNumber}</div>
-                          <span className="text-[10px] text-stone-400 font-mono">{po.date}</span>
+                          <span className="text-[10px] text-stone-400 tnum">{po.date}</span>
                         </td>
 
                         {/* Vendor */}
@@ -1328,12 +1329,12 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                         </td>
 
                         {/* Total Amount */}
-                        <td className="py-3.5 px-4 text-right font-mono font-black text-amber-300 text-sm">
-                          {inr(po.totalAmount)}
+                        <td className="py-3.5 px-4 text-right font-black text-amber-300 text-sm">
+                          <Money value={inr(po.totalAmount)} />
                         </td>
 
                         {/* Expected Delivery */}
-                        <td className="py-3.5 px-4 text-stone-300 font-mono">
+                        <td className="py-3.5 px-4 text-stone-300 tnum">
                           {po.expectedDeliveryDate}
                         </td>
 
@@ -1384,7 +1385,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                             )}
 
                             {isFulfilled && (
-                              <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                              <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 Stock Inwarded
                               </span>
@@ -1416,7 +1417,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <p className="text-stone-300 leading-relaxed">
                 When a Goods Receipt Note (GRN) is accepted, the system simultaneously updates two operational databases in real time:
                 (1) <strong>{t('surfaces.smartBhandar.physicalStockBalance')}</strong> in the Bhandar Vault is incremented by the verified quantity, and
-                (2) An <strong>{t('surfaces.smartBhandar.expenseLedgerEntry')}</strong>{' '}{t('surfaces.smartBhandar.isAutomaticallyPostedToTheCentral')}<code className="text-amber-300 font-mono">{t('surfaces.smartBhandar.bhandarRationProcurement')}</code>), eliminating manual accountant reconciliation.
+                (2) An <strong>{t('surfaces.smartBhandar.expenseLedgerEntry')}</strong>{' '}{t('surfaces.smartBhandar.isAutomaticallyPostedToTheCentral')}<code className="text-amber-300">{t('surfaces.smartBhandar.bhandarRationProcurement')}</code>), eliminating manual accountant reconciliation.
               </p>
             </div>
           </div>
@@ -1428,7 +1429,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 <Receipt className="w-4 h-4 text-emerald-400" />
                 <span>{t('surfaces.smartBhandar.historicalGrnTreasuryInwardRegister')}</span>
               </h3>
-              <span className="text-xs text-stone-400 font-mono">
+              <span className="text-xs text-stone-400 tnum">
                 {grns.length} Verified Inwards
               </span>
             </div>
@@ -1457,7 +1458,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                       </td>
 
                       {/* Date */}
-                      <td className="py-3.5 px-4 font-mono text-stone-300">
+                      <td className="py-3.5 px-4 tnum text-stone-300">
                         {grn.receivedDate}
                       </td>
 
@@ -1473,8 +1474,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                       </td>
 
                       {/* Value */}
-                      <td className="py-3.5 px-4 text-right font-mono font-black text-amber-300 text-sm">
-                        {inr(grn.totalAmount)}
+                      <td className="py-3.5 px-4 text-right font-black text-amber-300 text-sm">
+                        <Money value={inr(grn.totalAmount)} />
                       </td>
 
                       {/* Quality */}
@@ -1534,7 +1535,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 <h3 className="text-lg font-black text-white mt-1">
                   Inward Supplies for {selectedPOForGRN.poNumber}
                 </h3>
-                <span className="text-xs text-stone-400 font-mono">
+                <span className="text-xs text-stone-400 tnum">
                   Vendor: <strong className="text-amber-200">{selectedPOForGRN.vendorName}</strong>
                 </span>
               </div>
@@ -1556,8 +1557,8 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 {selectedPOForGRN.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
                     <span className="text-white font-medium">{it.itemName}</span>
-                    <span className="font-mono text-amber-300 font-bold">
-                      {it.quantity} {it.unit} ({inr(it.totalCost)})
+                    <span className="tnum text-amber-300 font-bold">
+                      {it.quantity} {it.unit} (<Money value={inr(it.totalCost)} />)
                     </span>
                   </div>
                 ))}
@@ -1576,7 +1577,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   name="challanNo"
                   defaultValue={`CH-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`}
                   required
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -1653,7 +1654,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     min={1}
                     value={scaleMultiplier}
                     onChange={(e) => setScaleMultiplier(Math.max(1, Number(e.target.value) || 1))}
-                    className="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono text-base font-bold focus:outline-none focus:border-amber-500"
+                    className="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum text-base font-bold focus:outline-none focus:border-amber-500"
                   />
                   <span className="text-stone-400 font-bold">
                     = {scaleMultiplier * selectedBOMForScaling.baseBatchSize} Units ({selectedBOMForScaling.baseUnitLabel})
@@ -1685,13 +1686,13 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                       >
                         <div>
                           <span className="text-white font-bold block">{ing.itemName}</span>
-                          <span className="text-[10px] text-stone-400 font-mono">
+                          <span className="text-[10px] text-stone-400 tnum">
                             Available: {available.toFixed(1)} {ing.unit} | Needed: {totalNeeded.toFixed(1)} {ing.unit}
                           </span>
                         </div>
 
                         <div className="text-right">
-                          <span className="font-mono font-black text-amber-300 block">
+                          <span className="tnum font-black text-amber-300 block">
                             {totalNeeded.toFixed(1)} {ing.unit}
                           </span>
                           <span
@@ -1740,7 +1741,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-400">{t('surfaces.smartBhandar.stockAdjustment')}</span>
                 <h3 className="text-base font-black text-white mt-0.5">{adjustItem.name}</h3>
-                <span className="text-xs text-stone-400 font-mono">Current Physical: {adjustItem.physicalStock} {adjustItem.unit}</span>
+                <span className="text-xs text-stone-400 tnum">Current Physical: {adjustItem.physicalStock} {adjustItem.unit}</span>
               </div>
               <button
                 type="button"
@@ -1782,7 +1783,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                   value={adjustAmount || ''}
                   onChange={(e) => setAdjustAmount(Number(e.target.value))}
                   placeholder={`Amount in ${adjustItem.unit}`}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                 />
               </div>
 
@@ -1922,7 +1923,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     type="number"
                     name="physicalStock"
                     defaultValue={10}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -1931,7 +1932,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     type="number"
                     name="reorder"
                     defaultValue={15}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -1940,7 +1941,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     type="number"
                     name="unitCost"
                     defaultValue={250}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -2026,7 +2027,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                 {viewingGRNVoucher.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between text-xs">
                     <span className="text-stone-300">{it.itemName} ({it.receivedQty} {it.unit})</span>
-                    <span className="font-mono text-amber-300 font-bold">{inr(it.subtotal)}</span>
+                    <span className="text-amber-300 font-bold"><Money value={inr(it.subtotal)} /></span>
                   </div>
                 ))}
               </div>
@@ -2158,7 +2159,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     min={1}
                     defaultValue={10}
                     required
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -2274,7 +2275,7 @@ _Bhandar & Rasoi Desk - Sanatani Bandhan ERP_`;
                     type="number"
                     name="baseBatchSize"
                     defaultValue={1}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>

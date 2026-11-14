@@ -43,10 +43,9 @@ import { PurohitProvider } from '../context/PurohitContext';
 import { PostRequirement } from '../components/purohit/PostRequirement';
 import type { AuthorInfo } from '../sangam/sangamStore';
 import { friendlyErrorText } from '../lib/friendlyError';
+import { Button, Segmented } from '../components/common/ui';
 
 const inputCls = 'w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-amber-500';
-const btnP = 'px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-amber-500 text-stone-950 hover:bg-amber-400 disabled:opacity-40';
-const btnG = 'px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-stone-100 text-stone-600';
 const Empty: React.FC<{ text: string }> = ({ text }) => <p className="text-xs text-stone-500 py-8 text-center">{text}</p>;
 
 const statusColor: Record<string, string> = {
@@ -207,7 +206,7 @@ export const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => voi
 
   return (
     <div className="space-y-3">
-      <button type="button" onClick={onBack} className={btnG}><ChevronLeft className="w-4 h-4 inline" /> {mkt(L, 'bkBack')}</button>
+      <Button variant="secondary" onClick={onBack}><ChevronLeft className="w-4 h-4 inline" /> {mkt(L, 'bkBack')}</Button>
       <div className="bg-white rounded-2xl border border-stone-200 p-4">
         <p className="text-sm font-black text-stone-900">{gig.title}</p>
         <p className="text-xs text-stone-500">{gig.providerName} · {gig.durationMinutes} min</p>
@@ -254,14 +253,16 @@ export const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => voi
         </div>
         {payPath === 'now' && (<>
         <p className="text-[11px] text-amber-800 mt-2">{payHint}</p>
-        <div className="flex gap-1.5 mt-2">
-          {(['BD', 'IN', 'INTL'] as const).map((r) => (
-            <button key={r} type="button" onClick={() => setRegion(r)}
-              className={`px-3 py-2 rounded-lg text-[11px] font-black min-h-[44px] ${region === r ? 'bg-amber-500 text-stone-950' : 'bg-white border border-amber-200 text-amber-800'}`}>
-              {r === 'BD' ? mkt(L, 'bkRegionBD') : r === 'IN' ? mkt(L, 'bkRegionIN') : mkt(L, 'bkRegionINTL')}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          className="mt-2 w-fit max-w-full"
+          ariaLabel={mkt(L, 'bkStep2')}
+          options={(['BD', 'IN', 'INTL'] as const).map((r) => ({
+            id: r,
+            label: r === 'BD' ? mkt(L, 'bkRegionBD') : r === 'IN' ? mkt(L, 'bkRegionIN') : mkt(L, 'bkRegionINTL'),
+          }))}
+          value={region}
+          onChange={(id) => setRegion(id as PayRegion)}
+        />
         </>)}
       </div>
       {payPath === 'now' && (
@@ -276,9 +277,9 @@ export const BookGig: React.FC<{ gig: Gig; onDone: () => void; onBack: () => voi
           <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className={inputCls} /></label>
         <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkNotesLabel')}
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className={inputCls} rows={2} maxLength={500} placeholder={mkt(L, 'bkNotesPh')} /></label>
-        <button type="button" disabled={working} onClick={submit} className={`${btnP} w-full`}>
+        <Button disabled={working} onClick={submit} className="w-full">
           {working ? mkt(L, 'bkSubmitting') : <><CheckCircle2 className="w-4 h-4 inline mr-1" /> {mkt(L, 'takeSankalp')}</>}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -412,15 +413,15 @@ const MyBookings: React.FC<{
                 : L === 'bn'
                 ? `এই সেবা সম্পূর্ণ করতে ${formatMoney(Number((o as any).commissionAmount || 0), o.currency)} সেবা অবদান অর্পণ করুন।`
                 : `इस सेवा को पूर्ण करने के लिए ${formatMoney(Number((o as any).commissionAmount || 0), o.currency)} सेवा योगदान अर्पित करें।`}</p>
-              <button type="button" onClick={() => setCommissionFor(o)} className={`${btnP} w-full mt-2`}>{L === 'en' ? 'Offer contribution' : L === 'bn' ? 'অবদান অর্পণ করুন' : 'योगदान अर्पित करें'}</button>
+              <Button onClick={() => setCommissionFor(o)} className="w-full mt-2">{L === 'en' ? 'Offer contribution' : L === 'bn' ? 'অবদান অর্পণ করুন' : 'योगदान अर्पित करें'}</Button>
             </div>
           )}
           <div className="flex gap-2 mt-2">
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => confirmDone(o)} className={`${btnP} flex-1`}>{mkt(L, 'bkConfirmCompletion')}</button>
+              <Button onClick={() => confirmDone(o)} className="flex-1">{mkt(L, 'bkConfirmCompletion')}</Button>
             )}
             {['paid', 'accepted', 'in_progress'].includes(o.status) && (
-              <button type="button" onClick={() => setDisputeFor(o.id as string)} className={btnG}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{mkt(L, 'bkDispute')}</button>
+              <Button variant="secondary" onClick={() => setDisputeFor(o.id as string)}><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{mkt(L, 'bkDispute')}</Button>
             )}
           </div>
           {gratitudeFor && gratitudeFor.id === o.id && (
@@ -435,16 +436,16 @@ const MyBookings: React.FC<{
               today's dakshina. Eligibility is pure (lib/rebook.ts):
               completed + cancelled orders with a faithful target. */}
           {rebookEligibility(o as any).eligible && goneFor !== o.id && (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               disabled={rebookBusy === o.id}
               onClick={() => handleRebook(o)}
-              className="w-full mt-3 min-h-[48px] rounded-xl border border-amber-300 bg-amber-50 text-sm font-black text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+              className="w-full mt-3 min-h-[48px]"
             >
               {rebookBusy === o.id
                 ? (L === 'en' ? 'Checking…' : L === 'bn' ? 'যাচাই চলছে…' : 'जाँच हो रही है…')
                 : (L === 'en' ? '🙏 Book this seva again' : L === 'bn' ? '🙏 এই সেবাটি আবার বুক করুন' : '🙏 यह सेवा फिर से बुक करें')}
-            </button>
+            </Button>
           )}
           {goneFor === o.id && (
             <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
@@ -452,17 +453,17 @@ const MyBookings: React.FC<{
                 <>
                   <p className="text-[11px] font-black text-amber-900">{L === 'en' ? '🕯️ This seva notice is no longer active' : L === 'bn' ? '🕯️ এই সেবা বিজ্ঞপ্তিটি আর সক্রিয় নেই' : '🕯️ यह सेवा सूचना अब सक्रिय नहीं है'}</p>
                   <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en' ? 'The notice this booking came from has been withdrawn — but the sevak may offer other sevas.' : L === 'bn' ? 'যে বিজ্ঞপ্তি থেকে এই বুকিং হয়েছিল তা সরিয়ে নেওয়া হয়েছে — তবে সেবক অন্য সেবা দিতে পারেন।' : 'जिस सूचना से यह बुकिंग हुई थी वह हटा ली गई है — पर सेवक अन्य सेवाएँ दे सकते हैं।'}</p>
-                  <button type="button" onClick={() => navigate(`/seva/pro/${o.providerUid}`)} className={`${btnP} w-full mt-2`}>
+                  <Button onClick={() => navigate(`/seva/pro/${o.providerUid}`)} className="w-full mt-2">
                     {L === 'en' ? `See what ${((o as any).sevaBazar?.providerName as string) || 'the sevak'} offers now →` : L === 'bn' ? 'সেবক এখন যা দিচ্ছেন দেখুন →' : 'सेवक अब क्या दे रहे हैं देखें →'}
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
                   <p className="text-[11px] font-black text-amber-900">{L === 'en' ? '🕯️ This seva is no longer offered' : L === 'bn' ? '🕯️ এই সেবাটি আর দেওয়া হচ্ছে না' : '🕯️ यह सेवा अब नहीं दी जाती'}</p>
                   <p className="text-[10px] text-amber-800 mt-0.5">{L === 'en' ? 'The sevak has withdrawn this offering. Similar sevas from other sevaks await in the bazar.' : L === 'bn' ? 'সেবক এই সেবাটি সরিয়ে নিয়েছেন। বাজারে অন্য সেবকদের অনুরূপ সেবা রয়েছে।' : 'सेवक ने यह सेवा हटा ली है। बाज़ार में अन्य सेवकों की समान सेवाएँ हैं।'}</p>
-                  <button type="button" onClick={() => onBrowseSimilar(o.providerType === 'jyotishi' ? 'jyotishi' : 'purohit')} className={`${btnP} w-full mt-2`}>
+                  <Button onClick={() => onBrowseSimilar(o.providerType === 'jyotishi' ? 'jyotishi' : 'purohit')} className="w-full mt-2">
                     {L === 'en' ? 'See similar sevas →' : L === 'bn' ? 'অনুরূপ সেবা দেখুন →' : 'समान सेवाएँ देखें →'}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -497,8 +498,8 @@ const MyBookings: React.FC<{
               <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkReason')}<input value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls} maxLength={120} placeholder={mkt(L, 'bkReasonPh')} /></label>
               <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'bkDetails')}<textarea value={details} onChange={(e) => setDetails(e.target.value)} className={inputCls} rows={3} maxLength={2000} /></label>
               <div className="flex gap-2">
-                <button type="button" onClick={raise} className={`${btnP} flex-1`}>{mkt(L, 'bkSubmitDispute')}</button>
-                <button type="button" onClick={() => setDisputeFor(null)} className={`${btnG} flex-1`}>{mkt(L, 'bkCancel')}</button>
+                <Button onClick={raise} className="flex-1">{mkt(L, 'bkSubmitDispute')}</Button>
+                <Button variant="secondary" onClick={() => setDisputeFor(null)} className="flex-1">{mkt(L, 'bkCancel')}</Button>
               </div>
             </div>
           </div>
@@ -590,10 +591,13 @@ export const ClientMarketplace: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5 items-center">
-        {([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`], ['post', '📝 Post Requirement']] as const).map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setView(id)}
-            className={`flex-1 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-black ${view === id ? 'bg-amber-500 text-stone-950' : 'bg-white border border-stone-200 text-stone-600'}`}>{label}</button>
-        ))}
+        <Segmented
+          className="flex-1"
+          ariaLabel={mkt(L, 'browseSevas')}
+          options={([['browse', `🔍 ${mkt(L, 'browseSevas')}`], ['bookings', `📋 ${mkt(L, 'sevaBookings')}`], ['post', '📝 Post Requirement']] as const).map(([id, label]) => ({ id, label }))}
+          value={view}
+          onChange={(id) => setView(id as typeof view)}
+        />
         <GuideButton moduleId="marketplace" />
       </div>
       {/* PP-09 (E6): the 'post' view below carries the devotee requirement
@@ -652,13 +656,13 @@ export const ClientMarketplace: React.FC = () => {
                   <div className="text-4xl mb-3" aria-hidden>🪔</div>
                   <p className="text-sm font-bold text-stone-700">{mkt(L, 'marketEmptyTitle')}</p>
                   <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">{mkt(L, 'marketEmptySub')}</p>
-                  <button
-                    type="button"
+                  <Button
+                    size="lg"
                     onClick={() => { setQ(''); setCat('all'); setPtype('all'); }}
-                    className="mt-4 min-h-[48px] px-6 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm font-black shadow-sm"
+                    className="mt-4"
                   >
                     {mkt(L, 'browseAllSevas')}
-                  </button>
+                  </Button>
                 </div>
               )}
               {filtered.map((g) => <GigCard key={g.id} gig={g} onOpen={() => setDetailGig(g)} />)}

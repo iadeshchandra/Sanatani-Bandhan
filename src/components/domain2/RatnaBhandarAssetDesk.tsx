@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useInr, useWorkspaceCurrency } from '../../hooks/useWorkspaceInr';
+import { Money } from '../common/Money';
 import {
   Sparkles,
   ShieldCheck,
@@ -760,14 +761,14 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
                   RATNA BHANDAR VAULT • DUAL CUSTODY
                 </span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   STRONG ROOM SECURE • TRUSTEE VERIFIED
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-amber-100 tracking-tight mt-1 flex items-center gap-2">
                 <span>{t('org.finance.ratnaBhandar.ratnaBhandarSacredAssetDesk')}</span>
-                <span className="text-xs font-normal text-amber-400/80 font-mono hidden sm:inline">(रत्नभाण्डागारम्)</span>
+                <span className="text-xs font-normal text-amber-400/80 hidden sm:inline">(रत्नभाण्डागारम्)</span>
               </h1>
               <p className="text-xs text-stone-400 mt-0.5">
                 Custody of Consecrated Deity Crowns, Sacred Vigrahas & Bullion • Physical Weighing & Trustee PIN Verification
@@ -824,7 +825,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             >
               <Sparkles className="w-4 h-4" />
               <span>{t('org.finance.ratnaBhandar.sacredAssetsVaultGrid')}</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-stone-950/40 text-[10px] text-stone-900 font-mono font-bold">
+              <span className="px-1.5 py-0.2 rounded-full bg-stone-950/40 text-[10px] text-stone-900 tnum font-bold">
                 {assets.length}
               </span>
             </button>
@@ -840,18 +841,18 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
             >
               <History className="w-4 h-4" />
               <span>{t('org.finance.ratnaBhandar.physicalAuditRegisterLogs')}</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-stone-800 text-[10px] text-amber-300 font-mono">
+              <span className="px-1.5 py-0.2 rounded-full bg-stone-800 text-[10px] text-amber-300 tnum">
                 {auditLogs.length}
               </span>
             </button>
           </div>
 
           <div className="text-xs text-stone-400 flex items-center gap-2">
-            <span className="text-[11px] font-mono bg-stone-900 px-3 py-1 rounded-xl border border-stone-800">
-              Gold Ref Rate: <strong className="text-amber-300 font-bold">₹7,450/g (24K)</strong>
+            <span className="text-[11px] bg-stone-900 px-3 py-1 rounded-xl border border-stone-800">
+              Gold Ref Rate: <strong className="text-amber-300 font-bold"><Money value="₹7,450/g (24K)" /></strong>
             </span>
-            <span className="text-[11px] font-mono bg-stone-900 px-3 py-1 rounded-xl border border-stone-800">
-              Silver Ref: <strong className="text-slate-200 font-bold">₹94/g</strong>
+            <span className="text-[11px] bg-stone-900 px-3 py-1 rounded-xl border border-stone-800">
+              Silver Ref: <strong className="text-slate-200 font-bold"><Money value="₹94/g" /></strong>
             </span>
           </div>
         </div>
@@ -867,17 +868,17 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
               <Coins className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalGoldWeight')}</span>
-            <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            <span className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
               24K + 22K
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-amber-200 font-mono tracking-tight">
+            <span className="text-2xl sm:text-3xl font-black text-amber-200 tnum tracking-tight">
               {metrics.totalGoldKg.toFixed(3)}
             </span>
             <span className="text-sm font-bold text-amber-400">kg</span>
           </div>
-          <p className="text-[11px] text-stone-400 mt-1 font-mono">
+          <p className="text-[11px] text-stone-400 mt-1 tnum">
             {metrics.totalGoldGrams.toLocaleString('en-IN', { maximumFractionDigits: 1 })} grams net bullion
           </p>
         </div>
@@ -888,17 +889,17 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <Scale className="w-4 h-4 text-slate-300" />{t('org.finance.ratnaBhandar.totalSilverWeight')}</span>
-            <span className="text-[10px] font-mono text-slate-300 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-400/20">
+            <span className="text-[10px] text-slate-300 bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-400/20">
               925 Fine
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-slate-100 font-mono tracking-tight">
+            <span className="text-2xl sm:text-3xl font-black text-slate-100 tnum tracking-tight">
               {metrics.totalSilverKg.toFixed(3)}
             </span>
             <span className="text-sm font-bold text-slate-300">kg</span>
           </div>
-          <p className="text-[11px] text-stone-400 mt-1 font-mono">
+          <p className="text-[11px] text-stone-400 mt-1 tnum">
             {metrics.totalSilverGrams.toLocaleString('en-IN', { maximumFractionDigits: 1 })} grams pure silver
           </p>
         </div>
@@ -908,12 +909,12 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalSacredAssets')}</span>
-            <span className="text-[10px] font-mono text-stone-400 bg-stone-800 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-stone-400 bg-stone-800 px-2 py-0.5 rounded-full">
               Registered
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
+            <span className="text-2xl sm:text-3xl font-black text-white tnum tracking-tight">
               {metrics.totalAssetsCount}
             </span>
             <span className="text-sm font-bold text-stone-400">Items</span>
@@ -928,19 +929,19 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
               <Award className="w-4 h-4 text-amber-400" />{t('org.finance.ratnaBhandar.totalBullionValuation')}</span>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               CBDT Insured
             </span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xs font-bold text-amber-400 font-mono">{wsCurrency.symbol}</span>
-            <span className="text-2xl sm:text-3xl font-black text-amber-200 font-mono tracking-tight">
-              {(metrics.totalValuation / 10000000).toFixed(2)}
+            <span className="text-xs font-bold text-amber-400">{wsCurrency.symbol}</span>
+            <span className="text-2xl sm:text-3xl font-black text-amber-200 tnum tracking-tight">
+              <Money value={(metrics.totalValuation / 10000000).toFixed(2)} />
             </span>
             <span className="text-sm font-bold text-amber-300">Cr</span>
           </div>
-          <p className="text-[11px] text-stone-400 mt-1 font-mono">
-            {inr(metrics.totalValuation)} book value
+          <p className="text-[11px] text-stone-400 mt-1 tnum">
+            <Money value={inr(metrics.totalValuation)} /> book value
           </p>
         </div>
       </div>
@@ -1021,7 +1022,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               </div>
 
               {/* Result Count */}
-              <span className="text-[11px] text-stone-400 font-mono">
+              <span className="text-[11px] text-stone-400 tnum">
                 Showing <strong>{filteredAssets.length}</strong> of {assets.length} assets
               </span>
             </div>
@@ -1108,7 +1109,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                             <span className="text-[10px] font-bold text-stone-400 block uppercase tracking-wider">
                               Gross Weight
                             </span>
-                            <span className="text-base font-black text-amber-200 font-mono">
+                            <span className="text-base font-black text-amber-200 tnum">
                               {asset.grossWeightGrams.toFixed(2)}
                             </span>
                             <span className="text-[10px] text-stone-400 font-bold ml-1">g</span>
@@ -1117,7 +1118,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                             <span className="text-[10px] font-bold text-stone-400 block uppercase tracking-wider">
                               Net Metal ({asset.metalType})
                             </span>
-                            <span className="text-base font-black text-white font-mono">
+                            <span className="text-base font-black text-white tnum">
                               {asset.netMetalWeightGrams.toFixed(2)}
                             </span>
                             <span className="text-[10px] text-stone-400 font-bold ml-1">g</span>
@@ -1130,7 +1131,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                             Purity: <strong className="text-amber-300 font-bold">{asset.purityPercentage}%</strong> ({asset.metalType})
                           </span>
                           <span className="text-stone-400">
-                            Book Est: <strong className="text-emerald-400 font-mono font-bold">{inr(asset.approximateMarketValueINR)}</strong>
+                            Book Est: <strong className="text-emerald-400 font-bold"><Money value={inr(asset.approximateMarketValueINR)} /></strong>
                           </span>
                         </div>
 
@@ -1159,7 +1160,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                           </div>
 
                           {auditedToday && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
                               VERIFIED
                             </span>
                           )}
@@ -1247,7 +1248,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   <th className="py-3 px-4">{t('org.finance.ratnaBhandar.status')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-800/60 font-mono text-stone-300">
+              <tbody className="divide-y divide-stone-800/60 tnum text-stone-300">
                 {auditLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-stone-800/30 transition-colors">
                     <td className="py-3 px-4 whitespace-nowrap">
@@ -1321,11 +1322,11 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   <Scale className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.physicalWeighingAuditVerification')}</span>
+                  <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.physicalWeighingAuditVerification')}</span>
                   <h3 className="text-lg font-black text-white">
                     {auditTargetAsset.assetName}
                   </h3>
-                  <span className="text-xs font-mono text-stone-400">
+                  <span className="text-xs tnum text-stone-400">
                     Tag: {auditTargetAsset.tagNumber} • Location: {auditTargetAsset.currentLocation}
                   </span>
                 </div>
@@ -1353,9 +1354,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     required
                     value={auditGrossWeight}
                     onChange={(e) => setAuditGrossWeight(Number(e.target.value))}
-                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-base font-black text-amber-200 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-base font-black text-amber-200 tnum focus:outline-none focus:border-amber-500"
                   />
-                  <span className="text-[10px] text-stone-400 block mt-1 font-mono">
+                  <span className="text-[10px] text-stone-400 block mt-1 tnum">
                     Master Reg: {auditTargetAsset.grossWeightGrams.toFixed(2)}g
                   </span>
                 </div>
@@ -1370,9 +1371,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     required
                     value={auditNetWeight}
                     onChange={(e) => setAuditNetWeight(Number(e.target.value))}
-                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-base font-black text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-base font-black text-white tnum focus:outline-none focus:border-amber-500"
                   />
-                  <span className="text-[10px] text-stone-400 block mt-1 font-mono">
+                  <span className="text-[10px] text-stone-400 block mt-1 tnum">
                     Master Reg: {auditTargetAsset.netMetalWeightGrams.toFixed(2)}g
                   </span>
                 </div>
@@ -1382,7 +1383,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
               <div className="flex items-center justify-between text-xs px-2">
                 <span className="text-stone-400">Scale Variance:</span>
                 <span
-                  className={`font-mono font-bold ${
+                  className={`tnum font-bold ${
                     Math.abs(auditGrossWeight - auditTargetAsset.grossWeightGrams) <= 0.05
                       ? 'text-emerald-400'
                       : 'text-amber-400'
@@ -1417,7 +1418,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
                       <KeyRound className="w-3 h-3 text-amber-400" />{t('org.finance.ratnaBhandar.trusteeSecurityPin4digits')}</label>
-                    <span className="text-[10px] text-stone-500 font-mono">Default: 1008 or 1234</span>
+                    <span className="text-[10px] text-stone-500">Default: 1008 or 1234</span>
                   </div>
                   <div className="relative">
                     <input
@@ -1446,7 +1447,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     <Fingerprint className="w-4 h-4 text-emerald-400" />
                     Hardware Biometric Sign-off
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="text-[10px] text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     TouchID / FaceID
                   </span>
                 </div>
@@ -1514,7 +1515,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-lg w-full shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4 px-6 sm:px-7 pt-5 sm:pt-7 shrink-0">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.custodyTransferRelocation')}</span>
+                <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.custodyTransferRelocation')}</span>
                 <h3 className="text-lg font-black text-white">
                   Move {relocateTargetAsset.assetName}
                 </h3>
@@ -1619,7 +1620,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredBullionAssetRegistration')}</span>
+                <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredBullionAssetRegistration')}</span>
                 <h3 className="text-xl font-black text-white">{t('org.finance.ratnaBhandar.addNewSacredAsset')}</h3>
               </div>
               <button
@@ -1708,7 +1709,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     step="0.1"
                     value={newPurity}
                     onChange={(e) => setNewPurity(Number(e.target.value))}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -1726,7 +1727,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     placeholder="0.00"
                     value={newGrossGrams}
                     onChange={(e) => setNewGrossGrams(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-sm font-black text-amber-200 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-sm font-black text-amber-200 tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
@@ -1741,7 +1742,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     placeholder="0.00"
                     value={newNetGrams}
                     onChange={(e) => setNewNetGrams(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-sm font-black text-white font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-900 border border-stone-700 rounded-xl px-3 py-2 text-sm font-black text-white tnum focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
@@ -1796,7 +1797,7 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                     type="number"
                     value={newEstimatedValue}
                     onChange={(e) => setNewEstimatedValue(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs font-mono text-emerald-400 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs tnum text-emerald-400 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -1871,9 +1872,9 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
           <div className="bg-stone-900 border border-amber-500/40 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden max-w-xl w-full shadow-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-start justify-between gap-4 border-b border-stone-800 pb-4 px-6 sm:px-7 pt-5 sm:pt-7 shrink-0">
               <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredAssetDossier')}</span>
+                <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">{t('org.finance.ratnaBhandar.sacredAssetDossier')}</span>
                 <h3 className="text-xl font-black text-white">{inspectTargetAsset.assetName}</h3>
-                <span className="text-xs font-mono text-stone-400">Tag: {inspectTargetAsset.tagNumber}</span>
+                <span className="text-xs tnum text-stone-400">Tag: {inspectTargetAsset.tagNumber}</span>
               </div>
               <button
                 type="button"
@@ -1905,15 +1906,15 @@ export const RatnaBhandarAssetDesk: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Gross Weight</span>
-                  <span className="font-mono font-bold text-amber-200 text-sm">{inspectTargetAsset.grossWeightGrams.toFixed(2)}g</span>
+                  <span className="tnum font-bold text-amber-200 text-sm">{inspectTargetAsset.grossWeightGrams.toFixed(2)}g</span>
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Net Metal</span>
-                  <span className="font-mono font-bold text-white text-sm">{inspectTargetAsset.netMetalWeightGrams.toFixed(2)}g</span>
+                  <span className="tnum font-bold text-white text-sm">{inspectTargetAsset.netMetalWeightGrams.toFixed(2)}g</span>
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Book Valuation</span>
-                  <span className="font-mono font-bold text-emerald-400 text-sm">{inr(inspectTargetAsset.approximateMarketValueINR)}</span>
+                  <span className="font-bold text-emerald-400 text-sm"><Money value={inr(inspectTargetAsset.approximateMarketValueINR)} /></span>
                 </div>
                 <div>
                   <span className="text-stone-500 block uppercase font-bold text-[10px]">Security Seal</span>

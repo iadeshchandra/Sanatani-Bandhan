@@ -24,6 +24,7 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useToast } from '../context/ToastContext';
+import { Button, Segmented } from '../components/common/ui';
 
 /* ------------------------------------------------------------------ */
 /* Bahi-Khata Seva — the ONE door. Mounted from the Goshala desk       */
@@ -431,22 +432,12 @@ export const BahiKhataDesk: React.FC<Props> = ({ targets, existingHerd, herdComm
         <div className="bg-white border border-stone-200 rounded-3xl p-5 shadow-sm space-y-4">
           <h3 className="font-black text-stone-900">{bk(lang, 'whatEntering')}</h3>
           {offered.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              {offered.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setSelectedTarget(t)}
-                  className={`min-h-[52px] px-4 py-2.5 rounded-2xl border-2 font-black ${
-                    selectedTarget === t
-                      ? 'bg-amber-600 border-amber-700 text-white'
-                      : 'bg-white border-stone-300 text-stone-700'
-                  }`}
-                >
-                  {bk(lang, TARGET_LABEL_KEY[t])}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              ariaLabel={bk(lang, 'whatEntering')}
+              options={offered.map((t) => ({ id: t, label: bk(lang, TARGET_LABEL_KEY[t]) }))}
+              value={selectedTarget}
+              onChange={(id) => setSelectedTarget(id as BahiTarget)}
+            />
           )}
           <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">{bk(lang, 'howEntering')}</p>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -540,13 +531,13 @@ const BatchListRow: React.FC<{
     >
       {bk(lang, STATE_KEY[batch.state])}
     </span>
-    <button type="button" onClick={onOpen} className="min-h-[44px] px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black">
+    <Button onClick={onOpen}>
       {batch.state === 'draft' || batch.state === 'rejected' ? bk(lang, 'continueBtn') : batch.state === 'pending' ? bk(lang, 'reviewBtn') : bk(lang, 'viewBtn')}
-    </button>
+    </Button>
     {onDelete && (
-      <button type="button" onClick={onDelete} className="min-h-[44px] px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs font-bold text-stone-600">
+      <Button variant="secondary" onClick={onDelete}>
         {bk(lang, 'deleteBtn')}
-      </button>
+      </Button>
     )}
   </div>
 );
