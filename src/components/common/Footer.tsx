@@ -24,9 +24,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTelemetry }) => {
               GA4 Telemetry Inspector
             </button>
           )}
-          <p>
-            Sanatani Bandhan v3.2.0 • ISO-Aligned Dharmic Governance • 256-Bit Encrypted
-          </p>
+          <p>Sanatani Bandhan v3.2.0</p>
         </div>
       </div>
     </footer>

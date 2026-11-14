@@ -76,8 +76,13 @@ describe('D-08 — one desk count, from the catalog', () => {
     expect(landingCopy).toContain(`, ${DESK_COUNT} desks,`);
     expect(landingCopy).toContain(`All ${DESK_COUNT} desks`);
     expect(deskNumbers(landingCopy).every((n) => n === DESK_COUNT)).toBe(true);
-    // The stat pair: ['72', 'Desks across 7 domains'] — number + domain count.
-    expect(landing).toContain(`'${DESK_COUNT}', 'Desks across ${DOMAIN_COUNT} domains'`);
+    // The stat pair (Design Elevation W1, audit #8): the landing no
+    // longer retypes the numbers — it consumes MODULE_CATALOG directly
+    // (String(MODULE_CATALOG.length) + a domain count derived from the
+    // same rows), so the pair can never drift from the registry again.
+    expect(landing).toContain('String(MODULE_CATALOG.length)');
+    expect(landing).toContain('Desks across ${DESK_DOMAIN_COUNT} domains');
+    expect(landing).not.toContain(`'${DESK_COUNT}', 'Desks across`);
     // The spelled-out prose line follows the same truth.
     expect(landingCopy).toContain('Seventy-two desks');
     expect(landingCopy).not.toContain('Sixty-six');

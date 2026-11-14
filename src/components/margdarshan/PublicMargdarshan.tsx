@@ -30,6 +30,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { PublicLanguageButton } from '../public/PublicLanguageButton';
+import { NativeLanguageStrip } from '../language/NativeLanguageStrip';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   MANUAL_PAGES,
@@ -88,6 +89,10 @@ const PublicShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </div>
       </header>
+
+      {/* Design Audit 2 #3: manual pages were ambushed by the welcome
+          sheet too — the offer is this slim strip now, content first. */}
+      <NativeLanguageStrip />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         {children}

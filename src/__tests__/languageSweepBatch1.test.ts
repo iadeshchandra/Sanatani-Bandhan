@@ -66,8 +66,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // expectedToday, myShifts, onTeamRoster, teamToday,
     // sevadarsOnRoster, present, checkedInSoFar, myStatus, notYet,
     // sevaRecorded, checkInBelow)
+    // Design Elevation W1 adds 2 surfaces.chrome keys (languageStrip,
+    // languageStripChange — the hero-first language strip, audit #3)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(497);
+    expect(keysOf(en).length).toBe(499);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

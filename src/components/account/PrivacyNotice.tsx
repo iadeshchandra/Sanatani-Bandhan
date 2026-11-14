@@ -17,6 +17,7 @@ import {
   releaseFirstRunDialog,
   requestFirstRunDialog,
 } from '../../lib/firstRunDialogs';
+import { acquireOverlay, releaseOverlay } from '../../lib/overlaySignal';
 
 const pick = (t: TriText, lang: string) => (lang === 'bn' ? t.bn : lang === 'hi' ? t.hi : t.en);
 
@@ -92,6 +93,15 @@ export const PrivacyNoticeGate: React.FC = () => {
     window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
     return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
   }, [open ]);
+
+  // Design Audit 2 #2: while this dialog is on screen, invitational
+  // chrome (the SOS tour pill) yields — one floating element per screen.
+  const noticeRendered = open && !!user?.uid && turn === 'privacy-notice';
+  useEffect(() => {
+    if (!noticeRendered) return;
+    acquireOverlay('privacy-notice');
+    return () => releaseOverlay('privacy-notice');
+  }, [noticeRendered]);
 
   if (!open || !user?.uid || turn !== 'privacy-notice') return null;
   const changes = privacyChangesSince(seenAtOpen);

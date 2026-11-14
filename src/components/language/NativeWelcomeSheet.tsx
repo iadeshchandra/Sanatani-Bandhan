@@ -1,10 +1,18 @@
 /**
  * language/NativeWelcomeSheet.tsx — detect-once warm welcome.
  * ============================================================
- * First launch only: runs detectNativeProfileOnce() and greets the
- * devotee in their likely mother tongue. Detection is a suggestion,
- * never a cage — the devotee always confirms with one tap, or picks
- * another language from the full list (names in their OWN script).
+ * Runs detectNativeProfileOnce() and greets the devotee in their
+ * likely mother tongue. Detection is a suggestion, never a cage —
+ * the devotee always confirms with one tap, or picks another
+ * language from the full list (names in their OWN script).
+ *
+ * Design Audit 2 #3 (hero-first): the sheet NO LONGER auto-opens on
+ * first visit — a first-time visitor meets the temple, not a modal.
+ * The offer now lives in the slim NativeLanguageStrip under the
+ * header on public surfaces; tapping it dispatches
+ * OPEN_NATIVE_LANGUAGE_SHEET_EVENT and this sheet opens on demand,
+ * its choice UX unchanged. The language globe keeps its own door
+ * (the canonical LanguagePickerSheet).
  *
  * Rules:
  *  - languageChosen already true  → render nothing (no work at all).
@@ -16,7 +24,7 @@
  *  - Never a silent switch: nothing changes until "🙏 Sounds good".
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Check, Sparkles } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '../../i18n/translations';
 import { regionForLang, type RegionId } from '../../i18n/regionalTerms';
@@ -30,8 +38,22 @@ import {
   requestFirstRunDialog,
 } from '../../lib/firstRunDialogs';
 import { useNativeLanguage } from './nativeBridge';
+import { acquireOverlay, releaseOverlay } from '../../lib/overlaySignal';
 
 const DISMISSED_KEY = 'sb-native-sheet-dismissed';
+
+/** Design Audit 2 #3: the on-demand door into this sheet (the strip). */
+export const OPEN_NATIVE_LANGUAGE_SHEET_EVENT =
+  'sanatani:open-native-language-sheet';
+
+/** Ask the (globally mounted) welcome sheet to open. No-op if absent. */
+export function openNativeLanguageSheet(): void {
+  try {
+    window.dispatchEvent(new CustomEvent(OPEN_NATIVE_LANGUAGE_SHEET_EVENT));
+  } catch {
+    /* non-DOM environment */
+  }
+}
 
 type CopyKey =
   | 'title'
@@ -114,21 +136,18 @@ export const NativeWelcomeSheet: React.FC = () => {
   const [lowConfidence, setLowConfidence] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [turn, setTurn] = useState<string | null>(null);
-  const ranRef = useRef(false);
 
   const copy = copyFor(currentLang);
 
+  // Design Audit 2 #3 (hero-first): the sheet opens ON DEMAND only —
+  // a tap on the language strip — never on mount. First visit renders
+  // content immediately; the detect->greet flow below is byte-for-byte
+  // the one the auto-open era used, just triggered by the devotee.
   useEffect(() => {
-    if (ranRef.current) return;
-    if (languageChosen || isDismissed()) return;
-    ranRef.current = true;
-
-    let cancelled = false;
-    // Let the app paint first — this is a welcome, not a wall.
-    const timer = setTimeout(() => {
+    const onOpen = () => {
+      if (languageChosen || isDismissed()) return;
       detectNativeProfileOnce()
         .then((profile) => {
-          if (cancelled) return;
           const lang = profile.lang as string;
           // Low confidence: no Indian signal at all — don't presume.
           const low =
@@ -142,7 +161,6 @@ export const NativeWelcomeSheet: React.FC = () => {
           setVisible(true);
         })
         .catch(() => {
-          if (cancelled) return;
           // Fail warm: still offer the choice, top-2 English + Hindi.
           setDetectedLang('en');
           setDetectedRegion('other');
@@ -150,13 +168,12 @@ export const NativeWelcomeSheet: React.FC = () => {
           setSelected(null);
           setVisible(true);
         });
-    }, 800);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
     };
+    window.addEventListener(OPEN_NATIVE_LANGUAGE_SHEET_EVENT, onOpen);
+    return () =>
+      window.removeEventListener(OPEN_NATIVE_LANGUAGE_SHEET_EVENT, onOpen);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [languageChosen]);
 
   // UIUX Batch 4 (D-16): hold a turn in the first-run queue (after the
   // privacy notice, before the tour) — first-run surfaces never stack.
@@ -167,6 +184,15 @@ export const NativeWelcomeSheet: React.FC = () => {
     window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
     return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
   }, [visible ]);
+
+  // Design Audit 2 #2: while this sheet is on screen, invitational
+  // chrome (the SOS tour pill) yields — one floating element per screen.
+  const sheetRendered = visible && !!detectedLang && turn === 'native-language';
+  useEffect(() => {
+    if (!sheetRendered) return;
+    acquireOverlay('native-sheet');
+    return () => releaseOverlay('native-sheet');
+  }, [sheetRendered]);
 
   if (!visible || !detectedLang || turn !== 'native-language') return null;
 

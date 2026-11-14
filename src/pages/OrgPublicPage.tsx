@@ -28,7 +28,7 @@ import {
   BadgeCheck, MapPin, Users, UserPlus, Bell, BellOff, ArrowLeft,
   Loader2, Landmark, CalendarDays, Clock, Phone, Globe, Navigation,
   Share2, Link2, Check, Heart, Images, X, ChevronLeft, ChevronRight,
-  ShieldCheck, Receipt,
+  ShieldCheck, Receipt, BookOpenCheck,
 } from 'lucide-react';
 import { SevaCardsSection } from '../components/org/SevaCards';
 import { TransparencyBoard } from '../components/audit/TransparencyBoard';
@@ -48,6 +48,9 @@ import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { orgTypeLabel, OrgPage as OrgPageType } from '../types/membership';
 import { OrgLogo } from '../components/common/OrgLogo';
 import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
+import { NativeLanguageStrip } from '../components/language/NativeLanguageStrip';
+import { useSanctumLite } from '../components/common/PanchangHeader';
+import { festivalDressingToday } from '../lib/festivalDressing';
 import { JoinRequestModal } from '../components/org/JoinRequestModal';
 import {
   applyPageMeta,
@@ -81,6 +84,12 @@ export interface OrgPublicPageViewProps {
   /** Trustee event bridge: persist org events + auto-share setting. */
   onSaveEvents: (events: OrgEventItem[], autoShare: boolean) => Promise<void>;
   onSaveAartiSchedules: (schedules: AartiSlot[]) => Promise<void>;
+  /**
+   * Design Audit 2 #4: the wrapper learns from the TransparencyBoard
+   * whether published accounts exist; when they do, the header zone
+   * carries a Transparency entry that scrolls to the board.
+   */
+  hasTransparency?: boolean;
 }
 
 export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
@@ -97,6 +106,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   onToggleAartiPin,
   onSaveEvents,
   onSaveAartiSchedules,
+  hasTransparency,
 }) => {
   const navigate = useNavigate();
   const { safeTranslate, rt, t } = useLanguage();
@@ -117,6 +127,12 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   const about = page.tagline || page.about || '';
   const pageUrl = absoluteUrl(orgPublicPath(page));
   const shareWa = whatsappShareUrl(pageUrl, page.name);
+
+  // Design Audit 2 #4: the header wears the sanctum face — the same
+  // class vocabulary as DeskHero (lamplight ivory ground, alpana
+  // watermark, festival-dressing aware, Sandhya-registered classes).
+  const lite = useSanctumLite();
+  const dressing = festivalDressingToday().key;
 
   const handleCopyLink = async () => {
     const ok = await copyTextToClipboard(pageUrl);
@@ -150,18 +166,19 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
   return (
     <div className="min-h-screen public-backdrop pb-20">
       {/* ------------------------------ HERO ------------------------------ */}
-      <header className="relative overflow-hidden bg-gradient-to-br from-[#431407] via-[#7c2d12] to-[#92400e]">
-        {/* sacred glow texture */}
-        <div
-          className="absolute inset-0 opacity-30 pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 20% 15%, #fbbf24 0, transparent 34%), radial-gradient(circle at 85% 80%, #f97316 0, transparent 38%), radial-gradient(circle at 60% 40%, #f59e0b22 0, transparent 45%)',
-          }}
-        />
+      {/* Design Audit 2 #4: the raw-hex dark gradient + black/40 floating
+          buttons are gone. The header wears the sanctum pattern
+          (DeskHero's vocabulary): lamplight ivory ground, alpana
+          watermark, festival dressing, brass nameplate for the logo —
+          and it reads correctly under Sandhya because every class here
+          is already registered in the Sandhya remap layer. */}
+      <header
+        data-dressing={dressing}
+        className={`sanctum-header lamplight alpana-watermark relative overflow-hidden border-b border-brass-200 ${lite ? 'sanctum-lite' : ''}`.trim()}
+      >
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-10 bg-black/40 hover:bg-black/60 text-white p-2.5 rounded-full backdrop-blur min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="absolute top-4 left-4 z-10 bg-white/70 hover:bg-white text-temple-800 border border-brass-200 shadow-sm p-2.5 rounded-full backdrop-blur min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label={T('orgpublic_back', 'Back', 'পেছনে', 'वापस')}
         >
           <ArrowLeft size={18} />
@@ -170,27 +187,30 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
             THEIR language — the switcher sits in the hero band,
             pre-login, canonical registry. */}
         <div className="absolute top-4 right-4 z-10">
-          <PublicLanguageButton tone="dark" />
+          <PublicLanguageButton />
         </div>
 
         <div className="relative max-w-3xl mx-auto px-5 pt-14 pb-10 text-center">
           <div className="flex justify-center mb-5">
-            <OrgLogo name={page.name} logoUrl={page.logoUrl} size={120} withRing />
+            {/* The logo as a brass nameplate, not a floating sticker. */}
+            <div className="rounded-[28px] bg-white/75 border border-brass-300 shadow-[0_10px_30px_rgba(146,104,24,0.18)] p-2.5">
+              <OrgLogo name={page.name} logoUrl={page.logoUrl} size={120} withRing />
+            </div>
           </div>
-          <h1 className="font-display text-3xl sm:text-4xl font-black text-amber-50 tracking-tight leading-tight">
+          <h1 className="font-display text-3xl sm:text-4xl font-black text-temple-900 tracking-tight leading-tight">
             {page.name}
           </h1>
           {about && (
-            <p className="mt-3 text-amber-100/90 italic font-serif text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+            <p className="mt-3 text-temple-600 italic font-serif text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
               {about}
             </p>
           )}
           <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
-            <span className="text-[11px] font-black uppercase tracking-widest text-amber-200 bg-white/10 border border-amber-200/30 rounded-full px-3 py-1">
+            <span className="text-[11px] font-black uppercase tracking-widest text-brass-700 bg-brass-50 border border-brass-200 rounded-full px-3 py-1">
               {orgTypeLabel(page.type)}
             </span>
             {(page.city || page.state) && (
-              <span className="text-xs text-amber-100/80 flex items-center gap-1">
+              <span className="text-xs text-temple-500 flex items-center gap-1">
                 <MapPin size={12} /> {[page.city, page.state].filter(Boolean).join(', ')}
               </span>
             )}
@@ -208,20 +228,41 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
             </div>
           )}
 
+          {/* Transparency entry (audit #4): promoted into the header
+              zone — shown only when the board below will actually
+              render (the wrapper reports published accounts via
+              onPresence); tapping scrolls to the open notice-board. */}
+          {hasTransparency && (
+            <div className="flex items-center justify-center mt-4">
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById('transparency-board')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+                className="inline-flex items-center gap-1.5 min-h-[44px] text-xs font-black rounded-full px-4 py-2 border text-brass-700 bg-brass-50 border-brass-200 hover:bg-brass-100 cursor-pointer"
+              >
+                <BookOpenCheck size={14} />
+                {t('org.audit.transparency.boardTitle')}
+              </button>
+            </div>
+          )}
+
           {/* share row */}
           <div className="flex items-center justify-center gap-3 mt-6">
             <a
               href={shareWa}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-full bg-[#25D366] text-white text-sm font-black shadow-lg hover:brightness-95"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-black shadow-lg hover:bg-emerald-700"
             >
               <Share2 size={16} />
               {T('orgpublic_share_wa', 'WhatsApp', 'হোয়াটসঅ্যাপ', 'व्हाट्सऐप')}
             </a>
             <button
               onClick={handleCopyLink}
-              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-full bg-white/15 text-amber-50 text-sm font-black border border-amber-100/30 backdrop-blur hover:bg-white/25"
+              className="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 rounded-full bg-white/80 text-temple-800 text-sm font-black border border-brass-200 backdrop-blur hover:bg-white"
             >
               {copied ? <Check size={16} /> : <Link2 size={16} />}
               {copied
@@ -229,8 +270,13 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                 : T('orgpublic_copy_link', 'Copy Link', 'লিঙ্ক কপি', 'लिंक कॉपी')}
             </button>
           </div>
+          <div className="lotus-divider mt-8" aria-hidden="true" />
         </div>
       </header>
+
+      {/* Design Audit 2 #3: shared/public pages carried the ambush too —
+          the language offer is this slim strip under the header now. */}
+      <NativeLanguageStrip />
 
       <main className="max-w-3xl mx-auto px-4 -mt-2">
         {/* ------------------------- QUICK ACTIONS ------------------------- */}
@@ -667,6 +713,9 @@ export const OrgPublicPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [aartiPinBusy, setAartiPinBusy] = useState(false);
+  // Design Audit 2 #4: whether the TransparencyBoard below has
+  // published accounts to show — drives the header's Transparency entry.
+  const [hasTransparency, setHasTransparency] = useState(false);
 
   useEffect(() => {
     if (!param) {
@@ -861,11 +910,20 @@ export const OrgPublicPage: React.FC = () => {
         onToggleAartiPin={handleToggleAartiPin}
         onSaveEvents={handleSaveEvents}
         onSaveAartiSchedules={handleSaveAartiSchedules}
+        hasTransparency={hasTransparency}
       />
       {/* Transparency Board (Blueprint A): trustee-published monthly
           accounts. Renders only when the org has published at least
-          one month — nothing is public until published. */}
-      <TransparencyBoard workspaceId={page.orgId} orgName={page.name} />
+          one month — nothing is public until published. The anchor div
+          is the scroll target for the header zone's Transparency
+          entry (audit #4); onPresence reports whether it rendered. */}
+      <div id="transparency-board">
+        <TransparencyBoard
+          workspaceId={page.orgId}
+          orgName={page.name}
+          onPresence={setHasTransparency}
+        />
+      </div>
       {/* EVENTS P2 — concluded decisions, beneath the accounts: the
           house's polls + resolutions in plain language (a poll whose
           creator chose committee-only results shows only to them). */}

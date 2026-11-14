@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
+import { acquireOverlay, releaseOverlay } from '../../../lib/overlaySignal';
 
 interface ModalProps {
   isOpen: boolean;
@@ -42,6 +43,14 @@ export const Modal: React.FC<ModalProps> = ({
   const descId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
+
+  // Design Audit 2 #2: while a modal is open, invitational chrome
+  // (the SOS tour pill) yields — one floating element per screen.
+  useEffect(() => {
+    if (!isOpen) return;
+    acquireOverlay('kit-modal');
+    return () => releaseOverlay('kit-modal');
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;

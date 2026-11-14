@@ -757,6 +757,8 @@ export const core: CoreFragment = {
       chrome: {
         chooseHowToEnter: "કેવી રીતે પ્રવેશ કરવો તે પસંદ કરો",
         zeroTrustSso: "ઝીરો ટ્રસ્ટ SSO",
+        languageStrip: "આ એપ ૧૦ ભાષાઓમાં બોલે છે — તમે {lang} માં વાંચી રહ્યા છો",
+        languageStripChange: "બદલો",
       },
       demo: {
         autoDeletesIn24h: "· 24 કલાકમાં આપમેળે કાઢી નંખાય છે",

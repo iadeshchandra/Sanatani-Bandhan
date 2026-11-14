@@ -18,6 +18,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { translationStatus } from '../../i18n/translationQuality';
 import { TranslationSuggestionSheet } from './TranslationSuggestionSheet';
+import { acquireOverlay, releaseOverlay } from '../../lib/overlaySignal';
 import type { GuideDef } from './guides';
 
 interface AnchorRect {
@@ -70,6 +71,13 @@ export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
   const [cardH, setCardH] = useState(EST_CARD_HEIGHT);
   const cardRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Design Audit 2 #2: while a tour card is on screen, invitational
+  // chrome (the SOS tour pill) yields — one floating element per screen.
+  useEffect(() => {
+    acquireOverlay('coachmark');
+    return () => releaseOverlay('coachmark');
+  }, []);
 
   // Measure the real card height so the keep-out math is exact, not estimated.
   useLayoutEffect(() => {

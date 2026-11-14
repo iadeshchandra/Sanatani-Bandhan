@@ -104,6 +104,13 @@ import { TermsOfService } from '../components/public/TermsOfService';
 import { SecurityWhitepaper } from '../components/public/SecurityWhitepaper';
 import { DemoSelectionModal, type DemoView } from '../components/public/DemoSelectionModal';
 import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
+import { NativeLanguageStrip } from '../components/language/NativeLanguageStrip';
+import { MODULE_CATALOG } from '../components/common/Sidebar';
+
+// Design Audit 2 #8: the trust-strip desk count is CONSUMED from the
+// canonical desk registry (Sidebar's MODULE_CATALOG) — nobody retypes
+// the number, so the landing can never drift from the console again.
+const DESK_DOMAIN_COUNT = new Set(MODULE_CATALOG.map((m) => m.domain)).size;
 import { WorkspaceType } from '../types';
 
 interface LandingPageProps {
@@ -840,6 +847,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         )}
       </header>
 
+      {/* Design Audit 2 #3: the language offer lives here now — a slim
+          strip under the header — instead of the welcome sheet
+          auto-opening over the hero. Content first, always. */}
+      <NativeLanguageStrip />
+
       <main className="flex-1">
         {/* HERO */}
         <section className="relative overflow-hidden px-4 sm:px-6 pt-12 sm:pt-20 pb-14 sm:pb-20 text-center">
@@ -1044,7 +1056,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <section className="border-y border-orange-100 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             {[
-              ['72', 'Desks across 7 domains'],
+              [String(MODULE_CATALOG.length), `Desks across ${DESK_DOMAIN_COUNT} domains`],
               ['100%', 'Offline-first, zero internet needed'],
               ['1-click', 'CA-ready audit pack · 80G · Tally'],
               ['₹0', 'Free forever — no card, no trial'],

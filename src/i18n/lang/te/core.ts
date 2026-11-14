@@ -815,6 +815,8 @@ export const core: CoreFragment = {
       chrome: {
         chooseHowToEnter: "ఎలా ప్రవేశించాలో ఎంచుకోండి",
         zeroTrustSso: "జీరో ట్రస్ట్ SSO",
+        languageStrip: "ఈ యాప్ 10 భాషల్లో మాట్లాడుతుంది — మీరు {lang}లో చదువుతున్నారు",
+        languageStripChange: "మార్చు",
       },
       roleHome: {
         nextShloka: "తదుపరి శ్లోక",

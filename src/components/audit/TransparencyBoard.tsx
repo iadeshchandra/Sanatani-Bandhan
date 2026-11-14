@@ -35,11 +35,19 @@ import { fetchPublishedAccounts } from '../../context/data/publishedAccountsStor
 interface TransparencyBoardProps {
   workspaceId: string;
   orgName: string;
+  /**
+   * Design Audit 2 #4: lets the host page promote a Transparency entry
+   * into its header zone. Fired once the fetch resolves — true when at
+   * least one published month exists (i.e. the board will render),
+   * false otherwise. The board's own rendered output is unchanged.
+   */
+  onPresence?: (has: boolean) => void;
 }
 
 export const TransparencyBoard: React.FC<TransparencyBoardProps> = ({
   workspaceId,
   orgName,
+  onPresence,
 }) => {
   const { t, currentLang } = useLanguage();
   const [docs, setDocs] = useState<PublishedAccountsDoc[] | null>(null);
@@ -48,14 +56,23 @@ export const TransparencyBoard: React.FC<TransparencyBoardProps> = ({
     let cancelled = false;
     fetchPublishedAccounts(workspaceId)
       .then((rows) => {
-        if (!cancelled) setDocs(rows);
+        if (!cancelled) {
+          setDocs(rows);
+          onPresence?.(rows.length > 0);
+        }
       })
       .catch(() => {
-        if (!cancelled) setDocs([]);
+        if (!cancelled) {
+          setDocs([]);
+          onPresence?.(false);
+        }
       });
     return () => {
       cancelled = true;
     };
+    // onPresence is a host callback (a stable state setter at the call
+    // site); presence is a function of the fetch, not of the callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
 
   if (!docs || docs.length === 0) return null;

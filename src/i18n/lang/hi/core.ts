@@ -346,6 +346,8 @@ export const core: CoreFragment = {
       chrome: {
         chooseHowToEnter: "प्रवेश का तरीका चुनें",
         zeroTrustSso: "Zero Trust SSO",
+        languageStrip: "यह ऐप 10 भाषाओं में बात करता है — आप {lang} में पढ़ रहे हैं",
+        languageStripChange: "बदलें",
       },
       roleHome: {
         nextShloka: "अगला श्लोक",

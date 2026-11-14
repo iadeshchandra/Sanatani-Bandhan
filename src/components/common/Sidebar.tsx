@@ -689,7 +689,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {activeWorkspace?.name || 'Organisation'}
                 </span>
                 <span className="text-[10px] text-temple-500 font-bold uppercase tracking-widest block">
-                  {filteredModules.length} of {MODULE_CATALOG.length} Desks Console
+                  {/* Design Audit 2 #8: the first number is the count
+                      VISIBLE to this member (workspace + role + search
+                      filters), the second is the registry total — the
+                      label now says so instead of dressing a visibility
+                      count as the console's size. */}
+                  {filteredModules.length} of {MODULE_CATALOG.length} Desks Shown
                 </span>
               </div>
             )}

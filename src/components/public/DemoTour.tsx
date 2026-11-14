@@ -18,6 +18,7 @@ import {
   requestFirstRunDialog,
 } from '../../lib/firstRunDialogs';
 import { useLanguage } from '../../context/LanguageContext';
+import { acquireOverlay, releaseOverlay } from '../../lib/overlaySignal';
 
 interface DemoTourProps {
   onNavigate: (mod: string) => void;
@@ -85,6 +86,15 @@ export const DemoTour: React.FC<DemoTourProps> = ({ onNavigate, onRegister, onOp
     window.addEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
     return () => window.removeEventListener(FIRST_RUN_DIALOGS_CHANGED, onChange);
   }, [visible ]);
+
+  // Design Audit 2 #2: while this tour card is on screen, invitational
+  // chrome (the SOS tour pill) yields — one floating element per screen.
+  const tourRendered = isDemo && visible && !isDevoteeView && turn === 'demo-tour';
+  useEffect(() => {
+    if (!tourRendered) return;
+    acquireOverlay('demo-tour');
+    return () => releaseOverlay('demo-tour');
+  }, [tourRendered]);
 
   if (!isDemo || !visible || isDevoteeView || turn !== 'demo-tour') return null;
 
