@@ -63,6 +63,28 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.14-5c550f5',
+    date: '2026-11-14',
+    sections: {
+      improved: [
+        {
+          text: {
+            en: "A calmer welcome: first visits now open straight onto the page — the language choice waits quietly under the header until you tap it, instead of arriving as a popup. And the little tour hint steps aside whenever a sheet or tour is open, and once you dismiss it, it never returns.",
+            hi: "शांत स्वागत: अब पहली बार आने पर पृष्ठ सीधे खुलता है — भाषा का विकल्प पॉपअप बनकर आने के बजाय शीर्षक के नीचे शांति से प्रतीक्षा करता है, जब आप छुएँ तभी खुलता है। और छोटा-सा भ्रमण-संकेत, जब कोई शीट या भ्रमण खुला हो तो हट जाता है, और एक बार हटाने पर फिर कभी नहीं लौटता।",
+            bn: "শান্ত স্বাগত: এখন প্রথমবার এলে পৃষ্ঠটি সরাসরি খোলে — ভাষার পছন্দ পপআপ হয়ে আসার বদলে শিরোনামের নিচে শান্তভাবে অপেক্ষা করে, আপনি ছুঁলেই খোলে। আর ছোট্ট ভ্রমণ-ইঙ্গিতটি, কোনো শিট বা ভ্রমণ খোলা থাকলে সরে যায়, এবং একবার সরালে আর কখনো ফেরে না।",
+          },
+        },
+        {
+          text: {
+            en: "A temple's public page — the one it shares with the world — now wears the same warm ivory and brass as the app itself, with its Verified mark and Transparency Board right in the header. The desk counts and the footer now speak plainly, and agree with each other, everywhere.",
+            hi: "मंदिर का सार्वजनिक पृष्ठ — जो वह संसार के साथ साझा करता है — अब ऐप जैसा ही गर्म हाथी-दांत और पीतल का रंग धारण करता है, उसके सत्यापित चिह्न और पारदर्शिता पट्ट शीर्षक में ही। डेस्क की गिनती और पाद-लेख अब हर जगह एक ही, स्पष्ट बात कहते हैं।",
+            bn: "মন্দিরের সর্বজনীন পৃষ্ঠ — যেটি সে বিশ্বের সঙ্গে ভাগ করে — এখন অ্যাপের মতোই উষ্ণ হাতির-দাঁত ও পিতলের রঙ ধারণ করেছে, তার যাচাইকৃত চিহ্ন ও স্বচ্ছতা পর্ষদ শিরোনামেই। ডেস্কের সংখ্যা ও পাদটীকা এখন সর্বত্র একই, স্পষ্ট কথা বলে।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.13-20ef885',
     date: '2026-11-13',
     sections: {
