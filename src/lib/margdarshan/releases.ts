@@ -63,6 +63,28 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.14-0b3267d',
+    date: '2026-11-14',
+    sections: {
+      improved: [
+        {
+          text: {
+            en: "The busiest desks now share one hand: the treasury, the Bahi-Khata register, and the marketplace draw their buttons and switchers from the same house kit, so the whole app feels cut from one cloth — same labels, same taps, nothing about how they work has changed.",
+            hi: "सबसे व्यस्त डेस्क अब एक ही हाथ साझा करते हैं: कोषागार, बहिखाता रजिस्टर और बाज़ार अपने बटन और स्विचर एक ही घरेलू किट से लेते हैं, इसलिए पूरा ऐप एक ही कपड़े से कटा लगता है — वही लेबल, वही टैप, काम करने का तरीका बिल्कुल नहीं बदला।",
+            bn: "সবচেয়ে ব্যস্ত ডেস্কগুলি এখন একই হাত ভাগ করে: কোষাগার, বহিখাতা রেজিস্টার আর বাজার তাদের বোতাম ও সুইচার একই গৃহ-কিট থেকে নেয়, তাই পুরো অ্যাপটি একই কাপড়ে কাটা মনে হয় — একই লেবেল, একই ছোঁয়া, কাজের ধরনে কোনো বদল নেই।",
+          },
+        },
+        {
+          text: {
+            en: "Money now speaks in the temple's own type: totals on the Hundi counting desk, the Ratna Bhandar, procurement, and the treasury stand in calm tabular figures — the same type as your Day Band — while the typewriter style remains only where it belongs, on seal codes and reference numbers.",
+            hi: "धन अब मंदिर की अपनी लिपि में बोलता है: हुंडी गिनती डेस्क, रत्न भंडार, ख़रीद और कोषागार के योग शांत सारणीबद्ध अंकों में खड़े हैं — वही लिपि जो आपके डे बैंड की है — जबकि टाइपराइटर शैली केवल वहीं रहती है जहाँ उसका स्थान है, मुहर कोड और संदर्भ संख्याओं पर।",
+            bn: "অর্থ এখন মন্দিরের নিজের হরফে কথা বলে: হুন্ডি গোনার ডেস্ক, রত্ন ভাণ্ডার, কেনাকাটা আর কোষাগারের যোগফল শান্ত সারণিবদ্ধ অঙ্কে দাঁড়ায় — আপনার ডে ব্যান্ডের সেই একই হরফ — আর টাইপরাইটার ধরনটি থাকে শুধু সেখানেই যেখানে তার স্থান, সিল কোড আর রেফারেন্স নম্বরে।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.14-5c550f5',
     date: '2026-11-14',
     sections: {
