@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.17-54d83fa',
+    date: '2026-11-17',
+    sections: {
+      improved: [
+        {
+          text: {
+            en: "The temple doors gained stronger locks you will never see: the app now sends strict browser security headers with every page — other sites can no longer frame the app inside their own pages, files cannot be disguised as a different type, and only the app itself may use your camera, microphone and location. A new content-security policy also watches in report-only mode, learning quietly before it ever blocks anything.",
+            hi: "मंदिर के द्वारों को अदृश्य मज़बूत ताले मिले हैं: ऐप अब हर पेज के साथ कठोर ब्राउज़र सुरक्षा हेडर भेजता है — दूसरी साइटें ऐप को अपने पेजों के अंदर नहीं घेर सकतीं, फ़ाइलों का प्रकार नहीं छिपाया जा सकता, और कैमरा, माइक्रोफ़ोन व स्थान केवल ऐप ही उपयोग कर सकता है। एक नई सामग्री-सुरक्षा नीति रिपोर्ट-मात्र मोड में चुपचाप निगरानी भी करती है — कुछ भी रोकने से पहले वह पहले सीखती है।",
+            bn: "মন্দিরের দরজায় অদৃশ্য শক্ত তালা লাগল: অ্যাপ এখন প্রতিটি পৃষ্ঠার সঙ্গে কঠোর ব্রাউজার-নিরাপত্তা হেডার পাঠায় — অন্য সাইটগুলি আর অ্যাপকে নিজেদের পৃষ্ঠার ভিতরে ফ্রেম করতে পারবে না, ফাইলের ধরন লুকানো যাবে না, এবং ক্যামেরা, মাইক্রোফোন ও অবস্থান শুধু অ্যাপই ব্যবহার করতে পারবে। একটি নতুন কনটেন্ট-নিরাপত্তা নীতিও রিপোর্ট-মাত্র মোডে নিঃশব্দে পর্যবেক্ষণ করছে — কিছু আটকানোর আগে সে প্রথমে শিখে নিচ্ছে।",
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.14-0b3267d',
     date: '2026-11-14',
     sections: {
