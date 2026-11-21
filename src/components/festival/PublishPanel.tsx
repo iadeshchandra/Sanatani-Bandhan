@@ -13,17 +13,25 @@ import { T, Card, Btn, Field, inputCls, fmtDate } from '../../utsav/ui';
 import {
   festivalEventUrl, slotRemaining,
   type WarFestival, type WarRoomPlan, type FestivalEventDoc, type FestivalTiming, type DarshanSlot,
+  type TicketTier, type TicketDiscountCode, type RefundTier,
 } from '../../lib/festival';
 import { useFestivalCloud } from './festivalWarStore';
+import {
+  deriveTicketingConfig, publicTicketStamps, validateTicketing, normalizeDiscountCode,
+} from '../../lib/eventTickets';
+import { db } from '../../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 
 interface Props {
   wf: WarFestival;
   plan: WarRoomPlan;
+  /** E2: persist the ticketing config through the War Room plan patch. */
+  patchPlan?: (p: Partial<WarRoomPlan>) => void;
 }
 
-export const PublishPanel: React.FC<Props> = ({ wf, plan }) => {
+export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
   const { safeTranslate } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
   const cloud = useFestivalCloud(activeWorkspace.id, wf.key, { subscribeRsvps: true });
@@ -52,26 +60,43 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan }) => {
   const published = cloud.event?.published === true;
   const shareUrl = festivalEventUrl(window.location.origin, activeWorkspace.id, plan.id);
 
-  const buildDoc = (pub: boolean): FestivalEventDoc => ({
-    id: plan.id,
-    workspaceId: activeWorkspace.id,
-    festivalKey: wf.key,
-    orgName: activeWorkspace.name || '',
-    name: wf.name,
-    significance: wf.significance,
-    dateISO: wf.dateISO,
-    endDateISO: wf.endDateISO,
-    tithiLine: wf.tithiLine,
-    timings,
-    story: { en: story.trim(), bn: story.trim(), hi: story.trim() },
-    rsvpEnabled: true,
-    darshanSlots: slots,
-    published: pub,
-    publishedHeadcount: cloud.event?.publishedHeadcount || 0,
-    slotBooked: cloud.event?.slotBooked || {},
-    rsvpHeadcount: cloud.event?.rsvpHeadcount || 0,
-    updatedAt: new Date().toISOString(),
-  });
+  const buildDoc = (pub: boolean): FestivalEventDoc => {
+    // E2: ticketing stamps ride the publish. tierSold is NEVER written
+    // here — it moves only through the anchored counter in the rules.
+    const base: FestivalEventDoc = {
+      id: plan.id,
+      workspaceId: activeWorkspace.id,
+      festivalKey: wf.key,
+      orgName: activeWorkspace.name || '',
+      name: wf.name,
+      significance: wf.significance,
+      dateISO: wf.dateISO,
+      endDateISO: wf.endDateISO,
+      tithiLine: wf.tithiLine,
+      timings,
+      story: { en: story.trim(), bn: story.trim(), hi: story.trim() },
+      rsvpEnabled: true,
+      darshanSlots: slots,
+      published: pub,
+      publishedHeadcount: cloud.event?.publishedHeadcount || 0,
+      slotBooked: cloud.event?.slotBooked || {},
+      rsvpHeadcount: cloud.event?.rsvpHeadcount || 0,
+      updatedAt: new Date().toISOString(),
+    };
+    if (plan.ticketing && plan.ticketing.tiers.length > 0) {
+      Object.assign(base, publicTicketStamps(plan.ticketing));
+      base.festivalCancelled = plan.ticketing.festivalCancelled === true;
+    } else if (plan.ticketing) {
+      // Ticketing was configured then emptied — clear the stamps
+      // explicitly (a merge publish would otherwise leave them live).
+      base.ticketTiers = [];
+      base.tierCaps = {};
+      base.discountTerms = {};
+      base.refundPolicy = [];
+      base.festivalCancelled = plan.ticketing.festivalCancelled === true;
+    }
+    return base;
+  };
 
   const doPublish = async (pub: boolean) => {
     setBusy(true);
@@ -194,6 +219,9 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan }) => {
         </div>
       </div>
 
+      {/* E2 — seva passes & booking (ticketing) */}
+      <TicketingEditor wf={wf} plan={plan} patchPlan={patchPlan} published={published} />
+
       {/* Publish actions */}
       <div className="mt-4 flex flex-wrap gap-2">
         {!published ? (
@@ -243,6 +271,255 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan }) => {
         </div>
       )}
     </Card>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────────────
+ * TicketingEditor (E2) — tiers, discount codes, refund ladder and
+ * the fee-bearer choice for this festival's seva passes. Saving
+ * derives the validation maps firestore.rules checks every purchase
+ * against (see lib/eventTickets.deriveTicketingConfig) and persists
+ * through the War Room plan patch, which writes festival_plans.
+ * Codes themselves never reach the public page — only their terms,
+ * keyed by a hash, ride the publish stamps.
+ * ─────────────────────────────────────────────────────────────── */
+const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?: Props['patchPlan']; published: boolean }> = ({ wf, plan, patchPlan, published }) => {
+  const existing = plan.ticketing;
+  const [tiers, setTiers] = useState<TicketTier[]>(existing?.tiers ?? []);
+  const [codes, setCodes] = useState<TicketDiscountCode[]>(existing?.discountCodes ?? []);
+  const [ladder, setLadder] = useState<RefundTier[]>(
+    existing?.refundPolicy ?? [
+      { minDaysBefore: 7, percent: 100 },
+      { minDaysBefore: 3, percent: 50 },
+      { minDaysBefore: 0, percent: 0 },
+    ]
+  );
+  const [feeBearer, setFeeBearer] = useState<'organiser' | 'buyer'>(existing?.feeBearer ?? 'organiser');
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancelled = existing?.festivalCancelled === true;
+
+  const save = () => {
+    const draft = { tiers, discountCodes: codes, refundPolicy: ladder, feeBearer };
+    const bad = validateTicketing(draft);
+    if (bad) {
+      setErr(bad);
+      return;
+    }
+    setErr('');
+    const cfg = deriveTicketingConfig(draft, existing?.discountUses ?? {}, wf.dateISO, wf.endDateISO);
+    if (cancelled) cfg.festivalCancelled = true;
+    patchPlan?.({ ticketing: cfg });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const setCancelled = async (on: boolean) => {
+    const base = existing ?? deriveTicketingConfig({ tiers, discountCodes: codes, refundPolicy: ladder, feeBearer }, {}, wf.dateISO, wf.endDateISO);
+    const cfg = { ...base };
+    if (on) cfg.festivalCancelled = true;
+    else delete cfg.festivalCancelled;
+    patchPlan?.({ ticketing: cfg });
+    setConfirmCancel(false);
+    // The public flag rides the next publish too; stamp it now when
+    // the page is already live so refunds open at 100% immediately.
+    if (published) {
+      try {
+        await setDoc(doc(db, 'festival_events', plan.id), { festivalCancelled: on }, { merge: true });
+      } catch { /* the publish stamp will carry it */ }
+    }
+  };
+
+  const errText: Record<string, string> = {
+    'no-tiers': 'Add at least one pass, or leave passes off entirely.',
+    'tier-name': 'Every pass needs a name.',
+    'tier-id': 'Two passes share an id — remove one.',
+    'tier-price': 'Paid passes need a price above zero; free passes must be zero.',
+    'tier-cap': 'Per-booking limit must be between 1 and 20.',
+    'code-shape': 'Codes are 3–24 letters, numbers, - or _ (e.g. DIWALI10).',
+    'code-value': 'Check the code values — percent is 1–100, flat is above zero.',
+    'ladder-shape': 'Refund rows need days 0–365 and percent 0–100.',
+  };
+  const num = (v: string) => Math.max(0, parseInt(v || '0', 10) || 0);
+  const rowCls = 'flex flex-wrap items-center gap-1.5 text-sm bg-stone-50 rounded-xl px-3 py-2';
+  const mini = `${inputCls} !w-24`;
+  const name3 = (t: TicketTier, v: string): TicketTier => ({ ...t, name: { en: v, bn: t.name.bn || v, hi: t.name.hi || v } });
+
+  return (
+    <div className="mt-4 border-t border-stone-100 pt-3">
+      <div className="text-xs font-bold text-stone-600 mb-1">
+        <T en="Seva passes & booking (optional)" bn="সেবা পাস ও বুকিং (ঐচ্ছিক)" hi="सेवा पास व बुकिंग (वैकल्पिक)" />
+      </div>
+      <p className="text-[11px] text-stone-500 mb-2">
+        <T en="Paid tiers are cultural programmes, yatras and workshops — darshan itself is never sold. Devotees see every charge itemised before they confirm. Discount codes are never shown on the public page; a devotee types the code you share with them."
+          bn="পেইড স্তর মানে সাংস্কৃতিক অনুষ্ঠান, যাত্রা ও ওয়ার্কশপ — দর্শন কখনো বিক্রি হয় না। নিশ্চিত করার আগে ভক্ত প্রতিটি খরচ আলাদা দেখেন। ছাড়ের কোড পাবলিক পৃষ্ঠায় দেখানো হয় না; আপনি যাঁদের দেবেন তাঁরাই লিখবেন।"
+          hi="शुल्क स्तर सांस्कृतिक कार्यक्रम, यात्रा व कार्यशाला हेतु हैं — दर्शन कभी नहीं बिकता। पुष्टि से पहले भक्त हर शुल्क अलग-अलग देखते हैं। छूट कोड सार्वजनिक पृष्ठ पर नहीं दिखता; जिन्हें आप देंगे वही लिखेंगे।" />
+      </p>
+
+      {/* Tiers */}
+      <div className="space-y-1.5 mb-2">
+        {tiers.map((t, i) => (
+          <div key={t.id} className={rowCls}>
+            <input className={`${inputCls} flex-1 min-w-[140px]`} value={t.name.en} aria-label="Pass name"
+              placeholder="e.g. Cultural evening pass"
+              onChange={(e) => setTiers(tiers.map((x, j) => (j === i ? name3(x, e.target.value) : x)))} />
+            <select className={`${inputCls} !w-28`} value={t.kind} aria-label="Kind"
+              onChange={(e) => setTiers(tiers.map((x, j) => (j === i ? { ...x, kind: e.target.value as TicketTier['kind'] } : x)))}>
+              <option value="paid">Paid pass</option>
+              <option value="free">Free pass</option>
+              <option value="addon">Add-on</option>
+            </select>
+            <input type="number" min={0} className={mini} value={t.price} aria-label="Price" placeholder="Price"
+              onChange={(e) => setTiers(tiers.map((x, j) => (j === i ? { ...x, price: num(e.target.value) } : x)))} />
+            <input type="number" min={0} className={mini} value={t.capacity ?? ''} aria-label="Capacity (blank = no limit)" placeholder="Capacity"
+              onChange={(e) => setTiers(tiers.map((x, j) => {
+                if (j !== i) return x;
+                const next = { ...x };
+                if (e.target.value === '') delete next.capacity;
+                else next.capacity = num(e.target.value);
+                return next;
+              }))} />
+            <input type="number" min={1} max={20} className={mini} value={t.maxPerBooking ?? 6} aria-label="Max per booking" placeholder="Per booking"
+              onChange={(e) => setTiers(tiers.map((x, j) => (j === i ? { ...x, maxPerBooking: num(e.target.value) } : x)))} />
+            <input type="number" min={0} className={mini} value={t.earlyBird?.price ?? ''} aria-label="Early price" placeholder="Early ₹"
+              onChange={(e) => setTiers(tiers.map((x, j) => {
+                if (j !== i) return x;
+                const next = { ...x };
+                if (e.target.value === '') delete next.earlyBird;
+                else next.earlyBird = { price: num(e.target.value), untilDate: next.earlyBird?.untilDate || wf.dateISO };
+                return next;
+              }))} />
+            {t.earlyBird && (
+              <input type="date" className={`${inputCls} !w-40`} value={t.earlyBird.untilDate} aria-label="Early price until"
+                onChange={(e) => setTiers(tiers.map((x, j) => (j === i && x.earlyBird ? { ...x, earlyBird: { ...x.earlyBird, untilDate: e.target.value } } : x)))} />
+            )}
+            <button className="w-11 h-11 -m-1 text-stone-300 hover:text-red-600 font-bold" aria-label="Remove pass"
+              onClick={() => setTiers(tiers.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+      </div>
+      <Btn variant="ghost" className="!px-3 mb-3"
+        onClick={() => setTiers([...tiers, { id: uid('tier'), name: { en: '', bn: '', hi: '' }, kind: 'paid', price: 0 }])}>
+        <T en="+ Add a pass" bn="+ পাস যোগ" hi="+ पास जोड़ें" />
+      </Btn>
+
+      {/* Discount codes */}
+      <div className="text-[11px] font-bold text-stone-500 mb-1">
+        <T en="Discount codes" bn="ছাড়ের কোড" hi="छूट कोड" />
+      </div>
+      <div className="space-y-1.5 mb-2">
+        {codes.map((c, i) => (
+          <div key={i} className={rowCls}>
+            <input className={`${inputCls} !w-36 uppercase`} value={c.code} aria-label="Code" placeholder="DIWALI10"
+              onChange={(e) => setCodes(codes.map((x, j) => (j === i ? { ...x, code: normalizeDiscountCode(e.target.value) } : x)))} />
+            <select className={`${inputCls} !w-28`} value={c.kind} aria-label="Kind"
+              onChange={(e) => setCodes(codes.map((x, j) => (j === i ? { ...x, kind: e.target.value as TicketDiscountCode['kind'] } : x)))}>
+              <option value="percent">% off</option>
+              <option value="flat">Flat off</option>
+              <option value="full">Full (free)</option>
+            </select>
+            <input type="number" min={0} className={mini} value={c.value} aria-label="Value" placeholder="Value"
+              onChange={(e) => setCodes(codes.map((x, j) => (j === i ? { ...x, value: num(e.target.value) } : x)))} />
+            <input type="number" min={0} className={mini} value={c.maxUses ?? ''} aria-label="Max uses (blank = unlimited)" placeholder="Max uses"
+              onChange={(e) => setCodes(codes.map((x, j) => {
+                if (j !== i) return x;
+                const next = { ...x };
+                if (e.target.value === '') delete next.maxUses;
+                else next.maxUses = num(e.target.value);
+                return next;
+              }))} />
+            <span className="text-[11px] text-stone-400">
+              <T en={`used ${existing?.discountUses?.[c.code] ?? 0}`} bn={`ব্যবহৃত ${existing?.discountUses?.[c.code] ?? 0}`} hi={`उपयोग ${existing?.discountUses?.[c.code] ?? 0}`} />
+            </span>
+            <button className="w-11 h-11 -m-1 text-stone-300 hover:text-red-600 font-bold" aria-label="Remove code"
+              onClick={() => setCodes(codes.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+      </div>
+      <Btn variant="ghost" className="!px-3 mb-3"
+        onClick={() => setCodes([...codes, { code: '', kind: 'percent', value: 10 }])}>
+        <T en="+ Add a code" bn="+ কোড যোগ" hi="+ कोड जोड़ें" />
+      </Btn>
+
+      {/* Refund ladder + fee bearer */}
+      <div className="text-[11px] font-bold text-stone-500 mb-1">
+        <T en="Refund promise (by days before the festival)" bn="ফেরতের প্রতিশ্রুতি (উৎসবের কত দিন আগে)" hi="वापसी वादा (उत्सव से कितने दिन पहले)" />
+      </div>
+      <div className="space-y-1.5 mb-2">
+        {ladder.map((r, i) => (
+          <div key={i} className={rowCls}>
+            <span className="text-xs text-stone-500"><T en="Cancel" bn="বাতিল" hi="रद्द" /></span>
+            <input type="number" min={0} max={365} className={mini} value={r.minDaysBefore} aria-label="Days before"
+              onChange={(e) => setLadder(ladder.map((x, j) => (j === i ? { ...x, minDaysBefore: num(e.target.value) } : x)))} />
+            <span className="text-xs text-stone-500"><T en="days before → refund" bn="দিন আগে → ফেরত" hi="दिन पहले → वापसी" /></span>
+            <input type="number" min={0} max={100} className={mini} value={r.percent} aria-label="Refund percent"
+              onChange={(e) => setLadder(ladder.map((x, j) => (j === i ? { ...x, percent: num(e.target.value) } : x)))} />
+            <span className="text-xs text-stone-500">%</span>
+            <button className="w-11 h-11 -m-1 text-stone-300 hover:text-red-600 font-bold" aria-label="Remove refund row"
+              onClick={() => setLadder(ladder.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <Btn variant="ghost" className="!px-3"
+          onClick={() => setLadder([...ladder, { minDaysBefore: 0, percent: 0 }])}>
+          <T en="+ Add a row" bn="+ সারি যোগ" hi="+ पंक्ति जोड़ें" />
+        </Btn>
+        <label className="text-xs text-stone-600 flex items-center gap-2">
+          <T en="Platform fee (5%) is borne by" bn="প্ল্যাটফর্ম ফি (৫%) বহন করবেন" hi="प्लेटफ़ॉर्म शुल्क (5%) वहन करेंगे" />
+          <select className={`${inputCls} !w-36`} value={feeBearer}
+            onChange={(e) => setFeeBearer(e.target.value as 'organiser' | 'buyer')}>
+            <option value="organiser">Organiser</option>
+            <option value="buyer">Devotee</option>
+          </select>
+        </label>
+      </div>
+
+      {err && <div className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-2">{errText[err] || err}</div>}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Btn onClick={save}>
+          <T en={saved ? '✓ Passes saved' : 'Save passes & codes'} bn={saved ? '✓ পাস সংরক্ষিত' : 'পাস ও কোড সংরক্ষণ'} hi={saved ? '✓ पास सहेजे गए' : 'पास व कोड सहेजें'} />
+        </Btn>
+        <span className="text-[11px] text-stone-400">
+          <T en="Then press Update page above so devotees see the passes." bn="তারপর উপরে ‘পৃষ্ঠা হালনাগাদ’ চাপুন, যাতে ভক্তরা পাস দেখেন।" hi="फिर ऊपर ‘पृष्ठ अद्यतन’ दबाएं ताकि भक्त पास देखें।" />
+        </span>
+      </div>
+
+      {/* Organiser-cancel — the 100% promise */}
+      <div className="mt-4 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5">
+        {cancelled ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-red-700 flex-1">
+              <T en="This festival is marked cancelled. Every pass refunds 100%, fee included."
+                bn="এই উৎসব বাতিল হিসেবে চিহ্নিত। প্রতিটি পাস ১০০% ফেরত পাবে, ফি-সহ।"
+                hi="यह उत्सव रद्द चिह्नित है। हर पास की 100% वापसी होगी, शुल्क सहित।" />
+            </span>
+            <Btn variant="ghost" onClick={() => setCancelled(false)}>
+              <T en="Undo cancellation" bn="বাতিল ফিরিয়ে নিন" hi="रद्दीकरण वापस लें" />
+            </Btn>
+          </div>
+        ) : confirmCancel ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-red-700 flex-1">
+              <T en="Cancel the whole festival? Every devotee's pass then refunds 100%, fee included."
+                bn="পুরো উৎসব বাতিল করবেন? তাহলে প্রতিটি ভক্তের পাস ১০০% ফেরত পাবে, ফি-সহ।"
+                hi="पूरा उत्सव रद्द करें? तब हर भक्त के पास की 100% वापसी होगी, शुल्क सहित।" />
+            </span>
+            <Btn onClick={() => setCancelled(true)}>
+              <T en="Yes, cancel festival" bn="হ্যাঁ, উৎসব বাতিল" hi="हाँ, उत्सव रद्द करें" />
+            </Btn>
+            <Btn variant="ghost" onClick={() => setConfirmCancel(false)}>
+              <T en="Keep festival" bn="উৎসব থাকুক" hi="उत्सव रहने दें" />
+            </Btn>
+          </div>
+        ) : (
+          <button className="text-xs font-bold text-red-700 min-h-[44px]" onClick={() => setConfirmCancel(true)}>
+            <T en="Cancel this festival (100% refunds)" bn="এই উৎসব বাতিল করুন (১০০% ফেরত)" hi="यह उत्सव रद्द करें (100% वापसी)" />
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 

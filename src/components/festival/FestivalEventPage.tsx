@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -23,6 +23,8 @@ import {
 } from '../../lib/festivalRsvp';
 import { festivalConcluded } from '../../lib/festivalMemory';
 import { EventPassCard } from './EventPassCard';
+import { TicketPurchaseSection, MyTicketCard, TicketOfferCard } from './TicketPurchase';
+import type { EventTicket } from '../../lib/eventTickets';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 
@@ -33,7 +35,7 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
   const { orgId, eventId } = useParams<{ orgId: string; eventId: string }>();
   const navigate = useNavigate();
   const { safeTranslate } = useLanguage();
-  const { firebaseUser } = useAuthWorkspace();
+  const { firebaseUser, currentUser } = useAuthWorkspace();
 
   const [event, setEvent] = useState<FestivalEventDoc | null>(previewEvent || null);
   const [loading, setLoading] = useState(!previewEvent);
@@ -54,6 +56,26 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
   const prefilledFor = React.useRef<string>('');
 
   const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+
+  // EVENTS E2 — my seva passes for this festival, and passes other
+  // devotees have offered to transfer to me. Single-field queries
+  // (buyer / recipient), filtered to this festival on the client.
+  const [myTickets, setMyTickets] = useState<EventTicket[]>([]);
+  const [offersToMe, setOffersToMe] = useState<EventTicket[]>([]);
+  useEffect(() => {
+    if (previewEvent || !uid || !eventId) { setMyTickets([]); setOffersToMe([]); return; }
+    const mine = onSnapshot(
+      query(collection(db, 'event_tickets'), where('buyerUid', '==', uid)),
+      (snap) => setMyTickets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EventTicket, 'id'>) })).filter((x) => x.festivalId === eventId)),
+      () => setMyTickets([])
+    );
+    const offers = onSnapshot(
+      query(collection(db, 'event_tickets'), where('transferToUid', '==', uid), where('transferState', '==', 'offered')),
+      (snap) => setOffersToMe(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EventTicket, 'id'>) })).filter((x) => x.festivalId === eventId)),
+      () => setOffersToMe([])
+    );
+    return () => { mine(); offers(); };
+  }, [uid, eventId, previewEvent]);
 
   // My RSVP, live: the page now remembers me — my place, my days,
   // my waitlist position — instead of asking me to RSVP twice.
@@ -469,6 +491,25 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
             </>
           )}
         </div>
+        )}
+
+        {/* EVENTS E2 — seva passes: booking, my passes, transfers */}
+        {!festivalConcluded(event, Date.now()) && (event.ticketTiers?.length ?? 0) > 0 && (
+          <div className="space-y-3">
+            {offersToMe.map((tk) => (
+              <TicketOfferCard key={tk.id} ticket={tk} event={event} uid={uid} myName={currentUser?.name || name || ''} />
+            ))}
+            <TicketPurchaseSection
+              event={event}
+              uid={uid}
+              buyerName={currentUser?.name || ''}
+              myTickets={myTickets}
+              onNeedSignIn={() => navigate(`/login?next=${encodeURIComponent(`/festival/${orgId}/${eventId}`)}`)}
+            />
+            {myTickets.map((tk) => (
+              <MyTicketCard key={tk.id} ticket={tk} event={event} uid={uid} />
+            ))}
+          </div>
         )}
 
         {/* Share */}

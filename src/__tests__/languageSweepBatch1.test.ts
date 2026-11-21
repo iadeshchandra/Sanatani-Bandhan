@@ -77,7 +77,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // EVENTS E3 adds 40 surfaces.events keys (the SB-EVENT pass card
     // and the festival gate mode: passTitle…passRefreshNote,
     // gateMode…gateNoFestivals) in all 10 languages.
-    expect(keysOf(en).length).toBe(551);
+    // EVENTS E2 adds 65 surfaces.events keys (seva passes: booking
+    // with the itemised quote, refunds, transfers — ticket… and
+    // transfer… key families) in all 10 languages.
+    expect(keysOf(en).length).toBe(616);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

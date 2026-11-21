@@ -85,6 +85,12 @@ export interface ApplyRsvpInput {
    * is never queued silently.
    */
   joinWaitlistIfFull?: boolean;
+  /**
+   * E2: the seva-pass purchase (event_tickets id) that created this
+   * party record, when it did. Stamped onto the record so a ticket
+   * cancellation / transfer touches exactly its own RSVP.
+   */
+  ticketId?: string;
 }
 
 export type ApplyRsvpOutcome = 'confirmed' | 'waitlisted';
@@ -162,6 +168,7 @@ export async function applyFestivalRsvp(
     };
     if (input.slotId) payload.slotId = input.slotId;
     if (input.days && input.days.length > 0) payload.days = [...input.days].sort();
+    if (input.ticketId) payload.ticketId = input.ticketId;
     tx.set(rsvpRef, payload);
   });
   return outcome;

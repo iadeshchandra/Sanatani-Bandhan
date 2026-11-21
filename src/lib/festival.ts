@@ -427,6 +427,80 @@ export interface FestivalTiming {
   time: string;   // e.g. "6:30 PM"
 }
 
+/* ------------------------------------------------------------------ */
+/* EVENTS E2 — seva passes & tickets                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One flexible pass type (the Eventbrite lesson): a free pass, a paid
+ * pass, or an add-on (prasad box, book, parking). 'free'/'paid' are
+ * ATTENDANCE passes — buying one creates the buyer's party RSVP;
+ * 'addon' is an extra and never touches the RSVP counters.
+ */
+export interface TicketTier {
+  id: string;
+  name: Lang3;
+  kind: 'free' | 'paid' | 'addon';
+  /** Whole currency units; 0 for a free pass. */
+  price: number;
+  /** Max passes that can be sold; absent = unmetered. */
+  capacity?: number;
+  /** Early seva price, plainly dated — never a countdown. */
+  earlyBird?: { price: number; untilDate: string }; // yyyy-mm-dd
+  /** Most passes in one booking (household cap). Default 6. */
+  maxPerBooking?: number;
+}
+
+export interface TicketDiscountCode {
+  code: string; // stored uppercase
+  kind: 'flat' | 'percent' | 'full';
+  /** flat: amount off · percent: 1–100 · full: ignored (100% off). */
+  value: number;
+  maxUses?: number;
+}
+
+export interface RefundTier {
+  /** Whole days before the festival start. */
+  minDaysBefore: number;
+  /** Percent of the amount paid that returns. */
+  percent: number;
+}
+
+/**
+ * The trustee's ticketing configuration — lives on the WarRoomPlan
+ * (festival_plans: staff-written, member-read, NEVER public, because
+ * it carries the discount codes). The editor-shaped fields (tiers,
+ * discountCodes, refundPolicy, feeBearer) are what the trustee edits;
+ * everything below them is DERIVED by lib/eventTickets'
+ * deriveTicketingMaps and exists so firestore.rules can validate a
+ * purchase without searching lists (the slotCaps lesson): prices,
+ * early-bird stamps and code terms as maps, the refund policy as a
+ * sorted ladder the rules can walk by index.
+ */
+export interface TicketingConfig {
+  tiers: TicketTier[];
+  discountCodes: TicketDiscountCode[];
+  refundPolicy: RefundTier[];
+  feeBearer: 'organiser' | 'buyer';
+  /** Trustee cancelled the festival: paid passes refund 100%. */
+  festivalCancelled?: boolean;
+  /* ---- derived validation maps (deriveTicketingMaps) ---- */
+  tierPrices: Record<string, number>;
+  tierEarly: Record<string, { price: number; untilMs: number }>;
+  tierMax: Record<string, number>;
+  tierKinds: Record<string, 'free' | 'paid' | 'addon'>;
+  codeMap: Record<string, { kind: 'flat' | 'percent' | 'full'; value: number; maxUses?: number }>;
+  /** Sorted by minDaysBefore DESC, always ending at a 0-day row. */
+  refundLadder: RefundTier[];
+  /** Code → times used. Incremented ONLY through the anchored
+   *  discount-use path in firestore.rules (buyer purchase batches). */
+  discountUses: Record<string, number>;
+  /** Festival start/end as epoch ms (UTC midnight of the civil
+   *  dates) — the rules' clock for early-bird, refunds, transfers. */
+  startMs: number;
+  endMs: number;
+}
+
 export interface FestivalEventDoc {
   id: string;             // `${workspaceId}__${festivalKey}`
   workspaceId: string;
@@ -464,6 +538,29 @@ export interface FestivalEventDoc {
    * published before P1 (nobody has ever waited on them).
    */
   slotWaitlist?: Record<string, Record<string, number>>;
+  /**
+   * EVENTS E2 — seva passes, stamped at publish time from the plan's
+   * ticketing config (public-safe: tiers and the refund policy are
+   * shown at checkout; discount CODES never appear here — only their
+   * terms, keyed by a lookup hash, in discountTerms). tierCaps is the
+   * capacity map the rules bound tierSold by (the slotCaps pattern);
+   * tierSold moves ONLY in the same batch as the event_tickets
+   * record that causes it (anchoredTierCounter in firestore.rules),
+   * witnessed by tierAnchorTicketId.
+   */
+  ticketTiers?: TicketTier[];
+  tierCaps?: Record<string, number>;
+  tierSold?: Record<string, number>;
+  tierAnchorTicketId?: string;
+  ticketFeeBearer?: 'organiser' | 'buyer';
+  /** The refund ladder, published at checkout exactly as promised. */
+  refundPolicy?: RefundTier[];
+  /** codeKey (lib/eventTickets codeKeyFor) → terms, for the itemised
+   *  quote a buyer sees before confirming. Terms only — the code
+   *  itself is never published. */
+  discountTerms?: Record<string, { kind: 'flat' | 'percent' | 'full'; value: number }>;
+  /** Trustee cancelled the festival — paid passes refund in full. */
+  festivalCancelled?: boolean;
   updatedAt: string;
 }
 
@@ -491,6 +588,13 @@ export interface RsvpEntry {
   /** EVENTS P1 — day-of check-in, marked by the organising team. */
   checkedIn?: boolean;
   checkedInAt?: string;
+  /**
+   * EVENTS E2 — set when this party record was created by a seva-pass
+   * purchase (event_tickets/{ticketId}). The ticket is the money
+   * record; this back-link lets a ticket cancellation remove exactly
+   * the RSVP it created, and a transfer rebind exactly that record.
+   */
+  ticketId?: string;
 }
 
 export function validateRsvp(e: Pick<RsvpEntry, 'name' | 'headcount'>): string | null {
@@ -555,6 +659,8 @@ export interface WarRoomPlan {
   checklist: Record<string, ChecklistItemState>;
   /** Free-text notes the trustee keeps for the war-room. */
   notes: string;
+  /** EVENTS E2 — seva-pass ticketing (absent = no passes offered). */
+  ticketing?: TicketingConfig;
   updatedAt: string;
 }
 

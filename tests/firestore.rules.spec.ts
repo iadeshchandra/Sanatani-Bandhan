@@ -1,6 +1,8 @@
 
 import { assertFails, assertSucceeds, initializeTestEnvironment, RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import * as fs from 'fs';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
 
 let testEnv;
 
@@ -749,5 +751,208 @@ describe('P2P money requests — privacy & transitions', () => {
   it('79. Anonymous users cannot read p2pRequests', async () => {
     const unauthDb = testEnv.unauthenticatedContext().firestore();
     await assertFails(unauthDb.collection('p2pRequests').doc('p2p-1').get());
+  });
+});
+
+describe('EVENTS E2 — seva pass ticketing (event_tickets)', () => {
+  const EV = 'ws-1__fest1';
+  const startMs = Date.now() + 30 * 86400000; // 30 days out → 100% rung
+  const ticketDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    festivalId: EV,
+    tierId: 'pass1',
+    tierName: 'Cultural evening pass',
+    buyerUid: 'user-1',
+    buyerName: 'User One',
+    attendees: [{ name: 'User One' }, { name: 'Guest Two' }],
+    qty: 2,
+    amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+    currency: 'INR',
+    paymentState: 'paid-wallet',
+    rsvpId: `${EV}__user-1`,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...over,
+  });
+
+  // Runs after the global beforeEach (which clears + reseeds base).
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('festival_plans').doc(EV).set({
+        workspaceId: 'ws-1',
+        ticketing: {
+          tiers: [],
+          tierPrices: { pass1: 500 },
+          tierKinds: { pass1: 'paid' },
+          tierEarly: {},
+          tierMax: { pass1: 6 },
+          codeMap: {},
+          refundLadder: [
+            { minDaysBefore: 7, percent: 100 },
+            { minDaysBefore: 0, percent: 0 },
+          ],
+          discountUses: {},
+          feeBearer: 'organiser',
+          startMs,
+          endMs: startMs + 86400000 - 1,
+        },
+      });
+      await db.collection('festival_events').doc(EV).set({
+        workspaceId: 'ws-1',
+        published: true,
+        ticketFeeBearer: 'organiser',
+        tierCaps: { pass1: 100 },
+        tierSold: {},
+        rsvpHeadcount: 0,
+        slotBooked: {},
+      });
+      await db.collection('wallets').doc('user-1').set({
+        uid: 'user-1', balance: 2000, totalSpent: 0, totalReceived: 0, currency: 'INR',
+      });
+    });
+  });
+
+  const buyerDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const strangerDb = () => testEnv.authenticatedContext('stranger-1').firestore();
+
+  const purchaseBatch = (db: any, amounts = { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 }) => {
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc('tk-e2-1'), ticketDoc({ amounts }));
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__user-1`), {
+      eventId: EV, workspaceId: 'ws-1', uid: 'user-1', name: 'User One',
+      headcount: 2, status: 'confirmed', createdAt: '2026-01-01T00:00:00.000Z', ticketId: 'tk-e2-1',
+    });
+    batch.update(db.collection('wallets').doc('user-1'), {
+      balance: 2000 - amounts.total, totalSpent: amounts.total, lastDebitTicketId: 'tk-e2-1', updatedAt: 1,
+    });
+    batch.set(db.collection('walletTransactions').doc('txn-e2-1'), {
+      uid: 'user-1', type: 'spend', amount: amounts.total, currency: 'INR',
+      orderId: 'tk-e2-1', note: 'Seva pass', createdAt: 1,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 2 }, tierAnchorTicketId: 'tk-e2-1', updatedAt: 1,
+    });
+    return batch.commit();
+  };
+
+  it('80. Buyer purchases a wallet pass in one anchored batch', async () => {
+    await assertSucceeds(purchaseBatch(buyerDb()));
+  });
+
+  it('81. A tampered total fails the whole purchase batch', async () => {
+    await assertFails(purchaseBatch(buyerDb(), { price: 1000, discount: 0, fee: 50, gst: 9, total: 999 }));
+  });
+
+  it('82. A ticket cannot be created for someone else', async () => {
+    await assertFails(
+      strangerDb().collection('event_tickets').doc('tk-e2-x').set(ticketDoc())
+    );
+    await assertFails(
+      buyerDb().collection('event_tickets').doc('tk-e2-y').set(ticketDoc({ buyerUid: 'user-2' }))
+    );
+  });
+
+  it('83. Read: buyer and workspace staff yes, stranger no', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('event_tickets').doc('tk-e2-1').set(ticketDoc());
+    });
+    await assertSucceeds(buyerDb().collection('event_tickets').doc('tk-e2-1').get());
+    await assertSucceeds(staffDb().collection('event_tickets').doc('tk-e2-1').get());
+    await assertFails(strangerDb().collection('event_tickets').doc('tk-e2-1').get());
+  });
+
+  it('84. Buyer cancel refunds 100% by the ladder, wallet credited in the same batch', async () => {
+    await assertSucceeds(purchaseBatch(buyerDb()));
+    const db = buyerDb();
+    await assertSucceeds(db.collection('festival_rsvps').doc(`${EV}__user-1`).delete());
+    const batch = db.batch();
+    batch.update(db.collection('event_tickets').doc('tk-e2-1'), {
+      paymentState: 'refunded', refundAmount: 1000, refundedAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    batch.update(db.collection('wallets').doc('user-1'), {
+      balance: 2000, totalReceived: 1000, lastRefundTicketId: 'tk-e2-1', updatedAt: 2,
+    });
+    batch.set(db.collection('walletTransactions').doc('txn-e2-2'), {
+      uid: 'user-1', type: 'refund', amount: 1000, currency: 'INR',
+      orderId: 'tk-e2-1', note: 'Seva pass refund', createdAt: 2,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 0 }, tierAnchorTicketId: 'tk-e2-1', updatedAt: 2,
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('85. A short-changed refund is denied', async () => {
+    await assertSucceeds(purchaseBatch(buyerDb()));
+    const db = buyerDb();
+    const batch = db.batch();
+    batch.update(db.collection('event_tickets').doc('tk-e2-1'), {
+      paymentState: 'refunded', refundAmount: 500, refundedAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 0 }, tierAnchorTicketId: 'tk-e2-1', updatedAt: 2,
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('86. Staff mark venue money received; the buyer cannot', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('event_tickets').doc('tk-e2-2').set(
+        ticketDoc({ paymentState: 'pay-at-venue' })
+      );
+    });
+    await assertFails(
+      buyerDb().collection('event_tickets').doc('tk-e2-2').update({
+        venueReceived: true, receivedBy: 'User One', receivedAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z',
+      })
+    );
+    await assertSucceeds(
+      staffDb().collection('event_tickets').doc('tk-e2-2').update({
+        venueReceived: true, receivedBy: 'Admin', receivedAt: '2026-01-02T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z',
+      })
+    );
+  });
+
+  it('87. Transfer accept rebinds the pass and the giver RSVP delete is witnessed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('event_tickets').doc('tk-e2-3').set(ticketDoc({
+        transferToUid: 'user-2', transferToName: 'User Two', transferState: 'offered',
+        offeredAt: '2026-01-01T00:00:00.000Z',
+      }));
+      await db.collection('festival_rsvps').doc(`${EV}__user-1`).set({
+        eventId: EV, workspaceId: 'ws-1', uid: 'user-1', name: 'User One',
+        headcount: 2, status: 'confirmed', createdAt: '2026-01-01T00:00:00.000Z', ticketId: 'tk-e2-3',
+      });
+    });
+    const db = testEnv.authenticatedContext('user-2').firestore();
+    const batch = db.batch();
+    batch.update(db.collection('event_tickets').doc('tk-e2-3'), {
+      buyerUid: 'user-2',
+      buyerName: 'User Two',
+      transferFromUid: 'user-1',
+      transferredAt: '2026-01-02T00:00:00.000Z',
+      rsvpId: `${EV}__user-2`,
+      transferToUid: firebase.firestore.FieldValue.delete(),
+      transferToName: firebase.firestore.FieldValue.delete(),
+      transferState: firebase.firestore.FieldValue.delete(),
+      offeredAt: firebase.firestore.FieldValue.delete(),
+      updatedAt: '2026-01-02T00:00:00.000Z',
+    });
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__user-2`), {
+      eventId: EV, workspaceId: 'ws-1', uid: 'user-2', name: 'User Two',
+      headcount: 2, status: 'confirmed', createdAt: '2026-01-02T00:00:00.000Z', ticketId: 'tk-e2-3',
+    });
+    batch.delete(db.collection('festival_rsvps').doc(`${EV}__user-1`));
+    await assertSucceeds(batch.commit());
+  });
+
+  it('88. Tickets are never deletable', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('event_tickets').doc('tk-e2-1').set(ticketDoc());
+    });
+    await assertFails(buyerDb().collection('event_tickets').doc('tk-e2-1').delete());
+    await assertFails(staffDb().collection('event_tickets').doc('tk-e2-1').delete());
   });
 });

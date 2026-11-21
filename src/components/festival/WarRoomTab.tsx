@@ -27,6 +27,7 @@ import { RosterCard } from './RosterCard';
 import { BudgetWarCard } from './BudgetWarCard';
 import { ChecklistOps } from './ChecklistOps';
 import { PublishPanel } from './PublishPanel';
+import { TicketSalesPanel } from './TicketSalesPanel';
 
 /* Readiness ring — one calm number. */
 const ReadinessRing: React.FC<{ score: number }> = ({ score }) => {
@@ -389,7 +390,8 @@ const WarRoomInner: React.FC = () => {
       <RosterCard wf={wf} plan={p} patch={patch} gaps={gaps} />
       <BudgetWarCard />
       {template && <ChecklistOps wf={wf} plan={p} patch={patch} template={template} />}
-      <PublishPanel wf={wf} plan={p} />
+      <PublishPanel wf={wf} plan={p} patchPlan={patch} />
+      <TicketSalesPanel wf={wf} plan={p} />
     </div>
   );
 };
