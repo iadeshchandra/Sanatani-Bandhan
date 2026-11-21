@@ -29,7 +29,11 @@ import {
   buildSangamEventUpdate,
   validateOrgEvent,
 } from './eventBridge';
-import { isValidRecurrence, nextOccurrence, localTodayISO, type RecurrenceRule } from '../lib/eventRecurrence';
+import {
+  isValidRecurrence, nextOccurrence, localTodayISO,
+  TITHI_PRESETS, tithiPresetFor, describeTithiDays, absoluteTithiName,
+  type RecurrenceRule,
+} from '../lib/eventRecurrence';
 import { schedulingHintsFor } from '../lib/eventSchedulingHints';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 
@@ -49,23 +53,34 @@ interface FormState {
   time: string;
   description: string;
   /** EVENTS P1 — recurrence: '' = one-off; else the rhythm. */
-  recurFreq: '' | 'weekly' | 'monthly' | 'yearly';
+  recurFreq: '' | RecurrenceRule['freq'];
   recurInterval: string;
   recurUntil: string;
   recurCount: string;
+  /** EVENTS E1 — tithi rhythm: the selected ABSOLUTE tithis (1–30),
+   *  plus the custom picker's paksha + within-paksha day (1–15). */
+  recurTithiDays: number[];
+  recurTithiPaksha: 'shukla' | 'krishna';
+  recurTithiDay: string;
 }
 
 const EMPTY_FORM: FormState = {
   title: '', date: '', time: '', description: '',
   recurFreq: '', recurInterval: '1', recurUntil: '', recurCount: '',
+  recurTithiDays: [], recurTithiPaksha: 'shukla', recurTithiDay: '11',
 };
 
 /** Build the rule from the form (null = not a recurring event). */
 function formRecurrence(form: FormState): RecurrenceRule | null {
   if (!form.recurFreq) return null;
   const rule: RecurrenceRule = { freq: form.recurFreq };
-  const interval = parseInt(form.recurInterval, 10);
-  if (Number.isFinite(interval) && interval > 1) rule.interval = interval;
+  if (form.recurFreq === 'tithi') {
+    // The lunar rhythm sets the spacing — no Gregorian interval.
+    rule.tithiDays = [...form.recurTithiDays].sort((a, b) => a - b);
+  } else {
+    const interval = parseInt(form.recurInterval, 10);
+    if (Number.isFinite(interval) && interval > 1) rule.interval = interval;
+  }
   if (form.recurUntil) rule.until = form.recurUntil;
   const count = parseInt(form.recurCount, 10);
   if (!rule.until && Number.isFinite(count) && count > 0) rule.count = count;
@@ -127,6 +142,9 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
       recurInterval: String(it.recurrence?.interval || 1),
       recurUntil: it.recurrence?.until || '',
       recurCount: it.recurrence?.count ? String(it.recurrence.count) : '',
+      recurTithiDays: it.recurrence?.tithiDays ? [...it.recurrence.tithiDays] : [],
+      recurTithiPaksha: 'shukla',
+      recurTithiDay: '11',
     });
     setFormError(null);
     setEditing(index);
@@ -341,7 +359,9 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
                         ? t('surfaces.events.repeatWeekly')
                         : it.recurrence.freq === 'monthly'
                           ? t('surfaces.events.repeatMonthly')
-                          : t('surfaces.events.repeatYearly')}
+                          : it.recurrence.freq === 'tithi'
+                            ? `${t('surfaces.events.repeatTithi')} · ${describeTithiDays(it.recurrence.tithiDays)}`
+                            : t('surfaces.events.repeatYearly')}
                       {(() => {
                         const nx = nextOccurrence(it.date, it.recurrence, localTodayISO());
                         return nx ? ` · ${t('surfaces.events.nextLabel')}: ${nx.date}` : '';
@@ -498,20 +518,112 @@ export const OrgEventManager: React.FC<OrgEventManagerProps> = ({
               <option value="weekly">{t('surfaces.events.repeatWeekly')}</option>
               <option value="monthly">{t('surfaces.events.repeatMonthly')}</option>
               <option value="yearly">{t('surfaces.events.repeatYearly')}</option>
+              <option value="tithi">{t('surfaces.events.repeatTithi')}</option>
             </select>
-            {form.recurFreq && (
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-500 mb-1">
-                    {t('surfaces.events.intervalLabel')}
-                  </label>
-                  <input
-                    type="number" min={1} max={12}
-                    value={form.recurInterval}
-                    onChange={(e) => setForm({ ...form, recurInterval: e.target.value })}
-                    className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
-                  />
+            {form.recurFreq === 'tithi' && (
+              <div className="mt-2">
+                <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                  {t('surfaces.events.tithiDaysLabel')}
+                </label>
+                {/* EVENTS E1 — one-tap observance presets. A preset
+                    fills the day-set; the custom picker below can
+                    still adjust it day by day. */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'ekadashi', label: t('surfaces.events.tithiPresetEkadashi') },
+                    { id: 'purnima', label: t('surfaces.events.tithiPresetPurnima') },
+                    { id: 'amavasya', label: t('surfaces.events.tithiPresetAmavasya') },
+                    { id: 'pradosh', label: t('surfaces.events.tithiPresetPradosh') },
+                    { id: 'sankashti', label: t('surfaces.events.tithiPresetSankashti') },
+                  ].map((chip) => {
+                    const preset = TITHI_PRESETS.find((p) => p.id === chip.id);
+                    if (!preset) return null;
+                    const active = tithiPresetFor(form.recurTithiDays)?.id === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, recurTithiDays: [...preset.tithiDays] })}
+                        className={`min-h-[44px] px-3 rounded-xl text-xs font-black border active:scale-[0.98] transition ${active ? 'bg-amber-700 text-white border-amber-700' : 'bg-white text-stone-700 border-stone-300'}`}
+                        aria-pressed={active}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
                 </div>
+                {form.recurTithiDays.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[...form.recurTithiDays].sort((a, b) => a - b).map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setForm({ ...form, recurTithiDays: form.recurTithiDays.filter((d) => d !== day) })}
+                        className="min-h-[44px] px-3 rounded-xl text-xs font-black bg-amber-100 text-amber-900 border border-amber-200 active:scale-[0.98] transition"
+                        aria-label={`${absoluteTithiName(day)} ✕`}
+                      >
+                        {absoluteTithiName(day)} ✕
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Custom picker: paksha + tithi 1–15 → absolute day. */}
+                <label className="block text-[10px] font-bold text-stone-500 mt-3 mb-1">
+                  {t('surfaces.events.tithiCustomLabel')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={form.recurTithiPaksha}
+                    onChange={(e) => setForm({ ...form, recurTithiPaksha: e.target.value as FormState['recurTithiPaksha'] })}
+                    className="min-h-[44px] rounded-xl border border-stone-300 px-2 text-sm bg-white"
+                  >
+                    <option value="shukla">{t('surfaces.events.tithiPakshaShukla')}</option>
+                    <option value="krishna">{t('surfaces.events.tithiPakshaKrishna')}</option>
+                  </select>
+                  <select
+                    value={form.recurTithiDay}
+                    onChange={(e) => setForm({ ...form, recurTithiDay: e.target.value })}
+                    className="min-h-[44px] rounded-xl border border-stone-300 px-2 text-sm bg-white"
+                  >
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => {
+                      const abs = form.recurTithiPaksha === 'shukla' ? n : n + 15;
+                      return (
+                        <option key={n} value={String(n)}>{absoluteTithiName(abs)}</option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const n = parseInt(form.recurTithiDay, 10);
+                      if (!Number.isFinite(n) || n < 1 || n > 15) return;
+                      const abs = form.recurTithiPaksha === 'shukla' ? n : n + 15;
+                      if (form.recurTithiDays.includes(abs)) return;
+                      setForm({ ...form, recurTithiDays: [...form.recurTithiDays, abs].sort((a, b) => a - b) });
+                    }}
+                    className="min-h-[44px] px-3 rounded-xl bg-white border border-amber-600 text-amber-800 text-xs font-black active:scale-[0.98] transition"
+                  >
+                    {t('surfaces.events.tithiAdd')}
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-400 mt-2">{t('surfaces.events.tithiHint')}</p>
+              </div>
+            )}
+            {form.recurFreq && (
+              <div className={`grid gap-2 mt-2 ${form.recurFreq === 'tithi' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {form.recurFreq !== 'tithi' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                      {t('surfaces.events.intervalLabel')}
+                    </label>
+                    <input
+                      type="number" min={1} max={12}
+                      value={form.recurInterval}
+                      onChange={(e) => setForm({ ...form, recurInterval: e.target.value })}
+                      className="w-full min-h-[44px] rounded-xl border border-stone-300 px-3 text-sm bg-white"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold text-stone-500 mb-1">
                     {t('surfaces.events.untilLabel')}

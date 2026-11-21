@@ -5,6 +5,7 @@ import { T, Card, Btn, Field, Modal, inputCls, StatusPill, Empty, fmtDate } from
 import { useToast } from '../context/ToastContext';
 import { useLanguage } from '../context/LanguageContext';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
+import { cloneFestivalForNextYear } from './cloneFestival';
 
 /* Utsav One — festival registry: name, dates, deity, venue, footfall. */
 
@@ -37,6 +38,21 @@ export const FestivalsTab: React.FC = () => {
       showToast(t('ritual.utsav.festivals.toastAdded'), 'success');
     }
     setEditing(null);
+  };
+
+  /* EVENTS E1 — copy a festival's whole plan into next year:
+   * dates shift, budget actuals reset, checklists reopen. The pure
+   * helper (utsav/cloneFestival) builds the set; the store's own
+   * add() actions persist it, like every other write here. */
+  const copyNextYear = (f: Festival) => {
+    const set = cloneFestivalForNextYear(f, state, (oldId) => uid(oldId.split('_')[0] || 'cp'));
+    add('festivals', set.festival);
+    set.budget.forEach((b) => add('budget', b));
+    set.members.forEach((mm) => add('members', mm));
+    set.tasks.forEach((tk) => add('tasks', tk));
+    set.program.forEach((p) => add('program', p));
+    set.safety.forEach((s) => add('safety', s));
+    showToast(t('ritual.utsav.festivals.toastCopiedNextYear'), 'success');
   };
 
   const sorted = [...state.festivals].sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -73,6 +89,7 @@ export const FestivalsTab: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 mt-3 no-print">
                 <Btn variant="ghost" onClick={() => openEdit(f)}>{t('ritual.common.edit')}</Btn>
+                <Btn variant="ghost" onClick={() => copyNextYear(f)}>📋 {t('ritual.utsav.festivals.copy_next_year')}</Btn>
                 {(['planned', 'ongoing'] as FestivalStatus[]).includes(f.status) && (
                   <Btn variant="ghost" onClick={() => { update('festivals', f.id, { status: f.status === 'planned' ? 'ongoing' : 'completed' }); showToast(t('ritual.utsav.festivals.toastStatusUpdated'), 'success'); }}>
                     {f.status === 'planned' ? t('ritual.utsav.festivals.mark_live') : t('ritual.utsav.festivals.mark_completed')}

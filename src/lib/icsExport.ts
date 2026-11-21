@@ -11,9 +11,12 @@
  * RFC 5545 shape: CRLF lines, escaped text, UTC DTSTAMP, floating or
  * date values as appropriate, and a real RRULE line for recurring
  * series (from lib/eventRecurrence — the same rule the surfaces
- * expand for display, so the calendar and the app agree).
+ * expand for display, so the calendar and the app agree). Tithi
+ * series (EVENTS E1) export WITHOUT an RRULE — the rhythm is named
+ * in the DESCRIPTION, never faked as a Gregorian repeat.
  */
 import {
+  describeTithiDays,
   occurrenceStartMs,
   recurrenceRRule,
   type RecurrenceRule,
@@ -130,7 +133,19 @@ export function buildIcsEvent(ev: IcsEventInput, nowMs: number): string | null {
   }
 
   lines.push(`SUMMARY:${escapeText(ev.title || 'Event')}`);
-  if (ev.description) lines.push(`DESCRIPTION:${escapeText(ev.description)}`);
+  // EVENTS E1 — a tithi series carries no RRULE (RFC 5545 cannot say
+  // a lunar rhythm, and a Gregorian RRULE would be a false promise),
+  // so the rhythm is NAMED in the description instead:
+  // "Recurs by tithi: Ekadashi".
+  let description = ev.description;
+  if (ev.recurrence?.freq === 'tithi') {
+    const label = describeTithiDays(ev.recurrence.tithiDays);
+    if (label) {
+      const note = `Recurs by tithi: ${label}`;
+      description = description ? `${note}\n${description}` : note;
+    }
+  }
+  if (description) lines.push(`DESCRIPTION:${escapeText(description)}`);
   if (ev.location) lines.push(`LOCATION:${escapeText(ev.location)}`);
   lines.push('END:VEVENT');
   return lines.map(foldLine).join(CRLF);

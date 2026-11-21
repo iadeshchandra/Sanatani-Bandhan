@@ -33,7 +33,7 @@ import {
 import { SevaCardsSection } from '../components/org/SevaCards';
 import { TransparencyBoard } from '../components/audit/TransparencyBoard';
 import { DecisionCards } from '../components/audit/DecisionCards';
-import { nextOccurrence, localTodayISO } from '../lib/eventRecurrence';
+import { nextOccurrence, localTodayISO, describeTithiDays } from '../lib/eventRecurrence';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 import { OrgEventManager } from '../org/OrgEventManager';
 import { OrgAnnouncementsSection } from '../org/OrgBroadcastManager';
@@ -463,7 +463,9 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                     ? t('surfaces.events.repeatWeekly')
                     : ev.recurrence.freq === 'monthly'
                       ? t('surfaces.events.repeatMonthly')
-                      : t('surfaces.events.repeatYearly')
+                      : ev.recurrence.freq === 'tithi'
+                        ? `${t('surfaces.events.repeatTithi')} · ${describeTithiDays(ev.recurrence.tithiDays)}`
+                        : t('surfaces.events.repeatYearly')
                   : '';
                 return (
                 <li key={i} className="flex gap-4 items-start bg-amber-50/60 border border-amber-100 rounded-2xl p-4">
@@ -480,7 +482,7 @@ export const OrgPublicPageView: React.FC<OrgPublicPageViewProps> = ({
                     {ev.recurrence && (
                       <p className="text-[11px] font-bold text-amber-700 mt-0.5">
                         🔁 {recurLabel}
-                        {(ev.recurrence.interval || 1) > 1
+                        {ev.recurrence.freq !== 'tithi' && (ev.recurrence.interval || 1) > 1
                           ? ` · ${t('surfaces.events.intervalLabel')} ${ev.recurrence.interval} ${
                               ev.recurrence.freq === 'weekly'
                                 ? t('surfaces.events.unitWeek')

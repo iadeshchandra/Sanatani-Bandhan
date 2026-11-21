@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useSangam, type AuthorInfo } from './sangamStore';
 import { Card, Btn, Field, inputCls, Modal, AuthorLine, EmptyState, VerificationBadge, useLocaleText, T } from './ui';
-import { nextOccurrence, localTodayISO, type RecurrenceRule } from '../lib/eventRecurrence';
+import {
+  nextOccurrence, localTodayISO,
+  TITHI_PRESETS, tithiPresetFor, describeTithiDays,
+  type RecurrenceRule,
+} from '../lib/eventRecurrence';
 import { schedulingHintsFor } from '../lib/eventSchedulingHints';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../lib/icsExport';
 import type { SangamRsvpState } from './types';
@@ -42,6 +46,8 @@ export const EventsTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
   // EVENTS P1 — capacity + recurrence on the create form.
   const [capacity, setCapacity] = useState('');
   const [recurFreq, setRecurFreq] = useState<'' | RecurrenceRule['freq']>('');
+  // EVENTS E1 — the tithi rhythm's selected ABSOLUTE tithis (1–30).
+  const [recurTithiDays, setRecurTithiDays] = useState<number[]>([]);
   // EVENTS P1 — organiser RSVP lists, loaded on demand per event.
   const [openLists, setOpenLists] = useState<Record<string, { uid: string; state: SangamRsvpState; at: number | null }[]>>({});
 
@@ -72,8 +78,12 @@ export const EventsTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
     const startsAt = new Date(`${date}T${time}`).getTime();
     const t = title, k = kind, d = desc, v = venue;
     const cap = parseInt(capacity, 10);
-    const recurrence: RecurrenceRule | undefined = recurFreq ? { freq: recurFreq } : undefined;
-    setTitle(''); setDesc(''); setVenue(''); setDate(''); setCapacity(''); setRecurFreq(''); setCreateOpen(false); // close immediately — sync is best-effort
+    const recurrence: RecurrenceRule | undefined = recurFreq
+      ? recurFreq === 'tithi'
+        ? { freq: 'tithi', tithiDays: [...recurTithiDays].sort((a, b) => a - b) }
+        : { freq: recurFreq }
+      : undefined;
+    setTitle(''); setDesc(''); setVenue(''); setDate(''); setCapacity(''); setRecurFreq(''); setRecurTithiDays([]); setCreateOpen(false); // close immediately — sync is best-effort
     await createEvent(author, {
       title: t.trim(), kind: k, description: d.trim(), venue: v.trim() || tr('To be announced', 'ঘোষণা করা হবে', 'घोषणा होगी'),
       startsAt, isOfficial: false,
@@ -119,7 +129,7 @@ export const EventsTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
                     {e.isOfficial && <VerificationBadge official size="sm" />}
                     {e.recurrence && (
                       <span className="text-[10px] font-black bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                        🔁 {e.recurrence.freq === 'weekly' ? tr('Weekly', 'সাপ্তাহিক', 'साप्ताहिक') : e.recurrence.freq === 'monthly' ? tr('Monthly', 'মাসিক', 'मासिक') : tr('Yearly', 'বার্ষিক', 'वार्षिक')}
+                        🔁 {e.recurrence.freq === 'weekly' ? tr('Weekly', 'সাপ্তাহিক', 'साप्ताहिक') : e.recurrence.freq === 'monthly' ? tr('Monthly', 'মাসিক', 'मासिक') : e.recurrence.freq === 'tithi' ? `${tr('By tithi', 'তিথি অনুযায়ী', 'तिथि अनुसार')} · ${describeTithiDays(e.recurrence.tithiDays)}` : tr('Yearly', 'বার্ষিক', 'वार्षिक')}
                       </span>
                     )}
                     {full && (
@@ -288,13 +298,40 @@ export const EventsTab: React.FC<{ author: AuthorInfo }> = ({ author }) => {
                   <option value="weekly">{tr('Weekly', 'সাপ্তাহিক', 'साप्ताहिक')}</option>
                   <option value="monthly">{tr('Monthly', 'মাসিক', 'मासिक')}</option>
                   <option value="yearly">{tr('Yearly', 'বার্ষিক', 'वार्षिक')}</option>
+                  <option value="tithi">{tr('By tithi', 'তিথি অনুযায়ী', 'तिथि अनुसार')}</option>
                 </select>
               </Field>
             </div>
+            {/* EVENTS E1 — tithi rhythm: one-tap observance presets
+                (the full custom picker lives in the org event
+                manager; a preset covers the common rhythms). */}
+            {recurFreq === 'tithi' && (
+              <Field label={<T en="Lunar days" bn="তিথি" hi="तिथि" />}>
+                <div className="flex gap-1.5 flex-wrap">
+                  {TITHI_PRESETS.map((preset) => {
+                    const active = tithiPresetFor(recurTithiDays)?.id === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setRecurTithiDays([...preset.tithiDays])}
+                        className={`px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] ${active ? 'bg-orange-600 text-white' : 'bg-stone-100 text-stone-600'}`}
+                        aria-pressed={active}
+                      >
+                        {preset.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {recurTithiDays.length > 0 && (
+                  <p className="text-[11px] text-stone-400 mt-1.5">{describeTithiDays(recurTithiDays)}</p>
+                )}
+              </Field>
+            )}
             <Field label={<T en="Details" bn="বিস্তারিত" hi="विवरण" />}>
               <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} maxLength={400} className={inputCls} />
             </Field>
-            <Btn onClick={doCreate} disabled={!title.trim() || !date} className="w-full">📅 {tr('Announce event', 'অনুষ্ঠান ঘোষণা', 'आयोजन घोषित')}</Btn>
+            <Btn onClick={doCreate} disabled={!title.trim() || !date || (recurFreq === 'tithi' && recurTithiDays.length === 0)} className="w-full">📅 {tr('Announce event', 'অনুষ্ঠান ঘোষণা', 'आयोजन घोषित')}</Btn>
           </div>
         </Modal>
       )}
