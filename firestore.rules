@@ -253,6 +253,314 @@ service cloud.firestore {
         && festWaitlistOk(resource.data, request.resource.data, slotBefore, slotAfter, request.auth.uid, wasWl, isWl);
     }
 
+    // EVENTS E2 — seva-pass ticketing anchors (event_tickets). The
+    // money formulas mirror src/lib/eventTickets.ts line-for-line;
+    // the two change together or not at all. Every cross-document
+    // witness inside a purchase/cancel batch is read with getAfter:
+    // the ticket, the counter move and the wallet move commit
+    // together, so committed-state get() would see none of them.
+    // Compiled-size diet (EVENTS E2, 2026-11-21): shared field-read
+    // and clause-head shapes for the ticketing code below, in the
+    // round-3 getter idiom. Every helper is a verbatim shape match
+    // for the inline form it replaces (full-expansion proof in the
+    // batch NOTES): tkDiff is diffKeysOnly on the request/resource
+    // pair; tkNewGet/tkOldGet are the two doc-side field reads;
+    // tk*Of(m) are one-key reads on an arbitrary map; tkStaffVenue
+    // and tkBuyerGuard are the two repeated allow-clause heads.
+    function tkDiff(keys) {
+      return diffKeysOnly(request.resource.data, resource.data, keys);
+    }
+    function tkNewGet(k, dv) {
+      return request.resource.data.get(k, dv);
+    }
+    function tkOldGet(k, dv) {
+      return resource.data.get(k, dv);
+    }
+    function tkStateOf(m) {
+      return m.get('paymentState', '');
+    }
+    function tkBuyerOf(m) {
+      return m.get('buyerUid', '');
+    }
+    function tkFestOf(m) {
+      return m.get('festivalId', '');
+    }
+    function tkTierOf(m) {
+      return m.get('tierId', '');
+    }
+    function tkWsOf(m) {
+      return m.get('workspaceId', '');
+    }
+    function tkTrStateOf(m) {
+      return m.get('transferState', '');
+    }
+    function tkPlanCfg(m) {
+      return m.get('ticketing', {});
+    }
+    function tkTotalOf(m) {
+      return m.get('amounts', {}).get('total', 0);
+    }
+    function tkUseCount(m, code) {
+      return m.get('discountUses', {}).get(code, 0);
+    }
+    function tkAfterData(tp) {
+      return getAfter(tp).data;
+    }
+    function tkLadMin(lad, i) {
+      return lad[i].get('minDaysBefore', 0);
+    }
+    function tkLadPct(lad, i) {
+      return lad[i].get('percent', 0);
+    }
+    function tkPlanRes() {
+      return get(/databases/$(database)/documents/festival_plans/$(resource.data.get('festivalId', ''))).data;
+    }
+    function tkStaffVenue() {
+      return hasRole(docWs(), R_ANY_STAFF())
+        && resource.data.get('paymentState', '') == 'pay-at-venue';
+    }
+    function tkBuyerGuard() {
+      return isLoggedIn() && uidIs(resource.data.get('buyerUid', ''));
+    }
+    function tkIsTransferTo() {
+      return uidIs(resource.data.get('transferToUid', ''));
+    }
+    function ticketPath(ticketId) {
+      return /databases/$(database)/documents/event_tickets/$(ticketId);
+    }
+    function tkEffQty(data) {
+      return data.get('paymentState', '') in ['paid-wallet', 'pay-at-venue', 'comp']
+        ? data.get('qty', 0) : 0;
+    }
+    // The tierSold anchor: the published event doc's sold map may
+    // move only by the witness ticket's effective-qty delta, only
+    // on that ticket's tier, never past the published tierCaps.
+    function anchoredTierCounter(eventId) {
+      let tid = tkNewGet('tierAnchorTicketId', '');
+      let tp = ticketPath(tid);
+      let had = exists(tp);
+      let has = existsAfter(tp);
+      let qBefore = had ? tkEffQty(get(tp).data) : 0;
+      let qAfter = has ? tkEffQty(tkAfterData(tp)) : 0;
+      let tierId = has ? tkTierOf(tkAfterData(tp))
+        : (had ? tkTierOf(get(tp).data) : '');
+      let soldBefore = tkOldGet('tierSold', {});
+      let soldAfter = tkNewGet('tierSold', {});
+      return tid != ''
+        && (had || has)
+        && (has ? tkFestOf(tkAfterData(tp)) == eventId
+                : tkFestOf(get(tp).data) == eventId)
+        && diffKeys().hasOnly(['tierSold', 'tierAnchorTicketId', 'updatedAt'])
+        && diffKeysOnly(soldAfter, soldBefore, [tierId])
+        && soldAfter.get(tierId, 0) == soldBefore.get(tierId, 0) + (qAfter - qBefore)
+        && soldAfter.get(tierId, 0) >= 0
+        && (!('tierCaps' in request.resource.data)
+            || !(tierId in tkNewGet('tierCaps', {}))
+            || soldAfter.get(tierId, 0) <= tkNewGet('tierCaps', {}).get(tierId, 0));
+    }
+    // The itemised quote, recomputed from the plan's stamped maps
+    // (festival_plans carries the prices — the public event doc
+    // never carries discount codes, only their hashed terms).
+    function tkAmountsOk(d, ev, plan) {
+      let tk = tkPlanCfg(plan);
+      let tierId = tkTierOf(d);
+      let prices = tk.get('tierPrices', {});
+      let early = tk.get('tierEarly', {}).get(tierId, {});
+      let unit = (early.size() > 0 && request.time.toMillis() <= early.get('untilMs', 0))
+        ? early.get('price', 0) : prices.get(tierId, -1);
+      let qty = d.get('qty', 0);
+      let price = unit * qty;
+      let code = d.get('discountCode', '');
+      let cm = tk.get('codeMap', {}).get(code, {});
+      let disc = code == '' ? 0
+        : cm.get('kind', '') == 'flat' ? (cm.get('value', 0) < price ? cm.get('value', 0) : price)
+        : cm.get('kind', '') == 'percent' ? (price * cm.get('value', 0)) / 100
+        : cm.get('kind', '') == 'full' ? price : -1;
+      let feeBase = price - disc;
+      let fee = (feeBase * 5) / 100;
+      let gst = d.get('currency', '') == 'INR' ? (fee * 18) / 100 : 0;
+      let total = feeBase + (ev.get('ticketFeeBearer', 'organiser') == 'buyer' ? fee + gst : 0);
+      let a = d.get('amounts', {});
+      return prices.get(tierId, -1) >= 0
+        && disc >= 0 && disc <= price
+        && a.get('price', -1) == price
+        && a.get('discount', -1) == disc
+        && a.get('fee', -1) == fee
+        && a.get('gst', -1) == gst
+        && a.get('total', -1) == total
+        && ((total <= 0 && tkStateOf(d) == 'comp')
+            || (total > 0 && tkStateOf(d) in ['paid-wallet', 'pay-at-venue']))
+        && (code == '' || (cm.size() > 0
+            && (!('maxUses' in cm)
+                || tkUseCount(tk, code) < cm.get('maxUses', 0))));
+    }
+    // Create shape: household linkage (attendance passes name their
+    // party RSVP — the buyer's own doc; add-ons carry neither names
+    // nor an RSVP), per-booking cap from the plan's stamped map.
+    function tkCreateShapeOk(d, plan) {
+      let tk = tkPlanCfg(plan);
+      let kind = tk.get('tierKinds', {}).get(tkTierOf(d), '');
+      let qty = d.get('qty', 0);
+      return kind != ''
+        && qty >= 1
+        && qty <= tk.get('tierMax', {}).get(tkTierOf(d), 6)
+        && qty <= 20
+        && d.get('attendees', []) is list
+        && d.get('currency', '') in ['INR', 'BDT', 'USD']
+        && d.get('buyerName', '').size() >= 1
+        && (kind == 'addon'
+            ? (d.get('attendees', []).size() == 0 && !('rsvpId' in d))
+            : (d.get('attendees', []).size() == qty
+               && d.get('rsvpId', '') == tkFestOf(d) + '__' + request.auth.uid));
+    }
+    // The refund percent for a buyer cancel, from the plan ladder
+    // (derived sorted desc, at most 5 rungs, terminal 0-day row) —
+    // walked by bounded index, the rules language has no loops. An
+    // organiser-cancelled festival refunds 100%, fee included.
+    function tkRefundPct(plan, ev) {
+      let lad = tkPlanCfg(plan).get('refundLadder', []);
+      let days = (tkPlanCfg(plan).get('startMs', 0) - request.time.toMillis()) / 86400000;
+      return ev.get('festivalCancelled', false) == true ? 100
+        : lad.size() == 0 ? 0
+        : days >= tkLadMin(lad, 0) ? tkLadPct(lad, 0)
+        : lad.size() > 1 && days >= tkLadMin(lad, 1) ? tkLadPct(lad, 1)
+        : lad.size() > 2 && days >= tkLadMin(lad, 2) ? tkLadPct(lad, 2)
+        : lad.size() > 3 && days >= tkLadMin(lad, 3) ? tkLadPct(lad, 3)
+        : lad.size() > 4 && days >= tkLadMin(lad, 4) ? tkLadPct(lad, 4)
+        : tkLadPct(lad, lad.size() - 1);
+    }
+    // Buyer cancel: the only money-moving ticket update a buyer may
+    // make — wallet passes refund exactly the ladder's share of the
+    // total (with the wallet credit + tier release in the same
+    // batch, each anchored on this ticket); everything else simply
+    // releases the place.
+    function tkBuyerCancelOk() {
+      let plan = tkPlanRes();
+      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(resource.data))).data;
+      let pct = tkRefundPct(plan, ev);
+      let due = (tkTotalOf(resource.data) * pct) / 100;
+      let ns = tkStateOf(request.resource.data);
+      return tkDiff(['paymentState', 'refundAmount', 'refundedAt', 'updatedAt'])
+        && ((ns == 'refunded'
+             && tkStateOf(resource.data) == 'paid-wallet'
+             && due > 0
+             && tkNewGet('refundAmount', 0) == due)
+          || (ns == 'cancelled'
+              && (tkStateOf(resource.data) != 'paid-wallet' || due == 0)));
+    }
+    // Transfer accept: the recipient becomes the buyer in the same
+    // transaction that rebinds the RSVP; the festival must not have
+    // begun (the plan's stamped start is the cutoff).
+    function tkAcceptOk() {
+      let plan = tkPlanRes();
+      return tkTrStateOf(resource.data) == 'offered'
+        && tkIsTransferTo()
+        && tkBuyerOf(request.resource.data) == request.auth.uid
+        && tkNewGet('transferFromUid', '') == tkBuyerOf(resource.data)
+        && !('transferToUid' in request.resource.data)
+        && !('transferState' in request.resource.data)
+        && tkDiff(['buyerUid', 'buyerName', 'transferFromUid', 'transferredAt',
+             'transferToUid', 'transferToName', 'transferState', 'offeredAt', 'rsvpId', 'updatedAt'])
+        && request.time.toMillis() < tkPlanCfg(plan).get('startMs', 0);
+    }
+    // Wallet debit for a pass purchase — the marketplace debit's
+    // twin, anchored on the ticket (getAfter: same batch).
+    function tkWalletDebitOk() {
+      let data = request.resource.data;
+      let old = resource.data;
+      let tid = data.get('lastDebitTicketId', '');
+      let tp = ticketPath(tid);
+      let tk = tkAfterData(tp);
+      let total = tkTotalOf(tk);
+      return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitTicketId', 'currency'])
+        && tid != '' && tid != old.get('lastDebitTicketId', '')
+        && existsAfter(tp)
+        && tkBuyerOf(tk) == request.auth.uid
+        && tkStateOf(tk) == 'paid-wallet'
+        && total > 0
+        && data.get('balance', -1) == old.get('balance', 0) - total
+        && data.get('balance', -1) >= 0
+        && data.get('totalSpent', -1) == old.get('totalSpent', 0) + total;
+    }
+    // Wallet refund credit — anchored on the refunded ticket.
+    function tkWalletRefundOk(uid) {
+      let data = request.resource.data;
+      let old = resource.data;
+      let tid = data.get('lastRefundTicketId', '');
+      let tp = ticketPath(tid);
+      let tk = tkAfterData(tp);
+      let amt = tk.get('refundAmount', 0);
+      return diffKeysOnly(data, old, ['balance', 'totalReceived', 'updatedAt', 'lastRefundTicketId', 'currency'])
+        && tid != '' && tid != old.get('lastRefundTicketId', '')
+        && existsAfter(tp)
+        && tkBuyerOf(tk) == uid
+        && tkStateOf(tk) == 'refunded'
+        && amt > 0
+        && data.get('balance', -1) == old.get('balance', 0) + amt
+        && data.get('totalReceived', -1) == old.get('totalReceived', 0) + amt;
+    }
+    // Discount-use increment: a purchase batch may raise exactly
+    // its own code's use count by one, under the code's cap,
+    // witnessed by the batch's own tier-anchor ticket.
+    function anchoredDiscountUse(planId) {
+      let oldTk = tkPlanCfg(resource.data);
+      let newTk = tkPlanCfg(request.resource.data);
+      let evAfter = getAfter(/databases/$(database)/documents/festival_events/$(planId)).data;
+      let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
+      let tk = tkAfterData(tp);
+      let code = tk.get('discountCode', '');
+      let cm = oldTk.get('codeMap', {}).get(code, {});
+      return code != ''
+        && !exists(tp) && existsAfter(tp)
+        && tkFestOf(tk) == planId
+        && tkBuyerOf(tk) == request.auth.uid
+        && tkDiff(['ticketing'])
+        && diffKeysOnly(newTk, oldTk, ['discountUses'])
+        && diffKeysOnly(newTk.get('discountUses', {}), oldTk.get('discountUses', {}), [code])
+        && tkUseCount(newTk, code) == tkUseCount(oldTk, code) + 1
+        && (!('maxUses' in cm) || tkUseCount(newTk, code) <= cm.get('maxUses', 0));
+    }
+    // Ticket create: buyer-self only, pinned field shape, the
+    // workspace agreeing on all three docs, shape + amounts checked
+    // against the plan's stamped maps (tkCreateShapeOk/tkAmountsOk).
+    function tkCreateOk() {
+      let d = request.resource.data;
+      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(d))).data;
+      let plan = get(/databases/$(database)/documents/festival_plans/$(tkFestOf(d))).data;
+      return uidIs(tkBuyerOf(d))
+        && tkWsOf(d) != ''
+        && tkFestOf(d) != ''
+        && tkWsOf(ev) == tkWsOf(d)
+        && tkWsOf(plan) == tkWsOf(d)
+        && d.keys().hasOnly(
+             ['workspaceId', 'festivalId', 'tierId', 'tierName', 'buyerUid', 'buyerName',
+              'attendees', 'qty', 'amounts', 'currency', 'discountCode', 'paymentState',
+              'rsvpId', 'createdAt'])
+        && tkCreateShapeOk(d, plan)
+        && tkAmountsOk(d, ev, plan);
+    }
+    // The refund ledger line's anchor (walletTransactions create).
+    function tkRefundLedgerOk() {
+      let tk = getAfter(ticketPath(reqOrderId())).data;
+      return reqOrderId() != ''
+        && reqAmount() > 0
+        && tkBuyerOf(tk) == request.auth.uid
+        && tkStateOf(tk) == 'refunded'
+        && tk.get('refundAmount', 0) == reqAmount();
+    }
+    // The giver's RSVP delete inside a transfer-accept transaction,
+    // witnessed by the rebound ticket's after-state.
+    function festRsvpTransferDeleteOk() {
+      let tid = tkOldGet('ticketId', '');
+      let tp = ticketPath(tid);
+      let tk = tkAfterData(tp);
+      return tid != ''
+        && existsAfter(tp)
+        && tkBuyerOf(tk) == request.auth.uid
+        && tk.get('transferFromUid', '') == resUid()
+        && tkFestOf(tk) == tkOldGet('eventId', '');
+    }
+
     // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
     function R_FINANCE() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT'];
@@ -683,8 +991,14 @@ service cloud.firestore {
     // Pillar 2 â Festival war-room (market domination).
     match /festival_plans/{planId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
         && (resource == null || wsImmutable());
+      allow update: if ((demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
+          && wsImmutable())
+        // EVENTS E2: a buyer's purchase batch may raise exactly its
+        // own discount code's use count (anchoredDiscountUse) —
+        // nothing else in the plan is reachable by a non-staff write.
+        || (isLoggedIn() && anchoredDiscountUse(planId));
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
@@ -695,7 +1009,10 @@ service cloud.firestore {
         || hasRole(newDocWs(), R_BOARD());
       allow update: if demoWriteOk(docWs())
         || hasRole(docWs(), R_BOARD())
-        || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId));
+        || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId))
+        // EVENTS E2: the tierSold anchor — sold counts move only
+        // with a witness ticket's purchase / cancel (same batch).
+        || (isLoggedIn() && wsImmutable() && anchoredTierCounter(eventId));
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
@@ -717,7 +1034,7 @@ service cloud.firestore {
                 && request.resource.data.get('days', []).size() <= 14))
         && request.resource.data.keys().hasOnly(
              ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt',
-              'status', 'days'])
+              'status', 'days', 'ticketId'])
         // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
@@ -733,7 +1050,69 @@ service cloud.firestore {
                   && reqStatus() == 'confirmed')))
         || hasRole(docWs(), R_TRUSTEE());
       allow delete: if (isLoggedIn() && uidIs(resUid()))
-        || hasRole(docWs(), R_TRUSTEE());
+        || hasRole(docWs(), R_TRUSTEE())
+        // EVENTS E2: inside a transfer-accept transaction the
+        // RECIPIENT deletes the giver's party record — witnessed by
+        // the rebound ticket (festRsvpTransferDeleteOk).
+        || (isLoggedIn() && festRsvpTransferDeleteOk());
+    }
+
+    // EVENTS E2 — seva passes (NEW COLLECTION, flagged to the owner
+    // in advance). One record per purchase: the buyer, every named
+    // attendee, the itemised amounts and the payment state. Created
+    // only by the buyer for themselves, with the quote recomputed
+    // here from the plan's stamped maps; updates are the legal
+    // one-way transitions only, each key-pinned; deletes denied —
+    // a pass is cancelled or refunded, never erased.
+    match /event_tickets/{ticketId} {
+      allow read: if isLoggedIn()
+        && (uidIs(resource.data.get('buyerUid', ''))
+          || tkIsTransferTo()
+          || hasRole(docWs(), R_ANY_STAFF()));
+      allow create: if isLoggedIn() && tkCreateOk();
+      // Buyer cancel / wallet refund (the ladder decides the amount).
+      allow update: if tkBuyerGuard()
+        && tkBuyerCancelOk();
+      // Buyer offers a transfer (live passes only).
+      allow update: if tkBuyerGuard()
+        && tkStateOf(resource.data) in ['paid-wallet', 'pay-at-venue', 'comp']
+        && tkTrStateOf(request.resource.data) == 'offered'
+        && tkNewGet('transferToUid', '') != ''
+        && tkNewGet('transferToUid', '') != tkBuyerOf(resource.data)
+        && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
+      // Buyer withdraws an offer / dismisses a decline.
+      allow update: if tkBuyerGuard()
+        && tkTrStateOf(resource.data) in ['offered', 'declined']
+        && !('transferToUid' in request.resource.data)
+        && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
+      // Recipient declines.
+      allow update: if isLoggedIn() && tkIsTransferTo()
+        && tkTrStateOf(resource.data) == 'offered'
+        && tkTrStateOf(request.resource.data) == 'declined'
+        && tkDiff(['transferState', 'updatedAt']);
+      // Recipient accepts (rebinds buyer + RSVP link, before the start).
+      allow update: if isLoggedIn() && tkAcceptOk();
+      // Staff mark pay-at-venue money received at the desk.
+      allow update: if tkStaffVenue()
+        && tkNewGet('venueReceived', false) == true
+        && tkDiff(['venueReceived', 'receivedBy', 'receivedAt', 'updatedAt']);
+      // Staff desk-refund of a RECEIVED venue payment (full total;
+      // the treasury Expense posts through the app path).
+      allow update: if tkStaffVenue()
+        && tkOldGet('venueReceived', false) == true
+        && tkStateOf(request.resource.data) == 'refunded'
+        && tkNewGet('refundAmount', 0) == tkTotalOf(resource.data)
+        && tkDiff(['paymentState', 'refundAmount', 'refundedAt', 'updatedAt']);
+      // Staff desk-cancel of an UNRECEIVED venue pass.
+      allow update: if tkStaffVenue()
+        && tkOldGet('venueReceived', false) != true
+        && tkStateOf(request.resource.data) == 'cancelled'
+        && tkDiff(['paymentState', 'updatedAt']);
+      // Staff treasury stamp (the real tx id, after posting income).
+      allow update: if hasRole(docWs(), R_ANY_STAFF())
+        && tkNewGet('treasuryTxId', '') != ''
+        && tkDiff(['treasuryTxId', 'treasuryPostedAt', 'updatedAt']);
+      allow delete: if false;
     }
 
     // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav
@@ -1691,7 +2070,11 @@ service cloud.firestore {
         || (isLoggedIn() && uidIs(uid) && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
         || (isLoggedIn() && p2pSettlementCreditOk(uid))
-        || (isLoggedIn() && referralWalletCreditOk(uid));
+        || (isLoggedIn() && referralWalletCreditOk(uid))
+        // EVENTS E2: seva-pass purchase debit + refund credit,
+        // each anchored on its ticket (same batch, getAfter).
+        || (isLoggedIn() && uidIs(uid) && tkWalletDebitOk())
+        || (isLoggedIn() && uidIs(uid) && tkWalletRefundOk(uid));
       allow delete: if false;
     }
     // Wallet transactions: append-only ledger. Clients record their own
@@ -1730,7 +2113,13 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('receiverId', '') == reqUid()
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('amount', 0) == reqAmount()
           && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('currency', '') == request.resource.data.get('currency', '')
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('status', '') == 'accepted');
+          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('status', '') == 'accepted')
+        // EVENTS E2: the refund ledger line of a seva-pass cancel —
+        // anchored to the refunded ticket (tkRefundLedgerOk).
+        || (isLoggedIn()
+          && uidIs(reqUid())
+          && request.resource.data.get('type', '') == 'refund'
+          && tkRefundLedgerOk());
       allow update, delete: if false;
     }
     // Top-up claims: user files (pending only); owner approves â credits
