@@ -90,6 +90,17 @@ describe('cloneFestivalForNextYear', () => {
     expect(set.festival.notes).toBe('Last year went well.');
   });
 
+  it('EVENTS E4 — carries the debrief lessons into next year, pre-filled', () => {
+    const withLessons: Festival = {
+      ...festival,
+      lessons: 'Book the pandal two months early; the east gate needs a second sevadar after 7 pm.',
+    };
+    const cloned = cloneFestivalForNextYear(withLessons, children, newId);
+    expect(cloned.festival.lessons).toBe(withLessons.lessons);
+    // A record that never wrote lessons clones without inventing any.
+    expect(set.festival.lessons).toBeUndefined();
+  });
+
   it('copies budget with planned carried, actual reset to 0, treasury link dropped', () => {
     expect(set.budget).toHaveLength(2);
     const income = set.budget.find((b) => b.id === 'b1-n');

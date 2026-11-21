@@ -10,4 +10,27 @@
   .print-summary {
     display: block !important;
   }
+
+  /* EVENTS E4 — the festival debrief sheet prints ALONE (the
+     cashcustody isolation idiom: everything invisible, the sheet
+     visible and lifted to the page origin). The :has() guard
+     scopes every rule to a debrief print in flight — the sheet
+     exists in the DOM only during its own print state — so the
+     UC / summary prints above are never affected. The sheet is
+     .receipt-paper: its colours are the paper family's own, and
+     no rule here (or anywhere) recolours paper. */
+  body:has(.print-debrief) * {
+    visibility: hidden;
+  }
+  body:has(.print-debrief) .print-debrief,
+  body:has(.print-debrief) .print-debrief * {
+    visibility: visible;
+  }
+  body:has(.print-debrief) .print-debrief {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
 }

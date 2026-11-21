@@ -27,6 +27,7 @@ import { TicketPurchaseSection, MyTicketCard, TicketOfferCard } from './TicketPu
 import type { EventTicket } from '../../lib/eventTickets';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
+import { formatMoney } from '../../lib/money';
 
 const inputCls =
   'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 min-h-[44px]';
@@ -334,6 +335,60 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
             card takes the invitation's place. */}
         {festivalConcluded(event, Date.now()) && (
           <FestivalMemoryCard event={event} rsvps={null} tr={tr} />
+        )}
+
+        {/* EVENTS E4 — the committee MAY publish the debrief's
+            aggregates from the War Room: attendance and totals
+            only. The summary's shape cannot carry a name or any
+            per-person figure, and the block renders only when the
+            committee has stamped it onto this doc. */}
+        {event.debriefSummary && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
+            <h2 className="font-extrabold text-stone-800 mb-1 text-center">
+              {tr({ en: 'How the festival went', bn: 'উৎসব কেমন গেল', hi: 'उत्सव कैसा रहा' })}
+            </h2>
+            <p className="text-center text-xs text-stone-400 mb-4">
+              {tr({ en: 'Published by the committee from the festival records.', bn: 'সমিতি কর্তৃক উৎসবের রেকর্ড থেকে প্রকাশিত।', hi: 'समिति द्वारा उत्सव के रिकॉर्ड से प्रकाशित।' })}
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-black text-stone-800 tnum">
+                  {event.debriefSummary.arrivedHeads.toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                  {tr({ en: 'Devotees came', bn: 'ভক্ত এসেছেন', hi: 'भक्त आए' })}
+                </div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-stone-800 tnum">
+                  {event.debriefSummary.expectedHeads.toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                  {tr({ en: 'Expected', bn: 'প্রত্যাশিত', hi: 'अपेक्षित' })}
+                </div>
+              </div>
+              {event.debriefSummary.passCollected > 0 && (
+                <div>
+                  <div className="text-2xl font-black text-stone-800 tnum">
+                    {formatMoney(event.debriefSummary.passCollected, event.debriefSummary.currency)}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                    {tr({ en: 'Seva pass money', bn: 'সেবা পাসের অর্থ', hi: 'सेवा पास का धन' })}
+                  </div>
+                </div>
+              )}
+              {event.debriefSummary.donationsReceived !== null && (
+                <div>
+                  <div className="text-2xl font-black text-stone-800 tnum">
+                    {formatMoney(event.debriefSummary.donationsReceived, event.debriefSummary.currency)}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                    {tr({ en: 'Donations received', bn: 'দান প্রাপ্ত', hi: 'दान प्राप्त हुआ' })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* RSVP */}

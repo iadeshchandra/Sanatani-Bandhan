@@ -11,7 +11,7 @@ import { cloneFestivalForNextYear } from './cloneFestival';
 
 const blank: Omit<Festival, 'id'> = {
   name: '', deity: '', occasion: '', startDate: todayISO(), endDate: todayISO(),
-  venue: '', expectedFootfall: 1000, status: 'planned', notes: '',
+  venue: '', expectedFootfall: 1000, status: 'planned', notes: '', lessons: '',
 };
 
 export const FestivalsTab: React.FC = () => {
@@ -23,7 +23,7 @@ export const FestivalsTab: React.FC = () => {
 
   const openNew = () => { setForm(blank); setEditing({ ...blank, id: '' } as Festival); };
   const openEdit = (f: Festival) => {
-    setForm({ name: f.name, deity: f.deity, occasion: f.occasion, startDate: f.startDate, endDate: f.endDate, venue: f.venue, expectedFootfall: f.expectedFootfall, status: f.status, notes: f.notes || '' });
+    setForm({ name: f.name, deity: f.deity, occasion: f.occasion, startDate: f.startDate, endDate: f.endDate, venue: f.venue, expectedFootfall: f.expectedFootfall, status: f.status, notes: f.notes || '', lessons: f.lessons || '' });
     setEditing(f);
   };
 
@@ -157,6 +157,17 @@ export const FestivalsTab: React.FC = () => {
             </Field>
             <Field label={t('ritual.common.notes')} className="sm:col-span-2">
               <input className={inputCls} value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </Field>
+            {/* EVENTS E4 — the debrief's "Lessons for next year".
+                Stored on the record; clone-last-year carries it,
+                so next year's record opens with it pre-filled. */}
+            <Field label={t('surfaces.events.debriefLessonsTitle')} className="sm:col-span-2">
+              <textarea
+                className={`${inputCls} min-h-[72px]`}
+                value={form.lessons || ''}
+                onChange={(e) => setForm({ ...form, lessons: e.target.value })}
+                placeholder={t('surfaces.events.debriefLessonsHint')}
+              />
             </Field>
           </div>
           <div className="flex gap-2 mt-4">

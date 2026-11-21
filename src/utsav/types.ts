@@ -22,6 +22,14 @@ export interface Festival {
   expectedFootfall: number;
   status: FestivalStatus;
   notes?: string;
+  /**
+   * EVENTS E4 — "Lessons for next year": the committee's own words
+   * from this festival's debrief. Written in the War Room debrief
+   * (or the Festivals tab), stored on the record inside the
+   * utsav_stores doc, and CARRIED by clone-last-year so next year's
+   * record opens with them pre-filled.
+   */
+  lessons?: string;
 }
 
 export type BudgetKind = 'income' | 'expense';

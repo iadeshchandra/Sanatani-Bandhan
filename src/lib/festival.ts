@@ -561,7 +561,46 @@ export interface FestivalEventDoc {
   discountTerms?: Record<string, { kind: 'flat' | 'percent' | 'full'; value: number }>;
   /** Trustee cancelled the festival — paid passes refund in full. */
   festivalCancelled?: boolean;
+  /**
+   * EVENTS E4 — the debrief's public summary, stamped onto the doc
+   * ONLY when a trustee deliberately publishes it from the War Room
+   * debrief (the festival page's own publish path — the same setDoc
+   * merge that stamps festivalCancelled). Aggregates only: no names,
+   * no per-person data exists in this shape, so none can leak.
+   * Absent = never published (or withdrawn).
+   */
+  debriefSummary?: FestivalDebriefSummary;
   updatedAt: string;
+}
+
+/**
+ * EVENTS E4 — the public-safe debrief summary (see FestivalEventDoc
+ * .debriefSummary). Every figure is an aggregate computed from the
+ * festival's own records by lib/festivalDebrief.buildPublicSummary.
+ * Money totals are money the records say was actually collected /
+ * received / utilised — never planned figures.
+ */
+export interface FestivalDebriefSummary {
+  /** ISO timestamp of (re)publication. */
+  publishedAt: string;
+  /** Whole days the festival ran (≥1). */
+  days: number;
+  /** Confirmed RSVP heads (the expected crowd). */
+  expectedHeads: number;
+  /** Confirmed heads the gate/War Room marked arrived. */
+  arrivedHeads: number;
+  /** Confirmed parties (families/groups) who RSVP'd. */
+  families: number;
+  /** Seva-pass money actually collected (wallet + venue-received). */
+  passCollected: number;
+  /** Donations received (Utsav budget 'Donations' actual) — null
+   *  when no Utsav festival record is linked to this festival. */
+  donationsReceived: number | null;
+  /** Total utilised (Utsav budget expense actuals) — null when no
+   *  Utsav festival record is linked. */
+  totalUtilised: number | null;
+  /** Currency the money figures were recorded in. */
+  currency: string;
 }
 
 export interface RsvpEntry {

@@ -9,6 +9,10 @@
  * What carries over (the PLAN):
  *   · the festival itself — dates +1 year, status back to 'planned'
  *     (the earliest FestivalStatus), trailing year in the name moved;
+ *     the record's own words ride along too — `notes`, and EVENTS
+ *     E4's `lessons` ("Lessons for next year" from the debrief), so
+ *     the new record opens with last year's lessons pre-filled for
+ *     the committee to edit, not buried in a closed record;
  *   · budget lines — planned carried, actual reset to 0, and the
  *     treasury link dropped (last year's posting is last year's);
  *   · committee members — the samiti is usually the same people;

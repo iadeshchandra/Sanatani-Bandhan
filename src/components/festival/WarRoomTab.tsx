@@ -28,6 +28,7 @@ import { BudgetWarCard } from './BudgetWarCard';
 import { ChecklistOps } from './ChecklistOps';
 import { PublishPanel } from './PublishPanel';
 import { TicketSalesPanel } from './TicketSalesPanel';
+import { DebriefCard } from './DebriefCard';
 
 /* Readiness ring — one calm number. */
 const ReadinessRing: React.FC<{ score: number }> = ({ score }) => {
@@ -392,6 +393,13 @@ const WarRoomInner: React.FC = () => {
       {template && <ChecklistOps wf={wf} plan={p} patch={patch} template={template} />}
       <PublishPanel wf={wf} plan={p} patchPlan={patch} />
       <TicketSalesPanel wf={wf} plan={p} />
+      {/* EVENTS E4 — the debrief pack. Shown once the festival is
+          live or its register has records; a countdown festival
+          with nothing recorded yet would be a wall of empty
+          states, so it waits for its first record. */}
+      {(wf.phase === 'live' || cloud.rsvps.length > 0) && (
+        <DebriefCard wf={wf} plan={p} event={cloud.event} rsvps={cloud.rsvps} />
+      )}
     </div>
   );
 };
