@@ -4,12 +4,19 @@ import { db } from '../../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
-import { ShieldCheck, History, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, History, CheckCircle2, Ticket } from 'lucide-react';
 import { QRScanner as CommonQRScanner } from '../common/QRScanner';
+import { EventGateMode } from './EventGateMode';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const QRScanner: React.FC = () => {
   const { activeWorkspace } = useAuthWorkspace();
   const { showToast } = useToast();
+  const { t } = useLanguage();
+  // EVENTS E3 — the desk runs two gates over the same pass family:
+  // the darshan gate (dynamic devotee passes) and the event gate
+  // (SB-EVENT festival passes with one-scan-once check-in).
+  const [mode, setMode] = useState<'darshan' | 'event'>('darshan');
 
   const [recentScans, setRecentScans] = useState<Array<{
     id: string;
@@ -69,19 +76,62 @@ export const QRScanner: React.FC = () => {
               5-Min Dynamic Token Expiry
             </span>
           </div>
-          <h2 className="text-2xl font-black text-amber-300">Darshan Gate & Security Scanner</h2>
+          <h2 className="text-2xl font-black text-amber-300">
+            {mode === 'event' ? t('surfaces.events.gateModeEventTitle') : 'Darshan Gate & Security Scanner'}
+          </h2>
           <p className="text-xs text-temple-400 mt-1 max-w-xl">
-            Live camera checks each dynamic pass on this device — its signature stamp and its 5-minute expiry. Expired passes are rejected instantly with sound and screen cues, and a screenshot of a pass stops working once the pass expires.
+            {mode === 'event'
+              ? t('surfaces.events.gateModeEventSub')
+              : 'Live camera checks each dynamic pass on this device — its signature stamp and its 5-minute expiry. Expired passes are rejected instantly with sound and screen cues, and a screenshot of a pass stops working once the pass expires.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-temple-950/80 px-4 py-3 rounded-2xl border border-temple-800">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-temple-400">Scans This Session</p>
-            <p className="text-xl font-black text-emerald-400">{recentScans.length}</p>
+        {mode === 'darshan' && (
+          <div className="flex items-center gap-4 bg-temple-950/80 px-4 py-3 rounded-2xl border border-temple-800">
+            <div>
+              <p className="text-[10px] uppercase font-bold text-temple-400">Scans This Session</p>
+              <p className="text-xl font-black text-emerald-400">{recentScans.length}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Gate mode switch (EVENTS E3) */}
+      <div className="flex gap-2" role="tablist" aria-label="Gate mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'darshan'}
+          onClick={() => setMode('darshan')}
+          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold min-h-[44px] border transition flex items-center justify-center gap-1.5 ${
+            mode === 'darshan'
+              ? 'bg-amber-500 text-temple-950 border-amber-400'
+              : 'bg-temple-900/80 text-temple-200 border-temple-700 hover:border-amber-500/50'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          {t('surfaces.events.gateModeDarshan')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'event'}
+          onClick={() => setMode('event')}
+          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold min-h-[44px] border transition flex items-center justify-center gap-1.5 ${
+            mode === 'event'
+              ? 'bg-amber-500 text-temple-950 border-amber-400'
+              : 'bg-temple-900/80 text-temple-200 border-temple-700 hover:border-amber-500/50'
+          }`}
+        >
+          <Ticket className="w-4 h-4" />
+          {t('surfaces.events.gateModeEvent')}
+        </button>
+      </div>
+
+      {mode === 'event' ? (
+        <EventGateMode />
+      ) : (
+      <>      {/* Main Scanner Grid */}
 
       {/* Main Scanner Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -143,6 +193,8 @@ export const QRScanner: React.FC = () => {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

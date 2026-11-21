@@ -22,6 +22,7 @@ import {
   applyFestivalRsvp, claimFestivalWaitlist, removeFestivalRsvp, waitlistPosition,
 } from '../../lib/festivalRsvp';
 import { festivalConcluded } from '../../lib/festivalMemory';
+import { EventPassCard } from './EventPassCard';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 
@@ -334,6 +335,11 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                   ? ` · ${myRsvp.days.map((d) => d.slice(5)).join(', ')}`
                   : ''}
               </p>
+              {/* EVENTS E3 — a confirmed place carries its gate pass:
+                  the SB-EVENT dynamic code the gate scans. */}
+              {(myRsvp.status || 'confirmed') === 'confirmed' && (
+                <EventPassCard event={event} rsvp={myRsvp} tr={tr} />
+              )}
               {(myRsvp.status || 'confirmed') === 'waitlisted' && myRsvp.slotId && (
                 <>
                   <p className="text-sm font-bold text-amber-700 mt-2">

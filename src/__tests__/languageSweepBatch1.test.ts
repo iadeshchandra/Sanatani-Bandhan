@@ -74,7 +74,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // tithiPresetPurnima, tithiPresetAmavasya, tithiPresetPradosh,
     // tithiPresetSankashti, tithiCustomLabel, tithiPakshaShukla,
     // tithiPakshaKrishna, tithiAdd, tithiHint) in all 10 languages.
-    expect(keysOf(en).length).toBe(511);
+    // EVENTS E3 adds 40 surfaces.events keys (the SB-EVENT pass card
+    // and the festival gate mode: passTitle…passRefreshNote,
+    // gateMode…gateNoFestivals) in all 10 languages.
+    expect(keysOf(en).length).toBe(551);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
