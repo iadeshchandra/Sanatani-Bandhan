@@ -361,27 +361,38 @@ service cloud.firestore {
     // The itemised quote, recomputed from the plan's stamped maps
     // (festival_plans carries the prices — the public event doc
     // never carries discount codes, only their hashed terms).
+    // Split into helpers because a rules function may declare at
+    // most 10 variables — tkAmountsOk assembles their results only.
+    function tkUnitPrice(tk, tierId) {
+      let early = tk.get('tierEarly', {}).get(tierId, {});
+      return (early.size() > 0 && request.time.toMillis() <= early.get('untilMs', 0))
+        ? early.get('price', 0) : tk.get('tierPrices', {}).get(tierId, -1);
+    }
+    function tkDisc(tk, code, price) {
+      let cm = tk.get('codeMap', {}).get(code, {});
+      let v = cm.get('value', 0);
+      let k = cm.get('kind', '');
+      return code == '' ? 0
+        : k == 'flat' ? (v < price ? v : price)
+        : k == 'percent' ? (price * v) / 100
+        : k == 'full' ? price : -1;
+    }
+    function tkCodeOk(tk, code) {
+      let cm = tk.get('codeMap', {}).get(code, {});
+      return cm.size() > 0
+        && (!('maxUses' in cm)
+            || tkUseCount(tk, code) < cm.get('maxUses', 0));
+    }
     function tkAmountsOk(d, ev, plan) {
       let tk = tkPlanCfg(plan);
-      let tierId = tkTierOf(d);
-      let prices = tk.get('tierPrices', {});
-      let early = tk.get('tierEarly', {}).get(tierId, {});
-      let unit = (early.size() > 0 && request.time.toMillis() <= early.get('untilMs', 0))
-        ? early.get('price', 0) : prices.get(tierId, -1);
-      let qty = d.get('qty', 0);
-      let price = unit * qty;
       let code = d.get('discountCode', '');
-      let cm = tk.get('codeMap', {}).get(code, {});
-      let disc = code == '' ? 0
-        : cm.get('kind', '') == 'flat' ? (cm.get('value', 0) < price ? cm.get('value', 0) : price)
-        : cm.get('kind', '') == 'percent' ? (price * cm.get('value', 0)) / 100
-        : cm.get('kind', '') == 'full' ? price : -1;
-      let feeBase = price - disc;
-      let fee = (feeBase * 5) / 100;
-      let gst = d.get('currency', '') == 'INR' ? (fee * 18) / 100 : 0;
-      let total = feeBase + (ev.get('ticketFeeBearer', 'organiser') == 'buyer' ? fee + gst : 0);
+      let price = tkUnitPrice(tk, tkTierOf(d)) * d.get('qty', 0);
+      let disc = tkDisc(tk, code, price);
+      let fee = (price - disc) * 5 / 100;
+      let gst = d.get('currency', '') == 'INR' ? fee * 18 / 100 : 0;
+      let total = (price - disc) + (ev.get('ticketFeeBearer', 'organiser') == 'buyer' ? fee + gst : 0);
       let a = d.get('amounts', {});
-      return prices.get(tierId, -1) >= 0
+      return tk.get('tierPrices', {}).get(tkTierOf(d), -1) >= 0
         && disc >= 0 && disc <= price
         && a.get('price', -1) == price
         && a.get('discount', -1) == disc
@@ -390,9 +401,7 @@ service cloud.firestore {
         && a.get('total', -1) == total
         && ((total <= 0 && tkStateOf(d) == 'comp')
             || (total > 0 && tkStateOf(d) in ['paid-wallet', 'pay-at-venue']))
-        && (code == '' || (cm.size() > 0
-            && (!('maxUses' in cm)
-                || tkUseCount(tk, code) < cm.get('maxUses', 0))));
+        && (code == '' || tkCodeOk(tk, code));
     }
     // Create shape: household linkage (attendance passes name their
     // party RSVP — the buyer's own doc; add-ons carry neither names
