@@ -171,7 +171,9 @@ export const ritual: RitualFragment = {
         statusCompleted: "పూర్తయింది",
         statusCancelled: "రద్దయింది",
         daysToGo: "{n} రోజులు మిగిలాయి",
-        editFestival: "ఉత్సవాన్ని సవరించండి"
+        editFestival: "ఉత్సవాన్ని సవరించండి",
+        copy_next_year: "వచ్చే ఏడాదికి కాపీ చేయండి",
+        toastCopiedNextYear: "వచ్చే ఏడాదికి కాపీ సిద్ధం — ప్రణాళిక వచ్చింది, వాస్తవ మొత్తాలు రీసెట్ అయ్యాయి.",
       },
       program: {
         add_slot: "స్లాట్ జోడించండి",

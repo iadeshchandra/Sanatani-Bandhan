@@ -69,7 +69,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // Design Elevation W1 adds 2 surfaces.chrome keys (languageStrip,
     // languageStripChange — the hero-first language strip, audit #3)
     // — parity assertions above unchanged.
-    expect(keysOf(en).length).toBe(499);
+    // EVENTS E1 adds 12 surfaces.events keys (the tithi recurrence
+    // editor: repeatTithi, tithiDaysLabel, tithiPresetEkadashi,
+    // tithiPresetPurnima, tithiPresetAmavasya, tithiPresetPradosh,
+    // tithiPresetSankashti, tithiCustomLabel, tithiPakshaShukla,
+    // tithiPakshaKrishna, tithiAdd, tithiHint) in all 10 languages.
+    expect(keysOf(en).length).toBe(511);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

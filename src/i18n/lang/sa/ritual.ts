@@ -171,7 +171,9 @@ export const ritual: RitualFragment = {
         statusCompleted: "संपन्नम्",
         statusCancelled: "निरस्तम्",
         daysToGo: "{n} दिनानि अवशिष्टानि",
-        editFestival: "उत्सवं संपादयतु"
+        editFestival: "उत्सवं संपादयतु",
+        copy_next_year: "अग्रिमवर्षाय प्रतिलिपिं करोतु",
+        toastCopiedNextYear: "अग्रिमवर्षाय प्रतिलिपिः सज्जा — योजना आगता, वास्तविकाङ्काः पुनःस्थापिताः।",
       },
       program: {
         add_slot: "समयविभागं योजयतु",

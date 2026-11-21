@@ -171,7 +171,9 @@ export const ritual: RitualFragment = {
         statusCompleted: "நிறைவு",
         statusCancelled: "ரத்தானது",
         daysToGo: "{n} நாட்கள் உள்ளன",
-        editFestival: "திருவிழாவை திருத்து"
+        editFestival: "திருவிழாவை திருத்து",
+        copy_next_year: "அடுத்த ஆண்டுக்கு நகலெடு",
+        toastCopiedNextYear: "அடுத்த ஆண்டுக்கு நகல் தயார் — திட்டம் வந்தது, உண்மைத் தொகைகள் மீட்டமைக்கப்பட்டன.",
       },
       program: {
         add_slot: "நேரப்பகுதி சேர்",

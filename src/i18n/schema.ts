@@ -3128,6 +3128,8 @@ export interface TranslationSchema {
         statusCancelled: string;
         daysToGo: string;
         editFestival: string;
+        copy_next_year: string;
+        toastCopiedNextYear: string;
       };
       program: {
         add_slot: string;

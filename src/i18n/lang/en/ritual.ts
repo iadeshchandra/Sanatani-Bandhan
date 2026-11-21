@@ -171,7 +171,9 @@ export const ritual: RitualFragment = {
         statusCompleted: "Completed",
         statusCancelled: "Cancelled",
         daysToGo: "{n} day(s) to go",
-        editFestival: "Edit festival"
+        editFestival: "Edit festival",
+        copy_next_year: "Copy for next year",
+        toastCopiedNextYear: "Copied for next year — the plan carries over, actuals reset.",
       },
       program: {
         add_slot: "Add slot",

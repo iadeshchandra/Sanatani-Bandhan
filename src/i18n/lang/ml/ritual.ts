@@ -171,7 +171,9 @@ export const ritual: RitualFragment = {
         statusCompleted: "പൂർത്തിയായി",
         statusCancelled: "റദ്ദാക്കി",
         daysToGo: "{n} ദിവസം ബാക്കി",
-        editFestival: "ഉത്സവം തിരുത്തുക"
+        editFestival: "ഉത്സവം തിരുത്തുക",
+        copy_next_year: "അടുത്ത വർഷത്തേക്ക് പകർത്തുക",
+        toastCopiedNextYear: "അടുത്ത വർഷത്തേക്കുള്ള പകർപ്പ് തയ്യാർ — പദ്ധതി വന്നു, യഥാർത്ഥ തുകകൾ റീസെറ്റ് ചെയ്തു.",
       },
       program: {
         add_slot: "സ്ലോട്ട് ചേർക്കുക",
