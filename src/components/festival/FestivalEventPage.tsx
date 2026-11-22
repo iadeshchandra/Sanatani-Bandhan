@@ -26,6 +26,10 @@ import { EventPassCard } from './EventPassCard';
 import { TicketPurchaseSection, MyTicketCard, TicketOfferCard } from './TicketPurchase';
 import type { EventTicket } from '../../lib/eventTickets';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
+import {
+  buildInviteMessage, datesLineFor, daysBeforeFor, whatsAppUrl,
+  type OutreachStrings,
+} from '../../lib/outreachPacks';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 import { FeedbackCard } from './FeedbackCard';
 import { feedbackPromptEligible } from '../../lib/festivalFeedback';
@@ -49,6 +53,7 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   // EVENTS P1 — my own RSVP record (readable only by me, per the
   // rules), the days I chose on a multi-day festival, and the form's
   // edit mode when I already hold a place.
@@ -672,6 +677,59 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
             ? `✓ ${tr({ en: 'Link copied — invite your family', bn: 'লিংক কপি — পরিবারকে আমন্ত্রণ', hi: 'लिंक कॉपी — परिवार को आमंत्रित करें' })}`
             : `📤 ${tr({ en: 'Share this celebration', bn: 'এই উৎসব শেয়ার করুন', hi: 'यह उत्सव साझा करें' })}`}
           </button>
+
+        {/* EVENTS E8 — invite family & friends: a ready message
+            from this festival's real data, sent from MY OWN
+            WhatsApp to people I choose (wa.me) — never bulk,
+            never sent by the app. */}
+        {!festivalConcluded(event, Date.now()) && (() => {
+          const outreachStrings: OutreachStrings = {
+            announcement: t('surfaces.events.shareMsgAnnouncement'),
+            reminder: t('surfaces.events.shareMsgReminder'),
+            reminderWhenDays: t('surfaces.events.shareMsgWhenDays'),
+            reminderWhenTomorrow: t('surfaces.events.shareMsgWhenTomorrow'),
+            reminderWhenToday: t('surfaces.events.shareMsgWhenToday'),
+            lastCall: t('surfaces.events.shareMsgLastCall'),
+            invite: t('surfaces.events.shareMsgInvite'),
+          };
+          const invite = buildInviteMessage({
+            festivalName: tr(event.name),
+            orgName: event.orgName,
+            datesLine: datesLineFor(event.dateISO, event.endDateISO),
+            link: shareUrl,
+            daysBefore: daysBeforeFor(event.dateISO, Date.now()),
+          }, outreachStrings);
+          const copyInvite = async () => {
+            try { await navigator.clipboard.writeText(invite); } catch { /* ignore */ }
+            setInviteCopied(true);
+            setTimeout(() => setInviteCopied(false), 2000);
+          };
+          return (
+            <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-5">
+              <h2 className="font-extrabold text-stone-800 text-center">
+                🙏 {t('surfaces.events.shareInviteTitle')}
+              </h2>
+              <p className="text-center text-xs text-stone-400 mt-1 mb-3">
+                {t('surfaces.events.shareInviteHint')}
+              </p>
+              <div className="rounded-2xl bg-stone-50 border border-stone-100 px-4 py-3 mb-3">
+                <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-line">{invite}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => window.open(whatsAppUrl(invite), '_blank', 'noopener')}
+                  className="flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 text-sm min-h-[44px]">
+                  {t('surfaces.events.shareOpenWhatsApp')}
+                </button>
+                <button
+                  onClick={copyInvite}
+                  className="flex-1 rounded-xl border border-stone-300 text-stone-700 font-bold py-3 text-sm min-h-[44px]">
+                  {inviteCopied ? t('surfaces.events.shareCopied') : t('surfaces.events.shareCopy')}
+                </button>
+              </div>
+            </div>
+          );
+        })()}
         {!festivalConcluded(event, Date.now()) && (
           <button onClick={doIcs}
             className="w-full rounded-2xl border border-orange-200 bg-white/70 py-3.5 text-sm font-bold text-orange-800 min-h-[44px]">

@@ -99,7 +99,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // chrome, date-group + filter labels, honest empty states, the
     // passes/debrief markers and the landing-page door) in all 10
     // languages.
-    expect(keysOf(en).length).toBe(813);
+    // EVENTS E8 adds 21 surfaces.events keys (outreach packs:
+    // sharePanelTitle…shareMsgInvite — the War Room share panel,
+    // the wa.me message templates with their reminder when-phrases,
+    // the festival page's invite block — and the pass release
+    // calendar: releaseOpensOn/releaseNotice/releaseNotYet) in all
+    // 10 languages.
+    expect(keysOf(en).length).toBe(834);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

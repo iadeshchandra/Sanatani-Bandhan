@@ -33,6 +33,7 @@ import {
   lookupDevoteeForTransfer,
   normalizeDiscountCode,
   offerTransfer,
+  passesOpen,
   purchaseTicket,
   refundAmountFor,
   refundPercentFor,
@@ -164,7 +165,8 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
           : msg === 'code-invalid' ? tr('ticketCodeInvalid')
             : msg === 'currency-mismatch' ? tr('ticketCurrencyMismatch')
               : msg === 'sold-out' ? tr('ticketSoldOut')
-                : tr('ticketBuyFailed')
+                : msg === 'passes-not-open' ? tr('releaseNotYet')
+                  : tr('ticketBuyFailed')
       );
     } finally {
       setBusy(false);
@@ -173,6 +175,25 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
 
   const unit = tier ? unitPriceAt(tier, Date.now()) : null;
   const money = (n: number) => formatMoney(n, currency);
+
+  // EVENTS E8 — the release gate: before the announced moment the
+  // purchase panel is replaced by the notice (firestore.rules
+  // refuses an early purchase too — tkReleaseOpen). The free RSVP
+  // above this section is never gated.
+  if (!passesOpen(event, Date.now())) {
+    const when = new Date(event.ticketReleaseAtMs || 0).toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+    return (
+      <section className="rounded-3xl border border-orange-100 bg-white/80 p-4 sm:p-5 shadow-sm text-center">
+        <div className="text-4xl mb-2">🪔</div>
+        <h3 className="font-black text-stone-800 text-lg">
+          {tr('releaseOpensOn').replace('{when}', when)}
+        </h3>
+        <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">{tr('releaseNotice')}</p>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-3xl border border-orange-100 bg-white/80 p-4 sm:p-5 shadow-sm">

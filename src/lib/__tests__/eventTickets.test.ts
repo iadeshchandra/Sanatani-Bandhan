@@ -19,6 +19,7 @@ import {
   deriveTicketingConfig,
   isValidDiscountCode,
   normalizeDiscountCode,
+  passesOpen,
   publicTicketStamps,
   refundAmountFor,
   refundPercentFor,
@@ -302,5 +303,71 @@ describe('canAcceptTransfer — accept window and state', () => {
     expect(canAcceptTransfer({ ...base, transferState: 'declined' }, 'u2', start - 1000, start)).toBe(false);
     expect(canAcceptTransfer({ ...base, paymentState: 'cancelled' }, 'u2', start - 1000, start)).toBe(false);
     expect(canAcceptTransfer({ ...base, paymentState: 'comp' }, 'u2', start - 1000, start)).toBe(true);
+  });
+});
+
+describe('EVENTS E8 — the pass release gate', () => {
+  const RELEASE_ISO = '2026-01-05T09:00:00.000Z';
+  const releaseMs = Date.parse(RELEASE_ISO);
+
+  it('passesOpen: absent or 0 stamp is the old, ungated path', () => {
+    expect(passesOpen({}, releaseMs - 1000)).toBe(true);
+    expect(passesOpen({ ticketReleaseAtMs: 0 }, releaseMs - 1000)).toBe(true);
+    expect(passesOpen({ ticketReleaseAtMs: undefined }, releaseMs - 1000)).toBe(true);
+  });
+
+  it('passesOpen: before the moment closed, AT the moment open', () => {
+    const ev = { ticketReleaseAtMs: releaseMs };
+    expect(passesOpen(ev, releaseMs - 1)).toBe(false);
+    expect(passesOpen(ev, releaseMs)).toBe(true);
+    expect(passesOpen(ev, releaseMs + 1)).toBe(true);
+  });
+
+  it('deriveTicketingConfig carries the release moment twice (ISO + ms)', () => {
+    const cfg = deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser', releaseAt: RELEASE_ISO },
+      {}, '2026-02-01', '2026-02-01'
+    );
+    expect(cfg.releaseAt).toBe(RELEASE_ISO);
+    expect(cfg.releaseAtMs).toBe(releaseMs);
+  });
+
+  it('deriveTicketingConfig without a release carries neither field', () => {
+    const cfg = deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser' },
+      {}, '2026-02-01', '2026-02-01'
+    );
+    expect('releaseAt' in cfg).toBe(false);
+    expect('releaseAtMs' in cfg).toBe(false);
+    const bad = deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser', releaseAt: 'not-a-date' },
+      {}, '2026-02-01', '2026-02-01'
+    );
+    expect('releaseAtMs' in bad).toBe(false);
+  });
+
+  it('validateTicketing rejects an unreadable release moment', () => {
+    expect(validateTicketing({
+      tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser', releaseAt: 'whenever',
+    })).toBe('release-date');
+    expect(validateTicketing({
+      tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser', releaseAt: RELEASE_ISO,
+    })).toBeNull();
+  });
+
+  it('the publish stamp is pinned: ticketReleaseAtMs always a number', () => {
+    const withGate = publicTicketStamps(deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser', releaseAt: RELEASE_ISO },
+      {}, '2026-02-01', '2026-02-01'
+    ));
+    expect(withGate.ticketReleaseAtMs).toBe(releaseMs);
+    const noGate = publicTicketStamps(deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser' },
+      {}, '2026-02-01', '2026-02-01'
+    ));
+    // 0 — never absent, never null: a cleared release cannot leave
+    // a stale future stamp on the merge publish, and the rules
+    // read one shape only.
+    expect(noGate.ticketReleaseAtMs).toBe(0);
   });
 });

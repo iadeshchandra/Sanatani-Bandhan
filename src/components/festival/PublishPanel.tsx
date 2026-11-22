@@ -24,6 +24,21 @@ import { doc, setDoc } from 'firebase/firestore';
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 
+/* EVENTS E8 — the release moment is edited as a local
+ * datetime-local value and stored as an ISO timestamp. */
+const isoToLocalInput = (iso?: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const localInputToIso = (v: string): string => {
+  if (!v) return '';
+  const d = new Date(v);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : '';
+};
+
 interface Props {
   wf: WarFestival;
   plan: WarRoomPlan;
@@ -93,6 +108,7 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
       base.tierCaps = {};
       base.discountTerms = {};
       base.refundPolicy = [];
+      base.ticketReleaseAtMs = 0;
       base.festivalCancelled = plan.ticketing.festivalCancelled === true;
     }
     return base;
@@ -295,13 +311,18 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
     ]
   );
   const [feeBearer, setFeeBearer] = useState<'organiser' | 'buyer'>(existing?.feeBearer ?? 'organiser');
+  const [releaseLocal, setReleaseLocal] = useState<string>(isoToLocalInput(existing?.releaseAt));
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancelled = existing?.festivalCancelled === true;
 
   const save = () => {
-    const draft = { tiers, discountCodes: codes, refundPolicy: ladder, feeBearer };
+    const releaseIso = localInputToIso(releaseLocal);
+    const draft = {
+      tiers, discountCodes: codes, refundPolicy: ladder, feeBearer,
+      ...(releaseIso ? { releaseAt: releaseIso } : {}),
+    };
     const bad = validateTicketing(draft);
     if (bad) {
       setErr(bad);
@@ -316,7 +337,11 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
   };
 
   const setCancelled = async (on: boolean) => {
-    const base = existing ?? deriveTicketingConfig({ tiers, discountCodes: codes, refundPolicy: ladder, feeBearer }, {}, wf.dateISO, wf.endDateISO);
+    const releaseIso = localInputToIso(releaseLocal);
+    const base = existing ?? deriveTicketingConfig(
+      { tiers, discountCodes: codes, refundPolicy: ladder, feeBearer, ...(releaseIso ? { releaseAt: releaseIso } : {}) },
+      {}, wf.dateISO, wf.endDateISO
+    );
     const cfg = { ...base };
     if (on) cfg.festivalCancelled = true;
     else delete cfg.festivalCancelled;
@@ -340,6 +365,7 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
     'code-shape': 'Codes are 3–24 letters, numbers, - or _ (e.g. DIWALI10).',
     'code-value': 'Check the code values — percent is 1–100, flat is above zero.',
     'ladder-shape': 'Refund rows need days 0–365 and percent 0–100.',
+    'release-date': 'Check the passes-open moment — it does not read as a valid date and time.',
   };
   const num = (v: string) => Math.max(0, parseInt(v || '0', 10) || 0);
   const rowCls = 'flex flex-wrap items-center gap-1.5 text-sm bg-stone-50 rounded-xl px-3 py-2';
@@ -474,6 +500,31 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
             <option value="buyer">Devotee</option>
           </select>
         </label>
+      </div>
+
+      {/* EVENTS E8 — the optional pass-release moment (the TTD
+          pattern): announce the festival now, open passes at a
+          known time. The public page shows the moment, and the
+          rules refuse any purchase committed before it. */}
+      <div className="mb-3 rounded-xl bg-stone-50 px-3 py-2.5">
+        <label className="text-xs font-bold text-stone-600 block mb-1">
+          <T en="Passes open on (optional)" bn="পাস খুলবে (ঐচ্ছিক)" hi="पास खुलेंगे (वैकल्पिक)" />
+        </label>
+        <p className="text-[11px] text-stone-500 mb-2">
+          <T en="Announce the festival now, and let passes open at a known moment — families can plan, and the first rush stays gentle. Leave blank to keep passes open as they are."
+            bn="এখনই উৎসব ঘোষণা করুন, পাস খুলুক একটি নির্দিষ্ট মুহূর্তে — পরিবার পরিকল্পনা করতে পারবে, প্রথম ভিড়ও থাকবে শান্ত। খালি রাখলে পাস যেমন আছে তেমনই খোলা থাকবে।"
+            hi="उत्सव अभी घोषित करें, पास एक निश्चित क्षण पर खुलें — परिवार योजना बना सकेंगे, पहली भीड़ भी शांत रहेगी। खाली छोड़ने पर पास जैसे हैं वैसे खुले रहेंगे।" />
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="datetime-local" className={`${inputCls} !w-60`} value={releaseLocal}
+            aria-label="Passes open on"
+            onChange={(e) => setReleaseLocal(e.target.value)} />
+          {releaseLocal && (
+            <Btn variant="ghost" className="!px-3" onClick={() => setReleaseLocal('')}>
+              <T en="Clear" bn="মুছুন" hi="हटाएं" />
+            </Btn>
+          )}
+        </div>
       </div>
 
       {err && <div className="text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-2">{errText[err] || err}</div>}

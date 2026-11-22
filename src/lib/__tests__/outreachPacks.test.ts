@@ -1,0 +1,138 @@
+/**
+ * outreachPacks.test.ts — EVENTS E8 pure-logic pins.
+ * =====================================================================
+ * The share & invite builders: interpolation from the festival's
+ * real data, the days-aware reminder when-phrase, the wa.me deep
+ * link's encoding (Indic scripts, emoji, newlines survive the
+ * round-trip), and the no-placeholder law — a missing value
+ * degrades its sentence, it never prints "{date}" at a devotee.
+ */
+import {
+  buildInviteMessage,
+  buildOutreachMessage,
+  datesLineFor,
+  daysBeforeFor,
+  fillTemplate,
+  reminderWhen,
+  whatsAppUrl,
+  type OutreachData,
+  type OutreachStrings,
+} from '../outreachPacks';
+
+const S: OutreachStrings = {
+  announcement: '🙏 Namaskar! {org} warmly invites you to {festival} — {dates}. Details & RSVP: {link}',
+  reminder: '🙏 A gentle reminder — {festival} at {org} is {when}. Details: {link}',
+  reminderWhenDays: 'in {days} days',
+  reminderWhenTomorrow: 'tomorrow',
+  reminderWhenToday: 'today',
+  lastCall: '🙏 Last call — {festival} at {org}, {dates}. Details: {link}',
+  invite: '🙏 I am going to {festival} at {org} — {dates}. Come with us! Details: {link}',
+};
+
+const DATA: OutreachData = {
+  festivalName: 'Durga Puja',
+  orgName: 'Mayapur Mandir',
+  datesLine: '21–23 Nov 2026',
+  link: 'https://sanatanibandhan.web.app/festival/ws1/ws1__fest1',
+  daysBefore: 5,
+};
+
+describe('buildOutreachMessage — interpolation from real data', () => {
+  it('announcement carries name, org, dates and the canonical link', () => {
+    const m = buildOutreachMessage('announcement', DATA, S);
+    expect(m).toContain('Durga Puja');
+    expect(m).toContain('Mayapur Mandir');
+    expect(m).toContain('21–23 Nov 2026');
+    expect(m).toContain(DATA.link);
+    expect(m).not.toMatch(/[{}]/);
+  });
+
+  it('last call carries the dates line', () => {
+    const m = buildOutreachMessage('lastcall', DATA, S);
+    expect(m).toContain('21–23 Nov 2026');
+    expect(m).not.toMatch(/[{}]/);
+  });
+
+  it('the personal invite is first-person', () => {
+    const m = buildInviteMessage(DATA, S);
+    expect(m.startsWith('🙏 I am going to Durga Puja')).toBe(true);
+    expect(m).toContain(DATA.link);
+  });
+});
+
+describe('the reminder when-phrase — days-aware', () => {
+  it('2+ days out speaks in days', () => {
+    expect(reminderWhen(5, S)).toBe('in 5 days');
+    expect(buildOutreachMessage('reminder', DATA, S)).toContain('is in 5 days.');
+  });
+  it('one day out is tomorrow; the day itself is today', () => {
+    expect(reminderWhen(1, S)).toBe('tomorrow');
+    expect(reminderWhen(0, S)).toBe('today');
+    expect(reminderWhen(-2, S)).toBe('today');
+  });
+  it('an unknown distance degrades the sentence, never a placeholder', () => {
+    const m = buildOutreachMessage('reminder', { ...DATA, daysBefore: null }, S);
+    expect(m).not.toMatch(/[{}]/);
+    expect(m).not.toContain('  ');
+    expect(m).toContain('Durga Puja');
+  });
+});
+
+describe('the no-placeholder law', () => {
+  it('missing org and dates degrade cleanly', () => {
+    const m = buildOutreachMessage('announcement', { ...DATA, orgName: '', datesLine: '' }, S);
+    expect(m).not.toMatch(/[{}]/);
+    expect(m).not.toContain('  ');
+    expect(m).not.toContain(' — .');
+    expect(m).toContain('Durga Puja');
+    expect(m).toContain(DATA.link);
+  });
+  it('a wholly empty record still yields the link, no braces', () => {
+    const m = buildInviteMessage(
+      { festivalName: '', orgName: '', datesLine: '', link: DATA.link, daysBefore: null },
+      S
+    );
+    expect(m).not.toMatch(/[{}]/);
+    expect(m).toContain(DATA.link);
+  });
+  it('fillTemplate removes unknown tokens with their separator', () => {
+    expect(fillTemplate('Come on {date} to {place}.', { place: 'the mandir' })).toBe(
+      'Come on to the mandir.'
+    );
+  });
+});
+
+describe('whatsAppUrl — the wa.me deep link', () => {
+  it('encodes Indic script, emoji and punctuation losslessly', () => {
+    const msg = '🙏 নমস্কার! দুর্গা পূজা — 21 Nov 2026.\nDetails: https://x.example/a?b=1&c=2';
+    const url = whatsAppUrl(msg);
+    expect(url.startsWith('https://wa.me/?text=')).toBe(true);
+    expect(decodeURIComponent(url.slice('https://wa.me/?text='.length))).toBe(msg);
+    expect(url).not.toContain(' ');
+    expect(url).not.toContain('\n');
+  });
+});
+
+describe('datesLineFor — civil dates, noon-stable', () => {
+  it('single day', () => {
+    expect(datesLineFor('2026-11-21')).toBe('21 Nov 2026');
+  });
+  it('a span inside one month collapses the month', () => {
+    expect(datesLineFor('2026-11-21', '2026-11-23')).toBe('21–23 Nov 2026');
+  });
+  it('a span across months names both', () => {
+    expect(datesLineFor('2026-11-30', '2026-12-02')).toBe('30 Nov – 2 Dec 2026');
+  });
+  it('same start and end is a single day', () => {
+    expect(datesLineFor('2026-11-21', '2026-11-21')).toBe('21 Nov 2026');
+  });
+});
+
+describe('daysBeforeFor — the festival clock', () => {
+  it('whole days until the first moment (the rules formula)', () => {
+    const start = new Date('2026-11-21T00:00:00.000Z').getTime();
+    expect(daysBeforeFor('2026-11-21', start - 5 * 86400000)).toBe(5);
+    expect(daysBeforeFor('2026-11-21', start - 86400000)).toBe(1);
+    expect(daysBeforeFor('2026-11-21', start)).toBe(0);
+  });
+});

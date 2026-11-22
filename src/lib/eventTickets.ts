@@ -307,6 +307,10 @@ export interface TicketingEditorShape {
   refundPolicy: RefundTier[];
   feeBearer: 'organiser' | 'buyer';
   festivalCancelled?: boolean;
+  /** EVENTS E8 — the optional pass-release moment (ISO timestamp):
+   *  passes open at that moment, announced in advance (the TTD
+   *  pattern). Absent/blank = passes are open as they are. */
+  releaseAt?: string;
 }
 
 /**
@@ -360,12 +364,19 @@ export function deriveTicketingConfig(
   if (ladder.length === 0 || ladder[ladder.length - 1].minDaysBefore !== 0) {
     ladder.push({ minDaysBefore: 0, percent: 0 });
   }
+  // EVENTS E8 — the release moment, carried twice: the ISO string
+  // the editor round-trips, and the epoch-ms the rules compare
+  // against request.time (the stamped-clock idiom: startMs/endMs).
+  const releaseMs = editor.releaseAt ? Date.parse(editor.releaseAt) : NaN;
   return {
     tiers: editor.tiers,
     discountCodes: editor.discountCodes,
     refundPolicy: editor.refundPolicy,
     feeBearer: editor.feeBearer,
     ...(editor.festivalCancelled ? { festivalCancelled: true } : {}),
+    ...(Number.isFinite(releaseMs)
+      ? { releaseAt: new Date(releaseMs).toISOString(), releaseAtMs: releaseMs }
+      : {}),
     tierPrices,
     tierEarly,
     tierMax,
@@ -405,7 +416,24 @@ export function validateTicketing(editor: TicketingEditorShape): string | null {
     if (!Number.isFinite(r.minDaysBefore) || r.minDaysBefore < 0) return 'refund-days';
     if (!Number.isFinite(r.percent) || r.percent < 0 || r.percent > 100) return 'refund-pct';
   }
+  if (editor.releaseAt && !Number.isFinite(Date.parse(editor.releaseAt))) return 'release-date';
   return null;
+}
+
+/**
+ * EVENTS E8 — the release gate, one formula for the page, the
+ * purchase path and (as tkReleaseOpen) firestore.rules: passes
+ * are open when the published doc carries no release moment
+ * (absent, or the 0 the stamps write for "no gate") or when that
+ * moment has arrived. The gate covers pass PURCHASE only — the
+ * free RSVP on the festival page is never gated.
+ */
+export function passesOpen(
+  event: Pick<FestivalEventDoc, 'ticketReleaseAtMs'>,
+  nowMs: number
+): boolean {
+  const ms = event.ticketReleaseAtMs;
+  return !ms || ms <= 0 || nowMs >= ms;
 }
 
 /** Public-safe stamps for the event doc, from a config. */
@@ -416,6 +444,7 @@ export function publicTicketStamps(cfg: TicketingConfig): {
   refundPolicy: RefundTier[];
   discountTerms: NonNullable<FestivalEventDoc['discountTerms']>;
   festivalCancelled: boolean;
+  ticketReleaseAtMs: number;
 } {
   const tierCaps: Record<string, number> = {};
   for (const tier of cfg.tiers) {
@@ -432,6 +461,12 @@ export function publicTicketStamps(cfg: TicketingConfig): {
     refundPolicy: cfg.refundPolicy,
     discountTerms,
     festivalCancelled: cfg.festivalCancelled === true,
+    // EVENTS E8 — always a number on a ticketing publish: the
+    // release moment's epoch ms, or 0 for "no gate". Always
+    // writing it means a cleared release can never leave a stale
+    // future stamp behind on the merge publish, and the rules
+    // read one shape only (absent on pre-E8 docs reads as 0 too).
+    ticketReleaseAtMs: cfg.releaseAtMs && cfg.releaseAtMs > 0 ? cfg.releaseAtMs : 0,
   };
 }
 
@@ -530,6 +565,10 @@ export interface PurchaseInput {
  */
 export async function purchaseTicket(db: Firestore, input: PurchaseInput): Promise<EventTicket> {
   const { event, tier } = input;
+  // EVENTS E8 — the release gate, checked before anything is
+  // written (firestore.rules refuses the ticket create too —
+  // tkReleaseOpen — this is the honest, early error).
+  if (!passesOpen(event, input.nowMs)) throw new Error('passes-not-open');
   const isAttendance = tier.kind !== 'addon';
   const qty = isAttendance ? input.attendees.length : Math.max(1, Math.floor(input.qty || 1));
   const code = normalizeDiscountCode(input.discountCode || '');

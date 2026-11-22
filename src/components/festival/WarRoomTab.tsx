@@ -27,6 +27,7 @@ import { RosterCard } from './RosterCard';
 import { BudgetWarCard } from './BudgetWarCard';
 import { ChecklistOps } from './ChecklistOps';
 import { PublishPanel } from './PublishPanel';
+import { ShareInvitePanel } from './ShareInvitePanel';
 import { TicketSalesPanel } from './TicketSalesPanel';
 import { SponsorsStallsPanel } from './SponsorsStallsPanel';
 import { DepartmentsBoard } from './DepartmentsBoard';
@@ -394,6 +395,10 @@ const WarRoomInner: React.FC = () => {
       <BudgetWarCard />
       {template && <ChecklistOps wf={wf} plan={p} patch={patch} template={template} />}
       <PublishPanel wf={wf} plan={p} patchPlan={patch} />
+      {/* EVENTS E8 — share & invite: ready WhatsApp messages from
+          the festival's real data, sent from the organiser's own
+          WhatsApp (never a bulk simulation). */}
+      <ShareInvitePanel wf={wf} plan={p} />
       <TicketSalesPanel wf={wf} plan={p} />
       {/* EVENTS E6 — the sponsors & stalls register and the seva
           departments board, on the linked Utsav festival record. */}

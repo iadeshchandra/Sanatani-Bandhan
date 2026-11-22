@@ -484,6 +484,13 @@ export interface TicketingConfig {
   feeBearer: 'organiser' | 'buyer';
   /** Trustee cancelled the festival: paid passes refund 100%. */
   festivalCancelled?: boolean;
+  /** EVENTS E8 — the optional pass-release moment, announced in
+   *  advance (the TTD pattern): the ISO string the editor edits,
+   *  and its epoch ms (derived beside it by deriveTicketingConfig)
+   *  which the publish stamps and firestore.rules compare against
+   *  request.time. Absent = no gate; passes are open as they are. */
+  releaseAt?: string;
+  releaseAtMs?: number;
   /* ---- derived validation maps (deriveTicketingMaps) ---- */
   tierPrices: Record<string, number>;
   tierEarly: Record<string, { price: number; untilMs: number }>;
@@ -561,6 +568,17 @@ export interface FestivalEventDoc {
   discountTerms?: Record<string, { kind: 'flat' | 'percent' | 'full'; value: number }>;
   /** Trustee cancelled the festival — paid passes refund in full. */
   festivalCancelled?: boolean;
+  /**
+   * EVENTS E8 — the pass-release moment as epoch ms, stamped at
+   * publish time from the plan's ticketing config (public-safe:
+   * the moment is announced, that is its purpose). ALWAYS a
+   * number on a ticketing publish — the moment, or 0 for "no
+   * gate" — so a cleared release never leaves a stale stamp;
+   * absent only on pages published before E8, which the readers
+   * treat as 0. firestore.rules (tkReleaseOpen) refuses a pass
+   * purchase committed before this moment.
+   */
+  ticketReleaseAtMs?: number;
   /**
    * EVENTS E4 — the debrief's public summary, stamped onto the doc
    * ONLY when a trustee deliberately publishes it from the War Room
