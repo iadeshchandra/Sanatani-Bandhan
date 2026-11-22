@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-6512ee9',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        { text: { en: 'The War Room now plans with your own history: after a festival\'s gate has closed, the next festival\'s planners show the expected turnout as an honest range, a prasad suggestion and a gate-volunteer hint — each with its basis printed, from your own registers. Nothing is guessed, and a festival whose register was never marked is never counted as zero.', hi: 'युद्ध-कक्ष अब आपके अपने इतिहास से योजना बनाता है: किसी उत्सव का गेट बंद होने के बाद, अगले उत्सव के योजनाकारों को अपेक्षित उपस्थिति एक ईमानदार सीमा में, प्रसाद का सुझाव और गेट-स्वयंसेवक संकेत दिखता है — हर आँकड़े के साथ उसका आधार छपा होता है, आपके अपने रजिस्टरों से। कुछ भी अनुमान नहीं लगाया जाता, और जिस उत्सव का रजिस्टर कभी चिह्नित ही नहीं हुआ, उसे कभी शून्य नहीं गिना जाता।', bn: 'ওয়ার রুম এখন আপনার নিজের ইতিহাস দিয়ে পরিকল্পনা করে: কোনো উৎসবের গেট বন্ধ হওয়ার পর, পরের উৎসবের পরিকল্পনাকারীদের কাছে প্রত্যাশিত উপস্থিতি একটি সৎ পরিসরে, প্রসাদের পরামর্শ ও গেট-স্বেচ্ছাসেবক ইঙ্গিত দেখায় — প্রতিটি সংখ্যার পাশে তার ভিত্তি ছাপা থাকে, আপনার নিজের রেজিস্টার থেকে। কিছুই অনুমান করা হয় না, আর যে উৎসবের রেজিস্টার কখনো চিহ্নিতই হয়নি, তাকে কখনো শূন্য ধরা হয় না।' } },
+        { text: { en: 'One tap — "Plan from this forecast" — can prefill the footfall planner from that range; your own number is never overwritten without your tap.', hi: 'एक टैप — "इस पूर्वानुमान से योजना बनाएँ" — उस सीमा से उपस्थिति-योजनाकार को पहले से भर सकता है; आपका अपना आँकड़ा आपके टैप के बिना कभी नहीं बदला जाता।', bn: 'একটি ট্যাপ — "এই পূর্বাভাস থেকে পরিকল্পনা করুন" — সেই পরিসর থেকে উপস্থিতি-পরিকল্পনাটি আগে থেকে ভরে দিতে পারে; আপনার নিজের সংখ্যা আপনার ট্যাপ ছাড়া কখনো বদলায় না।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.22-30baa15',
     date: '2026-11-22',
     sections: {
